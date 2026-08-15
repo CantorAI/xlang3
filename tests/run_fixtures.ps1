@@ -33,6 +33,7 @@ $cases = @(
     "dict_set",
     "native_import",
     "math_module",
+    "file_import",
     "closures",
     "nonlocal_counter"
 )

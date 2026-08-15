@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include "xlang3/builtins.h"
+#include "xlang3/import_loader.h"
 
 namespace xlang3 {
 
@@ -48,14 +49,21 @@ void Runtime::register_module(std::string name, Value module) {
   modules_[std::move(name)] = std::move(module);
 }
 
+void Runtime::unregister_module(const std::string& name) {
+  modules_.erase(name);
+}
+
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
   auto it = modules_.find(name);
   if (it == modules_.end()) {
-    error = "module '" + name + "' not found";
-    return false;
+    return import_python_module(*this, name, out, error);
   }
   out = it->second;
   return true;
+}
+
+void Runtime::add_import_root(std::filesystem::path root) {
+  import_roots_.push_back(std::move(root));
 }
 
 } // namespace xlang3

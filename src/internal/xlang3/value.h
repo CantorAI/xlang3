@@ -15,11 +15,16 @@ limitations under the License.
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace xlang3 {
+
+namespace ir {
+struct Module;
+}
 
 class Runtime;
 struct Value;
@@ -107,6 +112,12 @@ struct Value {
   static Value module(std::string name);
   static Value cell(Value value);
   static Value function(uint32_t function_id, std::vector<Value> closure);
+  static Value function(uint32_t function_id, std::vector<Value> closure, Value globals_module);
+  static Value function(
+      uint32_t function_id,
+      std::vector<Value> closure,
+      Value globals_module,
+      std::shared_ptr<const ir::Module> module);
   static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);
 };
 
@@ -124,6 +135,8 @@ struct FunctionObject {
   Object header;
   uint32_t function_id = 0;
   std::vector<Value> closure;
+  Value globals_module;
+  std::shared_ptr<const ir::Module> module;
 };
 
 FunctionObject* value_as_function(const Value& value);

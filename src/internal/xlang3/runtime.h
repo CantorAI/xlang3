@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/value.h"
 
+#include <filesystem>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -34,13 +35,17 @@ public:
   const Value* find_builtin(const std::string& name) const;
   Value make_native_function(std::string name, NativeFunctionCallback callback);
   void register_module(std::string name, Value module);
+  void unregister_module(const std::string& name);
   bool import_module(const std::string& name, Value& out, std::string& error);
+  void add_import_root(std::filesystem::path root);
+  const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
 
 private:
   std::ostream& out_;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
+  std::vector<std::filesystem::path> import_roots_;
 };
 
 } // namespace xlang3

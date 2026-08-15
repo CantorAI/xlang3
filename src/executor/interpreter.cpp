@@ -41,14 +41,28 @@ Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
 
 RuntimeResult Interpreter::run(const ir::Module& module) {
   static const std::vector<Value> empty_closure;
-  return run_function(module, module.entry, {}, empty_closure);
+  return run_function(module, module.entry, {}, empty_closure, Value::invalid(), nullptr);
+}
+
+RuntimeResult Interpreter::run_module(const ir::Module& module, Value globals_module) {
+  return run_module(module, std::move(globals_module), nullptr);
+}
+
+RuntimeResult Interpreter::run_module(
+    const ir::Module& module,
+    Value globals_module,
+    std::shared_ptr<const ir::Module> module_owner) {
+  static const std::vector<Value> empty_closure;
+  return run_function(module, module.entry, {}, empty_closure, std::move(globals_module), std::move(module_owner));
 }
 
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
     uint32_t function_id,
     const std::vector<Value>& args,
-    const std::vector<Value>& fn_obj_closure) {
+    const std::vector<Value>& fn_obj_closure,
+    Value globals_module,
+    std::shared_ptr<const ir::Module> module_owner) {
   RuntimeResult result;
   if (function_id >= module.functions.size()) {
     result.errors.push_back("invalid function id");
@@ -173,8 +187,18 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         const auto& name = fn.names[in.a];
-        auto it = globals_.find(name);
-        if (it != globals_.end()) {
+        if (value_as_module(globals_module) != nullptr) {
+          std::string error;
+          if (module_get_attr(globals_module, name, regs[in.dst], error)) {
+            break;
+          }
+          if (const auto* builtin = runtime_.find_builtin(name)) {
+            regs[in.dst] = *builtin;
+          } else {
+            result.errors.push_back("name '" + name + "' is not defined");
+            return result;
+          }
+        } else if (auto it = globals_.find(name); it != globals_.end()) {
           regs[in.dst] = it->second;
         } else if (const auto* builtin = runtime_.find_builtin(name)) {
           regs[in.dst] = *builtin;
@@ -189,7 +213,15 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid global store");
           return result;
         }
-        globals_[fn.names[in.dst]] = regs[in.a];
+        if (value_as_module(globals_module) != nullptr) {
+          std::string error;
+          if (!module_set_attr(globals_module, fn.names[in.dst], regs[in.a], error)) {
+            result.errors.push_back(error);
+            return result;
+          }
+        } else {
+          globals_[fn.names[in.dst]] = regs[in.a];
+        }
         break;
       case ir::Op::ImportModule: {
         if (in.a >= fn.names.size()) {
@@ -241,7 +273,7 @@ RuntimeResult Interpreter::run_function(
           }
           closure.push_back(regs[reg]);
         }
-        regs[in.dst] = Value::function(in.a, std::move(closure));
+        regs[in.dst] = Value::function(in.a, std::move(closure), globals_module, module_owner);
         break;
       }
       case ir::Op::MakeTuple: {
@@ -440,7 +472,15 @@ RuntimeResult Interpreter::run_function(
         }
         const auto& callee = regs[in.a];
         if (auto* fn_obj = value_as_function(callee)) {
-          auto call_result = run_function(module, fn_obj->function_id, call_args, fn_obj->closure);
+          const ir::Module* call_module = &module;
+          auto call_module_owner = module_owner;
+          if (fn_obj->module != nullptr) {
+            call_module = fn_obj->module.get();
+            call_module_owner = fn_obj->module;
+          }
+          auto call_result =
+              run_function(*call_module, fn_obj->function_id, call_args, fn_obj->closure, fn_obj->globals_module,
+                           std::move(call_module_owner));
           if (!call_result.errors.empty()) {
             return call_result;
           }

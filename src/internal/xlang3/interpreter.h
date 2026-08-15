@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/ir.h"
 #include "xlang3/runtime.h"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -32,13 +33,20 @@ class Interpreter {
 public:
   explicit Interpreter(Runtime& runtime);
   RuntimeResult run(const ir::Module& module);
+  RuntimeResult run_module(const ir::Module& module, Value globals_module);
+  RuntimeResult run_module(
+      const ir::Module& module,
+      Value globals_module,
+      std::shared_ptr<const ir::Module> module_owner);
 
 private:
   RuntimeResult run_function(
       const ir::Module& module,
       uint32_t function_id,
       const std::vector<Value>& args,
-      const std::vector<Value>& closure);
+      const std::vector<Value>& closure,
+      Value globals_module,
+      std::shared_ptr<const ir::Module> module_owner);
 
   Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;

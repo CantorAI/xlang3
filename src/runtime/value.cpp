@@ -161,11 +161,25 @@ Value Value::cell(Value value) {
 }
 
 Value Value::function(uint32_t function_id, std::vector<Value> closure) {
+  return function(function_id, std::move(closure), Value::invalid());
+}
+
+Value Value::function(uint32_t function_id, std::vector<Value> closure, Value globals_module) {
+  return function(function_id, std::move(closure), std::move(globals_module), nullptr);
+}
+
+Value Value::function(
+    uint32_t function_id,
+    std::vector<Value> closure,
+    Value globals_module,
+    std::shared_ptr<const ir::Module> module) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<FunctionObject>(ObjectKind::Function);
   obj->function_id = function_id;
   obj->closure = std::move(closure);
+  obj->globals_module = std::move(globals_module);
+  obj->module = std::move(module);
   v.as.obj = &obj->header;
   return v;
 }
