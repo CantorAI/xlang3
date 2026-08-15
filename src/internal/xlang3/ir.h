@@ -27,6 +27,8 @@ enum class Op : uint16_t {
   LoadConst,
   LoadLocal,
   StoreLocal,
+  MoveLocal,
+  AddLocalConst,
   LoadCell,
   StoreCell,
   LoadCellObject,
@@ -39,6 +41,8 @@ enum class Op : uint16_t {
   ImportFrom,
   LoadAttr,
   StoreAttr,
+  LoadInstanceSlot,
+  StoreInstanceSlot,
   MakeClass,
   MakeFunction,
   MakeTuple,
@@ -61,6 +65,7 @@ enum class Op : uint16_t {
   Neg,
   Jump,
   JumpIfFalse,
+  JumpIfLocalConstFalse,
   SetupExcept,
   PopExcept,
   Raise,
@@ -103,6 +108,7 @@ struct Function {
   std::vector<std::vector<std::pair<uint32_t, uint32_t>>> dict_items;
   std::vector<std::vector<uint32_t>> function_closures;
   std::vector<std::vector<std::pair<std::string, uint32_t>>> class_attrs;
+  std::vector<std::vector<std::string>> class_instance_slots;
   std::vector<Instr> code;
 };
 

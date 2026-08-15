@@ -124,7 +124,10 @@ struct Value {
       Value globals_module,
       std::shared_ptr<const ir::Module> module);
   static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);
-  static Value class_object(std::string name, std::vector<std::pair<std::string, Value>> attrs);
+  static Value class_object(
+      std::string name,
+      std::vector<std::pair<std::string, Value>> attrs,
+      std::vector<std::string> instance_slots = {});
   static Value instance(Value klass);
   static Value bound_method(Value self, Value function);
 };

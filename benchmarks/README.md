@@ -28,6 +28,7 @@ Current groups:
 - `scalar_arithmetic`: integer and floating-point operator dispatch
 - `local_slots`: local variable load/store and loop behavior
 - `function_calls`: direct function calls and argument passing
+- `class_construct`: class calls, `__init__`, instance attributes, and method calls
 - `branches`: if/else and comparison dispatch
 - `list_append`: native method binding and list append behavior
 - `range_for`: range iteration and for-loop dispatch

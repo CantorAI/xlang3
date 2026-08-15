@@ -17,10 +17,149 @@ limitations under the License.
 
 #include <cstdlib>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace xlang3 {
 
 namespace {
+
+struct ClassInfo {
+  std::unordered_map<std::string, uint32_t> slots;
+};
+
+void add_slot_name(const std::string& name, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
+  if (seen.insert(name).second) {
+    slots.push_back(name);
+  }
+}
+
+void collect_self_attr_slots_expr(
+    const ast::Expr& expr,
+    const std::string& self_name,
+    std::vector<std::string>& slots,
+    std::unordered_set<std::string>& seen) {
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(attr->object.get())) {
+      if (name->name == self_name) {
+        add_slot_name(attr->name, slots, seen);
+      }
+    }
+    collect_self_attr_slots_expr(*attr->object, self_name, slots, seen);
+    return;
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*unary->expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*binary->lhs, self_name, slots, seen);
+    collect_self_attr_slots_expr(*binary->rhs, self_name, slots, seen);
+    return;
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*call->callee, self_name, slots, seen);
+    for (const auto& arg : call->args) {
+      collect_self_attr_slots_expr(*arg, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*subscript->object, self_name, slots, seen);
+    collect_self_attr_slots_expr(*subscript->index, self_name, slots, seen);
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      collect_self_attr_slots_expr(*item, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      collect_self_attr_slots_expr(*item, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    for (const auto& item : set->items) {
+      collect_self_attr_slots_expr(*item, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    for (const auto& entry : dict->entries) {
+      collect_self_attr_slots_expr(*entry.first, self_name, slots, seen);
+      collect_self_attr_slots_expr(*entry.second, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->result, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+  }
+}
+
+void collect_self_attr_slots_stmt(
+    const ast::Stmt& stmt,
+    const std::string& self_name,
+    std::vector<std::string>& slots,
+    std::unordered_set<std::string>& seen) {
+  if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->object.get())) {
+      if (name->name == self_name) {
+        add_slot_name(assign->name, slots, seen);
+      }
+    }
+    collect_self_attr_slots_expr(*assign->object, self_name, slots, seen);
+    collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assign->object, self_name, slots, seen);
+    collect_self_attr_slots_expr(*assign->index, self_name, slots, seen);
+    collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*expr->expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*ret->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*raise->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*ifs->condition, self_name, slots, seen);
+    for (const auto& child : ifs->then_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    for (const auto& child : ifs->else_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*loop->condition, self_name, slots, seen);
+    for (const auto& child : loop->body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*loop->iterable, self_name, slots, seen);
+    for (const auto& child : loop->body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+    for (const auto& child : try_except->try_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    for (const auto& child : try_except->except_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+  }
+}
 
 void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& names) {
   for (const auto& stmt : body) {
@@ -50,8 +189,15 @@ public:
       std::vector<std::string> params,
       std::vector<std::string> free_vars,
       const std::vector<ast::StmtPtr>& body,
-      bool is_module = false)
-      : module_(module), is_module_(is_module) {
+      bool is_module = false,
+      std::string instance_slot_self = {},
+      std::unordered_map<std::string, uint32_t> instance_slots = {},
+      std::unordered_map<std::string, ClassInfo> class_infos = {})
+      : module_(module),
+        is_module_(is_module),
+        instance_slot_self_(std::move(instance_slot_self)),
+        instance_slots_(std::move(instance_slots)),
+        class_infos_(std::move(class_infos)) {
     fn_.name = std::move(name);
     fn_.params = std::move(params);
     fn_.free_vars = std::move(free_vars);
@@ -136,6 +282,11 @@ private:
     return static_cast<uint32_t>(fn_.class_attrs.size() - 1);
   }
 
+  uint32_t add_class_instance_slots(std::vector<std::string> slots) {
+    fn_.class_instance_slots.push_back(std::move(slots));
+    return static_cast<uint32_t>(fn_.class_instance_slots.size() - 1);
+  }
+
   uint32_t ensure_local(const std::string& name) {
     auto it = locals_.find(name);
     if (it != locals_.end()) {
@@ -188,6 +339,19 @@ private:
 
   bool is_cell_local(const std::string& name) const {
     return cell_indices_.find(name) != cell_indices_.end();
+  }
+
+  bool direct_local_slot(const std::string& name, uint32_t& slot) const {
+    const auto resolved = resolve_name(name);
+    if (is_module_ || sema::contains(global_names_, resolved) || is_cell_local(resolved)) {
+      return false;
+    }
+    auto local = locals_.find(resolved);
+    if (local == locals_.end()) {
+      return false;
+    }
+    slot = local->second;
+    return true;
   }
 
   void emit(ir::Op op, uint32_t dst = 0, uint32_t a = 0, uint32_t b = 0, uint32_t c = 0) {
@@ -259,9 +423,72 @@ private:
     patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
   }
 
-  uint32_t lower_function_value(const ast::FunctionDef& fn) {
+  bool try_emit_direct_local_assign(const ast::AssignStmt& assign) {
+    uint32_t dst_slot = 0;
+    if (!direct_local_slot(assign.name, dst_slot)) {
+      return false;
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign.value.get())) {
+      uint32_t src_slot = 0;
+      if (direct_local_slot(name->name, src_slot)) {
+        emit(ir::Op::MoveLocal, dst_slot, src_slot);
+        return true;
+      }
+    }
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(assign.value.get())) {
+      if (binary->op == "+") {
+        auto* lhs = dynamic_cast<const ast::NameExpr*>(binary->lhs.get());
+        auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get());
+        if (lhs != nullptr && rhs != nullptr &&
+            (rhs->kind == ast::LiteralExpr::Kind::Int || rhs->kind == ast::LiteralExpr::Kind::Double)) {
+          uint32_t src_slot = 0;
+          if (direct_local_slot(lhs->name, src_slot)) {
+            emit(ir::Op::AddLocalConst, dst_slot, src_slot, add_const(literal_value(*rhs)));
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  bool try_emit_local_const_condition_jump(const ast::Expr& condition, size_t& jump) {
+    auto* binary = dynamic_cast<const ast::BinaryExpr*>(&condition);
+    if (binary == nullptr) {
+      return false;
+    }
+    auto* lhs = dynamic_cast<const ast::NameExpr*>(binary->lhs.get());
+    auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get());
+    if (lhs == nullptr || rhs == nullptr ||
+        (rhs->kind != ast::LiteralExpr::Kind::Int && rhs->kind != ast::LiteralExpr::Kind::Double)) {
+      return false;
+    }
+    uint32_t local_slot = 0;
+    if (!direct_local_slot(lhs->name, local_slot)) {
+      return false;
+    }
+    uint32_t cmp = 0;
+    if (binary->op == "==") cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
+    else if (binary->op == "!=") cmp = static_cast<uint32_t>(ir::CompareOp::Ne);
+    else if (binary->op == "<") cmp = static_cast<uint32_t>(ir::CompareOp::Lt);
+    else if (binary->op == "<=") cmp = static_cast<uint32_t>(ir::CompareOp::Le);
+    else if (binary->op == ">") cmp = static_cast<uint32_t>(ir::CompareOp::Gt);
+    else if (binary->op == ">=") cmp = static_cast<uint32_t>(ir::CompareOp::Ge);
+    else return false;
+    jump = emit_jump(ir::Op::JumpIfLocalConstFalse, local_slot);
+    fn_.code[jump].b = add_const(literal_value(*rhs));
+    fn_.code[jump].c = cmp;
+    return true;
+  }
+
+  uint32_t lower_function_value(
+      const ast::FunctionDef& fn,
+      std::string instance_slot_self = {},
+      std::unordered_map<std::string, uint32_t> instance_slots = {}) {
     const auto free_vars = closure_names_for_child(fn);
-    FunctionLowerer child_lowerer(module_, fn.name, fn.params, free_vars, fn.body);
+    FunctionLowerer child_lowerer(
+        module_, fn.name, fn.params, free_vars, fn.body, false,
+        std::move(instance_slot_self), std::move(instance_slots), class_infos_);
     child_lowerer.lower_body(fn.body);
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
@@ -285,16 +512,48 @@ private:
 
   void lower_class_def(const ast::ClassDef& klass) {
     std::vector<std::pair<std::string, uint32_t>> attrs;
+    std::vector<std::string> instance_slots;
+    std::unordered_set<std::string> seen_instance_slots;
     for (const auto& stmt : klass.body) {
       if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
-        attrs.push_back(std::make_pair(fn->name, lower_function_value(*fn)));
+        if (!fn->params.empty()) {
+          for (const auto& child : fn->body) {
+            collect_self_attr_slots_stmt(*child, fn->params[0], instance_slots, seen_instance_slots);
+          }
+        }
+      }
+    }
+
+    ClassInfo class_info;
+    for (size_t i = 0; i < instance_slots.size(); ++i) {
+      class_info.slots[instance_slots[i]] = static_cast<uint32_t>(i);
+    }
+    class_infos_[klass.name] = class_info;
+    for (const auto& stmt : klass.body) {
+      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
+        attrs.push_back(std::make_pair(
+            fn->name,
+            lower_function_value(*fn, fn->params.empty() ? std::string{} : fn->params[0], class_info.slots)));
       } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
         attrs.push_back(std::make_pair(assign->name, lower_expr(*assign->value)));
       }
     }
     const auto reg = new_reg();
-    emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)));
+    emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)),
+         add_class_instance_slots(std::move(instance_slots)));
     store_named_value(klass.name, reg);
+  }
+
+  bool is_instance_slot_target(const ast::Expr& object, const std::string& name) const {
+    if (instance_slot_self_.empty()) {
+      return false;
+    }
+    auto slot = instance_slots_.find(name);
+    if (slot == instance_slots_.end()) {
+      return false;
+    }
+    auto* object_name = dynamic_cast<const ast::NameExpr*>(&object);
+    return object_name != nullptr && object_name->name == instance_slot_self_;
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
@@ -305,6 +564,9 @@ private:
       return;
     }
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+      if (try_emit_direct_local_assign(*assign)) {
+        return;
+      }
       store_named_value(assign->name, lower_expr(*assign->value));
       return;
     }
@@ -318,7 +580,11 @@ private:
     if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
       const auto object = lower_expr(*assign->object);
       const auto value = lower_expr(*assign->value);
-      emit(ir::Op::StoreAttr, object, add_name(assign->name), value);
+      if (is_instance_slot_target(*assign->object, assign->name)) {
+        emit(ir::Op::StoreInstanceSlot, object, instance_slots_[assign->name], value);
+      } else {
+        emit(ir::Op::StoreAttr, object, add_name(assign->name), value);
+      }
       return;
     }
     if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
@@ -359,8 +625,11 @@ private:
       return;
     }
     if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
-      const auto cond = lower_expr(*ifs->condition);
-      const auto jf = emit_jump(ir::Op::JumpIfFalse, cond);
+      size_t jf = 0;
+      if (!try_emit_local_const_condition_jump(*ifs->condition, jf)) {
+        const auto cond = lower_expr(*ifs->condition);
+        jf = emit_jump(ir::Op::JumpIfFalse, cond);
+      }
       lower_body(ifs->then_body);
       const auto jend = emit_jump(ir::Op::Jump);
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
@@ -374,8 +643,11 @@ private:
     }
     if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
       const auto start = static_cast<uint32_t>(fn_.code.size());
-      const auto cond = lower_expr(*loop->condition);
-      const auto jf = emit_jump(ir::Op::JumpIfFalse, cond);
+      size_t jf = 0;
+      if (!try_emit_local_const_condition_jump(*loop->condition, jf)) {
+        const auto cond = lower_expr(*loop->condition);
+        jf = emit_jump(ir::Op::JumpIfFalse, cond);
+      }
       lower_body(loop->body);
       emit(ir::Op::Jump, start);
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
@@ -492,7 +764,11 @@ private:
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
       const auto object = lower_expr(*attr->object);
       const auto dst = new_reg();
-      emit(ir::Op::LoadAttr, dst, object, add_name(attr->name));
+      if (is_instance_slot_target(*attr->object, attr->name)) {
+        emit(ir::Op::LoadInstanceSlot, dst, object, instance_slots_[attr->name]);
+      } else {
+        emit(ir::Op::LoadAttr, dst, object, add_name(attr->name));
+      }
       return dst;
     }
     if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
@@ -579,8 +855,27 @@ private:
     return reg;
   }
 
+  Value literal_value(const ast::LiteralExpr& lit) {
+    switch (lit.kind) {
+      case ast::LiteralExpr::Kind::None:
+        return Value::none();
+      case ast::LiteralExpr::Kind::Bool:
+        return Value::boolean(lit.bool_value);
+      case ast::LiteralExpr::Kind::Int:
+        return Value::int64(std::strtoll(lit.text.c_str(), nullptr, 10));
+      case ast::LiteralExpr::Kind::Double:
+        return Value::number(std::strtod(lit.text.c_str(), nullptr));
+      case ast::LiteralExpr::Kind::String:
+        return Value::string(lit.text);
+    }
+    return Value::none();
+  }
+
   ir::Module& module_;
   bool is_module_ = false;
+  std::string instance_slot_self_;
+  std::unordered_map<std::string, uint32_t> instance_slots_;
+  std::unordered_map<std::string, ClassInfo> class_infos_;
   ir::Function fn_;
   sema::NameSet local_name_set_;
   sema::NameSet global_names_;

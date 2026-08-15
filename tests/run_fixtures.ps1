@@ -39,6 +39,7 @@ $cases = @(
     "exceptions",
     "runtime_error_exceptions",
     "classes",
+    "class_dynamic_attrs",
     "builtin_methods",
     "closures",
     "nonlocal_counter"
@@ -85,3 +86,17 @@ if ($uncaughtRuntimeOutput -notlike "*runtime: division by zero*") {
     throw "uncaught_runtime_error output mismatch. Got '$uncaughtRuntimeOutput'"
 }
 Write-Host "fixture uncaught_runtime_error ok"
+
+$unsetAttrSource = Join-Path $root "fixtures/core/unset_instance_attr.py"
+$oldErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$unsetAttrOutput = ((& $XLang3 $unsetAttrSource 2>&1 | Out-String) -replace "`r`n", "`n").TrimEnd()
+$unsetAttrExitCode = $LASTEXITCODE
+$ErrorActionPreference = $oldErrorActionPreference
+if ($unsetAttrExitCode -ne 1) {
+    throw "unset_instance_attr expected exit code 1, got $unsetAttrExitCode"
+}
+if ($unsetAttrOutput -notlike "*runtime: object has no attribute*") {
+    throw "unset_instance_attr output mismatch. Got '$unsetAttrOutput'"
+}
+Write-Host "fixture unset_instance_attr ok"

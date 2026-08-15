@@ -118,6 +118,8 @@ XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Va
 
 class SmallValueBuffer {
 public:
+  SmallValueBuffer() = default;
+
   SmallValueBuffer(size_t size, const Value& fill) : size_(size) {
     if (size_ <= kInlineCount) {
       data_ = inline_data();
@@ -133,13 +135,46 @@ public:
 
   SmallValueBuffer(const SmallValueBuffer&) = delete;
   SmallValueBuffer& operator=(const SmallValueBuffer&) = delete;
+  SmallValueBuffer(SmallValueBuffer&& other) noexcept {
+    move_from(std::move(other));
+  }
+  SmallValueBuffer& operator=(SmallValueBuffer&& other) noexcept = delete;
 
   ~SmallValueBuffer() {
-    if (uses_inline_) {
-      for (size_t i = 0; i < size_; ++i) {
+    destroy_inline();
+  }
+
+  void reset(size_t size, const Value& fill) {
+    if (size <= kInlineCount) {
+      if (!uses_inline_) {
+        heap_.clear();
+        data_ = inline_data();
+        uses_inline_ = true;
+        for (size_t i = 0; i < size; ++i) {
+          new (data_ + i) Value(fill);
+        }
+        size_ = size;
+        return;
+      }
+      const size_t shared = size < size_ ? size : size_;
+      for (size_t i = 0; i < shared; ++i) {
+        value_assign_fast(data_[i], fill);
+      }
+      for (size_t i = shared; i < size; ++i) {
+        new (data_ + i) Value(fill);
+      }
+      for (size_t i = size; i < size_; ++i) {
         data_[i].~Value();
       }
+      size_ = size;
+      return;
     }
+
+    destroy_inline();
+    uses_inline_ = false;
+    heap_.assign(size, fill);
+    data_ = heap_.data();
+    size_ = size;
   }
 
   XLANG3_HOT_INLINE size_t size() const {
@@ -169,6 +204,39 @@ private:
     return reinterpret_cast<Value*>(inline_storage_);
   }
 
+  void move_from(SmallValueBuffer&& other) {
+    size_ = other.size_;
+    uses_inline_ = other.uses_inline_;
+    if (other.uses_inline_) {
+      data_ = inline_data();
+      for (size_t i = 0; i < size_; ++i) {
+        new (data_ + i) Value(std::move(other.data_[i]));
+        other.data_[i].~Value();
+      }
+      other.size_ = 0;
+      other.data_ = nullptr;
+      other.uses_inline_ = false;
+      return;
+    }
+
+    heap_ = std::move(other.heap_);
+    data_ = heap_.data();
+    other.size_ = 0;
+    other.data_ = nullptr;
+  }
+
+  void destroy_inline() {
+    if (!uses_inline_) {
+      return;
+    }
+    for (size_t i = 0; i < size_; ++i) {
+      data_[i].~Value();
+    }
+    size_ = 0;
+    data_ = nullptr;
+    uses_inline_ = false;
+  }
+
   size_t size_ = 0;
   Value* data_ = nullptr;
   bool uses_inline_ = false;
@@ -176,12 +244,443 @@ private:
   std::vector<Value> heap_;
 };
 
+enum class CallSiteKind : uint8_t {
+  Empty,
+  UserFunction,
+  NativeFunction,
+  UserConstructor,
+  NativeConstructor,
+  InlineSelfBinaryMethod,
+  InlineArgBinaryFunction,
+};
+
+enum class AttrSiteKind : uint8_t {
+  Empty,
+  InstanceAttr,
+  InstanceSlot,
+};
+
 struct CallSiteCache {
   Object* callee_object = nullptr;
-  uint8_t kind = 0;
+  CallSiteKind kind = CallSiteKind::Empty;
   FunctionObject* function = nullptr;
   NativeFunctionObject* native = nullptr;
+  uint64_t class_version = 0;
+  uint32_t lhs_slot = 0;
+  uint32_t rhs_slot = 0;
+  ir::Op inline_op = ir::Op::Add;
+  uint32_t inline_function_id = 0;
+  uint32_t next_arg = 0;
+  ir::Op next_op = ir::Op::Add;
+  bool has_next = false;
 };
+
+struct AttrSiteCache {
+  uint32_t index = 0;
+  AttrSiteKind kind = AttrSiteKind::Empty;
+};
+
+enum class FrameReturnMode : uint8_t {
+  StoreReturnValue,
+  StoreConstructedInstance,
+};
+
+struct VMFrame {
+  const ir::Module* module = nullptr;
+  const ir::Function* fn = nullptr;
+  const std::vector<Value>* closure = nullptr;
+  Value globals_module;
+  std::shared_ptr<const ir::Module> module_owner;
+  uint32_t return_dst = 0;
+  bool has_caller = false;
+  FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
+  Value continuation_value;
+  size_t ip = 0;
+
+  SmallValueBuffer locals;
+  SmallValueBuffer cells;
+  SmallValueBuffer regs;
+
+  std::vector<uint32_t> exception_handlers;
+  std::vector<Value> global_value_cache;
+  std::vector<uint32_t> global_slot_cache;
+  std::vector<uint64_t> global_cache_versions;
+  std::vector<uint8_t> global_cache_kind;
+  std::vector<CallSiteCache> call_site_cache;
+  std::vector<AttrSiteCache> attr_site_cache;
+  std::vector<Value> native_call_args;
+
+  VMFrame(
+      const ir::Module& frame_module,
+      uint32_t function_id,
+      CallArgsView args,
+      const std::vector<Value>& frame_closure,
+      Value frame_globals_module,
+      std::shared_ptr<const ir::Module> frame_module_owner,
+      uint32_t frame_return_dst,
+      bool frame_has_caller,
+      FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
+      Value frame_continuation_value = Value::invalid())
+      : module(&frame_module),
+        fn(&frame_module.functions[function_id]),
+        closure(&frame_closure),
+        globals_module(std::move(frame_globals_module)),
+        module_owner(std::move(frame_module_owner)),
+        return_dst(frame_return_dst),
+        has_caller(frame_has_caller),
+        return_mode(frame_return_mode),
+        continuation_value(std::move(frame_continuation_value)),
+        locals(fn->locals.size(), Value::none()),
+        cells(fn->cell_slots.size(), Value::invalid()),
+        regs(fn->register_count, Value::invalid()),
+        global_value_cache(fn->names.size(), Value::invalid()),
+        global_slot_cache(fn->names.size(), 0),
+        global_cache_versions(fn->names.size(), 0),
+        global_cache_kind(fn->names.size(), 0),
+        attr_site_cache(fn->code.size()) {
+    for (size_t i = 0; i < args.size(); ++i) {
+      value_assign_fast(locals[i], args.get(i));
+    }
+    uint32_t max_call_arg_count = 0;
+    for (const auto& arg_regs : fn->call_args) {
+      if (arg_regs.size() > max_call_arg_count) {
+        max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
+      }
+    }
+    if (max_call_arg_count != 0) {
+      native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
+      call_site_cache.resize(fn->code.size());
+    }
+  }
+
+  void reset(
+      const ir::Module& frame_module,
+      uint32_t function_id,
+      CallArgsView args,
+      const std::vector<Value>& frame_closure,
+      Value frame_globals_module,
+      std::shared_ptr<const ir::Module> frame_module_owner,
+      uint32_t frame_return_dst,
+      bool frame_has_caller,
+      FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
+      Value frame_continuation_value = Value::invalid()) {
+    const ir::Function* old_fn = fn;
+    module = &frame_module;
+    fn = &frame_module.functions[function_id];
+    closure = &frame_closure;
+    globals_module = std::move(frame_globals_module);
+    module_owner = std::move(frame_module_owner);
+    return_dst = frame_return_dst;
+    has_caller = frame_has_caller;
+    return_mode = frame_return_mode;
+    continuation_value = std::move(frame_continuation_value);
+    ip = 0;
+
+    locals.reset(fn->locals.size(), Value::none());
+    cells.reset(fn->cell_slots.size(), Value::invalid());
+    regs.reset(fn->register_count, Value::invalid());
+    exception_handlers.clear();
+    native_call_args.clear();
+
+    if (old_fn != fn) {
+      global_value_cache.assign(fn->names.size(), Value::invalid());
+      global_slot_cache.assign(fn->names.size(), 0);
+      global_cache_versions.assign(fn->names.size(), 0);
+      global_cache_kind.assign(fn->names.size(), 0);
+      call_site_cache.clear();
+      attr_site_cache.assign(fn->code.size(), {});
+      uint32_t max_call_arg_count = 0;
+      for (const auto& arg_regs : fn->call_args) {
+        if (arg_regs.size() > max_call_arg_count) {
+          max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
+        }
+      }
+      if (max_call_arg_count != 0) {
+        native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
+        call_site_cache.resize(fn->code.size());
+      }
+    }
+
+    for (size_t i = 0; i < args.size(); ++i) {
+      value_assign_fast(locals[i], args.get(i));
+    }
+  }
+};
+
+XLANG3_NOINLINE bool load_attr_cached(
+    const Value& object,
+    const std::string& name,
+    AttrSiteCache& cache,
+    Value& out,
+    std::string& error) {
+  if (auto* instance = value_as_instance(object)) {
+    if (cache.kind == AttrSiteKind::InstanceSlot && cache.index < instance_slot_count(instance)) {
+      const auto& slot_value = instance_slot_at(instance, cache.index);
+      if (slot_value.tag != ValueTag::Invalid) {
+        value_assign_fast(out, slot_value);
+        return true;
+      }
+      error = "object has no attribute '" + name + "'";
+      return false;
+    }
+    if (cache.kind == AttrSiteKind::InstanceAttr && cache.index < instance->attrs.size() &&
+        instance->attrs[cache.index].first == name) {
+      value_assign_fast(out, instance->attrs[cache.index].second);
+      return true;
+    }
+    if (auto* klass = value_as_class(instance->klass)) {
+      auto slot_it = klass->instance_slot_indices.find(name);
+      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+        const auto& slot_value = instance_slot_at(instance, slot_it->second);
+        if (slot_value.tag == ValueTag::Invalid) {
+          error = "object has no attribute '" + name + "'";
+          return false;
+        }
+        cache.index = slot_it->second;
+        cache.kind = AttrSiteKind::InstanceSlot;
+        value_assign_fast(out, slot_value);
+        return true;
+      }
+    }
+    for (size_t attr_i = 0; attr_i < instance->attrs.size(); ++attr_i) {
+      if (instance->attrs[attr_i].first == name) {
+        cache.index = static_cast<uint32_t>(attr_i);
+        cache.kind = AttrSiteKind::InstanceAttr;
+        value_assign_fast(out, instance->attrs[attr_i].second);
+        return true;
+      }
+    }
+  }
+  return attribute_get(object, name, out, error);
+}
+
+XLANG3_NOINLINE bool store_attr_cached(
+    Value& object,
+    const std::string& name,
+    const Value& value,
+    AttrSiteCache& cache,
+    std::string& error) {
+  if (auto* instance = value_as_instance(object)) {
+    if (cache.kind == AttrSiteKind::InstanceSlot && cache.index < instance_slot_count(instance)) {
+      value_assign_fast(instance_slot_at(instance, cache.index), value);
+      return true;
+    }
+    if (cache.kind == AttrSiteKind::InstanceAttr && cache.index < instance->attrs.size() &&
+        instance->attrs[cache.index].first == name) {
+      value_assign_fast(instance->attrs[cache.index].second, value);
+      return true;
+    }
+    if (auto* klass = value_as_class(instance->klass)) {
+      auto slot_it = klass->instance_slot_indices.find(name);
+      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+        cache.index = slot_it->second;
+        cache.kind = AttrSiteKind::InstanceSlot;
+        value_assign_fast(instance_slot_at(instance, slot_it->second), value);
+        return true;
+      }
+    }
+    for (size_t attr_i = 0; attr_i < instance->attrs.size(); ++attr_i) {
+      if (instance->attrs[attr_i].first == name) {
+        cache.index = static_cast<uint32_t>(attr_i);
+        cache.kind = AttrSiteKind::InstanceAttr;
+        value_assign_fast(instance->attrs[attr_i].second, value);
+        return true;
+      }
+    }
+    instance->attrs.push_back(std::make_pair(name, value));
+    cache.index = static_cast<uint32_t>(instance->attrs.size() - 1);
+    cache.kind = AttrSiteKind::InstanceAttr;
+    return true;
+  }
+  return attribute_set(object, name, value, error);
+}
+
+struct SelfBinaryMethodSpec {
+  uint32_t lhs_slot = 0;
+  uint32_t rhs_slot = 0;
+  ir::Op op = ir::Op::Add;
+};
+
+struct ArgBinaryFunctionSpec {
+  uint32_t lhs_arg = 0;
+  uint32_t rhs_arg = 0;
+  ir::Op op = ir::Op::Add;
+  uint32_t next_arg = 0;
+  ir::Op next_op = ir::Op::Add;
+  bool has_next = false;
+};
+
+bool is_inline_binary_op(ir::Op op) {
+  return op == ir::Op::Add || op == ir::Op::Sub || op == ir::Op::Mul || op == ir::Op::Div;
+}
+
+bool execute_binary_op(ir::Op op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  switch (op) {
+    case ir::Op::Add:
+      if (fast_add(lhs, rhs, out)) return true;
+      return value_add(lhs, rhs, out, error);
+    case ir::Op::Sub:
+      if (fast_sub(lhs, rhs, out)) return true;
+      return value_sub(lhs, rhs, out, error);
+    case ir::Op::Mul:
+      if (fast_mul(lhs, rhs, out)) return true;
+      return value_mul(lhs, rhs, out, error);
+    case ir::Op::Div: {
+      bool divide_by_zero = false;
+      if (fast_div(lhs, rhs, out, divide_by_zero)) return true;
+      if (divide_by_zero) {
+        error = "division by zero";
+        return false;
+      }
+      return value_div(lhs, rhs, out, error);
+    }
+    default:
+      error = "unsupported inline function operation";
+      return false;
+  }
+}
+
+bool analyze_self_binary_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    SelfBinaryMethodSpec& spec) {
+  const ir::Module* method_module = &current_module;
+  if (fn_obj.module != nullptr) {
+    method_module = fn_obj.module.get();
+  }
+  if (fn_obj.function_id >= method_module->functions.size()) {
+    return false;
+  }
+  const auto& method = method_module->functions[fn_obj.function_id];
+  if (method.params.size() != 1 || method.code.size() < 6) {
+    return false;
+  }
+  const auto& load_self_lhs = method.code[0];
+  const auto& load_lhs = method.code[1];
+  const auto& load_self_rhs = method.code[2];
+  const auto& load_rhs = method.code[3];
+  const auto& binary = method.code[4];
+  const auto& ret = method.code[5];
+  if (load_self_lhs.op != ir::Op::LoadLocal || load_self_lhs.a != 0 ||
+      load_self_rhs.op != ir::Op::LoadLocal || load_self_rhs.a != 0 ||
+      load_lhs.op != ir::Op::LoadInstanceSlot || load_lhs.a != load_self_lhs.dst ||
+      load_rhs.op != ir::Op::LoadInstanceSlot || load_rhs.a != load_self_rhs.dst ||
+      ret.op != ir::Op::Return || ret.a != binary.dst) {
+    return false;
+  }
+  if (!is_inline_binary_op(binary.op)) {
+    return false;
+  }
+  if (binary.a != load_lhs.dst || binary.b != load_rhs.dst) {
+    return false;
+  }
+  spec.lhs_slot = load_lhs.b;
+  spec.rhs_slot = load_rhs.b;
+  spec.op = binary.op;
+  return true;
+}
+
+bool analyze_arg_binary_function(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    uint32_t argc,
+    ArgBinaryFunctionSpec& spec) {
+  const ir::Module* function_module = &current_module;
+  if (fn_obj.module != nullptr) {
+    function_module = fn_obj.module.get();
+  }
+  if (fn_obj.function_id >= function_module->functions.size()) {
+    return false;
+  }
+  const auto& function = function_module->functions[fn_obj.function_id];
+  if (function.params.size() != argc || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+      function.code.size() < 4) {
+    return false;
+  }
+  const auto& load_lhs = function.code[0];
+  const auto& load_rhs = function.code[1];
+  const auto& binary = function.code[2];
+  const auto& ret = function.code[3];
+  if (load_lhs.op != ir::Op::LoadLocal || load_rhs.op != ir::Op::LoadLocal ||
+      load_lhs.a >= argc || load_rhs.a >= argc || !is_inline_binary_op(binary.op) ||
+      binary.a != load_lhs.dst || binary.b != load_rhs.dst) {
+    return false;
+  }
+  spec.lhs_arg = load_lhs.a;
+  spec.rhs_arg = load_rhs.a;
+  spec.op = binary.op;
+  if (ret.op == ir::Op::Return && ret.a == binary.dst) {
+    spec.has_next = false;
+    return true;
+  }
+  if (function.code.size() < 6) {
+    return false;
+  }
+  const auto& load_next = function.code[3];
+  const auto& next_binary = function.code[4];
+  const auto& next_ret = function.code[5];
+  if (load_next.op != ir::Op::LoadLocal || load_next.a >= argc ||
+      !is_inline_binary_op(next_binary.op) ||
+      next_binary.a != binary.dst || next_binary.b != load_next.dst ||
+      next_ret.op != ir::Op::Return || next_ret.a != next_binary.dst) {
+    return false;
+  }
+  spec.next_arg = load_next.a;
+  spec.next_op = next_binary.op;
+  spec.has_next = true;
+  return true;
+}
+
+bool execute_arg_binary_function(
+    CallArgsView args,
+    const ArgBinaryFunctionSpec& spec,
+    Value& out,
+    std::string& error) {
+  if (spec.lhs_arg >= args.size() || spec.rhs_arg >= args.size()) {
+    error = "invalid inline function arg";
+    return false;
+  }
+  if (!execute_binary_op(spec.op, args.get(spec.lhs_arg), args.get(spec.rhs_arg), out, error)) {
+    return false;
+  }
+  if (!spec.has_next) {
+    return true;
+  }
+  if (spec.next_arg >= args.size()) {
+    error = "invalid inline function arg";
+    return false;
+  }
+  Value temp;
+  value_assign_fast(temp, out);
+  return execute_binary_op(spec.next_op, temp, args.get(spec.next_arg), out, error);
+}
+
+XLANG3_HOT_INLINE bool execute_self_binary_method(
+    const InstanceObject& instance,
+    const SelfBinaryMethodSpec& spec,
+    Value& out,
+    std::string& error) {
+  if (spec.lhs_slot >= instance_slot_count(&instance) || spec.rhs_slot >= instance_slot_count(&instance)) {
+    error = "invalid instance slot load";
+    return false;
+  }
+  const auto& lhs = instance_slot_at(&instance, spec.lhs_slot);
+  const auto& rhs = instance_slot_at(&instance, spec.rhs_slot);
+  if (lhs.tag == ValueTag::Invalid || rhs.tag == ValueTag::Invalid) {
+    error = "object has no attribute";
+    return false;
+  }
+  switch (spec.op) {
+    case ir::Op::Add:
+    case ir::Op::Sub:
+    case ir::Op::Mul:
+    case ir::Op::Div:
+      return execute_binary_op(spec.op, lhs, rhs, out, error);
+    default:
+      error = "unsupported inline method operation";
+      return false;
+  }
+}
 
 } // namespace
 
@@ -223,50 +722,123 @@ RuntimeResult Interpreter::run_function(
     return result;
   }
 
-  SmallValueBuffer locals(fn.locals.size(), Value::none());
-  SmallValueBuffer cells(fn.cell_slots.size(), Value::invalid());
-  SmallValueBuffer regs(fn.register_count, Value::invalid());
-  for (size_t i = 0; i < args.size(); ++i) {
-    value_assign_fast(locals[i], args.get(i));
-  }
-  for (size_t i = 0; i < fn.cell_slots.size(); ++i) {
-    if (fn.cell_slots[i] >= locals.size()) {
+  std::vector<VMFrame> frames;
+  frames.reserve(64);
+  frames.emplace_back(
+      module, function_id, args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+  size_t frame_count = 1;
+
+  auto push_frame = [&](const ir::Module& call_module,
+                        uint32_t call_function_id,
+                        CallArgsView call_args,
+                        const std::vector<Value>& closure,
+                        Value call_globals_module,
+                        std::shared_ptr<const ir::Module> call_module_owner,
+                        uint32_t return_dst,
+                        FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
+                        Value continuation_value = Value::invalid()) -> bool {
+    if (call_function_id >= call_module.functions.size()) {
+      result.errors.push_back("invalid function id");
+      return false;
+    }
+    const auto& call_fn = call_module.functions[call_function_id];
+    if (call_args.size() != call_fn.params.size()) {
+      result.errors.push_back("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
+                              " arguments, got " + std::to_string(call_args.size()));
+      return false;
+    }
+    if (frame_count < frames.size()) {
+      frames[frame_count].reset(call_module, call_function_id, call_args, closure, std::move(call_globals_module),
+                                std::move(call_module_owner), return_dst, true, return_mode,
+                                std::move(continuation_value));
+    } else {
+      frames.emplace_back(call_module, call_function_id, call_args, closure, std::move(call_globals_module),
+                          std::move(call_module_owner), return_dst, true, return_mode,
+                          std::move(continuation_value));
+    }
+    auto& pushed = frames[frame_count];
+    ++frame_count;
+    for (size_t i = 0; i < pushed.fn->cell_slots.size(); ++i) {
+      if (pushed.fn->cell_slots[i] >= pushed.locals.size()) {
+        result.errors.push_back("invalid cell local slot");
+        --frame_count;
+        return false;
+      }
+      pushed.cells[i] = Value::cell(pushed.locals[pushed.fn->cell_slots[i]]);
+    }
+    return true;
+  };
+
+  auto finish_frame = [&](const Value& return_value) -> bool {
+    VMFrame& finished = frames[frame_count - 1];
+    const uint32_t return_dst = finished.return_dst;
+    const bool has_caller = finished.has_caller;
+    const FrameReturnMode return_mode = finished.return_mode;
+    if (!has_caller) {
+      value_assign_fast(result.value, return_value);
+      --frame_count;
+      return false;
+    }
+    --frame_count;
+    Value& target = frames[frame_count - 1].regs[return_dst];
+    if (return_mode == FrameReturnMode::StoreConstructedInstance) {
+      value_assign_fast(target, finished.continuation_value);
+    } else {
+      value_assign_fast(target, return_value);
+    }
+    return true;
+  };
+
+  for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {
+    if (frames[frame_count - 1].fn->cell_slots[i] >= frames[frame_count - 1].locals.size()) {
       result.errors.push_back("invalid cell local slot");
       return result;
     }
-    cells[i] = Value::cell(locals[fn.cell_slots[i]]);
+    frames[frame_count - 1].cells[i] =
+        Value::cell(frames[frame_count - 1].locals[frames[frame_count - 1].fn->cell_slots[i]]);
   }
 
-  size_t ip = 0;
-  std::vector<uint32_t> exception_handlers;
-  std::vector<Value> global_value_cache(fn.names.size(), Value::invalid());
-  std::vector<uint32_t> global_slot_cache(fn.names.size(), 0);
-  std::vector<uint64_t> global_cache_versions(fn.names.size(), 0);
-  std::vector<uint8_t> global_cache_kind(fn.names.size(), 0);
-  std::vector<CallSiteCache> call_site_cache;
-  std::vector<Value> native_call_args;
-  uint32_t max_call_arg_count = 0;
-  for (const auto& arg_regs : fn.call_args) {
-    if (arg_regs.size() > max_call_arg_count) {
-      max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
-    }
-  }
-  if (max_call_arg_count != 0) {
-    native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
-    call_site_cache.resize(fn.code.size());
-  }
-  auto raise_runtime_error = [&](const std::string& message) -> bool {
-    if (exception_handlers.empty()) {
-      result.errors.push_back(message);
-      return false;
-    }
-    ip = exception_handlers.back();
-    exception_handlers.pop_back();
-    return true;
-  };
-  while (ip < fn.code.size()) {
-    const auto& in = fn.code[ip];
-    switch (in.op) {
+  while (frame_count != 0) {
+    auto& frame = frames[frame_count - 1];
+    const auto& module = *frame.module;
+    const auto& fn = *frame.fn;
+    auto& fn_obj_closure = *frame.closure;
+    auto& globals_module = frame.globals_module;
+    auto& module_owner = frame.module_owner;
+    auto& locals = frame.locals;
+    auto& cells = frame.cells;
+    auto& regs = frame.regs;
+    auto& ip = frame.ip;
+    auto& exception_handlers = frame.exception_handlers;
+    auto& global_value_cache = frame.global_value_cache;
+    auto& global_slot_cache = frame.global_slot_cache;
+    auto& global_cache_versions = frame.global_cache_versions;
+    auto& global_cache_kind = frame.global_cache_kind;
+    auto& call_site_cache = frame.call_site_cache;
+    auto& attr_site_cache = frame.attr_site_cache;
+    auto& native_call_args = frame.native_call_args;
+
+    auto raise_runtime_error = [&](const std::string& message) -> bool {
+      if (exception_handlers.empty()) {
+        result.errors.push_back(message);
+        return false;
+      }
+      ip = exception_handlers.back();
+      exception_handlers.pop_back();
+      return true;
+    };
+
+    for (;;) {
+      if (ip >= fn.code.size()) {
+        Value none = Value::none();
+        if (!finish_frame(none)) {
+          return result;
+        }
+        goto switch_frame;
+      }
+
+      const auto& in = fn.code[ip];
+      switch (in.op) {
       case ir::Op::LoadConst:
         if (in.a >= fn.constants.size()) {
           result.errors.push_back("invalid constant index");
@@ -288,6 +860,29 @@ RuntimeResult Interpreter::run_function(
         }
         value_assign_fast(locals[in.dst], regs[in.a]);
         break;
+      case ir::Op::MoveLocal:
+        if (in.dst >= locals.size() || in.a >= locals.size()) {
+          result.errors.push_back("invalid local move");
+          return result;
+        }
+        value_assign_fast(locals[in.dst], locals[in.a]);
+        break;
+      case ir::Op::AddLocalConst: {
+        if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= fn.constants.size()) {
+          result.errors.push_back("invalid local const add");
+          return result;
+        }
+        const auto& lhs = locals[in.a];
+        const auto& rhs = fn.constants[in.b];
+        if (!fast_add(lhs, rhs, locals[in.dst])) {
+          std::string error;
+          if (!value_add(lhs, rhs, locals[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
       case ir::Op::LoadCell: {
         if (in.a >= cells.size()) {
           result.errors.push_back("invalid cell slot");
@@ -468,7 +1063,7 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         std::string error;
-        if (!attribute_get(regs[in.a], fn.names[in.b], regs[in.dst], error)) {
+        if (!load_attr_cached(regs[in.a], fn.names[in.b], attr_site_cache[ip], regs[in.dst], error)) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
@@ -480,14 +1075,37 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         std::string error;
-        if (!attribute_set(regs[in.dst], fn.names[in.a], regs[in.b], error)) {
+        if (!store_attr_cached(regs[in.dst], fn.names[in.a], regs[in.b], attr_site_cache[ip], error)) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
       }
+      case ir::Op::LoadInstanceSlot: {
+        auto* instance = value_as_instance(regs[in.a]);
+        if (instance == nullptr || in.b >= instance_slot_count(instance)) {
+          if (raise_runtime_error("invalid instance slot load")) continue;
+          return result;
+        }
+        const auto& slot_value = instance_slot_at(instance, in.b);
+        if (slot_value.tag == ValueTag::Invalid) {
+          if (raise_runtime_error("object has no attribute")) continue;
+          return result;
+        }
+        value_assign_fast(regs[in.dst], slot_value);
+        break;
+      }
+      case ir::Op::StoreInstanceSlot: {
+        auto* instance = value_as_instance(regs[in.dst]);
+        if (instance == nullptr || in.a >= instance_slot_count(instance)) {
+          if (raise_runtime_error("invalid instance slot store")) continue;
+          return result;
+        }
+        value_assign_fast(instance_slot_at(instance, in.a), regs[in.b]);
+        break;
+      }
       case ir::Op::MakeClass: {
-        if (in.a >= fn.names.size() || in.b >= fn.class_attrs.size()) {
+        if (in.a >= fn.names.size() || in.b >= fn.class_attrs.size() || in.c >= fn.class_instance_slots.size()) {
           result.errors.push_back("invalid class data");
           return result;
         }
@@ -500,7 +1118,7 @@ RuntimeResult Interpreter::run_function(
           }
           attrs.push_back(std::make_pair(attr.first, regs[attr.second]));
         }
-        regs[in.dst] = Value::class_object(fn.names[in.a], std::move(attrs));
+        regs[in.dst] = Value::class_object(fn.names[in.a], std::move(attrs), fn.class_instance_slots[in.c]);
         break;
       }
       case ir::Op::MakeFunction: {
@@ -727,6 +1345,26 @@ RuntimeResult Interpreter::run_function(
           continue;
         }
         break;
+      case ir::Op::JumpIfLocalConstFalse: {
+        if (in.a >= locals.size() || in.b >= fn.constants.size()) {
+          result.errors.push_back("invalid local const jump");
+          return result;
+        }
+        Value compare_result;
+        const auto op = static_cast<ir::CompareOp>(in.c);
+        if (!fast_compare(op, locals[in.a], fn.constants[in.b], compare_result)) {
+          std::string error;
+          if (!value_compare(compare_name(op), locals[in.a], fn.constants[in.b], compare_result, error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        if (!value_truthy(compare_result)) {
+          ip = in.dst;
+          continue;
+        }
+        break;
+      }
       case ir::Op::SetupExcept:
         exception_handlers.push_back(in.dst);
         break;
@@ -764,16 +1402,10 @@ RuntimeResult Interpreter::run_function(
           }
         }
 
-        Value method;
-        std::string attr_error;
-        if (!attribute_get(regs[in.a], name, method, attr_error)) {
-          if (raise_runtime_error(attr_error)) continue;
-          return result;
-        }
-
         CallArgsView call_args;
         call_args.registers = regs.data();
         call_args.register_args = &call_arg_regs;
+        bool pushed_frame = false;
         auto materialize_native_args = [&](CallArgsView values) -> const Value* {
           native_call_args.clear();
           native_call_args.reserve(values.size());
@@ -783,21 +1415,19 @@ RuntimeResult Interpreter::run_function(
           return native_call_args.data();
         };
         auto call_user_function = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
+          (void)out;
           const ir::Module* call_module = &module;
           auto call_module_owner = module_owner;
           if (fn_obj->module != nullptr) {
             call_module = fn_obj->module.get();
             call_module_owner = fn_obj->module;
           }
-          auto call_result =
-              run_function(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
-                           std::move(call_module_owner));
-          if (!call_result.errors.empty()) {
-            if (raise_runtime_error(call_result.errors.front())) return false;
-            result.errors.insert(result.errors.end(), call_result.errors.begin(), call_result.errors.end());
+          ++ip;
+          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
+                          std::move(call_module_owner), in.dst)) {
             return false;
           }
-          out = std::move(call_result.value);
+          pushed_frame = true;
           return true;
         };
         auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
@@ -813,6 +1443,107 @@ RuntimeResult Interpreter::run_function(
           return true;
         };
 
+        if (auto* instance = value_as_instance(regs[in.a])) {
+          if (auto* klass = value_as_class(instance->klass)) {
+            CallArgsView method_args = call_args;
+            method_args.leading = &regs[in.a];
+            method_args.leading_count = 1;
+            if (!call_site_cache.empty()) {
+              auto& cache = call_site_cache[ip];
+              if (cache.callee_object == &klass->header && cache.class_version == klass->version) {
+                if (cache.kind == CallSiteKind::UserFunction) {
+                  if (!call_user_function(cache.function, method_args, regs[in.dst])) {
+                    if (!result.errors.empty()) return result;
+                    continue;
+                  }
+                  if (pushed_frame) goto switch_frame;
+                  break;
+                }
+                if (cache.kind == CallSiteKind::NativeFunction) {
+                  if (!call_native_function(cache.native, method_args, regs[in.dst])) {
+                    if (!result.errors.empty()) return result;
+                    continue;
+                  }
+                  break;
+                }
+                if (cache.kind == CallSiteKind::InlineSelfBinaryMethod && call_arg_regs.empty()) {
+                  SelfBinaryMethodSpec spec;
+                  spec.lhs_slot = cache.lhs_slot;
+                  spec.rhs_slot = cache.rhs_slot;
+                  spec.op = cache.inline_op;
+                  std::string error;
+                  if (!execute_self_binary_method(*instance, spec, regs[in.dst], error)) {
+                    if (raise_runtime_error(error)) continue;
+                    return result;
+                  }
+                  break;
+                }
+              }
+            }
+            auto method_it = klass->attrs.find(name);
+            if (method_it != klass->attrs.end()) {
+              if (auto* native = value_as_native_function(method_it->second)) {
+                if (!call_site_cache.empty()) {
+                  auto& cache = call_site_cache[ip];
+                  cache.callee_object = &klass->header;
+                  cache.kind = CallSiteKind::NativeFunction;
+                  cache.function = nullptr;
+                  cache.native = native;
+                  cache.class_version = klass->version;
+                }
+                if (!call_native_function(native, method_args, regs[in.dst])) {
+                  if (!result.errors.empty()) return result;
+                  continue;
+                }
+                break;
+              }
+              if (auto* fn_obj = value_as_function(method_it->second)) {
+                SelfBinaryMethodSpec inline_spec;
+                if (call_arg_regs.empty() && analyze_self_binary_method(module, *fn_obj, inline_spec)) {
+                  if (!call_site_cache.empty()) {
+                    auto& cache = call_site_cache[ip];
+                    cache.callee_object = &klass->header;
+                    cache.kind = CallSiteKind::InlineSelfBinaryMethod;
+                    cache.function = fn_obj;
+                    cache.native = nullptr;
+                    cache.class_version = klass->version;
+                    cache.lhs_slot = inline_spec.lhs_slot;
+                    cache.rhs_slot = inline_spec.rhs_slot;
+                    cache.inline_op = inline_spec.op;
+                  }
+                  std::string error;
+                  if (!execute_self_binary_method(*instance, inline_spec, regs[in.dst], error)) {
+                    if (raise_runtime_error(error)) continue;
+                    return result;
+                  }
+                  break;
+                }
+                if (!call_site_cache.empty()) {
+                  auto& cache = call_site_cache[ip];
+                  cache.callee_object = &klass->header;
+                  cache.kind = CallSiteKind::UserFunction;
+                  cache.function = fn_obj;
+                  cache.native = nullptr;
+                  cache.class_version = klass->version;
+                }
+                if (!call_user_function(fn_obj, method_args, regs[in.dst])) {
+                  if (!result.errors.empty()) return result;
+                  continue;
+                }
+                if (pushed_frame) goto switch_frame;
+                break;
+              }
+            }
+          }
+        }
+
+        Value method;
+        std::string attr_error;
+        if (!attribute_get(regs[in.a], name, method, attr_error)) {
+          if (raise_runtime_error(attr_error)) continue;
+          return result;
+        }
+
         if (auto* bound = value_as_bound_method(method)) {
           CallArgsView bound_args = call_args;
           bound_args.leading = &bound->self;
@@ -827,6 +1558,7 @@ RuntimeResult Interpreter::run_function(
               if (!result.errors.empty()) return result;
               continue;
             }
+            if (pushed_frame) goto switch_frame;
           } else {
             if (raise_runtime_error("object is not callable")) continue;
             return result;
@@ -841,6 +1573,7 @@ RuntimeResult Interpreter::run_function(
             if (!result.errors.empty()) return result;
             continue;
           }
+          if (pushed_frame) goto switch_frame;
         } else {
           if (raise_runtime_error("object is not callable")) continue;
           return result;
@@ -861,6 +1594,7 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         const auto& callee = regs[in.a];
+        bool pushed_frame = false;
         auto materialize_native_args = [&](CallArgsView values) -> const Value* {
           native_call_args.clear();
           native_call_args.reserve(values.size());
@@ -870,21 +1604,19 @@ RuntimeResult Interpreter::run_function(
           return native_call_args.data();
         };
         auto call_user_function = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
+          (void)out;
           const ir::Module* call_module = &module;
           auto call_module_owner = module_owner;
           if (fn_obj->module != nullptr) {
             call_module = fn_obj->module.get();
             call_module_owner = fn_obj->module;
           }
-          auto call_result =
-              run_function(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
-                           std::move(call_module_owner));
-          if (!call_result.errors.empty()) {
-            if (raise_runtime_error(call_result.errors.front())) return false;
-            result.errors.insert(result.errors.end(), call_result.errors.begin(), call_result.errors.end());
+          ++ip;
+          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
+                          std::move(call_module_owner), in.dst)) {
             return false;
           }
-          out = std::move(call_result.value);
+          pushed_frame = true;
           return true;
         };
         auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
@@ -901,20 +1633,72 @@ RuntimeResult Interpreter::run_function(
         };
         if (!call_site_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
           auto& cache = call_site_cache[ip];
-          if (cache.callee_object == callee.as.obj) {
-            if (cache.kind == 1) {
+            if (cache.callee_object == callee.as.obj) {
+            if (cache.kind == CallSiteKind::UserFunction) {
               if (!call_user_function(cache.function, call_args, regs[in.dst])) {
                 if (!result.errors.empty()) return result;
                 continue;
               }
+              if (pushed_frame) goto switch_frame;
               break;
             }
-            if (cache.kind == 2) {
+            if (cache.kind == CallSiteKind::NativeFunction) {
               if (!call_native_function(cache.native, call_args, regs[in.dst])) {
                 if (!result.errors.empty()) return result;
                 continue;
               }
               break;
+            }
+            if (cache.kind == CallSiteKind::InlineArgBinaryFunction) {
+              ArgBinaryFunctionSpec spec;
+              spec.lhs_arg = cache.lhs_slot;
+              spec.rhs_arg = cache.rhs_slot;
+              spec.op = cache.inline_op;
+              spec.next_arg = cache.next_arg;
+              spec.next_op = cache.next_op;
+              spec.has_next = cache.has_next;
+              std::string error;
+              if (!execute_arg_binary_function(call_args, spec, regs[in.dst], error)) {
+                if (raise_runtime_error(error)) continue;
+                return result;
+              }
+              break;
+            }
+            if (cache.kind == CallSiteKind::UserConstructor || cache.kind == CallSiteKind::NativeConstructor) {
+              auto* cached_class = value_as_class(callee);
+              if (cached_class == nullptr || cache.class_version != cached_class->version) {
+                cache.kind = CallSiteKind::Empty;
+              } else {
+              Value instance = Value::instance(callee);
+              CallArgsView init_args = call_args;
+              init_args.leading = &instance;
+              init_args.leading_count = 1;
+              if (cache.kind == CallSiteKind::UserConstructor) {
+                auto* fn_obj = cache.function;
+                const ir::Module* call_module = &module;
+                auto call_module_owner = module_owner;
+                if (fn_obj->module != nullptr) {
+                  call_module = fn_obj->module.get();
+                  call_module_owner = fn_obj->module;
+                }
+                Value constructed_instance;
+                value_assign_fast(constructed_instance, instance);
+                ++ip;
+                if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->globals_module,
+                                std::move(call_module_owner), in.dst,
+                                FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
+                  return result;
+                }
+                goto switch_frame;
+              }
+              Value ignored;
+              if (!call_native_function(cache.native, init_args, ignored)) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              value_assign_fast(regs[in.dst], instance);
+              break;
+              }
             }
           }
         }
@@ -930,19 +1714,43 @@ RuntimeResult Interpreter::run_function(
           }
           return call_user_function(fn_obj, values, out);
         };
-
         if (auto* fn_obj = value_as_function(callee)) {
+          ArgBinaryFunctionSpec inline_spec;
+          if (analyze_arg_binary_function(module, *fn_obj, static_cast<uint32_t>(call_args.size()), inline_spec)) {
+            if (!call_site_cache.empty() && callee.tag == ValueTag::Object) {
+              auto& cache = call_site_cache[ip];
+              cache.callee_object = callee.as.obj;
+              cache.kind = CallSiteKind::InlineArgBinaryFunction;
+              cache.function = fn_obj;
+              cache.native = nullptr;
+              cache.class_version = 0;
+              cache.lhs_slot = inline_spec.lhs_arg;
+              cache.rhs_slot = inline_spec.rhs_arg;
+              cache.inline_op = inline_spec.op;
+              cache.next_arg = inline_spec.next_arg;
+              cache.next_op = inline_spec.next_op;
+              cache.has_next = inline_spec.has_next;
+            }
+            std::string error;
+            if (!execute_arg_binary_function(call_args, inline_spec, regs[in.dst], error)) {
+              if (raise_runtime_error(error)) continue;
+              return result;
+            }
+            break;
+          }
           if (!call_site_cache.empty() && callee.tag == ValueTag::Object) {
             auto& cache = call_site_cache[ip];
             cache.callee_object = callee.as.obj;
-            cache.kind = 1;
+            cache.kind = CallSiteKind::UserFunction;
             cache.function = fn_obj;
             cache.native = nullptr;
+            cache.class_version = 0;
           }
           if (!call_user_function(fn_obj, call_args, regs[in.dst])) {
             if (!result.errors.empty()) return result;
             continue;
           }
+          if (pushed_frame) goto switch_frame;
         } else if (auto* bound = value_as_bound_method(callee)) {
           CallArgsView bound_args = call_args;
           bound_args.leading = &bound->self;
@@ -951,37 +1759,104 @@ RuntimeResult Interpreter::run_function(
             if (!result.errors.empty()) return result;
             continue;
           }
+          if (pushed_frame) goto switch_frame;
         } else if (auto* klass = value_as_class(callee)) {
-          (void)klass;
           Value instance = Value::instance(callee);
-          Value init;
-          std::string error;
-          if (object_get_attr(instance, "__init__", init, error)) {
-            auto* bound_init = value_as_bound_method(init);
-            if (bound_init == nullptr) {
+          CallArgsView init_args = call_args;
+          init_args.leading = &instance;
+          init_args.leading_count = 1;
+          if (!call_site_cache.empty()) {
+            auto& cache = call_site_cache[ip];
+            if (cache.callee_object == callee.as.obj && cache.class_version == klass->version) {
+              if (cache.kind == CallSiteKind::UserConstructor) {
+                const auto* fn_obj = cache.function;
+                const ir::Module* call_module = &module;
+                auto call_module_owner = module_owner;
+                if (fn_obj->module != nullptr) {
+                  call_module = fn_obj->module.get();
+                  call_module_owner = fn_obj->module;
+                }
+                Value constructed_instance;
+                value_assign_fast(constructed_instance, instance);
+                ++ip;
+                if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->globals_module,
+                                std::move(call_module_owner), in.dst,
+                                FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
+                  return result;
+                }
+                goto switch_frame;
+              }
+              if (cache.kind == CallSiteKind::NativeConstructor) {
+                Value ignored;
+                if (!call_native_function(cache.native, init_args, ignored)) {
+                  if (!result.errors.empty()) return result;
+                  continue;
+                }
+                value_assign_fast(regs[in.dst], instance);
+                break;
+              }
+            }
+          }
+          auto init_it = klass->attrs.find("__init__");
+          if (init_it != klass->attrs.end()) {
+            if (auto* native = value_as_native_function(init_it->second)) {
+              if (!call_site_cache.empty()) {
+                auto& cache = call_site_cache[ip];
+                cache.callee_object = callee.as.obj;
+                cache.kind = CallSiteKind::NativeConstructor;
+                cache.function = nullptr;
+                cache.native = native;
+                cache.class_version = klass->version;
+              }
+              Value ignored;
+              if (!call_native_function(native, init_args, ignored)) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              value_assign_fast(regs[in.dst], instance);
+            } else if (auto* fn_obj = value_as_function(init_it->second)) {
+              if (!call_site_cache.empty()) {
+                auto& cache = call_site_cache[ip];
+                cache.callee_object = callee.as.obj;
+                cache.kind = CallSiteKind::UserConstructor;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+              }
+              const ir::Module* call_module = &module;
+              auto call_module_owner = module_owner;
+              if (fn_obj->module != nullptr) {
+                call_module = fn_obj->module.get();
+                call_module_owner = fn_obj->module;
+              }
+              Value constructed_instance;
+              value_assign_fast(constructed_instance, instance);
+              ++ip;
+              if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->globals_module,
+                              std::move(call_module_owner), in.dst,
+                              FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
+                return result;
+              }
+              goto switch_frame;
+            } else {
               if (raise_runtime_error("__init__ is not callable")) continue;
               return result;
             }
-            CallArgsView init_args = call_args;
-            init_args.leading = &bound_init->self;
-            init_args.leading_count = 1;
-            Value ignored;
-            if (!call_callable_value(bound_init->function, init_args, ignored)) {
-              if (!result.errors.empty()) return result;
-              continue;
+          } else {
+            if (call_args.size() != 0) {
+              if (raise_runtime_error("class construction expected no arguments")) continue;
+              return result;
             }
-          } else if (call_args.size() != 0) {
-            if (raise_runtime_error("class construction expected no arguments")) continue;
-            return result;
+            value_assign_fast(regs[in.dst], instance);
           }
-          regs[in.dst] = std::move(instance);
         } else if (auto* native = value_as_native_function(callee)) {
           if (!call_site_cache.empty() && callee.tag == ValueTag::Object) {
             auto& cache = call_site_cache[ip];
             cache.callee_object = callee.as.obj;
-            cache.kind = 2;
+            cache.kind = CallSiteKind::NativeFunction;
             cache.function = nullptr;
             cache.native = native;
+            cache.class_version = 0;
           }
           if (!call_native_function(native, call_args, regs[in.dst])) {
             if (!result.errors.empty()) return result;
@@ -1002,10 +1877,19 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Pop:
         break;
       case ir::Op::Return:
-        value_assign_fast(result.value, regs[in.a]);
-        return result;
+        {
+          Value return_value;
+          value_assign_fast(return_value, regs[in.a]);
+          if (!finish_frame(return_value)) {
+            return result;
+          }
+        }
+        goto switch_frame;
+      }
+      ++ip;
     }
-    ++ip;
+switch_frame:
+    continue;
   }
 
   value_set_none(result.value);

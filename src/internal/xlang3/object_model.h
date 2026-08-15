@@ -26,12 +26,18 @@ struct ClassObject {
   Object header;
   std::string name;
   std::unordered_map<std::string, Value> attrs;
+  std::vector<std::string> instance_slot_names;
+  std::unordered_map<std::string, uint32_t> instance_slot_indices;
+  uint64_t version = 1;
 };
 
 struct InstanceObject {
   Object header;
   Value klass;
-  std::unordered_map<std::string, Value> attrs;
+  uint32_t slot_count = 0;
+  Value inline_slots[8];
+  std::vector<Value> overflow_slots;
+  std::vector<std::pair<std::string, Value>> attrs;
 };
 
 struct BoundMethodObject {
@@ -59,6 +65,18 @@ XLANG3_HOT_INLINE BoundMethodObject* value_as_bound_method(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<BoundMethodObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE uint32_t instance_slot_count(const InstanceObject* instance) {
+  return instance->slot_count;
+}
+
+XLANG3_HOT_INLINE Value& instance_slot_at(InstanceObject* instance, uint32_t index) {
+  return instance->slot_count <= 8 ? instance->inline_slots[index] : instance->overflow_slots[index];
+}
+
+XLANG3_HOT_INLINE const Value& instance_slot_at(const InstanceObject* instance, uint32_t index) {
+  return instance->slot_count <= 8 ? instance->inline_slots[index] : instance->overflow_slots[index];
 }
 
 void object_model_release_object(Object* object);

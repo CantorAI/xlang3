@@ -26,15 +26,60 @@ T* allocate_object_model(ObjectKind kind) {
   return obj;
 }
 
+struct InstanceFreeList {
+  ~InstanceFreeList() {
+    for (auto* instance : items) {
+      delete instance;
+    }
+  }
+
+  std::vector<InstanceObject*> items;
+};
+
+thread_local InstanceFreeList instance_free_list;
+
+InstanceObject* allocate_instance_object() {
+  if (!instance_free_list.items.empty()) {
+    auto* obj = instance_free_list.items.back();
+    instance_free_list.items.pop_back();
+    obj->header.kind = ObjectKind::Instance;
+    obj->header.refcnt = 1;
+    return obj;
+  }
+  return allocate_object_model<InstanceObject>(ObjectKind::Instance);
+}
+
+void recycle_instance_object(InstanceObject* instance) {
+  instance->klass = Value::invalid();
+  for (uint32_t i = 0; i < instance->slot_count && i < 8; ++i) {
+    value_set_invalid(instance->inline_slots[i]);
+  }
+  instance->overflow_slots.clear();
+  instance->attrs.clear();
+  instance->slot_count = 0;
+  if (instance_free_list.items.size() < 1024) {
+    instance_free_list.items.push_back(instance);
+    return;
+  }
+  delete instance;
+}
+
 } // namespace
 
-Value Value::class_object(std::string name, std::vector<std::pair<std::string, Value>> attrs) {
+Value Value::class_object(
+    std::string name,
+    std::vector<std::pair<std::string, Value>> attrs,
+    std::vector<std::string> instance_slots) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object_model<ClassObject>(ObjectKind::Class);
   obj->name = std::move(name);
   for (auto& attr : attrs) {
     obj->attrs[std::move(attr.first)] = std::move(attr.second);
+  }
+  obj->instance_slot_names = std::move(instance_slots);
+  for (size_t i = 0; i < obj->instance_slot_names.size(); ++i) {
+    obj->instance_slot_indices[obj->instance_slot_names[i]] = static_cast<uint32_t>(i);
   }
   v.as.obj = &obj->header;
   return v;
@@ -43,8 +88,17 @@ Value Value::class_object(std::string name, std::vector<std::pair<std::string, V
 Value Value::instance(Value klass) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_object_model<InstanceObject>(ObjectKind::Instance);
+  auto* obj = allocate_instance_object();
   obj->klass = std::move(klass);
+  if (auto* klass_obj = value_as_class(obj->klass)) {
+    obj->slot_count = static_cast<uint32_t>(klass_obj->instance_slot_names.size());
+    if (obj->slot_count > 8) {
+      obj->overflow_slots.assign(obj->slot_count, Value::invalid());
+    }
+  }
+  if (obj->slot_count == 0) {
+    obj->attrs.reserve(4);
+  }
   v.as.obj = &obj->header;
   return v;
 }
@@ -65,7 +119,7 @@ void object_model_release_object(Object* object) {
       delete reinterpret_cast<ClassObject*>(object);
       break;
     case ObjectKind::Instance:
-      delete reinterpret_cast<InstanceObject*>(object);
+      recycle_instance_object(reinterpret_cast<InstanceObject*>(object));
       break;
     case ObjectKind::BoundMethod:
       delete reinterpret_cast<BoundMethodObject*>(object);
@@ -103,15 +157,26 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* instance = value_as_instance(object)) {
-    auto inst_it = instance->attrs.find(name);
-    if (inst_it != instance->attrs.end()) {
-      value_assign_fast(out, inst_it->second);
-      return true;
-    }
     auto* klass = value_as_class(instance->klass);
     if (klass == nullptr) {
       error = "instance has invalid class";
       return false;
+    }
+    auto slot_it = klass->instance_slot_indices.find(name);
+    if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+      const auto& slot_value = instance_slot_at(instance, slot_it->second);
+      if (slot_value.tag != ValueTag::Invalid) {
+        value_assign_fast(out, slot_value);
+        return true;
+      }
+      error = "object has no attribute '" + name + "'";
+      return false;
+    }
+    for (const auto& attr : instance->attrs) {
+      if (attr.first == name) {
+        value_assign_fast(out, attr.second);
+        return true;
+      }
     }
     auto class_it = klass->attrs.find(name);
     if (class_it == klass->attrs.end()) {
@@ -132,11 +197,26 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
 
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error) {
   if (auto* instance = value_as_instance(object)) {
-    instance->attrs[name] = value;
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr) {
+      auto slot_it = klass->instance_slot_indices.find(name);
+      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+        value_assign_fast(instance_slot_at(instance, slot_it->second), value);
+        return true;
+      }
+    }
+    for (auto& attr : instance->attrs) {
+      if (attr.first == name) {
+        value_assign_fast(attr.second, value);
+        return true;
+      }
+    }
+    instance->attrs.push_back(std::make_pair(name, value));
     return true;
   }
   if (auto* klass = value_as_class(object)) {
     klass->attrs[name] = value;
+    ++klass->version;
     return true;
   }
   error = "object does not support attribute assignment";

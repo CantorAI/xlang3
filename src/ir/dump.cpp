@@ -25,6 +25,8 @@ const char* op_name(Op op) {
     case Op::LoadConst: return "LoadConst";
     case Op::LoadLocal: return "LoadLocal";
     case Op::StoreLocal: return "StoreLocal";
+    case Op::MoveLocal: return "MoveLocal";
+    case Op::AddLocalConst: return "AddLocalConst";
     case Op::LoadCell: return "LoadCell";
     case Op::StoreCell: return "StoreCell";
     case Op::LoadCellObject: return "LoadCellObject";
@@ -37,6 +39,8 @@ const char* op_name(Op op) {
     case Op::ImportFrom: return "ImportFrom";
     case Op::LoadAttr: return "LoadAttr";
     case Op::StoreAttr: return "StoreAttr";
+    case Op::LoadInstanceSlot: return "LoadInstanceSlot";
+    case Op::StoreInstanceSlot: return "StoreInstanceSlot";
     case Op::MakeClass: return "MakeClass";
     case Op::MakeFunction: return "MakeFunction";
     case Op::MakeTuple: return "MakeTuple";
@@ -59,6 +63,7 @@ const char* op_name(Op op) {
     case Op::Neg: return "Neg";
     case Op::Jump: return "Jump";
     case Op::JumpIfFalse: return "JumpIfFalse";
+    case Op::JumpIfLocalConstFalse: return "JumpIfLocalConstFalse";
     case Op::SetupExcept: return "SetupExcept";
     case Op::PopExcept: return "PopExcept";
     case Op::Raise: return "Raise";
@@ -163,6 +168,13 @@ std::string dump_module(const Module& module) {
       os << "  class_attrs #" << attrs_i << ":";
       for (const auto& attr : fn.class_attrs[attrs_i]) {
         os << " " << attr.first << "=r" << attr.second;
+      }
+      os << "\n";
+    }
+    for (size_t slots_i = 0; slots_i < fn.class_instance_slots.size(); ++slots_i) {
+      os << "  class_instance_slots #" << slots_i << ":";
+      for (size_t slot_i = 0; slot_i < fn.class_instance_slots[slots_i].size(); ++slot_i) {
+        os << " %" << slot_i << "=" << fn.class_instance_slots[slots_i][slot_i];
       }
       os << "\n";
     }
