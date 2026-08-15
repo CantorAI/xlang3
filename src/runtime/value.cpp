@@ -150,13 +150,20 @@ Value Value::function(
   return v;
 }
 
-Value Value::native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback) {
+Value Value::native_function(
+    uint32_t native_id,
+    std::string name,
+    NativeFunctionCallback callback,
+    void* user_data,
+    void (*user_data_cleanup)(void*)) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
   obj->native_id = native_id;
   obj->name = std::move(name);
   obj->callback = callback;
+  obj->user_data = user_data;
+  obj->user_data_cleanup = user_data_cleanup;
   v.as.obj = &obj->header;
   return v;
 }
@@ -205,6 +212,9 @@ void release(const Value& value) {
       delete as_function(value.as.obj);
       break;
     case ObjectKind::NativeFunction:
+      if (as_native_function(value.as.obj)->user_data_cleanup != nullptr) {
+        as_native_function(value.as.obj)->user_data_cleanup(as_native_function(value.as.obj)->user_data);
+      }
       delete as_native_function(value.as.obj);
       break;
     case ObjectKind::Class:

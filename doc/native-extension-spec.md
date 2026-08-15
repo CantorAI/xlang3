@@ -14,7 +14,7 @@ limitations under the License.
 -->
 # Native Extension Spec
 
-Status: draft 0
+Status: draft 1
 
 ## Purpose
 
@@ -29,20 +29,29 @@ Runtime contract: pure C ABI
 
 ## Module Init
 
-Every native extension exports:
+Every native package exports:
 
 ```c
-X3_EXPORT X3Status xlang3_module_init(
-    const X3Api* api,
-    X3Runtime* rt,
-    X3PackageBuilder* builder);
+X3_EXPORT X3Status x3_package_init(
+    const X3PackageHost* host,
+    X3Package* package);
 ```
 
 The runtime loads this symbol by exact unmangled name.
 
-## Package Builder
+## Package And Module Builder
 
-The builder registers:
+A native package is the ABI/loading unit. The runtime exposes package contents as normal `ModuleObject` values.
+
+One native package may register several modules. This keeps the useful old XLang pattern where one DLL, such as `xlang_http`, exposes `http`, `cypher`, and `smtp`.
+
+```c
+X3Module* cypher = NULL;
+host->add_module(package, "cypher", &cypher);
+host->module_add_value(cypher, "RSA_PKCS1_PADDING", x3_value_int64(1));
+```
+
+The module builder registers:
 
 - functions
 - constants
@@ -54,31 +63,34 @@ The builder registers:
 Example C API:
 
 ```c
-X3Status x3_package_add_func(
-    X3PackageBuilder* b,
-    const char* name,
-    X3NativeFunc fn,
-    const X3FuncSig* sig);
+typedef struct X3NativeFunctionDef {
+    uint32_t size;
+    const char* name;
+    X3NativeFn callback;
+    void* user_data;
+    uint32_t min_argc;
+    uint32_t max_argc;
+    uint32_t flags;
+} X3NativeFunctionDef;
+
+X3Status module_add_function(X3Module* module, const X3NativeFunctionDef* def);
 ```
 
 ## C Native Function Example
 
 ```c
 static X3Status add(
-    X3Runtime* rt,
-    X3Value self,
+    X3CallContext* ctx,
     const X3Value* args,
     uint32_t argc,
-    const X3KwArg* kwargs,
-    uint32_t kwargc,
     X3Value* out)
 {
-    if (argc != 2) return X3_ERR_TYPE;
+    if (argc != 2) return X3_STATUS_ERROR;
     if (args[0].tag == X3_TAG_INT64 && args[1].tag == X3_TAG_INT64) {
-        *out = x3_make_int(args[0].as.i64 + args[1].as.i64);
-        return X3_OK;
+        *out = x3_value_int64(args[0].as.i64 + args[1].as.i64);
+        return X3_STATUS_OK;
     }
-    return x3_binary_add(rt, args[0], args[1], out);
+    return X3_STATUS_ERROR;
 }
 ```
 
@@ -90,7 +102,19 @@ Provide helper headers under:
 include/xlang3/cpp/
 ```
 
-C++ helper may allow:
+The first compatibility wrapper is `include/xlang3/cpp/xlang.h`. It supports the old embedding shape:
+
+```cpp
+X::Runtime rt;
+rt.AddImportRoot(package_dir);
+
+X::Package cypher(rt, "cypher", "xlang_http");
+cypher.SetPropValue("StorePath", "CantorStore");
+auto generateKeyPair = cypher.fn("generate_key_pair");
+auto key = generateKeyPair(2048, keyName);
+```
+
+Package-author helpers should later allow old XPackage-like registration:
 
 ```cpp
 class MyMath {
@@ -106,6 +130,26 @@ X3_END_PACKAGE()
 But this helper must generate C ABI registration and C ABI trampoline functions.
 
 No C++ class pointer should be required by the runtime unless wrapped as opaque package data.
+
+## Runtime Import Semantics
+
+Native package loading participates in normal import:
+
+```text
+runtime module table
+Python .py module/package
+native package DLL/SO
+```
+
+Native package filenames:
+
+```text
+Windows: <name>.x3pkg.dll, <name>.dll
+Linux:   lib<name>.x3pkg.so, <name>.x3pkg.so, lib<name>.so
+macOS:   lib<name>.x3pkg.dylib, <name>.x3pkg.dylib, lib<name>.dylib
+```
+
+Language code sees a normal module object. C++ embedding code uses the same runtime module object through the compatibility wrapper.
 
 ## Type Registration
 
@@ -148,9 +192,8 @@ This requires:
 Search order:
 
 1. built-in statically registered packages
-2. module search path
-3. configured package folders
-4. application-local modules
+2. Python module search path
+3. native package search path rooted in runtime import roots
 
 Each package may have metadata:
 
@@ -159,7 +202,7 @@ Each package may have metadata:
   "name": "std.yaml",
   "abi": 1,
   "version": "0.1.0",
-  "entry": "xlang3_module_init"
+  "entry": "x3_package_init"
 }
 ```
 
@@ -180,4 +223,3 @@ Replace:
 - C++ virtual package ABI
 - dynamic_cast across runtime boundary
 - STL-based ABI types
-

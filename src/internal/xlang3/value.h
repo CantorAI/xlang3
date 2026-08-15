@@ -70,13 +70,16 @@ using NativeFunctionCallback = bool (*)(
     const Value* args,
     uint32_t argc,
     Value& out,
-    std::string& error);
+    std::string& error,
+    void* user_data);
 
 struct NativeFunctionObject {
   Object header;
   uint32_t native_id = 0;
   std::string name;
   NativeFunctionCallback callback = nullptr;
+  void* user_data = nullptr;
+  void (*user_data_cleanup)(void*) = nullptr;
 };
 
 struct StringObject {
@@ -123,7 +126,12 @@ struct Value {
       std::vector<Value> closure,
       Value globals_module,
       std::shared_ptr<const ir::Module> module);
-  static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);
+  static Value native_function(
+      uint32_t native_id,
+      std::string name,
+      NativeFunctionCallback callback,
+      void* user_data = nullptr,
+      void (*user_data_cleanup)(void*) = nullptr);
   static Value class_object(
       std::string name,
       std::vector<std::pair<std::string, Value>> attrs,

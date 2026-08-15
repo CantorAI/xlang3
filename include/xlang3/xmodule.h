@@ -21,16 +21,42 @@ limitations under the License.
 extern "C" {
 #endif
 
-typedef struct X3ModuleDef {
-  uint32_t abi_version;
-  const char* name;
-  X3Status (*init)(X3Runtime* runtime);
-} X3ModuleDef;
-
-typedef X3ModuleDef* (*X3ModuleInitFn)(void);
-
 #define X3_ABI_VERSION 1u
-#define X3_MODULE_INIT_NAME x3_module_init
+#define X3_PACKAGE_INIT_NAME x3_package_init
+
+typedef struct X3Package X3Package;
+typedef struct X3Module X3Module;
+typedef struct X3CallContext X3CallContext;
+
+typedef X3Status (*X3NativeFn)(
+    X3CallContext* context,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result);
+
+typedef struct X3NativeFunctionDef {
+  uint32_t size;
+  const char* name;
+  X3NativeFn callback;
+  void* user_data;
+  uint32_t min_argc;
+  uint32_t max_argc;
+  uint32_t flags;
+} X3NativeFunctionDef;
+
+typedef struct X3PackageHost {
+  uint32_t abi_version;
+  uint32_t size;
+  X3Status (*add_module)(X3Package* package, const char* name, X3Module** out_module);
+  X3Status (*module_add_value)(X3Module* module, const char* name, X3Value value);
+  X3Status (*module_add_function)(X3Module* module, const X3NativeFunctionDef* def);
+  X3Status (*set_error)(X3CallContext* context, const char* message);
+} X3PackageHost;
+
+typedef X3Status (*X3PackageInitFn)(const X3PackageHost* host, X3Package* package);
+
+X3_API void* x3_call_context_user_data(X3CallContext* context);
+X3_API X3Runtime* x3_call_context_runtime(X3CallContext* context);
 
 #ifdef __cplusplus
 }

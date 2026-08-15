@@ -21,7 +21,7 @@ namespace xlang3 {
 
 namespace {
 
-bool dict_get_method_impl(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool dict_get_method_impl(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 && argc != 3) {
     error = "dict.get expected 2 or 3 arguments, got " + std::to_string(argc);
     return false;
@@ -34,7 +34,7 @@ bool dict_get_method_impl(Runtime&, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
-bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.keys", error)) {
     return false;
   }
@@ -52,7 +52,7 @@ bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.values", error)) {
     return false;
   }
@@ -70,7 +70,7 @@ bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.items", error)) {
     return false;
   }
@@ -91,7 +91,7 @@ bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 && argc != 3) {
     error = "dict.pop expected 2 or 3 arguments, got " + std::to_string(argc);
     return false;
@@ -120,7 +120,7 @@ bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return false;
 }
 
-bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.clear", error)) {
     return false;
   }

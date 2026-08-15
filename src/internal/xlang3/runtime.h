@@ -33,16 +33,23 @@ public:
   void register_builtin(std::string name, Value value);
   void register_native_builtin(std::string name, NativeFunctionCallback callback);
   const Value* find_builtin(const std::string& name) const;
-  Value make_native_function(std::string name, NativeFunctionCallback callback);
+  Value make_native_function(
+      std::string name,
+      NativeFunctionCallback callback,
+      void* user_data = nullptr,
+      void (*user_data_cleanup)(void*) = nullptr);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
   bool import_module(const std::string& name, Value& out, std::string& error);
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
   void add_import_root(std::filesystem::path root);
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
+  void set_last_error(std::string error) { last_error_ = std::move(error); }
+  const std::string& last_error() const { return last_error_; }
 
 private:
   std::ostream& out_;
+  std::string last_error_;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;

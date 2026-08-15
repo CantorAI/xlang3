@@ -1478,7 +1478,13 @@ RuntimeResult Interpreter::run_function(
           Value native_result;
           const Value* native_args = materialize_native_args(values);
           if (native->callback == nullptr ||
-              !native->callback(runtime_, native_args, static_cast<uint32_t>(values.size()), native_result, error)) {
+              !native->callback(
+                  runtime_,
+                  native_args,
+                  static_cast<uint32_t>(values.size()),
+                  native_result,
+                  error,
+                  native->user_data)) {
             if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
             return false;
           }
@@ -1667,7 +1673,13 @@ RuntimeResult Interpreter::run_function(
           Value native_result;
           const Value* native_args = materialize_native_args(values);
           if (native->callback == nullptr ||
-              !native->callback(runtime_, native_args, static_cast<uint32_t>(values.size()), native_result, error)) {
+              !native->callback(
+                  runtime_,
+                  native_args,
+                  static_cast<uint32_t>(values.size()),
+                  native_result,
+                  error,
+                  native->user_data)) {
             if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
             return false;
           }

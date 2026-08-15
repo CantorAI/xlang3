@@ -12,36 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/builtins.h"
+#pragma once
+
+#include "xlang3/runtime.h"
+
+#include <string>
 
 namespace xlang3 {
 
-namespace {
-
-bool builtin_print(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    Value& out,
-    std::string& error,
-    void* user_data) {
-  (void)error;
-  (void)user_data;
-  for (uint32_t i = 0; i < argc; ++i) {
-    if (i != 0) {
-      runtime.out() << " ";
-    }
-    runtime.out() << value_to_string(args[i]);
-  }
-  runtime.out() << "\n";
-  value_set_none(out);
-  return true;
-}
-
-} // namespace
-
-void register_io_builtins(Runtime& runtime) {
-  runtime.register_native_builtin("print", builtin_print);
-}
+bool import_native_package(Runtime& runtime, const std::string& package_name, Value& out, std::string& error);
 
 } // namespace xlang3

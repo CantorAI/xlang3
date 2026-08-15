@@ -29,8 +29,15 @@ bool require_int_arg(const Value& value, const char* name, int64_t& out, std::st
   return true;
 }
 
-bool builtin_range(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool builtin_range(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
   (void)runtime;
+  (void)user_data;
   if (argc < 1 || argc > 3) {
     error = "range() expected 1 to 3 arguments";
     return false;
@@ -53,8 +60,15 @@ bool builtin_range(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
-bool builtin_len(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool builtin_len(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
   (void)runtime;
+  (void)user_data;
   if (argc != 1) {
     error = "len() expected 1 argument";
     return false;

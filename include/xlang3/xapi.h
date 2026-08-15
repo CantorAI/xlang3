@@ -44,10 +44,42 @@ typedef enum X3Status {
 
 X3_API X3Runtime* x3_runtime_create(void);
 X3_API void x3_runtime_destroy(X3Runtime* runtime);
+X3_API const char* x3_runtime_last_error(X3Runtime* runtime);
+X3_API X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path);
 
 X3_API X3Status x3_runtime_eval_file(
     X3Runtime* runtime,
     const char* path,
+    X3Value* result);
+
+X3_API void x3_value_retain(X3Value value);
+X3_API void x3_value_release(X3Value value);
+X3_API X3Value x3_value_string(X3Runtime* runtime, const char* value);
+X3_API const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value);
+
+X3_API X3Status x3_runtime_import_module(
+    X3Runtime* runtime,
+    const char* package_name,
+    const char* module_name,
+    X3Value* result);
+
+X3_API X3Status x3_get_attr(
+    X3Runtime* runtime,
+    X3Value object,
+    const char* name,
+    X3Value* result);
+
+X3_API X3Status x3_set_attr(
+    X3Runtime* runtime,
+    X3Value object,
+    const char* name,
+    X3Value value);
+
+X3_API X3Status x3_call(
+    X3Runtime* runtime,
+    X3Value callable,
+    const X3Value* args,
+    uint32_t argc,
     X3Value* result);
 
 #ifdef __cplusplus

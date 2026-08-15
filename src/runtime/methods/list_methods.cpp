@@ -56,7 +56,7 @@ bool normalize_existing_index(const Value& value, size_t size, size_t& out, std:
   return true;
 }
 
-bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "list.append", error)) {
     return false;
   }
@@ -68,7 +68,7 @@ bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 && argc != 2) {
     error = "list.pop expected 1 or 2 arguments, got " + std::to_string(argc);
     return false;
@@ -91,7 +91,7 @@ bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
-bool list_extend_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool list_extend_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "list.extend", error)) {
     return false;
   }
@@ -121,7 +121,7 @@ bool list_extend_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool list_insert_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool list_insert_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 3, "list.insert", error)) {
     return false;
   }
@@ -139,7 +139,7 @@ bool list_insert_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "list.clear", error)) {
     return false;
   }

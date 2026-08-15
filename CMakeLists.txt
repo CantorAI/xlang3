@@ -19,11 +19,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(xlang3_core
+  src/api/c_api.cpp
   src/builtins/builtins.cpp
   src/builtins/builtin_modules.cpp
   src/builtins/io_builtins.cpp
   src/builtins/math_module.cpp
   src/builtins/sequence_builtins.cpp
+  src/runtime/c_api_bridge.cpp
   src/runtime/attribute.cpp
   src/runtime/methods/list_methods.cpp
   src/runtime/methods/dict_methods.cpp
@@ -40,6 +42,7 @@ add_library(xlang3_core
   src/parser/lexer.cpp
   src/parser/parser.cpp
   src/import/import_loader.cpp
+  src/import/native_package_loader.cpp
   src/sema/scope_analysis.cpp
   src/sema/lower.cpp
   src/ir/dump.cpp
@@ -79,6 +82,29 @@ add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
 target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
+
+add_library(x3sample_native_package SHARED tests/native/sample_package.c)
+set_target_properties(x3sample_native_package PROPERTIES
+  OUTPUT_NAME "x3sample.x3pkg"
+  PREFIX ""
+)
+target_include_directories(x3sample_native_package PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(xlang3_native_package_tests tests/cpp/native_package_tests.cpp)
+target_link_libraries(xlang3_native_package_tests PRIVATE xlang3_core)
+target_include_directories(xlang3_native_package_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+)
+add_test(
+  NAME xlang3_native_package_tests
+  COMMAND xlang3_native_package_tests $<TARGET_FILE_DIR:x3sample_native_package>
+)
+
+add_test(
+  NAME xlang3_cli_native_package_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/native_import_probe.py
+)
 
 add_test(
   NAME xlang3_cli_fixtures

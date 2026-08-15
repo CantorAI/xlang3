@@ -30,7 +30,7 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
   return true;
 }
 
-bool string_upper_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool string_upper_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "str.upper", error)) {
     return false;
   }
@@ -47,7 +47,7 @@ bool string_upper_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool string_lower_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool string_lower_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "str.lower", error)) {
     return false;
   }
@@ -64,7 +64,7 @@ bool string_lower_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool string_strip_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool string_strip_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "str.strip", error)) {
     return false;
   }
@@ -84,7 +84,7 @@ bool string_strip_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool string_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool string_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "str.startswith", error)) {
     return false;
   }
@@ -131,7 +131,7 @@ bool split_separator(const std::string& text, const std::string& sep, std::vecto
   }
 }
 
-bool string_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool string_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 && argc != 2) {
     error = "str.split expected 1 or 2 arguments, got " + std::to_string(argc);
     return false;

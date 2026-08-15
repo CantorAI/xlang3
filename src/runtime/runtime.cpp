@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 #include "xlang3/import_loader.h"
 #include "xlang3/module_object.h"
+#include "xlang3/native_package_loader.h"
 
 namespace xlang3 {
 
@@ -41,9 +42,13 @@ const Value* Runtime::find_builtin(const std::string& name) const {
   return &it->second;
 }
 
-Value Runtime::make_native_function(std::string name, NativeFunctionCallback callback) {
+Value Runtime::make_native_function(
+    std::string name,
+    NativeFunctionCallback callback,
+    void* user_data,
+    void (*user_data_cleanup)(void*)) {
   const uint32_t native_id = next_native_id_++;
-  return Value::native_function(native_id, std::move(name), callback);
+  return Value::native_function(native_id, std::move(name), callback, user_data, user_data_cleanup);
 }
 
 void Runtime::register_module(std::string name, Value module) {
@@ -57,7 +62,16 @@ void Runtime::unregister_module(const std::string& name) {
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
   auto it = modules_.find(name);
   if (it == modules_.end()) {
-    return import_python_module(*this, name, out, error);
+    std::string python_error;
+    if (import_python_module(*this, name, out, python_error)) {
+      return true;
+    }
+    std::string native_error;
+    if (import_native_package(*this, name, out, native_error)) {
+      return true;
+    }
+    error = native_error.empty() ? python_error : native_error;
+    return false;
   }
   value_assign_fast(out, it->second);
   return true;

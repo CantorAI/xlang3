@@ -21,7 +21,7 @@ namespace xlang3 {
 
 namespace {
 
-bool set_add_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool set_add_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.add", error)) {
     return false;
   }
@@ -56,7 +56,7 @@ bool remove_set_item(Value& set_value, const Value& item, bool require_present, 
   return true;
 }
 
-bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.discard", error)) {
     return false;
   }
@@ -68,7 +68,7 @@ bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool set_remove_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool set_remove_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.remove", error)) {
     return false;
   }

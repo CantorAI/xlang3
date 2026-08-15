@@ -48,18 +48,39 @@ bool unary_math(const char* name, double (*fn)(double), const Value* args, uint3
   return true;
 }
 
-bool math_sqrt(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool math_sqrt(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
   (void)runtime;
+  (void)user_data;
   return unary_math("sqrt", std::sqrt, args, argc, out, error);
 }
 
-bool math_sin(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool math_sin(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
   (void)runtime;
+  (void)user_data;
   return unary_math("sin", std::sin, args, argc, out, error);
 }
 
-bool math_cos(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool math_cos(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
   (void)runtime;
+  (void)user_data;
   return unary_math("cos", std::cos, args, argc, out, error);
 }
 
