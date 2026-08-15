@@ -27,6 +27,7 @@ const char* op_name(Op op) {
     case Op::StoreLocal: return "StoreLocal";
     case Op::MoveLocal: return "MoveLocal";
     case Op::AddLocalConst: return "AddLocalConst";
+    case Op::AddLocalLocal: return "AddLocalLocal";
     case Op::LoadCell: return "LoadCell";
     case Op::StoreCell: return "StoreCell";
     case Op::LoadCellObject: return "LoadCellObject";
@@ -52,6 +53,7 @@ const char* op_name(Op op) {
     case Op::SetItem: return "SetItem";
     case Op::GetIter: return "GetIter";
     case Op::IterNext: return "IterNext";
+    case Op::ForRangeConstLocalNext: return "ForRangeConstLocalNext";
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
@@ -177,6 +179,11 @@ std::string dump_module(const Module& module) {
         os << " %" << slot_i << "=" << fn.class_instance_slots[slots_i][slot_i];
       }
       os << "\n";
+    }
+    for (size_t range_i = 0; range_i < fn.range_specs.size(); ++range_i) {
+      os << "  range_spec #" << range_i
+         << ": stop=c" << fn.range_specs[range_i].first
+         << " step=c" << fn.range_specs[range_i].second << "\n";
     }
     for (size_t ip = 0; ip < fn.code.size(); ++ip) {
       const auto& in = fn.code[ip];

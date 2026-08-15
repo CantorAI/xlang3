@@ -29,6 +29,7 @@ enum class Op : uint16_t {
   StoreLocal,
   MoveLocal,
   AddLocalConst,
+  AddLocalLocal,
   LoadCell,
   StoreCell,
   LoadCellObject,
@@ -54,6 +55,7 @@ enum class Op : uint16_t {
   SetItem,
   GetIter,
   IterNext,
+  ForRangeConstLocalNext,
   Add,
   Sub,
   Mul,
@@ -109,6 +111,7 @@ struct Function {
   std::vector<std::vector<uint32_t>> function_closures;
   std::vector<std::vector<std::pair<std::string, uint32_t>>> class_attrs;
   std::vector<std::vector<std::string>> class_instance_slots;
+  std::vector<std::pair<uint32_t, uint32_t>> range_specs;
   std::vector<Instr> code;
 };
 

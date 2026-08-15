@@ -16,13 +16,13 @@ limitations under the License.
 
 Status: living checkpoint
 
-Current head when this checkpoint was written: `51e9988 Complete basic import semantics`
+Current head when this checkpoint was written: `193dadf Add guarded interpreter fast paths`
 
 Current position:
 
 - Phase 0 is functionally complete.
 - Phase 1 correctness is active and partially complete.
-- Phase 1 performance work has not meaningfully started.
+- Phase 1 interpreter performance work has started for scalar/local/call/class hot paths.
 - Phase 2 and Phase 3 are design targets only; do not start them until the Phase 1 interpreter is coherent.
 
 ## Phase 0: Skeleton And Runtime Core
@@ -76,16 +76,18 @@ Goals:
 - [ ] fuller Python expression/operator coverage
 - [~] fuller list/dict/set/string methods
 - [ ] better diagnostic coverage
-- [ ] benchmark suite expansion
+- [~] benchmark suite expansion
 
 Performance:
 
 - [x] direct local slot access
 - [x] scalar op fast paths for current numeric operations
-- [ ] basic inline caches
-- [ ] global/module lookup cache
-- [ ] call fast path
-- [ ] benchmark comparison against CPython for representative cases
+- [x] fused local superinstructions for hot interpreter loops
+- [~] basic inline caches
+- [x] global/module lookup cache
+- [~] call fast path
+- [x] benchmark comparison against CPython for current microbenchmarks
+- [~] pyperformance integration track
 
 Implemented Phase 1 syntax/runtime subset:
 
@@ -110,8 +112,9 @@ Next Phase 1 implementation candidates:
 1. Python exception object hierarchy: `Exception`, typed handlers, and binding `except E as e`.
 2. More complete container/string builtin method coverage.
 3. External native package loading through the C ABI.
-4. Inline caches after the object/type protocol is stable.
+4. Expand guarded inline caches without hardcoding Python-incompatible assumptions.
 5. Broader parser compatibility.
+6. Grow the `benchmarks/pyperformance/supported.txt` subset as stdlib coverage improves.
 
 ## Phase 2: Optimized Interpreter And Standard Modules
 
@@ -130,10 +133,11 @@ Goals:
 Performance:
 
 - [ ] attribute inline cache
-- [ ] call inline cache
-- [ ] method fast path
+- [~] attribute inline cache
+- [~] call inline cache
+- [~] method fast path
 - [ ] list/dict/item cache
-- [ ] global/module cache
+- [x] global/module cache
 - [ ] range/list iteration fast paths
 - [ ] profiling counters
 
@@ -169,7 +173,7 @@ Phase 1:
 
 ```text
 correctness first
-performance acceptable, not necessarily faster than CPython
+current microbenchmarks should remain visible and generally competitive with CPython 3.14
 ```
 
 Phase 2:
@@ -202,3 +206,5 @@ Notes:
 
 - Source module loading currently parses and lowers `.py` files at import time, so source imports still depend on parser/sema. Native modules do not need parser internals.
 - Serialized/prebuilt IR is not implemented yet. The IR structure is separate enough to support it later.
+- Benchmarking now has two tracks: `benchmarks/cases` for VM microbenchmarks, and `benchmarks/pyperformance` for alignment with the Python ecosystem benchmark suite. The pyperformance supported subset starts empty until benchmarks run unchanged on both CPython and XLang3.
+- Current interpreter fast paths include fused local ops, scalar arithmetic fast paths, guarded tiny-function/tiny-method execution, and class-version guarded call caches.

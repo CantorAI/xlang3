@@ -883,6 +883,22 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::AddLocalLocal: {
+        if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= locals.size()) {
+          result.errors.push_back("invalid local local add");
+          return result;
+        }
+        const auto& lhs = locals[in.a];
+        const auto& rhs = locals[in.b];
+        if (!fast_add(lhs, rhs, locals[in.dst])) {
+          std::string error;
+          if (!value_add(lhs, rhs, locals[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
       case ir::Op::LoadCell: {
         if (in.a >= cells.size()) {
           result.errors.push_back("invalid cell slot");
@@ -1249,6 +1265,33 @@ RuntimeResult Interpreter::run_function(
           ip = in.b;
           continue;
         }
+        break;
+      }
+      case ir::Op::ForRangeConstLocalNext: {
+        if (in.a >= locals.size() || in.b >= locals.size() || in.c >= fn.range_specs.size()) {
+          result.errors.push_back("invalid fused range loop");
+          return result;
+        }
+        auto& current = locals[in.b];
+        const auto& spec = fn.range_specs[in.c];
+        if (current.tag != ValueTag::Int64 ||
+            spec.first >= fn.constants.size() ||
+            spec.second >= fn.constants.size() ||
+            fn.constants[spec.first].tag != ValueTag::Int64 ||
+            fn.constants[spec.second].tag != ValueTag::Int64) {
+          result.errors.push_back("invalid fused range state");
+          return result;
+        }
+        const int64_t value = current.as.i64;
+        const int64_t stop = fn.constants[spec.first].as.i64;
+        const int64_t step = fn.constants[spec.second].as.i64;
+        const bool done = step > 0 ? value >= stop : value <= stop;
+        if (done) {
+          ip = in.dst;
+          continue;
+        }
+        value_set_int64(locals[in.a], value);
+        value_set_int64(current, value + step);
         break;
       }
       case ir::Op::Add: {

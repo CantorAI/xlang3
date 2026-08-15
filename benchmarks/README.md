@@ -33,6 +33,11 @@ Current groups:
 - `list_append`: native method binding and list append behavior
 - `range_for`: range iteration and for-loop dispatch
 
+Additional tracks:
+
+- `cases/`: XLang3 microbenchmarks for IR and interpreter tuning.
+- `pyperformance/`: integration notes and helper scripts for the Python ecosystem benchmark suite.
+
 XLang3 runs `.py` files directly. Benchmark files should therefore be valid Python files that can run on both CPython and XLang3 whenever the implemented language subset allows it.
 
 The first milestone is not to beat CPython everywhere. It is to make interpreter performance visible early, especially where `X3Value` scalar fast paths and sema-assigned local slots should help.
@@ -42,3 +47,5 @@ Run:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\benchmarks\run.ps1 -XLang3 .\build\Release\xlang3.exe -Python python
 ```
+
+For the larger Python benchmark suite, see `benchmarks/pyperformance/README.md`.

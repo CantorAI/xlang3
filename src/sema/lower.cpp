@@ -287,6 +287,11 @@ private:
     return static_cast<uint32_t>(fn_.class_instance_slots.size() - 1);
   }
 
+  uint32_t add_range_spec(uint32_t stop_const, uint32_t step_const) {
+    fn_.range_specs.push_back(std::make_pair(stop_const, step_const));
+    return static_cast<uint32_t>(fn_.range_specs.size() - 1);
+  }
+
   uint32_t ensure_local(const std::string& name) {
     auto it = locals_.find(name);
     if (it != locals_.end()) {
@@ -400,6 +405,9 @@ private:
   }
 
   void lower_for_loop(const std::string& target, const ast::Expr& iterable, const std::vector<ast::StmtPtr>& body) {
+    if (try_lower_const_range_for(target, iterable, body)) {
+      return;
+    }
     const auto iterable_reg = lower_expr(iterable);
     const auto iterator_reg = new_reg();
     emit(ir::Op::GetIter, iterator_reg, iterable_reg);
@@ -411,6 +419,72 @@ private:
     lower_body(body);
     emit(ir::Op::Jump, start);
     patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+  }
+
+  bool parse_int_literal(const ast::Expr& expr, int64_t& value) const {
+    auto* lit = dynamic_cast<const ast::LiteralExpr*>(&expr);
+    if (lit == nullptr || lit->kind != ast::LiteralExpr::Kind::Int) {
+      return false;
+    }
+    value = std::strtoll(lit->text.c_str(), nullptr, 10);
+    return true;
+  }
+
+  bool try_parse_const_range_call(const ast::Expr& iterable, int64_t& start, int64_t& stop, int64_t& step) const {
+    auto* call = dynamic_cast<const ast::CallExpr*>(&iterable);
+    if (call == nullptr) {
+      return false;
+    }
+    auto* callee = dynamic_cast<const ast::NameExpr*>(call->callee.get());
+    if (callee == nullptr || resolve_name(callee->name) != "range") {
+      return false;
+    }
+    if (call->args.size() == 1) {
+      start = 0;
+      step = 1;
+      return parse_int_literal(*call->args[0], stop);
+    }
+    if (call->args.size() == 2) {
+      step = 1;
+      return parse_int_literal(*call->args[0], start) && parse_int_literal(*call->args[1], stop);
+    }
+    if (call->args.size() == 3) {
+      return parse_int_literal(*call->args[0], start) &&
+             parse_int_literal(*call->args[1], stop) &&
+             parse_int_literal(*call->args[2], step) &&
+             step != 0;
+    }
+    return false;
+  }
+
+  bool try_lower_const_range_for(
+      const std::string& target,
+      const ast::Expr& iterable,
+      const std::vector<ast::StmtPtr>& body) {
+    uint32_t target_slot = 0;
+    if (!direct_local_slot(target, target_slot)) {
+      return false;
+    }
+    int64_t start = 0;
+    int64_t stop = 0;
+    int64_t step = 1;
+    if (!try_parse_const_range_call(iterable, start, stop, step)) {
+      return false;
+    }
+    const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target;
+    hidden_locals_.insert(state_name);
+    const auto state_slot = ensure_local(state_name);
+    const auto start_reg = new_reg();
+    emit(ir::Op::LoadConst, start_reg, add_const(Value::int64(start)));
+    emit(ir::Op::StoreLocal, state_slot, start_reg);
+    const auto loop_start = static_cast<uint32_t>(fn_.code.size());
+    emit(ir::Op::ForRangeConstLocalNext, 0, target_slot, state_slot,
+         add_range_spec(add_const(Value::int64(stop)), add_const(Value::int64(step))));
+    const auto next = fn_.code.size() - 1;
+    lower_body(body);
+    emit(ir::Op::Jump, loop_start);
+    patch_jump(next, static_cast<uint32_t>(fn_.code.size()));
+    return true;
   }
 
   void lower_try_except(const ast::TryExceptStmt& stmt) {
@@ -438,13 +512,22 @@ private:
     if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(assign.value.get())) {
       if (binary->op == "+") {
         auto* lhs = dynamic_cast<const ast::NameExpr*>(binary->lhs.get());
-        auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get());
-        if (lhs != nullptr && rhs != nullptr &&
-            (rhs->kind == ast::LiteralExpr::Kind::Int || rhs->kind == ast::LiteralExpr::Kind::Double)) {
-          uint32_t src_slot = 0;
-          if (direct_local_slot(lhs->name, src_slot)) {
-            emit(ir::Op::AddLocalConst, dst_slot, src_slot, add_const(literal_value(*rhs)));
-            return true;
+        if (lhs != nullptr) {
+          uint32_t lhs_slot = 0;
+          if (direct_local_slot(lhs->name, lhs_slot)) {
+            if (auto* rhs_name = dynamic_cast<const ast::NameExpr*>(binary->rhs.get())) {
+              uint32_t rhs_slot = 0;
+              if (direct_local_slot(rhs_name->name, rhs_slot)) {
+                emit(ir::Op::AddLocalLocal, dst_slot, lhs_slot, rhs_slot);
+                return true;
+              }
+            }
+            auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get());
+            if (rhs != nullptr &&
+                (rhs->kind == ast::LiteralExpr::Kind::Int || rhs->kind == ast::LiteralExpr::Kind::Double)) {
+              emit(ir::Op::AddLocalConst, dst_slot, lhs_slot, add_const(literal_value(*rhs)));
+              return true;
+            }
           }
         }
       }
