@@ -12,8 +12,14 @@ enum class Op : uint16_t {
   LoadConst,
   LoadLocal,
   StoreLocal,
+  LoadCell,
+  StoreCell,
+  LoadCellObject,
+  LoadFree,
+  LoadFreeObject,
   LoadGlobal,
   StoreGlobal,
+  MakeFunction,
   MakeTuple,
   Add,
   Sub,
@@ -52,11 +58,14 @@ struct Function {
   std::string name;
   std::vector<std::string> params;
   std::vector<std::string> locals;
+  std::vector<uint32_t> cell_slots;
+  std::vector<std::string> free_vars;
   uint32_t register_count = 0;
   std::vector<Value> constants;
   std::vector<std::string> names;
   std::vector<std::vector<uint32_t>> call_args;
   std::vector<std::vector<uint32_t>> tuple_items;
+  std::vector<std::vector<uint32_t>> function_closures;
   std::vector<Instr> code;
 };
 

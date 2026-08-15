@@ -11,8 +11,14 @@ const char* op_name(Op op) {
     case Op::LoadConst: return "LoadConst";
     case Op::LoadLocal: return "LoadLocal";
     case Op::StoreLocal: return "StoreLocal";
+    case Op::LoadCell: return "LoadCell";
+    case Op::StoreCell: return "StoreCell";
+    case Op::LoadCellObject: return "LoadCellObject";
+    case Op::LoadFree: return "LoadFree";
+    case Op::LoadFreeObject: return "LoadFreeObject";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
+    case Op::MakeFunction: return "MakeFunction";
     case Op::MakeTuple: return "MakeTuple";
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
@@ -62,6 +68,16 @@ std::string dump_module(const Module& module) {
       os << " %" << i << "=" << fn.locals[i];
     }
     os << "\n";
+    os << "  cells:";
+    for (auto slot : fn.cell_slots) {
+      os << " %" << slot;
+    }
+    os << "\n";
+    os << "  free_vars:";
+    for (size_t i = 0; i < fn.free_vars.size(); ++i) {
+      os << " $" << i << "=" << fn.free_vars[i];
+    }
+    os << "\n";
     os << "  registers: " << fn.register_count << "\n";
     os << "  constants: " << fn.constants.size() << "\n";
     os << "  names:";
@@ -79,6 +95,13 @@ std::string dump_module(const Module& module) {
     for (size_t tuple_i = 0; tuple_i < fn.tuple_items.size(); ++tuple_i) {
       os << "  tuple_items #" << tuple_i << ":";
       for (auto reg : fn.tuple_items[tuple_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t closure_i = 0; closure_i < fn.function_closures.size(); ++closure_i) {
+      os << "  function_closure #" << closure_i << ":";
+      for (auto reg : fn.function_closures[closure_i]) {
         os << " r" << reg;
       }
       os << "\n";

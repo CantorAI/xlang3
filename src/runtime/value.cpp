@@ -31,6 +31,10 @@ TupleObject* as_tuple(Object* obj) {
   return reinterpret_cast<TupleObject*>(obj);
 }
 
+CellObject* as_cell(Object* obj) {
+  return reinterpret_cast<CellObject*>(obj);
+}
+
 FunctionObject* as_function(Object* obj) {
   return reinterpret_cast<FunctionObject*>(obj);
 }
@@ -128,11 +132,21 @@ Value Value::tuple(std::vector<Value> items) {
   return v;
 }
 
-Value Value::function(uint32_t function_id) {
+Value Value::cell(Value value) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<CellObject>(ObjectKind::Cell);
+  obj->value = std::move(value);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::function(uint32_t function_id, std::vector<Value> closure) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<FunctionObject>(ObjectKind::Function);
   obj->function_id = function_id;
+  obj->closure = std::move(closure);
   v.as.obj = &obj->header;
   return v;
 }
@@ -162,6 +176,13 @@ NativeFunctionObject* value_as_native_function(const Value& value) {
   return as_native_function(value.as.obj);
 }
 
+CellObject* value_as_cell(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Cell) {
+    return nullptr;
+  }
+  return as_cell(value.as.obj);
+}
+
 void retain(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
     ++value.as.obj->refcnt;
@@ -181,6 +202,9 @@ void release(const Value& value) {
       break;
     case ObjectKind::Tuple:
       delete as_tuple(value.as.obj);
+      break;
+    case ObjectKind::Cell:
+      delete as_cell(value.as.obj);
       break;
     case ObjectKind::Function:
       delete as_function(value.as.obj);
@@ -224,6 +248,9 @@ std::string value_to_string(const Value& value) {
         }
         text += ")";
         return text;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Cell) {
+        return "<cell>";
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Function) {
         return "<function>";

@@ -15,7 +15,8 @@ $cases = @(
     "nested_function_no_closure",
     "if_else",
     "builtin_alias",
-    "tuples"
+    "tuples",
+    "closures"
 )
 
 foreach ($case in $cases) {

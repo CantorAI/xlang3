@@ -21,6 +21,7 @@ enum class ValueTag : uint32_t {
 enum class ObjectKind : uint32_t {
   String = 1,
   Tuple,
+  Cell,
   Function,
   NativeFunction,
 };
@@ -28,11 +29,6 @@ enum class ObjectKind : uint32_t {
 struct Object {
   ObjectKind kind;
   uint32_t refcnt;
-};
-
-struct FunctionObject {
-  Object header;
-  uint32_t function_id = 0;
 };
 
 using NativeFunctionCallback = bool (*)(
@@ -78,7 +74,8 @@ struct Value {
   static Value number(double value);
   static Value string(std::string value);
   static Value tuple(std::vector<Value> items);
-  static Value function(uint32_t function_id);
+  static Value cell(Value value);
+  static Value function(uint32_t function_id, std::vector<Value> closure);
   static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);
 };
 
@@ -87,8 +84,20 @@ struct TupleObject {
   std::vector<Value> items;
 };
 
+struct CellObject {
+  Object header;
+  Value value;
+};
+
+struct FunctionObject {
+  Object header;
+  uint32_t function_id = 0;
+  std::vector<Value> closure;
+};
+
 FunctionObject* value_as_function(const Value& value);
 NativeFunctionObject* value_as_native_function(const Value& value);
+CellObject* value_as_cell(const Value& value);
 
 void retain(const Value& value);
 void release(const Value& value);

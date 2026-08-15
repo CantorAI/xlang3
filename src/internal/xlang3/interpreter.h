@@ -20,7 +20,11 @@ public:
   RuntimeResult run(const ir::Module& module);
 
 private:
-  RuntimeResult run_function(const ir::Module& module, uint32_t function_id, const std::vector<Value>& args);
+  RuntimeResult run_function(
+      const ir::Module& module,
+      uint32_t function_id,
+      const std::vector<Value>& args,
+      const std::vector<Value>& closure);
 
   Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;

@@ -23,10 +23,15 @@ std::string compare_name(ir::CompareOp op) {
 Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
 
 RuntimeResult Interpreter::run(const ir::Module& module) {
-  return run_function(module, module.entry, {});
+  static const std::vector<Value> empty_closure;
+  return run_function(module, module.entry, {}, empty_closure);
 }
 
-RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t function_id, const std::vector<Value>& args) {
+RuntimeResult Interpreter::run_function(
+    const ir::Module& module,
+    uint32_t function_id,
+    const std::vector<Value>& args,
+    const std::vector<Value>& fn_obj_closure) {
   RuntimeResult result;
   if (function_id >= module.functions.size()) {
     result.errors.push_back("invalid function id");
@@ -40,9 +45,17 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
   }
 
   std::vector<Value> locals(fn.locals.size(), Value::none());
+  std::vector<Value> cells(fn.cell_slots.size(), Value::invalid());
   std::vector<Value> regs(fn.register_count, Value::invalid());
   for (size_t i = 0; i < args.size(); ++i) {
     locals[i] = args[i];
+  }
+  for (size_t i = 0; i < fn.cell_slots.size(); ++i) {
+    if (fn.cell_slots[i] >= locals.size()) {
+      result.errors.push_back("invalid cell local slot");
+      return result;
+    }
+    cells[i] = Value::cell(locals[fn.cell_slots[i]]);
   }
 
   size_t ip = 0;
@@ -70,6 +83,60 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
         }
         locals[in.dst] = regs[in.a];
         break;
+      case ir::Op::LoadCell: {
+        if (in.a >= cells.size()) {
+          result.errors.push_back("invalid cell slot");
+          return result;
+        }
+        auto* cell = value_as_cell(cells[in.a]);
+        if (cell == nullptr) {
+          result.errors.push_back("invalid cell object");
+          return result;
+        }
+        regs[in.dst] = cell->value;
+        break;
+      }
+      case ir::Op::StoreCell: {
+        if (in.dst >= cells.size() || in.a >= regs.size()) {
+          result.errors.push_back("invalid cell store");
+          return result;
+        }
+        auto* cell = value_as_cell(cells[in.dst]);
+        if (cell == nullptr) {
+          result.errors.push_back("invalid cell object");
+          return result;
+        }
+        cell->value = regs[in.a];
+        locals[fn.cell_slots[in.dst]] = regs[in.a];
+        break;
+      }
+      case ir::Op::LoadCellObject:
+        if (in.a >= cells.size()) {
+          result.errors.push_back("invalid cell object slot");
+          return result;
+        }
+        regs[in.dst] = cells[in.a];
+        break;
+      case ir::Op::LoadFree: {
+        if (in.a >= fn_obj_closure.size()) {
+          result.errors.push_back("invalid free slot");
+          return result;
+        }
+        auto* cell = value_as_cell(fn_obj_closure[in.a]);
+        if (cell == nullptr) {
+          result.errors.push_back("invalid free cell");
+          return result;
+        }
+        regs[in.dst] = cell->value;
+        break;
+      }
+      case ir::Op::LoadFreeObject:
+        if (in.a >= fn_obj_closure.size()) {
+          result.errors.push_back("invalid free object slot");
+          return result;
+        }
+        regs[in.dst] = fn_obj_closure[in.a];
+        break;
       case ir::Op::LoadGlobal: {
         if (in.a >= fn.names.size()) {
           result.errors.push_back("invalid global name");
@@ -94,6 +161,23 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
         }
         globals_[fn.names[in.dst]] = regs[in.a];
         break;
+      case ir::Op::MakeFunction: {
+        if (in.b >= fn.function_closures.size()) {
+          result.errors.push_back("invalid function closure list");
+          return result;
+        }
+        std::vector<Value> closure;
+        closure.reserve(fn.function_closures[in.b].size());
+        for (const auto reg : fn.function_closures[in.b]) {
+          if (reg >= regs.size()) {
+            result.errors.push_back("invalid closure register");
+            return result;
+          }
+          closure.push_back(regs[reg]);
+        }
+        regs[in.dst] = Value::function(in.a, std::move(closure));
+        break;
+      }
       case ir::Op::MakeTuple: {
         if (in.a >= fn.tuple_items.size()) {
           result.errors.push_back("invalid tuple item list");
@@ -194,7 +278,7 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
         }
         const auto& callee = regs[in.a];
         if (auto* fn_obj = value_as_function(callee)) {
-          auto call_result = run_function(module, fn_obj->function_id, call_args);
+          auto call_result = run_function(module, fn_obj->function_id, call_args, fn_obj->closure);
           if (!call_result.errors.empty()) {
             return call_result;
           }

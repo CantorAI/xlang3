@@ -52,6 +52,39 @@ int main() {
   {
     std::string output;
     auto run = xlang3::test::run_source(
+        "def outer():\n"
+        "    x = 10\n"
+        "    def inner():\n"
+        "        return x\n"
+        "    return inner()\n"
+        "\n"
+        "print(outer())\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "10\n", "inner function should capture outer local");
+  }
+
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "def make_reader():\n"
+        "    x = 33\n"
+        "    def read():\n"
+        "        return x\n"
+        "    return read\n"
+        "\n"
+        "reader = make_reader()\n"
+        "print(reader())\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "33\n", "returned closure should keep captured cell alive");
+  }
+
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
         "p = print\n"
         "p(99)\n",
         output);
