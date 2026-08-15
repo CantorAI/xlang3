@@ -22,3 +22,10 @@ xlang3 --dump-ir script.py
 ```
 
 `--dump-ir` writes a readable IR dump beside the source file under `.xlang3/ir/`.
+
+## Copyright
+
+Copyright (c) 2026 CantorAI Inc. and The XLang Foundation.
+All rights reserved.
+
+This repository currently does not grant an open-source license.
