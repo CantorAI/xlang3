@@ -64,6 +64,7 @@ enum class Op : uint16_t {
   SetupExcept,
   PopExcept,
   Raise,
+  CallMethod,
   Call,
   Pop,
   Return,

@@ -59,12 +59,12 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     error = "object has no attributes";
     return false;
   }
-  auto it = module->attrs.find(name);
-  if (it == module->attrs.end()) {
+  auto it = module->name_to_slot.find(name);
+  if (it == module->name_to_slot.end() || it->second >= module->slots.size()) {
     error = "module '" + module->name + "' has no attribute '" + name + "'";
     return false;
   }
-  out = it->second;
+  out = module->slots[it->second];
   return true;
 }
 
@@ -74,7 +74,30 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
     error = "object does not support attribute assignment";
     return false;
   }
-  module->attrs[name] = value;
+  auto it = module->name_to_slot.find(name);
+  if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
+    module->slots[it->second] = value;
+  } else {
+    const auto slot = static_cast<uint32_t>(module->slots.size());
+    module->name_to_slot[name] = slot;
+    module->slots.push_back(value);
+  }
+  ++module->version;
+  return true;
+}
+
+bool module_find_attr_slot(const Value& object, const std::string& name, uint32_t& slot, std::string& error) {
+  auto* module = value_as_module(object);
+  if (module == nullptr) {
+    error = "object has no attributes";
+    return false;
+  }
+  auto it = module->name_to_slot.find(name);
+  if (it == module->name_to_slot.end() || it->second >= module->slots.size()) {
+    error = "module '" + module->name + "' has no attribute '" + name + "'";
+    return false;
+  }
+  slot = it->second;
   return true;
 }
 

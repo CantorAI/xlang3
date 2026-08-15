@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/ir.h"
 #include "xlang3/runtime.h"
 
@@ -27,6 +28,24 @@ namespace xlang3 {
 struct RuntimeResult {
   Value value;
   std::vector<std::string> errors;
+};
+
+struct CallArgsView {
+  const Value* leading = nullptr;
+  uint32_t leading_count = 0;
+  const Value* registers = nullptr;
+  const std::vector<uint32_t>* register_args = nullptr;
+
+  XLANG3_HOT_INLINE size_t size() const {
+    return static_cast<size_t>(leading_count) + (register_args == nullptr ? 0 : register_args->size());
+  }
+
+  XLANG3_HOT_INLINE const Value& get(size_t index) const {
+    if (index < leading_count) {
+      return leading[index];
+    }
+    return registers[(*register_args)[index - leading_count]];
+  }
 };
 
 class Interpreter {
@@ -43,13 +62,14 @@ private:
   RuntimeResult run_function(
       const ir::Module& module,
       uint32_t function_id,
-      const std::vector<Value>& args,
+      CallArgsView args,
       const std::vector<Value>& closure,
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
 
   Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;
+  uint64_t globals_version_ = 0;
 };
 
 } // namespace xlang3

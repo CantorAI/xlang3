@@ -62,6 +62,7 @@ const char* op_name(Op op) {
     case Op::SetupExcept: return "SetupExcept";
     case Op::PopExcept: return "PopExcept";
     case Op::Raise: return "Raise";
+    case Op::CallMethod: return "CallMethod";
     case Op::Call: return "Call";
     case Op::Pop: return "Pop";
     case Op::Return: return "Return";

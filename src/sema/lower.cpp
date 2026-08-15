@@ -463,6 +463,16 @@ private:
       return reg;
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+      if (auto* attr = dynamic_cast<const ast::AttrExpr*>(call->callee.get())) {
+        const auto object = lower_expr(*attr->object);
+        std::vector<uint32_t> arg_regs;
+        for (const auto& arg : call->args) {
+          arg_regs.push_back(lower_expr(*arg));
+        }
+        const auto dst = new_reg();
+        emit(ir::Op::CallMethod, dst, object, add_name(attr->name), add_call_args(std::move(arg_regs)));
+        return dst;
+      }
       const auto callee = lower_expr(*call->callee);
       std::vector<uint32_t> arg_regs;
       for (const auto& arg : call->args) {

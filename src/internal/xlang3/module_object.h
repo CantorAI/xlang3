@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace xlang3 {
 
@@ -26,8 +27,10 @@ class Runtime;
 
 struct ModuleObject {
   Object header;
+  uint64_t version = 0;
   std::string name;
-  std::unordered_map<std::string, Value> attrs;
+  std::unordered_map<std::string, uint32_t> name_to_slot;
+  std::vector<Value> slots;
 };
 
 XLANG3_HOT_INLINE ModuleObject* value_as_module(const Value& value) {
@@ -42,6 +45,7 @@ std::string module_to_string(const Value& value);
 
 bool module_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool module_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
+bool module_find_attr_slot(const Value& object, const std::string& name, uint32_t& slot, std::string& error);
 
 class NativeModuleBuilder {
 public:

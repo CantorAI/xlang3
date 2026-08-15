@@ -19,6 +19,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#include <cstddef>
+#include <new>
 #include <sstream>
 
 namespace xlang3 {
@@ -114,6 +116,73 @@ XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Va
   return true;
 }
 
+class SmallValueBuffer {
+public:
+  SmallValueBuffer(size_t size, const Value& fill) : size_(size) {
+    if (size_ <= kInlineCount) {
+      data_ = inline_data();
+      uses_inline_ = true;
+      for (size_t i = 0; i < size_; ++i) {
+        new (data_ + i) Value(fill);
+      }
+      return;
+    }
+    heap_.assign(size_, fill);
+    data_ = heap_.data();
+  }
+
+  SmallValueBuffer(const SmallValueBuffer&) = delete;
+  SmallValueBuffer& operator=(const SmallValueBuffer&) = delete;
+
+  ~SmallValueBuffer() {
+    if (uses_inline_) {
+      for (size_t i = 0; i < size_; ++i) {
+        data_[i].~Value();
+      }
+    }
+  }
+
+  XLANG3_HOT_INLINE size_t size() const {
+    return size_;
+  }
+
+  XLANG3_HOT_INLINE Value* data() {
+    return data_;
+  }
+
+  XLANG3_HOT_INLINE const Value* data() const {
+    return data_;
+  }
+
+  XLANG3_HOT_INLINE Value& operator[](size_t index) {
+    return data_[index];
+  }
+
+  XLANG3_HOT_INLINE const Value& operator[](size_t index) const {
+    return data_[index];
+  }
+
+private:
+  static constexpr size_t kInlineCount = 64;
+
+  XLANG3_HOT_INLINE Value* inline_data() {
+    return reinterpret_cast<Value*>(inline_storage_);
+  }
+
+  size_t size_ = 0;
+  Value* data_ = nullptr;
+  bool uses_inline_ = false;
+  alignas(Value) std::byte inline_storage_[sizeof(Value) * kInlineCount];
+  std::vector<Value> heap_;
+};
+
+struct CallSiteCache {
+  Object* callee_object = nullptr;
+  uint8_t kind = 0;
+  FunctionObject* function = nullptr;
+  NativeFunctionObject* native = nullptr;
+};
+
 } // namespace
 
 Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
@@ -138,7 +207,7 @@ RuntimeResult Interpreter::run_module(
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
     uint32_t function_id,
-    const std::vector<Value>& args,
+    CallArgsView args,
     const std::vector<Value>& fn_obj_closure,
     Value globals_module,
     std::shared_ptr<const ir::Module> module_owner) {
@@ -154,11 +223,11 @@ RuntimeResult Interpreter::run_function(
     return result;
   }
 
-  std::vector<Value> locals(fn.locals.size(), Value::none());
-  std::vector<Value> cells(fn.cell_slots.size(), Value::invalid());
-  std::vector<Value> regs(fn.register_count, Value::invalid());
+  SmallValueBuffer locals(fn.locals.size(), Value::none());
+  SmallValueBuffer cells(fn.cell_slots.size(), Value::invalid());
+  SmallValueBuffer regs(fn.register_count, Value::invalid());
   for (size_t i = 0; i < args.size(); ++i) {
-    locals[i] = args[i];
+    locals[i] = args.get(i);
   }
   for (size_t i = 0; i < fn.cell_slots.size(); ++i) {
     if (fn.cell_slots[i] >= locals.size()) {
@@ -170,6 +239,22 @@ RuntimeResult Interpreter::run_function(
 
   size_t ip = 0;
   std::vector<uint32_t> exception_handlers;
+  std::vector<Value> global_value_cache(fn.names.size(), Value::invalid());
+  std::vector<uint32_t> global_slot_cache(fn.names.size(), 0);
+  std::vector<uint64_t> global_cache_versions(fn.names.size(), 0);
+  std::vector<uint8_t> global_cache_kind(fn.names.size(), 0);
+  std::vector<CallSiteCache> call_site_cache;
+  std::vector<Value> native_call_args;
+  uint32_t max_call_arg_count = 0;
+  for (const auto& arg_regs : fn.call_args) {
+    if (arg_regs.size() > max_call_arg_count) {
+      max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
+    }
+  }
+  if (max_call_arg_count != 0) {
+    native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
+    call_site_cache.resize(fn.code.size());
+  }
   auto raise_runtime_error = [&](const std::string& message) -> bool {
     if (exception_handlers.empty()) {
       result.errors.push_back(message);
@@ -275,22 +360,49 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid global name");
           return result;
         }
+        auto* globals_module_obj = value_as_module(globals_module);
+        const uint64_t globals_version = globals_module_obj != nullptr ? globals_module_obj->version : globals_version_;
+        if (global_cache_kind[in.a] != 0) {
+          if (globals_module_obj != nullptr && global_cache_kind[in.a] == 1) {
+            const auto slot = global_slot_cache[in.a];
+            if (slot < globals_module_obj->slots.size()) {
+              regs[in.dst] = globals_module_obj->slots[slot];
+              break;
+            }
+          } else if (global_cache_kind[in.a] == 2 && global_cache_versions[in.a] == globals_version) {
+            regs[in.dst] = global_value_cache[in.a];
+            break;
+          }
+        }
         const auto& name = fn.names[in.a];
-        if (value_as_module(globals_module) != nullptr) {
+        if (globals_module_obj != nullptr) {
           std::string error;
-          if (module_get_attr(globals_module, name, regs[in.dst], error)) {
+          uint32_t slot = 0;
+          if (module_find_attr_slot(globals_module, name, slot, error)) {
+            regs[in.dst] = globals_module_obj->slots[slot];
+            global_slot_cache[in.a] = slot;
+            global_cache_kind[in.a] = 1;
             break;
           }
           if (const auto* builtin = runtime_.find_builtin(name)) {
             regs[in.dst] = *builtin;
+            global_value_cache[in.a] = regs[in.dst];
+            global_cache_versions[in.a] = globals_module_obj->version;
+            global_cache_kind[in.a] = 2;
           } else {
             if (raise_runtime_error("name '" + name + "' is not defined")) continue;
             return result;
           }
         } else if (auto it = globals_.find(name); it != globals_.end()) {
           regs[in.dst] = it->second;
+          global_value_cache[in.a] = regs[in.dst];
+          global_cache_versions[in.a] = globals_version_;
+          global_cache_kind[in.a] = 2;
         } else if (const auto* builtin = runtime_.find_builtin(name)) {
           regs[in.dst] = *builtin;
+          global_value_cache[in.a] = regs[in.dst];
+          global_cache_versions[in.a] = globals_version_;
+          global_cache_kind[in.a] = 2;
         } else {
           if (raise_runtime_error("name '" + name + "' is not defined")) continue;
           return result;
@@ -310,6 +422,20 @@ RuntimeResult Interpreter::run_function(
           }
         } else {
           globals_[fn.names[in.dst]] = regs[in.a];
+          ++globals_version_;
+        }
+        if (auto* globals_module_obj = value_as_module(globals_module)) {
+          std::string error;
+          uint32_t slot = 0;
+          if (module_find_attr_slot(globals_module, fn.names[in.dst], slot, error)) {
+            global_slot_cache[in.dst] = slot;
+            global_cache_kind[in.dst] = 1;
+          }
+          global_cache_versions[in.dst] = globals_module_obj->version;
+        } else {
+          global_value_cache[in.dst] = regs[in.a];
+          global_cache_versions[in.dst] = globals_version_;
+          global_cache_kind[in.dst] = 2;
         }
         break;
       case ir::Op::ImportModule: {
@@ -623,38 +749,40 @@ RuntimeResult Interpreter::run_function(
         ip = exception_handlers.back();
         exception_handlers.pop_back();
         continue;
-      case ir::Op::Call: {
-        if (in.b >= fn.call_args.size()) {
-          result.errors.push_back("invalid call arg list");
+      case ir::Op::CallMethod: {
+        if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
+          result.errors.push_back("invalid method call");
           return result;
         }
-        std::vector<Value> call_args;
-        for (const auto reg : fn.call_args[in.b]) {
-          call_args.push_back(regs[reg]);
-        }
-        if (in.a < regs.size() && regs[in.a].tag == ValueTag::Invalid) {
-          result.errors.push_back("invalid callee");
-          return result;
-        }
-        const auto& callee = regs[in.a];
-        auto call_callable_value = [&](const Value& function_value, const std::vector<Value>& values, Value& out) -> bool {
-          if (auto* native = value_as_native_function(function_value)) {
-            std::string error;
-            Value native_result;
-            if (native->callback == nullptr ||
-                !native->callback(runtime_, values.data(), static_cast<uint32_t>(values.size()), native_result, error)) {
-              if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
-              return false;
-            }
-            out = std::move(native_result);
-            return true;
+        const auto& name = fn.names[in.b];
+        const auto& call_arg_regs = fn.call_args[in.c];
+        if (name == "append" && call_arg_regs.size() == 1) {
+          if (auto* list = value_as_list(regs[in.a])) {
+            list->items.push_back(regs[call_arg_regs[0]]);
+            regs[in.dst] = Value::none();
+            break;
           }
+        }
 
-          auto* fn_obj = value_as_function(function_value);
-          if (fn_obj == nullptr) {
-            if (raise_runtime_error("object is not callable")) return false;
-            return false;
+        Value method;
+        std::string attr_error;
+        if (!attribute_get(regs[in.a], name, method, attr_error)) {
+          if (raise_runtime_error(attr_error)) continue;
+          return result;
+        }
+
+        CallArgsView call_args;
+        call_args.registers = regs.data();
+        call_args.register_args = &call_arg_regs;
+        auto materialize_native_args = [&](CallArgsView values) -> const Value* {
+          native_call_args.clear();
+          native_call_args.reserve(values.size());
+          for (size_t i = 0; i < values.size(); ++i) {
+            native_call_args.push_back(values.get(i));
           }
+          return native_call_args.data();
+        };
+        auto call_user_function = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
           const ir::Module* call_module = &module;
           auto call_module_owner = module_owner;
           if (fn_obj->module != nullptr) {
@@ -672,18 +800,153 @@ RuntimeResult Interpreter::run_function(
           out = std::move(call_result.value);
           return true;
         };
+        auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
+          std::string error;
+          Value native_result;
+          const Value* native_args = materialize_native_args(values);
+          if (native->callback == nullptr ||
+              !native->callback(runtime_, native_args, static_cast<uint32_t>(values.size()), native_result, error)) {
+            if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
+            return false;
+          }
+          out = std::move(native_result);
+          return true;
+        };
+
+        if (auto* bound = value_as_bound_method(method)) {
+          CallArgsView bound_args = call_args;
+          bound_args.leading = &bound->self;
+          bound_args.leading_count = 1;
+          if (auto* native = value_as_native_function(bound->function)) {
+            if (!call_native_function(native, bound_args, regs[in.dst])) {
+              if (!result.errors.empty()) return result;
+              continue;
+            }
+          } else if (auto* fn_obj = value_as_function(bound->function)) {
+            if (!call_user_function(fn_obj, bound_args, regs[in.dst])) {
+              if (!result.errors.empty()) return result;
+              continue;
+            }
+          } else {
+            if (raise_runtime_error("object is not callable")) continue;
+            return result;
+          }
+        } else if (auto* native = value_as_native_function(method)) {
+          if (!call_native_function(native, call_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+        } else if (auto* fn_obj = value_as_function(method)) {
+          if (!call_user_function(fn_obj, call_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+        } else {
+          if (raise_runtime_error("object is not callable")) continue;
+          return result;
+        }
+        break;
+      }
+      case ir::Op::Call: {
+        if (in.b >= fn.call_args.size()) {
+          result.errors.push_back("invalid call arg list");
+          return result;
+        }
+        const auto& call_arg_regs = fn.call_args[in.b];
+        CallArgsView call_args;
+        call_args.registers = regs.data();
+        call_args.register_args = &call_arg_regs;
+        if (in.a < regs.size() && regs[in.a].tag == ValueTag::Invalid) {
+          result.errors.push_back("invalid callee");
+          return result;
+        }
+        const auto& callee = regs[in.a];
+        auto materialize_native_args = [&](CallArgsView values) -> const Value* {
+          native_call_args.clear();
+          native_call_args.reserve(values.size());
+          for (size_t i = 0; i < values.size(); ++i) {
+            native_call_args.push_back(values.get(i));
+          }
+          return native_call_args.data();
+        };
+        auto call_user_function = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
+          const ir::Module* call_module = &module;
+          auto call_module_owner = module_owner;
+          if (fn_obj->module != nullptr) {
+            call_module = fn_obj->module.get();
+            call_module_owner = fn_obj->module;
+          }
+          auto call_result =
+              run_function(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
+                           std::move(call_module_owner));
+          if (!call_result.errors.empty()) {
+            if (raise_runtime_error(call_result.errors.front())) return false;
+            result.errors.insert(result.errors.end(), call_result.errors.begin(), call_result.errors.end());
+            return false;
+          }
+          out = std::move(call_result.value);
+          return true;
+        };
+        auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
+          std::string error;
+          Value native_result;
+          const Value* native_args = materialize_native_args(values);
+          if (native->callback == nullptr ||
+              !native->callback(runtime_, native_args, static_cast<uint32_t>(values.size()), native_result, error)) {
+            if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
+            return false;
+          }
+          out = std::move(native_result);
+          return true;
+        };
+        if (!call_site_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
+          auto& cache = call_site_cache[ip];
+          if (cache.callee_object == callee.as.obj) {
+            if (cache.kind == 1) {
+              if (!call_user_function(cache.function, call_args, regs[in.dst])) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              break;
+            }
+            if (cache.kind == 2) {
+              if (!call_native_function(cache.native, call_args, regs[in.dst])) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              break;
+            }
+          }
+        }
+        auto call_callable_value = [&](const Value& function_value, CallArgsView values, Value& out) -> bool {
+          if (auto* native = value_as_native_function(function_value)) {
+            return call_native_function(native, values, out);
+          }
+
+          auto* fn_obj = value_as_function(function_value);
+          if (fn_obj == nullptr) {
+            if (raise_runtime_error("object is not callable")) return false;
+            return false;
+          }
+          return call_user_function(fn_obj, values, out);
+        };
 
         if (auto* fn_obj = value_as_function(callee)) {
-          (void)fn_obj;
-          if (!call_callable_value(callee, call_args, regs[in.dst])) {
+          if (!call_site_cache.empty() && callee.tag == ValueTag::Object) {
+            auto& cache = call_site_cache[ip];
+            cache.callee_object = callee.as.obj;
+            cache.kind = 1;
+            cache.function = fn_obj;
+            cache.native = nullptr;
+          }
+          if (!call_user_function(fn_obj, call_args, regs[in.dst])) {
             if (!result.errors.empty()) return result;
             continue;
           }
         } else if (auto* bound = value_as_bound_method(callee)) {
-          std::vector<Value> bound_args;
-          bound_args.reserve(call_args.size() + 1);
-          bound_args.push_back(bound->self);
-          bound_args.insert(bound_args.end(), call_args.begin(), call_args.end());
+          CallArgsView bound_args = call_args;
+          bound_args.leading = &bound->self;
+          bound_args.leading_count = 1;
           if (!call_callable_value(bound->function, bound_args, regs[in.dst])) {
             if (!result.errors.empty()) return result;
             continue;
@@ -699,29 +962,31 @@ RuntimeResult Interpreter::run_function(
               if (raise_runtime_error("__init__ is not callable")) continue;
               return result;
             }
-            std::vector<Value> init_args;
-            init_args.reserve(call_args.size() + 1);
-            init_args.push_back(bound_init->self);
-            init_args.insert(init_args.end(), call_args.begin(), call_args.end());
+            CallArgsView init_args = call_args;
+            init_args.leading = &bound_init->self;
+            init_args.leading_count = 1;
             Value ignored;
             if (!call_callable_value(bound_init->function, init_args, ignored)) {
               if (!result.errors.empty()) return result;
               continue;
             }
-          } else if (!call_args.empty()) {
+          } else if (call_args.size() != 0) {
             if (raise_runtime_error("class construction expected no arguments")) continue;
             return result;
           }
           regs[in.dst] = std::move(instance);
         } else if (auto* native = value_as_native_function(callee)) {
-          std::string error;
-          Value native_result;
-          if (native->callback == nullptr ||
-              !native->callback(runtime_, call_args.data(), static_cast<uint32_t>(call_args.size()), native_result, error)) {
-            if (raise_runtime_error(error.empty() ? "native function failed" : error)) continue;
-            return result;
+          if (!call_site_cache.empty() && callee.tag == ValueTag::Object) {
+            auto& cache = call_site_cache[ip];
+            cache.callee_object = callee.as.obj;
+            cache.kind = 2;
+            cache.function = nullptr;
+            cache.native = native;
           }
-          regs[in.dst] = std::move(native_result);
+          if (!call_native_function(native, call_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
         } else if (callee.tag == ValueTag::Object) {
           if (raise_runtime_error("object is not callable")) continue;
           return result;
