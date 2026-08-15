@@ -1,0 +1,8 @@
+def main():
+    x = 7
+    if x > 10:
+        print(1)
+    else:
+        print(2)
+
+main()

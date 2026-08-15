@@ -1,9 +1,4 @@
-#include "xlang3/interpreter.h"
-#include "xlang3/parser.h"
-#include "xlang3/sema.h"
-
-#include <iostream>
-#include <sstream>
+#include "test_harness.h"
 
 int main() {
   const char* source =
@@ -12,22 +7,8 @@ int main() {
       "\n"
       "x = add(20, 22)\n";
 
-  auto parsed = xlang3::parse_source(source);
-  if (!parsed.errors.empty()) {
-    for (const auto& error : parsed.errors) std::cerr << error << "\n";
-    return 1;
-  }
-  auto lowered = xlang3::lower_to_ir(parsed.module);
-  if (!lowered.errors.empty()) {
-    for (const auto& error : lowered.errors) std::cerr << error << "\n";
-    return 1;
-  }
-  std::ostringstream out;
-  xlang3::Interpreter interp(out);
-  auto result = interp.run(lowered.module);
-  if (!result.errors.empty()) {
-    for (const auto& error : result.errors) std::cerr << error << "\n";
-    return 1;
-  }
-  return 0;
+  std::string output;
+  auto result = xlang3::test::run_source(source, output);
+  xlang3::test::expect_true(result, output.empty(), "smoke program should not print");
+  return xlang3::test::finish(result);
 }

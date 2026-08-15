@@ -30,11 +30,28 @@ target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/intern
 
 enable_testing()
 
-add_executable(xlang3_smoke tests/smoke.cpp)
-target_link_libraries(xlang3_smoke PRIVATE xlang3_core)
-target_include_directories(xlang3_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
-add_test(NAME xlang3_smoke COMMAND xlang3_smoke)
+function(add_xlang3_cpp_test name source)
+  add_executable(${name} ${source})
+  target_link_libraries(${name} PRIVATE xlang3_core)
+  target_include_directories(${name} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+  )
+  add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
+add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
+add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
+add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 
 add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
 target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
+
+add_test(
+  NAME xlang3_cli_fixtures
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+)
