@@ -25,6 +25,11 @@ add_library(xlang3_core
   src/builtins/math_module.cpp
   src/builtins/sequence_builtins.cpp
   src/runtime/attribute.cpp
+  src/runtime/methods/method_utils.cpp
+  src/runtime/methods/list_methods.cpp
+  src/runtime/methods/dict_methods.cpp
+  src/runtime/methods/set_methods.cpp
+  src/runtime/methods/string_methods.cpp
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
   src/runtime/object_model.cpp
