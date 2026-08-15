@@ -2,6 +2,7 @@
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
 #include "xlang3/parser.h"
+#include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 
 #include <filesystem>
@@ -107,7 +108,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  xlang3::Interpreter interpreter(std::cout);
+  xlang3::Runtime runtime(std::cout);
+  xlang3::Interpreter interpreter(runtime);
   auto result = interpreter.run(lowered.module);
   if (!result.errors.empty()) {
     for (const auto& error : result.errors) {

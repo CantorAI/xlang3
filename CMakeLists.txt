@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(xlang3_core
   src/runtime/value.cpp
+  src/runtime/runtime.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp
   src/sema/lower.cpp

@@ -49,5 +49,16 @@ int main() {
     xlang3::test::expect_true(result, output == "7\n", "nested function without closure should print 7");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "p = print\n"
+        "p(99)\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "99\n", "builtin print should be a callable value");
+  }
+
   return xlang3::test::finish(result);
 }

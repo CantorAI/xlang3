@@ -13,7 +13,8 @@ $cases = @(
     "scalar_loop",
     "functions",
     "nested_function_no_closure",
-    "if_else"
+    "if_else",
+    "builtin_alias"
 )
 
 foreach ($case in $cases) {

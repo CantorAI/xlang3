@@ -6,6 +6,9 @@
 
 namespace xlang3 {
 
+class Runtime;
+struct Value;
+
 enum class ValueTag : uint32_t {
   Invalid = 0,
   None,
@@ -18,6 +21,7 @@ enum class ValueTag : uint32_t {
 enum class ObjectKind : uint32_t {
   String = 1,
   Function,
+  NativeFunction,
 };
 
 struct Object {
@@ -28,6 +32,20 @@ struct Object {
 struct FunctionObject {
   Object header;
   uint32_t function_id = 0;
+};
+
+using NativeFunctionCallback = bool (*)(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error);
+
+struct NativeFunctionObject {
+  Object header;
+  uint32_t native_id = 0;
+  std::string name;
+  NativeFunctionCallback callback = nullptr;
 };
 
 struct StringObject {
@@ -59,7 +77,11 @@ struct Value {
   static Value number(double value);
   static Value string(std::string value);
   static Value function(uint32_t function_id);
+  static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);
 };
+
+FunctionObject* value_as_function(const Value& value);
+NativeFunctionObject* value_as_native_function(const Value& value);
 
 void retain(const Value& value);
 void release(const Value& value);

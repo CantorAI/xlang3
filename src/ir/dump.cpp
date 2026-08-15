@@ -13,7 +13,6 @@ const char* op_name(Op op) {
     case Op::StoreLocal: return "StoreLocal";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
-    case Op::BuiltinPrint: return "BuiltinPrint";
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";

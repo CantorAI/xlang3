@@ -1,8 +1,8 @@
 #pragma once
 
 #include "xlang3/ir.h"
+#include "xlang3/runtime.h"
 
-#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -16,13 +16,13 @@ struct RuntimeResult {
 
 class Interpreter {
 public:
-  explicit Interpreter(std::ostream& out);
+  explicit Interpreter(Runtime& runtime);
   RuntimeResult run(const ir::Module& module);
 
 private:
   RuntimeResult run_function(const ir::Module& module, uint32_t function_id, const std::vector<Value>& args);
 
-  std::ostream& out_;
+  Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;
 };
 

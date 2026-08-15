@@ -2,6 +2,7 @@
 
 #include "xlang3/interpreter.h"
 #include "xlang3/parser.h"
+#include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 
 #include <iostream>
@@ -38,11 +39,12 @@ inline CaseResult run_source(const std::string& source, std::string& output) {
     return result;
   }
   std::ostringstream out;
-  Interpreter interp(out);
-  auto runtime = interp.run(lowered.module);
-  if (!runtime.errors.empty()) {
+  Runtime runtime(out);
+  Interpreter interp(runtime);
+  auto run_result = interp.run(lowered.module);
+  if (!run_result.errors.empty()) {
     result.ok = false;
-    result.errors.insert(result.errors.end(), runtime.errors.begin(), runtime.errors.end());
+    result.errors.insert(result.errors.end(), run_result.errors.begin(), run_result.errors.end());
     return result;
   }
   output = out.str();

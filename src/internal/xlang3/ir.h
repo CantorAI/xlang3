@@ -14,7 +14,6 @@ enum class Op : uint16_t {
   StoreLocal,
   LoadGlobal,
   StoreGlobal,
-  BuiltinPrint,
   Add,
   Sub,
   Mul,

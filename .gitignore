@@ -1,5 +1,6 @@
 build/
 .xlang3/
+tmp-ir/
 *.user
 *.suo
 *.vcxproj.user

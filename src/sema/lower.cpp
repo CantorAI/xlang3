@@ -199,16 +199,6 @@ private:
       return reg;
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
-      if (auto* callee_name = dynamic_cast<const ast::NameExpr*>(call->callee.get());
-          callee_name != nullptr && callee_name->name == "print") {
-        std::vector<uint32_t> arg_regs;
-        for (const auto& arg : call->args) {
-          arg_regs.push_back(lower_expr(*arg));
-        }
-        const auto dst = new_reg();
-        emit(ir::Op::BuiltinPrint, dst, add_call_args(std::move(arg_regs)));
-        return dst;
-      }
       const auto callee = lower_expr(*call->callee);
       std::vector<uint32_t> arg_regs;
       for (const auto& arg : call->args) {

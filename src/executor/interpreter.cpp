@@ -6,13 +6,6 @@ namespace xlang3 {
 
 namespace {
 
-FunctionObject* as_function(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Function) {
-    return nullptr;
-  }
-  return reinterpret_cast<FunctionObject*>(value.as.obj);
-}
-
 std::string compare_name(ir::CompareOp op) {
   switch (op) {
     case ir::CompareOp::Eq: return "==";
@@ -27,7 +20,7 @@ std::string compare_name(ir::CompareOp op) {
 
 } // namespace
 
-Interpreter::Interpreter(std::ostream& out) : out_(out) {}
+Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
 
 RuntimeResult Interpreter::run(const ir::Module& module) {
   return run_function(module, module.entry, {});
@@ -84,11 +77,14 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
         }
         const auto& name = fn.names[in.a];
         auto it = globals_.find(name);
-        if (it == globals_.end()) {
+        if (it != globals_.end()) {
+          regs[in.dst] = it->second;
+        } else if (const auto* builtin = runtime_.find_builtin(name)) {
+          regs[in.dst] = *builtin;
+        } else {
           result.errors.push_back("name '" + name + "' is not defined");
           return result;
         }
-        regs[in.dst] = it->second;
         break;
       }
       case ir::Op::StoreGlobal:
@@ -97,20 +93,6 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
           return result;
         }
         globals_[fn.names[in.dst]] = regs[in.a];
-        break;
-      case ir::Op::BuiltinPrint:
-        if (in.a >= fn.call_args.size()) {
-          result.errors.push_back("invalid print arg list");
-          return result;
-        }
-        for (size_t i = 0; i < fn.call_args[in.a].size(); ++i) {
-          if (i != 0) {
-            out_ << " ";
-          }
-          out_ << value_to_string(regs[fn.call_args[in.a][i]]);
-        }
-        out_ << "\n";
-        regs[in.dst] = Value::none();
         break;
       case ir::Op::Add: {
         std::string error;
@@ -194,12 +176,21 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
           return result;
         }
         const auto& callee = regs[in.a];
-        if (auto* fn_obj = as_function(callee)) {
+        if (auto* fn_obj = value_as_function(callee)) {
           auto call_result = run_function(module, fn_obj->function_id, call_args);
           if (!call_result.errors.empty()) {
             return call_result;
           }
           regs[in.dst] = call_result.value;
+        } else if (auto* native = value_as_native_function(callee)) {
+          std::string error;
+          Value native_result;
+          if (native->callback == nullptr ||
+              !native->callback(runtime_, call_args.data(), static_cast<uint32_t>(call_args.size()), native_result, error)) {
+            result.errors.push_back(error.empty() ? "native function failed" : error);
+            return result;
+          }
+          regs[in.dst] = std::move(native_result);
         } else if (callee.tag == ValueTag::Object) {
           result.errors.push_back("object is not callable");
           return result;

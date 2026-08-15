@@ -31,6 +31,10 @@ FunctionObject* as_function(Object* obj) {
   return reinterpret_cast<FunctionObject*>(obj);
 }
 
+NativeFunctionObject* as_native_function(Object* obj) {
+  return reinterpret_cast<NativeFunctionObject*>(obj);
+}
+
 } // namespace
 
 Value::Value(const Value& other) : tag(other.tag), flags(other.flags), as(other.as) {
@@ -120,6 +124,31 @@ Value Value::function(uint32_t function_id) {
   return v;
 }
 
+Value Value::native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
+  obj->native_id = native_id;
+  obj->name = std::move(name);
+  obj->callback = callback;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+FunctionObject* value_as_function(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Function) {
+    return nullptr;
+  }
+  return as_function(value.as.obj);
+}
+
+NativeFunctionObject* value_as_native_function(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::NativeFunction) {
+    return nullptr;
+  }
+  return as_native_function(value.as.obj);
+}
+
 void retain(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
     ++value.as.obj->refcnt;
@@ -139,6 +168,9 @@ void release(const Value& value) {
       break;
     case ObjectKind::Function:
       delete as_function(value.as.obj);
+      break;
+    case ObjectKind::NativeFunction:
+      delete as_native_function(value.as.obj);
       break;
   }
 }
@@ -164,6 +196,9 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Function) {
         return "<function>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::NativeFunction) {
+        return "<built-in function " + as_native_function(value.as.obj)->name + ">";
       }
       return "<object>";
   }
