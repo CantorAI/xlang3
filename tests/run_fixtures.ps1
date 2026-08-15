@@ -36,6 +36,7 @@ $cases = @(
     "file_import",
     "global_from_import",
     "package_import",
+    "exceptions",
     "closures",
     "nonlocal_counter"
 )
@@ -53,3 +54,17 @@ foreach ($case in $cases) {
     }
     Write-Host "fixture $case ok"
 }
+
+$uncaughtSource = Join-Path $root "fixtures/core/uncaught_exception.py"
+$oldErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$uncaughtOutput = ((& $XLang3 $uncaughtSource 2>&1 | Out-String) -replace "`r`n", "`n").TrimEnd()
+$uncaughtExitCode = $LASTEXITCODE
+$ErrorActionPreference = $oldErrorActionPreference
+if ($uncaughtExitCode -ne 1) {
+    throw "uncaught_exception expected exit code 1, got $uncaughtExitCode"
+}
+if ($uncaughtOutput -notlike "*runtime: uncaught exception: top*") {
+    throw "uncaught_exception output mismatch. Got '$uncaughtOutput'"
+}
+Write-Host "fixture uncaught_exception ok"

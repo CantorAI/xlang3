@@ -31,6 +31,9 @@ void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& 
     } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
       collect_global_names(ifs->then_body, names);
       collect_global_names(ifs->else_body, names);
+    } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
+      collect_global_names(try_except->try_body, names);
+      collect_global_names(try_except->except_body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_global_names(loop->body, names);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
@@ -241,6 +244,16 @@ private:
     patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
   }
 
+  void lower_try_except(const ast::TryExceptStmt& stmt) {
+    const auto setup = emit_jump(ir::Op::SetupExcept);
+    lower_body(stmt.try_body);
+    emit(ir::Op::PopExcept);
+    const auto skip_except = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    lower_body(stmt.except_body);
+    patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
+  }
+
   void lower_stmt(const ast::Stmt& stmt) {
     if (dynamic_cast<const ast::GlobalStmt*>(&stmt) != nullptr) {
       return;
@@ -297,6 +310,11 @@ private:
       emit(ir::Op::Return, 0, reg);
       return;
     }
+    if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {
+      const auto reg = lower_expr(*raise->value);
+      emit(ir::Op::Raise, 0, reg);
+      return;
+    }
     if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
       const auto cond = lower_expr(*ifs->condition);
       const auto jf = emit_jump(ir::Op::JumpIfFalse, cond);
@@ -305,6 +323,10 @@ private:
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
       lower_body(ifs->else_body);
       patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      return;
+    }
+    if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+      lower_try_except(*try_except);
       return;
     }
     if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {

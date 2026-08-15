@@ -90,6 +90,7 @@ RuntimeResult Interpreter::run_function(
   }
 
   size_t ip = 0;
+  std::vector<uint32_t> exception_handlers;
   while (ip < fn.code.size()) {
     const auto& in = fn.code[ip];
     switch (in.op) {
@@ -469,6 +470,28 @@ RuntimeResult Interpreter::run_function(
           continue;
         }
         break;
+      case ir::Op::SetupExcept:
+        exception_handlers.push_back(in.dst);
+        break;
+      case ir::Op::PopExcept:
+        if (exception_handlers.empty()) {
+          result.errors.push_back("invalid exception handler pop");
+          return result;
+        }
+        exception_handlers.pop_back();
+        break;
+      case ir::Op::Raise:
+        if (in.a >= regs.size()) {
+          result.errors.push_back("invalid raise value");
+          return result;
+        }
+        if (exception_handlers.empty()) {
+          result.errors.push_back("uncaught exception: " + value_to_string(regs[in.a]));
+          return result;
+        }
+        ip = exception_handlers.back();
+        exception_handlers.pop_back();
+        continue;
       case ir::Op::Call: {
         if (in.b >= fn.call_args.size()) {
           result.errors.push_back("invalid call arg list");

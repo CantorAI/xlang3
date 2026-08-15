@@ -83,6 +83,19 @@ ast::StmtPtr Parser::parse_statement() {
     }
     return stmt;
   }
+  if (match(TokenKind::KwTry)) {
+    auto stmt = std::make_unique<ast::TryExceptStmt>();
+    consume(TokenKind::Colon, "expected ':' after try");
+    consume(TokenKind::Newline, "expected newline after try");
+    consume(TokenKind::Indent, "expected indented try body");
+    stmt->try_body = parse_block();
+    consume(TokenKind::KwExcept, "expected except after try body");
+    consume(TokenKind::Colon, "expected ':' after except");
+    consume(TokenKind::Newline, "expected newline after except");
+    consume(TokenKind::Indent, "expected indented except body");
+    stmt->except_body = parse_block();
+    return stmt;
+  }
   if (match(TokenKind::KwWhile)) {
     auto stmt = std::make_unique<ast::WhileStmt>();
     stmt->condition = parse_expression();
@@ -173,6 +186,16 @@ ast::StmtPtr Parser::parse_simple_statement() {
     }
     match(TokenKind::Newline);
     return std::make_unique<ast::ReturnStmt>(std::move(value));
+  }
+  if (match(TokenKind::KwRaise)) {
+    ast::ExprPtr value;
+    if (!check(TokenKind::Newline) && !check(TokenKind::Dedent) && !check(TokenKind::End)) {
+      value = parse_expression();
+    } else {
+      value = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
+    }
+    match(TokenKind::Newline);
+    return std::make_unique<ast::RaiseStmt>(std::move(value));
   }
   if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
     const std::string name = advance().text;

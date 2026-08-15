@@ -159,6 +159,11 @@ struct ReturnStmt final : Stmt {
   explicit ReturnStmt(ExprPtr value) : value(std::move(value)) {}
 };
 
+struct RaiseStmt final : Stmt {
+  ExprPtr value;
+  explicit RaiseStmt(ExprPtr value) : value(std::move(value)) {}
+};
+
 struct GlobalStmt final : Stmt {
   std::vector<std::string> names;
   explicit GlobalStmt(std::vector<std::string> names) : names(std::move(names)) {}
@@ -173,6 +178,11 @@ struct IfStmt final : Stmt {
   ExprPtr condition;
   std::vector<StmtPtr> then_body;
   std::vector<StmtPtr> else_body;
+};
+
+struct TryExceptStmt final : Stmt {
+  std::vector<StmtPtr> try_body;
+  std::vector<StmtPtr> except_body;
 };
 
 struct WhileStmt final : Stmt {

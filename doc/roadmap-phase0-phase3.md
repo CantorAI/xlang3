@@ -71,6 +71,7 @@ Goals:
 - [x] native built-in module imports
 - [x] package import basics
 - [ ] native package C ABI loading from external dynamic libraries
+- [x] exception control-flow foundation
 - [ ] fuller Python expression/operator coverage
 - [ ] fuller list/dict/set/string methods
 - [ ] better diagnostic coverage
@@ -98,11 +99,12 @@ Implemented Phase 1 syntax/runtime subset:
 - iteration: range/list/tuple/string/dict/set basics
 - comprehensions: basic list comprehension with optional `if`
 - imports: `import x`, `import x as y`, `import pkg.mod`, `from x import y`, aliases, package `__init__.py`
+- exceptions: explicit `raise expr` and catch-all `try` / `except`
 - native modules: `_builtins`, `math`
 
 Next Phase 1 implementation candidates:
 
-1. Exception foundation: `raise`, `try/except/finally`, runtime error object shape.
+1. Runtime error object path: make interpreter/native runtime errors catchable.
 2. Class/object protocol foundation: class statement, instance attributes, simple methods.
 3. Method calls and container/string builtin methods.
 4. External native package loading through the C ABI.
@@ -113,7 +115,7 @@ Next Phase 1 implementation candidates:
 Goals:
 
 - [ ] broader Python syntax
-- [ ] exceptions
+- [~] exceptions
 - [ ] classes
 - [ ] descriptors/properties subset
 - [~] comprehensions
