@@ -34,6 +34,8 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
   for (const auto& stmt : body) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
       add_unique(names, seen, assign->name);
+    } else if (auto* import = dynamic_cast<const ast::ImportStmt*>(stmt.get())) {
+      add_unique(names, seen, import->name);
     } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
       add_unique(names, seen, fn->name);
     } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
@@ -81,6 +83,8 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
   } else if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
     collect_reads_expr(*subscript->object, names, seen);
     collect_reads_expr(*subscript->index, names, seen);
+  } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    collect_reads_expr(*attr->object, names, seen);
   } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
     for (const auto& item : tuple->items) {
       collect_reads_expr(*item, names, seen);
@@ -128,6 +132,9 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
     } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(stmt.get())) {
       collect_reads_expr(*assign->object, names, seen);
       collect_reads_expr(*assign->index, names, seen);
+      collect_reads_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(stmt.get())) {
+      collect_reads_expr(*assign->object, names, seen);
       collect_reads_expr(*assign->value, names, seen);
     } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(stmt.get())) {
       collect_reads_expr(*expr_stmt->expr, names, seen);

@@ -14,12 +14,27 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/module_object.h"
+
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime) {
-  register_io_builtins(runtime);
-  register_sequence_builtins(runtime);
-  register_builtin_modules(runtime);
+namespace {
+
+void copy_builtin(Runtime& runtime, Value& module, const char* name) {
+  std::string error;
+  if (const auto* value = runtime.find_builtin(name)) {
+    module_set_attr(module, name, *value, error);
+  }
+}
+
+} // namespace
+
+void register_builtin_modules(Runtime& runtime) {
+  auto builtins = Value::module("_builtins");
+  copy_builtin(runtime, builtins, "print");
+  copy_builtin(runtime, builtins, "len");
+  copy_builtin(runtime, builtins, "range");
+  runtime.register_module("_builtins", std::move(builtins));
 }
 
 } // namespace xlang3

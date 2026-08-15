@@ -73,6 +73,12 @@ struct SubscriptExpr final : Expr {
   SubscriptExpr(ExprPtr object, ExprPtr index) : object(std::move(object)), index(std::move(index)) {}
 };
 
+struct AttrExpr final : Expr {
+  ExprPtr object;
+  std::string name;
+  AttrExpr(ExprPtr object, std::string name) : object(std::move(object)), name(std::move(name)) {}
+};
+
 struct TupleExpr final : Expr {
   std::vector<ExprPtr> items;
   explicit TupleExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
@@ -119,6 +125,19 @@ struct SubscriptAssignStmt final : Stmt {
   ExprPtr value;
   SubscriptAssignStmt(ExprPtr object, ExprPtr index, ExprPtr value)
       : object(std::move(object)), index(std::move(index)), value(std::move(value)) {}
+};
+
+struct AttrAssignStmt final : Stmt {
+  ExprPtr object;
+  std::string name;
+  ExprPtr value;
+  AttrAssignStmt(ExprPtr object, std::string name, ExprPtr value)
+      : object(std::move(object)), name(std::move(name)), value(std::move(value)) {}
+};
+
+struct ImportStmt final : Stmt {
+  std::string name;
+  explicit ImportStmt(std::string name) : name(std::move(name)) {}
 };
 
 struct ReturnStmt final : Stmt {

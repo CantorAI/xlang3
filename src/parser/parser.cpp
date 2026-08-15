@@ -105,6 +105,12 @@ ast::StmtPtr Parser::parse_statement() {
     stmt->body = parse_block();
     return stmt;
   }
+  if (match(TokenKind::KwImport)) {
+    const Token name = peek();
+    if (!consume(TokenKind::Identifier, "expected module name after import")) return nullptr;
+    match(TokenKind::Newline);
+    return std::make_unique<ast::ImportStmt>(name.text);
+  }
   return parse_simple_statement();
 }
 
@@ -140,17 +146,22 @@ ast::StmtPtr Parser::parse_simple_statement() {
   }
   auto expr = parse_expression();
   if (match(TokenKind::Assign)) {
-    auto* subscript = dynamic_cast<ast::SubscriptExpr*>(expr.get());
-    if (subscript == nullptr) {
-      error_here("expected assignable target");
-      return nullptr;
-    }
     auto value = parse_expression();
     match(TokenKind::Newline);
-    return std::make_unique<ast::SubscriptAssignStmt>(
-        std::move(subscript->object),
-        std::move(subscript->index),
-        std::move(value));
+    if (auto* subscript = dynamic_cast<ast::SubscriptExpr*>(expr.get())) {
+      return std::make_unique<ast::SubscriptAssignStmt>(
+          std::move(subscript->object),
+          std::move(subscript->index),
+          std::move(value));
+    }
+    if (auto* attr = dynamic_cast<ast::AttrExpr*>(expr.get())) {
+      return std::make_unique<ast::AttrAssignStmt>(
+          std::move(attr->object),
+          attr->name,
+          std::move(value));
+    }
+    error_here("expected assignable target");
+    return nullptr;
   }
   match(TokenKind::Newline);
   return std::make_unique<ast::ExprStmt>(std::move(expr));
@@ -282,6 +293,10 @@ ast::ExprPtr Parser::parse_call() {
       auto index = parse_expression();
       consume(TokenKind::RBracket, "expected ']' after subscript");
       expr = std::make_unique<ast::SubscriptExpr>(std::move(expr), std::move(index));
+    } else if (match(TokenKind::Dot)) {
+      const Token attr = peek();
+      consume(TokenKind::Identifier, "expected attribute name after '.'");
+      expr = std::make_unique<ast::AttrExpr>(std::move(expr), attr.text);
     } else {
       break;
     }

@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/interpreter.h"
 
+#include "xlang3/module_object.h"
 #include "xlang3/sequence.h"
 
 #include <sstream>
@@ -190,6 +191,42 @@ RuntimeResult Interpreter::run_function(
         }
         globals_[fn.names[in.dst]] = regs[in.a];
         break;
+      case ir::Op::ImportModule: {
+        if (in.a >= fn.names.size()) {
+          result.errors.push_back("invalid module name");
+          return result;
+        }
+        std::string error;
+        if (!runtime_.import_module(fn.names[in.a], regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
+      case ir::Op::LoadAttr: {
+        if (in.b >= fn.names.size()) {
+          result.errors.push_back("invalid attribute name");
+          return result;
+        }
+        std::string error;
+        if (!module_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
+      case ir::Op::StoreAttr: {
+        if (in.a >= fn.names.size()) {
+          result.errors.push_back("invalid attribute name");
+          return result;
+        }
+        std::string error;
+        if (!module_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
       case ir::Op::MakeFunction: {
         if (in.b >= fn.function_closures.size()) {
           result.errors.push_back("invalid function closure list");

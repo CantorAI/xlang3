@@ -93,6 +93,7 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       else if (text == "while") kind = TokenKind::KwWhile;
       else if (text == "for") kind = TokenKind::KwFor;
       else if (text == "in") kind = TokenKind::KwIn;
+      else if (text == "import") kind = TokenKind::KwImport;
       else if (text == "nonlocal") kind = TokenKind::KwNonlocal;
       else if (text == "True") kind = TokenKind::KwTrue;
       else if (text == "False") kind = TokenKind::KwFalse;
@@ -159,6 +160,7 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       case ']': emit(TokenKind::RBracket, "]", line_no, col); break;
       case '{': emit(TokenKind::LBrace, "{", line_no, col); break;
       case '}': emit(TokenKind::RBrace, "}", line_no, col); break;
+      case '.': emit(TokenKind::Dot, ".", line_no, col); break;
       case ',': emit(TokenKind::Comma, ",", line_no, col); break;
       case ':': emit(TokenKind::Colon, ":", line_no, col); break;
       case '=': emit(TokenKind::Assign, "=", line_no, col); break;

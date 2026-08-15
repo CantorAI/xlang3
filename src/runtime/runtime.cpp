@@ -27,8 +27,7 @@ void Runtime::register_builtin(std::string name, Value value) {
 }
 
 void Runtime::register_native_builtin(std::string name, NativeFunctionCallback callback) {
-  const uint32_t native_id = next_native_id_++;
-  auto function_value = Value::native_function(native_id, name, callback);
+  auto function_value = make_native_function(name, callback);
   register_builtin(std::move(name), std::move(function_value));
 }
 
@@ -38,6 +37,25 @@ const Value* Runtime::find_builtin(const std::string& name) const {
     return nullptr;
   }
   return &it->second;
+}
+
+Value Runtime::make_native_function(std::string name, NativeFunctionCallback callback) {
+  const uint32_t native_id = next_native_id_++;
+  return Value::native_function(native_id, std::move(name), callback);
+}
+
+void Runtime::register_module(std::string name, Value module) {
+  modules_[std::move(name)] = std::move(module);
+}
+
+bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
+  auto it = modules_.find(name);
+  if (it == modules_.end()) {
+    error = "module '" + name + "' not found";
+    return false;
+  }
+  out = it->second;
+  return true;
 }
 
 } // namespace xlang3

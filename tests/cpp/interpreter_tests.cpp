@@ -223,5 +223,21 @@ int main() {
                               "dict, set, iteration, len, and item assignment should work");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "import _builtins\n"
+        "_builtins.print(\"hello\")\n"
+        "_builtins.print(_builtins.len([1, 2, 3]))\n"
+        "p = _builtins.print\n"
+        "_builtins.answer = 42\n"
+        "p(_builtins.answer)\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "hello\n3\n42\n",
+                              "native module import and module attribute access should work");
+  }
+
   return xlang3::test::finish(result);
 }

@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
@@ -229,6 +230,9 @@ void release(const Value& value) {
     case ObjectKind::SetIterator:
       set_release_object(value.as.obj);
       break;
+    case ObjectKind::Module:
+      module_release_object(value.as.obj);
+      break;
     case ObjectKind::List:
     case ObjectKind::Range:
     case ObjectKind::RangeIterator:
@@ -297,6 +301,9 @@ std::string value_to_string(const Value& value) {
           (value.as.obj->kind == ObjectKind::Set ||
            value.as.obj->kind == ObjectKind::SetIterator)) {
         return set_to_string(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Module) {
+        return module_to_string(value);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Cell) {
         return "<cell>";

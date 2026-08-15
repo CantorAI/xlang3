@@ -32,11 +32,15 @@ public:
   void register_builtin(std::string name, Value value);
   void register_native_builtin(std::string name, NativeFunctionCallback callback);
   const Value* find_builtin(const std::string& name) const;
+  Value make_native_function(std::string name, NativeFunctionCallback callback);
+  void register_module(std::string name, Value module);
+  bool import_module(const std::string& name, Value& out, std::string& error);
 
 private:
   std::ostream& out_;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
+  std::unordered_map<std::string, Value> modules_;
 };
 
 } // namespace xlang3

@@ -237,6 +237,18 @@ private:
       emit(ir::Op::SetItem, object, index, value);
       return;
     }
+    if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+      const auto object = lower_expr(*assign->object);
+      const auto value = lower_expr(*assign->value);
+      emit(ir::Op::StoreAttr, object, add_name(assign->name), value);
+      return;
+    }
+    if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
+      const auto reg = new_reg();
+      emit(ir::Op::ImportModule, reg, add_name(import->name));
+      store_named_value(import->name, reg);
+      return;
+    }
     if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
       const auto reg = lower_expr(*expr_stmt->expr);
       emit(ir::Op::Pop, 0, reg);
@@ -378,6 +390,12 @@ private:
       const auto index = lower_expr(*subscript->index);
       const auto dst = new_reg();
       emit(ir::Op::GetItem, dst, object, index);
+      return dst;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      const auto object = lower_expr(*attr->object);
+      const auto dst = new_reg();
+      emit(ir::Op::LoadAttr, dst, object, add_name(attr->name));
       return dst;
     }
     if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {

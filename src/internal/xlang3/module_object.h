@@ -12,14 +12,27 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/builtins.h"
+#pragma once
+
+#include "xlang3/value.h"
+
+#include <string>
+#include <unordered_map>
 
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime) {
-  register_io_builtins(runtime);
-  register_sequence_builtins(runtime);
-  register_builtin_modules(runtime);
-}
+struct ModuleObject {
+  Object header;
+  std::string name;
+  std::unordered_map<std::string, Value> attrs;
+};
+
+ModuleObject* value_as_module(const Value& value);
+
+void module_release_object(Object* object);
+std::string module_to_string(const Value& value);
+
+bool module_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
+bool module_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 
 } // namespace xlang3

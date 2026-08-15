@@ -31,6 +31,7 @@ $cases = @(
     "lists_for",
     "sequences_index",
     "dict_set",
+    "native_import",
     "closures",
     "nonlocal_counter"
 )

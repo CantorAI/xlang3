@@ -33,6 +33,9 @@ const char* op_name(Op op) {
     case Op::LoadFreeObject: return "LoadFreeObject";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
+    case Op::ImportModule: return "ImportModule";
+    case Op::LoadAttr: return "LoadAttr";
+    case Op::StoreAttr: return "StoreAttr";
     case Op::MakeFunction: return "MakeFunction";
     case Op::MakeTuple: return "MakeTuple";
     case Op::MakeList: return "MakeList";

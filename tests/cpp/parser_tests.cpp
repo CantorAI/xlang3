@@ -30,6 +30,8 @@ int main() {
       "    d = {\"a\": 1}\n"
       "    d[\"b\"] = 2\n"
       "    print({1, 2, 2})\n"
+      "    import _builtins\n"
+      "    _builtins.print(_builtins.len([1, 2]))\n"
       "\n"
       "main()\n";
 
