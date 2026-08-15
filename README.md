@@ -25,7 +25,6 @@ xlang3 --dump-ir script.py
 
 ## Copyright
 
-Copyright (c) 2026 CantorAI Inc. and The XLang Foundation.
-All rights reserved.
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation.
 
-This repository currently does not grant an open-source license.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
