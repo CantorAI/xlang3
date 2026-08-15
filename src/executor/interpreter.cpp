@@ -49,11 +49,11 @@ XLANG3_HOT_INLINE double value_to_double_fast(const Value& value) {
 
 XLANG3_HOT_INLINE bool fast_add(const Value& lhs, const Value& rhs, Value& out) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    out = Value::int64(lhs.as.i64 + rhs.as.i64);
+    value_set_int64(out, lhs.as.i64 + rhs.as.i64);
     return true;
   }
   if (value_is_number(lhs) && value_is_number(rhs)) {
-    out = Value::number(value_to_double_fast(lhs) + value_to_double_fast(rhs));
+    value_set_number(out, value_to_double_fast(lhs) + value_to_double_fast(rhs));
     return true;
   }
   return false;
@@ -61,11 +61,11 @@ XLANG3_HOT_INLINE bool fast_add(const Value& lhs, const Value& rhs, Value& out) 
 
 XLANG3_HOT_INLINE bool fast_sub(const Value& lhs, const Value& rhs, Value& out) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    out = Value::int64(lhs.as.i64 - rhs.as.i64);
+    value_set_int64(out, lhs.as.i64 - rhs.as.i64);
     return true;
   }
   if (value_is_number(lhs) && value_is_number(rhs)) {
-    out = Value::number(value_to_double_fast(lhs) - value_to_double_fast(rhs));
+    value_set_number(out, value_to_double_fast(lhs) - value_to_double_fast(rhs));
     return true;
   }
   return false;
@@ -73,11 +73,11 @@ XLANG3_HOT_INLINE bool fast_sub(const Value& lhs, const Value& rhs, Value& out) 
 
 XLANG3_HOT_INLINE bool fast_mul(const Value& lhs, const Value& rhs, Value& out) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    out = Value::int64(lhs.as.i64 * rhs.as.i64);
+    value_set_int64(out, lhs.as.i64 * rhs.as.i64);
     return true;
   }
   if (value_is_number(lhs) && value_is_number(rhs)) {
-    out = Value::number(value_to_double_fast(lhs) * value_to_double_fast(rhs));
+    value_set_number(out, value_to_double_fast(lhs) * value_to_double_fast(rhs));
     return true;
   }
   return false;
@@ -93,7 +93,7 @@ XLANG3_HOT_INLINE bool fast_div(const Value& lhs, const Value& rhs, Value& out, 
     divide_by_zero = true;
     return false;
   }
-  out = Value::number(value_to_double_fast(lhs) / divisor);
+  value_set_number(out, value_to_double_fast(lhs) / divisor);
   return true;
 }
 
@@ -112,7 +112,7 @@ XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Va
     case ir::CompareOp::Gt: compare_result = a > b; break;
     case ir::CompareOp::Ge: compare_result = a >= b; break;
   }
-  out = Value::boolean(compare_result);
+  value_set_bool(out, compare_result);
   return true;
 }
 
@@ -687,10 +687,10 @@ RuntimeResult Interpreter::run_function(
         break;
       }
       case ir::Op::BoolAnd:
-        regs[in.dst] = Value::boolean(value_truthy(regs[in.a]) && value_truthy(regs[in.b]));
+        value_set_bool(regs[in.dst], value_truthy(regs[in.a]) && value_truthy(regs[in.b]));
         break;
       case ir::Op::BoolOr:
-        regs[in.dst] = Value::boolean(value_truthy(regs[in.a]) || value_truthy(regs[in.b]));
+        value_set_bool(regs[in.dst], value_truthy(regs[in.a]) || value_truthy(regs[in.b]));
         break;
       case ir::Op::Compare: {
         const auto& lhs = regs[in.a];
@@ -706,13 +706,13 @@ RuntimeResult Interpreter::run_function(
         break;
       }
       case ir::Op::Not:
-        regs[in.dst] = Value::boolean(!value_truthy(regs[in.a]));
+        value_set_bool(regs[in.dst], !value_truthy(regs[in.a]));
         break;
       case ir::Op::Neg:
         if (regs[in.a].tag == ValueTag::Int64) {
-          regs[in.dst] = Value::int64(-regs[in.a].as.i64);
+          value_set_int64(regs[in.dst], -regs[in.a].as.i64);
         } else if (regs[in.a].tag == ValueTag::Double) {
-          regs[in.dst] = Value::number(-regs[in.a].as.f64);
+          value_set_number(regs[in.dst], -regs[in.a].as.f64);
         } else {
           if (raise_runtime_error("unsupported operand for unary -")) continue;
           return result;
@@ -759,7 +759,7 @@ RuntimeResult Interpreter::run_function(
         if (name == "append" && call_arg_regs.size() == 1) {
           if (auto* list = value_as_list(regs[in.a])) {
             list->items.push_back(regs[call_arg_regs[0]]);
-            regs[in.dst] = Value::none();
+            value_set_none(regs[in.dst]);
             break;
           }
         }
@@ -1008,7 +1008,7 @@ RuntimeResult Interpreter::run_function(
     ++ip;
   }
 
-  result.value = Value::none();
+  value_set_none(result.value);
   return result;
 }
 

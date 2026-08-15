@@ -129,7 +129,7 @@ bool set_iter_next(Value& iterator, bool& done, Value& out, std::string& error) 
   }
   if (it->index >= set->items.size()) {
     done = true;
-    out = Value::none();
+    value_set_none(out);
     return true;
   }
   out = set->items[static_cast<size_t>(it->index)];
@@ -144,7 +144,7 @@ bool set_len(const Value& value, Value& out, std::string& error) {
     error = "object has no len()";
     return false;
   }
-  out = Value::int64(static_cast<int64_t>(set->items.size()));
+  value_set_int64(out, static_cast<int64_t>(set->items.size()));
   return true;
 }
 

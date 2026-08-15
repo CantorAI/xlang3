@@ -130,7 +130,7 @@ bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   dict->entries.clear();
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 

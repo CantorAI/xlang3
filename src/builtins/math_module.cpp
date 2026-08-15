@@ -44,7 +44,7 @@ bool unary_math(const char* name, double (*fn)(double), const Value* args, uint3
   if (!require_number_arg(args[0], name, value, error)) {
     return false;
   }
-  out = Value::number(fn(value));
+  value_set_number(out, fn(value));
   return true;
 }
 

@@ -173,7 +173,7 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
   }
   if (it->index >= dict->entries.size()) {
     done = true;
-    out = Value::none();
+    value_set_none(out);
     return true;
   }
   out = dict->entries[static_cast<size_t>(it->index)].first;
@@ -188,7 +188,7 @@ bool mapping_len(const Value& value, Value& out, std::string& error) {
     error = "object has no len()";
     return false;
   }
-  out = Value::int64(static_cast<int64_t>(dict->entries.size()));
+  value_set_int64(out, static_cast<int64_t>(dict->entries.size()));
   return true;
 }
 

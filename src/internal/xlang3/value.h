@@ -201,6 +201,48 @@ XLANG3_HOT_INLINE CellObject* value_as_cell(const Value& value) {
 
 void retain(const Value& value);
 void release(const Value& value);
+
+XLANG3_HOT_INLINE void value_release_if_object(Value& value) {
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
+    release(value);
+  }
+}
+
+XLANG3_HOT_INLINE void value_set_invalid(Value& out) {
+  value_release_if_object(out);
+  out.tag = ValueTag::Invalid;
+  out.flags = 0;
+  out.as.obj = nullptr;
+}
+
+XLANG3_HOT_INLINE void value_set_none(Value& out) {
+  value_release_if_object(out);
+  out.tag = ValueTag::None;
+  out.flags = 0;
+  out.as.obj = nullptr;
+}
+
+XLANG3_HOT_INLINE void value_set_bool(Value& out, bool value) {
+  value_release_if_object(out);
+  out.tag = ValueTag::Bool;
+  out.flags = 0;
+  out.as.b = value;
+}
+
+XLANG3_HOT_INLINE void value_set_int64(Value& out, int64_t value) {
+  value_release_if_object(out);
+  out.tag = ValueTag::Int64;
+  out.flags = 0;
+  out.as.i64 = value;
+}
+
+XLANG3_HOT_INLINE void value_set_number(Value& out, double value) {
+  value_release_if_object(out);
+  out.tag = ValueTag::Double;
+  out.flags = 0;
+  out.as.f64 = value;
+}
+
 std::string value_to_string(const Value& value);
 bool value_truthy(const Value& value);
 

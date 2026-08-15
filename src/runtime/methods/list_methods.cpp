@@ -64,7 +64,7 @@ bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (!sequence_list_append(list, args[1], error)) {
     return false;
   }
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 
@@ -117,7 +117,7 @@ bool list_extend_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
       return false;
     }
   }
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 
@@ -135,7 +135,7 @@ bool list_insert_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     return false;
   }
   list->items.insert(list->items.begin() + static_cast<std::ptrdiff_t>(index), args[2]);
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 
@@ -149,7 +149,7 @@ bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   list->items.clear();
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 

@@ -29,7 +29,7 @@ bool set_add_method(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   if (!set_add(set, args[1], error)) {
     return false;
   }
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 
@@ -64,7 +64,7 @@ bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (!remove_set_item(set, args[1], false, error)) {
     return false;
   }
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 
@@ -76,7 +76,7 @@ bool set_remove_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!remove_set_item(set, args[1], true, error)) {
     return false;
   }
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 

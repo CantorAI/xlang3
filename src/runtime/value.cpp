@@ -331,11 +331,11 @@ bool value_truthy(const Value& value) {
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    out = Value::int64(lhs.as.i64 + rhs.as.i64);
+    value_set_int64(out, lhs.as.i64 + rhs.as.i64);
     return true;
   }
   if (is_number(lhs) && is_number(rhs)) {
-    out = Value::number(as_double(lhs) + as_double(rhs));
+    value_set_number(out, as_double(lhs) + as_double(rhs));
     return true;
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
@@ -350,11 +350,11 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    out = Value::int64(lhs.as.i64 - rhs.as.i64);
+    value_set_int64(out, lhs.as.i64 - rhs.as.i64);
     return true;
   }
   if (is_number(lhs) && is_number(rhs)) {
-    out = Value::number(as_double(lhs) - as_double(rhs));
+    value_set_number(out, as_double(lhs) - as_double(rhs));
     return true;
   }
   error = "unsupported operands for -";
@@ -363,11 +363,11 @@ bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 
 bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    out = Value::int64(lhs.as.i64 * rhs.as.i64);
+    value_set_int64(out, lhs.as.i64 * rhs.as.i64);
     return true;
   }
   if (is_number(lhs) && is_number(rhs)) {
-    out = Value::number(as_double(lhs) * as_double(rhs));
+    value_set_number(out, as_double(lhs) * as_double(rhs));
     return true;
   }
   error = "unsupported operands for *";
@@ -384,7 +384,7 @@ bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     error = "division by zero";
     return false;
   }
-  out = Value::number(as_double(lhs) / divisor);
+  value_set_number(out, as_double(lhs) / divisor);
   return true;
 }
 
@@ -403,12 +403,12 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
       error = "unknown comparison operator";
       return false;
     }
-    out = Value::boolean(result);
+    value_set_bool(out, result);
     return true;
   }
   if (op == "==" || op == "!=") {
     result = value_to_string(lhs) == value_to_string(rhs);
-    out = Value::boolean(op == "==" ? result : !result);
+    value_set_bool(out, op == "==" ? result : !result);
     return true;
   }
   error = "unsupported comparison";

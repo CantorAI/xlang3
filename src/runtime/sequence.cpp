@@ -181,10 +181,10 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
   if (auto* range = value_as_range_iterator(iterator)) {
     done = range->step > 0 ? range->current >= range->stop : range->current <= range->stop;
     if (done) {
-      out = Value::none();
+      value_set_none(out);
       return true;
     }
-    out = Value::int64(range->current);
+    value_set_int64(out, range->current);
     range->current += range->step;
     return true;
   }
@@ -194,7 +194,7 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
       if (error == "index out of range") {
         error.clear();
         done = true;
-        out = Value::none();
+        value_set_none(out);
         return true;
       }
       return false;
@@ -295,17 +295,17 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
 
 bool sequence_len(const Value& value, Value& out, std::string& error) {
   if (auto* list = value_as_list(value)) {
-    out = Value::int64(static_cast<int64_t>(list->items.size()));
+    value_set_int64(out, static_cast<int64_t>(list->items.size()));
     return true;
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
     auto* tuple = reinterpret_cast<TupleObject*>(value.as.obj);
-    out = Value::int64(static_cast<int64_t>(tuple->items.size()));
+    value_set_int64(out, static_cast<int64_t>(tuple->items.size()));
     return true;
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(value.as.obj);
-    out = Value::int64(static_cast<int64_t>(string->value.size()));
+    value_set_int64(out, static_cast<int64_t>(string->value.size()));
     return true;
   }
   if (value_as_dict(value) != nullptr) {

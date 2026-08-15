@@ -27,7 +27,7 @@ bool builtin_print(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     runtime.out() << value_to_string(args[i]);
   }
   runtime.out() << "\n";
-  out = Value::none();
+  value_set_none(out);
   return true;
 }
 

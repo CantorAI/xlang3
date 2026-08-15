@@ -94,7 +94,7 @@ bool string_startswith_method(Runtime&, const Value* args, uint32_t argc, Value&
       !get_string_arg(args[1], "str.startswith prefix", prefix, error)) {
     return false;
   }
-  out = Value::boolean(text.rfind(prefix, 0) == 0);
+  value_set_bool(out, text.rfind(prefix, 0) == 0);
   return true;
 }
 
