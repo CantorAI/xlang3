@@ -37,6 +37,7 @@ const char* op_name(Op op) {
     case Op::MakeTuple: return "MakeTuple";
     case Op::MakeList: return "MakeList";
     case Op::ListAppend: return "ListAppend";
+    case Op::GetItem: return "GetItem";
     case Op::GetIter: return "GetIter";
     case Op::IterNext: return "IterNext";
     case Op::Add: return "Add";

@@ -67,6 +67,12 @@ struct CallExpr final : Expr {
       : callee(std::move(callee)), args(std::move(args)) {}
 };
 
+struct SubscriptExpr final : Expr {
+  ExprPtr object;
+  ExprPtr index;
+  SubscriptExpr(ExprPtr object, ExprPtr index) : object(std::move(object)), index(std::move(index)) {}
+};
+
 struct TupleExpr final : Expr {
   std::vector<ExprPtr> items;
   explicit TupleExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
@@ -81,8 +87,9 @@ struct ListCompExpr final : Expr {
   ExprPtr result;
   std::string target;
   ExprPtr iterable;
-  ListCompExpr(ExprPtr result, std::string target, ExprPtr iterable)
-      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)) {}
+  ExprPtr filter;
+  ListCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
+      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
 };
 
 struct ExprStmt final : Stmt {

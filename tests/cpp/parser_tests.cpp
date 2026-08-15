@@ -26,6 +26,7 @@ int main() {
       "    for item in range(3):\n"
       "        print(item)\n"
       "    print([item + 1 for item in range(2)])\n"
+      "    print([item for item in [1, 2, 3] if item > 1][0])\n"
       "\n"
       "main()\n";
 

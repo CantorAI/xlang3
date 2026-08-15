@@ -356,6 +356,13 @@ private:
       emit(ir::Op::Call, dst, callee, add_call_args(std::move(arg_regs)));
       return dst;
     }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      const auto dst = new_reg();
+      emit(ir::Op::GetItem, dst, object, index);
+      return dst;
+    }
     if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
       std::vector<uint32_t> item_regs;
       for (const auto& item : tuple->items) {
@@ -394,8 +401,17 @@ private:
       emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
       const auto iter_next = fn_.code.size() - 1;
       store_named_value(comp->target, item_reg);
+      size_t skip_append = 0;
+      bool has_filter = comp->filter != nullptr;
+      if (has_filter) {
+        const auto filter_reg = lower_expr(*comp->filter);
+        skip_append = emit_jump(ir::Op::JumpIfFalse, filter_reg);
+      }
       const auto value_reg = lower_expr(*comp->result);
       emit(ir::Op::ListAppend, dst, value_reg);
+      if (has_filter) {
+        patch_jump(skip_append, static_cast<uint32_t>(fn_.code.size()));
+      }
       emit(ir::Op::Jump, start);
       patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
 

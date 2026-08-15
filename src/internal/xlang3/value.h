@@ -38,6 +38,7 @@ enum class ObjectKind : uint32_t {
   List,
   Range,
   RangeIterator,
+  SequenceIterator,
   Cell,
   Function,
   NativeFunction,
@@ -94,6 +95,7 @@ struct Value {
   static Value list(std::vector<Value> items);
   static Value range(int64_t start, int64_t stop, int64_t step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
+  static Value sequence_iterator(Value source, uint64_t index);
   static Value cell(Value value);
   static Value function(uint32_t function_id, std::vector<Value> closure);
   static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);

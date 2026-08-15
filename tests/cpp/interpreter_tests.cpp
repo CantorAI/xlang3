@@ -175,5 +175,25 @@ int main() {
                               "list comprehension target should not leak to surrounding scope");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "items = [10, 20, 30]\n"
+        "print(items[0])\n"
+        "print(items[-1])\n"
+        "print((1, 2, 3)[1])\n"
+        "print(\"abc\"[2])\n"
+        "total = 0\n"
+        "for x in items:\n"
+        "    total = total + x\n"
+        "print(total)\n"
+        "print([x for x in items if x > 10])\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "10\n30\n2\nc\n60\n[20, 30]\n",
+                              "subscript, sequence iteration, and filtered list comprehension should work");
+  }
+
   return xlang3::test::finish(result);
 }

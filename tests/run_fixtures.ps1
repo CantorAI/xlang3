@@ -29,6 +29,7 @@ $cases = @(
     "builtin_alias",
     "tuples",
     "lists_for",
+    "sequences_index",
     "closures",
     "nonlocal_counter"
 )

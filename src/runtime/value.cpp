@@ -222,6 +222,7 @@ void release(const Value& value) {
     case ObjectKind::List:
     case ObjectKind::Range:
     case ObjectKind::RangeIterator:
+    case ObjectKind::SequenceIterator:
       sequence_release_object(value.as.obj);
       break;
     case ObjectKind::Cell:
@@ -273,7 +274,8 @@ std::string value_to_string(const Value& value) {
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::List ||
            value.as.obj->kind == ObjectKind::Range ||
-           value.as.obj->kind == ObjectKind::RangeIterator)) {
+           value.as.obj->kind == ObjectKind::RangeIterator ||
+           value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_to_string(value);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Cell) {
@@ -311,7 +313,8 @@ bool value_truthy(const Value& value) {
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::List ||
            value.as.obj->kind == ObjectKind::Range ||
-           value.as.obj->kind == ObjectKind::RangeIterator)) {
+           value.as.obj->kind == ObjectKind::RangeIterator ||
+           value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_truthy(value);
       }
       return true;

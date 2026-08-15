@@ -255,15 +255,23 @@ ast::ExprPtr Parser::parse_unary() {
 
 ast::ExprPtr Parser::parse_call() {
   auto expr = parse_primary();
-  while (match(TokenKind::LParen)) {
-    std::vector<ast::ExprPtr> args;
-    if (!check(TokenKind::RParen)) {
-      do {
-        args.push_back(parse_or());
-      } while (match(TokenKind::Comma));
+  while (true) {
+    if (match(TokenKind::LParen)) {
+      std::vector<ast::ExprPtr> args;
+      if (!check(TokenKind::RParen)) {
+        do {
+          args.push_back(parse_or());
+        } while (match(TokenKind::Comma));
+      }
+      consume(TokenKind::RParen, "expected ')' after call arguments");
+      expr = std::make_unique<ast::CallExpr>(std::move(expr), std::move(args));
+    } else if (match(TokenKind::LBracket)) {
+      auto index = parse_expression();
+      consume(TokenKind::RBracket, "expected ']' after subscript");
+      expr = std::make_unique<ast::SubscriptExpr>(std::move(expr), std::move(index));
+    } else {
+      break;
     }
-    consume(TokenKind::RParen, "expected ')' after call arguments");
-    expr = std::make_unique<ast::CallExpr>(std::move(expr), std::move(args));
   }
   return expr;
 }
@@ -302,8 +310,12 @@ ast::ExprPtr Parser::parse_primary() {
       consume(TokenKind::Identifier, "expected comprehension target after for");
       consume(TokenKind::KwIn, "expected 'in' after comprehension target");
       auto iterable = parse_expression();
+      ast::ExprPtr filter;
+      if (match(TokenKind::KwIf)) {
+        filter = parse_expression();
+      }
       consume(TokenKind::RBracket, "expected ']' after list comprehension");
-      return std::make_unique<ast::ListCompExpr>(std::move(first), target.text, std::move(iterable));
+      return std::make_unique<ast::ListCompExpr>(std::move(first), target.text, std::move(iterable), std::move(filter));
     }
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));

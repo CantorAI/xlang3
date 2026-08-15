@@ -249,6 +249,14 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::GetItem: {
+        std::string error;
+        if (!sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
       case ir::Op::GetIter: {
         std::string error;
         if (!sequence_get_iter(regs[in.a], regs[in.dst], error)) {

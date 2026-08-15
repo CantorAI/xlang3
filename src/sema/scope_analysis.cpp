@@ -78,6 +78,9 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     for (const auto& arg : call->args) {
       collect_reads_expr(*arg, names, seen);
     }
+  } else if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    collect_reads_expr(*subscript->object, names, seen);
+    collect_reads_expr(*subscript->index, names, seen);
   } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
     for (const auto& item : tuple->items) {
       collect_reads_expr(*item, names, seen);
@@ -94,6 +97,16 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     for (const auto& name : result_reads) {
       if (name != comp->target) {
         add_unique(names, seen, name);
+      }
+    }
+    if (comp->filter != nullptr) {
+      std::vector<std::string> filter_reads;
+      NameSet filter_seen;
+      collect_reads_expr(*comp->filter, filter_reads, filter_seen);
+      for (const auto& name : filter_reads) {
+        if (name != comp->target) {
+          add_unique(names, seen, name);
+        }
       }
     }
   }

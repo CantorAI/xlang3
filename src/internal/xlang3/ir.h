@@ -38,6 +38,7 @@ enum class Op : uint16_t {
   MakeTuple,
   MakeList,
   ListAppend,
+  GetItem,
   GetIter,
   IterNext,
   Add,

@@ -40,9 +40,16 @@ struct RangeIteratorObject {
   int64_t step = 1;
 };
 
+struct SequenceIteratorObject {
+  Object header;
+  Value source;
+  uint64_t index = 0;
+};
+
 ListObject* value_as_list(const Value& value);
 RangeObject* value_as_range(const Value& value);
 RangeIteratorObject* value_as_range_iterator(const Value& value);
+SequenceIteratorObject* value_as_sequence_iterator(const Value& value);
 
 void sequence_release_object(Object* object);
 std::string sequence_to_string(const Value& value);
@@ -51,6 +58,7 @@ bool sequence_truthy(const Value& value);
 bool sequence_get_iter(const Value& iterable, Value& out, std::string& error);
 bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
 bool sequence_list_append(Value& list, const Value& item, std::string& error);
+bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error);
 bool sequence_len(const Value& value, Value& out, std::string& error);
 
 } // namespace xlang3
