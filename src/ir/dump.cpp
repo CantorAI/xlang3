@@ -34,6 +34,7 @@ const char* op_name(Op op) {
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
     case Op::ImportModule: return "ImportModule";
+    case Op::ImportFrom: return "ImportFrom";
     case Op::LoadAttr: return "LoadAttr";
     case Op::StoreAttr: return "StoreAttr";
     case Op::MakeFunction: return "MakeFunction";

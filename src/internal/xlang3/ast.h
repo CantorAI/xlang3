@@ -135,14 +135,33 @@ struct AttrAssignStmt final : Stmt {
       : object(std::move(object)), name(std::move(name)), value(std::move(value)) {}
 };
 
+struct ImportBinding {
+  std::string name;
+  std::string as_name;
+};
+
 struct ImportStmt final : Stmt {
   std::string name;
-  explicit ImportStmt(std::string name) : name(std::move(name)) {}
+  std::string bind_name;
+  ImportStmt(std::string name, std::string bind_name)
+      : name(std::move(name)), bind_name(std::move(bind_name)) {}
+};
+
+struct FromImportStmt final : Stmt {
+  std::string module;
+  std::vector<ImportBinding> names;
+  FromImportStmt(std::string module, std::vector<ImportBinding> names)
+      : module(std::move(module)), names(std::move(names)) {}
 };
 
 struct ReturnStmt final : Stmt {
   ExprPtr value;
   explicit ReturnStmt(ExprPtr value) : value(std::move(value)) {}
+};
+
+struct GlobalStmt final : Stmt {
+  std::vector<std::string> names;
+  explicit GlobalStmt(std::vector<std::string> names) : names(std::move(names)) {}
 };
 
 struct NonlocalStmt final : Stmt {

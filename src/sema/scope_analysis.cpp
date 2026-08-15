@@ -35,7 +35,11 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
       add_unique(names, seen, assign->name);
     } else if (auto* import = dynamic_cast<const ast::ImportStmt*>(stmt.get())) {
-      add_unique(names, seen, import->name);
+      add_unique(names, seen, import->bind_name);
+    } else if (auto* import = dynamic_cast<const ast::FromImportStmt*>(stmt.get())) {
+      for (const auto& binding : import->names) {
+        add_unique(names, seen, binding.as_name);
+      }
     } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
       add_unique(names, seen, fn->name);
     } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
@@ -63,6 +67,23 @@ void collect_nonlocal_names(const std::vector<ast::StmtPtr>& body, NameSet& name
       collect_nonlocal_names(loop->body, names);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
       collect_nonlocal_names(loop->body, names);
+    }
+  }
+}
+
+void collect_global_names(const std::vector<ast::StmtPtr>& body, NameSet& names) {
+  for (const auto& stmt : body) {
+    if (auto* global = dynamic_cast<const ast::GlobalStmt*>(stmt.get())) {
+      for (const auto& name : global->names) {
+        names.insert(name);
+      }
+    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
+      collect_global_names(ifs->then_body, names);
+      collect_global_names(ifs->else_body, names);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
+      collect_global_names(loop->body, names);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
+      collect_global_names(loop->body, names);
     }
   }
 }
@@ -160,15 +181,19 @@ std::vector<std::string> local_names_for(const std::vector<std::string>& params,
   std::vector<std::string> names;
   NameSet seen;
   NameSet nonlocals;
+  NameSet globals;
   collect_nonlocal_names(body, nonlocals);
+  collect_global_names(body, globals);
   for (const auto& param : params) {
-    if (!contains(nonlocals, param)) {
+    if (!contains(nonlocals, param) && !contains(globals, param)) {
       add_unique(names, seen, param);
     }
   }
   collect_assigned_names(body, names, seen);
   names.erase(
-      std::remove_if(names.begin(), names.end(), [&](const std::string& name) { return contains(nonlocals, name); }),
+      std::remove_if(names.begin(), names.end(), [&](const std::string& name) {
+        return contains(nonlocals, name) || contains(globals, name);
+      }),
       names.end());
   return names;
 }
@@ -183,12 +208,14 @@ std::vector<std::string> free_candidates_for(const ast::FunctionDef& fn) {
 
   std::vector<std::string> free_names;
   NameSet nonlocals;
+  NameSet globals;
   collect_nonlocal_names(fn.body, nonlocals);
+  collect_global_names(fn.body, globals);
   for (const auto& name : nonlocals) {
     free_names.push_back(name);
   }
   for (const auto& name : reads) {
-    if (!contains(local_set, name) && !contains(nonlocals, name)) {
+    if (!contains(local_set, name) && !contains(nonlocals, name) && !contains(globals, name)) {
       free_names.push_back(name);
     }
   }

@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/builtins.h"
 #include "xlang3/import_loader.h"
+#include "xlang3/module_object.h"
 
 namespace xlang3 {
 
@@ -60,6 +61,22 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   }
   out = it->second;
   return true;
+}
+
+bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error) {
+  Value module;
+  if (!import_module(module_name, module, error)) {
+    return false;
+  }
+  if (module_get_attr(module, attr_name, out, error)) {
+    return true;
+  }
+
+  std::string submodule_error;
+  if (import_module(module_name + "." + attr_name, out, submodule_error)) {
+    return true;
+  }
+  return false;
 }
 
 void Runtime::add_import_root(std::filesystem::path root) {

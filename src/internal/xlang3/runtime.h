@@ -37,6 +37,7 @@ public:
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
   bool import_module(const std::string& name, Value& out, std::string& error);
+  bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
   void add_import_root(std::filesystem::path root);
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
 

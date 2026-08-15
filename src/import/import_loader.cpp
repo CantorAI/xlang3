@@ -23,20 +23,72 @@ limitations under the License.
 #include <fstream>
 #include <memory>
 #include <sstream>
+#include <vector>
 
 namespace xlang3 {
 
 namespace {
 
-bool find_module_file(Runtime& runtime, const std::string& name, std::filesystem::path& out) {
-  if (name.find('.') != std::string::npos) {
-    return false;
+struct ModuleFile {
+  std::filesystem::path path;
+  std::filesystem::path package_dir;
+  bool is_package = false;
+};
+
+std::vector<std::string> split_module_name(const std::string& name) {
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= name.size()) {
+    const auto dot = name.find('.', start);
+    if (dot == std::string::npos) {
+      parts.push_back(name.substr(start));
+      break;
+    }
+    parts.push_back(name.substr(start, dot - start));
+    start = dot + 1;
   }
+  return parts;
+}
+
+std::string parent_module_name(const std::string& name) {
+  const auto dot = name.rfind('.');
+  if (dot == std::string::npos) {
+    return {};
+  }
+  return name.substr(0, dot);
+}
+
+std::string module_leaf_name(const std::string& name) {
+  const auto dot = name.rfind('.');
+  if (dot == std::string::npos) {
+    return name;
+  }
+  return name.substr(dot + 1);
+}
+
+bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
+  const auto parts = split_module_name(name);
   for (const auto& root : runtime.import_roots()) {
-    auto candidate = root / (name + ".py");
+    auto candidate_base = root;
+    for (const auto& part : parts) {
+      candidate_base /= part;
+    }
+
+    auto candidate = candidate_base;
+    candidate += ".py";
     std::error_code ec;
     if (std::filesystem::is_regular_file(candidate, ec)) {
-      out = candidate;
+      out.path = candidate;
+      out.is_package = false;
+      out.package_dir.clear();
+      return true;
+    }
+
+    auto package_init = candidate_base / "__init__.py";
+    if (std::filesystem::is_regular_file(package_init, ec)) {
+      out.path = package_init;
+      out.package_dir = candidate_base;
+      out.is_package = true;
       return true;
     }
   }
@@ -58,21 +110,31 @@ bool read_file(const std::filesystem::path& path, std::string& out, std::string&
 } // namespace
 
 bool import_python_module(Runtime& runtime, const std::string& name, Value& out, std::string& error) {
-  std::filesystem::path module_path;
-  if (!find_module_file(runtime, name, module_path)) {
+  const auto parent_name = parent_module_name(name);
+  Value parent_module;
+  if (!parent_name.empty() && !runtime.import_module(parent_name, parent_module, error)) {
+    return false;
+  }
+
+  ModuleFile module_file;
+  if (!find_module_file(runtime, name, module_file)) {
     error = "module '" + name + "' not found";
     return false;
   }
 
   std::string source;
-  if (!read_file(module_path, source, error)) {
+  if (!read_file(module_file.path, source, error)) {
     return false;
   }
 
   auto module_value = Value::module(name);
   std::string attr_error;
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
-  module_set_attr(module_value, "__file__", Value::string(module_path.string()), attr_error);
+  module_set_attr(module_value, "__file__", Value::string(module_file.path.string()), attr_error);
+  module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
+  if (module_file.is_package) {
+    module_set_attr(module_value, "__path__", Value::string(module_file.package_dir.string()), attr_error);
+  }
 
   auto parsed = parse_source(source);
   if (!parsed.errors.empty()) {
@@ -96,6 +158,9 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   }
 
   out = std::move(module_value);
+  if (!parent_name.empty()) {
+    module_set_attr(parent_module, module_leaf_name(name), out, attr_error);
+  }
   return true;
 }
 

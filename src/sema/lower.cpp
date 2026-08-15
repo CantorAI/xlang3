@@ -22,6 +22,23 @@ namespace xlang3 {
 
 namespace {
 
+void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& names) {
+  for (const auto& stmt : body) {
+    if (auto* global = dynamic_cast<const ast::GlobalStmt*>(stmt.get())) {
+      for (const auto& name : global->names) {
+        names.insert(name);
+      }
+    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
+      collect_global_names(ifs->then_body, names);
+      collect_global_names(ifs->else_body, names);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
+      collect_global_names(loop->body, names);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
+      collect_global_names(loop->body, names);
+    }
+  }
+}
+
 class FunctionLowerer {
 public:
   FunctionLowerer(
@@ -44,6 +61,7 @@ public:
       ensure_local(local);
     }
     local_name_set_.insert(locals.begin(), locals.end());
+    collect_global_names(body, global_names_);
 
     prepare_captured_locals(body);
   }
@@ -189,7 +207,8 @@ private:
 
   void store_named_value(const std::string& name, uint32_t reg) {
     const auto resolved = resolve_name(name);
-    if (is_module_ && hidden_locals_.find(resolved) == hidden_locals_.end()) {
+    if ((is_module_ && hidden_locals_.find(resolved) == hidden_locals_.end()) ||
+        (!is_module_ && sema::contains(global_names_, resolved))) {
       emit(ir::Op::StoreGlobal, add_name(resolved), reg);
     } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
       emit(ir::Op::StoreFree, free_it->second, reg);
@@ -223,6 +242,9 @@ private:
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
+    if (dynamic_cast<const ast::GlobalStmt*>(&stmt) != nullptr) {
+      return;
+    }
     if (dynamic_cast<const ast::NonlocalStmt*>(&stmt) != nullptr) {
       return;
     }
@@ -246,7 +268,23 @@ private:
     if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
       const auto reg = new_reg();
       emit(ir::Op::ImportModule, reg, add_name(import->name));
-      store_named_value(import->name, reg);
+      const auto root_dot = import->name.find('.');
+      const auto root_name = root_dot == std::string::npos ? import->name : import->name.substr(0, root_dot);
+      if (root_dot != std::string::npos && import->bind_name == root_name) {
+        const auto bind_reg = new_reg();
+        emit(ir::Op::ImportModule, bind_reg, add_name(import->bind_name));
+        store_named_value(import->bind_name, bind_reg);
+      } else {
+        store_named_value(import->bind_name, reg);
+      }
+      return;
+    }
+    if (auto* import = dynamic_cast<const ast::FromImportStmt*>(&stmt)) {
+      for (const auto& binding : import->names) {
+        const auto reg = new_reg();
+        emit(ir::Op::ImportFrom, reg, add_name(import->module), add_name(binding.name));
+        store_named_value(binding.as_name, reg);
+      }
       return;
     }
     if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
@@ -486,6 +524,7 @@ private:
   bool is_module_ = false;
   ir::Function fn_;
   sema::NameSet local_name_set_;
+  sema::NameSet global_names_;
   std::unordered_map<std::string, uint32_t> locals_;
   std::unordered_map<std::string, uint32_t> cell_indices_;
   std::unordered_map<std::string, uint32_t> free_indices_;

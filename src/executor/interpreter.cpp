@@ -235,6 +235,18 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::ImportFrom: {
+        if (in.a >= fn.names.size() || in.b >= fn.names.size()) {
+          result.errors.push_back("invalid from import");
+          return result;
+        }
+        std::string error;
+        if (!runtime_.import_from(fn.names[in.a], fn.names[in.b], regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
       case ir::Op::LoadAttr: {
         if (in.b >= fn.names.size()) {
           result.errors.push_back("invalid attribute name");

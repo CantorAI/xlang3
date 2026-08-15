@@ -94,6 +94,9 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       else if (text == "for") kind = TokenKind::KwFor;
       else if (text == "in") kind = TokenKind::KwIn;
       else if (text == "import") kind = TokenKind::KwImport;
+      else if (text == "from") kind = TokenKind::KwFrom;
+      else if (text == "as") kind = TokenKind::KwAs;
+      else if (text == "global") kind = TokenKind::KwGlobal;
       else if (text == "nonlocal") kind = TokenKind::KwNonlocal;
       else if (text == "True") kind = TokenKind::KwTrue;
       else if (text == "False") kind = TokenKind::KwFalse;

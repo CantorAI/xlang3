@@ -38,6 +38,9 @@ enum class TokenKind {
   KwFor,
   KwIn,
   KwImport,
+  KwFrom,
+  KwAs,
+  KwGlobal,
   KwNonlocal,
   KwTrue,
   KwFalse,
@@ -105,6 +108,7 @@ private:
   ast::StmtPtr parse_statement();
   ast::StmtPtr parse_simple_statement();
   std::vector<ast::StmtPtr> parse_block();
+  bool parse_dotted_name(std::string& out, const std::string& message);
   ast::ExprPtr parse_expression();
   ast::ExprPtr parse_tuple();
   ast::ExprPtr parse_or();

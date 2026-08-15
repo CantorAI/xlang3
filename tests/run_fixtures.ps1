@@ -34,6 +34,8 @@ $cases = @(
     "native_import",
     "math_module",
     "file_import",
+    "global_from_import",
+    "package_import",
     "closures",
     "nonlocal_counter"
 )

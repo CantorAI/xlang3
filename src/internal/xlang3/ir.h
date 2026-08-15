@@ -36,6 +36,7 @@ enum class Op : uint16_t {
   LoadGlobal,
   StoreGlobal,
   ImportModule,
+  ImportFrom,
   LoadAttr,
   StoreAttr,
   MakeFunction,

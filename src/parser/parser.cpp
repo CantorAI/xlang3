@@ -105,16 +105,53 @@ ast::StmtPtr Parser::parse_statement() {
     stmt->body = parse_block();
     return stmt;
   }
-  if (match(TokenKind::KwImport)) {
-    const Token name = peek();
-    if (!consume(TokenKind::Identifier, "expected module name after import")) return nullptr;
+  if (match(TokenKind::KwFrom)) {
+    std::string module_name;
+    if (!parse_dotted_name(module_name, "expected module name after from")) return nullptr;
+    consume(TokenKind::KwImport, "expected import after module name");
+    std::vector<ast::ImportBinding> names;
+    do {
+      const Token name = peek();
+      if (!consume(TokenKind::Identifier, "expected imported name")) return nullptr;
+      std::string bind_name = name.text;
+      if (match(TokenKind::KwAs)) {
+        const Token alias = peek();
+        if (!consume(TokenKind::Identifier, "expected alias after as")) return nullptr;
+        bind_name = alias.text;
+      }
+      names.push_back(ast::ImportBinding{name.text, bind_name});
+    } while (match(TokenKind::Comma));
     match(TokenKind::Newline);
-    return std::make_unique<ast::ImportStmt>(name.text);
+    return std::make_unique<ast::FromImportStmt>(std::move(module_name), std::move(names));
+  }
+  if (match(TokenKind::KwImport)) {
+    std::string name;
+    if (!parse_dotted_name(name, "expected module name after import")) return nullptr;
+    std::string bind_name = name.substr(0, name.find('.'));
+    if (match(TokenKind::KwAs)) {
+      const Token alias = peek();
+      if (!consume(TokenKind::Identifier, "expected alias after as")) return nullptr;
+      bind_name = alias.text;
+    }
+    match(TokenKind::Newline);
+    return std::make_unique<ast::ImportStmt>(std::move(name), std::move(bind_name));
   }
   return parse_simple_statement();
 }
 
 ast::StmtPtr Parser::parse_simple_statement() {
+  if (match(TokenKind::KwGlobal)) {
+    std::vector<std::string> names;
+    do {
+      const Token name = peek();
+      if (!consume(TokenKind::Identifier, "expected name after global")) {
+        return nullptr;
+      }
+      names.push_back(name.text);
+    } while (match(TokenKind::Comma));
+    match(TokenKind::Newline);
+    return std::make_unique<ast::GlobalStmt>(std::move(names));
+  }
   if (match(TokenKind::KwNonlocal)) {
     std::vector<std::string> names;
     do {
@@ -165,6 +202,23 @@ ast::StmtPtr Parser::parse_simple_statement() {
   }
   match(TokenKind::Newline);
   return std::make_unique<ast::ExprStmt>(std::move(expr));
+}
+
+bool Parser::parse_dotted_name(std::string& out, const std::string& message) {
+  const Token first = peek();
+  if (!consume(TokenKind::Identifier, message)) {
+    return false;
+  }
+  out = first.text;
+  while (match(TokenKind::Dot)) {
+    const Token part = peek();
+    if (!consume(TokenKind::Identifier, "expected name after '.'")) {
+      return false;
+    }
+    out += ".";
+    out += part.text;
+  }
+  return true;
 }
 
 std::vector<ast::StmtPtr> Parser::parse_block() {
