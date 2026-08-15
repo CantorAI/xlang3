@@ -20,13 +20,9 @@ public:
   const Value* find_builtin(const std::string& name) const;
 
 private:
-  void register_core_builtins();
-
   std::ostream& out_;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
 };
-
-bool builtin_print(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error);
 
 } // namespace xlang3

@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(xlang3_core
+  src/builtins/builtins.cpp
+  src/builtins/io_builtins.cpp
   src/runtime/value.cpp
   src/runtime/runtime.cpp
   src/parser/lexer.cpp
