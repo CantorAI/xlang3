@@ -39,13 +39,6 @@ Value Value::module(std::string name) {
   return v;
 }
 
-ModuleObject* value_as_module(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Module) {
-    return nullptr;
-  }
-  return reinterpret_cast<ModuleObject*>(value.as.obj);
-}
-
 void module_release_object(Object* object) {
   if (object->kind == ObjectKind::Module) {
     delete reinterpret_cast<ModuleObject*>(object);

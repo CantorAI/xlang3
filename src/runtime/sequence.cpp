@@ -101,34 +101,6 @@ Value Value::sequence_iterator(Value source, uint64_t index) {
   return v;
 }
 
-ListObject* value_as_list(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::List) {
-    return nullptr;
-  }
-  return reinterpret_cast<ListObject*>(value.as.obj);
-}
-
-RangeObject* value_as_range(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Range) {
-    return nullptr;
-  }
-  return reinterpret_cast<RangeObject*>(value.as.obj);
-}
-
-RangeIteratorObject* value_as_range_iterator(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::RangeIterator) {
-    return nullptr;
-  }
-  return reinterpret_cast<RangeIteratorObject*>(value.as.obj);
-}
-
-SequenceIteratorObject* value_as_sequence_iterator(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::SequenceIterator) {
-    return nullptr;
-  }
-  return reinterpret_cast<SequenceIteratorObject*>(value.as.obj);
-}
-
 void sequence_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::List:

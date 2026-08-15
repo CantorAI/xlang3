@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
 #include <string>
@@ -46,10 +47,33 @@ struct SequenceIteratorObject {
   uint64_t index = 0;
 };
 
-ListObject* value_as_list(const Value& value);
-RangeObject* value_as_range(const Value& value);
-RangeIteratorObject* value_as_range_iterator(const Value& value);
-SequenceIteratorObject* value_as_sequence_iterator(const Value& value);
+XLANG3_HOT_INLINE ListObject* value_as_list(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::List) {
+    return nullptr;
+  }
+  return reinterpret_cast<ListObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE RangeObject* value_as_range(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Range) {
+    return nullptr;
+  }
+  return reinterpret_cast<RangeObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE RangeIteratorObject* value_as_range_iterator(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::RangeIterator) {
+    return nullptr;
+  }
+  return reinterpret_cast<RangeIteratorObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE SequenceIteratorObject* value_as_sequence_iterator(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::SequenceIterator) {
+    return nullptr;
+  }
+  return reinterpret_cast<SequenceIteratorObject*>(value.as.obj);
+}
 
 void sequence_release_object(Object* object);
 std::string sequence_to_string(const Value& value);

@@ -14,6 +14,8 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -127,6 +129,37 @@ struct Value {
   static Value bound_method(Value self, Value function);
 };
 
+XLANG3_HOT_INLINE Value Value::invalid() {
+  return {};
+}
+
+XLANG3_HOT_INLINE Value Value::none() {
+  Value v;
+  v.tag = ValueTag::None;
+  return v;
+}
+
+XLANG3_HOT_INLINE Value Value::boolean(bool value) {
+  Value v;
+  v.tag = ValueTag::Bool;
+  v.as.b = value;
+  return v;
+}
+
+XLANG3_HOT_INLINE Value Value::int64(int64_t value) {
+  Value v;
+  v.tag = ValueTag::Int64;
+  v.as.i64 = value;
+  return v;
+}
+
+XLANG3_HOT_INLINE Value Value::number(double value) {
+  Value v;
+  v.tag = ValueTag::Double;
+  v.as.f64 = value;
+  return v;
+}
+
 struct TupleObject {
   Object header;
   std::vector<Value> items;
@@ -145,9 +178,26 @@ struct FunctionObject {
   std::shared_ptr<const ir::Module> module;
 };
 
-FunctionObject* value_as_function(const Value& value);
-NativeFunctionObject* value_as_native_function(const Value& value);
-CellObject* value_as_cell(const Value& value);
+XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Function) {
+    return nullptr;
+  }
+  return reinterpret_cast<FunctionObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE NativeFunctionObject* value_as_native_function(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::NativeFunction) {
+    return nullptr;
+  }
+  return reinterpret_cast<NativeFunctionObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE CellObject* value_as_cell(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Cell) {
+    return nullptr;
+  }
+  return reinterpret_cast<CellObject*>(value.as.obj);
+}
 
 void retain(const Value& value);
 void release(const Value& value);

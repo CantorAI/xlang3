@@ -23,7 +23,7 @@ limitations under the License.
 
 namespace xlang3 {
 
-XLANG3_FORCE_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error) {
+XLANG3_HOT_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error) {
   if (argc == expected) {
     return true;
   }
@@ -31,7 +31,7 @@ XLANG3_FORCE_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, con
   return false;
 }
 
-XLANG3_FORCE_INLINE bool bind_builtin_method(
+XLANG3_HOT_INLINE bool bind_builtin_method(
     const Value& object,
     std::string full_name,
     NativeFunctionCallback callback,
@@ -46,7 +46,7 @@ struct BuiltinMethodSpec {
   NativeFunctionCallback callback;
 };
 
-XLANG3_FORCE_INLINE bool bind_builtin_method_from_table(
+XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
     const Value& object,
     const std::string& name,
     const BuiltinMethodSpec* methods,

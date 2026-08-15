@@ -23,14 +23,21 @@ Initial goals:
 - record command lines, Python version, compiler, CPU, and build mode
 - avoid benchmarking startup cost unless the benchmark is explicitly about startup
 
-Planned groups:
+Current groups:
 
 - `scalar_arithmetic`: integer and floating-point operator dispatch
 - `local_slots`: local variable load/store and loop behavior
 - `function_calls`: direct function calls and argument passing
 - `branches`: if/else and comparison dispatch
-- `containers`: list/dict once container runtime exists
+- `list_append`: native method binding and list append behavior
+- `range_for`: range iteration and for-loop dispatch
 
 XLang3 runs `.py` files directly. Benchmark files should therefore be valid Python files that can run on both CPython and XLang3 whenever the implemented language subset allows it.
 
 The first milestone is not to beat CPython everywhere. It is to make interpreter performance visible early, especially where `X3Value` scalar fast paths and sema-assigned local slots should help.
+
+Run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\benchmarks\run.ps1 -XLang3 .\build\Release\xlang3.exe -Python python
+```

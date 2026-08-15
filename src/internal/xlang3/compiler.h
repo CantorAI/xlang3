@@ -16,8 +16,14 @@ limitations under the License.
 
 #if defined(_MSC_VER)
 #define XLANG3_FORCE_INLINE __forceinline
+#define XLANG3_HOT_INLINE __forceinline
+#define XLANG3_NOINLINE __declspec(noinline)
 #elif defined(__clang__) || defined(__GNUC__)
 #define XLANG3_FORCE_INLINE inline __attribute__((always_inline))
+#define XLANG3_HOT_INLINE inline __attribute__((always_inline, hot))
+#define XLANG3_NOINLINE __attribute__((noinline))
 #else
 #define XLANG3_FORCE_INLINE inline
+#define XLANG3_HOT_INLINE inline
+#define XLANG3_NOINLINE
 #endif

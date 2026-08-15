@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
 #include <string>
@@ -33,8 +34,19 @@ struct DictIteratorObject {
   uint64_t index = 0;
 };
 
-DictObject* value_as_dict(const Value& value);
-DictIteratorObject* value_as_dict_iterator(const Value& value);
+XLANG3_HOT_INLINE DictObject* value_as_dict(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Dict) {
+    return nullptr;
+  }
+  return reinterpret_cast<DictObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE DictIteratorObject* value_as_dict_iterator(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::DictIterator) {
+    return nullptr;
+  }
+  return reinterpret_cast<DictIteratorObject*>(value.as.obj);
+}
 
 void mapping_release_object(Object* object);
 std::string mapping_to_string(const Value& value);

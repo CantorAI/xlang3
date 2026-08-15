@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
 #include <string>
@@ -29,7 +30,12 @@ struct ModuleObject {
   std::unordered_map<std::string, Value> attrs;
 };
 
-ModuleObject* value_as_module(const Value& value);
+XLANG3_HOT_INLINE ModuleObject* value_as_module(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Module) {
+    return nullptr;
+  }
+  return reinterpret_cast<ModuleObject*>(value.as.obj);
+}
 
 void module_release_object(Object* object);
 std::string module_to_string(const Value& value);

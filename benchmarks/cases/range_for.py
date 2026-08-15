@@ -10,13 +10,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-param(
-    [string]$XLang3 = "../build/Release/xlang3.exe",
-    [string]$Python = "python",
-    [int]$Warmup = 2,
-    [int]$Repeats = 7
-)
+def main():
+    total = 0
+    for x in range(800000):
+        total = total + x
+    print(total)
 
-$ErrorActionPreference = "Stop"
-
-& $Python "$PSScriptRoot/run.py" --xlang3 $XLang3 --python $Python --warmup $Warmup --repeats $Repeats
+main()

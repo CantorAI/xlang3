@@ -66,20 +66,6 @@ Value Value::set(std::vector<Value> items) {
   return v;
 }
 
-SetObject* value_as_set(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Set) {
-    return nullptr;
-  }
-  return reinterpret_cast<SetObject*>(value.as.obj);
-}
-
-SetIteratorObject* value_as_set_iterator(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::SetIterator) {
-    return nullptr;
-  }
-  return reinterpret_cast<SetIteratorObject*>(value.as.obj);
-}
-
 void set_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Set:

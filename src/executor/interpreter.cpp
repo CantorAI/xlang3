@@ -37,6 +37,83 @@ std::string compare_name(ir::CompareOp op) {
   return "?";
 }
 
+XLANG3_HOT_INLINE bool value_is_number(const Value& value) {
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
+}
+
+XLANG3_HOT_INLINE double value_to_double_fast(const Value& value) {
+  return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
+}
+
+XLANG3_HOT_INLINE bool fast_add(const Value& lhs, const Value& rhs, Value& out) {
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    out = Value::int64(lhs.as.i64 + rhs.as.i64);
+    return true;
+  }
+  if (value_is_number(lhs) && value_is_number(rhs)) {
+    out = Value::number(value_to_double_fast(lhs) + value_to_double_fast(rhs));
+    return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool fast_sub(const Value& lhs, const Value& rhs, Value& out) {
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    out = Value::int64(lhs.as.i64 - rhs.as.i64);
+    return true;
+  }
+  if (value_is_number(lhs) && value_is_number(rhs)) {
+    out = Value::number(value_to_double_fast(lhs) - value_to_double_fast(rhs));
+    return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool fast_mul(const Value& lhs, const Value& rhs, Value& out) {
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    out = Value::int64(lhs.as.i64 * rhs.as.i64);
+    return true;
+  }
+  if (value_is_number(lhs) && value_is_number(rhs)) {
+    out = Value::number(value_to_double_fast(lhs) * value_to_double_fast(rhs));
+    return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool fast_div(const Value& lhs, const Value& rhs, Value& out, bool& divide_by_zero) {
+  divide_by_zero = false;
+  if (!value_is_number(lhs) || !value_is_number(rhs)) {
+    return false;
+  }
+  const double divisor = value_to_double_fast(rhs);
+  if (divisor == 0.0) {
+    divide_by_zero = true;
+    return false;
+  }
+  out = Value::number(value_to_double_fast(lhs) / divisor);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Value& rhs, Value& out) {
+  if (!value_is_number(lhs) || !value_is_number(rhs)) {
+    return false;
+  }
+  const double a = value_to_double_fast(lhs);
+  const double b = value_to_double_fast(rhs);
+  bool compare_result = false;
+  switch (op) {
+    case ir::CompareOp::Eq: compare_result = a == b; break;
+    case ir::CompareOp::Ne: compare_result = a != b; break;
+    case ir::CompareOp::Lt: compare_result = a < b; break;
+    case ir::CompareOp::Le: compare_result = a <= b; break;
+    case ir::CompareOp::Gt: compare_result = a > b; break;
+    case ir::CompareOp::Ge: compare_result = a >= b; break;
+  }
+  out = Value::boolean(compare_result);
+  return true;
+}
+
 } // namespace
 
 Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
@@ -431,34 +508,55 @@ RuntimeResult Interpreter::run_function(
         break;
       }
       case ir::Op::Add: {
-        std::string error;
-        if (!value_add(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          if (raise_runtime_error(error)) continue;
-          return result;
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_add(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_add(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
         }
         break;
       }
       case ir::Op::Sub: {
-        std::string error;
-        if (!value_sub(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          if (raise_runtime_error(error)) continue;
-          return result;
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_sub(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_sub(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
         }
         break;
       }
       case ir::Op::Mul: {
-        std::string error;
-        if (!value_mul(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          if (raise_runtime_error(error)) continue;
-          return result;
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_mul(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_mul(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
         }
         break;
       }
       case ir::Op::Div: {
-        std::string error;
-        if (!value_div(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          if (raise_runtime_error(error)) continue;
-          return result;
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        bool divide_by_zero = false;
+        if (!fast_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
+          if (divide_by_zero) {
+            if (raise_runtime_error("division by zero")) continue;
+            return result;
+          }
+          std::string error;
+          if (!value_div(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
         }
         break;
       }
@@ -469,10 +567,15 @@ RuntimeResult Interpreter::run_function(
         regs[in.dst] = Value::boolean(value_truthy(regs[in.a]) || value_truthy(regs[in.b]));
         break;
       case ir::Op::Compare: {
-        std::string error;
-        if (!value_compare(compare_name(static_cast<ir::CompareOp>(in.c)), regs[in.a], regs[in.b], regs[in.dst], error)) {
-          if (raise_runtime_error(error)) continue;
-          return result;
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        const auto op = static_cast<ir::CompareOp>(in.c);
+        if (!fast_compare(op, lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_compare(compare_name(op), lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
         }
         break;
       }

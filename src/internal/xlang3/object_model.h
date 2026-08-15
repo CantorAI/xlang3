@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
 #include <string>
@@ -39,9 +40,26 @@ struct BoundMethodObject {
   Value function;
 };
 
-ClassObject* value_as_class(const Value& value);
-InstanceObject* value_as_instance(const Value& value);
-BoundMethodObject* value_as_bound_method(const Value& value);
+XLANG3_HOT_INLINE ClassObject* value_as_class(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Class) {
+    return nullptr;
+  }
+  return reinterpret_cast<ClassObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE InstanceObject* value_as_instance(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Instance) {
+    return nullptr;
+  }
+  return reinterpret_cast<InstanceObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE BoundMethodObject* value_as_bound_method(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::BoundMethod) {
+    return nullptr;
+  }
+  return reinterpret_cast<BoundMethodObject*>(value.as.obj);
+}
 
 void object_model_release_object(Object* object);
 std::string object_model_to_string(const Value& value);

@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
 #include <string>
@@ -32,8 +33,19 @@ struct SetIteratorObject {
   uint64_t index = 0;
 };
 
-SetObject* value_as_set(const Value& value);
-SetIteratorObject* value_as_set_iterator(const Value& value);
+XLANG3_HOT_INLINE SetObject* value_as_set(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Set) {
+    return nullptr;
+  }
+  return reinterpret_cast<SetObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE SetIteratorObject* value_as_set_iterator(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::SetIterator) {
+    return nullptr;
+  }
+  return reinterpret_cast<SetIteratorObject*>(value.as.obj);
+}
 
 void set_release_object(Object* object);
 std::string set_to_string(const Value& value);

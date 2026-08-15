@@ -59,27 +59,6 @@ Value Value::bound_method(Value self, Value function) {
   return v;
 }
 
-ClassObject* value_as_class(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Class) {
-    return nullptr;
-  }
-  return reinterpret_cast<ClassObject*>(value.as.obj);
-}
-
-InstanceObject* value_as_instance(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Instance) {
-    return nullptr;
-  }
-  return reinterpret_cast<InstanceObject*>(value.as.obj);
-}
-
-BoundMethodObject* value_as_bound_method(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::BoundMethod) {
-    return nullptr;
-  }
-  return reinterpret_cast<BoundMethodObject*>(value.as.obj);
-}
-
 void object_model_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Class:

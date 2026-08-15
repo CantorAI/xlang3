@@ -10,13 +10,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-param(
-    [string]$XLang3 = "../build/Release/xlang3.exe",
-    [string]$Python = "python",
-    [int]$Warmup = 2,
-    [int]$Repeats = 7
-)
+def main():
+    a = 1
+    b = 2
+    c = 3
+    d = 4
+    i = 0
+    while i < 1500000:
+        a = b
+        b = c
+        c = d
+        d = i
+        i = i + 1
+    print(a + b + c + d)
 
-$ErrorActionPreference = "Stop"
-
-& $Python "$PSScriptRoot/run.py" --xlang3 $XLang3 --python $Python --warmup $Warmup --repeats $Repeats
+main()

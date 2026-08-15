@@ -70,20 +70,6 @@ static Value make_dict_iterator(Value source, uint64_t index) {
   return v;
 }
 
-DictObject* value_as_dict(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Dict) {
-    return nullptr;
-  }
-  return reinterpret_cast<DictObject*>(value.as.obj);
-}
-
-DictIteratorObject* value_as_dict_iterator(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::DictIterator) {
-    return nullptr;
-  }
-  return reinterpret_cast<DictIteratorObject*>(value.as.obj);
-}
-
 void mapping_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Dict:

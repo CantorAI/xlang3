@@ -51,10 +51,6 @@ TupleObject* as_tuple(Object* obj) {
   return reinterpret_cast<TupleObject*>(obj);
 }
 
-CellObject* as_cell(Object* obj) {
-  return reinterpret_cast<CellObject*>(obj);
-}
-
 FunctionObject* as_function(Object* obj) {
   return reinterpret_cast<FunctionObject*>(obj);
 }
@@ -101,37 +97,6 @@ Value& Value::operator=(Value&& other) noexcept {
 
 Value::~Value() {
   release(*this);
-}
-
-Value Value::invalid() {
-  return {};
-}
-
-Value Value::none() {
-  Value v;
-  v.tag = ValueTag::None;
-  return v;
-}
-
-Value Value::boolean(bool value) {
-  Value v;
-  v.tag = ValueTag::Bool;
-  v.as.b = value;
-  return v;
-}
-
-Value Value::int64(int64_t value) {
-  Value v;
-  v.tag = ValueTag::Int64;
-  v.as.i64 = value;
-  return v;
-}
-
-Value Value::number(double value) {
-  Value v;
-  v.tag = ValueTag::Double;
-  v.as.f64 = value;
-  return v;
 }
 
 Value Value::string(std::string value) {
@@ -196,27 +161,6 @@ Value Value::native_function(uint32_t native_id, std::string name, NativeFunctio
   return v;
 }
 
-FunctionObject* value_as_function(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Function) {
-    return nullptr;
-  }
-  return as_function(value.as.obj);
-}
-
-NativeFunctionObject* value_as_native_function(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::NativeFunction) {
-    return nullptr;
-  }
-  return as_native_function(value.as.obj);
-}
-
-CellObject* value_as_cell(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Cell) {
-    return nullptr;
-  }
-  return as_cell(value.as.obj);
-}
-
 void retain(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
     ++value.as.obj->refcnt;
@@ -255,7 +199,7 @@ void release(const Value& value) {
       sequence_release_object(value.as.obj);
       break;
     case ObjectKind::Cell:
-      delete as_cell(value.as.obj);
+      delete reinterpret_cast<CellObject*>(value.as.obj);
       break;
     case ObjectKind::Function:
       delete as_function(value.as.obj);
