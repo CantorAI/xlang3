@@ -95,6 +95,16 @@ private:
     return static_cast<uint32_t>(fn_.list_items.size() - 1);
   }
 
+  uint32_t add_set_items(std::vector<uint32_t> items) {
+    fn_.set_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.set_items.size() - 1);
+  }
+
+  uint32_t add_dict_items(std::vector<std::pair<uint32_t, uint32_t>> items) {
+    fn_.dict_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.dict_items.size() - 1);
+  }
+
   uint32_t add_function_closure(std::vector<uint32_t> cells) {
     fn_.function_closures.push_back(std::move(cells));
     return static_cast<uint32_t>(fn_.function_closures.size() - 1);
@@ -218,6 +228,13 @@ private:
     }
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
       store_named_value(assign->name, lower_expr(*assign->value));
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+      const auto object = lower_expr(*assign->object);
+      const auto index = lower_expr(*assign->index);
+      const auto value = lower_expr(*assign->value);
+      emit(ir::Op::SetItem, object, index, value);
       return;
     }
     if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
@@ -379,6 +396,26 @@ private:
       }
       const auto dst = new_reg();
       emit(ir::Op::MakeList, dst, add_list_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+      std::vector<std::pair<uint32_t, uint32_t>> item_regs;
+      for (const auto& entry : dict->entries) {
+        const auto key = lower_expr(*entry.first);
+        const auto value = lower_expr(*entry.second);
+        item_regs.push_back(std::make_pair(key, value));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeDict, dst, add_dict_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+      std::vector<uint32_t> item_regs;
+      for (const auto& item : set->items) {
+        item_regs.push_back(lower_expr(*item));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeSet, dst, add_set_items(std::move(item_regs)));
       return dst;
     }
     if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {

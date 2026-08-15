@@ -14,6 +14,9 @@ limitations under the License.
 */
 #include "xlang3/sequence.h"
 
+#include "xlang3/mapping.h"
+#include "xlang3/set_object.h"
+
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -186,6 +189,12 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     out = Value::range_iterator(range->start, range->stop, range->step);
     return true;
   }
+  if (value_as_dict(iterable) != nullptr) {
+    return mapping_get_iter(iterable, out, error);
+  }
+  if (value_as_set(iterable) != nullptr) {
+    return set_get_iter(iterable, out, error);
+  }
   if (value_as_list(iterable) != nullptr ||
       (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
        (iterable.as.obj->kind == ObjectKind::Tuple || iterable.as.obj->kind == ObjectKind::String))) {
@@ -222,6 +231,12 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
     done = false;
     return true;
   }
+  if (value_as_dict_iterator(iterator) != nullptr) {
+    return mapping_iter_next(iterator, done, out, error);
+  }
+  if (value_as_set_iterator(iterator) != nullptr) {
+    return set_iter_next(iterator, done, out, error);
+  }
   error = "invalid iterator";
   return false;
 }
@@ -237,11 +252,11 @@ bool sequence_list_append(Value& list, const Value& item, std::string& error) {
 }
 
 bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error) {
-  if (index.tag != ValueTag::Int64) {
-    error = "sequence index must be int";
-    return false;
-  }
   if (auto* list = value_as_list(object)) {
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
     uint64_t resolved = 0;
     if (!normalize_index(index.as.i64, static_cast<uint64_t>(list->items.size()), resolved)) {
       error = "index out of range";
@@ -250,7 +265,14 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     out = list->items[static_cast<size_t>(resolved)];
     return true;
   }
+  if (value_as_dict(object) != nullptr) {
+    return mapping_get_item(object, index, out, error);
+  }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Tuple) {
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
     auto* tuple = reinterpret_cast<TupleObject*>(object.as.obj);
     uint64_t resolved = 0;
     if (!normalize_index(index.as.i64, static_cast<uint64_t>(tuple->items.size()), resolved)) {
@@ -261,6 +283,10 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     return true;
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
     auto* string = reinterpret_cast<StringObject*>(object.as.obj);
     uint64_t resolved = 0;
     if (!normalize_index(index.as.i64, static_cast<uint64_t>(string->value.size()), resolved)) {
@@ -271,6 +297,27 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     return true;
   }
   error = "object is not subscriptable";
+  return false;
+}
+
+bool sequence_set_item(Value& object, const Value& index, const Value& item, std::string& error) {
+  if (auto* list = value_as_list(object)) {
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(list->items.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    list->items[static_cast<size_t>(resolved)] = item;
+    return true;
+  }
+  if (value_as_dict(object) != nullptr) {
+    return mapping_set_item(object, index, item, error);
+  }
+  error = "object does not support item assignment";
   return false;
 }
 
@@ -288,6 +335,12 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     auto* string = reinterpret_cast<StringObject*>(value.as.obj);
     out = Value::int64(static_cast<int64_t>(string->value.size()));
     return true;
+  }
+  if (value_as_dict(value) != nullptr) {
+    return mapping_len(value, out, error);
+  }
+  if (value_as_set(value) != nullptr) {
+    return set_len(value, out, error);
   }
   error = "object has no len()";
   return false;

@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace xlang3::ir {
@@ -37,8 +38,11 @@ enum class Op : uint16_t {
   MakeFunction,
   MakeTuple,
   MakeList,
+  MakeDict,
+  MakeSet,
   ListAppend,
   GetItem,
+  SetItem,
   GetIter,
   IterNext,
   Add,
@@ -86,6 +90,8 @@ struct Function {
   std::vector<std::vector<uint32_t>> call_args;
   std::vector<std::vector<uint32_t>> tuple_items;
   std::vector<std::vector<uint32_t>> list_items;
+  std::vector<std::vector<uint32_t>> set_items;
+  std::vector<std::vector<std::pair<uint32_t, uint32_t>>> dict_items;
   std::vector<std::vector<uint32_t>> function_closures;
   std::vector<Instr> code;
 };

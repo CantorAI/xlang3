@@ -195,5 +195,33 @@ int main() {
                               "subscript, sequence iteration, and filtered list comprehension should work");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "d = {\"a\": 1, \"b\": 2, \"a\": 3}\n"
+        "print(d[\"a\"])\n"
+        "d[\"c\"] = 4\n"
+        "print(d[\"c\"])\n"
+        "print(len(d))\n"
+        "total = 0\n"
+        "for k in d:\n"
+        "    total = total + d[k]\n"
+        "print(total)\n"
+        "s = {1, 2, 2, 3}\n"
+        "print(len(s))\n"
+        "sum = 0\n"
+        "for x in s:\n"
+        "    sum = sum + x\n"
+        "print(sum)\n"
+        "items = [1, 2]\n"
+        "items[1] = 5\n"
+        "print(items)\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "3\n4\n3\n9\n3\n6\n[1, 5]\n",
+                              "dict, set, iteration, len, and item assignment should work");
+  }
+
   return xlang3::test::finish(result);
 }

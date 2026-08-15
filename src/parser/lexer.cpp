@@ -157,6 +157,8 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       case ')': emit(TokenKind::RParen, ")", line_no, col); break;
       case '[': emit(TokenKind::LBracket, "[", line_no, col); break;
       case ']': emit(TokenKind::RBracket, "]", line_no, col); break;
+      case '{': emit(TokenKind::LBrace, "{", line_no, col); break;
+      case '}': emit(TokenKind::RBrace, "}", line_no, col); break;
       case ',': emit(TokenKind::Comma, ",", line_no, col); break;
       case ':': emit(TokenKind::Colon, ":", line_no, col); break;
       case '=': emit(TokenKind::Assign, "=", line_no, col); break;

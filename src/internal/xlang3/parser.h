@@ -48,6 +48,8 @@ enum class TokenKind {
   RParen,
   LBracket,
   RBracket,
+  LBrace,
+  RBrace,
   Comma,
   Colon,
   Assign,

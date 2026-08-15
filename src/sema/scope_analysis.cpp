@@ -89,6 +89,15 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     for (const auto& item : list->items) {
       collect_reads_expr(*item, names, seen);
     }
+  } else if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    for (const auto& entry : dict->entries) {
+      collect_reads_expr(*entry.first, names, seen);
+      collect_reads_expr(*entry.second, names, seen);
+    }
+  } else if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    for (const auto& item : set->items) {
+      collect_reads_expr(*item, names, seen);
+    }
   } else if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
     collect_reads_expr(*comp->iterable, names, seen);
     std::vector<std::string> result_reads;
@@ -115,6 +124,10 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
 void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names, NameSet& seen) {
   for (const auto& stmt : body) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
+      collect_reads_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(stmt.get())) {
+      collect_reads_expr(*assign->object, names, seen);
+      collect_reads_expr(*assign->index, names, seen);
       collect_reads_expr(*assign->value, names, seen);
     } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(stmt.get())) {
       collect_reads_expr(*expr_stmt->expr, names, seen);

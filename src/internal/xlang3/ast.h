@@ -83,6 +83,16 @@ struct ListExpr final : Expr {
   explicit ListExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
 };
 
+struct DictExpr final : Expr {
+  std::vector<std::pair<ExprPtr, ExprPtr>> entries;
+  explicit DictExpr(std::vector<std::pair<ExprPtr, ExprPtr>> entries) : entries(std::move(entries)) {}
+};
+
+struct SetExpr final : Expr {
+  std::vector<ExprPtr> items;
+  explicit SetExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
+};
+
 struct ListCompExpr final : Expr {
   ExprPtr result;
   std::string target;
@@ -101,6 +111,14 @@ struct AssignStmt final : Stmt {
   std::string name;
   ExprPtr value;
   AssignStmt(std::string name, ExprPtr value) : name(std::move(name)), value(std::move(value)) {}
+};
+
+struct SubscriptAssignStmt final : Stmt {
+  ExprPtr object;
+  ExprPtr index;
+  ExprPtr value;
+  SubscriptAssignStmt(ExprPtr object, ExprPtr index, ExprPtr value)
+      : object(std::move(object)), index(std::move(index)), value(std::move(value)) {}
 };
 
 struct ReturnStmt final : Stmt {

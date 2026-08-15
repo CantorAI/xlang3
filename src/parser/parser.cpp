@@ -139,6 +139,19 @@ ast::StmtPtr Parser::parse_simple_statement() {
     return std::make_unique<ast::AssignStmt>(name, std::move(value));
   }
   auto expr = parse_expression();
+  if (match(TokenKind::Assign)) {
+    auto* subscript = dynamic_cast<ast::SubscriptExpr*>(expr.get());
+    if (subscript == nullptr) {
+      error_here("expected assignable target");
+      return nullptr;
+    }
+    auto value = parse_expression();
+    match(TokenKind::Newline);
+    return std::make_unique<ast::SubscriptAssignStmt>(
+        std::move(subscript->object),
+        std::move(subscript->index),
+        std::move(value));
+  }
   match(TokenKind::Newline);
   return std::make_unique<ast::ExprStmt>(std::move(expr));
 }
@@ -324,6 +337,30 @@ ast::ExprPtr Parser::parse_primary() {
     }
     consume(TokenKind::RBracket, "expected ']' after list literal");
     return std::make_unique<ast::ListExpr>(std::move(items));
+  }
+  if (match(TokenKind::LBrace)) {
+    if (match(TokenKind::RBrace)) {
+      return std::make_unique<ast::DictExpr>(std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>>{});
+    }
+    auto first = parse_or();
+    if (match(TokenKind::Colon)) {
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
+      entries.push_back(std::make_pair(std::move(first), parse_or()));
+      while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
+        auto key = parse_or();
+        consume(TokenKind::Colon, "expected ':' after dict key");
+        entries.push_back(std::make_pair(std::move(key), parse_or()));
+      }
+      consume(TokenKind::RBrace, "expected '}' after dict literal");
+      return std::make_unique<ast::DictExpr>(std::move(entries));
+    }
+    std::vector<ast::ExprPtr> items;
+    items.push_back(std::move(first));
+    while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
+      items.push_back(parse_or());
+    }
+    consume(TokenKind::RBrace, "expected '}' after set literal");
+    return std::make_unique<ast::SetExpr>(std::move(items));
   }
   error_here("expected expression");
   return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);

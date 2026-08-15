@@ -59,6 +59,7 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error);
 bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
 bool sequence_list_append(Value& list, const Value& item, std::string& error);
 bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error);
+bool sequence_set_item(Value& object, const Value& index, const Value& item, std::string& error);
 bool sequence_len(const Value& value, Value& out, std::string& error);
 
 } // namespace xlang3

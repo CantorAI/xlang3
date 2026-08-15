@@ -30,6 +30,7 @@ $cases = @(
     "tuples",
     "lists_for",
     "sequences_index",
+    "dict_set",
     "closures",
     "nonlocal_counter"
 )

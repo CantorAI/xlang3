@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "xlang3/value.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 
 #include <cmath>
 #include <sstream>
@@ -219,6 +221,14 @@ void release(const Value& value) {
     case ObjectKind::Tuple:
       delete as_tuple(value.as.obj);
       break;
+    case ObjectKind::Dict:
+    case ObjectKind::DictIterator:
+      mapping_release_object(value.as.obj);
+      break;
+    case ObjectKind::Set:
+    case ObjectKind::SetIterator:
+      set_release_object(value.as.obj);
+      break;
     case ObjectKind::List:
     case ObjectKind::Range:
     case ObjectKind::RangeIterator:
@@ -278,6 +288,16 @@ std::string value_to_string(const Value& value) {
            value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_to_string(value);
       }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::DictIterator)) {
+        return mapping_to_string(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Set ||
+           value.as.obj->kind == ObjectKind::SetIterator)) {
+        return set_to_string(value);
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Cell) {
         return "<cell>";
       }
@@ -316,6 +336,16 @@ bool value_truthy(const Value& value) {
            value.as.obj->kind == ObjectKind::RangeIterator ||
            value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_truthy(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::DictIterator)) {
+        return mapping_truthy(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Set ||
+           value.as.obj->kind == ObjectKind::SetIterator)) {
+        return set_truthy(value);
       }
       return true;
   }

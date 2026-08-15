@@ -27,6 +27,9 @@ int main() {
       "        print(item)\n"
       "    print([item + 1 for item in range(2)])\n"
       "    print([item for item in [1, 2, 3] if item > 1][0])\n"
+      "    d = {\"a\": 1}\n"
+      "    d[\"b\"] = 2\n"
+      "    print({1, 2, 2})\n"
       "\n"
       "main()\n";
 

@@ -23,7 +23,10 @@ add_library(xlang3_core
   src/builtins/io_builtins.cpp
   src/builtins/sequence_builtins.cpp
   src/runtime/value.cpp
+  src/runtime/value_hash.cpp
   src/runtime/sequence.cpp
+  src/runtime/mapping.cpp
+  src/runtime/set_object.cpp
   src/runtime/runtime.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp

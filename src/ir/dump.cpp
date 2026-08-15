@@ -36,8 +36,11 @@ const char* op_name(Op op) {
     case Op::MakeFunction: return "MakeFunction";
     case Op::MakeTuple: return "MakeTuple";
     case Op::MakeList: return "MakeList";
+    case Op::MakeDict: return "MakeDict";
+    case Op::MakeSet: return "MakeSet";
     case Op::ListAppend: return "ListAppend";
     case Op::GetItem: return "GetItem";
+    case Op::SetItem: return "SetItem";
     case Op::GetIter: return "GetIter";
     case Op::IterNext: return "IterNext";
     case Op::Add: return "Add";
@@ -123,6 +126,20 @@ std::string dump_module(const Module& module) {
       os << "  list_items #" << list_i << ":";
       for (auto reg : fn.list_items[list_i]) {
         os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t set_i = 0; set_i < fn.set_items.size(); ++set_i) {
+      os << "  set_items #" << set_i << ":";
+      for (auto reg : fn.set_items[set_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t dict_i = 0; dict_i < fn.dict_items.size(); ++dict_i) {
+      os << "  dict_items #" << dict_i << ":";
+      for (const auto& pair : fn.dict_items[dict_i]) {
+        os << " (r" << pair.first << ": r" << pair.second << ")";
       }
       os << "\n";
     }

@@ -241,6 +241,40 @@ RuntimeResult Interpreter::run_function(
         regs[in.dst] = Value::list(std::move(items));
         break;
       }
+      case ir::Op::MakeDict: {
+        if (in.a >= fn.dict_items.size()) {
+          result.errors.push_back("invalid dict item list");
+          return result;
+        }
+        std::vector<std::pair<Value, Value>> items;
+        items.reserve(fn.dict_items[in.a].size());
+        for (const auto& pair : fn.dict_items[in.a]) {
+          if (pair.first >= regs.size() || pair.second >= regs.size()) {
+            result.errors.push_back("invalid dict item register");
+            return result;
+          }
+          items.push_back(std::make_pair(regs[pair.first], regs[pair.second]));
+        }
+        regs[in.dst] = Value::dict(std::move(items));
+        break;
+      }
+      case ir::Op::MakeSet: {
+        if (in.a >= fn.set_items.size()) {
+          result.errors.push_back("invalid set item list");
+          return result;
+        }
+        std::vector<Value> items;
+        items.reserve(fn.set_items[in.a].size());
+        for (const auto reg : fn.set_items[in.a]) {
+          if (reg >= regs.size()) {
+            result.errors.push_back("invalid set item register");
+            return result;
+          }
+          items.push_back(regs[reg]);
+        }
+        regs[in.dst] = Value::set(std::move(items));
+        break;
+      }
       case ir::Op::ListAppend: {
         std::string error;
         if (!sequence_list_append(regs[in.dst], regs[in.a], error)) {
@@ -252,6 +286,14 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::GetItem: {
         std::string error;
         if (!sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
+      case ir::Op::SetItem: {
+        std::string error;
+        if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
           result.errors.push_back(error);
           return result;
         }
