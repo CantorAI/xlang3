@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/value.h"
 
+#include "xlang3/sequence.h"
+
 #include <cmath>
 #include <sstream>
 
@@ -217,6 +219,11 @@ void release(const Value& value) {
     case ObjectKind::Tuple:
       delete as_tuple(value.as.obj);
       break;
+    case ObjectKind::List:
+    case ObjectKind::Range:
+    case ObjectKind::RangeIterator:
+      sequence_release_object(value.as.obj);
+      break;
     case ObjectKind::Cell:
       delete as_cell(value.as.obj);
       break;
@@ -263,6 +270,12 @@ std::string value_to_string(const Value& value) {
         text += ")";
         return text;
       }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::List ||
+           value.as.obj->kind == ObjectKind::Range ||
+           value.as.obj->kind == ObjectKind::RangeIterator)) {
+        return sequence_to_string(value);
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Cell) {
         return "<cell>";
       }
@@ -294,6 +307,12 @@ bool value_truthy(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
         return !as_tuple(value.as.obj)->items.empty();
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::List ||
+           value.as.obj->kind == ObjectKind::Range ||
+           value.as.obj->kind == ObjectKind::RangeIterator)) {
+        return sequence_truthy(value);
       }
       return true;
   }

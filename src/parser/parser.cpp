@@ -92,6 +92,19 @@ ast::StmtPtr Parser::parse_statement() {
     stmt->body = parse_block();
     return stmt;
   }
+  if (match(TokenKind::KwFor)) {
+    auto stmt = std::make_unique<ast::ForStmt>();
+    const Token target = peek();
+    if (!consume(TokenKind::Identifier, "expected loop target after for")) return nullptr;
+    stmt->target = target.text;
+    consume(TokenKind::KwIn, "expected 'in' after loop target");
+    stmt->iterable = parse_expression();
+    consume(TokenKind::Colon, "expected ':' after for iterable");
+    consume(TokenKind::Newline, "expected newline after for");
+    consume(TokenKind::Indent, "expected indented for body");
+    stmt->body = parse_block();
+    return stmt;
+  }
   return parse_simple_statement();
 }
 
@@ -278,6 +291,27 @@ ast::ExprPtr Parser::parse_primary() {
     auto expr = parse_expression();
     consume(TokenKind::RParen, "expected ')' after expression");
     return expr;
+  }
+  if (match(TokenKind::LBracket)) {
+    if (match(TokenKind::RBracket)) {
+      return std::make_unique<ast::ListExpr>(std::vector<ast::ExprPtr>{});
+    }
+    auto first = parse_or();
+    if (match(TokenKind::KwFor)) {
+      const Token target = peek();
+      consume(TokenKind::Identifier, "expected comprehension target after for");
+      consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+      auto iterable = parse_expression();
+      consume(TokenKind::RBracket, "expected ']' after list comprehension");
+      return std::make_unique<ast::ListCompExpr>(std::move(first), target.text, std::move(iterable));
+    }
+    std::vector<ast::ExprPtr> items;
+    items.push_back(std::move(first));
+    while (match(TokenKind::Comma) && !check(TokenKind::RBracket)) {
+      items.push_back(parse_or());
+    }
+    consume(TokenKind::RBracket, "expected ']' after list literal");
+    return std::make_unique<ast::ListExpr>(std::move(items));
   }
   error_here("expected expression");
   return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);

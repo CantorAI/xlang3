@@ -145,5 +145,35 @@ int main() {
                               "tuple literals and call arg separators should work");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "total = 0\n"
+        "for x in range(5):\n"
+        "    total = total + x\n"
+        "print(total)\n"
+        "print([1, 2, 3])\n"
+        "print([x + 1 for x in range(3)])\n"
+        "print(len([10, 20, 30]))\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "10\n[1, 2, 3]\n[1, 2, 3]\n3\n",
+                              "range, for, lists, list comprehension, and len should work");
+  }
+
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "x = 99\n"
+        "print([x for x in range(2)])\n"
+        "print(x)\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "[0, 1]\n99\n",
+                              "list comprehension target should not leak to surrounding scope");
+  }
+
   return xlang3::test::finish(result);
 }

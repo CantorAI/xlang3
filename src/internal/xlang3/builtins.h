@@ -20,5 +20,6 @@ namespace xlang3 {
 
 void register_core_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);
+void register_sequence_builtins(Runtime& runtime);
 
 } // namespace xlang3

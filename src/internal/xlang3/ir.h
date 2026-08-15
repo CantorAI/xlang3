@@ -36,6 +36,10 @@ enum class Op : uint16_t {
   StoreGlobal,
   MakeFunction,
   MakeTuple,
+  MakeList,
+  ListAppend,
+  GetIter,
+  IterNext,
   Add,
   Sub,
   Mul,
@@ -80,6 +84,7 @@ struct Function {
   std::vector<std::string> names;
   std::vector<std::vector<uint32_t>> call_args;
   std::vector<std::vector<uint32_t>> tuple_items;
+  std::vector<std::vector<uint32_t>> list_items;
   std::vector<std::vector<uint32_t>> function_closures;
   std::vector<Instr> code;
 };

@@ -18,6 +18,7 @@ namespace xlang3 {
 
 void register_core_builtins(Runtime& runtime) {
   register_io_builtins(runtime);
+  register_sequence_builtins(runtime);
 }
 
 } // namespace xlang3

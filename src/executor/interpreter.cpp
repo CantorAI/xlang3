@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/interpreter.h"
 
+#include "xlang3/sequence.h"
+
 #include <sstream>
 
 namespace xlang3 {
@@ -220,6 +222,52 @@ RuntimeResult Interpreter::run_function(
           items.push_back(regs[reg]);
         }
         regs[in.dst] = Value::tuple(std::move(items));
+        break;
+      }
+      case ir::Op::MakeList: {
+        if (in.a >= fn.list_items.size()) {
+          result.errors.push_back("invalid list item list");
+          return result;
+        }
+        std::vector<Value> items;
+        items.reserve(fn.list_items[in.a].size());
+        for (const auto reg : fn.list_items[in.a]) {
+          if (reg >= regs.size()) {
+            result.errors.push_back("invalid list item register");
+            return result;
+          }
+          items.push_back(regs[reg]);
+        }
+        regs[in.dst] = Value::list(std::move(items));
+        break;
+      }
+      case ir::Op::ListAppend: {
+        std::string error;
+        if (!sequence_list_append(regs[in.dst], regs[in.a], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
+      case ir::Op::GetIter: {
+        std::string error;
+        if (!sequence_get_iter(regs[in.a], regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        break;
+      }
+      case ir::Op::IterNext: {
+        std::string error;
+        bool done = false;
+        if (!sequence_iter_next(regs[in.a], done, regs[in.dst], error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+        if (done) {
+          ip = in.b;
+          continue;
+        }
         break;
       }
       case ir::Op::Add: {

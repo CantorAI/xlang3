@@ -23,6 +23,9 @@ int main() {
       "        print(x)\n"
       "    else:\n"
       "        print(0)\n"
+      "    for item in range(3):\n"
+      "        print(item)\n"
+      "    print([item + 1 for item in range(2)])\n"
       "\n"
       "main()\n";
 

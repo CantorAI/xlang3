@@ -35,6 +35,10 @@ const char* op_name(Op op) {
     case Op::StoreGlobal: return "StoreGlobal";
     case Op::MakeFunction: return "MakeFunction";
     case Op::MakeTuple: return "MakeTuple";
+    case Op::MakeList: return "MakeList";
+    case Op::ListAppend: return "ListAppend";
+    case Op::GetIter: return "GetIter";
+    case Op::IterNext: return "IterNext";
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
@@ -110,6 +114,13 @@ std::string dump_module(const Module& module) {
     for (size_t tuple_i = 0; tuple_i < fn.tuple_items.size(); ++tuple_i) {
       os << "  tuple_items #" << tuple_i << ":";
       for (auto reg : fn.tuple_items[tuple_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t list_i = 0; list_i < fn.list_items.size(); ++list_i) {
+      os << "  list_items #" << list_i << ":";
+      for (auto reg : fn.list_items[list_i]) {
         os << " r" << reg;
       }
       os << "\n";

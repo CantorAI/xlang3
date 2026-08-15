@@ -72,6 +72,19 @@ struct TupleExpr final : Expr {
   explicit TupleExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
 };
 
+struct ListExpr final : Expr {
+  std::vector<ExprPtr> items;
+  explicit ListExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
+};
+
+struct ListCompExpr final : Expr {
+  ExprPtr result;
+  std::string target;
+  ExprPtr iterable;
+  ListCompExpr(ExprPtr result, std::string target, ExprPtr iterable)
+      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)) {}
+};
+
 struct ExprStmt final : Stmt {
   ExprPtr expr;
   explicit ExprStmt(ExprPtr expr) : expr(std::move(expr)) {}
@@ -101,6 +114,12 @@ struct IfStmt final : Stmt {
 
 struct WhileStmt final : Stmt {
   ExprPtr condition;
+  std::vector<StmtPtr> body;
+};
+
+struct ForStmt final : Stmt {
+  std::string target;
+  ExprPtr iterable;
   std::vector<StmtPtr> body;
 };
 

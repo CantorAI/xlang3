@@ -90,6 +90,11 @@ private:
     return static_cast<uint32_t>(fn_.tuple_items.size() - 1);
   }
 
+  uint32_t add_list_items(std::vector<uint32_t> items) {
+    fn_.list_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.list_items.size() - 1);
+  }
+
   uint32_t add_function_closure(std::vector<uint32_t> cells) {
     fn_.function_closures.push_back(std::move(cells));
     return static_cast<uint32_t>(fn_.function_closures.size() - 1);
@@ -162,6 +167,10 @@ private:
     fn_.code[at].dst = target;
   }
 
+  void patch_iter_done(size_t at, uint32_t target) {
+    fn_.code[at].b = target;
+  }
+
   void emit_return_none() {
     const auto reg = new_reg();
     emit(ir::Op::LoadConst, reg, add_const(Value::none()));
@@ -169,15 +178,38 @@ private:
   }
 
   void store_named_value(const std::string& name, uint32_t reg) {
-    if (is_module_) {
-      emit(ir::Op::StoreGlobal, add_name(name), reg);
+    const auto resolved = resolve_name(name);
+    if (is_module_ && hidden_locals_.find(resolved) == hidden_locals_.end()) {
+      emit(ir::Op::StoreGlobal, add_name(resolved), reg);
     } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
       emit(ir::Op::StoreFree, free_it->second, reg);
-    } else if (is_cell_local(name)) {
-      emit(ir::Op::StoreCell, cell_indices_[name], reg);
+    } else if (is_cell_local(resolved)) {
+      emit(ir::Op::StoreCell, cell_indices_[resolved], reg);
     } else {
-      emit(ir::Op::StoreLocal, ensure_local(name), reg);
+      emit(ir::Op::StoreLocal, ensure_local(resolved), reg);
     }
+  }
+
+  std::string resolve_name(const std::string& name) const {
+    auto it = name_aliases_.find(name);
+    if (it != name_aliases_.end()) {
+      return it->second;
+    }
+    return name;
+  }
+
+  void lower_for_loop(const std::string& target, const ast::Expr& iterable, const std::vector<ast::StmtPtr>& body) {
+    const auto iterable_reg = lower_expr(iterable);
+    const auto iterator_reg = new_reg();
+    emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+    const auto start = static_cast<uint32_t>(fn_.code.size());
+    const auto item_reg = new_reg();
+    emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+    const auto iter_next = fn_.code.size() - 1;
+    store_named_value(target, item_reg);
+    lower_body(body);
+    emit(ir::Op::Jump, start);
+    patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
@@ -215,6 +247,10 @@ private:
       lower_body(loop->body);
       emit(ir::Op::Jump, start);
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+      return;
+    }
+    if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+      lower_for_loop(loop->target, *loop->iterable, loop->body);
       return;
     }
     if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
@@ -267,17 +303,18 @@ private:
     }
     if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
       const auto reg = new_reg();
-      auto local = locals_.find(name->name);
+      const auto resolved = resolve_name(name->name);
+      auto local = locals_.find(resolved);
       if (local != locals_.end()) {
-        if (is_cell_local(name->name)) {
-          emit(ir::Op::LoadCell, reg, cell_indices_[name->name]);
+        if (is_cell_local(resolved)) {
+          emit(ir::Op::LoadCell, reg, cell_indices_[resolved]);
         } else {
           emit(ir::Op::LoadLocal, reg, local->second);
         }
-      } else if (auto free_it = free_indices_.find(name->name); free_it != free_indices_.end()) {
+      } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
         emit(ir::Op::LoadFree, reg, free_it->second);
       } else {
-        emit(ir::Op::LoadGlobal, reg, add_name(name->name));
+        emit(ir::Op::LoadGlobal, reg, add_name(resolved));
       }
       return reg;
     }
@@ -328,6 +365,47 @@ private:
       emit(ir::Op::MakeTuple, dst, add_tuple_items(std::move(item_regs)));
       return dst;
     }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+      std::vector<uint32_t> item_regs;
+      for (const auto& item : list->items) {
+        item_regs.push_back(lower_expr(*item));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeList, dst, add_list_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+      const auto dst = new_reg();
+      emit(ir::Op::MakeList, dst, add_list_items({}));
+      const auto iterable_reg = lower_expr(*comp->iterable);
+      const auto iterator_reg = new_reg();
+      emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+
+      const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + comp->target;
+      hidden_locals_.insert(hidden_name);
+      ensure_local(hidden_name);
+      const auto old_alias = name_aliases_.find(comp->target);
+      const bool had_alias = old_alias != name_aliases_.end();
+      const std::string old_value = had_alias ? old_alias->second : std::string{};
+      name_aliases_[comp->target] = hidden_name;
+
+      const auto start = static_cast<uint32_t>(fn_.code.size());
+      const auto item_reg = new_reg();
+      emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+      const auto iter_next = fn_.code.size() - 1;
+      store_named_value(comp->target, item_reg);
+      const auto value_reg = lower_expr(*comp->result);
+      emit(ir::Op::ListAppend, dst, value_reg);
+      emit(ir::Op::Jump, start);
+      patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+
+      if (had_alias) {
+        name_aliases_[comp->target] = old_value;
+      } else {
+        name_aliases_.erase(comp->target);
+      }
+      return dst;
+    }
     const auto reg = new_reg();
     emit(ir::Op::LoadConst, reg, add_const(Value::none()));
     return reg;
@@ -341,6 +419,9 @@ private:
   std::unordered_map<std::string, uint32_t> cell_indices_;
   std::unordered_map<std::string, uint32_t> free_indices_;
   std::unordered_map<std::string, uint32_t> name_ids_;
+  sema::NameSet hidden_locals_;
+  std::unordered_map<std::string, std::string> name_aliases_;
+  uint32_t next_hidden_local_ = 0;
 };
 
 } // namespace

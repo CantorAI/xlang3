@@ -41,6 +41,9 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
       collect_assigned_names(ifs->else_body, names, seen);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_assigned_names(loop->body, names, seen);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
+      add_unique(names, seen, loop->target);
+      collect_assigned_names(loop->body, names, seen);
     }
   }
 }
@@ -55,6 +58,8 @@ void collect_nonlocal_names(const std::vector<ast::StmtPtr>& body, NameSet& name
       collect_nonlocal_names(ifs->then_body, names);
       collect_nonlocal_names(ifs->else_body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
+      collect_nonlocal_names(loop->body, names);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
       collect_nonlocal_names(loop->body, names);
     }
   }
@@ -77,6 +82,20 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     for (const auto& item : tuple->items) {
       collect_reads_expr(*item, names, seen);
     }
+  } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      collect_reads_expr(*item, names, seen);
+    }
+  } else if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    collect_reads_expr(*comp->iterable, names, seen);
+    std::vector<std::string> result_reads;
+    NameSet result_seen;
+    collect_reads_expr(*comp->result, result_reads, result_seen);
+    for (const auto& name : result_reads) {
+      if (name != comp->target) {
+        add_unique(names, seen, name);
+      }
+    }
   }
 }
 
@@ -94,6 +113,9 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
       collect_reads_body(ifs->else_body, names, seen);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_reads_expr(*loop->condition, names, seen);
+      collect_reads_body(loop->body, names, seen);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
+      collect_reads_expr(*loop->iterable, names, seen);
       collect_reads_body(loop->body, names, seen);
     }
   }

@@ -28,6 +28,7 @@ $cases = @(
     "if_else",
     "builtin_alias",
     "tuples",
+    "lists_for",
     "closures",
     "nonlocal_counter"
 )
