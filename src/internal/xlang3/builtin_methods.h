@@ -14,14 +14,31 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
+#include <cstddef>
 #include <string>
+#include <utility>
 
 namespace xlang3 {
 
-bool method_check_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error);
-bool bind_builtin_method(const Value& object, std::string full_name, NativeFunctionCallback callback, Value& out);
+XLANG3_FORCE_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error) {
+  if (argc == expected) {
+    return true;
+  }
+  error = std::string(name) + " expected " + std::to_string(expected) + " arguments, got " + std::to_string(argc);
+  return false;
+}
+
+XLANG3_FORCE_INLINE bool bind_builtin_method(
+    const Value& object,
+    std::string full_name,
+    NativeFunctionCallback callback,
+    Value& out) {
+  out = Value::bound_method(object, Value::native_function(0, std::move(full_name), callback));
+  return true;
+}
 
 struct BuiltinMethodSpec {
   const char* name;
@@ -29,12 +46,19 @@ struct BuiltinMethodSpec {
   NativeFunctionCallback callback;
 };
 
-bool bind_builtin_method_from_table(
+XLANG3_FORCE_INLINE bool bind_builtin_method_from_table(
     const Value& object,
     const std::string& name,
     const BuiltinMethodSpec* methods,
     size_t method_count,
-    Value& out);
+    Value& out) {
+  for (size_t i = 0; i < method_count; ++i) {
+    if (name == methods[i].name) {
+      return bind_builtin_method(object, methods[i].full_name, methods[i].callback, out);
+    }
+  }
+  return false;
+}
 
 bool list_get_method(const Value& object, const std::string& name, Value& out);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
