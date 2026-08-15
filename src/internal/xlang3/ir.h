@@ -39,6 +39,7 @@ enum class Op : uint16_t {
   ImportFrom,
   LoadAttr,
   StoreAttr,
+  MakeClass,
   MakeFunction,
   MakeTuple,
   MakeList,
@@ -100,6 +101,7 @@ struct Function {
   std::vector<std::vector<uint32_t>> set_items;
   std::vector<std::vector<std::pair<uint32_t, uint32_t>>> dict_items;
   std::vector<std::vector<uint32_t>> function_closures;
+  std::vector<std::vector<std::pair<std::string, uint32_t>>> class_attrs;
   std::vector<Instr> code;
 };
 

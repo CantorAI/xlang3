@@ -87,6 +87,7 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       std::string text = line_text.substr(start, i - start);
       TokenKind kind = TokenKind::Identifier;
       if (text == "def") kind = TokenKind::KwDef;
+      else if (text == "class") kind = TokenKind::KwClass;
       else if (text == "return") kind = TokenKind::KwReturn;
       else if (text == "if") kind = TokenKind::KwIf;
       else if (text == "else") kind = TokenKind::KwElse;

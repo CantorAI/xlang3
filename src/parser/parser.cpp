@@ -68,6 +68,17 @@ ast::StmtPtr Parser::parse_statement() {
     fn->body = parse_block();
     return fn;
   }
+  if (match(TokenKind::KwClass)) {
+    const Token name = peek();
+    if (!consume(TokenKind::Identifier, "expected class name")) return nullptr;
+    consume(TokenKind::Colon, "expected ':' after class name");
+    consume(TokenKind::Newline, "expected newline after class header");
+    consume(TokenKind::Indent, "expected indented class body");
+    auto klass = std::make_unique<ast::ClassDef>();
+    klass->name = name.text;
+    klass->body = parse_block();
+    return klass;
+  }
   if (match(TokenKind::KwIf)) {
     auto stmt = std::make_unique<ast::IfStmt>();
     stmt->condition = parse_expression();

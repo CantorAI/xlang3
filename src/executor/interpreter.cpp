@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/interpreter.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
 #include <sstream>
@@ -263,7 +264,10 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         std::string error;
-        if (!module_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error)) {
+        const bool ok = value_as_module(regs[in.a]) != nullptr
+                            ? module_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error)
+                            : object_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error);
+        if (!ok) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
@@ -275,10 +279,30 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         std::string error;
-        if (!module_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error)) {
+        const bool ok = value_as_module(regs[in.dst]) != nullptr
+                            ? module_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error)
+                            : object_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error);
+        if (!ok) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
+        break;
+      }
+      case ir::Op::MakeClass: {
+        if (in.a >= fn.names.size() || in.b >= fn.class_attrs.size()) {
+          result.errors.push_back("invalid class data");
+          return result;
+        }
+        std::vector<std::pair<std::string, Value>> attrs;
+        attrs.reserve(fn.class_attrs[in.b].size());
+        for (const auto& attr : fn.class_attrs[in.b]) {
+          if (attr.second >= regs.size()) {
+            result.errors.push_back("invalid class attr register");
+            return result;
+          }
+          attrs.push_back(std::make_pair(attr.first, regs[attr.second]));
+        }
+        regs[in.dst] = Value::class_object(fn.names[in.a], std::move(attrs));
         break;
       }
       case ir::Op::MakeFunction: {
@@ -515,7 +539,12 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         const auto& callee = regs[in.a];
-        if (auto* fn_obj = value_as_function(callee)) {
+        auto call_function_value = [&](const Value& function_value, const std::vector<Value>& values, Value& out) -> bool {
+          auto* fn_obj = value_as_function(function_value);
+          if (fn_obj == nullptr) {
+            if (raise_runtime_error("object is not callable")) return false;
+            return false;
+          }
           const ir::Module* call_module = &module;
           auto call_module_owner = module_owner;
           if (fn_obj->module != nullptr) {
@@ -523,13 +552,57 @@ RuntimeResult Interpreter::run_function(
             call_module_owner = fn_obj->module;
           }
           auto call_result =
-              run_function(*call_module, fn_obj->function_id, call_args, fn_obj->closure, fn_obj->globals_module,
+              run_function(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
                            std::move(call_module_owner));
           if (!call_result.errors.empty()) {
-            if (raise_runtime_error(call_result.errors.front())) continue;
-            return call_result;
+            if (raise_runtime_error(call_result.errors.front())) return false;
+            result.errors.insert(result.errors.end(), call_result.errors.begin(), call_result.errors.end());
+            return false;
           }
-          regs[in.dst] = call_result.value;
+          out = std::move(call_result.value);
+          return true;
+        };
+
+        if (auto* fn_obj = value_as_function(callee)) {
+          (void)fn_obj;
+          if (!call_function_value(callee, call_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+        } else if (auto* bound = value_as_bound_method(callee)) {
+          std::vector<Value> bound_args;
+          bound_args.reserve(call_args.size() + 1);
+          bound_args.push_back(bound->self);
+          bound_args.insert(bound_args.end(), call_args.begin(), call_args.end());
+          if (!call_function_value(bound->function, bound_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+        } else if (auto* klass = value_as_class(callee)) {
+          (void)klass;
+          Value instance = Value::instance(callee);
+          Value init;
+          std::string error;
+          if (object_get_attr(instance, "__init__", init, error)) {
+            auto* bound_init = value_as_bound_method(init);
+            if (bound_init == nullptr) {
+              if (raise_runtime_error("__init__ is not callable")) continue;
+              return result;
+            }
+            std::vector<Value> init_args;
+            init_args.reserve(call_args.size() + 1);
+            init_args.push_back(bound_init->self);
+            init_args.insert(init_args.end(), call_args.begin(), call_args.end());
+            Value ignored;
+            if (!call_function_value(bound_init->function, init_args, ignored)) {
+              if (!result.errors.empty()) return result;
+              continue;
+            }
+          } else if (!call_args.empty()) {
+            if (raise_runtime_error("class construction expected no arguments")) continue;
+            return result;
+          }
+          regs[in.dst] = std::move(instance);
         } else if (auto* native = value_as_native_function(callee)) {
           std::string error;
           Value native_result;

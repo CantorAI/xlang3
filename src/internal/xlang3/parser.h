@@ -31,6 +31,7 @@ enum class TokenKind {
   Double,
   String,
   KwDef,
+  KwClass,
   KwReturn,
   KwIf,
   KwElse,

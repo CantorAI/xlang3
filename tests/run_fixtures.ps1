@@ -38,6 +38,7 @@ $cases = @(
     "package_import",
     "exceptions",
     "runtime_error_exceptions",
+    "classes",
     "closures",
     "nonlocal_counter"
 )

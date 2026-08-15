@@ -37,6 +37,7 @@ const char* op_name(Op op) {
     case Op::ImportFrom: return "ImportFrom";
     case Op::LoadAttr: return "LoadAttr";
     case Op::StoreAttr: return "StoreAttr";
+    case Op::MakeClass: return "MakeClass";
     case Op::MakeFunction: return "MakeFunction";
     case Op::MakeTuple: return "MakeTuple";
     case Op::MakeList: return "MakeList";
@@ -154,6 +155,13 @@ std::string dump_module(const Module& module) {
       os << "  function_closure #" << closure_i << ":";
       for (auto reg : fn.function_closures[closure_i]) {
         os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t attrs_i = 0; attrs_i < fn.class_attrs.size(); ++attrs_i) {
+      os << "  class_attrs #" << attrs_i << ":";
+      for (const auto& attr : fn.class_attrs[attrs_i]) {
+        os << " " << attr.first << "=r" << attr.second;
       }
       os << "\n";
     }

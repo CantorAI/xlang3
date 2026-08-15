@@ -26,6 +26,7 @@ add_library(xlang3_core
   src/builtins/sequence_builtins.cpp
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
+  src/runtime/object_model.cpp
   src/runtime/sequence.cpp
   src/runtime/mapping.cpp
   src/runtime/set_object.cpp

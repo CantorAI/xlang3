@@ -42,6 +42,8 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
       }
     } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
       add_unique(names, seen, fn->name);
+    } else if (auto* klass = dynamic_cast<const ast::ClassDef*>(stmt.get())) {
+      add_unique(names, seen, klass->name);
     } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
       collect_assigned_names(ifs->then_body, names, seen);
       collect_assigned_names(ifs->else_body, names, seen);

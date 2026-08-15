@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
@@ -262,6 +263,11 @@ void release(const Value& value) {
     case ObjectKind::NativeFunction:
       delete as_native_function(value.as.obj);
       break;
+    case ObjectKind::Class:
+    case ObjectKind::Instance:
+    case ObjectKind::BoundMethod:
+      object_model_release_object(value.as.obj);
+      break;
   }
 }
 
@@ -327,6 +333,12 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::NativeFunction) {
         return "<built-in function " + as_native_function(value.as.obj)->name + ">";
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Class ||
+           value.as.obj->kind == ObjectKind::Instance ||
+           value.as.obj->kind == ObjectKind::BoundMethod)) {
+        return object_model_to_string(value);
       }
       return "<object>";
   }

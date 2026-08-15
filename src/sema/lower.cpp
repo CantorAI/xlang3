@@ -131,6 +131,11 @@ private:
     return static_cast<uint32_t>(fn_.function_closures.size() - 1);
   }
 
+  uint32_t add_class_attrs(std::vector<std::pair<std::string, uint32_t>> attrs) {
+    fn_.class_attrs.push_back(std::move(attrs));
+    return static_cast<uint32_t>(fn_.class_attrs.size() - 1);
+  }
+
   uint32_t ensure_local(const std::string& name) {
     auto it = locals_.find(name);
     if (it != locals_.end()) {
@@ -254,6 +259,44 @@ private:
     patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
   }
 
+  uint32_t lower_function_value(const ast::FunctionDef& fn) {
+    const auto free_vars = closure_names_for_child(fn);
+    FunctionLowerer child_lowerer(module_, fn.name, fn.params, free_vars, fn.body);
+    child_lowerer.lower_body(fn.body);
+    module_.functions.push_back(child_lowerer.finish());
+    const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
+
+    std::vector<uint32_t> closure_regs;
+    for (const auto& name : free_vars) {
+      const auto reg = new_reg();
+      auto cell = cell_indices_.find(name);
+      if (cell != cell_indices_.end()) {
+        emit(ir::Op::LoadCellObject, reg, cell->second);
+      } else {
+        emit(ir::Op::LoadFreeObject, reg, free_indices_[name]);
+      }
+      closure_regs.push_back(reg);
+    }
+
+    const auto reg = new_reg();
+    emit(ir::Op::MakeFunction, reg, function_id, add_function_closure(std::move(closure_regs)));
+    return reg;
+  }
+
+  void lower_class_def(const ast::ClassDef& klass) {
+    std::vector<std::pair<std::string, uint32_t>> attrs;
+    for (const auto& stmt : klass.body) {
+      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
+        attrs.push_back(std::make_pair(fn->name, lower_function_value(*fn)));
+      } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
+        attrs.push_back(std::make_pair(assign->name, lower_expr(*assign->value)));
+      }
+    }
+    const auto reg = new_reg();
+    emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)));
+    store_named_value(klass.name, reg);
+  }
+
   void lower_stmt(const ast::Stmt& stmt) {
     if (dynamic_cast<const ast::GlobalStmt*>(&stmt) != nullptr) {
       return;
@@ -343,27 +386,11 @@ private:
       return;
     }
     if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
-      const auto free_vars = closure_names_for_child(*fn);
-      FunctionLowerer child_lowerer(module_, fn->name, fn->params, free_vars, fn->body);
-      child_lowerer.lower_body(fn->body);
-      module_.functions.push_back(child_lowerer.finish());
-      const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
-
-      std::vector<uint32_t> closure_regs;
-      for (const auto& name : free_vars) {
-        const auto reg = new_reg();
-        auto cell = cell_indices_.find(name);
-        if (cell != cell_indices_.end()) {
-          emit(ir::Op::LoadCellObject, reg, cell->second);
-        } else {
-          emit(ir::Op::LoadFreeObject, reg, free_indices_[name]);
-        }
-        closure_regs.push_back(reg);
-      }
-
-      const auto reg = new_reg();
-      emit(ir::Op::MakeFunction, reg, function_id, add_function_closure(std::move(closure_regs)));
-      store_named_value(fn->name, reg);
+      store_named_value(fn->name, lower_function_value(*fn));
+      return;
+    }
+    if (auto* klass = dynamic_cast<const ast::ClassDef*>(&stmt)) {
+      lower_class_def(*klass);
       return;
     }
   }

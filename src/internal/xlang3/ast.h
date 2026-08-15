@@ -202,6 +202,11 @@ struct FunctionDef final : Stmt {
   std::vector<StmtPtr> body;
 };
 
+struct ClassDef final : Stmt {
+  std::string name;
+  std::vector<StmtPtr> body;
+};
+
 struct Module {
   std::vector<StmtPtr> body;
 };
