@@ -98,14 +98,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       error = "class '" + klass->name + "' has no attribute '" + name + "'";
       return false;
     }
-    out = it->second;
+    value_assign_fast(out, it->second);
     return true;
   }
 
   if (auto* instance = value_as_instance(object)) {
     auto inst_it = instance->attrs.find(name);
     if (inst_it != instance->attrs.end()) {
-      out = inst_it->second;
+      value_assign_fast(out, inst_it->second);
       return true;
     }
     auto* klass = value_as_class(instance->klass);
@@ -121,7 +121,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (value_as_function(class_it->second) != nullptr) {
       out = Value::bound_method(object, class_it->second);
     } else {
-      out = class_it->second;
+      value_assign_fast(out, class_it->second);
     }
     return true;
   }

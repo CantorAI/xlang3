@@ -59,7 +59,7 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   if (it == modules_.end()) {
     return import_python_module(*this, name, out, error);
   }
-  out = it->second;
+  value_assign_fast(out, it->second);
   return true;
 }
 

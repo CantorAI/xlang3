@@ -107,7 +107,7 @@ bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   }
   for (auto it = dict->entries.begin(); it != dict->entries.end(); ++it) {
     if (value_key_equal(it->first, args[1])) {
-      out = it->second;
+      value_assign_fast(out, it->second);
       dict->entries.erase(it);
       return true;
     }

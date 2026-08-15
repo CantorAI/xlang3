@@ -132,7 +132,7 @@ bool set_iter_next(Value& iterator, bool& done, Value& out, std::string& error) 
     value_set_none(out);
     return true;
   }
-  out = set->items[static_cast<size_t>(it->index)];
+  value_assign_fast(out, set->items[static_cast<size_t>(it->index)]);
   ++it->index;
   done = false;
   return true;

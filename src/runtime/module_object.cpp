@@ -64,7 +64,7 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     error = "module '" + module->name + "' has no attribute '" + name + "'";
     return false;
   }
-  out = module->slots[it->second];
+  value_assign_fast(out, module->slots[it->second]);
   return true;
 }
 

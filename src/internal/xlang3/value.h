@@ -208,6 +208,20 @@ XLANG3_HOT_INLINE void value_release_if_object(Value& value) {
   }
 }
 
+XLANG3_HOT_INLINE void value_assign_fast(Value& out, const Value& value) {
+  if (&out == &value) {
+    return;
+  }
+  if (value.tag == ValueTag::Object) {
+    out = value;
+    return;
+  }
+  value_release_if_object(out);
+  out.tag = value.tag;
+  out.flags = value.flags;
+  out.as = value.as;
+}
+
 XLANG3_HOT_INLINE void value_set_invalid(Value& out) {
   value_release_if_object(out);
   out.tag = ValueTag::Invalid;

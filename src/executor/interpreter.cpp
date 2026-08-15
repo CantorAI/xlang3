@@ -227,7 +227,7 @@ RuntimeResult Interpreter::run_function(
   SmallValueBuffer cells(fn.cell_slots.size(), Value::invalid());
   SmallValueBuffer regs(fn.register_count, Value::invalid());
   for (size_t i = 0; i < args.size(); ++i) {
-    locals[i] = args.get(i);
+    value_assign_fast(locals[i], args.get(i));
   }
   for (size_t i = 0; i < fn.cell_slots.size(); ++i) {
     if (fn.cell_slots[i] >= locals.size()) {
@@ -272,21 +272,21 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid constant index");
           return result;
         }
-        regs[in.dst] = fn.constants[in.a];
+        value_assign_fast(regs[in.dst], fn.constants[in.a]);
         break;
       case ir::Op::LoadLocal:
         if (in.a >= locals.size()) {
           result.errors.push_back("invalid local slot");
           return result;
         }
-        regs[in.dst] = locals[in.a];
+        value_assign_fast(regs[in.dst], locals[in.a]);
         break;
       case ir::Op::StoreLocal:
         if (in.dst >= locals.size() || in.a >= regs.size()) {
           result.errors.push_back("invalid local store");
           return result;
         }
-        locals[in.dst] = regs[in.a];
+        value_assign_fast(locals[in.dst], regs[in.a]);
         break;
       case ir::Op::LoadCell: {
         if (in.a >= cells.size()) {
@@ -298,7 +298,7 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid cell object");
           return result;
         }
-        regs[in.dst] = cell->value;
+        value_assign_fast(regs[in.dst], cell->value);
         break;
       }
       case ir::Op::StoreCell: {
@@ -311,8 +311,8 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid cell object");
           return result;
         }
-        cell->value = regs[in.a];
-        locals[fn.cell_slots[in.dst]] = regs[in.a];
+        value_assign_fast(cell->value, regs[in.a]);
+        value_assign_fast(locals[fn.cell_slots[in.dst]], regs[in.a]);
         break;
       }
       case ir::Op::LoadCellObject:
@@ -320,7 +320,7 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid cell object slot");
           return result;
         }
-        regs[in.dst] = cells[in.a];
+        value_assign_fast(regs[in.dst], cells[in.a]);
         break;
       case ir::Op::LoadFree: {
         if (in.a >= fn_obj_closure.size()) {
@@ -332,7 +332,7 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid free cell");
           return result;
         }
-        regs[in.dst] = cell->value;
+        value_assign_fast(regs[in.dst], cell->value);
         break;
       }
       case ir::Op::StoreFree: {
@@ -345,7 +345,7 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid free cell");
           return result;
         }
-        cell->value = regs[in.a];
+        value_assign_fast(cell->value, regs[in.a]);
         break;
       }
       case ir::Op::LoadFreeObject:
@@ -353,7 +353,7 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid free object slot");
           return result;
         }
-        regs[in.dst] = fn_obj_closure[in.a];
+        value_assign_fast(regs[in.dst], fn_obj_closure[in.a]);
         break;
       case ir::Op::LoadGlobal: {
         if (in.a >= fn.names.size()) {
@@ -366,11 +366,11 @@ RuntimeResult Interpreter::run_function(
           if (globals_module_obj != nullptr && global_cache_kind[in.a] == 1) {
             const auto slot = global_slot_cache[in.a];
             if (slot < globals_module_obj->slots.size()) {
-              regs[in.dst] = globals_module_obj->slots[slot];
+              value_assign_fast(regs[in.dst], globals_module_obj->slots[slot]);
               break;
             }
           } else if (global_cache_kind[in.a] == 2 && global_cache_versions[in.a] == globals_version) {
-            regs[in.dst] = global_value_cache[in.a];
+            value_assign_fast(regs[in.dst], global_value_cache[in.a]);
             break;
           }
         }
@@ -379,14 +379,14 @@ RuntimeResult Interpreter::run_function(
           std::string error;
           uint32_t slot = 0;
           if (module_find_attr_slot(globals_module, name, slot, error)) {
-            regs[in.dst] = globals_module_obj->slots[slot];
+            value_assign_fast(regs[in.dst], globals_module_obj->slots[slot]);
             global_slot_cache[in.a] = slot;
             global_cache_kind[in.a] = 1;
             break;
           }
           if (const auto* builtin = runtime_.find_builtin(name)) {
-            regs[in.dst] = *builtin;
-            global_value_cache[in.a] = regs[in.dst];
+            value_assign_fast(regs[in.dst], *builtin);
+            value_assign_fast(global_value_cache[in.a], regs[in.dst]);
             global_cache_versions[in.a] = globals_module_obj->version;
             global_cache_kind[in.a] = 2;
           } else {
@@ -394,13 +394,13 @@ RuntimeResult Interpreter::run_function(
             return result;
           }
         } else if (auto it = globals_.find(name); it != globals_.end()) {
-          regs[in.dst] = it->second;
-          global_value_cache[in.a] = regs[in.dst];
+          value_assign_fast(regs[in.dst], it->second);
+          value_assign_fast(global_value_cache[in.a], regs[in.dst]);
           global_cache_versions[in.a] = globals_version_;
           global_cache_kind[in.a] = 2;
         } else if (const auto* builtin = runtime_.find_builtin(name)) {
-          regs[in.dst] = *builtin;
-          global_value_cache[in.a] = regs[in.dst];
+          value_assign_fast(regs[in.dst], *builtin);
+          value_assign_fast(global_value_cache[in.a], regs[in.dst]);
           global_cache_versions[in.a] = globals_version_;
           global_cache_kind[in.a] = 2;
         } else {
@@ -421,7 +421,7 @@ RuntimeResult Interpreter::run_function(
             return result;
           }
         } else {
-          globals_[fn.names[in.dst]] = regs[in.a];
+          value_assign_fast(globals_[fn.names[in.dst]], regs[in.a]);
           ++globals_version_;
         }
         if (auto* globals_module_obj = value_as_module(globals_module)) {
@@ -433,7 +433,7 @@ RuntimeResult Interpreter::run_function(
           }
           global_cache_versions[in.dst] = globals_module_obj->version;
         } else {
-          global_value_cache[in.dst] = regs[in.a];
+          value_assign_fast(global_value_cache[in.dst], regs[in.a]);
           global_cache_versions[in.dst] = globals_version_;
           global_cache_kind[in.dst] = 2;
         }
@@ -1002,7 +1002,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Pop:
         break;
       case ir::Op::Return:
-        result.value = regs[in.a];
+        value_assign_fast(result.value, regs[in.a]);
         return result;
     }
     ++ip;

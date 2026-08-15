@@ -86,7 +86,7 @@ bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   if (argc == 2 && !normalize_existing_index(args[1], list->items.size(), index, error)) {
     return false;
   }
-  out = list->items[index];
+  value_assign_fast(out, list->items[index]);
   list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(index));
   return true;
 }

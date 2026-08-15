@@ -234,7 +234,7 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       error = "index out of range";
       return false;
     }
-    out = list->items[static_cast<size_t>(resolved)];
+    value_assign_fast(out, list->items[static_cast<size_t>(resolved)]);
     return true;
   }
   if (value_as_dict(object) != nullptr) {
@@ -251,7 +251,7 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       error = "index out of range";
       return false;
     }
-    out = tuple->items[static_cast<size_t>(resolved)];
+    value_assign_fast(out, tuple->items[static_cast<size_t>(resolved)]);
     return true;
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {

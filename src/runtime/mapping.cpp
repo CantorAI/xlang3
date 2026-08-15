@@ -124,7 +124,7 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
   }
   for (const auto& entry : dict->entries) {
     if (value_key_equal(entry.first, key)) {
-      out = entry.second;
+      value_assign_fast(out, entry.second);
       return true;
     }
   }
@@ -176,7 +176,7 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
     value_set_none(out);
     return true;
   }
-  out = dict->entries[static_cast<size_t>(it->index)].first;
+  value_assign_fast(out, dict->entries[static_cast<size_t>(it->index)].first);
   ++it->index;
   done = false;
   return true;
