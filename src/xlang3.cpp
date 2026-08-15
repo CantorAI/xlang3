@@ -1,20 +1,87 @@
+#include "xlang3/config.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/ir.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
+namespace {
+
+void print_usage() {
+  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] <file.py>\n";
+}
+
+bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--dump-ir") {
+      config.debug.dump_ir = true;
+      continue;
+    }
+    if (arg == "--debug-dir") {
+      if (i + 1 >= argc) {
+        std::cerr << "--debug-dir requires a folder\n";
+        return false;
+      }
+      config.debug.output_dir = argv[++i];
+      continue;
+    }
+    if (!arg.empty() && arg[0] == '-') {
+      std::cerr << "unknown option: " << arg << "\n";
+      return false;
+    }
+    if (!config.source_path.empty()) {
+      std::cerr << "only one source file is supported\n";
+      return false;
+    }
+    config.source_path = arg;
+  }
+  if (config.source_path.empty()) {
+    return false;
+  }
+  return true;
+}
+
+std::filesystem::path default_debug_dir(const std::filesystem::path& source_path) {
+  return source_path.parent_path() / ".xlang3" / "ir";
+}
+
+bool dump_ir_file(const xlang3::RunConfig& config, const xlang3::ir::Module& module) {
+  auto output_dir = config.debug.output_dir.empty() ? default_debug_dir(config.source_path) : config.debug.output_dir;
+  std::error_code ec;
+  std::filesystem::create_directories(output_dir, ec);
+  if (ec) {
+    std::cerr << "debug: cannot create " << output_dir.string() << ": " << ec.message() << "\n";
+    return false;
+  }
+
+  auto output_path = output_dir / (config.source_path.stem().string() + ".ir.txt");
+  std::ofstream out(output_path, std::ios::binary);
+  if (!out) {
+    std::cerr << "debug: cannot write " << output_path.string() << "\n";
+    return false;
+  }
+  out << xlang3::ir::dump_module(module);
+  std::cerr << "debug: wrote IR " << output_path.string() << "\n";
+  return true;
+}
+
+} // namespace
+
 int main(int argc, char** argv) {
-  if (argc != 2) {
-    std::cerr << "usage: xlang3 <file.py>\n";
+  xlang3::RunConfig config;
+  if (!parse_args(argc, argv, config)) {
+    print_usage();
     return 2;
   }
 
-  std::ifstream file(argv[1], std::ios::binary);
+  std::ifstream file(config.source_path, std::ios::binary);
   if (!file) {
-    std::cerr << "cannot open " << argv[1] << "\n";
+    std::cerr << "cannot open " << config.source_path.string() << "\n";
     return 2;
   }
   std::ostringstream buffer;
@@ -33,6 +100,10 @@ int main(int argc, char** argv) {
     for (const auto& error : lowered.errors) {
       std::cerr << "lower: " << error << "\n";
     }
+    return 1;
+  }
+
+  if (config.debug.dump_ir && !dump_ir_file(config, lowered.module)) {
     return 1;
   }
 

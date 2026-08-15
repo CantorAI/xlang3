@@ -1,4 +1,5 @@
 build/
+.xlang3/
 *.user
 *.suo
 *.vcxproj.user

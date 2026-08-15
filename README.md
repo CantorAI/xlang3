@@ -13,3 +13,12 @@ source -> parser -> AST -> semantic model -> program IR / graph IR -> executors
 The first executors target a direct interpreter and an optimized interpreter/JIT path. Native compilation can be added later without making LLVM or any compiler toolchain a required dependency for normal runtime deployment.
 
 This repository currently contains the initial implementation specifications for the XLang3 design.
+
+The phase-0 command line runs `.py` files directly:
+
+```text
+xlang3 script.py
+xlang3 --dump-ir script.py
+```
+
+`--dump-ir` writes a readable IR dump beside the source file under `.xlang3/ir/`.
