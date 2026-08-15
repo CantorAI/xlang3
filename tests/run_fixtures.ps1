@@ -37,6 +37,7 @@ $cases = @(
     "global_from_import",
     "package_import",
     "exceptions",
+    "runtime_error_exceptions",
     "closures",
     "nonlocal_counter"
 )
@@ -68,3 +69,17 @@ if ($uncaughtOutput -notlike "*runtime: uncaught exception: top*") {
     throw "uncaught_exception output mismatch. Got '$uncaughtOutput'"
 }
 Write-Host "fixture uncaught_exception ok"
+
+$uncaughtRuntimeSource = Join-Path $root "fixtures/core/uncaught_runtime_error.py"
+$oldErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$uncaughtRuntimeOutput = ((& $XLang3 $uncaughtRuntimeSource 2>&1 | Out-String) -replace "`r`n", "`n").TrimEnd()
+$uncaughtRuntimeExitCode = $LASTEXITCODE
+$ErrorActionPreference = $oldErrorActionPreference
+if ($uncaughtRuntimeExitCode -ne 1) {
+    throw "uncaught_runtime_error expected exit code 1, got $uncaughtRuntimeExitCode"
+}
+if ($uncaughtRuntimeOutput -notlike "*runtime: division by zero*") {
+    throw "uncaught_runtime_error output mismatch. Got '$uncaughtRuntimeOutput'"
+}
+Write-Host "fixture uncaught_runtime_error ok"

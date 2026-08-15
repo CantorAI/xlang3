@@ -99,12 +99,12 @@ Implemented Phase 1 syntax/runtime subset:
 - iteration: range/list/tuple/string/dict/set basics
 - comprehensions: basic list comprehension with optional `if`
 - imports: `import x`, `import x as y`, `import pkg.mod`, `from x import y`, aliases, package `__init__.py`
-- exceptions: explicit `raise expr` and catch-all `try` / `except`
+- exceptions: explicit `raise expr`, catch-all `try` / `except`, and catchable interpreter/native runtime errors
 - native modules: `_builtins`, `math`
 
 Next Phase 1 implementation candidates:
 
-1. Runtime error object path: make interpreter/native runtime errors catchable.
+1. Python exception object hierarchy: `Exception`, typed handlers, and binding `except E as e`.
 2. Class/object protocol foundation: class statement, instance attributes, simple methods.
 3. Method calls and container/string builtin methods.
 4. External native package loading through the C ABI.

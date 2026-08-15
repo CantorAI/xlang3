@@ -91,6 +91,15 @@ RuntimeResult Interpreter::run_function(
 
   size_t ip = 0;
   std::vector<uint32_t> exception_handlers;
+  auto raise_runtime_error = [&](const std::string& message) -> bool {
+    if (exception_handlers.empty()) {
+      result.errors.push_back(message);
+      return false;
+    }
+    ip = exception_handlers.back();
+    exception_handlers.pop_back();
+    return true;
+  };
   while (ip < fn.code.size()) {
     const auto& in = fn.code[ip];
     switch (in.op) {
@@ -196,7 +205,7 @@ RuntimeResult Interpreter::run_function(
           if (const auto* builtin = runtime_.find_builtin(name)) {
             regs[in.dst] = *builtin;
           } else {
-            result.errors.push_back("name '" + name + "' is not defined");
+            if (raise_runtime_error("name '" + name + "' is not defined")) continue;
             return result;
           }
         } else if (auto it = globals_.find(name); it != globals_.end()) {
@@ -204,7 +213,7 @@ RuntimeResult Interpreter::run_function(
         } else if (const auto* builtin = runtime_.find_builtin(name)) {
           regs[in.dst] = *builtin;
         } else {
-          result.errors.push_back("name '" + name + "' is not defined");
+          if (raise_runtime_error("name '" + name + "' is not defined")) continue;
           return result;
         }
         break;
@@ -231,7 +240,7 @@ RuntimeResult Interpreter::run_function(
         }
         std::string error;
         if (!runtime_.import_module(fn.names[in.a], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -243,7 +252,7 @@ RuntimeResult Interpreter::run_function(
         }
         std::string error;
         if (!runtime_.import_from(fn.names[in.a], fn.names[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -255,7 +264,7 @@ RuntimeResult Interpreter::run_function(
         }
         std::string error;
         if (!module_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -267,7 +276,7 @@ RuntimeResult Interpreter::run_function(
         }
         std::string error;
         if (!module_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -360,7 +369,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::ListAppend: {
         std::string error;
         if (!sequence_list_append(regs[in.dst], regs[in.a], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -368,7 +377,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::GetItem: {
         std::string error;
         if (!sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -376,7 +385,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::SetItem: {
         std::string error;
         if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -384,7 +393,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::GetIter: {
         std::string error;
         if (!sequence_get_iter(regs[in.a], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -393,7 +402,7 @@ RuntimeResult Interpreter::run_function(
         std::string error;
         bool done = false;
         if (!sequence_iter_next(regs[in.a], done, regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         if (done) {
@@ -405,7 +414,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Add: {
         std::string error;
         if (!value_add(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -413,7 +422,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Sub: {
         std::string error;
         if (!value_sub(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -421,7 +430,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Mul: {
         std::string error;
         if (!value_mul(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -429,7 +438,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Div: {
         std::string error;
         if (!value_div(regs[in.a], regs[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -443,7 +452,7 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::Compare: {
         std::string error;
         if (!value_compare(compare_name(static_cast<ir::CompareOp>(in.c)), regs[in.a], regs[in.b], regs[in.dst], error)) {
-          result.errors.push_back(error);
+          if (raise_runtime_error(error)) continue;
           return result;
         }
         break;
@@ -457,7 +466,7 @@ RuntimeResult Interpreter::run_function(
         } else if (regs[in.a].tag == ValueTag::Double) {
           regs[in.dst] = Value::number(-regs[in.a].as.f64);
         } else {
-          result.errors.push_back("unsupported operand for unary -");
+          if (raise_runtime_error("unsupported operand for unary -")) continue;
           return result;
         }
         break;
@@ -517,6 +526,7 @@ RuntimeResult Interpreter::run_function(
               run_function(*call_module, fn_obj->function_id, call_args, fn_obj->closure, fn_obj->globals_module,
                            std::move(call_module_owner));
           if (!call_result.errors.empty()) {
+            if (raise_runtime_error(call_result.errors.front())) continue;
             return call_result;
           }
           regs[in.dst] = call_result.value;
@@ -525,18 +535,18 @@ RuntimeResult Interpreter::run_function(
           Value native_result;
           if (native->callback == nullptr ||
               !native->callback(runtime_, call_args.data(), static_cast<uint32_t>(call_args.size()), native_result, error)) {
-            result.errors.push_back(error.empty() ? "native function failed" : error);
+            if (raise_runtime_error(error.empty() ? "native function failed" : error)) continue;
             return result;
           }
           regs[in.dst] = std::move(native_result);
         } else if (callee.tag == ValueTag::Object) {
-          result.errors.push_back("object is not callable");
+          if (raise_runtime_error("object is not callable")) continue;
           return result;
         } else if (callee.tag == ValueTag::Invalid) {
-          result.errors.push_back("invalid callee");
+          if (raise_runtime_error("invalid callee")) continue;
           return result;
         } else {
-          result.errors.push_back("object is not callable");
+          if (raise_runtime_error("object is not callable")) continue;
           return result;
         }
         break;
