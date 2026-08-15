@@ -1,0 +1,7 @@
+build/
+*.user
+*.suo
+*.vcxproj.user
+
+browser-*.json
+github-*.json

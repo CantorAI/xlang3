@@ -119,7 +119,7 @@ Core may provide primitive services only:
 
 ## Source Modules
 
-`.py` and future `.x3` source modules parse and lower to IR.
+`.py` source modules parse and lower to IR directly.
 
 Compiled module cache may store serialized IR.
 
@@ -133,4 +133,3 @@ Native modules may provide:
 - module-level functions
 - native classes/types
 - constants
-

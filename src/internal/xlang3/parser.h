@@ -1,0 +1,112 @@
+#pragma once
+
+#include "xlang3/ast.h"
+
+#include <string>
+#include <vector>
+
+namespace xlang3 {
+
+enum class TokenKind {
+  End,
+  Newline,
+  Indent,
+  Dedent,
+  Identifier,
+  Integer,
+  Double,
+  String,
+  KwDef,
+  KwReturn,
+  KwIf,
+  KwElse,
+  KwWhile,
+  KwTrue,
+  KwFalse,
+  KwNone,
+  KwAnd,
+  KwOr,
+  KwNot,
+  LParen,
+  RParen,
+  Comma,
+  Colon,
+  Assign,
+  Plus,
+  Minus,
+  Star,
+  Slash,
+  Percent,
+  EqualEqual,
+  NotEqual,
+  Less,
+  LessEqual,
+  Greater,
+  GreaterEqual,
+};
+
+struct Token {
+  TokenKind kind = TokenKind::End;
+  std::string text;
+  uint32_t line = 1;
+  uint32_t column = 1;
+};
+
+struct ParseResult {
+  ast::Module module;
+  std::vector<std::string> errors;
+};
+
+class Lexer {
+public:
+  explicit Lexer(std::string source);
+  std::vector<Token> tokenize();
+  const std::vector<std::string>& errors() const { return errors_; }
+
+private:
+  void emit(TokenKind kind, std::string text, uint32_t line, uint32_t column);
+  void tokenize_line(const std::string& line_text, uint32_t line_no, uint32_t indent);
+
+  std::string source_;
+  std::vector<Token> tokens_;
+  std::vector<std::string> errors_;
+  std::vector<uint32_t> indent_stack_{0};
+};
+
+class Parser {
+public:
+  explicit Parser(std::vector<Token> tokens);
+  ParseResult parse_module();
+
+private:
+  ast::StmtPtr parse_statement();
+  ast::StmtPtr parse_simple_statement();
+  std::vector<ast::StmtPtr> parse_block();
+  ast::ExprPtr parse_expression();
+  ast::ExprPtr parse_or();
+  ast::ExprPtr parse_and();
+  ast::ExprPtr parse_not();
+  ast::ExprPtr parse_compare();
+  ast::ExprPtr parse_term();
+  ast::ExprPtr parse_factor();
+  ast::ExprPtr parse_unary();
+  ast::ExprPtr parse_call();
+  ast::ExprPtr parse_primary();
+
+  bool match(TokenKind kind);
+  bool check(TokenKind kind) const;
+  const Token& peek() const;
+  const Token& previous() const;
+  const Token& advance();
+  bool consume(TokenKind kind, const std::string& message);
+  void skip_newlines();
+  void error_here(const std::string& message);
+
+  std::vector<Token> tokens_;
+  size_t current_ = 0;
+  std::vector<std::string> errors_;
+};
+
+ParseResult parse_source(const std::string& source);
+
+} // namespace xlang3
