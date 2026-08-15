@@ -16,7 +16,8 @@ $cases = @(
     "if_else",
     "builtin_alias",
     "tuples",
-    "closures"
+    "closures",
+    "nonlocal_counter"
 )
 
 foreach ($case in $cases) {

@@ -21,6 +21,7 @@ enum class TokenKind {
   KwIf,
   KwElse,
   KwWhile,
+  KwNonlocal,
   KwTrue,
   KwFalse,
   KwNone,

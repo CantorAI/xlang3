@@ -15,6 +15,7 @@ const char* op_name(Op op) {
     case Op::StoreCell: return "StoreCell";
     case Op::LoadCellObject: return "LoadCellObject";
     case Op::LoadFree: return "LoadFree";
+    case Op::StoreFree: return "StoreFree";
     case Op::LoadFreeObject: return "LoadFreeObject";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";

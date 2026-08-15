@@ -85,6 +85,26 @@ int main() {
   {
     std::string output;
     auto run = xlang3::test::run_source(
+        "def make_counter():\n"
+        "    x = 0\n"
+        "    def inc():\n"
+        "        nonlocal x\n"
+        "        x = x + 1\n"
+        "        return x\n"
+        "    return inc\n"
+        "\n"
+        "counter = make_counter()\n"
+        "print(counter())\n"
+        "print(counter())\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "1\n2\n", "nonlocal assignment should update captured cell");
+  }
+
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
         "p = print\n"
         "p(99)\n",
         output);

@@ -1,105 +1,12 @@
 #include "xlang3/sema.h"
+#include "xlang3/scope_analysis.h"
 
 #include <cstdlib>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace xlang3 {
 
 namespace {
-
-using NameSet = std::unordered_set<std::string>;
-
-bool contains(const NameSet& names, const std::string& name) {
-  return names.find(name) != names.end();
-}
-
-void add_unique(std::vector<std::string>& names, NameSet& seen, const std::string& name) {
-  if (seen.insert(name).second) {
-    names.push_back(name);
-  }
-}
-
-void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names, NameSet& seen) {
-  for (const auto& stmt : body) {
-    if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
-      add_unique(names, seen, assign->name);
-    } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
-      add_unique(names, seen, fn->name);
-    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
-      collect_assigned_names(ifs->then_body, names, seen);
-      collect_assigned_names(ifs->else_body, names, seen);
-    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
-      collect_assigned_names(loop->body, names, seen);
-    }
-  }
-}
-
-void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, NameSet& seen) {
-  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
-    add_unique(names, seen, name->name);
-  } else if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
-    collect_reads_expr(*unary->expr, names, seen);
-  } else if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
-    collect_reads_expr(*binary->lhs, names, seen);
-    collect_reads_expr(*binary->rhs, names, seen);
-  } else if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
-    collect_reads_expr(*call->callee, names, seen);
-    for (const auto& arg : call->args) {
-      collect_reads_expr(*arg, names, seen);
-    }
-  } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
-    for (const auto& item : tuple->items) {
-      collect_reads_expr(*item, names, seen);
-    }
-  }
-}
-
-void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names, NameSet& seen) {
-  for (const auto& stmt : body) {
-    if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
-      collect_reads_expr(*assign->value, names, seen);
-    } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(stmt.get())) {
-      collect_reads_expr(*expr_stmt->expr, names, seen);
-    } else if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(stmt.get())) {
-      collect_reads_expr(*ret->value, names, seen);
-    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
-      collect_reads_expr(*ifs->condition, names, seen);
-      collect_reads_body(ifs->then_body, names, seen);
-      collect_reads_body(ifs->else_body, names, seen);
-    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
-      collect_reads_expr(*loop->condition, names, seen);
-      collect_reads_body(loop->body, names, seen);
-    }
-  }
-}
-
-std::vector<std::string> local_names_for(const std::vector<std::string>& params, const std::vector<ast::StmtPtr>& body) {
-  std::vector<std::string> names;
-  NameSet seen;
-  for (const auto& param : params) {
-    add_unique(names, seen, param);
-  }
-  collect_assigned_names(body, names, seen);
-  return names;
-}
-
-std::vector<std::string> free_candidates_for(const ast::FunctionDef& fn) {
-  const auto locals = local_names_for(fn.params, fn.body);
-  NameSet local_set(locals.begin(), locals.end());
-
-  std::vector<std::string> reads;
-  NameSet seen_reads;
-  collect_reads_body(fn.body, reads, seen_reads);
-
-  std::vector<std::string> free_names;
-  for (const auto& name : reads) {
-    if (!contains(local_set, name)) {
-      free_names.push_back(name);
-    }
-  }
-  return free_names;
-}
 
 class FunctionLowerer {
 public:
@@ -118,7 +25,7 @@ public:
       free_indices_[fn_.free_vars[i]] = static_cast<uint32_t>(i);
     }
 
-    const auto locals = is_module_ ? std::vector<std::string>{} : local_names_for(fn_.params, body);
+    const auto locals = is_module_ ? std::vector<std::string>{} : sema::local_names_for(fn_.params, body);
     for (const auto& local : locals) {
       ensure_local(local);
     }
@@ -207,7 +114,7 @@ private:
         continue;
       }
       for (const auto& name : closure_names_for_child(*child)) {
-        if (contains(local_name_set_, name)) {
+        if (sema::contains(local_name_set_, name)) {
           ensure_cell_for_local(name);
         }
       }
@@ -216,8 +123,8 @@ private:
 
   std::vector<std::string> closure_names_for_child(const ast::FunctionDef& child) const {
     std::vector<std::string> names;
-    for (const auto& name : free_candidates_for(child)) {
-      if (contains(local_name_set_, name) || free_indices_.find(name) != free_indices_.end()) {
+    for (const auto& name : sema::free_candidates_for(child)) {
+      if (sema::contains(local_name_set_, name) || free_indices_.find(name) != free_indices_.end()) {
         names.push_back(name);
       }
     }
@@ -250,6 +157,8 @@ private:
   void store_named_value(const std::string& name, uint32_t reg) {
     if (is_module_) {
       emit(ir::Op::StoreGlobal, add_name(name), reg);
+    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
+      emit(ir::Op::StoreFree, free_it->second, reg);
     } else if (is_cell_local(name)) {
       emit(ir::Op::StoreCell, cell_indices_[name], reg);
     } else {
@@ -258,6 +167,9 @@ private:
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
+    if (dynamic_cast<const ast::NonlocalStmt*>(&stmt) != nullptr) {
+      return;
+    }
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
       store_named_value(assign->name, lower_expr(*assign->value));
       return;
@@ -410,7 +322,7 @@ private:
   ir::Module& module_;
   bool is_module_ = false;
   ir::Function fn_;
-  NameSet local_name_set_;
+  sema::NameSet local_name_set_;
   std::unordered_map<std::string, uint32_t> locals_;
   std::unordered_map<std::string, uint32_t> cell_indices_;
   std::unordered_map<std::string, uint32_t> free_indices_;

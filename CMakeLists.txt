@@ -13,6 +13,7 @@ add_library(xlang3_core
   src/runtime/runtime.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp
+  src/sema/scope_analysis.cpp
   src/sema/lower.cpp
   src/ir/dump.cpp
   src/executor/interpreter.cpp

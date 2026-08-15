@@ -130,6 +130,19 @@ RuntimeResult Interpreter::run_function(
         regs[in.dst] = cell->value;
         break;
       }
+      case ir::Op::StoreFree: {
+        if (in.dst >= fn_obj_closure.size() || in.a >= regs.size()) {
+          result.errors.push_back("invalid free store");
+          return result;
+        }
+        auto* cell = value_as_cell(fn_obj_closure[in.dst]);
+        if (cell == nullptr) {
+          result.errors.push_back("invalid free cell");
+          return result;
+        }
+        cell->value = regs[in.a];
+        break;
+      }
       case ir::Op::LoadFreeObject:
         if (in.a >= fn_obj_closure.size()) {
           result.errors.push_back("invalid free object slot");

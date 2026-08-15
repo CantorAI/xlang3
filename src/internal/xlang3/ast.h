@@ -74,6 +74,11 @@ struct ReturnStmt final : Stmt {
   explicit ReturnStmt(ExprPtr value) : value(std::move(value)) {}
 };
 
+struct NonlocalStmt final : Stmt {
+  std::vector<std::string> names;
+  explicit NonlocalStmt(std::vector<std::string> names) : names(std::move(names)) {}
+};
+
 struct IfStmt final : Stmt {
   ExprPtr condition;
   std::vector<StmtPtr> then_body;

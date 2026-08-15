@@ -82,6 +82,18 @@ ast::StmtPtr Parser::parse_statement() {
 }
 
 ast::StmtPtr Parser::parse_simple_statement() {
+  if (match(TokenKind::KwNonlocal)) {
+    std::vector<std::string> names;
+    do {
+      const Token name = peek();
+      if (!consume(TokenKind::Identifier, "expected name after nonlocal")) {
+        return nullptr;
+      }
+      names.push_back(name.text);
+    } while (match(TokenKind::Comma));
+    match(TokenKind::Newline);
+    return std::make_unique<ast::NonlocalStmt>(std::move(names));
+  }
   if (match(TokenKind::KwReturn)) {
     ast::ExprPtr value;
     if (!check(TokenKind::Newline) && !check(TokenKind::Dedent) && !check(TokenKind::End)) {

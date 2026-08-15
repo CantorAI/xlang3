@@ -16,6 +16,7 @@ enum class Op : uint16_t {
   StoreCell,
   LoadCellObject,
   LoadFree,
+  StoreFree,
   LoadFreeObject,
   LoadGlobal,
   StoreGlobal,

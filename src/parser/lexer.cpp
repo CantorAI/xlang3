@@ -77,6 +77,7 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       else if (text == "if") kind = TokenKind::KwIf;
       else if (text == "else") kind = TokenKind::KwElse;
       else if (text == "while") kind = TokenKind::KwWhile;
+      else if (text == "nonlocal") kind = TokenKind::KwNonlocal;
       else if (text == "True") kind = TokenKind::KwTrue;
       else if (text == "False") kind = TokenKind::KwFalse;
       else if (text == "None") kind = TokenKind::KwNone;
