@@ -16,6 +16,10 @@ int main() {
                             "non-empty string should be truthy");
   xlang3::test::expect_true(result, !xlang3::value_truthy(xlang3::Value::none()),
                             "None should be falsey");
+  xlang3::test::expect_true(result, xlang3::value_to_string(xlang3::Value::tuple({xlang3::Value::int64(1)})) == "(1,)",
+                            "single item tuple should print with trailing comma");
+  xlang3::test::expect_true(result, !xlang3::value_truthy(xlang3::Value::tuple({})),
+                            "empty tuple should be falsey");
 
   return xlang3::test::finish(result);
 }

@@ -14,14 +14,15 @@ $cases = @(
     "functions",
     "nested_function_no_closure",
     "if_else",
-    "builtin_alias"
+    "builtin_alias",
+    "tuples"
 )
 
 foreach ($case in $cases) {
     $source = Join-Path $root "fixtures/core/$case.py"
     $expectedPath = Join-Path $root "fixtures/expected/$case.out"
-    $expected = (Get-Content -LiteralPath $expectedPath -Raw).TrimEnd()
-    $actual = (& $XLang3 $source | Out-String).TrimEnd()
+    $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
+    $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
     if ($LASTEXITCODE -ne 0) {
         throw "$case failed with exit code $LASTEXITCODE"
     }

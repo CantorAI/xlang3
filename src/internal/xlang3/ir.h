@@ -14,6 +14,7 @@ enum class Op : uint16_t {
   StoreLocal,
   LoadGlobal,
   StoreGlobal,
+  MakeTuple,
   Add,
   Sub,
   Mul,
@@ -55,6 +56,7 @@ struct Function {
   std::vector<Value> constants;
   std::vector<std::string> names;
   std::vector<std::vector<uint32_t>> call_args;
+  std::vector<std::vector<uint32_t>> tuple_items;
   std::vector<Instr> code;
 };
 

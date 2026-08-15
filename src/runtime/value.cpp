@@ -27,6 +27,10 @@ StringObject* as_string(Object* obj) {
   return reinterpret_cast<StringObject*>(obj);
 }
 
+TupleObject* as_tuple(Object* obj) {
+  return reinterpret_cast<TupleObject*>(obj);
+}
+
 FunctionObject* as_function(Object* obj) {
   return reinterpret_cast<FunctionObject*>(obj);
 }
@@ -115,6 +119,15 @@ Value Value::string(std::string value) {
   return v;
 }
 
+Value Value::tuple(std::vector<Value> items) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<TupleObject>(ObjectKind::Tuple);
+  obj->items = std::move(items);
+  v.as.obj = &obj->header;
+  return v;
+}
+
 Value Value::function(uint32_t function_id) {
   Value v;
   v.tag = ValueTag::Object;
@@ -166,6 +179,9 @@ void release(const Value& value) {
     case ObjectKind::String:
       delete as_string(value.as.obj);
       break;
+    case ObjectKind::Tuple:
+      delete as_tuple(value.as.obj);
+      break;
     case ObjectKind::Function:
       delete as_function(value.as.obj);
       break;
@@ -194,6 +210,21 @@ std::string value_to_string(const Value& value) {
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         return as_string(value.as.obj)->value;
       }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+        const auto& items = as_tuple(value.as.obj)->items;
+        std::string text = "(";
+        for (size_t i = 0; i < items.size(); ++i) {
+          if (i != 0) {
+            text += ", ";
+          }
+          text += value_to_string(items[i]);
+        }
+        if (items.size() == 1) {
+          text += ",";
+        }
+        text += ")";
+        return text;
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Function) {
         return "<function>";
       }
@@ -219,6 +250,9 @@ bool value_truthy(const Value& value) {
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         return !as_string(value.as.obj)->value.empty();
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+        return !as_tuple(value.as.obj)->items.empty();
       }
       return true;
   }

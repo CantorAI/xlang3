@@ -60,5 +60,23 @@ int main() {
     xlang3::test::expect_true(result, output == "99\n", "builtin print should be a callable value");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "def pick(a, b):\n"
+        "    print(a)\n"
+        "    print(b)\n"
+        "\n"
+        "print((1, 2))\n"
+        "print((3,))\n"
+        "print(())\n"
+        "pick(4, 5)\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "(1, 2)\n(3,)\n()\n4\n5\n",
+                              "tuple literals and call arg separators should work");
+  }
+
   return xlang3::test::finish(result);
 }

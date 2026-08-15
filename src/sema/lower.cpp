@@ -56,6 +56,11 @@ private:
     return static_cast<uint32_t>(fn_.call_args.size() - 1);
   }
 
+  uint32_t add_tuple_items(std::vector<uint32_t> items) {
+    fn_.tuple_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.tuple_items.size() - 1);
+  }
+
   uint32_t ensure_local(const std::string& name) {
     auto it = locals_.find(name);
     if (it != locals_.end()) {
@@ -206,6 +211,15 @@ private:
       }
       const auto dst = new_reg();
       emit(ir::Op::Call, dst, callee, add_call_args(std::move(arg_regs)));
+      return dst;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+      std::vector<uint32_t> item_regs;
+      for (const auto& item : tuple->items) {
+        item_regs.push_back(lower_expr(*item));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeTuple, dst, add_tuple_items(std::move(item_regs)));
       return dst;
     }
     const auto reg = new_reg();

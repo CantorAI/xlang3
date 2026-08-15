@@ -20,6 +20,7 @@ enum class ValueTag : uint32_t {
 
 enum class ObjectKind : uint32_t {
   String = 1,
+  Tuple,
   Function,
   NativeFunction,
 };
@@ -76,8 +77,14 @@ struct Value {
   static Value int64(int64_t value);
   static Value number(double value);
   static Value string(std::string value);
+  static Value tuple(std::vector<Value> items);
   static Value function(uint32_t function_id);
   static Value native_function(uint32_t native_id, std::string name, NativeFunctionCallback callback);
+};
+
+struct TupleObject {
+  Object header;
+  std::vector<Value> items;
 };
 
 FunctionObject* value_as_function(const Value& value);

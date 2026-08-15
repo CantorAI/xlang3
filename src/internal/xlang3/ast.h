@@ -53,6 +53,11 @@ struct CallExpr final : Expr {
       : callee(std::move(callee)), args(std::move(args)) {}
 };
 
+struct TupleExpr final : Expr {
+  std::vector<ExprPtr> items;
+  explicit TupleExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
+};
+
 struct ExprStmt final : Stmt {
   ExprPtr expr;
   explicit ExprStmt(ExprPtr expr) : expr(std::move(expr)) {}

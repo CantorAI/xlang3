@@ -83,6 +83,7 @@ private:
   ast::StmtPtr parse_simple_statement();
   std::vector<ast::StmtPtr> parse_block();
   ast::ExprPtr parse_expression();
+  ast::ExprPtr parse_tuple();
   ast::ExprPtr parse_or();
   ast::ExprPtr parse_and();
   ast::ExprPtr parse_not();

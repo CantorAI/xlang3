@@ -121,7 +121,24 @@ std::vector<ast::StmtPtr> Parser::parse_block() {
 }
 
 ast::ExprPtr Parser::parse_expression() {
-  return parse_or();
+  return parse_tuple();
+}
+
+ast::ExprPtr Parser::parse_tuple() {
+  auto first = parse_or();
+  if (!match(TokenKind::Comma)) {
+    return first;
+  }
+
+  std::vector<ast::ExprPtr> items;
+  items.push_back(std::move(first));
+  while (!check(TokenKind::RParen) && !check(TokenKind::Newline) && !check(TokenKind::End)) {
+    items.push_back(parse_or());
+    if (!match(TokenKind::Comma)) {
+      break;
+    }
+  }
+  return std::make_unique<ast::TupleExpr>(std::move(items));
 }
 
 ast::ExprPtr Parser::parse_or() {
@@ -203,7 +220,7 @@ ast::ExprPtr Parser::parse_call() {
     std::vector<ast::ExprPtr> args;
     if (!check(TokenKind::RParen)) {
       do {
-        args.push_back(parse_expression());
+        args.push_back(parse_or());
       } while (match(TokenKind::Comma));
     }
     consume(TokenKind::RParen, "expected ')' after call arguments");
@@ -229,6 +246,9 @@ ast::ExprPtr Parser::parse_primary() {
   if (match(TokenKind::KwNone)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
   if (match(TokenKind::Identifier)) return std::make_unique<ast::NameExpr>(previous().text);
   if (match(TokenKind::LParen)) {
+    if (match(TokenKind::RParen)) {
+      return std::make_unique<ast::TupleExpr>(std::vector<ast::ExprPtr>{});
+    }
     auto expr = parse_expression();
     consume(TokenKind::RParen, "expected ')' after expression");
     return expr;

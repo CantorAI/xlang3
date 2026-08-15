@@ -94,6 +94,23 @@ RuntimeResult Interpreter::run_function(const ir::Module& module, uint32_t funct
         }
         globals_[fn.names[in.dst]] = regs[in.a];
         break;
+      case ir::Op::MakeTuple: {
+        if (in.a >= fn.tuple_items.size()) {
+          result.errors.push_back("invalid tuple item list");
+          return result;
+        }
+        std::vector<Value> items;
+        items.reserve(fn.tuple_items[in.a].size());
+        for (const auto reg : fn.tuple_items[in.a]) {
+          if (reg >= regs.size()) {
+            result.errors.push_back("invalid tuple item register");
+            return result;
+          }
+          items.push_back(regs[reg]);
+        }
+        regs[in.dst] = Value::tuple(std::move(items));
+        break;
+      }
       case ir::Op::Add: {
         std::string error;
         if (!value_add(regs[in.a], regs[in.b], regs[in.dst], error)) {

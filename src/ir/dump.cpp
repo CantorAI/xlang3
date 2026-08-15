@@ -13,6 +13,7 @@ const char* op_name(Op op) {
     case Op::StoreLocal: return "StoreLocal";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
+    case Op::MakeTuple: return "MakeTuple";
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
@@ -71,6 +72,13 @@ std::string dump_module(const Module& module) {
     for (size_t args_i = 0; args_i < fn.call_args.size(); ++args_i) {
       os << "  call_args #" << args_i << ":";
       for (auto reg : fn.call_args[args_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t tuple_i = 0; tuple_i < fn.tuple_items.size(); ++tuple_i) {
+      os << "  tuple_items #" << tuple_i << ":";
+      for (auto reg : fn.tuple_items[tuple_i]) {
         os << " r" << reg;
       }
       os << "\n";
