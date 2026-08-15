@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/interpreter.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -264,10 +265,7 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         std::string error;
-        const bool ok = value_as_module(regs[in.a]) != nullptr
-                            ? module_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error)
-                            : object_get_attr(regs[in.a], fn.names[in.b], regs[in.dst], error);
-        if (!ok) {
+        if (!attribute_get(regs[in.a], fn.names[in.b], regs[in.dst], error)) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
@@ -279,10 +277,7 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         std::string error;
-        const bool ok = value_as_module(regs[in.dst]) != nullptr
-                            ? module_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error)
-                            : object_set_attr(regs[in.dst], fn.names[in.a], regs[in.b], error);
-        if (!ok) {
+        if (!attribute_set(regs[in.dst], fn.names[in.a], regs[in.b], error)) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
@@ -539,7 +534,19 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         const auto& callee = regs[in.a];
-        auto call_function_value = [&](const Value& function_value, const std::vector<Value>& values, Value& out) -> bool {
+        auto call_callable_value = [&](const Value& function_value, const std::vector<Value>& values, Value& out) -> bool {
+          if (auto* native = value_as_native_function(function_value)) {
+            std::string error;
+            Value native_result;
+            if (native->callback == nullptr ||
+                !native->callback(runtime_, values.data(), static_cast<uint32_t>(values.size()), native_result, error)) {
+              if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
+              return false;
+            }
+            out = std::move(native_result);
+            return true;
+          }
+
           auto* fn_obj = value_as_function(function_value);
           if (fn_obj == nullptr) {
             if (raise_runtime_error("object is not callable")) return false;
@@ -565,7 +572,7 @@ RuntimeResult Interpreter::run_function(
 
         if (auto* fn_obj = value_as_function(callee)) {
           (void)fn_obj;
-          if (!call_function_value(callee, call_args, regs[in.dst])) {
+          if (!call_callable_value(callee, call_args, regs[in.dst])) {
             if (!result.errors.empty()) return result;
             continue;
           }
@@ -574,7 +581,7 @@ RuntimeResult Interpreter::run_function(
           bound_args.reserve(call_args.size() + 1);
           bound_args.push_back(bound->self);
           bound_args.insert(bound_args.end(), call_args.begin(), call_args.end());
-          if (!call_function_value(bound->function, bound_args, regs[in.dst])) {
+          if (!call_callable_value(bound->function, bound_args, regs[in.dst])) {
             if (!result.errors.empty()) return result;
             continue;
           }
@@ -594,7 +601,7 @@ RuntimeResult Interpreter::run_function(
             init_args.push_back(bound_init->self);
             init_args.insert(init_args.end(), call_args.begin(), call_args.end());
             Value ignored;
-            if (!call_function_value(bound_init->function, init_args, ignored)) {
+            if (!call_callable_value(bound_init->function, init_args, ignored)) {
               if (!result.errors.empty()) return result;
               continue;
             }

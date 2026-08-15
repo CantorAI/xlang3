@@ -162,4 +162,13 @@ bool set_len(const Value& value, Value& out, std::string& error) {
   return true;
 }
 
+bool set_add(Value& set, const Value& item, std::string& error) {
+  auto* obj = value_as_set(set);
+  if (obj == nullptr) {
+    error = "set add target is not a set";
+    return false;
+  }
+  return append_unique(obj->items, item, error);
+}
+
 } // namespace xlang3

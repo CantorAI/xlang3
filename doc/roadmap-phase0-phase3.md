@@ -74,7 +74,7 @@ Goals:
 - [x] exception control-flow foundation
 - [x] class/object protocol foundation
 - [ ] fuller Python expression/operator coverage
-- [ ] fuller list/dict/set/string methods
+- [~] fuller list/dict/set/string methods
 - [ ] better diagnostic coverage
 - [ ] benchmark suite expansion
 
@@ -102,12 +102,13 @@ Implemented Phase 1 syntax/runtime subset:
 - imports: `import x`, `import x as y`, `import pkg.mod`, `from x import y`, aliases, package `__init__.py`
 - exceptions: explicit `raise expr`, catch-all `try` / `except`, and catchable interpreter/native runtime errors
 - classes: class statement, class attributes, instance attributes, `__init__`, and simple bound methods
+- builtin methods: initial list/dict/set/string method dispatch through attributes
 - native modules: `_builtins`, `math`
 
 Next Phase 1 implementation candidates:
 
 1. Python exception object hierarchy: `Exception`, typed handlers, and binding `except E as e`.
-2. Container/string builtin methods.
+2. More complete container/string builtin method coverage.
 3. External native package loading through the C ABI.
 4. Inline caches after the object/type protocol is stable.
 5. Broader parser compatibility.

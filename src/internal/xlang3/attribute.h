@@ -17,31 +17,10 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <string>
-#include <vector>
 
 namespace xlang3 {
 
-struct SetObject {
-  Object header;
-  std::vector<Value> items;
-};
-
-struct SetIteratorObject {
-  Object header;
-  Value source;
-  uint64_t index = 0;
-};
-
-SetObject* value_as_set(const Value& value);
-SetIteratorObject* value_as_set_iterator(const Value& value);
-
-void set_release_object(Object* object);
-std::string set_to_string(const Value& value);
-bool set_truthy(const Value& value);
-
-bool set_get_iter(const Value& object, Value& out, std::string& error);
-bool set_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
-bool set_len(const Value& value, Value& out, std::string& error);
-bool set_add(Value& set, const Value& item, std::string& error);
+bool attribute_get(const Value& object, const std::string& name, Value& out, std::string& error);
+bool attribute_set(Value& object, const std::string& name, const Value& value, std::string& error);
 
 } // namespace xlang3
