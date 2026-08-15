@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "test_harness.h"
 
+#include "xlang3/sequence.h"
 #include "xlang3/value.h"
+#include "xlang3/value_hash.h"
 
 int main() {
   xlang3::test::CaseResult result;
@@ -34,6 +36,75 @@ int main() {
                             "single item tuple should print with trailing comma");
   xlang3::test::expect_true(result, !xlang3::value_truthy(xlang3::Value::tuple({})),
                             "empty tuple should be falsey");
+
+  {
+    xlang3::Value dict = xlang3::Value::dict({
+        {xlang3::Value::string("a"), xlang3::Value::int64(1)},
+        {xlang3::Value::string("b"), xlang3::Value::int64(2)},
+        {xlang3::Value::string("a"), xlang3::Value::int64(3)},
+    });
+    xlang3::Value item;
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::sequence_get_item(dict, xlang3::Value::string("a"), item, error),
+                              "dict lookup should accept string keys");
+    xlang3::test::expect_true(result, item.tag == xlang3::ValueTag::Int64 && item.as.i64 == 3,
+                              "duplicate dict key should keep last value");
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::sequence_set_item(dict, xlang3::Value::string("c"), xlang3::Value::int64(4), error),
+                              "dict set item should add a new key");
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::sequence_get_item(dict, xlang3::Value::string("c"), item, error),
+                              "dict lookup should find assigned key");
+    xlang3::test::expect_true(result, item.tag == xlang3::ValueTag::Int64 && item.as.i64 == 4,
+                              "dict assigned value should round-trip");
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::sequence_len(dict, item, error),
+                              "dict len should succeed");
+    xlang3::test::expect_true(result, item.tag == xlang3::ValueTag::Int64 && item.as.i64 == 3,
+                              "dict len should count unique keys");
+  }
+
+  {
+    xlang3::Value set = xlang3::Value::set({
+        xlang3::Value::int64(1),
+        xlang3::Value::int64(2),
+        xlang3::Value::int64(2),
+        xlang3::Value::int64(3),
+    });
+    xlang3::Value len;
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::sequence_len(set, len, error),
+                              "set len should succeed");
+    xlang3::test::expect_true(result, len.tag == xlang3::ValueTag::Int64 && len.as.i64 == 3,
+                              "set len should count unique values");
+
+    xlang3::Value iter;
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::sequence_get_iter(set, iter, error),
+                              "set should be iterable");
+    bool done = false;
+    int64_t sum = 0;
+    while (true) {
+      xlang3::Value item;
+      error.clear();
+      xlang3::test::expect_true(result, xlang3::sequence_iter_next(iter, done, item, error),
+                                "set iterator next should succeed");
+      if (done) {
+        break;
+      }
+      sum += item.as.i64;
+    }
+    xlang3::test::expect_true(result, sum == 6, "set iterator should yield unique values");
+  }
+
+  {
+    size_t hash = 0;
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::value_hash_key(xlang3::Value::string("key"), hash, error),
+                              "string keys should be hashable");
+    xlang3::test::expect_true(result, xlang3::value_key_equal(xlang3::Value::int64(3), xlang3::Value::number(3.0)),
+                              "numeric key equality should match int and double values");
+  }
 
   return xlang3::test::finish(result);
 }
