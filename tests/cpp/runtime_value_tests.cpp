@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "test_harness.h"
 
+#include "xlang3/module_object.h"
+#include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value.h"
 #include "xlang3/value_hash.h"
@@ -104,6 +106,33 @@ int main() {
                               "string keys should be hashable");
     xlang3::test::expect_true(result, xlang3::value_key_equal(xlang3::Value::int64(3), xlang3::Value::number(3.0)),
                               "numeric key equality should match int and double values");
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::Runtime runtime(output);
+    xlang3::NativeModuleBuilder builder(runtime, "unit_native");
+    builder.value("answer", xlang3::Value::int64(42));
+    auto module = builder.finish();
+    runtime.register_module("unit_native", module);
+
+    xlang3::Value imported_a;
+    xlang3::Value imported_b;
+    error.clear();
+    xlang3::test::expect_true(result, runtime.import_module("unit_native", imported_a, error),
+                              "runtime should import registered native module");
+    error.clear();
+    xlang3::test::expect_true(result, runtime.import_module("unit_native", imported_b, error),
+                              "runtime should import cached native module again");
+    xlang3::test::expect_true(result, imported_a.as.obj == imported_b.as.obj,
+                              "native module imports should return the cached module object");
+
+    xlang3::Value answer;
+    error.clear();
+    xlang3::test::expect_true(result, xlang3::module_get_attr(imported_a, "answer", answer, error),
+                              "native module builder should expose values as attrs");
+    xlang3::test::expect_true(result, answer.tag == xlang3::ValueTag::Int64 && answer.as.i64 == 42,
+                              "native module attr should round-trip");
   }
 
   return xlang3::test::finish(result);

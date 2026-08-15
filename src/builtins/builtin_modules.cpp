@@ -30,7 +30,8 @@ void copy_builtin(Runtime& runtime, Value& module, const char* name) {
 } // namespace
 
 void register_builtin_modules(Runtime& runtime) {
-  auto builtins = Value::module("_builtins");
+  NativeModuleBuilder builder(runtime, "_builtins");
+  auto builtins = builder.finish();
   copy_builtin(runtime, builtins, "print");
   copy_builtin(runtime, builtins, "len");
   copy_builtin(runtime, builtins, "range");

@@ -22,5 +22,6 @@ void register_core_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);
 void register_sequence_builtins(Runtime& runtime);
 void register_builtin_modules(Runtime& runtime);
+void register_math_module(Runtime& runtime);
 
 } // namespace xlang3

@@ -21,6 +21,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+class Runtime;
+
 struct ModuleObject {
   Object header;
   std::string name;
@@ -34,5 +36,19 @@ std::string module_to_string(const Value& value);
 
 bool module_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool module_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
+
+class NativeModuleBuilder {
+public:
+  NativeModuleBuilder(Runtime& runtime, std::string name);
+
+  NativeModuleBuilder& value(std::string name, Value value);
+  NativeModuleBuilder& function(std::string name, NativeFunctionCallback callback);
+  Value finish();
+
+private:
+  Runtime& runtime_;
+  std::string name_;
+  Value module_;
+};
 
 } // namespace xlang3

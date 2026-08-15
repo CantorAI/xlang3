@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/module_object.h"
 
+#include "xlang3/runtime.h"
+
 namespace xlang3 {
 
 namespace {
@@ -81,6 +83,25 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
   }
   module->attrs[name] = value;
   return true;
+}
+
+NativeModuleBuilder::NativeModuleBuilder(Runtime& runtime, std::string name)
+    : runtime_(runtime), name_(std::move(name)), module_(Value::module(name_)) {}
+
+NativeModuleBuilder& NativeModuleBuilder::value(std::string name, Value value) {
+  std::string error;
+  module_set_attr(module_, name, value, error);
+  return *this;
+}
+
+NativeModuleBuilder& NativeModuleBuilder::function(std::string name, NativeFunctionCallback callback) {
+  auto full_name = name_ + "." + name;
+  value(std::move(name), runtime_.make_native_function(std::move(full_name), callback));
+  return *this;
+}
+
+Value NativeModuleBuilder::finish() {
+  return std::move(module_);
 }
 
 } // namespace xlang3

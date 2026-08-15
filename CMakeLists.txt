@@ -22,6 +22,7 @@ add_library(xlang3_core
   src/builtins/builtins.cpp
   src/builtins/builtin_modules.cpp
   src/builtins/io_builtins.cpp
+  src/builtins/math_module.cpp
   src/builtins/sequence_builtins.cpp
   src/runtime/value.cpp
   src/runtime/value_hash.cpp

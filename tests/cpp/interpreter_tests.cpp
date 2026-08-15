@@ -239,5 +239,19 @@ int main() {
                               "native module import and module attribute access should work");
   }
 
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
+        "import math\n"
+        "print(math.sqrt(9))\n"
+        "print(math.cos(0))\n"
+        "print(math.pi > 3)\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "3\n1\nTrue\n",
+                              "math native module should import and call native functions");
+  }
+
   return xlang3::test::finish(result);
 }
