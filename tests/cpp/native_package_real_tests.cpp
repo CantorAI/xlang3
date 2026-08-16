@@ -28,6 +28,11 @@ int main(int argc, char** argv) {
     runtime.AddImportRoot(argv[1]);
 
     X::Package json(runtime, "json", "xlang_json");
+    if (json["__xlang3_package__"].ToString() != "xlang_json" ||
+        json["__xlang3_abi__"].ToString() != "7") {
+      std::cerr << "bad json package metadata\n";
+      return 1;
+    }
     auto data = json.fn("loads")("{\"name\":\"xlang3\",\"items\":[1,2,3]}");
     if (data.GetItem("name").ToString() != "xlang3") {
       std::cerr << "bad json name\n";
@@ -44,6 +49,11 @@ int main(int argc, char** argv) {
     }
 
     X::Package sqlite3(runtime, "sqlite3");
+    if (sqlite3["__xlang3_package__"].ToString() != "xlang_sqlite3" ||
+        sqlite3["__xlang3_abi__"].ToString() != "7") {
+      std::cerr << "bad sqlite package metadata\n";
+      return 1;
+    }
     if (sqlite3["OK"].ToInt64() != 0) {
       std::cerr << "bad sqlite fallback import\n";
       return 1;
@@ -71,6 +81,21 @@ int main(int argc, char** argv) {
     }
     cursor["close"]();
     conn["close"]();
+
+    bool saw_missing_diagnostics = false;
+    try {
+      X::Package missing(runtime, "xlang3_missing_native_package_probe");
+    } catch (const std::exception& ex) {
+      const std::string message = ex.what();
+      saw_missing_diagnostics =
+          message.find("native package candidates tried") != std::string::npos &&
+          message.find("xlang3_missing_native_package_probe") != std::string::npos &&
+          message.find(".x3pkg") != std::string::npos;
+    }
+    if (!saw_missing_diagnostics) {
+      std::cerr << "bad missing native package diagnostics\n";
+      return 1;
+    }
   } catch (const std::exception& ex) {
     std::cerr << ex.what() << "\n";
     return 1;

@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <filesystem>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,7 @@ struct X3Package {
   xlang3::Value root_module;
   xlang3::Value requested_module;
   std::vector<std::unique_ptr<X3Module>> modules;
+  std::vector<std::pair<std::string, std::string>> metadata;
   void* cleanup_data = nullptr;
   X3PackageCleanup cleanup = nullptr;
 };
@@ -76,6 +78,17 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
   out.push_back(root / ("lib" + name + ".so"));
 #endif
   return out;
+}
+
+std::string metadata_attr_name(const char* key) {
+  return std::string("__xlang3_") + key + "__";
+}
+
+void apply_package_metadata(X3Package& package, X3Module& module) {
+  std::string error;
+  for (const auto& item : package.metadata) {
+    module_set_attr(module.value, metadata_attr_name(item.first.c_str()), Value::string(item.second), error);
+  }
 }
 
 std::vector<std::string> native_package_name_candidates(const std::string& name) {
@@ -185,6 +198,7 @@ X3Status host_add_module(X3Package* package, const char* name, X3Module** out_mo
   module->runtime = package->runtime;
   module->name = name;
   module->value = Value::module(name);
+  apply_package_metadata(*package, *module);
 
   std::string error;
   module_set_attr(package->root_module, name, module->value, error);
@@ -357,6 +371,20 @@ X3Status host_package_set_cleanup(X3Package* package, void* data, X3PackageClean
   return X3_STATUS_OK;
 }
 
+X3Status host_package_set_metadata(X3Package* package, const char* key, const char* value) {
+  if (package == nullptr || package->runtime == nullptr || key == nullptr || key[0] == '\0' || value == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  package->metadata.emplace_back(key, value);
+  std::string error;
+  const auto attr_name = metadata_attr_name(key);
+  module_set_attr(package->root_module, attr_name, Value::string(value), error);
+  for (const auto& module : package->modules) {
+    module_set_attr(module->value, attr_name, Value::string(value), error);
+  }
+  return X3_STATUS_OK;
+}
+
 X3Status host_set_error(X3CallContext* context, const char* message) {
   if (context == nullptr || context->error == nullptr) {
     return X3_STATUS_ERROR;
@@ -430,29 +458,52 @@ const X3PackageHost kPackageHost = {
     host_instance_get_native_data,
     host_value_instance,
     host_package_set_cleanup,
+    host_package_set_metadata,
 };
 
-bool find_native_library(Runtime& runtime, const std::string& name, std::filesystem::path& out) {
-  std::error_code ec;
+std::vector<std::filesystem::path> collect_native_library_candidates(Runtime& runtime, const std::string& name) {
+  std::vector<std::filesystem::path> out;
+  out.reserve(runtime.import_roots().size() * 6);
   for (const auto& root : runtime.import_roots()) {
     for (const auto& package_name : native_package_name_candidates(name)) {
-      for (const auto& candidate : native_library_candidates(root, package_name)) {
-        if (std::filesystem::is_regular_file(candidate, ec)) {
-          out = candidate;
-          return true;
-        }
-      }
+      auto candidates = native_library_candidates(root, package_name);
+      out.insert(out.end(), candidates.begin(), candidates.end());
+    }
+  }
+  return out;
+}
+
+bool find_native_library(const std::vector<std::filesystem::path>& candidates, std::filesystem::path& out) {
+  std::error_code ec;
+  for (const auto& candidate : candidates) {
+    if (std::filesystem::is_regular_file(candidate, ec)) {
+      out = candidate;
+      return true;
     }
   }
   return false;
+}
+
+std::string format_native_not_found(const std::string& name, const std::vector<std::filesystem::path>& candidates) {
+  std::ostringstream os;
+  os << "module '" << name << "' not found; native package candidates tried:";
+  if (candidates.empty()) {
+    os << " <none>";
+    return os.str();
+  }
+  for (const auto& candidate : candidates) {
+    os << "\n  " << candidate.string();
+  }
+  return os.str();
 }
 
 } // namespace
 
 bool import_native_package(Runtime& runtime, const std::string& package_name, Value& out, std::string& error) {
   std::filesystem::path library_path;
-  if (!find_native_library(runtime, package_name, library_path)) {
-    error = "module '" + package_name + "' not found";
+  auto candidates = collect_native_library_candidates(runtime, package_name);
+  if (!find_native_library(candidates, library_path)) {
+    error = format_native_not_found(package_name, candidates);
     return false;
   }
 
@@ -474,6 +525,7 @@ bool import_native_package(Runtime& runtime, const std::string& package_name, Va
   package.requested_module = Value::invalid();
   module_set_attr(package.root_module, "__name__", Value::string(package_name), error);
   module_set_attr(package.root_module, "__file__", Value::string(library_path.string()), error);
+  module_set_attr(package.root_module, "__xlang3_file__", Value::string(library_path.string()), error);
 
   if (init(&kPackageHost, &package) != X3_STATUS_OK) {
     if (package.cleanup != nullptr) {

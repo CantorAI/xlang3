@@ -771,6 +771,9 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
   if (host == nullptr || host->abi_version != X3_ABI_VERSION) {
     return X3_STATUS_ERROR;
   }
+  host->package_set_metadata(package, "package", "xlang_sqlite3");
+  host->package_set_metadata(package, "version", "0.1.0");
+  host->package_set_metadata(package, "abi", "7");
   auto* state = new PackageState();
   state->host = host;
   host->package_set_cleanup(package, state, cleanup_package_state);

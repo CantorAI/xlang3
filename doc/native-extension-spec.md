@@ -84,6 +84,16 @@ host->package_set_cleanup(package, state, cleanup_state);
 
 The cleanup callback must release any retained `X3Value` handles and free package-owned memory. The runtime runs package cleanup after module values are released, while the native package binary is still loaded.
 
+Packages may publish runtime-visible metadata:
+
+```c
+host->package_set_metadata(package, "package", "xlang_sqlite3");
+host->package_set_metadata(package, "version", "0.1.0");
+host->package_set_metadata(package, "abi", "7");
+```
+
+The host exposes these as normal module attributes named `__xlang3_package__`, `__xlang3_version__`, and `__xlang3_abi__`. Metadata is descriptive only; import resolution remains filename-based and does not scan manifests.
+
 ## C Native Function Example
 
 ```c
@@ -229,6 +239,8 @@ Search order:
 3. native package filenames rooted in runtime import roots
 
 Package metadata files are optional documentation/build metadata only. They are not required for import resolution.
+
+When no native package file is found, diagnostics should include the candidate paths the loader tried. This is especially important when Python-compatible names such as `sqlite3` rely on the `xlang_` fallback filename.
 
 ## Retained From XPackage
 

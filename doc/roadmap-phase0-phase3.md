@@ -91,6 +91,7 @@ Performance:
 - [~] call fast path
 - [x] C API calls for native functions, XLang functions, bound methods, and class constructors
 - [x] native package cleanup hook
+- [x] native package metadata and missing-package diagnostics
 - [x] C++ SDK calls for native packages, attributes, class construction, bound methods, and container item basics
 - [x] benchmark comparison against CPython for current microbenchmarks
 - [~] pyperformance integration track
@@ -117,12 +118,11 @@ Implemented Phase 1 syntax/runtime subset:
 
 Next Phase 1 implementation candidates:
 
-1. Native package metadata and stronger load diagnostics.
-2. More complete container/string builtin method coverage.
-3. Broader parser compatibility.
-4. Expand guarded inline caches without hardcoding Python-incompatible assumptions.
-5. Grow the `benchmarks/pyperformance/supported.txt` subset as stdlib coverage improves.
-6. Keep extending the C++ SDK wrapper in ABI-compatible layers instead of exposing internal C++ runtime types.
+1. More complete container/string builtin method coverage.
+2. Broader parser compatibility.
+3. Expand guarded inline caches without hardcoding Python-incompatible assumptions.
+4. Grow the `benchmarks/pyperformance/supported.txt` subset as stdlib coverage improves.
+5. Keep extending the C++ SDK wrapper in ABI-compatible layers instead of exposing internal C++ runtime types.
 
 ## Phase 2: Optimized Interpreter And Standard Modules
 
@@ -151,7 +151,7 @@ Performance:
 
 Phase 2 gate:
 
-Do not enter Phase 2 broadly until Phase 1 has stable native package metadata/load diagnostics, class foundation, exceptions foundation, and expanded compatibility tests.
+Do not enter Phase 2 broadly until Phase 1 has stable class foundation, exceptions foundation, native package ABI, and expanded compatibility tests.
 
 ## Phase 3: GraphIR, JIT, AOT
 

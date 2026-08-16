@@ -21,7 +21,7 @@ limitations under the License.
 extern "C" {
 #endif
 
-#define X3_ABI_VERSION 6u
+#define X3_ABI_VERSION 7u
 #define X3_PACKAGE_INIT_NAME x3_package_init
 
 typedef struct X3Package X3Package;
@@ -86,6 +86,7 @@ typedef struct X3PackageHost {
   void* (*instance_get_native_data)(X3Value instance, const char* type_name);
   X3Value (*value_instance)(X3Runtime* runtime, X3Value klass);
   X3Status (*package_set_cleanup)(X3Package* package, void* data, X3PackageCleanup cleanup);
+  X3Status (*package_set_metadata)(X3Package* package, const char* key, const char* value);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(const X3PackageHost* host, X3Package* package);
