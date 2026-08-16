@@ -136,6 +136,8 @@ bool native_function_bridge(
   X3CallContext context;
   context.runtime = &runtime;
   context.error = &error;
+  Value exception;
+  context.exception = &exception;
   context.user_data = thunk->user_data;
   const X3Status status = thunk->callback(
       &context,
@@ -150,6 +152,9 @@ bool native_function_bridge(
   }
 
   if (status != X3_STATUS_OK) {
+    if (exception.tag != ValueTag::Invalid) {
+      runtime.set_pending_exception(std::move(exception));
+    }
     if (error.empty()) {
       error = "native function failed";
     }
@@ -314,6 +319,43 @@ X3Status host_set_error(X3CallContext* context, const char* message) {
   return X3_STATUS_OK;
 }
 
+X3Status host_raise_class_error(X3CallContext* context, const char* class_name, const char* message) {
+  if (context == nullptr || context->runtime == nullptr || class_name == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  const std::string text = message == nullptr ? std::string() : std::string(message);
+  if (context->error != nullptr) {
+    *context->error = text;
+  }
+  if (context->exception != nullptr) {
+    *context->exception = context->runtime->make_exception(class_name, text);
+  } else {
+    context->runtime->raise_class_error(class_name, text);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status host_raise_error(X3CallContext* context, X3Value exception_class, const char* message) {
+  if (context == nullptr || context->runtime == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  Value klass = from_c_value(exception_class, error);
+  if (!error.empty() || value_as_class(klass) == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  const std::string text = message == nullptr ? std::string() : std::string(message);
+  if (context->error != nullptr) {
+    *context->error = text;
+  }
+  if (context->exception != nullptr) {
+    *context->exception = context->runtime->make_exception_from_class(std::move(klass), text);
+  } else {
+    context->runtime->set_pending_exception(context->runtime->make_exception_from_class(std::move(klass), text));
+  }
+  return X3_STATUS_OK;
+}
+
 const X3PackageHost kPackageHost = {
     X3_ABI_VERSION,
     sizeof(X3PackageHost),
@@ -321,6 +363,8 @@ const X3PackageHost kPackageHost = {
     host_module_add_value,
     host_module_add_function,
     host_set_error,
+    host_raise_class_error,
+    host_raise_error,
     x3_runtime_last_error,
     x3_value_release,
     x3_value_string,

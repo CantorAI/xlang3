@@ -47,6 +47,12 @@ public:
   void register_builtin(std::string name, Value value);
   void register_native_builtin(std::string name, NativeFunctionCallback callback);
   const Value* find_builtin(const std::string& name) const;
+  Value make_exception(std::string class_name, std::string message);
+  Value make_exception_from_class(Value klass, std::string message);
+  Value exception_type(const Value& exception);
+  bool raise_class_error(std::string class_name, std::string message);
+  void set_pending_exception(Value exception);
+  bool take_pending_exception(Value& out);
   Value make_native_function(
       std::string name,
       NativeFunctionCallback callback,
@@ -72,6 +78,7 @@ public:
 private:
   std::ostream& out_;
   std::string last_error_;
+  Value pending_exception_;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;

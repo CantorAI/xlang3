@@ -285,6 +285,19 @@ enum class FrameReturnMode : uint8_t {
   StoreConstructedInstance,
 };
 
+enum class ExceptionHandlerKind : uint8_t {
+  Except,
+  With,
+};
+
+struct ExceptionHandler {
+  uint32_t ip = 0;
+  ExceptionHandlerKind kind = ExceptionHandlerKind::Except;
+  uint32_t manager_reg = 0;
+};
+
+struct VMUnwind {};
+
 struct VMFrame {
   const ir::Module* module = nullptr;
   const ir::Function* fn = nullptr;
@@ -301,7 +314,7 @@ struct VMFrame {
   SmallValueBuffer cells;
   SmallValueBuffer regs;
 
-  std::vector<uint32_t> exception_handlers;
+  std::vector<ExceptionHandler> exception_handlers;
   std::vector<Value> global_value_cache;
   std::vector<uint32_t> global_slot_cache;
   std::vector<uint64_t> global_cache_versions;
@@ -789,6 +802,35 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  Value current_exception;
+
+  auto normalize_exception = [&](const Value& value) -> Value {
+    if (auto* klass = value_as_class(value)) {
+      (void)klass;
+      return Value::instance(value);
+    }
+    if (value_as_instance(value) != nullptr) {
+      return value;
+    }
+    return runtime_.make_exception("RuntimeError", value_to_string(value));
+  };
+
+  auto dispatch_exception = [&](Value exception) -> bool {
+    value_assign_fast(current_exception, exception);
+    while (frame_count != 0) {
+      auto& handlers = frames[frame_count - 1].exception_handlers;
+      if (!handlers.empty()) {
+        const auto handler = handlers.back();
+        handlers.pop_back();
+        frames[frame_count - 1].ip = handler.ip;
+        return true;
+      }
+      --frame_count;
+    }
+    result.errors.push_back("uncaught exception: " + value_to_string(current_exception));
+    return false;
+  };
+
   for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {
     if (frames[frame_count - 1].fn->cell_slots[i] >= frames[frame_count - 1].locals.size()) {
       result.errors.push_back("invalid cell local slot");
@@ -818,16 +860,22 @@ RuntimeResult Interpreter::run_function(
     auto& attr_site_cache = frame.attr_site_cache;
     auto& native_call_args = frame.native_call_args;
 
-    auto raise_runtime_error = [&](const std::string& message) -> bool {
-      if (exception_handlers.empty()) {
-        result.errors.push_back(message);
+    auto raise_exception_value = [&](Value exception) -> bool {
+      const size_t source_frame = frame_count;
+      if (!dispatch_exception(std::move(exception))) {
         return false;
       }
-      ip = exception_handlers.back();
-      exception_handlers.pop_back();
+      if (frame_count != source_frame) {
+        throw VMUnwind{};
+      }
       return true;
     };
 
+    auto raise_runtime_error = [&](const std::string& message) -> bool {
+      return raise_exception_value(runtime_.make_exception("RuntimeError", message));
+    };
+
+    try {
     for (;;) {
       if (ip >= fn.code.size()) {
         Value none = Value::none();
@@ -1468,7 +1516,10 @@ RuntimeResult Interpreter::run_function(
         break;
       }
       case ir::Op::SetupExcept:
-        exception_handlers.push_back(in.dst);
+        exception_handlers.push_back({in.dst, ExceptionHandlerKind::Except, 0});
+        break;
+      case ir::Op::SetupWith:
+        exception_handlers.push_back({in.dst, ExceptionHandlerKind::With, in.a});
         break;
       case ir::Op::PopExcept:
         if (exception_handlers.empty()) {
@@ -1482,13 +1533,24 @@ RuntimeResult Interpreter::run_function(
           result.errors.push_back("invalid raise value");
           return result;
         }
-        if (exception_handlers.empty()) {
-          result.errors.push_back("uncaught exception: " + value_to_string(regs[in.a]));
+        if (!raise_exception_value(normalize_exception(regs[in.a]))) return result;
+        continue;
+      case ir::Op::Reraise:
+        if (current_exception.tag == ValueTag::Invalid) {
+          result.errors.push_back("invalid reraised exception");
           return result;
         }
-        ip = exception_handlers.back();
-        exception_handlers.pop_back();
+        if (!raise_exception_value(current_exception)) return result;
         continue;
+      case ir::Op::ClearException:
+        value_set_invalid(current_exception);
+        break;
+      case ir::Op::LoadException:
+        value_assign_fast(regs[in.dst], current_exception);
+        break;
+      case ir::Op::LoadExceptionType:
+        regs[in.dst] = runtime_.exception_type(current_exception);
+        break;
       case ir::Op::CallMethod: {
         if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
           result.errors.push_back("invalid method call");
@@ -1544,6 +1606,11 @@ RuntimeResult Interpreter::run_function(
                   native_result,
                   error,
                   native->user_data)) {
+            Value pending;
+            if (runtime_.take_pending_exception(pending)) {
+              if (raise_exception_value(std::move(pending))) return false;
+              return false;
+            }
             if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
             return false;
           }
@@ -1780,6 +1847,11 @@ RuntimeResult Interpreter::run_function(
                   native_result,
                   error,
                   native->user_data)) {
+            Value pending;
+            if (runtime_.take_pending_exception(pending)) {
+              if (raise_exception_value(std::move(pending))) return false;
+              return false;
+            }
             if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
             return false;
           }
@@ -2042,6 +2114,9 @@ RuntimeResult Interpreter::run_function(
         goto switch_frame;
       }
       ++ip;
+    }
+    } catch (const VMUnwind&) {
+      goto switch_frame;
     }
 switch_frame:
     continue;

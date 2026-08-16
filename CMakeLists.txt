@@ -32,11 +32,13 @@ set(XLANG3_RUNTIME_SOURCES
   src/api/c_api.cpp
   src/builtins/builtins.cpp
   src/builtins/builtin_modules.cpp
+  src/builtins/exception_builtins.cpp
   src/builtins/io_builtins.cpp
   src/builtins/math_module.cpp
   src/builtins/raw_block_builtins.cpp
   src/builtins/sequence_builtins.cpp
   src/runtime/c_api_bridge.cpp
+  src/runtime/exceptions.cpp
   src/runtime/attribute.cpp
   src/runtime/methods/list_methods.cpp
   src/runtime/methods/dict_methods.cpp

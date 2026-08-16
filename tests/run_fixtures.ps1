@@ -40,6 +40,7 @@ $cases = @(
     "package_import",
     "exceptions",
     "runtime_error_exceptions",
+    "exception_unwind_with",
     "classes",
     "class_dynamic_attrs",
     "context_managers",
@@ -85,7 +86,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($uncaughtRuntimeExitCode -ne 1) {
     throw "uncaught_runtime_error expected exit code 1, got $uncaughtRuntimeExitCode"
 }
-if ($uncaughtRuntimeOutput -notlike "*runtime: division by zero*") {
+if ($uncaughtRuntimeOutput -notlike "*runtime: uncaught exception: division by zero*") {
     throw "uncaught_runtime_error output mismatch. Got '$uncaughtRuntimeOutput'"
 }
 Write-Host "fixture uncaught_runtime_error ok"
@@ -99,7 +100,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($unsetAttrExitCode -ne 1) {
     throw "unset_instance_attr expected exit code 1, got $unsetAttrExitCode"
 }
-if ($unsetAttrOutput -notlike "*runtime: object has no attribute*") {
+if ($unsetAttrOutput -notlike "*runtime: uncaught exception: object has no attribute*") {
     throw "unset_instance_attr output mismatch. Got '$unsetAttrOutput'"
 }
 Write-Host "fixture unset_instance_attr ok"

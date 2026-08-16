@@ -14,6 +14,9 @@ limitations under the License.
 */
 #include "xlang3/object_model.h"
 
+#include "xlang3/exceptions.h"
+#include "xlang3/value.h"
+
 namespace xlang3 {
 
 namespace {
@@ -141,6 +144,13 @@ std::string object_model_to_string(const Value& value) {
   }
   if (auto* instance = value_as_instance(value)) {
     if (auto* klass = value_as_class(instance->klass)) {
+      if (is_exception_class_name(klass->name)) {
+        for (const auto& attr : instance->attrs) {
+          if (attr.first == "message") {
+            return value_to_string(attr.second);
+          }
+        }
+      }
       return "<" + klass->name + " object>";
     }
     return "<object>";

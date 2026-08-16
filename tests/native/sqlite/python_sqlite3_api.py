@@ -59,3 +59,10 @@ print(check.execute("SELECT value FROM scoped"))
 print(check.fetchone()[0])
 print(check.close())
 print(scoped.close())
+
+try:
+    with sqlite3.connect(":memory:") as failing:
+        with failing.cursor() as failing_cur:
+            failing_cur.execute("SELECT * FROM missing_table")
+except:
+    print("sqlite error caught")

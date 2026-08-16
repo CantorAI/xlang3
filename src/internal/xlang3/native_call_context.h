@@ -18,10 +18,12 @@ limitations under the License.
 
 namespace xlang3 {
 class Runtime;
+struct Value;
 }
 
 struct X3CallContext {
   xlang3::Runtime* runtime = nullptr;
   std::string* error = nullptr;
+  xlang3::Value* exception = nullptr;
   void* user_data = nullptr;
 };

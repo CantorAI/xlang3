@@ -14,16 +14,12 @@ limitations under the License.
 */
 #pragma once
 
-#include "xlang3/runtime.h"
+#include "xlang3/value.h"
+
+#include <string>
 
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime);
-void register_exception_builtins(Runtime& runtime);
-void register_io_builtins(Runtime& runtime);
-void register_sequence_builtins(Runtime& runtime);
-void register_raw_block_builtins(Runtime& runtime);
-void register_builtin_modules(Runtime& runtime);
-void register_math_module(Runtime& runtime);
+bool is_exception_class_name(const std::string& name);
 
 } // namespace xlang3

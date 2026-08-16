@@ -34,16 +34,20 @@ struct PackageState {
   X3Value cursor_class = x3_value_invalid();
   X3Value database_class = x3_value_invalid();
   X3Value statement_class = x3_value_invalid();
+  X3Value error_class = x3_value_invalid();
+  X3Value database_error_class = x3_value_invalid();
+  X3Value operational_error_class = x3_value_invalid();
+  X3Value programming_error_class = x3_value_invalid();
 };
 
 PackageState* state_from(void* user_data) {
   return static_cast<PackageState*>(user_data);
 }
 
-void set_sqlite_error(const X3PackageHost* host, X3CallContext* context, sqlite3* db, const char* prefix) {
+void raise_sqlite_error(PackageState* state, X3CallContext* context, sqlite3* db, const char* prefix) {
   const char* sqlite_error = db == nullptr ? "database is closed" : sqlite3_errmsg(db);
   const std::string error = std::string(prefix) + ": " + sqlite_error;
-  host->set_error(context, error.c_str());
+  state->host->raise_error(context, state->operational_error_class, error.c_str());
 }
 
 bool check_argc(const X3PackageHost* host, X3CallContext* context, uint32_t argc, uint32_t expected, const char* name) {
@@ -51,7 +55,7 @@ bool check_argc(const X3PackageHost* host, X3CallContext* context, uint32_t argc
     return true;
   }
   const std::string error = std::string(name) + " expected " + std::to_string(expected) + " arguments";
-  host->set_error(context, error.c_str());
+  host->raise_class_error(context, "TypeError", error.c_str());
   return false;
 }
 
@@ -102,7 +106,7 @@ X3Status make_connection(
   sqlite3* db = nullptr;
   const int rc = sqlite3_open(path, &db);
   if (rc != SQLITE_OK) {
-    set_sqlite_error(host, context, db, "sqlite3.open failed");
+    raise_sqlite_error(state, context, db, "sqlite3.open failed");
     if (db != nullptr) {
       sqlite3_close(db);
     }
@@ -145,7 +149,7 @@ X3Status connection_init(
   sqlite3* db = nullptr;
   const int rc = sqlite3_open(path, &db);
   if (rc != SQLITE_OK) {
-    set_sqlite_error(host, context, db, "sqlite3.open failed");
+    raise_sqlite_error(state, context, db, "sqlite3.open failed");
     if (db != nullptr) sqlite3_close(db);
     return X3_STATUS_ERROR;
   }
@@ -193,7 +197,7 @@ X3Status connection_cursor(
   }
   auto* connection = xlang3_sqlite::connection_from(host, args[0]);
   if (connection == nullptr || connection->db == nullptr || connection->closed) {
-    host->set_error(context, "sqlite connection is closed");
+    host->raise_error(context, state->programming_error_class, "sqlite connection is closed");
     return X3_STATUS_ERROR;
   }
   X3Value cursor = host->value_instance(runtime, state->cursor_class);
@@ -234,11 +238,11 @@ X3Status connection_commit(
   if (!check_argc(host, context, argc, 1, "Connection.commit()")) return X3_STATUS_ERROR;
   auto* connection = xlang3_sqlite::connection_from(host, args[0]);
   if (connection == nullptr || !ensure_transaction(connection)) {
-    host->set_error(context, "sqlite connection is closed");
+    host->raise_error(context, state_from(user_data)->programming_error_class, "sqlite connection is closed");
     return X3_STATUS_ERROR;
   }
   if (!sqlite3_get_autocommit(connection->db) && sqlite3_exec(connection->db, "COMMIT", nullptr, nullptr, nullptr) != SQLITE_OK) {
-    set_sqlite_error(host, context, connection->db, "commit failed");
+    raise_sqlite_error(state_from(user_data), context, connection->db, "commit failed");
     return X3_STATUS_ERROR;
   }
   *result = x3_value_none();
@@ -275,11 +279,11 @@ X3Status connection_rollback(
   if (!check_argc(host, context, argc, 1, "Connection.rollback()")) return X3_STATUS_ERROR;
   auto* connection = xlang3_sqlite::connection_from(host, args[0]);
   if (connection == nullptr || !ensure_transaction(connection)) {
-    host->set_error(context, "sqlite connection is closed");
+    host->raise_error(context, state_from(user_data)->programming_error_class, "sqlite connection is closed");
     return X3_STATUS_ERROR;
   }
   if (!sqlite3_get_autocommit(connection->db) && sqlite3_exec(connection->db, "ROLLBACK", nullptr, nullptr, nullptr) != SQLITE_OK) {
-    set_sqlite_error(host, context, connection->db, "rollback failed");
+    raise_sqlite_error(state_from(user_data), context, connection->db, "rollback failed");
     return X3_STATUS_ERROR;
   }
   *result = x3_value_none();
@@ -364,12 +368,12 @@ X3Status cursor_execute(
     X3Value* result) {
   auto* host = state_from(user_data)->host;
   if (argc != 2 && argc != 3) {
-    host->set_error(context, "Cursor.execute() expected 1 or 2 arguments");
+    host->raise_class_error(context, "TypeError", "Cursor.execute() expected 1 or 2 arguments");
     return X3_STATUS_ERROR;
   }
   auto* cursor = xlang3_sqlite::cursor_from(host, args[0]);
   if (cursor == nullptr || cursor->connection == nullptr || cursor->connection->db == nullptr || cursor->connection->closed) {
-    host->set_error(context, "sqlite cursor is closed");
+    host->raise_error(context, state_from(user_data)->programming_error_class, "sqlite cursor is closed");
     return X3_STATUS_ERROR;
   }
   const char* sql = nullptr;
@@ -381,21 +385,21 @@ X3Status cursor_execute(
     cursor->stmt = nullptr;
   }
   if (!begin_python_transaction(cursor->connection, sql)) {
-    set_sqlite_error(host, context, cursor->connection->db, "begin transaction failed");
+    raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "begin transaction failed");
     return X3_STATUS_ERROR;
   }
   if (sqlite3_prepare_v2(cursor->connection->db, sql, -1, &cursor->stmt, nullptr) != SQLITE_OK) {
-    set_sqlite_error(host, context, cursor->connection->db, "prepare failed");
+    raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "prepare failed");
     return X3_STATUS_ERROR;
   }
   if (argc == 3 && !xlang3_sqlite::bind_params(host, runtime, cursor->stmt, args[2])) {
-    set_sqlite_error(host, context, cursor->connection->db, "bind failed");
+    raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "bind failed");
     return X3_STATUS_ERROR;
   }
   if (sqlite3_column_count(cursor->stmt) == 0) {
     const int rc = sqlite3_step(cursor->stmt);
     if (rc != SQLITE_DONE) {
-      set_sqlite_error(host, context, cursor->connection->db, "execute failed");
+      raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "execute failed");
       return X3_STATUS_ERROR;
     }
   }
@@ -426,7 +430,7 @@ X3Status cursor_fetchone(
     *result = x3_value_none();
     return X3_STATUS_OK;
   }
-  set_sqlite_error(host, context, cursor->connection->db, "fetchone failed");
+  raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "fetchone failed");
   return X3_STATUS_ERROR;
 }
 
@@ -453,7 +457,7 @@ X3Status cursor_fetchall(
     }
     if (rc != SQLITE_ROW) {
       host->value_release(rows);
-      set_sqlite_error(host, context, cursor->connection->db, "fetchall failed");
+      raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "fetchall failed");
       return X3_STATUS_ERROR;
     }
     X3Value row = xlang3_sqlite::row_list(host, runtime, cursor->stmt);
@@ -496,7 +500,7 @@ X3Status database_statement(
   if (!xlang3_sqlite::require_string(host, context, runtime, args[1], "Database.statement() SQL must be a string", &sql)) return X3_STATUS_ERROR;
   sqlite3_stmt* stmt = nullptr;
   if (sqlite3_prepare_v2(connection->db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-    set_sqlite_error(host, context, connection->db, "prepare failed");
+    raise_sqlite_error(state, context, connection->db, "prepare failed");
     return X3_STATUS_ERROR;
   }
   X3Value instance = host->value_instance(runtime, state->statement_class);
@@ -689,7 +693,7 @@ X3Status statement_fetchall(
     }
     if (rc != SQLITE_ROW) {
       host->value_release(rows);
-      set_sqlite_error(host, context, statement->connection->db, "fetchall failed");
+      raise_sqlite_error(state_from(user_data), context, statement->connection->db, "fetchall failed");
       return X3_STATUS_ERROR;
     }
     X3Value row = xlang3_sqlite::row_list(host, runtime, statement->stmt);
@@ -718,7 +722,7 @@ X3Status statement_fetchall_dict(
     }
     if (rc != SQLITE_ROW) {
       host->value_release(rows);
-      set_sqlite_error(host, context, statement->connection->db, "fetchallDict failed");
+      raise_sqlite_error(state_from(user_data), context, statement->connection->db, "fetchallDict failed");
       return X3_STATUS_ERROR;
     }
     X3Value row = xlang3_sqlite::row_dict(host, runtime, statement->stmt);
@@ -758,6 +762,17 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
       host->add_module(package, "sqlite", &sqlite) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
+
+  if (host->module_add_class(sqlite3, "Error", nullptr, 0, &state->error_class) != X3_STATUS_OK ||
+      host->module_add_class(sqlite3, "DatabaseError", nullptr, 0, &state->database_error_class) != X3_STATUS_OK ||
+      host->module_add_class(sqlite3, "OperationalError", nullptr, 0, &state->operational_error_class) != X3_STATUS_OK ||
+      host->module_add_class(sqlite3, "ProgrammingError", nullptr, 0, &state->programming_error_class) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+  host->module_add_value(sqlite, "Error", state->error_class);
+  host->module_add_value(sqlite, "DatabaseError", state->database_error_class);
+  host->module_add_value(sqlite, "OperationalError", state->operational_error_class);
+  host->module_add_value(sqlite, "ProgrammingError", state->programming_error_class);
 
   X3NativeFunctionDef connection_methods[7]{};
   def_method(connection_methods[0], "__init__", connection_init, state);

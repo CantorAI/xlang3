@@ -35,6 +35,12 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "print");
   copy_builtin(runtime, builtins, "len");
   copy_builtin(runtime, builtins, "range");
+  copy_builtin(runtime, builtins, "BaseException");
+  copy_builtin(runtime, builtins, "Exception");
+  copy_builtin(runtime, builtins, "RuntimeError");
+  copy_builtin(runtime, builtins, "TypeError");
+  copy_builtin(runtime, builtins, "ValueError");
+  copy_builtin(runtime, builtins, "ImportError");
   runtime.register_module("_builtins", std::move(builtins));
 }
 

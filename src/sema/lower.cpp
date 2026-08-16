@@ -505,6 +505,7 @@ private:
     emit(ir::Op::PopExcept);
     const auto skip_except = emit_jump(ir::Op::Jump);
     patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    emit(ir::Op::ClearException);
     lower_body(stmt.except_body);
     patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
   }
@@ -523,7 +524,9 @@ private:
     } else {
       emit(ir::Op::Pop, 0, entered);
     }
+    const auto setup = emit_jump(ir::Op::SetupWith, manager);
     lower_body(stmt.body);
+    emit(ir::Op::PopExcept);
     const auto none_type = new_reg();
     const auto none_value = new_reg();
     const auto none_tb = new_reg();
@@ -533,6 +536,22 @@ private:
     emit(ir::Op::LoadConst, none_tb, none_const);
     const auto exit_result = emit_call_method(manager, "__exit__", {none_type, none_value, none_tb});
     emit(ir::Op::Pop, 0, exit_result);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    const auto exc_type = new_reg();
+    const auto exc_value = new_reg();
+    const auto exc_tb = new_reg();
+    emit(ir::Op::LoadExceptionType, exc_type);
+    emit(ir::Op::LoadException, exc_value);
+    emit(ir::Op::LoadConst, exc_tb, none_const);
+    const auto handled = emit_call_method(manager, "__exit__", {exc_type, exc_value, exc_tb});
+    const auto rereraise = emit_jump(ir::Op::JumpIfFalse, handled);
+    emit(ir::Op::ClearException);
+    const auto suppressed = emit_jump(ir::Op::Jump);
+    patch_jump(rereraise, static_cast<uint32_t>(fn_.code.size()));
+    emit(ir::Op::Reraise);
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    patch_jump(suppressed, static_cast<uint32_t>(fn_.code.size()));
   }
 
   bool try_emit_direct_local_assign(const ast::AssignStmt& assign) {

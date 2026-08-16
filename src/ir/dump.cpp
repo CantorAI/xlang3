@@ -68,8 +68,13 @@ const char* op_name(Op op) {
     case Op::JumpIfFalse: return "JumpIfFalse";
     case Op::JumpIfLocalConstFalse: return "JumpIfLocalConstFalse";
     case Op::SetupExcept: return "SetupExcept";
+    case Op::SetupWith: return "SetupWith";
     case Op::PopExcept: return "PopExcept";
     case Op::Raise: return "Raise";
+    case Op::Reraise: return "Reraise";
+    case Op::ClearException: return "ClearException";
+    case Op::LoadException: return "LoadException";
+    case Op::LoadExceptionType: return "LoadExceptionType";
     case Op::CallMethod: return "CallMethod";
     case Op::Call: return "Call";
     case Op::Pop: return "Pop";

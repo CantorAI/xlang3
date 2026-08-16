@@ -1,0 +1,15 @@
+before fail
+caught from function
+enter suppress
+<class 'RuntimeError'>
+index out of range
+None
+exit suppress
+after suppress
+enter propagate
+before fail
+<class 'RuntimeError'>
+index out of range
+None
+exit propagate
+caught propagated
