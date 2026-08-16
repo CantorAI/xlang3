@@ -163,6 +163,7 @@ void collect_self_attr_slots_stmt(
       }
       for (const auto& child : handler.body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
     }
+    for (const auto& child : try_except->finally_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
     return;
   }
   if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
@@ -185,6 +186,7 @@ void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& 
       for (const auto& handler : try_except->handlers) {
         collect_global_names(handler.body, names);
       }
+      collect_global_names(try_except->finally_body, names);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       collect_global_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
@@ -398,7 +400,22 @@ private:
   void emit_return_none() {
     const auto reg = new_reg();
     emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+    lower_active_finalizers();
     emit(ir::Op::Return, 0, reg);
+  }
+
+  void lower_finalizer_body(const std::vector<ast::StmtPtr>& body) {
+    const auto saved = std::move(active_finalizers_);
+    active_finalizers_.clear();
+    lower_body(body);
+    active_finalizers_ = std::move(saved);
+  }
+
+  void lower_active_finalizers() {
+    const auto saved = active_finalizers_;
+    for (auto it = saved.rbegin(); it != saved.rend(); ++it) {
+      lower_finalizer_body(**it);
+    }
   }
 
   void store_named_value(const std::string& name, uint32_t reg) {
@@ -506,7 +523,7 @@ private:
     return true;
   }
 
-  void lower_try_except(const ast::TryExceptStmt& stmt) {
+  void lower_try_except_core(const ast::TryExceptStmt& stmt) {
     const auto setup = emit_jump(ir::Op::SetupExcept);
     lower_body(stmt.try_body);
     emit(ir::Op::PopExcept);
@@ -538,6 +555,25 @@ private:
       patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
     }
     patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
+  }
+
+  void lower_try_except(const ast::TryExceptStmt& stmt) {
+    if (stmt.finally_body.empty()) {
+      lower_try_except_core(stmt);
+      return;
+    }
+
+    const auto setup = emit_jump(ir::Op::SetupExcept);
+    active_finalizers_.push_back(&stmt.finally_body);
+    lower_try_except_core(stmt);
+    active_finalizers_.pop_back();
+    emit(ir::Op::PopExcept);
+    lower_finalizer_body(stmt.finally_body);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    lower_finalizer_body(stmt.finally_body);
+    emit(ir::Op::Reraise);
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
   }
 
   uint32_t emit_call_method(uint32_t object, const std::string& name, std::vector<uint32_t> args) {
@@ -790,6 +826,7 @@ private:
     }
     if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
       const auto reg = lower_expr(*ret->value);
+      lower_active_finalizers();
       emit(ir::Op::Return, 0, reg);
       return;
     }
@@ -1063,6 +1100,7 @@ private:
   std::unordered_map<std::string, uint32_t> name_ids_;
   sema::NameSet hidden_locals_;
   std::unordered_map<std::string, std::string> name_aliases_;
+  std::vector<const std::vector<ast::StmtPtr>*> active_finalizers_;
   uint32_t next_hidden_local_ = 0;
 };
 

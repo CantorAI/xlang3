@@ -37,6 +37,7 @@ enum class TokenKind {
   KwElse,
   KwTry,
   KwExcept,
+  KwFinally,
   KwRaise,
   KwWith,
   KwWhile,

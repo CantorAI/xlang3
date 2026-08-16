@@ -1,0 +1,17 @@
+normal body
+normal finally
+raise body
+raise finally
+caught raise
+raise path
+handled body
+handled except
+handled path
+handled finally
+return body
+return finally
+7
+nested return body
+inner finally
+outer finally
+9

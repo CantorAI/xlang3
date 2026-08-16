@@ -197,6 +197,7 @@ struct ExceptHandler {
 struct TryExceptStmt final : Stmt {
   std::vector<StmtPtr> try_body;
   std::vector<ExceptHandler> handlers;
+  std::vector<StmtPtr> finally_body;
 };
 
 struct WithStmt final : Stmt {

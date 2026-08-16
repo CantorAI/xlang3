@@ -42,6 +42,7 @@ $cases = @(
     "runtime_error_exceptions",
     "exception_unwind_with",
     "typed_exceptions",
+    "finally_blocks",
     "classes",
     "class_dynamic_attrs",
     "context_managers",

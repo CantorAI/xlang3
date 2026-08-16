@@ -103,10 +103,7 @@ ast::StmtPtr Parser::parse_statement() {
     consume(TokenKind::Newline, "expected newline after try");
     consume(TokenKind::Indent, "expected indented try body");
     stmt->try_body = parse_block();
-    if (!consume(TokenKind::KwExcept, "expected except after try body")) {
-      return stmt;
-    }
-    do {
+    while (match(TokenKind::KwExcept)) {
       ast::ExceptHandler handler;
       if (!check(TokenKind::Colon)) {
         handler.type = parse_expression();
@@ -121,7 +118,16 @@ ast::StmtPtr Parser::parse_statement() {
       consume(TokenKind::Indent, "expected indented except body");
       handler.body = parse_block();
       stmt->handlers.push_back(std::move(handler));
-    } while (match(TokenKind::KwExcept));
+    }
+    if (match(TokenKind::KwFinally)) {
+      consume(TokenKind::Colon, "expected ':' after finally");
+      consume(TokenKind::Newline, "expected newline after finally");
+      consume(TokenKind::Indent, "expected indented finally body");
+      stmt->finally_body = parse_block();
+    }
+    if (stmt->handlers.empty() && stmt->finally_body.empty()) {
+      error_here("expected except or finally after try body");
+    }
     return stmt;
   }
   if (match(TokenKind::KwWith)) {

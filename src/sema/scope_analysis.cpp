@@ -55,6 +55,7 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
         }
         collect_assigned_names(handler.body, names, seen);
       }
+      collect_assigned_names(try_except->finally_body, names, seen);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       if (!with->target.empty()) {
         add_unique(names, seen, with->target);
@@ -83,6 +84,7 @@ void collect_nonlocal_names(const std::vector<ast::StmtPtr>& body, NameSet& name
       for (const auto& handler : try_except->handlers) {
         collect_nonlocal_names(handler.body, names);
       }
+      collect_nonlocal_names(try_except->finally_body, names);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       collect_nonlocal_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
@@ -107,6 +109,7 @@ void collect_global_names(const std::vector<ast::StmtPtr>& body, NameSet& names)
       for (const auto& handler : try_except->handlers) {
         collect_global_names(handler.body, names);
       }
+      collect_global_names(try_except->finally_body, names);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       collect_global_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
@@ -204,6 +207,7 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
         }
         collect_reads_body(handler.body, names, seen);
       }
+      collect_reads_body(try_except->finally_body, names, seen);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       collect_reads_expr(*with->manager, names, seen);
       collect_reads_body(with->body, names, seen);

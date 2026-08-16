@@ -153,6 +153,7 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       else if (text == "else") kind = TokenKind::KwElse;
       else if (text == "try") kind = TokenKind::KwTry;
       else if (text == "except") kind = TokenKind::KwExcept;
+      else if (text == "finally") kind = TokenKind::KwFinally;
       else if (text == "raise") kind = TokenKind::KwRaise;
       else if (text == "with") kind = TokenKind::KwWith;
       else if (text == "while") kind = TokenKind::KwWhile;
