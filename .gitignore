@@ -12,6 +12,8 @@
 # limitations under the License.
 
 build/
+build-embedded-host/
+build-rp2040/
 .xlang3/
 tmp-ir/
 scratch/

@@ -16,7 +16,9 @@ limitations under the License.
 
 #include "xlang3/value.h"
 
+#if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
+#endif
 #include <functional>
 #include <ostream>
 #include <string>
@@ -71,9 +73,11 @@ public:
       std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error);
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
+#if !defined(XLANG3_EMBEDDED)
   void add_import_root(std::filesystem::path root);
   void prepend_import_root(std::filesystem::path root);
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
+#endif
   void set_last_error(std::string error) { last_error_ = std::move(error); }
   const std::string& last_error() const { return last_error_; }
 
@@ -86,7 +90,9 @@ private:
   std::unordered_map<std::string, Value> modules_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
+#if !defined(XLANG3_EMBEDDED)
   std::vector<std::filesystem::path> import_roots_;
+#endif
 };
 
 } // namespace xlang3

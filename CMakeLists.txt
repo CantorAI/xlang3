@@ -18,6 +18,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(XLANG3_EMBEDDED "Build the static embedded runtime subset" OFF)
+
+if(NOT XLANG3_EMBEDDED)
 set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -27,9 +30,9 @@ add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
 add_subdirectory(modules/json)
 add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
+endif()
 
 set(XLANG3_RUNTIME_SOURCES
-  src/api/c_api.cpp
   src/builtins/builtins.cpp
   src/builtins/builtin_modules.cpp
   src/builtins/exception_builtins.cpp
@@ -54,13 +57,32 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/runtime.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp
-  src/import/import_loader.cpp
-  src/import/native_package_loader.cpp
   src/sema/scope_analysis.cpp
   src/sema/lower.cpp
   src/ir/dump.cpp
   src/executor/interpreter.cpp
 )
+
+if(NOT XLANG3_EMBEDDED)
+  list(APPEND XLANG3_RUNTIME_SOURCES
+    src/api/c_api.cpp
+    src/import/import_loader.cpp
+    src/import/native_package_loader.cpp
+  )
+endif()
+
+if(XLANG3_EMBEDDED)
+add_library(xlang3_runtime_embedded STATIC ${XLANG3_RUNTIME_SOURCES})
+target_compile_definitions(xlang3_runtime_embedded PUBLIC XLANG3_EMBEDDED=1)
+target_include_directories(xlang3_runtime_embedded
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+)
+target_compile_features(xlang3_runtime_embedded PUBLIC cxx_std_17)
+return()
+endif()
 
 add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})

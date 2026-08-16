@@ -15,23 +15,28 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include "xlang3/builtins.h"
+#if !defined(XLANG3_EMBEDDED)
 #include "xlang3/import_loader.h"
-#include "xlang3/module_object.h"
 #include "xlang3/native_package_loader.h"
+#endif
+#include "xlang3/module_object.h"
 
 #include <algorithm>
 #include <utility>
 
+#if !defined(XLANG3_EMBEDDED)
 #if defined(_WIN32)
 #include <windows.h>
 #elif defined(__APPLE__) || defined(__linux__)
 #include <dlfcn.h>
+#endif
 #endif
 
 namespace xlang3 {
 
 namespace {
 
+#if !defined(XLANG3_EMBEDDED)
 void runtime_module_anchor() {}
 
 std::filesystem::path runtime_library_dir() {
@@ -82,12 +87,15 @@ std::filesystem::path normalize_import_root(std::filesystem::path root) {
 bool has_import_root(const std::vector<std::filesystem::path>& roots, const std::filesystem::path& root) {
   return std::find(roots.begin(), roots.end(), root) != roots.end();
 }
+#endif
 
 } // namespace
 
 Runtime::Runtime(std::ostream& out) : out_(out) {
   register_core_builtins(*this);
+#if !defined(XLANG3_EMBEDDED)
   add_default_import_layout(*this, runtime_library_dir());
+#endif
 }
 
 Runtime::~Runtime() {
@@ -166,6 +174,7 @@ bool Runtime::execute_raw_block(
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
   auto it = modules_.find(name);
   if (it == modules_.end()) {
+#if !defined(XLANG3_EMBEDDED)
     std::string python_error;
     if (import_python_module(*this, name, out, python_error)) {
       return true;
@@ -175,6 +184,9 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       return true;
     }
     error = native_error.empty() ? python_error : native_error;
+#else
+    error = "module '" + name + "' not found in embedded runtime";
+#endif
     return false;
   }
   value_assign_fast(out, it->second);
@@ -197,6 +209,7 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   return false;
 }
 
+#if !defined(XLANG3_EMBEDDED)
 void Runtime::add_import_root(std::filesystem::path root) {
   root = normalize_import_root(std::move(root));
   if (has_import_root(import_roots_, root)) {
@@ -212,5 +225,6 @@ void Runtime::prepend_import_root(std::filesystem::path root) {
   }
   import_roots_.insert(import_roots_.begin(), std::move(root));
 }
+#endif
 
 } // namespace xlang3
