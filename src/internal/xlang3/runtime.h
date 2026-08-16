@@ -41,6 +41,7 @@ public:
       std::string& error);
 
   explicit Runtime(std::ostream& out);
+  ~Runtime();
 
   std::ostream& out() { return out_; }
 
@@ -60,6 +61,7 @@ public:
       void (*user_data_cleanup)(void*) = nullptr);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
+  void register_native_package_cleanup(void* data, void (*cleanup)(void*));
   void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
   bool execute_raw_block(
       RawBlockContext& context,
@@ -82,6 +84,7 @@ private:
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
+  std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
   std::vector<std::filesystem::path> import_roots_;
 };

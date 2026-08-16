@@ -44,6 +44,24 @@ PackageState* state_from(void* user_data) {
   return static_cast<PackageState*>(user_data);
 }
 
+void cleanup_package_state(void* data) {
+  auto* state = state_from(data);
+  if (state == nullptr) {
+    return;
+  }
+  if (state->host != nullptr) {
+    state->host->value_release(state->connection_class);
+    state->host->value_release(state->cursor_class);
+    state->host->value_release(state->database_class);
+    state->host->value_release(state->statement_class);
+    state->host->value_release(state->error_class);
+    state->host->value_release(state->database_error_class);
+    state->host->value_release(state->operational_error_class);
+    state->host->value_release(state->programming_error_class);
+  }
+  delete state;
+}
+
 void raise_sqlite_error(PackageState* state, X3CallContext* context, sqlite3* db, const char* prefix) {
   const char* sqlite_error = db == nullptr ? "database is closed" : sqlite3_errmsg(db);
   const std::string error = std::string(prefix) + ": " + sqlite_error;
@@ -755,6 +773,7 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
   }
   auto* state = new PackageState();
   state->host = host;
+  host->package_set_cleanup(package, state, cleanup_package_state);
 
   X3Module* sqlite3 = nullptr;
   X3Module* sqlite = nullptr;

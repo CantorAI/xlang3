@@ -76,6 +76,14 @@ typedef struct X3NativeFunctionDef {
 X3Status module_add_function(X3Module* module, const X3NativeFunctionDef* def);
 ```
 
+Package-wide state is owned by the package but cleaned up by the runtime:
+
+```c
+host->package_set_cleanup(package, state, cleanup_state);
+```
+
+The cleanup callback must release any retained `X3Value` handles and free package-owned memory. The runtime runs package cleanup after module values are released, while the native package binary is still loaded.
+
 ## C Native Function Example
 
 ```c

@@ -90,6 +90,7 @@ Performance:
 - [x] global/module lookup cache
 - [~] call fast path
 - [x] C API calls for native functions, XLang functions, bound methods, and class constructors
+- [x] native package cleanup hook
 - [x] C++ SDK calls for native packages, attributes, class construction, bound methods, and container item basics
 - [x] benchmark comparison against CPython for current microbenchmarks
 - [~] pyperformance integration track
@@ -116,7 +117,7 @@ Implemented Phase 1 syntax/runtime subset:
 
 Next Phase 1 implementation candidates:
 
-1. Native package metadata/cleanup hook and stronger load diagnostics.
+1. Native package metadata and stronger load diagnostics.
 2. More complete container/string builtin method coverage.
 3. Broader parser compatibility.
 4. Expand guarded inline caches without hardcoding Python-incompatible assumptions.
@@ -150,7 +151,7 @@ Performance:
 
 Phase 2 gate:
 
-Do not enter Phase 2 broadly until Phase 1 has stable native package loading/cleanup, class foundation, exceptions foundation, and expanded compatibility tests.
+Do not enter Phase 2 broadly until Phase 1 has stable native package metadata/load diagnostics, class foundation, exceptions foundation, and expanded compatibility tests.
 
 ## Phase 3: GraphIR, JIT, AOT
 

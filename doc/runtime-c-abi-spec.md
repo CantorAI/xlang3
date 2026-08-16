@@ -120,10 +120,11 @@ typedef struct X3PackageHost {
     X3Status (*list_append)(X3Runtime* runtime, X3Value list, X3Value item);
     X3Status (*dict_set_item)(X3Runtime* runtime, X3Value dict, X3Value key, X3Value item);
     X3Status (*dict_get_entry)(X3Runtime* runtime, X3Value dict, uint64_t index, X3Value* key, X3Value* value);
+    X3Status (*package_set_cleanup)(X3Package* package, void* data, X3PackageCleanup cleanup);
 } X3PackageHost;
 ```
 
-`abi_version` and `size` allow backward-compatible extension.
+`abi_version` and `size` allow backward-compatible extension. Packages that allocate package-wide state should register it with `package_set_cleanup`; the runtime calls that cleanup after module values are released and before process shutdown unload decisions.
 
 ## Native Function
 

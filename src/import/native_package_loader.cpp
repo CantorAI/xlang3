@@ -43,6 +43,8 @@ struct X3Package {
   xlang3::Value root_module;
   xlang3::Value requested_module;
   std::vector<std::unique_ptr<X3Module>> modules;
+  void* cleanup_data = nullptr;
+  X3PackageCleanup cleanup = nullptr;
 };
 
 namespace xlang3 {
@@ -346,6 +348,15 @@ X3Value host_value_instance(X3Runtime* runtime, X3Value klass) {
   return to_c_value(Value::instance(std::move(internal_class)));
 }
 
+X3Status host_package_set_cleanup(X3Package* package, void* data, X3PackageCleanup cleanup) {
+  if (package == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  package->cleanup_data = data;
+  package->cleanup = cleanup;
+  return X3_STATUS_OK;
+}
+
 X3Status host_set_error(X3CallContext* context, const char* message) {
   if (context == nullptr || context->error == nullptr) {
     return X3_STATUS_ERROR;
@@ -418,6 +429,7 @@ const X3PackageHost kPackageHost = {
     host_instance_set_native_data,
     host_instance_get_native_data,
     host_value_instance,
+    host_package_set_cleanup,
 };
 
 bool find_native_library(Runtime& runtime, const std::string& name, std::filesystem::path& out) {
@@ -464,10 +476,18 @@ bool import_native_package(Runtime& runtime, const std::string& package_name, Va
   module_set_attr(package.root_module, "__file__", Value::string(library_path.string()), error);
 
   if (init(&kPackageHost, &package) != X3_STATUS_OK) {
+    if (package.cleanup != nullptr) {
+      package.cleanup(package.cleanup_data);
+      package.cleanup = nullptr;
+      package.cleanup_data = nullptr;
+    }
     error = runtime.last_error().empty() ? "native package init failed" : runtime.last_error();
     return false;
   }
 
+  if (package.cleanup != nullptr) {
+    runtime.register_native_package_cleanup(package.cleanup_data, package.cleanup);
+  }
   loaded_library_handles().push_back(handle);
   if (package.requested_module.tag != ValueTag::Invalid) {
     runtime.register_module(package_name, package.requested_module);

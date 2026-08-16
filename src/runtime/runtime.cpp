@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/native_package_loader.h"
 
 #include <algorithm>
+#include <utility>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -89,6 +90,17 @@ Runtime::Runtime(std::ostream& out) : out_(out) {
   add_default_import_layout(*this, runtime_library_dir());
 }
 
+Runtime::~Runtime() {
+  modules_.clear();
+  builtins_.clear();
+  value_set_invalid(pending_exception_);
+  for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
+    if (it->second != nullptr) {
+      it->second(it->first);
+    }
+  }
+}
+
 void Runtime::register_builtin(std::string name, Value value) {
   builtins_[std::move(name)] = std::move(value);
 }
@@ -121,6 +133,13 @@ void Runtime::register_module(std::string name, Value module) {
 
 void Runtime::unregister_module(const std::string& name) {
   modules_.erase(name);
+}
+
+void Runtime::register_native_package_cleanup(void* data, void (*cleanup)(void*)) {
+  if (cleanup == nullptr) {
+    return;
+  }
+  native_package_cleanups_.push_back(std::make_pair(data, cleanup));
 }
 
 void Runtime::register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler) {
