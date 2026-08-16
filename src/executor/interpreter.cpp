@@ -716,6 +716,21 @@ RuntimeResult Interpreter::run_module(
   return run_function(module, module.entry, {}, empty_closure, std::move(globals_module), std::move(module_owner));
 }
 
+RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgsView args) {
+  RuntimeResult result;
+  if (function == nullptr || function->module == nullptr) {
+    result.errors.push_back("function has no module");
+    return result;
+  }
+  return run_function(
+      *function->module,
+      function->function_id,
+      args,
+      function->closure,
+      function->globals_module,
+      function->module);
+}
+
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
     uint32_t function_id,

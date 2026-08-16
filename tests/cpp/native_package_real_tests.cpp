@@ -57,6 +57,19 @@ int main(int argc, char** argv) {
       std::cerr << "bad sqlite fallback import\n";
       return 1;
     }
+    auto error = sqlite3["OperationalError"]("sdk sqlite error");
+    if (error.ToString() != "sdk sqlite error") {
+      std::cerr << "bad sqlite exception construction\n";
+      return 1;
+    }
+    auto conn = sqlite3.fn("connect")(":memory:");
+    auto cursor = conn["cursor"]();
+    if (cursor.ToString() != "<Cursor object>") {
+      std::cerr << "bad bound cursor method call\n";
+      return 1;
+    }
+    cursor["close"]();
+    conn["close"]();
   } catch (const std::exception& ex) {
     std::cerr << ex.what() << "\n";
     return 1;

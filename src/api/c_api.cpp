@@ -22,6 +22,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/native_call_context.h"
+#include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sequence.h"
 #include "xlang3/runtime.h"
@@ -62,6 +63,124 @@ bool read_file(const char* path, std::string& source, std::string& error) {
   buffer << file.rdbuf();
   source = buffer.str();
   return true;
+}
+
+bool call_native_function(
+    xlang3::Runtime& runtime,
+    xlang3::NativeFunctionObject* native,
+    const std::vector<xlang3::Value>& args,
+    xlang3::Value& out,
+    std::string& error) {
+  if (native == nullptr || native->callback == nullptr) {
+    error = "native function callback is missing";
+    return false;
+  }
+  if (!native->callback(
+          runtime,
+          args.empty() ? nullptr : args.data(),
+          static_cast<uint32_t>(args.size()),
+          out,
+          error,
+          native->user_data)) {
+    xlang3::Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      error = xlang3::value_to_string(pending);
+    }
+    if (error.empty()) {
+      error = "native function failed";
+    }
+    return false;
+  }
+  return true;
+}
+
+bool call_function_object(
+    xlang3::Runtime& runtime,
+    xlang3::FunctionObject* function,
+    const std::vector<xlang3::Value>& args,
+    xlang3::Value& out,
+    std::string& error) {
+  xlang3::CallArgsView view;
+  view.leading = args.empty() ? nullptr : args.data();
+  view.leading_count = static_cast<uint32_t>(args.size());
+  xlang3::Interpreter interpreter(runtime);
+  auto result = interpreter.run_function_value(function, view);
+  if (!result.errors.empty()) {
+    error = result.errors.front();
+    return false;
+  }
+  xlang3::value_assign_fast(out, result.value);
+  return true;
+}
+
+bool call_value(
+    xlang3::Runtime& runtime,
+    const xlang3::Value& callable,
+    const std::vector<xlang3::Value>& args,
+    xlang3::Value& out,
+    std::string& error);
+
+bool construct_class(
+    xlang3::Runtime& runtime,
+    const xlang3::Value& klass_value,
+    const std::vector<xlang3::Value>& args,
+    xlang3::Value& out,
+    std::string& error) {
+  auto* klass = xlang3::value_as_class(klass_value);
+  if (klass == nullptr) {
+    error = "object is not a class";
+    return false;
+  }
+  xlang3::Value instance = xlang3::Value::instance(klass_value);
+  xlang3::Value init;
+  if (xlang3::object_get_attr(klass_value, "__init__", init, error)) {
+    std::vector<xlang3::Value> init_args;
+    init_args.reserve(args.size() + 1);
+    init_args.push_back(instance);
+    for (const auto& arg : args) {
+      init_args.push_back(arg);
+    }
+    xlang3::Value ignored;
+    if (!call_value(runtime, init, init_args, ignored, error)) {
+      return false;
+    }
+  } else {
+    error.clear();
+    if (!args.empty()) {
+      error = "class construction expected no arguments";
+      return false;
+    }
+  }
+  xlang3::value_assign_fast(out, instance);
+  return true;
+}
+
+bool call_value(
+    xlang3::Runtime& runtime,
+    const xlang3::Value& callable,
+    const std::vector<xlang3::Value>& args,
+    xlang3::Value& out,
+    std::string& error) {
+  if (auto* native = xlang3::value_as_native_function(callable)) {
+    return call_native_function(runtime, native, args, out, error);
+  }
+  if (auto* function = xlang3::value_as_function(callable)) {
+    return call_function_object(runtime, function, args, out, error);
+  }
+  if (auto* bound = xlang3::value_as_bound_method(callable)) {
+    std::vector<xlang3::Value> bound_args;
+    bound_args.reserve(args.size() + 1);
+    bound_args.push_back(bound->self);
+    for (const auto& arg : args) {
+      bound_args.push_back(arg);
+    }
+    return call_value(runtime, bound->function, bound_args, out, error);
+  }
+  if (xlang3::value_as_class(callable) != nullptr) {
+    return construct_class(runtime, callable, args, out, error);
+  }
+  error = "object is not callable";
+  return false;
 }
 
 } // namespace
@@ -278,10 +397,6 @@ X3Status x3_call(X3Runtime* runtime, X3Value callable, const X3Value* args, uint
   if (!error.empty()) {
     return fail(rt, error);
   }
-  auto* native = xlang3::value_as_native_function(internal_callable);
-  if (native == nullptr || native->callback == nullptr) {
-    return fail(rt, "only native function calls are supported by the C API in this phase");
-  }
 
   std::vector<xlang3::Value> internal_args;
   internal_args.reserve(argc);
@@ -293,8 +408,8 @@ X3Status x3_call(X3Runtime* runtime, X3Value callable, const X3Value* args, uint
   }
 
   xlang3::Value out;
-  if (!native->callback(*rt, internal_args.data(), argc, out, error, native->user_data)) {
-    return fail(rt, error.empty() ? "native function failed" : error);
+  if (!call_value(*rt, internal_callable, internal_args, out, error)) {
+    return fail(rt, error);
   }
   *result = xlang3::to_c_value(out);
   return X3_STATUS_OK;

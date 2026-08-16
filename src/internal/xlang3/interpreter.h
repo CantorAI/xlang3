@@ -57,6 +57,7 @@ public:
       const ir::Module& module,
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
+  RuntimeResult run_function_value(FunctionObject* function, CallArgsView args);
 
 private:
   RuntimeResult run_function(
