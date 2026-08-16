@@ -46,6 +46,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/attribute.cpp
   src/runtime/methods/list_methods.cpp
   src/runtime/methods/dict_methods.cpp
+  src/runtime/methods/file_methods.cpp
   src/runtime/methods/set_methods.cpp
   src/runtime/methods/string_methods.cpp
   src/runtime/value.cpp
@@ -56,11 +57,13 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/set_object.cpp
   src/runtime/module_object.cpp
   src/runtime/runtime.cpp
+  src/runtime/vfs.cpp
   src/parser/source_cursor.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp
   src/sema/scope_analysis.cpp
   src/sema/lower.cpp
+  src/ir/codec.cpp
   src/executor/interpreter.cpp
   src/rpc/object_table.cpp
   src/rpc/memory_file_store.cpp
@@ -134,6 +137,7 @@ add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
+add_xlang3_cpp_test(xlang3_ir_codec_tests tests/cpp/ir_codec_tests.cpp)
 
 add_executable(xlang3_native_package_real_tests tests/cpp/native_package_real_tests.cpp)
 target_link_libraries(xlang3_native_package_real_tests PRIVATE xlang3_runtime)

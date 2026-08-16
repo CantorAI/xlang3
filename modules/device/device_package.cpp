@@ -37,19 +37,34 @@ namespace {
 constexpr const char* kDeviceNativeType = "xlang3.device.Device";
 constexpr const char* kI2CModuleNativeType = "xlang3.device.I2CModule";
 constexpr const char* kI2CBusNativeType = "xlang3.device.I2CBus";
+constexpr const char* kGPIOModuleNativeType = "xlang3.device.GPIOModule";
+constexpr const char* kGPIOPinNativeType = "xlang3.device.GPIOPin";
 constexpr char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+constexpr uint32_t kGpioModeIn = 0;
+constexpr uint32_t kGpioModeOut = 1;
+constexpr uint32_t kGpioPullNone = 0;
+constexpr uint32_t kGpioPullUp = 1;
+constexpr uint32_t kGpioPullDown = 2;
+constexpr uint32_t kGpioEdgeRising = 1;
+constexpr uint32_t kGpioEdgeFalling = 2;
+constexpr uint32_t kGpioEdgeChange = 3;
 
 struct DevicePackageState {
   const X3PackageHost* host = nullptr;
   X3Value device_class = x3_value_invalid();
   X3Value i2c_module_class = x3_value_invalid();
   X3Value i2c_bus_class = x3_value_invalid();
+  X3Value gpio_module_class = x3_value_invalid();
+  X3Value gpio_pin_class = x3_value_invalid();
 };
 
 struct DeviceHandle {
   std::string kind = "disconnected";
   std::string transport = "none";
   std::string port;
+  std::string connect_error;
+  uint32_t rpc_sequence = 0;
 #if defined(_WIN32)
   HANDLE serial = INVALID_HANDLE_VALUE;
 #endif
@@ -64,6 +79,11 @@ struct I2CBusProxy {
   uint32_t sda = 4;
   uint32_t scl = 5;
   uint32_t baud = 100000;
+};
+
+struct GPIOPinProxy {
+  DeviceHandle* handle = nullptr;
+  uint32_t pin = 0;
 };
 
 void cleanup_device(void* data) {
@@ -83,6 +103,10 @@ void cleanup_proxy(void* data) {
 
 void cleanup_i2c_bus(void* data) {
   delete static_cast<I2CBusProxy*>(data);
+}
+
+void cleanup_gpio_pin(void* data) {
+  delete static_cast<GPIOPinProxy*>(data);
 }
 
 DevicePackageState* state_from(void* user_data) {
@@ -159,6 +183,19 @@ bool require_uint(
   return false;
 }
 
+bool require_bool_or_uint(
+    const X3PackageHost* host,
+    X3CallContext* context,
+    X3Value value,
+    const char* message,
+    uint32_t& out) {
+  if (value.tag == X3_TAG_BOOL) {
+    out = value.as.b ? 1u : 0u;
+    return true;
+  }
+  return require_uint(host, context, value, message, out);
+}
+
 DeviceModuleProxy* require_module_proxy(
     DevicePackageState* state,
     X3CallContext* context,
@@ -175,6 +212,14 @@ I2CBusProxy* require_i2c_bus(DevicePackageState* state, X3CallContext* context, 
   auto* proxy = static_cast<I2CBusProxy*>(state->host->instance_get_native_data(self, kI2CBusNativeType));
   if (proxy == nullptr || proxy->handle == nullptr) {
     state->host->set_error(context, "invalid i2c bus object");
+  }
+  return proxy;
+}
+
+GPIOPinProxy* require_gpio_pin(DevicePackageState* state, X3CallContext* context, X3Value self) {
+  auto* proxy = static_cast<GPIOPinProxy*>(state->host->instance_get_native_data(self, kGPIOPinNativeType));
+  if (proxy == nullptr || proxy->handle == nullptr) {
+    state->host->set_error(context, "invalid GPIO pin object");
   }
   return proxy;
 }
@@ -235,23 +280,45 @@ bool base64_decode(const std::string& text, std::vector<uint8_t>& out) {
 }
 
 #if defined(_WIN32)
-bool open_serial_port(const std::string& port, HANDLE& out) {
+std::string windows_error_message(DWORD code) {
+  char buffer[256] = {};
+  DWORD written = FormatMessageA(
+      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+      nullptr,
+      code,
+      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      buffer,
+      static_cast<DWORD>(sizeof(buffer)),
+      nullptr);
+  if (written == 0) {
+    return "Windows error " + std::to_string(static_cast<unsigned long>(code));
+  }
+  std::string message(buffer, written);
+  while (!message.empty() && (message.back() == '\r' || message.back() == '\n' || message.back() == ' ')) {
+    message.pop_back();
+  }
+  return message + " (" + std::to_string(static_cast<unsigned long>(code)) + ")";
+}
+
+bool open_serial_port(const std::string& port, HANDLE& out, std::string& error) {
   const std::string path = "\\\\.\\" + port;
   HANDLE serial = CreateFileA(
       path.c_str(),
       GENERIC_READ | GENERIC_WRITE,
-      0,
+      FILE_SHARE_READ | FILE_SHARE_WRITE,
       nullptr,
       OPEN_EXISTING,
       FILE_ATTRIBUTE_NORMAL,
       nullptr);
   if (serial == INVALID_HANDLE_VALUE) {
+    error = "open " + port + ": " + windows_error_message(GetLastError());
     return false;
   }
 
   DCB dcb{};
   dcb.DCBlength = sizeof(dcb);
   if (!GetCommState(serial, &dcb)) {
+    error = "GetCommState " + port + ": " + windows_error_message(GetLastError());
     CloseHandle(serial);
     return false;
   }
@@ -263,6 +330,7 @@ bool open_serial_port(const std::string& port, HANDLE& out) {
   dcb.fDtrControl = DTR_CONTROL_ENABLE;
   dcb.fRtsControl = RTS_CONTROL_ENABLE;
   if (!SetCommState(serial, &dcb)) {
+    error = "SetCommState " + port + ": " + windows_error_message(GetLastError());
     CloseHandle(serial);
     return false;
   }
@@ -274,6 +342,7 @@ bool open_serial_port(const std::string& port, HANDLE& out) {
   timeouts.WriteTotalTimeoutConstant = 1000;
   timeouts.WriteTotalTimeoutMultiplier = 1;
   if (!SetCommTimeouts(serial, &timeouts)) {
+    error = "SetCommTimeouts " + port + ": " + windows_error_message(GetLastError());
     CloseHandle(serial);
     return false;
   }
@@ -281,7 +350,6 @@ bool open_serial_port(const std::string& port, HANDLE& out) {
   EscapeCommFunction(serial, SETDTR);
   EscapeCommFunction(serial, SETRTS);
   std::this_thread::sleep_for(std::chrono::milliseconds(1800));
-  PurgeComm(serial, PURGE_RXCLEAR | PURGE_TXCLEAR);
   out = serial;
   return true;
 }
@@ -322,13 +390,58 @@ std::string configured_port() {
   }
   return "COM5";
 }
+
+bool touch_serial_bootloader(DeviceHandle& handle, std::string& error) {
+  std::string port = handle.port.empty() ? configured_port() : handle.port;
+  if (port.empty()) {
+    error = "device bootloader: no serial port configured";
+    return false;
+  }
+  if (handle.serial != INVALID_HANDLE_VALUE) {
+    CloseHandle(handle.serial);
+    handle.serial = INVALID_HANDLE_VALUE;
+    handle.kind = "disconnected";
+    handle.transport = "none";
+  }
+  const std::string path = "\\\\.\\" + port;
+  HANDLE serial = CreateFileA(
+      path.c_str(),
+      GENERIC_READ | GENERIC_WRITE,
+      FILE_SHARE_READ | FILE_SHARE_WRITE,
+      nullptr,
+      OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL,
+      nullptr);
+  if (serial == INVALID_HANDLE_VALUE) {
+    error = "bootloader open " + port + ": " + windows_error_message(GetLastError());
+    return false;
+  }
+
+  DCB dcb{};
+  dcb.DCBlength = sizeof(dcb);
+  if (GetCommState(serial, &dcb)) {
+    dcb.BaudRate = 1200;
+    dcb.ByteSize = 8;
+    dcb.Parity = NOPARITY;
+    dcb.StopBits = ONESTOPBIT;
+    dcb.fDtrControl = DTR_CONTROL_DISABLE;
+    dcb.fRtsControl = RTS_CONTROL_DISABLE;
+    SetCommState(serial, &dcb);
+  }
+  EscapeCommFunction(serial, CLRDTR);
+  EscapeCommFunction(serial, CLRRTS);
+  CloseHandle(serial);
+  handle.port = port;
+  return true;
+}
 #endif
 
 bool connect_device(DeviceHandle& handle) {
 #if defined(_WIN32)
   HANDLE serial = INVALID_HANDLE_VALUE;
   const std::string port = configured_port();
-  if (!open_serial_port(port, serial)) {
+  handle.port = port;
+  if (!open_serial_port(port, serial, handle.connect_error)) {
     return false;
   }
   handle.kind = "rp2040";
@@ -349,24 +462,61 @@ bool device_request(DeviceHandle& handle, const std::string& frame, std::vector<
     return false;
   }
 
+  const uint32_t sequence = ++handle.rpc_sequence;
+  const std::string request_id = std::to_string(sequence);
+  const std::string begin_marker = "RPC " + request_id + " BEGIN";
+  const std::string end_marker = "RPC " + request_id + " END";
+  const std::string envelope = "rpc " + request_id + " " + frame;
+
+  write_serial_text(handle.serial, "\n");
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
   PurgeComm(handle.serial, PURGE_RXCLEAR | PURGE_TXCLEAR);
-  if (!write_serial_text(handle.serial, frame + "\n")) {
+  if (!write_serial_text(handle.serial, envelope + "\n")) {
     error = "failed to write to device serial port";
     return false;
   }
 
   lines.clear();
   std::string line;
+  const bool accepts_text_output = frame.rfind("py ", 0) == 0 || frame.rfind("pyb ", 0) == 0;
+  bool in_reply = false;
+  bool saw_error = false;
+  std::string rpc_error;
   while (read_serial_line(handle.serial, line)) {
-    if (line == "END") {
+    if (!in_reply) {
+      if (line == begin_marker) {
+        in_reply = true;
+      }
+      continue;
+    }
+    if (line == end_marker) {
+      if (saw_error) {
+        error = rpc_error;
+        return false;
+      }
       return true;
     }
     if (line == "OK") {
       continue;
     }
+    if (line == "END") {
+      continue;
+    }
     if (line.rfind("ERR ", 0) == 0) {
-      error = line;
-      return false;
+      saw_error = true;
+      rpc_error = line;
+      continue;
+    }
+    const bool protocol_line =
+        line == "PONG" ||
+        line.rfind("DATA ", 0) == 0 ||
+        line.rfind("ITEM ", 0) == 0 ||
+        line.rfind("ADDR ", 0) == 0 ||
+        line.rfind("S ", 0) == 0 ||
+        line.rfind("I ", 0) == 0 ||
+        line.rfind("B ", 0) == 0;
+    if (!accepts_text_output && !protocol_line) {
+      continue;
     }
     lines.push_back(line);
   }
@@ -383,7 +533,8 @@ bool device_request(DeviceHandle& handle, const std::string& frame, std::vector<
 
 bool device_exec_source(DeviceHandle& handle, const std::string& source, std::string& output, std::string& error) {
   std::vector<std::string> lines;
-  if (!device_request(handle, "py " + source, lines, error)) {
+  const auto encoded = base64_encode(reinterpret_cast<const uint8_t*>(source.data()), source.size());
+  if (!device_request(handle, "pyb " + encoded, lines, error)) {
     return false;
   }
   output.clear();
@@ -394,15 +545,25 @@ bool device_exec_source(DeviceHandle& handle, const std::string& source, std::st
   return true;
 }
 
-bool device_put_data(DeviceHandle& handle, const std::string& remote_path, const std::string& data, std::string& error) {
+bool device_put_data(
+    DeviceHandle& handle,
+    const std::string& store,
+    const std::string& remote_path,
+    const std::string& data,
+    std::string& error) {
   const auto encoded = base64_encode(reinterpret_cast<const uint8_t*>(data.data()), data.size());
   std::vector<std::string> lines;
-  return device_request(handle, "put " + remote_path + " " + encoded, lines, error);
+  return device_request(handle, "put " + store + " " + remote_path + " " + encoded, lines, error);
 }
 
-bool device_get_data(DeviceHandle& handle, const std::string& remote_path, std::string& data, std::string& error) {
+bool device_get_data(
+    DeviceHandle& handle,
+    const std::string& store,
+    const std::string& remote_path,
+    std::string& data,
+    std::string& error) {
   std::vector<std::string> lines;
-  if (!device_request(handle, "get " + remote_path, lines, error)) {
+  if (!device_request(handle, "get " + store + " " + remote_path, lines, error)) {
     return false;
   }
   for (const auto& line : lines) {
@@ -420,9 +581,14 @@ bool device_get_data(DeviceHandle& handle, const std::string& remote_path, std::
   return false;
 }
 
-bool device_list_files(DeviceHandle& handle, const std::string& path, std::vector<std::string>& entries, std::string& error) {
+bool device_list_files(
+    DeviceHandle& handle,
+    const std::string& store,
+    const std::string& path,
+    std::vector<std::string>& entries,
+    std::string& error) {
   std::vector<std::string> lines;
-  if (!device_request(handle, "list " + path, lines, error)) {
+  if (!device_request(handle, "list " + store + " " + path, lines, error)) {
     return false;
   }
   entries.clear();
@@ -439,9 +605,9 @@ bool device_list_files(DeviceHandle& handle, const std::string& path, std::vecto
   return true;
 }
 
-bool device_delete_file(DeviceHandle& handle, const std::string& remote_path, std::string& error) {
+bool device_delete_file(DeviceHandle& handle, const std::string& store, const std::string& remote_path, std::string& error) {
   std::vector<std::string> lines;
-  return device_request(handle, "delete " + remote_path, lines, error);
+  return device_request(handle, "delete " + store + " " + remote_path, lines, error);
 }
 
 bool device_i2c_scan(
@@ -487,6 +653,46 @@ bool device_i2c_write(
   return device_request(handle, command, lines, error);
 }
 
+bool device_gpio_config(DeviceHandle& handle, uint32_t pin, uint32_t mode, uint32_t pull, std::string& error) {
+  std::vector<std::string> lines;
+  const std::string command =
+      "gpio_config " + std::to_string(pin) + " " + std::to_string(mode) + " " + std::to_string(pull);
+  return device_request(handle, command, lines, error);
+}
+
+bool device_gpio_read(DeviceHandle& handle, uint32_t pin, uint32_t& value, std::string& error) {
+  std::vector<std::string> lines;
+  if (!device_request(handle, "gpio_read " + std::to_string(pin), lines, error)) {
+    return false;
+  }
+  for (const auto& line : lines) {
+    if (line.rfind("I value ", 0) == 0) {
+      value = static_cast<uint32_t>(std::stoul(line.substr(8)));
+      return true;
+    }
+  }
+  error = "device did not return GPIO value";
+  return false;
+}
+
+bool device_gpio_write(DeviceHandle& handle, uint32_t pin, uint32_t value, std::string& error) {
+  std::vector<std::string> lines;
+  const std::string command = "gpio_write " + std::to_string(pin) + " " + std::to_string(value ? 1u : 0u);
+  return device_request(handle, command, lines, error);
+}
+
+bool device_gpio_wait_edge(
+    DeviceHandle& handle,
+    uint32_t pin,
+    uint32_t edge,
+    uint32_t timeout_ms,
+    std::vector<std::string>& lines,
+    std::string& error) {
+  const std::string command =
+      "gpio_wait_edge " + std::to_string(pin) + " " + std::to_string(edge) + " " + std::to_string(timeout_ms);
+  return device_request(handle, command, lines, error);
+}
+
 bool device_ping(DeviceHandle& handle, std::string& error) {
   std::vector<std::string> lines;
   if (!device_request(handle, "ping", lines, error)) {
@@ -525,8 +731,7 @@ bool require_supported_store(const std::string& store, std::string& error) {
     return true;
   }
   if (store == "flash") {
-    error = "device flash file store is not implemented in this checkpoint";
-    return false;
+    return true;
   }
   error = "unknown device file store: " + store;
   return false;
@@ -700,6 +905,9 @@ X3Status device_info(
   dict_set_string(host, runtime, info, "transport", handle->transport);
   dict_set_bool(host, runtime, info, "rpc", true);
   dict_set_string(host, runtime, info, "port", handle->port);
+  if (!handle->connect_error.empty()) {
+    dict_set_string(host, runtime, info, "connect_error", handle->connect_error);
+  }
 
   std::vector<std::string> lines;
   std::string error;
@@ -800,6 +1008,62 @@ X3Status device_echo_method(
   return X3_STATUS_OK;
 }
 
+X3Status device_reset_method(
+    X3CallContext* context,
+    X3Runtime*,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc(host, context, argc, 1, "Device.reset()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* handle = require_device(state, context, args[0]);
+  if (handle == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  std::vector<std::string> lines;
+  std::string error;
+  if (!device_request(*handle, "reset", lines, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
+X3Status device_bootloader_method(
+    X3CallContext* context,
+    X3Runtime*,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc(host, context, argc, 1, "Device.bootloader()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* handle = require_device(state, context, args[0]);
+  if (handle == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+#if defined(_WIN32)
+  std::string error;
+  if (!touch_serial_bootloader(*handle, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+#else
+  host->set_error(context, "Device.bootloader() is only implemented on Windows in this checkpoint");
+  return X3_STATUS_ERROR;
+#endif
+}
+
 X3Status device_stats_method(
     X3CallContext* context,
     X3Runtime* runtime,
@@ -893,7 +1157,7 @@ X3Status device_put_data_method(
     return X3_STATUS_ERROR;
   }
   std::string error;
-  if (!device_put_data(*handle, remote_path, data, error)) {
+  if (!device_put_data(*handle, store, remote_path, data, error)) {
     host->set_error(context, error.c_str());
     return X3_STATUS_ERROR;
   }
@@ -925,7 +1189,7 @@ X3Status device_get_data_method(
   }
   std::string data;
   std::string error;
-  if (!device_get_data(*handle, remote_path, data, error)) {
+  if (!device_get_data(*handle, store, remote_path, data, error)) {
     host->set_error(context, error.c_str());
     return X3_STATUS_ERROR;
   }
@@ -966,7 +1230,7 @@ X3Status device_put_file_method(
   std::ostringstream buffer;
   buffer << file.rdbuf();
   std::string error;
-  if (!device_put_data(*handle, remote_path, buffer.str(), error)) {
+  if (!device_put_data(*handle, store, remote_path, buffer.str(), error)) {
     host->set_error(context, error.c_str());
     return X3_STATUS_ERROR;
   }
@@ -1000,7 +1264,7 @@ X3Status device_get_file_method(
   }
   std::string data;
   std::string error;
-  if (!device_get_data(*handle, remote_path, data, error)) {
+  if (!device_get_data(*handle, store, remote_path, data, error)) {
     host->set_error(context, error.c_str());
     return X3_STATUS_ERROR;
   }
@@ -1039,7 +1303,7 @@ X3Status device_list_files_method(
   }
   std::vector<std::string> entries;
   std::string error;
-  if (!device_list_files(*handle, path, entries, error)) {
+  if (!device_list_files(*handle, store, path, entries, error)) {
     host->set_error(context, error.c_str());
     return X3_STATUS_ERROR;
   }
@@ -1080,7 +1344,7 @@ X3Status device_delete_file_method(
     return X3_STATUS_ERROR;
   }
   std::string error;
-  if (!device_delete_file(*handle, remote_path, error)) {
+  if (!device_delete_file(*handle, store, remote_path, error)) {
     host->set_error(context, error.c_str());
     return X3_STATUS_ERROR;
   }
@@ -1202,6 +1466,151 @@ X3Status i2c_bus_write_method(
   return X3_STATUS_OK;
 }
 
+X3Status gpio_module_pin_method(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc_range(host, context, argc, 3, 4, "GPIO.Pin()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* module = require_module_proxy(state, context, args[0], kGPIOModuleNativeType);
+  if (module == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  uint32_t pin = 0;
+  uint32_t mode = 0;
+  uint32_t pull = kGpioPullNone;
+  if (!require_uint(host, context, args[1], "GPIO.Pin() pin must be an integer", pin) ||
+      !require_uint(host, context, args[2], "GPIO.Pin() mode must be GPIO.IN or GPIO.OUT", mode)) {
+    return X3_STATUS_ERROR;
+  }
+  if (argc == 4 && !require_uint(host, context, args[3], "GPIO.Pin() pull must be a GPIO pull constant", pull)) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  if (!device_gpio_config(*module->handle, pin, mode, pull, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+
+  X3Value instance = host->value_instance(runtime, state->gpio_pin_class);
+  if (instance.tag == X3_TAG_INVALID) {
+    host->set_error(context, "cannot create GPIO pin object");
+    return X3_STATUS_ERROR;
+  }
+  auto* proxy = new GPIOPinProxy();
+  proxy->handle = module->handle;
+  proxy->pin = pin;
+  if (host->instance_set_native_data(instance, kGPIOPinNativeType, proxy, cleanup_gpio_pin) != X3_STATUS_OK) {
+    cleanup_gpio_pin(proxy);
+    host->value_release(instance);
+    host->set_error(context, "cannot attach GPIO pin data");
+    return X3_STATUS_ERROR;
+  }
+  *result = instance;
+  return X3_STATUS_OK;
+}
+
+X3Status gpio_pin_read_method(
+    X3CallContext* context,
+    X3Runtime*,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc(host, context, argc, 1, "GPIOPin.read()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* pin = require_gpio_pin(state, context, args[0]);
+  if (pin == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  uint32_t value = 0;
+  std::string error;
+  if (!device_gpio_read(*pin->handle, pin->pin, value, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  *result = x3_value_bool(value != 0);
+  return X3_STATUS_OK;
+}
+
+X3Status gpio_pin_write_method(
+    X3CallContext* context,
+    X3Runtime*,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc(host, context, argc, 2, "GPIOPin.write()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* pin = require_gpio_pin(state, context, args[0]);
+  if (pin == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  uint32_t value = 0;
+  if (!require_bool_or_uint(host, context, args[1], "GPIOPin.write() value must be bool or integer", value)) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  if (!device_gpio_write(*pin->handle, pin->pin, value, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
+X3Status gpio_pin_wait_edge_method(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc_range(host, context, argc, 2, 3, "GPIOPin.wait_edge()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* pin = require_gpio_pin(state, context, args[0]);
+  if (pin == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  uint32_t edge = kGpioEdgeFalling;
+  uint32_t timeout_ms = 10000;
+  if (!require_uint(host, context, args[1], "GPIOPin.wait_edge() edge must be a GPIO edge constant", edge)) {
+    return X3_STATUS_ERROR;
+  }
+  if (argc == 3 && !require_uint(host, context, args[2], "GPIOPin.wait_edge() timeout must be an integer", timeout_ms)) {
+    return X3_STATUS_ERROR;
+  }
+  std::vector<std::string> lines;
+  std::string error;
+  if (!device_gpio_wait_edge(*pin->handle, pin->pin, edge, timeout_ms, lines, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  X3Value event = host->value_dict(runtime);
+  if (event.tag == X3_TAG_INVALID) {
+    host->set_error(context, "cannot allocate GPIO event dict");
+    return X3_STATUS_ERROR;
+  }
+  apply_kv_lines(host, runtime, event, lines);
+  *result = event;
+  return X3_STATUS_OK;
+}
+
 X3Status device_import_module(
     X3CallContext* context,
     X3Runtime* runtime,
@@ -1236,6 +1645,31 @@ X3Status device_import_module(
       host->set_error(context, "cannot attach I2C module data");
       return X3_STATUS_ERROR;
     }
+    *result = module;
+    return X3_STATUS_OK;
+  }
+  if (name == "gpio") {
+    X3Value module = host->value_instance(runtime, state->gpio_module_class);
+    if (module.tag == X3_TAG_INVALID) {
+      host->set_error(context, "cannot create GPIO module object");
+      return X3_STATUS_ERROR;
+    }
+    auto* proxy = new DeviceModuleProxy();
+    proxy->handle = handle;
+    if (host->instance_set_native_data(module, kGPIOModuleNativeType, proxy, cleanup_proxy) != X3_STATUS_OK) {
+      cleanup_proxy(proxy);
+      host->value_release(module);
+      host->set_error(context, "cannot attach GPIO module data");
+      return X3_STATUS_ERROR;
+    }
+    host->set_attr(runtime, module, "IN", x3_value_uint64(kGpioModeIn));
+    host->set_attr(runtime, module, "OUT", x3_value_uint64(kGpioModeOut));
+    host->set_attr(runtime, module, "PULL_NONE", x3_value_uint64(kGpioPullNone));
+    host->set_attr(runtime, module, "PULL_UP", x3_value_uint64(kGpioPullUp));
+    host->set_attr(runtime, module, "PULL_DOWN", x3_value_uint64(kGpioPullDown));
+    host->set_attr(runtime, module, "RISING", x3_value_uint64(kGpioEdgeRising));
+    host->set_attr(runtime, module, "FALLING", x3_value_uint64(kGpioEdgeFalling));
+    host->set_attr(runtime, module, "CHANGE", x3_value_uint64(kGpioEdgeChange));
     *result = module;
     return X3_STATUS_OK;
   }
@@ -1319,6 +1753,12 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
     if (state->host != nullptr && state->i2c_bus_class.tag != X3_TAG_INVALID) {
       state->host->value_release(state->i2c_bus_class);
     }
+    if (state->host != nullptr && state->gpio_module_class.tag != X3_TAG_INVALID) {
+      state->host->value_release(state->gpio_module_class);
+    }
+    if (state->host != nullptr && state->gpio_pin_class.tag != X3_TAG_INVALID) {
+      state->host->value_release(state->gpio_pin_class);
+    }
     delete state;
   });
 
@@ -1335,6 +1775,8 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
       {sizeof(X3NativeFunctionDef), "info", device_info, state, 0, 0, 0},
       {sizeof(X3NativeFunctionDef), "ping", device_ping_method, state, 0, 0, 0},
       {sizeof(X3NativeFunctionDef), "echo", device_echo_method, state, 0, 0, 0},
+      {sizeof(X3NativeFunctionDef), "reset", device_reset_method, state, 0, 0, 0},
+      {sizeof(X3NativeFunctionDef), "bootloader", device_bootloader_method, state, 0, 0, 0},
       {sizeof(X3NativeFunctionDef), "stats", device_stats_method, state, 0, 0, 0},
       {sizeof(X3NativeFunctionDef), "store_info", device_store_info_method, state, 0, 0, 0},
       {sizeof(X3NativeFunctionDef), "exec", device_exec, state, 0, 0, 0},
@@ -1346,7 +1788,7 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
       {sizeof(X3NativeFunctionDef), "delete_file", device_delete_file_method, state, 0, 0, 0},
       {sizeof(X3NativeFunctionDef), "import_module", device_import_module, state, 0, 0, 0},
   };
-  if (host->module_add_class(device, "Device", device_methods, 13, &state->device_class) != X3_STATUS_OK) {
+  if (host->module_add_class(device, "Device", device_methods, 15, &state->device_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 
@@ -1362,6 +1804,22 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
       {sizeof(X3NativeFunctionDef), "write", i2c_bus_write_method, state, 0, 0, 0},
   };
   if (host->module_add_class(device, "I2CBus", i2c_bus_methods, 2, &state->i2c_bus_class) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+
+  X3NativeFunctionDef gpio_module_methods[] = {
+      {sizeof(X3NativeFunctionDef), "Pin", gpio_module_pin_method, state, 0, 0, 0},
+  };
+  if (host->module_add_class(device, "GPIOModule", gpio_module_methods, 1, &state->gpio_module_class) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+
+  X3NativeFunctionDef gpio_pin_methods[] = {
+      {sizeof(X3NativeFunctionDef), "read", gpio_pin_read_method, state, 0, 0, 0},
+      {sizeof(X3NativeFunctionDef), "write", gpio_pin_write_method, state, 0, 0, 0},
+      {sizeof(X3NativeFunctionDef), "wait_edge", gpio_pin_wait_edge_method, state, 0, 0, 0},
+  };
+  if (host->module_add_class(device, "GPIOPin", gpio_pin_methods, 3, &state->gpio_pin_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 

@@ -62,6 +62,7 @@ XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
 
 bool list_get_method(const Value& object, const std::string& name, Value& out);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
+bool file_get_method(const Value& object, const std::string& name, Value& out);
 bool set_get_method(const Value& object, const std::string& name, Value& out);
 bool string_get_method(const Value& object, const std::string& name, Value& out);
 

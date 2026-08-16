@@ -14,13 +14,12 @@ limitations under the License.
 */
 #pragma once
 
-#include <cstdint>
+namespace xlang3 {
+class Runtime;
+}
 
-namespace xlang3::pico::board {
+namespace xlang3::pico {
 
-using ServiceCallback = void (*)(void* context);
+void register_embedded_modules(Runtime& runtime);
 
-void set_service_callback(ServiceCallback callback, void* context);
-void sleep_milliseconds(uint32_t milliseconds);
-
-} // namespace xlang3::pico::board
+} // namespace xlang3::pico

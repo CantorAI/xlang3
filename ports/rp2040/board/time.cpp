@@ -17,9 +17,27 @@ limitations under the License.
 #include "pico/stdlib.h"
 
 namespace xlang3::pico::board {
+namespace {
+
+ServiceCallback g_service_callback = nullptr;
+void* g_service_context = nullptr;
+
+} // namespace
+
+void set_service_callback(ServiceCallback callback, void* context) {
+  g_service_callback = callback;
+  g_service_context = context;
+}
 
 void sleep_milliseconds(uint32_t milliseconds) {
-  sleep_ms(milliseconds);
+  if (g_service_callback == nullptr || milliseconds == 0) {
+    sleep_ms(milliseconds);
+    return;
+  }
+  for (uint32_t i = 0; i < milliseconds; ++i) {
+    g_service_callback(g_service_context);
+    sleep_ms(1);
+  }
 }
 
 } // namespace xlang3::pico::board

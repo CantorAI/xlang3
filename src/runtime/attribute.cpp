@@ -25,6 +25,7 @@ namespace {
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
   return list_get_method(object, name, out) ||
          dict_get_method(object, name, out) ||
+         file_get_method(object, name, out) ||
          set_get_method(object, name, out) ||
          string_get_method(object, name, out);
 }

@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "xlang3/value.h"
+#include "xlang3/vfs.h"
 
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
@@ -23,6 +24,7 @@ limitations under the License.
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -86,6 +88,8 @@ public:
       std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error);
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
+  Vfs& vfs() { return *vfs_; }
+  const Vfs& vfs() const { return *vfs_; }
 #if !defined(XLANG3_EMBEDDED)
   void add_import_root(std::filesystem::path root);
   void prepend_import_root(std::filesystem::path root);
@@ -98,6 +102,7 @@ private:
   void initialize();
 
   OutputSink output_;
+  std::unique_ptr<Vfs> vfs_;
   std::string last_error_;
   Value pending_exception_;
   uint32_t next_native_id_ = 1;

@@ -106,13 +106,15 @@ void Runtime::initialize() {
 
 #if !defined(XLANG3_EMBEDDED)
 Runtime::Runtime(std::ostream& out)
-    : output_{&out, ostream_output_write} {
+    : output_{&out, ostream_output_write},
+      vfs_(std::make_unique<Vfs>()) {
   initialize();
 }
 #endif
 
 Runtime::Runtime(OutputSink output)
-    : output_(output) {
+    : output_(output),
+      vfs_(std::make_unique<Vfs>()) {
   initialize();
 }
 

@@ -38,6 +38,7 @@ $cases = @(
     "file_import",
     "global_from_import",
     "package_import",
+    "vfs_file_io",
     "exceptions",
     "runtime_error_exceptions",
     "exception_unwind_with",

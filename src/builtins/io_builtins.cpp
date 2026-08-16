@@ -14,9 +14,20 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/vfs.h"
+
 namespace xlang3 {
 
 namespace {
+
+bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
+    error = std::string(name) + " must be a string";
+    return false;
+  }
+  out = reinterpret_cast<StringObject*>(value.as.obj)->value;
+  return true;
+}
 
 bool builtin_print(
     Runtime& runtime,
@@ -38,9 +49,64 @@ bool builtin_print(
   return true;
 }
 
+bool builtin_open(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 && argc != 2) {
+    error = "open expected 1 or 2 arguments, got " + std::to_string(argc);
+    return false;
+  }
+  std::string path;
+  std::string mode = "r";
+  if (!get_string_arg(args[0], "open path", path, error)) {
+    return false;
+  }
+  if (argc == 2 && !get_string_arg(args[1], "open mode", mode, error)) {
+    return false;
+  }
+
+  const bool readable = mode == "r" || mode == "rt" || mode == "a" || mode == "at";
+  const bool writable = mode == "w" || mode == "wt" || mode == "a" || mode == "at";
+  const bool append = mode == "a" || mode == "at";
+  if (!readable && !writable) {
+    error = "unsupported open mode: " + mode;
+    return false;
+  }
+
+  ResolvedPath resolved;
+  if (!runtime.vfs().resolve(path, resolved, error)) {
+    return false;
+  }
+
+  std::string buffer;
+  if (readable) {
+    std::vector<uint8_t> bytes;
+    VfsStat stat;
+    if (resolved.fs->stat(resolved.path, stat, error) && stat.kind == VfsNodeKind::File) {
+      if (!resolved.fs->read_file(resolved.path, bytes, error)) {
+        return false;
+      }
+      buffer.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    } else if (!writable) {
+      error = "file not found: " + path;
+      return false;
+    }
+  }
+
+  out = Value::file(resolved.fs, resolved.path, mode, std::move(buffer), writable);
+  auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+  file->cursor = append ? file->buffer.size() : 0;
+  return true;
+}
+
 } // namespace
 
 void register_io_builtins(Runtime& runtime) {
+  runtime.register_native_builtin("open", builtin_open);
   runtime.register_native_builtin("print", builtin_print);
 }
 

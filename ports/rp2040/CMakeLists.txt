@@ -34,12 +34,21 @@ add_executable(xlang3_pico
   board/console.cpp
   board/gpio.cpp
   board/time.cpp
+  embedded/device_file_system.cpp
+  embedded/embedded_modules.cpp
   embedded/embedded_host.cpp
+  embedded/flash_file_store.cpp
   embedded/frozen_app.cpp
+  embedded/gpio_irq.cpp
   embedded/static_modules.cpp
 )
 
-target_compile_definitions(xlang3_pico PRIVATE XLANG3_SIZE_OPT=1)
+target_compile_definitions(xlang3_pico PRIVATE
+  XLANG3_SIZE_OPT=1
+  XLANG3_FLASH_STORE_BASE=0
+  XLANG3_FLASH_STORE_SIZE=-1
+  XLANG3_FLASH_STORE_SAFETY_SECTORS=1
+)
 
 target_compile_options(xlang3_pico PRIVATE
   $<$<COMPILE_LANGUAGE:C>:-Os;-ffunction-sections;-fdata-sections>
@@ -53,7 +62,9 @@ target_link_options(xlang3_pico PRIVATE
 target_link_libraries(xlang3_pico
   PRIVATE
     xlang3_runtime_embedded
+    hardware_flash
     hardware_i2c
+    pico_multicore
     pico_stdlib
 )
 

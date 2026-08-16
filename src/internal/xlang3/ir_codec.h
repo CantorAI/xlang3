@@ -14,13 +14,21 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang3/ir.h"
+
 #include <cstdint>
+#include <string>
+#include <vector>
 
-namespace xlang3::pico::board {
+namespace xlang3::ir {
 
-using ServiceCallback = void (*)(void* context);
+struct EncodedModule {
+  uint64_t source_hash = 0;
+  std::vector<uint8_t> bytes;
+};
 
-void set_service_callback(ServiceCallback callback, void* context);
-void sleep_milliseconds(uint32_t milliseconds);
+uint64_t source_hash64(const uint8_t* data, std::size_t size);
+bool encode_module(const Module& module, uint64_t source_hash, EncodedModule& out, std::string& error);
+bool decode_module(const uint8_t* data, std::size_t size, uint64_t expected_source_hash, Module& out, std::string& error);
 
-} // namespace xlang3::pico::board
+} // namespace xlang3::ir

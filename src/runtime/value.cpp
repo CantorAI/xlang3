@@ -63,6 +63,10 @@ NativeFunctionObject* as_native_function(Object* obj) {
   return reinterpret_cast<NativeFunctionObject*>(obj);
 }
 
+FileObject* as_file(Object* obj) {
+  return reinterpret_cast<FileObject*>(obj);
+}
+
 #if defined(XLANG3_EMBEDDED)
 std::string format_i64(int64_t value) {
   char buffer[32];
@@ -194,6 +198,19 @@ Value Value::native_function(
   return v;
 }
 
+Value Value::file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FileObject>(ObjectKind::File);
+  obj->fs = fs;
+  obj->path = std::move(path);
+  obj->mode = std::move(mode);
+  obj->buffer = std::move(buffer);
+  obj->writable = writable;
+  v.as.obj = &obj->header;
+  return v;
+}
+
 void retain(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
     ++value.as.obj->refcnt;
@@ -247,6 +264,9 @@ void release(const Value& value) {
     case ObjectKind::Instance:
     case ObjectKind::BoundMethod:
       object_model_release_object(value.as.obj);
+      break;
+    case ObjectKind::File:
+      delete as_file(value.as.obj);
       break;
   }
 }
@@ -327,6 +347,9 @@ std::string value_to_string(const Value& value) {
            value.as.obj->kind == ObjectKind::Instance ||
            value.as.obj->kind == ObjectKind::BoundMethod)) {
         return object_model_to_string(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::File) {
+        return "<file '" + as_file(value.as.obj)->path + "'>";
       }
       return "<object>";
   }

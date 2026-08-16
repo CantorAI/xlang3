@@ -20,9 +20,7 @@ limitations under the License.
 #include "xlang3/sema.h"
 
 #include <filesystem>
-#include <fstream>
 #include <memory>
-#include <sstream>
 #include <vector>
 
 namespace xlang3 {
@@ -30,8 +28,8 @@ namespace xlang3 {
 namespace {
 
 struct ModuleFile {
-  std::filesystem::path path;
-  std::filesystem::path package_dir;
+  std::string path;
+  std::string package_dir;
   bool is_package = false;
 };
 
@@ -76,18 +74,19 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
 
     auto candidate = candidate_base;
     candidate += ".py";
-    std::error_code ec;
-    if (std::filesystem::is_regular_file(candidate, ec)) {
-      out.path = candidate;
+    VfsStat stat;
+    std::string error;
+    if (runtime.vfs().stat(candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+      out.path = candidate.string();
       out.is_package = false;
       out.package_dir.clear();
       return true;
     }
 
     auto package_init = candidate_base / "__init__.py";
-    if (std::filesystem::is_regular_file(package_init, ec)) {
-      out.path = package_init;
-      out.package_dir = candidate_base;
+    if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+      out.path = package_init.string();
+      out.package_dir = candidate_base.string();
       out.is_package = true;
       return true;
     }
@@ -95,15 +94,13 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
   return false;
 }
 
-bool read_file(const std::filesystem::path& path, std::string& out, std::string& error) {
-  std::ifstream file(path, std::ios::binary);
-  if (!file) {
-    error = "cannot open module file " + path.string();
+bool read_file(Runtime& runtime, const std::string& path, std::string& out, std::string& error) {
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(path, bytes, error)) {
+    error = "cannot open module file " + path + ": " + error;
     return false;
   }
-  std::ostringstream buffer;
-  buffer << file.rdbuf();
-  out = buffer.str();
+  out.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size());
   return true;
 }
 
@@ -123,17 +120,17 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   }
 
   std::string source;
-  if (!read_file(module_file.path, source, error)) {
+  if (!read_file(runtime, module_file.path, source, error)) {
     return false;
   }
 
   auto module_value = Value::module(name);
   std::string attr_error;
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
-  module_set_attr(module_value, "__file__", Value::string(module_file.path.string()), attr_error);
+  module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
   if (module_file.is_package) {
-    module_set_attr(module_value, "__path__", Value::string(module_file.package_dir.string()), attr_error);
+    module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
   }
 
   auto parsed = parse_source(source);

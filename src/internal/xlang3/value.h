@@ -29,6 +29,7 @@ struct Module;
 }
 
 class Runtime;
+class FileSystem;
 struct Value;
 
 enum class ValueTag : uint32_t {
@@ -58,6 +59,7 @@ enum class ObjectKind : uint32_t {
   Class,
   Instance,
   BoundMethod,
+  File,
 };
 
 struct Object {
@@ -132,6 +134,7 @@ struct Value {
       NativeFunctionCallback callback,
       void* user_data = nullptr,
       void (*user_data_cleanup)(void*) = nullptr);
+  static Value file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable);
   static Value class_object(
       std::string name,
       std::vector<std::pair<std::string, Value>> attrs,
@@ -188,6 +191,17 @@ struct FunctionObject {
   std::vector<Value> closure;
   Value globals_module;
   std::shared_ptr<const ir::Module> module;
+};
+
+struct FileObject {
+  Object header;
+  FileSystem* fs = nullptr;
+  std::string path;
+  std::string mode;
+  std::string buffer;
+  std::size_t cursor = 0;
+  bool writable = false;
+  bool closed = false;
 };
 
 XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {
