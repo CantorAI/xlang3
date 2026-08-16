@@ -21,7 +21,11 @@ limitations under the License.
 #include "xlang3/set_object.h"
 
 #include <cmath>
+#if defined(XLANG3_EMBEDDED)
+#include <cstdio>
+#else
 #include <sstream>
+#endif
 
 namespace xlang3 {
 
@@ -58,6 +62,28 @@ FunctionObject* as_function(Object* obj) {
 NativeFunctionObject* as_native_function(Object* obj) {
   return reinterpret_cast<NativeFunctionObject*>(obj);
 }
+
+#if defined(XLANG3_EMBEDDED)
+std::string format_i64(int64_t value) {
+  char buffer[32];
+  const int written = std::snprintf(buffer, sizeof(buffer), "%lld", static_cast<long long>(value));
+  if (written <= 0) {
+    return "0";
+  }
+  const auto size = static_cast<size_t>(written);
+  return std::string(buffer, size < sizeof(buffer) ? size : sizeof(buffer) - 1);
+}
+
+std::string format_f64(double value) {
+  char buffer[48];
+  const int written = std::snprintf(buffer, sizeof(buffer), "%.15g", value);
+  if (written <= 0) {
+    return "0";
+  }
+  const auto size = static_cast<size_t>(written);
+  return std::string(buffer, size < sizeof(buffer) ? size : sizeof(buffer) - 1);
+}
+#endif
 
 } // namespace
 
@@ -234,11 +260,19 @@ std::string value_to_string(const Value& value) {
     case ValueTag::Bool:
       return value.as.b ? "True" : "False";
     case ValueTag::Int64:
+#if defined(XLANG3_EMBEDDED)
+      return format_i64(value.as.i64);
+#else
       return std::to_string(value.as.i64);
+#endif
     case ValueTag::Double: {
+#if defined(XLANG3_EMBEDDED)
+      return format_f64(value.as.f64);
+#else
       std::ostringstream os;
       os << value.as.f64;
       return os.str();
+#endif
     }
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {

@@ -17,7 +17,9 @@ limitations under the License.
 #include "xlang3/ast.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace xlang3 {
@@ -80,10 +82,16 @@ enum class TokenKind {
 
 struct Token {
   TokenKind kind = TokenKind::End;
-  std::string text;
+  std::string_view text;
   uint32_t line = 1;
   uint32_t column = 1;
   bool is_triple_string = false;
+};
+
+struct LexResult {
+  std::vector<Token> tokens;
+  std::vector<std::unique_ptr<std::string>> owned_text;
+  std::vector<std::string> errors;
 };
 
 struct ParseResult {
@@ -93,23 +101,24 @@ struct ParseResult {
 
 class Lexer {
 public:
-  explicit Lexer(std::string source);
-  std::vector<Token> tokenize();
-  const std::vector<std::string>& errors() const { return errors_; }
+  explicit Lexer(std::string_view source);
+  LexResult tokenize();
 
 private:
-  void emit(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string = false);
-  void tokenize_line(const std::string& line_text, uint32_t line_no, uint32_t indent);
+  void emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string = false);
+  void emit_owned(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string = false);
+  void tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t indent);
 
-  std::string source_;
+  std::string_view source_;
   std::vector<Token> tokens_;
+  std::vector<std::unique_ptr<std::string>> owned_text_;
   std::vector<std::string> errors_;
   std::vector<uint32_t> indent_stack_{0};
 };
 
 class Parser {
 public:
-  explicit Parser(std::vector<Token> tokens);
+  explicit Parser(LexResult lex);
   ParseResult parse_module();
 
 private:
@@ -140,6 +149,7 @@ private:
   void error_here(const std::string& message);
 
   std::vector<Token> tokens_;
+  std::vector<std::unique_ptr<std::string>> owned_text_;
   size_t current_ = 0;
   std::vector<std::string> errors_;
 };

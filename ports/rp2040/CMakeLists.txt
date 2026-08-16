@@ -31,6 +31,23 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../.. ${CMAKE_BINARY_DIR}/xlang3)
 
 add_executable(xlang3_pico
   main.cpp
+  board/console.cpp
+  board/gpio.cpp
+  board/time.cpp
+  embedded/embedded_host.cpp
+  embedded/frozen_app.cpp
+  embedded/static_modules.cpp
+)
+
+target_compile_definitions(xlang3_pico PRIVATE XLANG3_SIZE_OPT=1)
+
+target_compile_options(xlang3_pico PRIVATE
+  $<$<COMPILE_LANGUAGE:C>:-Os;-ffunction-sections;-fdata-sections>
+  $<$<COMPILE_LANGUAGE:CXX>:-Os;-ffunction-sections;-fdata-sections>
+)
+
+target_link_options(xlang3_pico PRIVATE
+  -Wl,--gc-sections
 )
 
 target_link_libraries(xlang3_pico
@@ -41,6 +58,7 @@ target_link_libraries(xlang3_pico
 
 target_include_directories(xlang3_pico
   PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/../../src/internal
 )
 

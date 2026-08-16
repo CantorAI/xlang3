@@ -12,13 +12,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#include "embedded/frozen_app.h"
 
-int main() {
-  xlang3::pico::board::init_console();
+namespace xlang3::pico {
+namespace {
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
+constexpr char kMainPy[] =
+    "import gpio\n"
+    "import time\n"
+    "\n"
+    "led = gpio.Pin(15, gpio.OUT)\n"
+    "while True:\n"
+    "    led.write(1)\n"
+    "    time.sleep_ms(1000)\n"
+    "    led.write(0)\n"
+    "    time.sleep_ms(1000)\n";
+
+constexpr FrozenApp kFrozenApp = {
+    "main.py",
+    kMainPy,
+    sizeof(kMainPy) - 1,
+};
+
+} // namespace
+
+const FrozenApp& get_frozen_app() {
+  return kFrozenApp;
 }
+
+} // namespace xlang3::pico

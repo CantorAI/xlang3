@@ -12,13 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#include "board/time.h"
 
-int main() {
-  xlang3::pico::board::init_console();
+#include "pico/stdlib.h"
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
+namespace xlang3::pico::board {
+
+void sleep_milliseconds(uint32_t milliseconds) {
+  sleep_ms(milliseconds);
 }
+
+} // namespace xlang3::pico::board

@@ -22,6 +22,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 
 #include <algorithm>
+#include <cstring>
 #include <utility>
 
 #if !defined(XLANG3_EMBEDDED)
@@ -37,6 +38,11 @@ namespace xlang3 {
 namespace {
 
 #if !defined(XLANG3_EMBEDDED)
+void ostream_output_write(void* context, const char* data, std::size_t size) {
+  auto* out = static_cast<std::ostream*>(context);
+  out->write(data, static_cast<std::streamsize>(size));
+}
+
 void runtime_module_anchor() {}
 
 std::filesystem::path runtime_library_dir() {
@@ -91,11 +97,23 @@ bool has_import_root(const std::vector<std::filesystem::path>& roots, const std:
 
 } // namespace
 
-Runtime::Runtime(std::ostream& out) : out_(out) {
+void Runtime::initialize() {
   register_core_builtins(*this);
 #if !defined(XLANG3_EMBEDDED)
   add_default_import_layout(*this, runtime_library_dir());
 #endif
+}
+
+#if !defined(XLANG3_EMBEDDED)
+Runtime::Runtime(std::ostream& out)
+    : output_{&out, ostream_output_write} {
+  initialize();
+}
+#endif
+
+Runtime::Runtime(OutputSink output)
+    : output_(output) {
+  initialize();
 }
 
 Runtime::~Runtime() {
@@ -107,6 +125,20 @@ Runtime::~Runtime() {
       it->second(it->first);
     }
   }
+}
+
+void Runtime::write_output(const char* data, std::size_t size) {
+  if (data == nullptr || size == 0 || output_.write == nullptr) {
+    return;
+  }
+  output_.write(output_.context, data, size);
+}
+
+void Runtime::write_output(const char* text) {
+  if (text == nullptr) {
+    return;
+  }
+  write_output(text, std::strlen(text));
 }
 
 void Runtime::register_builtin(std::string name, Value value) {

@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/native_package_loader.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/c_api_bridge.h"
 #include "xlang3/module_object.h"
 #include "xlang3/native_call_context.h"
@@ -251,6 +252,28 @@ X3Status host_module_add_function(X3Module* module, const X3NativeFunctionDef* d
   return X3_STATUS_OK;
 }
 
+X3Status host_set_attr(X3Runtime* runtime, X3Value object, const char* name, X3Value value) {
+  if (runtime == nullptr || name == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  Value internal_object = from_c_value(object, error);
+  if (!error.empty()) {
+    reinterpret_cast<Runtime*>(runtime)->set_last_error(error);
+    return X3_STATUS_ERROR;
+  }
+  Value internal_value = from_c_value(value, error);
+  if (!error.empty()) {
+    reinterpret_cast<Runtime*>(runtime)->set_last_error(error);
+    return X3_STATUS_ERROR;
+  }
+  if (!attribute_set(internal_object, name, internal_value, error)) {
+    reinterpret_cast<Runtime*>(runtime)->set_last_error(error);
+    return X3_STATUS_ERROR;
+  }
+  return X3_STATUS_OK;
+}
+
 X3Status host_module_add_class(
     X3Module* module,
     const char* name,
@@ -448,6 +471,7 @@ const X3PackageHost kPackageHost = {
     x3_value_object_kind,
     x3_len,
     x3_get_item,
+    host_set_attr,
     x3_list_append,
     x3_dict_set_item,
     x3_dict_get_entry,

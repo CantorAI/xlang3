@@ -29,11 +29,11 @@ bool builtin_print(
   (void)user_data;
   for (uint32_t i = 0; i < argc; ++i) {
     if (i != 0) {
-      runtime.out() << " ";
+      runtime.write_output(' ');
     }
-    runtime.out() << value_to_string(args[i]);
+    runtime.write_output(value_to_string(args[i]));
   }
-  runtime.out() << "\n";
+  runtime.write_output('\n');
   value_set_none(out);
   return true;
 }

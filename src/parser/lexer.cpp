@@ -14,38 +14,43 @@ limitations under the License.
 */
 #include "xlang3/parser.h"
 
+#include "xlang3/source_cursor.h"
+
 #include <cctype>
-#include <sstream>
 
 namespace xlang3 {
 
-Lexer::Lexer(std::string source) : source_(std::move(source)) {}
+Lexer::Lexer(std::string_view source) : source_(source) {}
 
-void Lexer::emit(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string) {
-  tokens_.push_back(Token{kind, std::move(text), line, column, is_triple_string});
+void Lexer::emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string) {
+  tokens_.push_back(Token{kind, text, line, column, is_triple_string});
 }
 
-std::vector<Token> Lexer::tokenize() {
-  std::istringstream input(source_);
-  std::vector<std::string> lines;
-  std::string line;
-  while (std::getline(input, line)) {
-    if (!line.empty() && line.back() == '\r') {
-      line.pop_back();
-    }
-    lines.push_back(std::move(line));
+void Lexer::emit_owned(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string) {
+  auto owned = std::make_unique<std::string>(std::move(text));
+  const std::string_view view(*owned);
+  owned_text_.push_back(std::move(owned));
+  tokens_.push_back(Token{kind, view, line, column, is_triple_string});
+}
+
+LexResult Lexer::tokenize() {
+  std::vector<SourceLine> lines;
+  SourceLines source_lines(source_);
+  SourceLine source_line;
+  while (source_lines.next(source_line)) {
+    lines.push_back(source_line);
   }
 
   uint32_t line_no = 1;
-  for (size_t line_index = 0; line_index < lines.size(); ++line_index, ++line_no) {
-    line = lines[line_index];
+  for (size_t line_index = 0; line_index < lines.size(); ++line_index) {
+    std::string_view line = lines[line_index].text;
+    line_no = lines[line_index].line;
     uint32_t indent = 0;
     while (indent < line.size() && line[indent] == ' ') {
       ++indent;
     }
     const auto first = line.find_first_not_of(" \t");
-    if (first == std::string::npos || line[first] == '#') {
-      ++line_no;
+    if (first == std::string_view::npos || line[first] == '#') {
       continue;
     }
     if (indent > indent_stack_.back()) {
@@ -63,13 +68,13 @@ std::vector<Token> Lexer::tokenize() {
 
     const size_t single_triple = line.find("'''", indent);
     const size_t double_triple = line.find("\"\"\"", indent);
-    size_t triple_pos = std::string::npos;
-    std::string opener;
-    if (single_triple != std::string::npos &&
-        (double_triple == std::string::npos || single_triple < double_triple)) {
+    size_t triple_pos = std::string_view::npos;
+      std::string_view opener;
+    if (single_triple != std::string_view::npos &&
+        (double_triple == std::string_view::npos || single_triple < double_triple)) {
       triple_pos = single_triple;
       opener = "'''";
-    } else if (double_triple != std::string::npos) {
+    } else if (double_triple != std::string_view::npos) {
       triple_pos = double_triple;
       opener = "\"\"\"";
     }
@@ -83,31 +88,31 @@ std::vector<Token> Lexer::tokenize() {
       std::string suffix;
       size_t content_start = triple_pos + 3;
       size_t close = line.find(opener, content_start);
-      if (close != std::string::npos) {
-        value = line.substr(content_start, close - content_start);
-        suffix = line.substr(close + 3);
+      if (close != std::string_view::npos) {
+        value = std::string(line.substr(content_start, close - content_start));
+        suffix = std::string(line.substr(close + 3));
       } else {
-        value = line.substr(content_start);
+        value = std::string(line.substr(content_start));
         bool closed = false;
         while (++line_index < lines.size()) {
-          ++line_no;
-          const auto& block_line = lines[line_index];
+          line_no = lines[line_index].line;
+          const auto block_line = lines[line_index].text;
           close = block_line.find(opener);
           value.push_back('\n');
-          if (close != std::string::npos) {
-            value += block_line.substr(0, close);
-            suffix = block_line.substr(close + 3);
+          if (close != std::string_view::npos) {
+            value.append(block_line.substr(0, close));
+            suffix = std::string(block_line.substr(close + 3));
             closed = true;
             break;
           }
-          value += block_line;
+          value.append(block_line);
         }
         if (!closed) {
           errors_.push_back("line " + std::to_string(line_no) + ": unterminated triple-quoted string");
           break;
         }
       }
-      emit(TokenKind::String, std::move(value), start_line_no, indent + 1, true);
+      emit_owned(TokenKind::String, std::move(value), start_line_no, indent + 1, true);
       if (suffix.find_first_not_of(" \t") != std::string::npos) {
         tokenize_line(std::string(indent, ' ') + suffix, line_no, indent);
       }
@@ -123,10 +128,10 @@ std::vector<Token> Lexer::tokenize() {
     emit(TokenKind::Dedent, "", line_no, 1);
   }
   emit(TokenKind::End, "", line_no, 1);
-  return tokens_;
+  return LexResult{std::move(tokens_), std::move(owned_text_), std::move(errors_)};
 }
 
-void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32_t indent) {
+void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t indent) {
   size_t i = indent;
   while (i < line_text.size()) {
     const char ch = line_text[i];
@@ -144,7 +149,7 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
              (std::isalnum(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
         ++i;
       }
-      std::string text = line_text.substr(start, i - start);
+      std::string_view text = line_text.substr(start, i - start);
       TokenKind kind = TokenKind::Identifier;
       if (text == "def") kind = TokenKind::KwDef;
       else if (text == "class") kind = TokenKind::KwClass;
@@ -214,10 +219,10 @@ void Lexer::tokenize_line(const std::string& line_text, uint32_t line_no, uint32
       }
       ++i;
       (void)start;
-      emit(TokenKind::String, value, line_no, col);
+      emit_owned(TokenKind::String, std::move(value), line_no, col);
       continue;
     }
-    auto two = i + 1 < line_text.size() ? line_text.substr(i, 2) : std::string{};
+    auto two = i + 1 < line_text.size() ? line_text.substr(i, 2) : std::string_view{};
     if (two == "==") { emit(TokenKind::EqualEqual, two, line_no, col); i += 2; continue; }
     if (two == "!=") { emit(TokenKind::NotEqual, two, line_no, col); i += 2; continue; }
     if (two == "<=") { emit(TokenKind::LessEqual, two, line_no, col); i += 2; continue; }

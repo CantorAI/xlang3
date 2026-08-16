@@ -12,13 +12,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#pragma once
 
-int main() {
-  xlang3::pico::board::init_console();
+#include "xlang3/value.h"
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
-}
+#include <cstdint>
+#include <unordered_map>
+
+namespace xlang3::rpc {
+
+class ObjectTable {
+public:
+  uint32_t retain(Value value);
+  bool get(uint32_t id, Value& out) const;
+  bool release(uint32_t id);
+  void clear();
+
+private:
+  uint32_t next_id_ = 1;
+  std::unordered_map<uint32_t, Value> objects_;
+};
+
+} // namespace xlang3::rpc

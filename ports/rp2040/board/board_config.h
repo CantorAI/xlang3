@@ -12,13 +12,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#pragma once
 
-int main() {
-  xlang3::pico::board::init_console();
+#include "pico/stdlib.h"
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
-}
+namespace xlang3::pico::board {
+
+constexpr uint kExternalLedPin = 15;
+
+#if defined(PICO_DEFAULT_LED_PIN)
+constexpr bool kHasBoardLed = true;
+constexpr uint kBoardLedPin = PICO_DEFAULT_LED_PIN;
+#else
+constexpr bool kHasBoardLed = false;
+constexpr uint kBoardLedPin = 0;
+#endif
+
+} // namespace xlang3::pico::board

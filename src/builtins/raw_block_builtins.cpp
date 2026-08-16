@@ -29,9 +29,9 @@ bool print_text_raw_block(
   (void)provider;
   (void)context;
   (void)error;
-  runtime.out() << body;
+  runtime.write_output(body);
   if (!body.empty() && body.back() != '\n') {
-    runtime.out() << '\n';
+    runtime.write_output('\n');
   }
   return true;
 }

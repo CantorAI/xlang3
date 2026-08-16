@@ -12,13 +12,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#pragma once
 
-int main() {
-  xlang3::pico::board::init_console();
+#include "xlang3/rpc/file_store.h"
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
-}
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace xlang3::rpc {
+
+class MemoryFileStore {
+public:
+  FileStore as_file_store();
+  std::size_t file_count() const;
+  std::size_t byte_count() const;
+
+private:
+  std::unordered_map<std::string, std::vector<uint8_t>> files_;
+};
+
+} // namespace xlang3::rpc

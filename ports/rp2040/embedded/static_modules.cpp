@@ -12,13 +12,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#include "embedded/static_modules.h"
 
-int main() {
-  xlang3::pico::board::init_console();
+namespace xlang3::pico {
+namespace {
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
+constexpr StaticModuleDef kModules[] = {
+    {"gpio"},
+    {"time"},
+    {"console"},
+};
+
+} // namespace
+
+const StaticModuleDef* static_modules(std::size_t& count) {
+  count = sizeof(kModules) / sizeof(kModules[0]);
+  return kModules;
 }
+
+} // namespace xlang3::pico

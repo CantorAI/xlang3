@@ -18,14 +18,21 @@ limitations under the License.
 
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
-#endif
-#include <functional>
 #include <ostream>
+#endif
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace xlang3 {
+
+struct OutputSink {
+  void* context = nullptr;
+  void (*write)(void* context, const char* data, std::size_t size) = nullptr;
+};
 
 struct RawBlockContext {
   std::function<bool(const std::string& name, Value& out, std::string& error)> get_var;
@@ -42,10 +49,16 @@ public:
       const std::string& body,
       std::string& error);
 
+#if !defined(XLANG3_EMBEDDED)
   explicit Runtime(std::ostream& out);
+#endif
+  explicit Runtime(OutputSink output);
   ~Runtime();
 
-  std::ostream& out() { return out_; }
+  void write_output(const char* data, std::size_t size);
+  void write_output(const std::string& text) { write_output(text.data(), text.size()); }
+  void write_output(const char* text);
+  void write_output(char ch) { write_output(&ch, 1); }
 
   void register_builtin(std::string name, Value value);
   void register_native_builtin(std::string name, NativeFunctionCallback callback);
@@ -82,7 +95,9 @@ public:
   const std::string& last_error() const { return last_error_; }
 
 private:
-  std::ostream& out_;
+  void initialize();
+
+  OutputSink output_;
   std::string last_error_;
   Value pending_exception_;
   uint32_t next_native_id_ = 1;

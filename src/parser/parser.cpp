@@ -14,21 +14,23 @@ limitations under the License.
 */
 #include "xlang3/parser.h"
 
-#include <cstdlib>
+#include "xlang3/source_cursor.h"
+
 #include <cctype>
-#include <sstream>
+#include <cstdlib>
 #include <unordered_set>
 
 namespace xlang3 {
 
-Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
+Parser::Parser(LexResult lex)
+    : tokens_(std::move(lex.tokens)),
+      owned_text_(std::move(lex.owned_text)),
+      errors_(std::move(lex.errors)) {}
 
 ParseResult parse_source(const std::string& source) {
   Lexer lexer(source);
-  auto tokens = lexer.tokenize();
-  Parser parser(std::move(tokens));
+  Parser parser(lexer.tokenize());
   auto result = parser.parse_module();
-  result.errors.insert(result.errors.begin(), lexer.errors().begin(), lexer.errors().end());
   return result;
 }
 
@@ -58,7 +60,7 @@ ast::StmtPtr Parser::parse_statement() {
       do {
         const Token param = peek();
         if (!consume(TokenKind::Identifier, "expected parameter name")) return nullptr;
-        params.push_back(param.text);
+        params.push_back(std::string(param.text));
       } while (match(TokenKind::Comma));
     }
     consume(TokenKind::RParen, "expected ')' after parameters");
@@ -66,7 +68,7 @@ ast::StmtPtr Parser::parse_statement() {
     consume(TokenKind::Newline, "expected newline after function header");
     consume(TokenKind::Indent, "expected indented function body");
     auto fn = std::make_unique<ast::FunctionDef>();
-    fn->name = name.text;
+    fn->name = std::string(name.text);
     fn->params = std::move(params);
     fn->body = parse_block();
     return fn;
@@ -78,7 +80,7 @@ ast::StmtPtr Parser::parse_statement() {
     consume(TokenKind::Newline, "expected newline after class header");
     consume(TokenKind::Indent, "expected indented class body");
     auto klass = std::make_unique<ast::ClassDef>();
-    klass->name = name.text;
+    klass->name = std::string(name.text);
     klass->body = parse_block();
     return klass;
   }
@@ -110,7 +112,7 @@ ast::StmtPtr Parser::parse_statement() {
         if (match(TokenKind::KwAs)) {
           const Token name = peek();
           if (!consume(TokenKind::Identifier, "expected exception name after as")) return nullptr;
-          handler.name = name.text;
+          handler.name = std::string(name.text);
         }
       }
       consume(TokenKind::Colon, "expected ':' after except");
@@ -136,7 +138,7 @@ ast::StmtPtr Parser::parse_statement() {
     if (match(TokenKind::KwAs)) {
       const Token target = peek();
       if (!consume(TokenKind::Identifier, "expected name after as")) return nullptr;
-      stmt->target = target.text;
+      stmt->target = std::string(target.text);
     }
     consume(TokenKind::Colon, "expected ':' after with");
     consume(TokenKind::Newline, "expected newline after with");
@@ -157,7 +159,7 @@ ast::StmtPtr Parser::parse_statement() {
     auto stmt = std::make_unique<ast::ForStmt>();
     const Token target = peek();
     if (!consume(TokenKind::Identifier, "expected loop target after for")) return nullptr;
-    stmt->target = target.text;
+    stmt->target = std::string(target.text);
     consume(TokenKind::KwIn, "expected 'in' after loop target");
     stmt->iterable = parse_expression();
     consume(TokenKind::Colon, "expected ':' after for iterable");
@@ -174,13 +176,13 @@ ast::StmtPtr Parser::parse_statement() {
     do {
       const Token name = peek();
       if (!consume(TokenKind::Identifier, "expected imported name")) return nullptr;
-      std::string bind_name = name.text;
+      std::string bind_name(name.text);
       if (match(TokenKind::KwAs)) {
         const Token alias = peek();
         if (!consume(TokenKind::Identifier, "expected alias after as")) return nullptr;
-        bind_name = alias.text;
+        bind_name = std::string(alias.text);
       }
-      names.push_back(ast::ImportBinding{name.text, bind_name});
+      names.push_back(ast::ImportBinding{std::string(name.text), bind_name});
     } while (match(TokenKind::Comma));
     match(TokenKind::Newline);
     return std::make_unique<ast::FromImportStmt>(std::move(module_name), std::move(names));
@@ -192,7 +194,7 @@ ast::StmtPtr Parser::parse_statement() {
     if (match(TokenKind::KwAs)) {
       const Token alias = peek();
       if (!consume(TokenKind::Identifier, "expected alias after as")) return nullptr;
-      bind_name = alias.text;
+      bind_name = std::string(alias.text);
     }
     match(TokenKind::Newline);
     return std::make_unique<ast::ImportStmt>(std::move(name), std::move(bind_name));
@@ -211,7 +213,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
       if (!consume(TokenKind::Identifier, "expected name after global")) {
         return nullptr;
       }
-      names.push_back(name.text);
+      names.push_back(std::string(name.text));
     } while (match(TokenKind::Comma));
     match(TokenKind::Newline);
     return std::make_unique<ast::GlobalStmt>(std::move(names));
@@ -223,7 +225,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
       if (!consume(TokenKind::Identifier, "expected name after nonlocal")) {
         return nullptr;
       }
-      names.push_back(name.text);
+      names.push_back(std::string(name.text));
     } while (match(TokenKind::Comma));
     match(TokenKind::Newline);
     return std::make_unique<ast::NonlocalStmt>(std::move(names));
@@ -249,7 +251,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
     return std::make_unique<ast::RaiseStmt>(std::move(value));
   }
   if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
-    const std::string name = advance().text;
+    const std::string name(advance().text);
     advance();
     auto value = parse_expression();
     match(TokenKind::Newline);
@@ -268,7 +270,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
     if (auto* attr = dynamic_cast<ast::AttrExpr*>(expr.get())) {
       return std::make_unique<ast::AttrAssignStmt>(
           std::move(attr->object),
-          attr->name,
+      attr->name,
           std::move(value));
     }
     error_here("expected assignable target");
@@ -280,19 +282,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
 
 namespace {
 
-std::string trim_copy(const std::string& value) {
-  size_t first = 0;
-  while (first < value.size() && std::isspace(static_cast<unsigned char>(value[first]))) {
-    ++first;
-  }
-  size_t last = value.size();
-  while (last > first && std::isspace(static_cast<unsigned char>(value[last - 1]))) {
-    --last;
-  }
-  return value.substr(first, last - first);
-}
-
-bool is_known_raw_block_language(const std::string& language) {
+bool is_known_raw_block_language(std::string_view language) {
   static const std::unordered_set<std::string> kLanguages = {
       "sql",
       "markdown",
@@ -301,7 +291,7 @@ bool is_known_raw_block_language(const std::string& language) {
       "json",
       "text",
   };
-  return kLanguages.find(language) != kLanguages.end();
+  return kLanguages.find(std::string(language)) != kLanguages.end();
 }
 
 } // namespace
@@ -312,10 +302,11 @@ ast::StmtPtr Parser::parse_raw_block_statement() {
   }
 
   const Token token = peek();
-  std::istringstream input(token.text);
-  std::string header;
-  while (std::getline(input, header)) {
-    header = trim_copy(header);
+  SourceLines lines(token.text);
+  SourceLine line;
+  std::string_view header;
+  while (lines.next(line)) {
+    header = trim_ascii_space(line.text);
     if (!header.empty()) {
       break;
     }
@@ -324,28 +315,27 @@ ast::StmtPtr Parser::parse_raw_block_statement() {
     return nullptr;
   }
 
-  std::istringstream header_input(header);
-  std::string language;
-  std::string provider;
-  header_input >> language;
-  header_input >> provider;
+  std::string_view language;
+  std::string_view provider;
+  size_t header_offset = 0;
+  next_ascii_word(header, header_offset, language);
+  next_ascii_word(header, header_offset, provider);
   if (!is_known_raw_block_language(language)) {
     return nullptr;
   }
 
   std::string body;
-  std::string body_line;
   bool first_body_line = true;
-  while (std::getline(input, body_line)) {
+  while (lines.next(line)) {
     if (!first_body_line) {
       body.push_back('\n');
     }
     first_body_line = false;
-    body += body_line;
+    body += std::string(line.text);
   }
   advance();
   match(TokenKind::Newline);
-  return std::make_unique<ast::RawBlockStmt>(std::move(language), std::move(provider), std::move(body));
+  return std::make_unique<ast::RawBlockStmt>(std::string(language), std::string(provider), std::move(body));
 }
 
 bool Parser::parse_dotted_name(std::string& out, const std::string& message) {
@@ -353,14 +343,14 @@ bool Parser::parse_dotted_name(std::string& out, const std::string& message) {
   if (!consume(TokenKind::Identifier, message)) {
     return false;
   }
-  out = first.text;
+  out = std::string(first.text);
   while (match(TokenKind::Dot)) {
     const Token part = peek();
     if (!consume(TokenKind::Identifier, "expected name after '.'")) {
       return false;
     }
     out += ".";
-    out += part.text;
+    out += std::string(part.text);
   }
   return true;
 }
@@ -494,7 +484,7 @@ ast::ExprPtr Parser::parse_call() {
     } else if (match(TokenKind::Dot)) {
       const Token attr = peek();
       consume(TokenKind::Identifier, "expected attribute name after '.'");
-      expr = std::make_unique<ast::AttrExpr>(std::move(expr), attr.text);
+      expr = std::make_unique<ast::AttrExpr>(std::move(expr), std::string(attr.text));
     } else {
       break;
     }
@@ -503,9 +493,9 @@ ast::ExprPtr Parser::parse_call() {
 }
 
 ast::ExprPtr Parser::parse_primary() {
-  if (match(TokenKind::Integer)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, previous().text);
-  if (match(TokenKind::Double)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Double, previous().text);
-  if (match(TokenKind::String)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, previous().text);
+  if (match(TokenKind::Integer)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, std::string(previous().text));
+  if (match(TokenKind::Double)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Double, std::string(previous().text));
+  if (match(TokenKind::String)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, std::string(previous().text));
   if (match(TokenKind::KwTrue)) {
     auto lit = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bool);
     lit->bool_value = true;
@@ -517,7 +507,7 @@ ast::ExprPtr Parser::parse_primary() {
     return lit;
   }
   if (match(TokenKind::KwNone)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
-  if (match(TokenKind::Identifier)) return std::make_unique<ast::NameExpr>(previous().text);
+  if (match(TokenKind::Identifier)) return std::make_unique<ast::NameExpr>(std::string(previous().text));
   if (match(TokenKind::LParen)) {
     if (match(TokenKind::RParen)) {
       return std::make_unique<ast::TupleExpr>(std::vector<ast::ExprPtr>{});
@@ -541,7 +531,7 @@ ast::ExprPtr Parser::parse_primary() {
         filter = parse_expression();
       }
       consume(TokenKind::RBracket, "expected ']' after list comprehension");
-      return std::make_unique<ast::ListCompExpr>(std::move(first), target.text, std::move(iterable), std::move(filter));
+      return std::make_unique<ast::ListCompExpr>(std::move(first), std::string(target.text), std::move(iterable), std::move(filter));
     }
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));

@@ -14,8 +14,24 @@ limitations under the License.
 */
 #include "test_harness.h"
 
+#include "xlang3/source_cursor.h"
+
 int main() {
   xlang3::test::CaseResult result;
+  xlang3::SourceLines lines("alpha\r\n beta\n\nomega");
+  xlang3::SourceLine line;
+  xlang3::test::expect_true(result, lines.next(line) && line.text == "alpha" && line.line == 1, "SourceLines should read first CRLF line");
+  xlang3::test::expect_true(result, lines.next(line) && line.text == " beta" && line.line == 2, "SourceLines should read second LF line");
+  xlang3::test::expect_true(result, lines.next(line) && line.text.empty() && line.line == 3, "SourceLines should preserve empty lines");
+  xlang3::test::expect_true(result, lines.next(line) && line.text == "omega" && line.line == 4, "SourceLines should read final line");
+  xlang3::test::expect_true(result, !lines.next(line), "SourceLines should end after final line");
+
+  std::string_view raw_header = xlang3::trim_ascii_space("  sql sqlite  ");
+  std::string_view word;
+  size_t word_offset = 0;
+  xlang3::test::expect_true(result, xlang3::next_ascii_word(raw_header, word_offset, word) && word == "sql", "scanner should read raw block language");
+  xlang3::test::expect_true(result, xlang3::next_ascii_word(raw_header, word_offset, word) && word == "sqlite", "scanner should read raw block provider");
+
   const char* source =
       "def main():\n"
       "    x = 1 + 2 * 3\n"

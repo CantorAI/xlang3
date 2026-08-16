@@ -12,13 +12,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#pragma once
 
-int main() {
-  xlang3::pico::board::init_console();
+#include <cstdint>
+#include <string>
+#include <vector>
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
-}
+namespace xlang3::rpc {
+
+struct FileStore {
+  void* context = nullptr;
+  bool (*put)(void* context, const char* path, const uint8_t* data, uint32_t size, std::string& error) = nullptr;
+  bool (*get)(void* context, const char* path, std::vector<uint8_t>& out, std::string& error) = nullptr;
+  bool (*remove)(void* context, const char* path, std::string& error) = nullptr;
+  bool (*list)(void* context, const char* path, std::vector<std::string>& out, std::string& error) = nullptr;
+};
+
+} // namespace xlang3::rpc

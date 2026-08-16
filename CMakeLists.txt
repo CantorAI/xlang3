@@ -30,6 +30,7 @@ add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
 add_subdirectory(modules/json)
 add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
+add_subdirectory(modules/device)
 endif()
 
 set(XLANG3_RUNTIME_SOURCES
@@ -55,16 +56,19 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/set_object.cpp
   src/runtime/module_object.cpp
   src/runtime/runtime.cpp
+  src/parser/source_cursor.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp
   src/sema/scope_analysis.cpp
   src/sema/lower.cpp
-  src/ir/dump.cpp
   src/executor/interpreter.cpp
+  src/rpc/object_table.cpp
+  src/rpc/memory_file_store.cpp
 )
 
 if(NOT XLANG3_EMBEDDED)
   list(APPEND XLANG3_RUNTIME_SOURCES
+    src/ir/dump.cpp
     src/api/c_api.cpp
     src/import/import_loader.cpp
     src/import/native_package_loader.cpp
@@ -73,7 +77,7 @@ endif()
 
 if(XLANG3_EMBEDDED)
 add_library(xlang3_runtime_embedded STATIC ${XLANG3_RUNTIME_SOURCES})
-target_compile_definitions(xlang3_runtime_embedded PUBLIC XLANG3_EMBEDDED=1)
+target_compile_definitions(xlang3_runtime_embedded PUBLIC XLANG3_EMBEDDED=1 XLANG3_SIZE_OPT=1)
 target_include_directories(xlang3_runtime_embedded
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -150,6 +154,11 @@ add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
 add_test(
   NAME xlang3_cli_yaml_module_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py
+)
+
+add_test(
+  NAME xlang3_cli_device_module_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/device_module.py
 )
 
 add_test(

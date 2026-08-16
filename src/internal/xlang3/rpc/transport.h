@@ -12,13 +12,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "board/console.h"
-#include "embedded/embedded_host.h"
+#pragma once
 
-int main() {
-  xlang3::pico::board::init_console();
+#include <cstdint>
+#include <string>
+#include <vector>
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
-}
+namespace xlang3::rpc {
+
+struct TransportResult {
+  bool ok = false;
+  std::string error;
+};
+
+struct Transport {
+  void* context = nullptr;
+  TransportResult (*send)(void* context, const uint8_t* data, uint32_t size) = nullptr;
+  TransportResult (*receive)(void* context, std::vector<uint8_t>& out) = nullptr;
+  void (*close)(void* context) = nullptr;
+};
+
+} // namespace xlang3::rpc

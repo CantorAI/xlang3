@@ -13,12 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "board/console.h"
-#include "embedded/embedded_host.h"
 
-int main() {
-  xlang3::pico::board::init_console();
+#include "pico/stdlib.h"
 
-  xlang3::pico::EmbeddedHost host;
-  host.run();
-  return 0;
+#include <cstdio>
+
+namespace xlang3::pico::board {
+
+void init_console() {
+  stdio_init_all();
+  sleep_ms(1500);
 }
+
+void write_line(const char* text) {
+  std::printf("%s\n", text);
+}
+
+} // namespace xlang3::pico::board

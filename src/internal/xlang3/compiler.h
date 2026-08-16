@@ -14,7 +14,17 @@ limitations under the License.
 */
 #pragma once
 
+#if defined(XLANG3_SIZE_OPT) && XLANG3_SIZE_OPT
+#define XLANG3_FORCE_INLINE inline
+#define XLANG3_HOT_INLINE inline
 #if defined(_MSC_VER)
+#define XLANG3_NOINLINE __declspec(noinline)
+#elif defined(__clang__) || defined(__GNUC__)
+#define XLANG3_NOINLINE __attribute__((noinline))
+#else
+#define XLANG3_NOINLINE
+#endif
+#elif defined(_MSC_VER)
 #define XLANG3_FORCE_INLINE __forceinline
 #define XLANG3_HOT_INLINE __forceinline
 #define XLANG3_NOINLINE __declspec(noinline)

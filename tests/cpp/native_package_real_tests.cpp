@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
     X::Package json(runtime, "json", "xlang_json");
     if (json["__xlang3_package__"].ToString() != "xlang_json" ||
-        json["__xlang3_abi__"].ToString() != "7") {
+        json["__xlang3_abi__"].ToString() != "8") {
       std::cerr << "bad json package metadata\n";
       return 1;
     }
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
     X::Package sqlite3(runtime, "sqlite3");
     if (sqlite3["__xlang3_package__"].ToString() != "xlang_sqlite3" ||
-        sqlite3["__xlang3_abi__"].ToString() != "7") {
+        sqlite3["__xlang3_abi__"].ToString() != "8") {
       std::cerr << "bad sqlite package metadata\n";
       return 1;
     }

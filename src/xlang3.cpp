@@ -23,11 +23,12 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace {
 
 void print_usage() {
-  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] <file.py>\n";
+  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] [file.py]\n";
 }
 
 bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
@@ -54,9 +55,6 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       return false;
     }
     config.source_path = arg;
-  }
-  if (config.source_path.empty()) {
-    return false;
   }
   return true;
 }
@@ -85,6 +83,100 @@ bool dump_ir_file(const xlang3::RunConfig& config, const xlang3::ir::Module& mod
   return true;
 }
 
+bool run_source(
+    const std::string& source,
+    const xlang3::RunConfig& config,
+    xlang3::Runtime& runtime,
+    xlang3::Interpreter& interpreter,
+    bool dump_ir) {
+  auto parsed = xlang3::parse_source(source);
+  if (!parsed.errors.empty()) {
+    for (const auto& error : parsed.errors) {
+      std::cerr << "parse: " << error << "\n";
+    }
+    return false;
+  }
+
+  auto lowered = xlang3::lower_to_ir(parsed.module);
+  if (!lowered.errors.empty()) {
+    for (const auto& error : lowered.errors) {
+      std::cerr << "lower: " << error << "\n";
+    }
+    return false;
+  }
+
+  if (dump_ir && !dump_ir_file(config, lowered.module)) {
+    return false;
+  }
+
+  auto result = interpreter.run(lowered.module);
+  if (!result.errors.empty()) {
+    for (const auto& error : result.errors) {
+      std::cerr << "runtime: " << error << "\n";
+    }
+    return false;
+  }
+  return true;
+}
+
+bool looks_like_statement(const std::string& line) {
+  static constexpr const char* prefixes[] = {
+      "print", "import", "from", "def", "class", "if", "for", "while",
+      "try", "with", "return", "raise", "pass", "break", "continue"};
+  const auto first = line.find_first_not_of(" \t");
+  if (first == std::string::npos) {
+    return true;
+  }
+  const std::string trimmed = line.substr(first);
+  for (const char* prefix : prefixes) {
+    const std::string token(prefix);
+    if (trimmed == token || trimmed.rfind(token + " ", 0) == 0 || trimmed.rfind(token + "(", 0) == 0) {
+      return true;
+    }
+  }
+  const auto assign = trimmed.find('=');
+  if (assign != std::string::npos) {
+    const bool comparison =
+        assign + 1 < trimmed.size() && trimmed[assign + 1] == '=' ||
+        assign > 0 && (trimmed[assign - 1] == '!' || trimmed[assign - 1] == '<' || trimmed[assign - 1] == '>');
+    return !comparison;
+  }
+  return false;
+}
+
+std::string repl_source_for_line(const std::string& line) {
+  if (looks_like_statement(line)) {
+    return line;
+  }
+  return "print(" + line + ")";
+}
+
+int run_repl() {
+  std::cout << "XLang3 interactive shell\n";
+  std::cout << "Type .exit to quit.\n";
+
+  xlang3::RunConfig config;
+  xlang3::Runtime runtime(std::cout);
+  runtime.prepend_import_root(std::filesystem::current_path());
+  xlang3::Interpreter interpreter(runtime);
+
+  std::string line;
+  while (true) {
+    std::cout << ">>> " << std::flush;
+    if (!std::getline(std::cin, line)) {
+      std::cout << "\n";
+      return 0;
+    }
+    if (line == ".exit" || line == "exit" || line == "quit") {
+      return 0;
+    }
+    if (line.empty()) {
+      continue;
+    }
+    run_source(repl_source_for_line(line), config, runtime, interpreter, false);
+  }
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -92,6 +184,10 @@ int main(int argc, char** argv) {
   if (!parse_args(argc, argv, config)) {
     print_usage();
     return 2;
+  }
+
+  if (config.source_path.empty()) {
+    return run_repl();
   }
 
   std::ifstream file(config.source_path, std::ios::binary);
@@ -102,35 +198,8 @@ int main(int argc, char** argv) {
   std::ostringstream buffer;
   buffer << file.rdbuf();
 
-  auto parsed = xlang3::parse_source(buffer.str());
-  if (!parsed.errors.empty()) {
-    for (const auto& error : parsed.errors) {
-      std::cerr << "parse: " << error << "\n";
-    }
-    return 1;
-  }
-
-  auto lowered = xlang3::lower_to_ir(parsed.module);
-  if (!lowered.errors.empty()) {
-    for (const auto& error : lowered.errors) {
-      std::cerr << "lower: " << error << "\n";
-    }
-    return 1;
-  }
-
-  if (config.debug.dump_ir && !dump_ir_file(config, lowered.module)) {
-    return 1;
-  }
-
   xlang3::Runtime runtime(std::cout);
   runtime.prepend_import_root(config.source_path.parent_path());
   xlang3::Interpreter interpreter(runtime);
-  auto result = interpreter.run(lowered.module);
-  if (!result.errors.empty()) {
-    for (const auto& error : result.errors) {
-      std::cerr << "runtime: " << error << "\n";
-    }
-    return 1;
-  }
-  return 0;
+  return run_source(buffer.str(), config, runtime, interpreter, config.debug.dump_ir) ? 0 : 1;
 }
