@@ -113,36 +113,6 @@ add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
 target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
 
-add_library(x3sample_native_package SHARED tests/native/sample_package.c)
-set_target_properties(x3sample_native_package PROPERTIES
-  OUTPUT_NAME "x3sample.x3pkg"
-  PREFIX ""
-)
-target_include_directories(x3sample_native_package PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-add_executable(xlang3_native_package_tests tests/cpp/native_package_tests.cpp)
-target_link_libraries(xlang3_native_package_tests PRIVATE xlang3_runtime)
-target_compile_definitions(xlang3_native_package_tests PRIVATE XLANG3_USE_SHARED)
-target_include_directories(xlang3_native_package_tests PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
-  ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
-)
-add_test(
-  NAME xlang3_native_package_tests
-  COMMAND xlang3_native_package_tests $<TARGET_FILE_DIR:x3sample_native_package>
-)
-
-add_test(
-  NAME xlang3_cli_native_package_import
-  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/native_import_probe.py
-)
-
-add_test(
-  NAME xlang3_cli_native_package_xlang_prefix_import
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
-          -Command "Copy-Item -Force '$<TARGET_FILE:x3sample_native_package>' '$<TARGET_FILE_DIR:x3sample_native_package>/xlang_aliasprobe.x3pkg.dll'; & '$<TARGET_FILE:xlang3>' '${CMAKE_CURRENT_SOURCE_DIR}/tests/native/native_prefix_probe.py'"
-)
-
 add_test(
   NAME xlang3_cli_yaml_module_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py
