@@ -17,19 +17,6 @@ limitations under the License.
 #include <iostream>
 #include <stdexcept>
 
-namespace {
-
-X::Value get_item(const X::Value& object, const X::Value& key) {
-  X3Value result = x3_value_invalid();
-  if (x3_get_item(object.runtime(), object.raw(), key.raw(), &result) != X3_STATUS_OK) {
-    const char* error = x3_runtime_last_error(object.runtime());
-    throw std::runtime_error(error == nullptr ? "x3_get_item failed" : error);
-  }
-  return X::Value(object.runtime(), result);
-}
-
-} // namespace
-
 int main(int argc, char** argv) {
   if (argc != 2) {
     std::cerr << "usage: native_package_real_tests <native-package-dir>\n";
@@ -42,12 +29,16 @@ int main(int argc, char** argv) {
 
     X::Package json(runtime, "json", "xlang_json");
     auto data = json.fn("loads")("{\"name\":\"xlang3\",\"items\":[1,2,3]}");
-    if (get_item(data, X::Value(runtime, "name")).ToString() != "xlang3") {
+    if (data.GetItem("name").ToString() != "xlang3") {
       std::cerr << "bad json name\n";
       return 1;
     }
-    auto items = get_item(data, X::Value(runtime, "items"));
-    if (get_item(items, X::Value(runtime, 1)).ToInt64() != 2) {
+    auto items = data.GetItem("items");
+    if (items.Len() != 3) {
+      std::cerr << "bad json list length\n";
+      return 1;
+    }
+    if (items[1].ToInt64() != 2) {
       std::cerr << "bad json list item\n";
       return 1;
     }
@@ -66,6 +57,16 @@ int main(int argc, char** argv) {
     auto cursor = conn["cursor"]();
     if (cursor.ToString() != "<Cursor object>") {
       std::cerr << "bad bound cursor method call\n";
+      return 1;
+    }
+    cursor["execute"]("CREATE TABLE sdk(value INTEGER)");
+    auto params = runtime.List();
+    params.Append(5);
+    cursor["execute"]("INSERT INTO sdk(value) VALUES (?)", params);
+    cursor["execute"]("SELECT value FROM sdk");
+    auto row = cursor["fetchone"]();
+    if (row[0].ToInt64() != 5) {
+      std::cerr << "bad sqlite parameter round trip\n";
       return 1;
     }
     cursor["close"]();

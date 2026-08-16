@@ -16,14 +16,14 @@ limitations under the License.
 
 Status: living checkpoint
 
-Current head when this checkpoint was written: `193dadf Add guarded interpreter fast paths`
+Current checkpoint when this document was refreshed: `672d6a0 Support class and method calls in C API`, plus the SDK container helper pass.
 
 Current position:
 
 - Phase 0 is functionally complete.
-- Phase 1 correctness is active and partially complete.
+- Phase 1 correctness is active and substantially complete for the current small-Python subset.
 - Phase 1 interpreter performance work has started for scalar/local/call/class hot paths.
-- Phase 2 and Phase 3 are design targets only; do not start them until the Phase 1 interpreter is coherent.
+- Phase 2 and Phase 3 are design targets only; start them in narrow, gated slices after the Phase 1 runtime/module contracts stay stable.
 
 ## Phase 0: Skeleton And Runtime Core
 
@@ -70,8 +70,11 @@ Goals:
 - [x] source `.py` imports
 - [x] native built-in module imports
 - [x] package import basics
-- [ ] native package C ABI loading from external dynamic libraries
+- [x] native package C ABI loading from external dynamic libraries
 - [x] exception control-flow foundation
+- [x] typed exception handlers and `except E as e`
+- [x] `finally`
+- [x] `with` cleanup on normal and exceptional exits
 - [x] class/object protocol foundation
 - [ ] fuller Python expression/operator coverage
 - [~] fuller list/dict/set/string methods
@@ -86,6 +89,8 @@ Performance:
 - [~] basic inline caches
 - [x] global/module lookup cache
 - [~] call fast path
+- [x] C API calls for native functions, XLang functions, bound methods, and class constructors
+- [x] C++ SDK calls for native packages, attributes, class construction, bound methods, and container item basics
 - [x] benchmark comparison against CPython for current microbenchmarks
 - [~] pyperformance integration track
 
@@ -102,19 +107,21 @@ Implemented Phase 1 syntax/runtime subset:
 - iteration: range/list/tuple/string/dict/set basics
 - comprehensions: basic list comprehension with optional `if`
 - imports: `import x`, `import x as y`, `import pkg.mod`, `from x import y`, aliases, package `__init__.py`
-- exceptions: explicit `raise expr`, catch-all `try` / `except`, and catchable interpreter/native runtime errors
+- exceptions: explicit `raise expr`, catch-all and typed `try` / `except`, `except E as e`, subclass matching, `finally`, and catchable interpreter/native runtime errors
 - classes: class statement, class attributes, instance attributes, `__init__`, and simple bound methods
 - builtin methods: initial list/dict/set/string method dispatch through attributes
 - native modules: `_builtins`, `math`
+- external native packages: `json`, `yaml`, `sqlite3`
+- native package loader: requested module `M` checks `M.x3pkg.dll` and then `xlang_M.x3pkg.dll` on Windows, with the same prefix rule intended for other platforms using their native extension suffix
 
 Next Phase 1 implementation candidates:
 
-1. Python exception object hierarchy: `Exception`, typed handlers, and binding `except E as e`.
+1. Native package metadata/cleanup hook and stronger load diagnostics.
 2. More complete container/string builtin method coverage.
-3. External native package loading through the C ABI.
+3. Broader parser compatibility.
 4. Expand guarded inline caches without hardcoding Python-incompatible assumptions.
-5. Broader parser compatibility.
-6. Grow the `benchmarks/pyperformance/supported.txt` subset as stdlib coverage improves.
+5. Grow the `benchmarks/pyperformance/supported.txt` subset as stdlib coverage improves.
+6. Keep extending the C++ SDK wrapper in ABI-compatible layers instead of exposing internal C++ runtime types.
 
 ## Phase 2: Optimized Interpreter And Standard Modules
 
@@ -128,7 +135,7 @@ Goals:
 - [ ] decorators
 - [ ] generators later if staged
 - [ ] async syntax parse first, runtime later
-- [ ] std modules split from core
+- [~] std/native modules split from core
 
 Performance:
 
@@ -143,7 +150,7 @@ Performance:
 
 Phase 2 gate:
 
-Do not enter Phase 2 broadly until Phase 1 has external native package loading, classes foundation, exceptions foundation, and expanded compatibility tests.
+Do not enter Phase 2 broadly until Phase 1 has stable native package loading/cleanup, class foundation, exceptions foundation, and expanded compatibility tests.
 
 ## Phase 3: GraphIR, JIT, AOT
 
@@ -196,7 +203,7 @@ Before writing large code, verify:
 
 - [x] AST has no execution methods
 - [x] runtime ABI headers are C-compatible
-- [~] extensions can be compiled with different compilers
+- [x] extensions can be compiled with different compilers through the C ABI boundary
 - [x] ProgramIR can run without parser
 - [ ] interpreter can run serialized/prebuilt IR
 - [x] LLVM code is optional
@@ -204,7 +211,8 @@ Before writing large code, verify:
 
 Notes:
 
-- Source module loading currently parses and lowers `.py` files at import time, so source imports still depend on parser/sema. Native modules do not need parser internals.
+- Source module loading currently parses and lowers `.py` files at import time, so source imports still depend on parser/sema. Native packages do not need parser internals.
 - Serialized/prebuilt IR is not implemented yet. The IR structure is separate enough to support it later.
 - Benchmarking now has two tracks: `benchmarks/cases` for VM microbenchmarks, and `benchmarks/pyperformance` for alignment with the Python ecosystem benchmark suite. The pyperformance supported subset starts empty until benchmarks run unchanged on both CPython and XLang3.
 - Current interpreter fast paths include fused local ops, scalar arithmetic fast paths, guarded tiny-function/tiny-method execution, and class-version guarded call caches.
+- The runtime deliverables are split into `xlang3_runtime` shared library, `xlang3_runtime_static`, `xlang3` CLI, and external native package binaries under the runtime module search path.

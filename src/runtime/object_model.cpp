@@ -100,7 +100,7 @@ Value Value::instance(Value klass) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_instance_object();
-  obj->klass = std::move(klass);
+  obj->klass = klass;
   if (auto* klass_obj = value_as_class(obj->klass)) {
     obj->slot_count = static_cast<uint32_t>(klass_obj->instance_slot_names.size());
     if (obj->slot_count > 8) {

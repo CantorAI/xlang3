@@ -23,6 +23,8 @@ limitations under the License.
 
 namespace X {
 
+class Value;
+
 class Runtime {
 public:
   Runtime() : runtime_(x3_runtime_create()) {
@@ -55,6 +57,9 @@ public:
   ~Runtime() { reset(); }
 
   X3Runtime* get() const { return runtime_; }
+
+  Value List();
+  Value Dict();
 
   void AddImportRoot(const std::string& path) {
     check(x3_runtime_add_import_root(runtime_, path.c_str()));
@@ -134,6 +139,12 @@ public:
   bool IsInt64() const { return value_.tag == X3_TAG_INT64; }
   int64_t ToInt64() const { return value_.as.i64; }
 
+  uint64_t Len() const {
+    uint64_t result = 0;
+    check(x3_len(runtime_, value_, &result));
+    return result;
+  }
+
   std::string ToString() const {
     const char* text = x3_value_to_cstr(runtime_, value_);
     return text == nullptr ? std::string() : std::string(text);
@@ -147,6 +158,47 @@ public:
 
   Value operator[](const std::string& name) const {
     return (*this)[name.c_str()];
+  }
+
+  Value operator[](int index) const {
+    return GetItem(static_cast<int64_t>(index));
+  }
+
+  Value operator[](int64_t index) const {
+    return GetItem(index);
+  }
+
+  Value GetItem(const Value& key) const {
+    X3Value result = x3_value_invalid();
+    check(x3_get_item(runtime_, value_, key.raw(), &result));
+    return Value(runtime_, result);
+  }
+
+  template <typename T>
+  Value GetItem(T&& key) const {
+    Value owned_key(runtime_, to_value(std::forward<T>(key)));
+    return GetItem(static_cast<const Value&>(owned_key));
+  }
+
+  void Append(const Value& item) {
+    check(x3_list_append(runtime_, value_, item.raw()));
+  }
+
+  template <typename T>
+  void Append(T&& item) {
+    Value owned_item(runtime_, to_value(std::forward<T>(item)));
+    Append(static_cast<const Value&>(owned_item));
+  }
+
+  void SetItem(const Value& key, const Value& item) {
+    check(x3_dict_set_item(runtime_, value_, key.raw(), item.raw()));
+  }
+
+  template <typename Key, typename Item>
+  void SetItem(Key&& key, Item&& item) {
+    Value owned_key(runtime_, to_value(std::forward<Key>(key)));
+    Value owned_item(runtime_, to_value(std::forward<Item>(item)));
+    SetItem(static_cast<const Value&>(owned_key), static_cast<const Value&>(owned_item));
   }
 
   bool SetPropValue(const char* name, const Value& value) {
@@ -207,6 +259,14 @@ protected:
   X3Runtime* runtime_;
   X3Value value_;
 };
+
+inline Value Runtime::List() {
+  return Value(runtime_, x3_value_list(runtime_));
+}
+
+inline Value Runtime::Dict() {
+  return Value(runtime_, x3_value_dict(runtime_));
+}
 
 class Function : public Value {
 public:

@@ -147,6 +147,15 @@ bool native_function_bridge(
       argc,
       &c_result);
 
+  if (status == X3_STATUS_OK && c_result.tag == X3_TAG_OBJECT) {
+    for (const auto& value : c_args) {
+      if (value.tag == X3_TAG_OBJECT && c_result.as.obj == value.as.obj) {
+        x3_value_retain(c_result);
+        break;
+      }
+    }
+  }
+
   for (auto& value : c_args) {
     x3_value_release(value);
   }
