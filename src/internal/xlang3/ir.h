@@ -61,6 +61,7 @@ enum class Op : uint16_t {
   Sub,
   Mul,
   Div,
+  Mod,
   BoolAnd,
   BoolOr,
   Compare,

@@ -51,6 +51,9 @@ private:
   void info();
   void stats();
   void store_info(const char* line);
+  void init_i2c_bus(uint32_t sda, uint32_t scl, uint32_t baud);
+  void i2c_scan(const char* line);
+  void i2c_write(const char* line);
 };
 
 } // namespace xlang3::pico

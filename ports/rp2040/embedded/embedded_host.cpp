@@ -24,6 +24,8 @@ limitations under the License.
 #include "xlang3/sema.h"
 
 #include "hardware/clocks.h"
+#include "hardware/gpio.h"
+#include "hardware/i2c.h"
 #include "pico/stdio.h"
 
 #include <cstdio>
@@ -100,6 +102,23 @@ const char* split_token(const char* text, std::string& token) {
   return text;
 }
 
+bool parse_uint_token(const char*& text, uint32_t& value) {
+  std::string token;
+  text = split_token(text, token);
+  if (token.empty()) {
+    return false;
+  }
+  uint32_t parsed = 0;
+  for (char ch : token) {
+    if (ch < '0' || ch > '9') {
+      return false;
+    }
+    parsed = parsed * 10u + static_cast<uint32_t>(ch - '0');
+  }
+  value = parsed;
+  return true;
+}
+
 } // namespace
 
 EmbeddedHost::EmbeddedHost()
@@ -173,6 +192,14 @@ void EmbeddedHost::process_rpc_line(const char* line) {
   }
   if (std::strncmp(line, "delete ", 7) == 0) {
     delete_file(line + 7);
+    return;
+  }
+  if (std::strncmp(line, "i2c_scan ", 9) == 0) {
+    i2c_scan(line + 9);
+    return;
+  }
+  if (std::strncmp(line, "i2c_write ", 10) == 0) {
+    i2c_write(line + 10);
     return;
   }
 
@@ -301,7 +328,7 @@ void EmbeddedHost::info() {
   std::printf("I flash_bytes 2097152\n");
 #endif
   std::printf("S stores ram,flash\n");
-  std::printf("S modules gpio,time,console\n");
+  std::printf("S modules gpio,time,console,i2c\n");
   std::printf("OK\nEND\n");
 }
 
@@ -342,6 +369,66 @@ void EmbeddedHost::store_info(const char* line) {
     return;
   }
   std::printf("ERR store_info: unknown store\nEND\n");
+}
+
+void EmbeddedHost::init_i2c_bus(uint32_t sda, uint32_t scl, uint32_t baud) {
+  i2c_init(i2c0, baud == 0 ? 100000 : baud);
+  gpio_set_function(sda, GPIO_FUNC_I2C);
+  gpio_set_function(scl, GPIO_FUNC_I2C);
+  gpio_pull_up(sda);
+  gpio_pull_up(scl);
+}
+
+void EmbeddedHost::i2c_scan(const char* line) {
+  const char* cursor = line;
+  uint32_t sda = 0;
+  uint32_t scl = 0;
+  uint32_t baud = 100000;
+  if (!parse_uint_token(cursor, sda) || !parse_uint_token(cursor, scl)) {
+    std::printf("ERR i2c_scan: expected sda scl [baud]\nEND\n");
+    return;
+  }
+  uint32_t parsed_baud = 0;
+  if (parse_uint_token(cursor, parsed_baud)) {
+    baud = parsed_baud;
+  }
+  init_i2c_bus(sda, scl, baud);
+  for (uint8_t address = 1; address < 0x7f; ++address) {
+    uint8_t dummy = 0;
+    const int rc = i2c_write_blocking(i2c0, address, &dummy, 1, false);
+    if (rc >= 0) {
+      std::printf("ADDR %u\n", static_cast<unsigned>(address));
+    }
+  }
+  std::printf("OK\nEND\n");
+}
+
+void EmbeddedHost::i2c_write(const char* line) {
+  const char* cursor = line;
+  uint32_t sda = 0;
+  uint32_t scl = 0;
+  uint32_t baud = 100000;
+  uint32_t address = 0;
+  if (!parse_uint_token(cursor, sda) ||
+      !parse_uint_token(cursor, scl) ||
+      !parse_uint_token(cursor, baud) ||
+      !parse_uint_token(cursor, address)) {
+    std::printf("ERR i2c_write: expected sda scl baud address base64\nEND\n");
+    return;
+  }
+  while (*cursor == ' ') ++cursor;
+  std::vector<uint8_t> data;
+  if (address == 0 || address >= 0x80 || !base64_decode(cursor, data)) {
+    std::printf("ERR i2c_write: invalid address or base64 data\nEND\n");
+    return;
+  }
+  init_i2c_bus(sda, scl, baud);
+  const int rc = i2c_write_blocking(i2c0, static_cast<uint8_t>(address), data.data(), data.size(), false);
+  if (rc < 0) {
+    std::printf("ERR i2c_write: device did not acknowledge\nEND\n");
+    return;
+  }
+  std::printf("OK\nEND\n");
 }
 
 void EmbeddedHost::run() {

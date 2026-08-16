@@ -59,6 +59,7 @@ const char* op_name(Op op) {
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
     case Op::Div: return "Div";
+    case Op::Mod: return "Mod";
     case Op::BoolAnd: return "BoolAnd";
     case Op::BoolOr: return "BoolOr";
     case Op::Compare: return "Compare";

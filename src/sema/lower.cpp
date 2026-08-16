@@ -935,6 +935,7 @@ private:
       else if (bin->op == "-") emit(ir::Op::Sub, reg, lhs, rhs);
       else if (bin->op == "*") emit(ir::Op::Mul, reg, lhs, rhs);
       else if (bin->op == "/") emit(ir::Op::Div, reg, lhs, rhs);
+      else if (bin->op == "%") emit(ir::Op::Mod, reg, lhs, rhs);
       else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
       else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
       else {

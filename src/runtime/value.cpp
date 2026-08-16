@@ -432,6 +432,36 @@ bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   return true;
 }
 
+bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    if (rhs.as.i64 == 0) {
+      error = "integer modulo by zero";
+      return false;
+    }
+    int64_t result = lhs.as.i64 % rhs.as.i64;
+    if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {
+      result += rhs.as.i64;
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (!is_number(lhs) || !is_number(rhs)) {
+    error = "unsupported operands for %";
+    return false;
+  }
+  const double divisor = as_double(rhs);
+  if (divisor == 0.0) {
+    error = "float modulo by zero";
+    return false;
+  }
+  double result = std::fmod(as_double(lhs), divisor);
+  if (result != 0.0 && ((result < 0.0) != (divisor < 0.0))) {
+    result += divisor;
+  }
+  value_set_number(out, result);
+  return true;
+}
+
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
   if (is_number(lhs) && is_number(rhs)) {

@@ -449,6 +449,7 @@ ast::ExprPtr Parser::parse_factor() {
     std::string op;
     if (match(TokenKind::Star)) op = "*";
     else if (match(TokenKind::Slash)) op = "/";
+    else if (match(TokenKind::Percent)) op = "%";
     else break;
     expr = std::make_unique<ast::BinaryExpr>(std::move(expr), op, parse_unary());
   }

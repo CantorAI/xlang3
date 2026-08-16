@@ -34,6 +34,8 @@ void register_builtin_modules(Runtime& runtime) {
   auto builtins = builder.finish();
   copy_builtin(runtime, builtins, "print");
   copy_builtin(runtime, builtins, "len");
+  copy_builtin(runtime, builtins, "ord");
+  copy_builtin(runtime, builtins, "str");
   copy_builtin(runtime, builtins, "range");
   copy_builtin(runtime, builtins, "BaseException");
   copy_builtin(runtime, builtins, "Exception");

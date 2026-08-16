@@ -21,6 +21,7 @@ constexpr StaticModuleDef kModules[] = {
     {"gpio"},
     {"time"},
     {"console"},
+    {"i2c"},
 };
 
 } // namespace

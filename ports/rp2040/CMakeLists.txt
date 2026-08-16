@@ -53,6 +53,7 @@ target_link_options(xlang3_pico PRIVATE
 target_link_libraries(xlang3_pico
   PRIVATE
     xlang3_runtime_embedded
+    hardware_i2c
     pico_stdlib
 )
 

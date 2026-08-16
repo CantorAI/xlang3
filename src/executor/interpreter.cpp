@@ -97,6 +97,23 @@ XLANG3_HOT_INLINE bool fast_div(const Value& lhs, const Value& rhs, Value& out, 
   return true;
 }
 
+XLANG3_HOT_INLINE bool fast_mod(const Value& lhs, const Value& rhs, Value& out, bool& modulo_by_zero) {
+  modulo_by_zero = false;
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    return false;
+  }
+  if (rhs.as.i64 == 0) {
+    modulo_by_zero = true;
+    return false;
+  }
+  int64_t result = lhs.as.i64 % rhs.as.i64;
+  if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {
+    result += rhs.as.i64;
+  }
+  value_set_int64(out, result);
+  return true;
+}
+
 XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Value& rhs, Value& out) {
   if (!value_is_number(lhs) || !value_is_number(rhs)) {
     return false;
@@ -524,7 +541,7 @@ struct ArgBinaryFunctionSpec {
 };
 
 bool is_inline_binary_op(ir::Op op) {
-  return op == ir::Op::Add || op == ir::Op::Sub || op == ir::Op::Mul || op == ir::Op::Div;
+  return op == ir::Op::Add || op == ir::Op::Sub || op == ir::Op::Mul || op == ir::Op::Div || op == ir::Op::Mod;
 }
 
 bool execute_binary_op(ir::Op op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
@@ -546,6 +563,15 @@ bool execute_binary_op(ir::Op op, const Value& lhs, const Value& rhs, Value& out
         return false;
       }
       return value_div(lhs, rhs, out, error);
+    }
+    case ir::Op::Mod: {
+      bool modulo_by_zero = false;
+      if (fast_mod(lhs, rhs, out, modulo_by_zero)) return true;
+      if (modulo_by_zero) {
+        error = "integer modulo by zero";
+        return false;
+      }
+      return value_mod(lhs, rhs, out, error);
     }
     default:
       error = "unsupported inline function operation";
@@ -688,6 +714,7 @@ XLANG3_HOT_INLINE bool execute_self_binary_method(
     case ir::Op::Sub:
     case ir::Op::Mul:
     case ir::Op::Div:
+    case ir::Op::Mod:
       return execute_binary_op(spec.op, lhs, rhs, out, error);
     default:
       error = "unsupported inline method operation";
@@ -1474,6 +1501,23 @@ RuntimeResult Interpreter::run_function(
           }
           std::string error;
           if (!value_div(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::Mod: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        bool modulo_by_zero = false;
+        if (!fast_mod(lhs, rhs, regs[in.dst], modulo_by_zero)) {
+          if (modulo_by_zero) {
+            if (raise_runtime_error("integer modulo by zero")) continue;
+            return result;
+          }
+          std::string error;
+          if (!value_mod(lhs, rhs, regs[in.dst], error)) {
             if (raise_runtime_error(error)) continue;
             return result;
           }

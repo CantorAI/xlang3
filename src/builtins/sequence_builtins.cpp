@@ -93,11 +93,57 @@ bool builtin_len(
   return true;
 }
 
+bool builtin_ord(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)user_data;
+  if (argc != 1) {
+    error = "ord() expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].tag != ValueTag::Object || args[0].as.obj == nullptr || args[0].as.obj->kind != ObjectKind::String) {
+    error = "ord() expected a character";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* string = reinterpret_cast<StringObject*>(args[0].as.obj);
+  if (string->value.size() != 1) {
+    error = "ord() expected a character";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::int64(static_cast<unsigned char>(string->value[0]));
+  return true;
+}
+
+bool builtin_str(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)user_data;
+  if (argc != 1) {
+    error = "str() expected 1 argument";
+    return false;
+  }
+  out = Value::string(value_to_string(args[0]));
+  return true;
+}
+
 } // namespace
 
 void register_sequence_builtins(Runtime& runtime) {
   runtime.register_native_builtin("range", builtin_range);
   runtime.register_native_builtin("len", builtin_len);
+  runtime.register_native_builtin("ord", builtin_ord);
+  runtime.register_native_builtin("str", builtin_str);
 }
 
 } // namespace xlang3

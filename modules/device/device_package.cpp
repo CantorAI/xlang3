@@ -35,11 +35,15 @@ limitations under the License.
 namespace {
 
 constexpr const char* kDeviceNativeType = "xlang3.device.Device";
+constexpr const char* kI2CModuleNativeType = "xlang3.device.I2CModule";
+constexpr const char* kI2CBusNativeType = "xlang3.device.I2CBus";
 constexpr char kBase64Alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 struct DevicePackageState {
   const X3PackageHost* host = nullptr;
   X3Value device_class = x3_value_invalid();
+  X3Value i2c_module_class = x3_value_invalid();
+  X3Value i2c_bus_class = x3_value_invalid();
 };
 
 struct DeviceHandle {
@@ -51,6 +55,17 @@ struct DeviceHandle {
 #endif
 };
 
+struct DeviceModuleProxy {
+  DeviceHandle* handle = nullptr;
+};
+
+struct I2CBusProxy {
+  DeviceHandle* handle = nullptr;
+  uint32_t sda = 4;
+  uint32_t scl = 5;
+  uint32_t baud = 100000;
+};
+
 void cleanup_device(void* data) {
   auto* handle = static_cast<DeviceHandle*>(data);
 #if defined(_WIN32)
@@ -60,6 +75,14 @@ void cleanup_device(void* data) {
   }
 #endif
   delete handle;
+}
+
+void cleanup_proxy(void* data) {
+  delete static_cast<DeviceModuleProxy*>(data);
+}
+
+void cleanup_i2c_bus(void* data) {
+  delete static_cast<I2CBusProxy*>(data);
 }
 
 DevicePackageState* state_from(void* user_data) {
@@ -112,6 +135,48 @@ bool require_string(
   }
   out = host->value_to_cstr(runtime, value);
   return true;
+}
+
+bool require_uint(
+    const X3PackageHost* host,
+    X3CallContext* context,
+    X3Value value,
+    const char* message,
+    uint32_t& out) {
+  if (value.tag == X3_TAG_UINT64) {
+    if (value.as.u64 > UINT32_MAX) {
+      host->set_error(context, message);
+      return false;
+    }
+    out = static_cast<uint32_t>(value.as.u64);
+    return true;
+  }
+  if (value.tag == X3_TAG_INT64 && value.as.i64 >= 0 && value.as.i64 <= UINT32_MAX) {
+    out = static_cast<uint32_t>(value.as.i64);
+    return true;
+  }
+  host->set_error(context, message);
+  return false;
+}
+
+DeviceModuleProxy* require_module_proxy(
+    DevicePackageState* state,
+    X3CallContext* context,
+    X3Value self,
+    const char* type_name) {
+  auto* proxy = static_cast<DeviceModuleProxy*>(state->host->instance_get_native_data(self, type_name));
+  if (proxy == nullptr || proxy->handle == nullptr) {
+    state->host->set_error(context, "invalid device module object");
+  }
+  return proxy;
+}
+
+I2CBusProxy* require_i2c_bus(DevicePackageState* state, X3CallContext* context, X3Value self) {
+  auto* proxy = static_cast<I2CBusProxy*>(state->host->instance_get_native_data(self, kI2CBusNativeType));
+  if (proxy == nullptr || proxy->handle == nullptr) {
+    state->host->set_error(context, "invalid i2c bus object");
+  }
+  return proxy;
 }
 
 std::string base64_encode(const uint8_t* data, std::size_t size) {
@@ -379,6 +444,49 @@ bool device_delete_file(DeviceHandle& handle, const std::string& remote_path, st
   return device_request(handle, "delete " + remote_path, lines, error);
 }
 
+bool device_i2c_scan(
+    DeviceHandle& handle,
+    uint32_t sda,
+    uint32_t scl,
+    uint32_t baud,
+    std::vector<uint32_t>& addresses,
+    std::string& error) {
+  std::vector<std::string> lines;
+  const std::string command =
+      "i2c_scan " + std::to_string(sda) + " " + std::to_string(scl) + " " + std::to_string(baud);
+  if (!device_request(handle, command, lines, error)) {
+    return false;
+  }
+  addresses.clear();
+  for (const auto& line : lines) {
+    if (line.rfind("ADDR ", 0) != 0) {
+      continue;
+    }
+    try {
+      addresses.push_back(static_cast<uint32_t>(std::stoul(line.substr(5))));
+    } catch (...) {
+      error = "device returned invalid i2c address";
+      return false;
+    }
+  }
+  return true;
+}
+
+bool device_i2c_write(
+    DeviceHandle& handle,
+    uint32_t sda,
+    uint32_t scl,
+    uint32_t baud,
+    uint32_t address,
+    const std::vector<uint8_t>& data,
+    std::string& error) {
+  const auto encoded = base64_encode(data.data(), data.size());
+  std::vector<std::string> lines;
+  const std::string command = "i2c_write " + std::to_string(sda) + " " + std::to_string(scl) + " " +
+                              std::to_string(baud) + " " + std::to_string(address) + " " + encoded;
+  return device_request(handle, command, lines, error);
+}
+
 bool device_ping(DeviceHandle& handle, std::string& error) {
   std::vector<std::string> lines;
   if (!device_request(handle, "ping", lines, error)) {
@@ -516,6 +624,52 @@ void apply_kv_lines(const X3PackageHost* host, X3Runtime* runtime, X3Value dict,
       }
     }
   }
+}
+
+bool read_i2c_payload(
+    const X3PackageHost* host,
+    X3CallContext* context,
+    X3Runtime* runtime,
+    X3Value value,
+    std::vector<uint8_t>& out) {
+  out.clear();
+  if (host->value_object_kind(value) == X3_OBJECT_KIND_STRING) {
+    const char* text = host->value_to_cstr(runtime, value);
+    if (text == nullptr) {
+      host->set_error(context, "I2C.write() data string is invalid");
+      return false;
+    }
+    const std::string bytes = text;
+    out.assign(bytes.begin(), bytes.end());
+    return true;
+  }
+  if (host->value_object_kind(value) != X3_OBJECT_KIND_LIST &&
+      host->value_object_kind(value) != X3_OBJECT_KIND_TUPLE) {
+    host->set_error(context, "I2C.write() data must be a list of byte values or a string");
+    return false;
+  }
+  uint64_t length = 0;
+  if (host->len(runtime, value, &length) != X3_STATUS_OK) {
+    host->set_error(context, "I2C.write() cannot read data length");
+    return false;
+  }
+  out.reserve(static_cast<std::size_t>(length));
+  for (uint64_t i = 0; i < length; ++i) {
+    X3Value item = x3_value_invalid();
+    if (host->get_item(runtime, value, x3_value_uint64(i), &item) != X3_STATUS_OK) {
+      host->set_error(context, "I2C.write() cannot read data item");
+      return false;
+    }
+    uint32_t byte = 0;
+    const bool ok = require_uint(host, context, item, "I2C.write() byte values must be 0..255", byte);
+    host->value_release(item);
+    if (!ok || byte > 255) {
+      host->set_error(context, "I2C.write() byte values must be 0..255");
+      return false;
+    }
+    out.push_back(static_cast<uint8_t>(byte));
+  }
+  return true;
 }
 
 X3Status device_info(
@@ -934,9 +1088,123 @@ X3Status device_delete_file_method(
   return X3_STATUS_OK;
 }
 
+X3Status i2c_module_bus_method(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc_range(host, context, argc, 3, 4, "I2C.Bus()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* module = require_module_proxy(state, context, args[0], kI2CModuleNativeType);
+  if (module == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  uint32_t sda = 0;
+  uint32_t scl = 0;
+  uint32_t baud = 100000;
+  if (!require_uint(host, context, args[1], "I2C.Bus() SDA pin must be an integer", sda) ||
+      !require_uint(host, context, args[2], "I2C.Bus() SCL pin must be an integer", scl)) {
+    return X3_STATUS_ERROR;
+  }
+  if (argc == 4 && !require_uint(host, context, args[3], "I2C.Bus() baud must be an integer", baud)) {
+    return X3_STATUS_ERROR;
+  }
+
+  X3Value instance = host->value_instance(runtime, state->i2c_bus_class);
+  if (instance.tag == X3_TAG_INVALID) {
+    host->set_error(context, "cannot create I2C bus object");
+    return X3_STATUS_ERROR;
+  }
+  auto* bus = new I2CBusProxy();
+  bus->handle = module->handle;
+  bus->sda = sda;
+  bus->scl = scl;
+  bus->baud = baud;
+  if (host->instance_set_native_data(instance, kI2CBusNativeType, bus, cleanup_i2c_bus) != X3_STATUS_OK) {
+    cleanup_i2c_bus(bus);
+    host->value_release(instance);
+    host->set_error(context, "cannot attach I2C bus data");
+    return X3_STATUS_ERROR;
+  }
+  *result = instance;
+  return X3_STATUS_OK;
+}
+
+X3Status i2c_bus_scan_method(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc(host, context, argc, 1, "I2CBus.scan()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* bus = require_i2c_bus(state, context, args[0]);
+  if (bus == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  std::vector<uint32_t> addresses;
+  std::string error;
+  if (!device_i2c_scan(*bus->handle, bus->sda, bus->scl, bus->baud, addresses, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  X3Value list = host->value_list(runtime);
+  if (list.tag == X3_TAG_INVALID) {
+    host->set_error(context, "cannot allocate I2C scan list");
+    return X3_STATUS_ERROR;
+  }
+  for (uint32_t address : addresses) {
+    host->list_append(runtime, list, x3_value_uint64(address));
+  }
+  *result = list;
+  return X3_STATUS_OK;
+}
+
+X3Status i2c_bus_write_method(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  auto* host = state->host;
+  if (!check_argc(host, context, argc, 3, "I2CBus.write()")) {
+    return X3_STATUS_ERROR;
+  }
+  auto* bus = require_i2c_bus(state, context, args[0]);
+  if (bus == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  uint32_t address = 0;
+  if (!require_uint(host, context, args[1], "I2CBus.write() address must be an integer", address)) {
+    return X3_STATUS_ERROR;
+  }
+  std::vector<uint8_t> data;
+  if (!read_i2c_payload(host, context, runtime, args[2], data)) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  if (!device_i2c_write(*bus->handle, bus->sda, bus->scl, bus->baud, address, data, error)) {
+    host->set_error(context, error.c_str());
+    return X3_STATUS_ERROR;
+  }
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
 X3Status device_import_module(
     X3CallContext* context,
-    X3Runtime*,
+    X3Runtime* runtime,
     void* user_data,
     const X3Value* args,
     uint32_t argc,
@@ -946,10 +1214,33 @@ X3Status device_import_module(
   if (!check_argc(host, context, argc, 2, "Device.import_module()")) {
     return X3_STATUS_ERROR;
   }
-  if (require_device(state, context, args[0]) == nullptr) {
+  auto* handle = require_device(state, context, args[0]);
+  if (handle == nullptr) {
     return X3_STATUS_ERROR;
   }
-  host->set_error(context, "Device.import_module() RPC transport is not connected in this checkpoint");
+  std::string name;
+  if (!require_string(host, context, runtime, args[1], "Device.import_module() module name must be a string", name)) {
+    return X3_STATUS_ERROR;
+  }
+  if (name == "i2c") {
+    X3Value module = host->value_instance(runtime, state->i2c_module_class);
+    if (module.tag == X3_TAG_INVALID) {
+      host->set_error(context, "cannot create I2C module object");
+      return X3_STATUS_ERROR;
+    }
+    auto* proxy = new DeviceModuleProxy();
+    proxy->handle = handle;
+    if (host->instance_set_native_data(module, kI2CModuleNativeType, proxy, cleanup_proxy) != X3_STATUS_OK) {
+      cleanup_proxy(proxy);
+      host->value_release(module);
+      host->set_error(context, "cannot attach I2C module data");
+      return X3_STATUS_ERROR;
+    }
+    *result = module;
+    return X3_STATUS_OK;
+  }
+  const std::string error = "device module '" + name + "' not found";
+  host->set_error(context, error.c_str());
   *result = x3_value_invalid();
   return X3_STATUS_ERROR;
 }
@@ -1022,6 +1313,12 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
     if (state->host != nullptr && state->device_class.tag != X3_TAG_INVALID) {
       state->host->value_release(state->device_class);
     }
+    if (state->host != nullptr && state->i2c_module_class.tag != X3_TAG_INVALID) {
+      state->host->value_release(state->i2c_module_class);
+    }
+    if (state->host != nullptr && state->i2c_bus_class.tag != X3_TAG_INVALID) {
+      state->host->value_release(state->i2c_bus_class);
+    }
     delete state;
   });
 
@@ -1050,6 +1347,21 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
       {sizeof(X3NativeFunctionDef), "import_module", device_import_module, state, 0, 0, 0},
   };
   if (host->module_add_class(device, "Device", device_methods, 13, &state->device_class) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+
+  X3NativeFunctionDef i2c_module_methods[] = {
+      {sizeof(X3NativeFunctionDef), "Bus", i2c_module_bus_method, state, 0, 0, 0},
+  };
+  if (host->module_add_class(device, "I2CModule", i2c_module_methods, 1, &state->i2c_module_class) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+
+  X3NativeFunctionDef i2c_bus_methods[] = {
+      {sizeof(X3NativeFunctionDef), "scan", i2c_bus_scan_method, state, 0, 0, 0},
+      {sizeof(X3NativeFunctionDef), "write", i2c_bus_write_method, state, 0, 0, 0},
+  };
+  if (host->module_add_class(device, "I2CBus", i2c_bus_methods, 2, &state->i2c_bus_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 

@@ -276,6 +276,7 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error);
 
 } // namespace xlang3
