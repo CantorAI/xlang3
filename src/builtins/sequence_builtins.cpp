@@ -36,24 +36,37 @@ bool builtin_range(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
   if (argc < 1 || argc > 3) {
     error = "range() expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t start = 0;
   int64_t stop = 0;
   int64_t step = 1;
   if (argc == 1) {
-    if (!require_int_arg(args[0], "range", stop, error)) return false;
+    if (!require_int_arg(args[0], "range", stop, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
   } else {
-    if (!require_int_arg(args[0], "range", start, error)) return false;
-    if (!require_int_arg(args[1], "range", stop, error)) return false;
-    if (argc == 3 && !require_int_arg(args[2], "range", step, error)) return false;
+    if (!require_int_arg(args[0], "range", start, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!require_int_arg(args[1], "range", stop, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (argc == 3 && !require_int_arg(args[2], "range", step, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
   }
   if (step == 0) {
     error = "range() step must not be zero";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   out = Value::range(start, stop, step);
@@ -67,13 +80,17 @@ bool builtin_len(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
   if (argc != 1) {
     error = "len() expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return sequence_len(args[0], out, error);
+  if (!sequence_len(args[0], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 } // namespace

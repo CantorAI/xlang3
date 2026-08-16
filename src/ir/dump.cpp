@@ -75,6 +75,7 @@ const char* op_name(Op op) {
     case Op::ClearException: return "ClearException";
     case Op::LoadException: return "LoadException";
     case Op::LoadExceptionType: return "LoadExceptionType";
+    case Op::MatchException: return "MatchException";
     case Op::CallMethod: return "CallMethod";
     case Op::Call: return "Call";
     case Op::Pop: return "Pop";

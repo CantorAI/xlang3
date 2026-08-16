@@ -64,5 +64,6 @@ try:
     with sqlite3.connect(":memory:") as failing:
         with failing.cursor() as failing_cur:
             failing_cur.execute("SELECT * FROM missing_table")
-except:
+except sqlite3.OperationalError as err:
     print("sqlite error caught")
+    print(err)

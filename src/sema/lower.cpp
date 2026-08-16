@@ -157,7 +157,12 @@ void collect_self_attr_slots_stmt(
   }
   if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
     for (const auto& child : try_except->try_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
-    for (const auto& child : try_except->except_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    for (const auto& handler : try_except->handlers) {
+      if (handler.type != nullptr) {
+        collect_self_attr_slots_expr(*handler.type, self_name, slots, seen);
+      }
+      for (const auto& child : handler.body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    }
     return;
   }
   if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
@@ -177,7 +182,9 @@ void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& 
       collect_global_names(ifs->else_body, names);
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
       collect_global_names(try_except->try_body, names);
-      collect_global_names(try_except->except_body, names);
+      for (const auto& handler : try_except->handlers) {
+        collect_global_names(handler.body, names);
+      }
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       collect_global_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
@@ -505,8 +512,31 @@ private:
     emit(ir::Op::PopExcept);
     const auto skip_except = emit_jump(ir::Op::Jump);
     patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
-    emit(ir::Op::ClearException);
-    lower_body(stmt.except_body);
+    std::vector<size_t> handler_done_jumps;
+    for (const auto& handler : stmt.handlers) {
+      size_t next_handler = 0;
+      if (handler.type != nullptr) {
+        const auto type_reg = lower_expr(*handler.type);
+        const auto matched = new_reg();
+        emit(ir::Op::MatchException, matched, type_reg);
+        next_handler = emit_jump(ir::Op::JumpIfFalse, matched);
+      }
+      if (!handler.name.empty()) {
+        const auto exc_reg = new_reg();
+        emit(ir::Op::LoadException, exc_reg);
+        store_named_value(handler.name, exc_reg);
+      }
+      emit(ir::Op::ClearException);
+      lower_body(handler.body);
+      handler_done_jumps.push_back(emit_jump(ir::Op::Jump));
+      if (handler.type != nullptr) {
+        patch_jump(next_handler, static_cast<uint32_t>(fn_.code.size()));
+      }
+    }
+    emit(ir::Op::Reraise);
+    for (const auto jump : handler_done_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
     patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
   }
 

@@ -831,6 +831,16 @@ RuntimeResult Interpreter::run_function(
     return false;
   };
 
+  auto exception_matches = [&](const Value& handler_type) -> bool {
+    auto* handler_class = value_as_class(handler_type);
+    if (handler_class == nullptr) {
+      return false;
+    }
+    Value exception_type = runtime_.exception_type(current_exception);
+    auto* raised_class = value_as_class(exception_type);
+    return raised_class != nullptr && &raised_class->header == &handler_class->header;
+  };
+
   for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {
     if (frames[frame_count - 1].fn->cell_slots[i] >= frames[frame_count - 1].locals.size()) {
       result.errors.push_back("invalid cell local slot");
@@ -1550,6 +1560,9 @@ RuntimeResult Interpreter::run_function(
         break;
       case ir::Op::LoadExceptionType:
         regs[in.dst] = runtime_.exception_type(current_exception);
+        break;
+      case ir::Op::MatchException:
+        value_set_bool(regs[in.dst], exception_matches(regs[in.a]));
         break;
       case ir::Op::CallMethod: {
         if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {

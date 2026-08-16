@@ -1,0 +1,7 @@
+runtime caught
+typed boom
+type caught
+len() expected 1 argument
+bare fallback
+import caught
+import boom

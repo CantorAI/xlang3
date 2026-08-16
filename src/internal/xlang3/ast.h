@@ -188,9 +188,15 @@ struct IfStmt final : Stmt {
   std::vector<StmtPtr> else_body;
 };
 
+struct ExceptHandler {
+  ExprPtr type;
+  std::string name;
+  std::vector<StmtPtr> body;
+};
+
 struct TryExceptStmt final : Stmt {
   std::vector<StmtPtr> try_body;
-  std::vector<StmtPtr> except_body;
+  std::vector<ExceptHandler> handlers;
 };
 
 struct WithStmt final : Stmt {

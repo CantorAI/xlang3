@@ -77,6 +77,7 @@ enum class Op : uint16_t {
   ClearException,
   LoadException,
   LoadExceptionType,
+  MatchException,
   CallMethod,
   Call,
   Pop,

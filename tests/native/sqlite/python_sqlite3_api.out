@@ -28,3 +28,4 @@ None
 None
 None
 sqlite error caught
+prepare failed: no such table: missing_table

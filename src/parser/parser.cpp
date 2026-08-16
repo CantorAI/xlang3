@@ -103,11 +103,25 @@ ast::StmtPtr Parser::parse_statement() {
     consume(TokenKind::Newline, "expected newline after try");
     consume(TokenKind::Indent, "expected indented try body");
     stmt->try_body = parse_block();
-    consume(TokenKind::KwExcept, "expected except after try body");
-    consume(TokenKind::Colon, "expected ':' after except");
-    consume(TokenKind::Newline, "expected newline after except");
-    consume(TokenKind::Indent, "expected indented except body");
-    stmt->except_body = parse_block();
+    if (!consume(TokenKind::KwExcept, "expected except after try body")) {
+      return stmt;
+    }
+    do {
+      ast::ExceptHandler handler;
+      if (!check(TokenKind::Colon)) {
+        handler.type = parse_expression();
+        if (match(TokenKind::KwAs)) {
+          const Token name = peek();
+          if (!consume(TokenKind::Identifier, "expected exception name after as")) return nullptr;
+          handler.name = name.text;
+        }
+      }
+      consume(TokenKind::Colon, "expected ':' after except");
+      consume(TokenKind::Newline, "expected newline after except");
+      consume(TokenKind::Indent, "expected indented except body");
+      handler.body = parse_block();
+      stmt->handlers.push_back(std::move(handler));
+    } while (match(TokenKind::KwExcept));
     return stmt;
   }
   if (match(TokenKind::KwWith)) {
