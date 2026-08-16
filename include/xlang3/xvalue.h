@@ -46,6 +46,15 @@ typedef struct X3Value {
   } as;
 } X3Value;
 
+typedef enum X3ObjectKind {
+  X3_OBJECT_KIND_UNKNOWN = 0,
+  X3_OBJECT_KIND_STRING = 1,
+  X3_OBJECT_KIND_TUPLE = 2,
+  X3_OBJECT_KIND_LIST = 3,
+  X3_OBJECT_KIND_DICT = 4,
+  X3_OBJECT_KIND_INSTANCE = 5
+} X3ObjectKind;
+
 static inline X3Value x3_value_invalid(void) {
   X3Value value;
   value.tag = X3_TAG_INVALID;
@@ -83,6 +92,14 @@ static inline X3Value x3_value_double(double f64) {
   value.tag = X3_TAG_DOUBLE;
   value.flags = 0;
   value.as.f64 = f64;
+  return value;
+}
+
+static inline X3Value x3_value_uint64(uint64_t u64) {
+  X3Value value;
+  value.tag = X3_TAG_UINT64;
+  value.flags = 0;
+  value.as.u64 = u64;
   return value;
 }
 

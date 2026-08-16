@@ -21,18 +21,24 @@ namespace xlang3 {
 
 Lexer::Lexer(std::string source) : source_(std::move(source)) {}
 
-void Lexer::emit(TokenKind kind, std::string text, uint32_t line, uint32_t column) {
-  tokens_.push_back(Token{kind, std::move(text), line, column});
+void Lexer::emit(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string) {
+  tokens_.push_back(Token{kind, std::move(text), line, column, is_triple_string});
 }
 
 std::vector<Token> Lexer::tokenize() {
   std::istringstream input(source_);
+  std::vector<std::string> lines;
   std::string line;
-  uint32_t line_no = 1;
   while (std::getline(input, line)) {
     if (!line.empty() && line.back() == '\r') {
       line.pop_back();
     }
+    lines.push_back(std::move(line));
+  }
+
+  uint32_t line_no = 1;
+  for (size_t line_index = 0; line_index < lines.size(); ++line_index, ++line_no) {
+    line = lines[line_index];
     uint32_t indent = 0;
     while (indent < line.size() && line[indent] == ' ') {
       ++indent;
@@ -54,9 +60,63 @@ std::vector<Token> Lexer::tokenize() {
         errors_.push_back("line " + std::to_string(line_no) + ": inconsistent indentation");
       }
     }
+
+    const size_t single_triple = line.find("'''", indent);
+    const size_t double_triple = line.find("\"\"\"", indent);
+    size_t triple_pos = std::string::npos;
+    std::string opener;
+    if (single_triple != std::string::npos &&
+        (double_triple == std::string::npos || single_triple < double_triple)) {
+      triple_pos = single_triple;
+      opener = "'''";
+    } else if (double_triple != std::string::npos) {
+      triple_pos = double_triple;
+      opener = "\"\"\"";
+    }
+
+    if (!opener.empty()) {
+      const uint32_t start_line_no = line_no;
+      if (triple_pos > indent) {
+        tokenize_line(line.substr(0, triple_pos), line_no, indent);
+      }
+      std::string value;
+      std::string suffix;
+      size_t content_start = triple_pos + 3;
+      size_t close = line.find(opener, content_start);
+      if (close != std::string::npos) {
+        value = line.substr(content_start, close - content_start);
+        suffix = line.substr(close + 3);
+      } else {
+        value = line.substr(content_start);
+        bool closed = false;
+        while (++line_index < lines.size()) {
+          ++line_no;
+          const auto& block_line = lines[line_index];
+          close = block_line.find(opener);
+          value.push_back('\n');
+          if (close != std::string::npos) {
+            value += block_line.substr(0, close);
+            suffix = block_line.substr(close + 3);
+            closed = true;
+            break;
+          }
+          value += block_line;
+        }
+        if (!closed) {
+          errors_.push_back("line " + std::to_string(line_no) + ": unterminated triple-quoted string");
+          break;
+        }
+      }
+      emit(TokenKind::String, std::move(value), start_line_no, indent + 1, true);
+      if (suffix.find_first_not_of(" \t") != std::string::npos) {
+        tokenize_line(std::string(indent, ' ') + suffix, line_no, indent);
+      }
+      emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
+      continue;
+    }
+
     tokenize_line(line, line_no, indent);
     emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
-    ++line_no;
   }
   while (indent_stack_.size() > 1) {
     indent_stack_.pop_back();

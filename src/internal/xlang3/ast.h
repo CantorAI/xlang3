@@ -113,6 +113,14 @@ struct ExprStmt final : Stmt {
   explicit ExprStmt(ExprPtr expr) : expr(std::move(expr)) {}
 };
 
+struct RawBlockStmt final : Stmt {
+  std::string language;
+  std::string provider;
+  std::string body;
+  RawBlockStmt(std::string language, std::string provider, std::string body)
+      : language(std::move(language)), provider(std::move(provider)), body(std::move(body)) {}
+};
+
 struct AssignStmt final : Stmt {
   std::string name;
   ExprPtr value;

@@ -28,8 +28,11 @@ XLang3 modules should be independently buildable and optionally loadable.
 core runtime modules:
   required by language/runtime
 
-std modules:
-  text, json, yaml, http, os, time, sqlite, net, image, tensor
+loadable modules:
+  json, text, yaml, http, os, time, sqlite, net, image, tensor
+
+builtin modules:
+  _builtins, math
 
 third-party modules:
   loaded via package search path
@@ -38,11 +41,16 @@ third-party modules:
 ## Directory Layout
 
 ```text
-modules/std/yaml/
-  include/
-  src/
-  tests/
-  xlang3_module.json
+modules/yaml/
+  yaml_package.cpp
+  yaml_convert.cpp
+  yaml_convert.h
+  CMakeLists.txt
+
+modules/json/
+  json_package.cpp
+  json_convert.cpp
+  json_convert.h
   CMakeLists.txt
 ```
 
@@ -64,8 +72,8 @@ Python-compatible import syntax lowers to XLang3 import operations.
 Examples:
 
 ```python
-import std.yaml as yaml
-from std.http import get
+import json
+from xlang_yaml import yaml
 ```
 
 IR should represent import explicitly:
@@ -79,8 +87,37 @@ Import runtime resolves:
 
 1. already loaded module cache
 2. built-in module registry
-3. dynamic package loader
-4. source module loader
+3. source module loader
+4. dynamic package loader by filename
+
+Native package lookup is filename-based. For requested module `M`, the loader tries:
+
+```text
+M.x3pkg.dll
+xlang_M.x3pkg.dll
+```
+
+with platform-specific extensions on non-Windows systems. This supports Python-compatible imports without manifest scanning:
+
+```python
+import sqlite3
+```
+
+can load:
+
+```text
+xlang_sqlite3.x3pkg.dll
+```
+
+The default runtime layout prefers subfolders under the runtime library location:
+
+```text
+lib/
+modules/
+site-packages/
+```
+
+The runtime also searches the runtime library folder itself after those subfolders, so a simple deployment can still place package files beside `xlang3_runtime.dll` or the CLI executable. Source file folders are prepended by the CLI/eval-file path so local application modules keep Python-like precedence.
 
 ## Module Object
 
@@ -108,6 +145,8 @@ net
 tensor
 ```
 
+`json` is a loadable native package, not part of the runtime core. Runtime stringification for dict/list/repr stays in the value/object layer and does not depend on JSON.
+
 Core may provide primitive services only:
 
 - memory
@@ -117,19 +156,6 @@ Core may provide primitive services only:
 - package loading
 - executor
 - errors
-
-## Module ABI Metadata
-
-```json
-{
-  "name": "std.yaml",
-  "version": "0.1.0",
-  "abi": 1,
-  "kind": "native",
-  "entry": "xlang3_module_init",
-  "dependencies": ["std.text"]
-}
-```
 
 ## Source Modules
 

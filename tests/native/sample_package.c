@@ -20,11 +20,19 @@ limitations under the License.
 #define X3_SAMPLE_EXPORT __attribute__((visibility("default")))
 #endif
 
-static X3Status sample_add(X3CallContext* context, const X3Value* args, uint32_t argc, X3Value* result) {
+static X3Status sample_add(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
   if (argc != 2 || args[0].tag != X3_TAG_INT64 || args[1].tag != X3_TAG_INT64) {
     return X3_STATUS_ERROR;
   }
   (void)context;
+  (void)runtime;
+  (void)user_data;
   *result = x3_value_int64(args[0].as.i64 + args[1].as.i64);
   return X3_STATUS_OK;
 }

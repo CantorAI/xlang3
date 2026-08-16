@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <filesystem>
+#include <functional>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -24,8 +25,21 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct RawBlockContext {
+  std::function<bool(const std::string& name, Value& out, std::string& error)> get_var;
+  std::function<bool(const std::string& name, const Value& value, std::string& error)> set_var;
+};
+
 class Runtime {
 public:
+  using RawBlockHandler = bool (*)(
+      Runtime& runtime,
+      RawBlockContext& context,
+      const std::string& language,
+      const std::string& provider,
+      const std::string& body,
+      std::string& error);
+
   explicit Runtime(std::ostream& out);
 
   std::ostream& out() { return out_; }
@@ -40,9 +54,17 @@ public:
       void (*user_data_cleanup)(void*) = nullptr);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
+  void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
+  bool execute_raw_block(
+      RawBlockContext& context,
+      const std::string& language,
+      const std::string& provider,
+      const std::string& body,
+      std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error);
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
   void add_import_root(std::filesystem::path root);
+  void prepend_import_root(std::filesystem::path root);
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
   void set_last_error(std::string error) { last_error_ = std::move(error); }
   const std::string& last_error() const { return last_error_; }
@@ -53,6 +75,7 @@ private:
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
+  std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
   std::vector<std::filesystem::path> import_roots_;
 };
 

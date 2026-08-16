@@ -19,9 +19,11 @@ limitations under the License.
 #include "xlang3/c_api_bridge.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/native_call_context.h"
 #include "xlang3/parser.h"
+#include "xlang3/sequence.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 
@@ -112,7 +114,7 @@ X3Status x3_runtime_eval_file(X3Runtime* runtime, const char* path, X3Value* res
     return fail(rt, lowered.errors.front());
   }
 
-  rt->add_import_root(std::filesystem::path(path).parent_path());
+  rt->prepend_import_root(std::filesystem::path(path).parent_path());
   xlang3::Interpreter interpreter(*rt);
   auto exec_result = interpreter.run(lowered.module);
   if (!exec_result.errors.empty()) {
@@ -150,6 +152,22 @@ X3Value x3_value_string(X3Runtime* runtime, const char* value) {
   return xlang3::to_c_value(xlang3::Value::string(value));
 }
 
+X3Value x3_value_list(X3Runtime* runtime) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr) {
+    return x3_value_invalid();
+  }
+  return xlang3::to_c_value(xlang3::Value::list({}));
+}
+
+X3Value x3_value_dict(X3Runtime* runtime) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr) {
+    return x3_value_invalid();
+  }
+  return xlang3::to_c_value(xlang3::Value::dict({}));
+}
+
 const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value) {
   thread_local std::string rendered;
   auto* rt = as_runtime(runtime);
@@ -163,6 +181,27 @@ const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value) {
   }
   rendered = xlang3::value_to_string(internal);
   return rendered.c_str();
+}
+
+X3ObjectKind x3_value_object_kind(X3Value value) {
+  if (value.tag != X3_TAG_OBJECT || value.as.obj == nullptr) {
+    return X3_OBJECT_KIND_UNKNOWN;
+  }
+  auto* object = reinterpret_cast<xlang3::Object*>(value.as.obj);
+  switch (object->kind) {
+    case xlang3::ObjectKind::String:
+      return X3_OBJECT_KIND_STRING;
+    case xlang3::ObjectKind::Tuple:
+      return X3_OBJECT_KIND_TUPLE;
+    case xlang3::ObjectKind::List:
+      return X3_OBJECT_KIND_LIST;
+    case xlang3::ObjectKind::Dict:
+      return X3_OBJECT_KIND_DICT;
+    case xlang3::ObjectKind::Instance:
+      return X3_OBJECT_KIND_INSTANCE;
+    default:
+      return X3_OBJECT_KIND_UNKNOWN;
+  }
 }
 
 X3Status x3_runtime_import_module(X3Runtime* runtime, const char* package_name, const char* module_name, X3Value* result) {
@@ -261,18 +300,99 @@ X3Status x3_call(X3Runtime* runtime, X3Value callable, const X3Value* args, uint
   return X3_STATUS_OK;
 }
 
-void* x3_call_context_user_data(X3CallContext* context) {
-  if (context == nullptr) {
-    return nullptr;
+X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
   }
-  return context->user_data;
+  std::string error;
+  auto internal = xlang3::from_c_value(value, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  xlang3::Value length;
+  if (!xlang3::sequence_len(internal, length, error) || length.tag != xlang3::ValueTag::Int64) {
+    return fail(rt, error.empty() ? "object has no len()" : error);
+  }
+  *result = static_cast<uint64_t>(length.as.i64);
+  return X3_STATUS_OK;
 }
 
-X3Runtime* x3_call_context_runtime(X3CallContext* context) {
-  if (context == nullptr) {
-    return nullptr;
+X3Status x3_get_item(X3Runtime* runtime, X3Value object, X3Value key, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
   }
-  return reinterpret_cast<X3Runtime*>(context->runtime);
+  std::string error;
+  auto internal = xlang3::from_c_value(object, error);
+  auto internal_key = xlang3::from_c_value(key, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  xlang3::Value out;
+  if (!xlang3::sequence_get_item(internal, internal_key, out, error)) {
+    return fail(rt, error);
+  }
+  *result = xlang3::to_c_value(out);
+  return X3_STATUS_OK;
+}
+
+X3Status x3_list_append(X3Runtime* runtime, X3Value list, X3Value item) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr) {
+    return fail(rt, "runtime is null");
+  }
+  std::string error;
+  auto internal = xlang3::from_c_value(list, error);
+  auto internal_item = xlang3::from_c_value(item, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  if (!xlang3::sequence_list_append(internal, internal_item, error)) {
+    return fail(rt, error);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status x3_dict_set_item(X3Runtime* runtime, X3Value dict, X3Value key, X3Value item) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr) {
+    return fail(rt, "runtime is null");
+  }
+  std::string error;
+  auto internal = xlang3::from_c_value(dict, error);
+  auto internal_key = xlang3::from_c_value(key, error);
+  auto internal_item = xlang3::from_c_value(item, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  if (!xlang3::mapping_set_item(internal, internal_key, internal_item, error)) {
+    return fail(rt, error);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status x3_dict_get_entry(X3Runtime* runtime, X3Value dict, uint64_t index, X3Value* key, X3Value* value) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || key == nullptr || value == nullptr) {
+    return fail(rt, "runtime/key/value is null");
+  }
+  std::string error;
+  auto internal = xlang3::from_c_value(dict, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  auto* dict_object = xlang3::value_as_dict(internal);
+  if (dict_object == nullptr) {
+    return fail(rt, "object is not a dict");
+  }
+  if (index >= dict_object->entries.size()) {
+    return fail(rt, "dict entry index out of range");
+  }
+  const auto& entry = dict_object->entries[static_cast<size_t>(index)];
+  *key = xlang3::to_c_value(entry.first);
+  *value = xlang3::to_c_value(entry.second);
+  return X3_STATUS_OK;
 }
 
 } // extern "C"

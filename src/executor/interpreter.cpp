@@ -1073,6 +1073,65 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::RawBlock: {
+        if (in.dst >= fn.raw_blocks.size()) {
+          result.errors.push_back("invalid raw block index");
+          return result;
+        }
+        const auto& raw = fn.raw_blocks[in.dst];
+        RawBlockContext context;
+        context.get_var = [&](const std::string& name, Value& out, std::string& error) -> bool {
+          for (size_t i = 0; i < fn.locals.size(); ++i) {
+            if (fn.locals[i] == name && i < locals.size()) {
+              value_assign_fast(out, locals[i]);
+              return true;
+            }
+          }
+          for (size_t i = 0; i < fn.free_vars.size(); ++i) {
+            if (fn.free_vars[i] == name && i < fn_obj_closure.size()) {
+              auto* cell = value_as_cell(fn_obj_closure[i]);
+              if (cell != nullptr) {
+                value_assign_fast(out, cell->value);
+                return true;
+              }
+            }
+          }
+          if (value_as_module(globals_module) != nullptr) {
+            if (module_get_attr(globals_module, name, out, error)) {
+              return true;
+            }
+          } else if (auto it = globals_.find(name); it != globals_.end()) {
+            value_assign_fast(out, it->second);
+            return true;
+          }
+          if (const auto* builtin = runtime_.find_builtin(name)) {
+            value_assign_fast(out, *builtin);
+            return true;
+          }
+          error = "name '" + name + "' is not defined";
+          return false;
+        };
+        context.set_var = [&](const std::string& name, const Value& value, std::string& error) -> bool {
+          for (size_t i = 0; i < fn.locals.size(); ++i) {
+            if (fn.locals[i] == name && i < locals.size()) {
+              value_assign_fast(locals[i], value);
+              return true;
+            }
+          }
+          if (value_as_module(globals_module) != nullptr) {
+            return module_set_attr(globals_module, name, value, error);
+          }
+          value_assign_fast(globals_[name], value);
+          ++globals_version_;
+          return true;
+        };
+        std::string error;
+        if (!runtime_.execute_raw_block(context, raw.language, raw.provider, raw.body, error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
+        break;
+      }
       case ir::Op::LoadAttr: {
         if (in.b >= fn.names.size()) {
           result.errors.push_back("invalid attribute name");
@@ -1623,6 +1682,47 @@ RuntimeResult Interpreter::run_function(
             continue;
           }
           if (pushed_frame) goto switch_frame;
+        } else if (auto* klass = value_as_class(method)) {
+          Value instance = Value::instance(method);
+          CallArgsView init_args = call_args;
+          init_args.leading = &instance;
+          init_args.leading_count = 1;
+          auto init_it = klass->attrs.find("__init__");
+          if (init_it != klass->attrs.end()) {
+            if (auto* native = value_as_native_function(init_it->second)) {
+              Value ignored;
+              if (!call_native_function(native, init_args, ignored)) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              value_assign_fast(regs[in.dst], instance);
+            } else if (auto* init_fn = value_as_function(init_it->second)) {
+              const ir::Module* call_module = &module;
+              auto call_module_owner = module_owner;
+              if (init_fn->module != nullptr) {
+                call_module = init_fn->module.get();
+                call_module_owner = init_fn->module;
+              }
+              Value constructed_instance;
+              value_assign_fast(constructed_instance, instance);
+              ++ip;
+              if (!push_frame(*call_module, init_fn->function_id, init_args, init_fn->closure, init_fn->globals_module,
+                              std::move(call_module_owner), in.dst,
+                              FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
+                return result;
+              }
+              goto switch_frame;
+            } else {
+              if (raise_runtime_error("__init__ is not callable")) continue;
+              return result;
+            }
+          } else {
+            if (call_args.size() != 0) {
+              if (raise_runtime_error("class construction expected no arguments")) continue;
+              return result;
+            }
+            value_assign_fast(regs[in.dst], instance);
+          }
         } else {
           if (raise_runtime_error("object is not callable")) continue;
           return result;

@@ -18,12 +18,23 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(xlang3_core
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
+add_subdirectory(modules/json)
+add_subdirectory(modules/sqlite)
+add_subdirectory(modules/yaml)
+
+set(XLANG3_RUNTIME_SOURCES
   src/api/c_api.cpp
   src/builtins/builtins.cpp
   src/builtins/builtin_modules.cpp
   src/builtins/io_builtins.cpp
   src/builtins/math_module.cpp
+  src/builtins/raw_block_builtins.cpp
   src/builtins/sequence_builtins.cpp
   src/runtime/c_api_bridge.cpp
   src/runtime/attribute.cpp
@@ -49,24 +60,41 @@ add_library(xlang3_core
   src/executor/interpreter.cpp
 )
 
-target_include_directories(xlang3_core
+add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
+add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
+
+set_target_properties(xlang3_runtime PROPERTIES
+  WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
+set_target_properties(xlang3_runtime_static PROPERTIES
+  OUTPUT_NAME "xlang3_runtime_static"
+)
+
+target_compile_definitions(xlang3_runtime PRIVATE XLANG3_BUILD_SHARED)
+
+foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static)
+target_include_directories(${xlang3_runtime_target}
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
 )
 
-target_compile_features(xlang3_core PUBLIC cxx_std_17)
+target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
+endforeach()
 
 add_executable(xlang3 src/xlang3.cpp)
-target_link_libraries(xlang3 PRIVATE xlang3_core)
+target_link_libraries(xlang3 PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
 
 enable_testing()
 
 function(add_xlang3_cpp_test name source)
   add_executable(${name} ${source})
-  target_link_libraries(${name} PRIVATE xlang3_core)
+  target_link_libraries(${name} PRIVATE xlang3_runtime)
+  target_compile_definitions(${name} PRIVATE XLANG3_USE_SHARED)
   target_include_directories(${name} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
@@ -91,7 +119,8 @@ set_target_properties(x3sample_native_package PROPERTIES
 target_include_directories(x3sample_native_package PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_executable(xlang3_native_package_tests tests/cpp/native_package_tests.cpp)
-target_link_libraries(xlang3_native_package_tests PRIVATE xlang3_core)
+target_link_libraries(xlang3_native_package_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_native_package_tests PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3_native_package_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
   ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
@@ -104,6 +133,24 @@ add_test(
 add_test(
   NAME xlang3_cli_native_package_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/native_import_probe.py
+)
+
+add_test(
+  NAME xlang3_cli_native_package_xlang_prefix_import
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -Command "Copy-Item -Force '$<TARGET_FILE:x3sample_native_package>' '$<TARGET_FILE_DIR:x3sample_native_package>/xlang_aliasprobe.x3pkg.dll'; & '$<TARGET_FILE:xlang3>' '${CMAKE_CURRENT_SOURCE_DIR}/tests/native/native_prefix_probe.py'"
+)
+
+add_test(
+  NAME xlang3_cli_yaml_module_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py
+)
+
+add_test(
+  NAME xlang3_cli_sqlite_module_imports
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/run_sqlite_tests.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
 )
 
 add_test(

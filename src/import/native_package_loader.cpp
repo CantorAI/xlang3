@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/c_api_bridge.h"
 #include "xlang3/module_object.h"
 #include "xlang3/native_call_context.h"
+#include "xlang3/object_model.h"
 #include "xlang3/xmodule.h"
 
 #include <filesystem>
@@ -40,6 +41,7 @@ struct X3Package {
   xlang3::Runtime* runtime = nullptr;
   std::string name;
   xlang3::Value root_module;
+  xlang3::Value requested_module;
   std::vector<std::unique_ptr<X3Module>> modules;
 };
 
@@ -71,6 +73,14 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
   out.push_back(root / (name + ".x3pkg.so"));
   out.push_back(root / ("lib" + name + ".so"));
 #endif
+  return out;
+}
+
+std::vector<std::string> native_package_name_candidates(const std::string& name) {
+  std::vector<std::string> out{name};
+  if (name.rfind("xlang_", 0) != 0) {
+    out.push_back("xlang_" + name);
+  }
   return out;
 }
 
@@ -127,7 +137,13 @@ bool native_function_bridge(
   context.runtime = &runtime;
   context.error = &error;
   context.user_data = thunk->user_data;
-  const X3Status status = thunk->callback(&context, c_args.data(), argc, &c_result);
+  const X3Status status = thunk->callback(
+      &context,
+      reinterpret_cast<X3Runtime*>(&runtime),
+      thunk->user_data,
+      c_args.data(),
+      argc,
+      &c_result);
 
   for (auto& value : c_args) {
     x3_value_release(value);
@@ -158,6 +174,9 @@ X3Status host_add_module(X3Package* package, const char* name, X3Module** out_mo
   module_set_attr(package->root_module, name, module->value, error);
   package->runtime->register_module(name, module->value);
   package->runtime->register_module(package->name + "." + name, module->value);
+  if (module->name == package->name) {
+    value_assign_fast(package->requested_module, module->value);
+  }
 
   *out_module = module.get();
   package->modules.push_back(std::move(module));
@@ -202,6 +221,91 @@ X3Status host_module_add_function(X3Module* module, const X3NativeFunctionDef* d
   return X3_STATUS_OK;
 }
 
+X3Status host_module_add_class(
+    X3Module* module,
+    const char* name,
+    const X3NativeFunctionDef* methods,
+    uint32_t method_count,
+    X3Value* out_class) {
+  if (module == nullptr || name == nullptr || (method_count != 0 && methods == nullptr)) {
+    return X3_STATUS_ERROR;
+  }
+
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.reserve(method_count);
+  for (uint32_t i = 0; i < method_count; ++i) {
+    const auto& method = methods[i];
+    if (method.name == nullptr || method.callback == nullptr) {
+      return X3_STATUS_ERROR;
+    }
+    auto* thunk = new NativeThunk();
+    thunk->callback = method.callback;
+    thunk->user_data = method.user_data;
+    attrs.emplace_back(
+        method.name,
+        module->runtime->make_native_function(
+            std::string(name) + "." + method.name,
+            native_function_bridge,
+            thunk,
+            [](void* data) { delete static_cast<NativeThunk*>(data); }));
+  }
+
+  Value klass = Value::class_object(name, std::move(attrs));
+  std::string error;
+  if (!module_set_attr(module->value, name, klass, error)) {
+    module->runtime->set_last_error(error);
+    return X3_STATUS_ERROR;
+  }
+  if (out_class != nullptr) {
+    *out_class = to_c_value(klass);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status host_instance_set_native_data(
+    X3Value instance,
+    const char* type_name,
+    void* data,
+    X3NativeDataCleanup cleanup) {
+  if (type_name == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  auto internal = from_c_value(instance, error);
+  if (!error.empty()) {
+    return X3_STATUS_ERROR;
+  }
+  return instance_set_native_data(internal, type_name, data, cleanup, error) ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
+void* host_instance_get_native_data(X3Value instance, const char* type_name) {
+  if (type_name == nullptr) {
+    return nullptr;
+  }
+  std::string error;
+  auto internal = from_c_value(instance, error);
+  if (!error.empty()) {
+    return nullptr;
+  }
+  return instance_get_native_data(internal, type_name);
+}
+
+X3Value host_value_instance(X3Runtime* runtime, X3Value klass) {
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  if (rt == nullptr) {
+    return x3_value_invalid();
+  }
+  std::string error;
+  auto internal_class = from_c_value(klass, error);
+  if (!error.empty() || value_as_class(internal_class) == nullptr) {
+    if (rt != nullptr) {
+      rt->set_last_error(error.empty() ? "object is not a class" : error);
+    }
+    return x3_value_invalid();
+  }
+  return to_c_value(Value::instance(std::move(internal_class)));
+}
+
 X3Status host_set_error(X3CallContext* context, const char* message) {
   if (context == nullptr || context->error == nullptr) {
     return X3_STATUS_ERROR;
@@ -217,15 +321,33 @@ const X3PackageHost kPackageHost = {
     host_module_add_value,
     host_module_add_function,
     host_set_error,
+    x3_runtime_last_error,
+    x3_value_release,
+    x3_value_string,
+    x3_value_list,
+    x3_value_dict,
+    x3_value_to_cstr,
+    x3_value_object_kind,
+    x3_len,
+    x3_get_item,
+    x3_list_append,
+    x3_dict_set_item,
+    x3_dict_get_entry,
+    host_module_add_class,
+    host_instance_set_native_data,
+    host_instance_get_native_data,
+    host_value_instance,
 };
 
 bool find_native_library(Runtime& runtime, const std::string& name, std::filesystem::path& out) {
   std::error_code ec;
   for (const auto& root : runtime.import_roots()) {
-    for (const auto& candidate : native_library_candidates(root, name)) {
-      if (std::filesystem::is_regular_file(candidate, ec)) {
-        out = candidate;
-        return true;
+    for (const auto& package_name : native_package_name_candidates(name)) {
+      for (const auto& candidate : native_library_candidates(root, package_name)) {
+        if (std::filesystem::is_regular_file(candidate, ec)) {
+          out = candidate;
+          return true;
+        }
       }
     }
   }
@@ -256,6 +378,7 @@ bool import_native_package(Runtime& runtime, const std::string& package_name, Va
   package.runtime = &runtime;
   package.name = package_name;
   package.root_module = Value::module(package_name);
+  package.requested_module = Value::invalid();
   module_set_attr(package.root_module, "__name__", Value::string(package_name), error);
   module_set_attr(package.root_module, "__file__", Value::string(library_path.string()), error);
 
@@ -264,9 +387,14 @@ bool import_native_package(Runtime& runtime, const std::string& package_name, Va
     return false;
   }
 
-  runtime.register_module(package_name, package.root_module);
   loaded_library_handles().push_back(handle);
-  out = std::move(package.root_module);
+  if (package.requested_module.tag != ValueTag::Invalid) {
+    runtime.register_module(package_name, package.requested_module);
+    out = std::move(package.requested_module);
+  } else {
+    runtime.register_module(package_name, package.root_module);
+    out = std::move(package.root_module);
+  }
   return true;
 }
 

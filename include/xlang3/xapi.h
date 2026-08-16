@@ -55,7 +55,10 @@ X3_API X3Status x3_runtime_eval_file(
 X3_API void x3_value_retain(X3Value value);
 X3_API void x3_value_release(X3Value value);
 X3_API X3Value x3_value_string(X3Runtime* runtime, const char* value);
+X3_API X3Value x3_value_list(X3Runtime* runtime);
+X3_API X3Value x3_value_dict(X3Runtime* runtime);
 X3_API const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value);
+X3_API X3ObjectKind x3_value_object_kind(X3Value value);
 
 X3_API X3Status x3_runtime_import_module(
     X3Runtime* runtime,
@@ -81,6 +84,25 @@ X3_API X3Status x3_call(
     const X3Value* args,
     uint32_t argc,
     X3Value* result);
+
+X3_API X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result);
+X3_API X3Status x3_get_item(
+    X3Runtime* runtime,
+    X3Value object,
+    X3Value key,
+    X3Value* result);
+X3_API X3Status x3_list_append(X3Runtime* runtime, X3Value list, X3Value item);
+X3_API X3Status x3_dict_set_item(
+    X3Runtime* runtime,
+    X3Value dict,
+    X3Value key,
+    X3Value item);
+X3_API X3Status x3_dict_get_entry(
+    X3Runtime* runtime,
+    X3Value dict,
+    uint64_t index,
+    X3Value* key,
+    X3Value* value);
 
 #ifdef __cplusplus
 }

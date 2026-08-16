@@ -35,6 +35,9 @@ struct InstanceObject {
   Object header;
   Value klass;
   uint32_t slot_count = 0;
+  std::string native_type;
+  void* native_data = nullptr;
+  void (*native_data_cleanup)(void*) = nullptr;
   Value inline_slots[8];
   std::vector<Value> overflow_slots;
   std::vector<std::pair<std::string, Value>> attrs;
@@ -85,5 +88,12 @@ std::string object_model_to_string(const Value& value);
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
+bool instance_set_native_data(
+    Value instance,
+    std::string native_type,
+    void* native_data,
+    void (*native_data_cleanup)(void*),
+    std::string& error);
+void* instance_get_native_data(const Value& instance, const std::string& native_type);
 
 } // namespace xlang3

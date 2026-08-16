@@ -80,6 +80,7 @@ struct Token {
   std::string text;
   uint32_t line = 1;
   uint32_t column = 1;
+  bool is_triple_string = false;
 };
 
 struct ParseResult {
@@ -94,7 +95,7 @@ public:
   const std::vector<std::string>& errors() const { return errors_; }
 
 private:
-  void emit(TokenKind kind, std::string text, uint32_t line, uint32_t column);
+  void emit(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string = false);
   void tokenize_line(const std::string& line_text, uint32_t line_no, uint32_t indent);
 
   std::string source_;
@@ -111,6 +112,7 @@ public:
 private:
   ast::StmtPtr parse_statement();
   ast::StmtPtr parse_simple_statement();
+  ast::StmtPtr parse_raw_block_statement();
   std::vector<ast::StmtPtr> parse_block();
   bool parse_dotted_name(std::string& out, const std::string& message);
   ast::ExprPtr parse_expression();

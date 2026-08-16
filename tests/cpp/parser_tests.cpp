@@ -38,5 +38,23 @@ int main() {
   auto parsed = xlang3::parse_source(source);
   xlang3::test::expect_true(result, parsed.errors.empty(), "parser should accept core function/if syntax");
   xlang3::test::expect_true(result, parsed.module.body.size() == 2, "module should contain def and call");
+
+  auto raw = xlang3::parse_source(
+      "'''text print\n"
+      "hello from raw block\n"
+      "'''\n"
+      "s = '''text print\n"
+      "not a raw block\n"
+      "'''\n");
+  xlang3::test::expect_true(result, raw.errors.empty(), "parser should accept raw block triple string syntax");
+  xlang3::test::expect_true(result, raw.module.body.size() == 2, "raw block parse should preserve assigned string");
+  xlang3::test::expect_true(
+      result,
+      dynamic_cast<xlang3::ast::RawBlockStmt*>(raw.module.body[0].get()) != nullptr,
+      "standalone DSL triple string should become RawBlockStmt");
+  xlang3::test::expect_true(
+      result,
+      dynamic_cast<xlang3::ast::AssignStmt*>(raw.module.body[1].get()) != nullptr,
+      "assigned DSL-looking triple string should stay a normal assignment");
   return xlang3::test::finish(result);
 }

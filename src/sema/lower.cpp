@@ -247,6 +247,11 @@ private:
     return id;
   }
 
+  uint32_t add_raw_block(std::string language, std::string provider, std::string body) {
+    fn_.raw_blocks.push_back(ir::Function::RawBlock{std::move(language), std::move(provider), std::move(body)});
+    return static_cast<uint32_t>(fn_.raw_blocks.size() - 1);
+  }
+
   uint32_t add_call_args(std::vector<uint32_t> args) {
     fn_.call_args.push_back(std::move(args));
     return static_cast<uint32_t>(fn_.call_args.size() - 1);
@@ -690,6 +695,10 @@ private:
         emit(ir::Op::ImportFrom, reg, add_name(import->module), add_name(binding.name));
         store_named_value(binding.as_name, reg);
       }
+      return;
+    }
+    if (auto* raw = dynamic_cast<const ast::RawBlockStmt*>(&stmt)) {
+      emit(ir::Op::RawBlock, add_raw_block(raw->language, raw->provider, raw->body));
       return;
     }
     if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {

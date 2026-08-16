@@ -38,6 +38,7 @@ const char* op_name(Op op) {
     case Op::StoreGlobal: return "StoreGlobal";
     case Op::ImportModule: return "ImportModule";
     case Op::ImportFrom: return "ImportFrom";
+    case Op::RawBlock: return "RawBlock";
     case Op::LoadAttr: return "LoadAttr";
     case Op::StoreAttr: return "StoreAttr";
     case Op::LoadInstanceSlot: return "LoadInstanceSlot";
@@ -130,6 +131,12 @@ std::string dump_module(const Module& module) {
         os << " r" << reg;
       }
       os << "\n";
+    }
+    for (size_t raw_i = 0; raw_i < fn.raw_blocks.size(); ++raw_i) {
+      os << "  raw_block #" << raw_i << ": "
+         << fn.raw_blocks[raw_i].language
+         << " " << fn.raw_blocks[raw_i].provider
+         << " bytes=" << fn.raw_blocks[raw_i].body.size() << "\n";
     }
     for (size_t tuple_i = 0; tuple_i < fn.tuple_items.size(); ++tuple_i) {
       os << "  tuple_items #" << tuple_i << ":";

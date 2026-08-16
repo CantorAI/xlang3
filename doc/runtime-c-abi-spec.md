@@ -18,6 +18,23 @@ Status: draft 0
 
 Purpose: define the stable compiler-neutral boundary for XLang3 runtime, modules, and native extensions.
 
+## Build Artifacts
+
+XLang3 separates the runtime engine from the command-line frontend:
+
+```text
+xlang3_runtime.dll / libxlang3_runtime.so
+  shared runtime engine and C ABI exports
+
+xlang3_runtime_static.lib / libxlang3_runtime_static.a
+  static runtime engine for embedders that do not want a runtime DLL/SO
+
+xlang3.exe
+  CLI only; links to xlang3_runtime
+```
+
+Native packages should use the C ABI and host table. They should not link against internal C++ runtime headers or depend on runtime C++ object layouts.
+
 ## ABI Rule
 
 The runtime ABI must be C-compatible.
@@ -50,10 +67,10 @@ Every dynamic module exports:
 
 ```c
 extern "C" X3_EXPORT
-X3Status xlang3_module_init(const X3Api* api, X3Runtime* rt, X3PackageBuilder* builder);
+X3Status x3_package_init(const X3PackageHost* host, X3Package* package);
 ```
 
-The runtime never calls C++ methods across the boundary. It calls C function pointers registered through `X3Api`.
+The runtime never calls C++ methods across the boundary. It calls C function pointers registered through `X3PackageHost`.
 
 ## Core Opaque Types
 
@@ -63,7 +80,6 @@ typedef struct X3Object X3Object;
 typedef struct X3Type X3Type;
 typedef struct X3Module X3Module;
 typedef struct X3Package X3Package;
-typedef struct X3PackageBuilder X3PackageBuilder;
 typedef struct X3Executor X3Executor;
 ```
 
@@ -71,45 +87,40 @@ typedef struct X3Executor X3Executor;
 
 ```c
 typedef enum X3Status {
-    X3_OK = 0,
-    X3_ERR = 1,
-    X3_ERR_TYPE = 2,
-    X3_ERR_INDEX = 3,
-    X3_ERR_KEY = 4,
-    X3_ERR_IMPORT = 5,
-    X3_ERR_UNSUPPORTED = 6,
-    X3_ERR_NOMEM = 7
+    X3_STATUS_OK = 0,
+    X3_STATUS_ERROR = 1
 } X3Status;
 ```
 
 Errors should be stored on `X3Runtime` as structured exception values. `X3Status` is for fast C control flow.
 
-## API Table
+## Package Host Table
 
 Extensions receive a versioned API table:
 
 ```c
-typedef struct X3Api {
+typedef struct X3PackageHost {
     uint32_t abi_version;
     uint32_t size;
 
-    X3Value (*make_none)(void);
-    X3Value (*make_bool)(int value);
-    X3Value (*make_int)(int64_t value);
-    X3Value (*make_double)(double value);
-    X3Status (*make_string)(X3Runtime* rt, const char* data, size_t len, X3Value* out);
+    X3Status (*add_module)(X3Package* package, const char* name, X3Module** out_module);
+    X3Status (*module_add_value)(X3Module* module, const char* name, X3Value value);
+    X3Status (*module_add_function)(X3Module* module, const X3NativeFunctionDef* def);
+    X3Status (*set_error)(X3CallContext* context, const char* message);
 
-    void (*value_inc_ref)(X3Value* value);
-    void (*value_dec_ref)(X3Value* value);
-
-    X3Status (*get_attr)(X3Runtime* rt, X3Value self, const char* name, size_t len, X3Value* out);
-    X3Status (*set_attr)(X3Runtime* rt, X3Value self, const char* name, size_t len, X3Value value);
-    X3Status (*call)(X3Runtime* rt, X3Value callee, const X3Value* args, uint32_t argc, X3Value* out);
-
-    X3Status (*package_add_func)(X3PackageBuilder* b, const char* name, X3NativeFunc fn, const X3FuncSig* sig);
-    X3Status (*package_add_value)(X3PackageBuilder* b, const char* name, X3Value value);
-    X3Status (*package_add_type)(X3PackageBuilder* b, const X3TypeDef* type_def);
-} X3Api;
+    const char* (*runtime_last_error)(X3Runtime* runtime);
+    void (*value_release)(X3Value value);
+    X3Value (*value_string)(X3Runtime* runtime, const char* value);
+    X3Value (*value_list)(X3Runtime* runtime);
+    X3Value (*value_dict)(X3Runtime* runtime);
+    const char* (*value_to_cstr)(X3Runtime* runtime, X3Value value);
+    X3ObjectKind (*value_object_kind)(X3Value value);
+    X3Status (*len)(X3Runtime* runtime, X3Value value, uint64_t* result);
+    X3Status (*get_item)(X3Runtime* runtime, X3Value object, X3Value key, X3Value* result);
+    X3Status (*list_append)(X3Runtime* runtime, X3Value list, X3Value item);
+    X3Status (*dict_set_item)(X3Runtime* runtime, X3Value dict, X3Value key, X3Value item);
+    X3Status (*dict_get_entry)(X3Runtime* runtime, X3Value dict, uint64_t index, X3Value* key, X3Value* value);
+} X3PackageHost;
 ```
 
 `abi_version` and `size` allow backward-compatible extension.
@@ -117,13 +128,12 @@ typedef struct X3Api {
 ## Native Function
 
 ```c
-typedef X3Status (*X3NativeFunc)(
-    X3Runtime* rt,
-    X3Value self,
+typedef X3Status (*X3NativeFn)(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
     const X3Value* args,
     uint32_t argc,
-    const X3KwArg* kwargs,
-    uint32_t kwargc,
     X3Value* out);
 ```
 
@@ -201,4 +211,3 @@ Every module should declare:
 ```
 
 Runtime rejects modules with incompatible major ABI version.
-

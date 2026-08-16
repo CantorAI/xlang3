@@ -81,10 +81,14 @@ X3Status module_add_function(X3Module* module, const X3NativeFunctionDef* def);
 ```c
 static X3Status add(
     X3CallContext* ctx,
+    X3Runtime* runtime,
+    void* user_data,
     const X3Value* args,
     uint32_t argc,
     X3Value* out)
 {
+    (void)runtime;
+    (void)user_data;
     if (argc != 2) return X3_STATUS_ERROR;
     if (args[0].tag == X3_TAG_INT64 && args[1].tag == X3_TAG_INT64) {
         *out = x3_value_int64(args[0].as.i64 + args[1].as.i64);
@@ -149,6 +153,27 @@ Linux:   lib<name>.x3pkg.so, <name>.x3pkg.so, lib<name>.so
 macOS:   lib<name>.x3pkg.dylib, <name>.x3pkg.dylib, lib<name>.dylib
 ```
 
+For requested module name `M`, the native loader uses filename-based probing:
+
+```text
+1. M.x3pkg.<platform-extension>
+2. xlang_M.x3pkg.<platform-extension>
+```
+
+The `xlang_` fallback lets a package keep an XLang-native package filename while supporting Python-compatible imports. For example:
+
+```python
+import sqlite3
+```
+
+may load:
+
+```text
+xlang_sqlite3.x3pkg.dll
+```
+
+No manifest scan is required, and the loader must not load unrelated DLLs just to ask what they provide.
+
 Language code sees a normal module object. C++ embedding code uses the same runtime module object through the compatibility wrapper.
 
 ## Type Registration
@@ -191,20 +216,11 @@ This requires:
 
 Search order:
 
-1. built-in statically registered packages
+1. built-in statically registered modules
 2. Python module search path
-3. native package search path rooted in runtime import roots
+3. native package filenames rooted in runtime import roots
 
-Each package may have metadata:
-
-```json
-{
-  "name": "std.yaml",
-  "abi": 1,
-  "version": "0.1.0",
-  "entry": "x3_package_init"
-}
-```
+Package metadata files are optional documentation/build metadata only. They are not required for import resolution.
 
 ## Retained From XPackage
 

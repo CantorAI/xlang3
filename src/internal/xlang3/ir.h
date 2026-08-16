@@ -40,6 +40,7 @@ enum class Op : uint16_t {
   StoreGlobal,
   ImportModule,
   ImportFrom,
+  RawBlock,
   LoadAttr,
   StoreAttr,
   LoadInstanceSlot,
@@ -103,6 +104,12 @@ struct Function {
   uint32_t register_count = 0;
   std::vector<Value> constants;
   std::vector<std::string> names;
+  struct RawBlock {
+    std::string language;
+    std::string provider;
+    std::string body;
+  };
+  std::vector<RawBlock> raw_blocks;
   std::vector<std::vector<uint32_t>> call_args;
   std::vector<std::vector<uint32_t>> tuple_items;
   std::vector<std::vector<uint32_t>> list_items;

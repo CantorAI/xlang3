@@ -15,6 +15,9 @@ limitations under the License.
 #include "xlang3/parser.h"
 
 #include <cstdlib>
+#include <cctype>
+#include <sstream>
+#include <unordered_set>
 
 namespace xlang3 {
 
@@ -164,6 +167,9 @@ ast::StmtPtr Parser::parse_statement() {
 }
 
 ast::StmtPtr Parser::parse_simple_statement() {
+  if (auto raw = parse_raw_block_statement()) {
+    return raw;
+  }
   if (match(TokenKind::KwGlobal)) {
     std::vector<std::string> names;
     do {
@@ -236,6 +242,76 @@ ast::StmtPtr Parser::parse_simple_statement() {
   }
   match(TokenKind::Newline);
   return std::make_unique<ast::ExprStmt>(std::move(expr));
+}
+
+namespace {
+
+std::string trim_copy(const std::string& value) {
+  size_t first = 0;
+  while (first < value.size() && std::isspace(static_cast<unsigned char>(value[first]))) {
+    ++first;
+  }
+  size_t last = value.size();
+  while (last > first && std::isspace(static_cast<unsigned char>(value[last - 1]))) {
+    --last;
+  }
+  return value.substr(first, last - first);
+}
+
+bool is_known_raw_block_language(const std::string& language) {
+  static const std::unordered_set<std::string> kLanguages = {
+      "sql",
+      "markdown",
+      "html",
+      "yaml",
+      "json",
+      "text",
+  };
+  return kLanguages.find(language) != kLanguages.end();
+}
+
+} // namespace
+
+ast::StmtPtr Parser::parse_raw_block_statement() {
+  if (!check(TokenKind::String) || !peek().is_triple_string) {
+    return nullptr;
+  }
+
+  const Token token = peek();
+  std::istringstream input(token.text);
+  std::string header;
+  while (std::getline(input, header)) {
+    header = trim_copy(header);
+    if (!header.empty()) {
+      break;
+    }
+  }
+  if (header.empty()) {
+    return nullptr;
+  }
+
+  std::istringstream header_input(header);
+  std::string language;
+  std::string provider;
+  header_input >> language;
+  header_input >> provider;
+  if (!is_known_raw_block_language(language)) {
+    return nullptr;
+  }
+
+  std::string body;
+  std::string body_line;
+  bool first_body_line = true;
+  while (std::getline(input, body_line)) {
+    if (!first_body_line) {
+      body.push_back('\n');
+    }
+    first_body_line = false;
+    body += body_line;
+  }
+  advance();
+  match(TokenKind::Newline);
+  return std::make_unique<ast::RawBlockStmt>(std::move(language), std::move(provider), std::move(body));
 }
 
 bool Parser::parse_dotted_name(std::string& out, const std::string& message) {

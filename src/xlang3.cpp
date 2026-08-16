@@ -123,8 +123,7 @@ int main(int argc, char** argv) {
   }
 
   xlang3::Runtime runtime(std::cout);
-  runtime.add_import_root(config.source_path.parent_path());
-  runtime.add_import_root(std::filesystem::absolute(argv[0]).parent_path());
+  runtime.prepend_import_root(config.source_path.parent_path());
   xlang3::Interpreter interpreter(runtime);
   auto result = interpreter.run(lowered.module);
   if (!result.errors.empty()) {

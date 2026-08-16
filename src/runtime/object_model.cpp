@@ -50,7 +50,13 @@ InstanceObject* allocate_instance_object() {
 }
 
 void recycle_instance_object(InstanceObject* instance) {
+  if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
+    instance->native_data_cleanup(instance->native_data);
+  }
   instance->klass = Value::invalid();
+  instance->native_type.clear();
+  instance->native_data = nullptr;
+  instance->native_data_cleanup = nullptr;
   for (uint32_t i = 0; i < instance->slot_count && i < 8; ++i) {
     value_set_invalid(instance->inline_slots[i]);
   }
@@ -183,7 +189,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       error = "object has no attribute '" + name + "'";
       return false;
     }
-    if (value_as_function(class_it->second) != nullptr) {
+    if (value_as_function(class_it->second) != nullptr || value_as_native_function(class_it->second) != nullptr) {
       out = Value::bound_method(object, class_it->second);
     } else {
       value_assign_fast(out, class_it->second);
@@ -234,6 +240,34 @@ bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out,
   }
   out = Value::instance(std::move(klass));
   return true;
+}
+
+bool instance_set_native_data(
+    Value instance,
+    std::string native_type,
+    void* native_data,
+    void (*native_data_cleanup)(void*),
+    std::string& error) {
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr) {
+    error = "object is not an instance";
+    return false;
+  }
+  if (instance_obj->native_data_cleanup != nullptr && instance_obj->native_data != nullptr) {
+    instance_obj->native_data_cleanup(instance_obj->native_data);
+  }
+  instance_obj->native_type = std::move(native_type);
+  instance_obj->native_data = native_data;
+  instance_obj->native_data_cleanup = native_data_cleanup;
+  return true;
+}
+
+void* instance_get_native_data(const Value& instance, const std::string& native_type) {
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr || instance_obj->native_type != native_type) {
+    return nullptr;
+  }
+  return instance_obj->native_data;
 }
 
 } // namespace xlang3
