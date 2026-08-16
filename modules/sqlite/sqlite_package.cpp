@@ -769,6 +769,16 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
       host->module_add_class(sqlite3, "ProgrammingError", nullptr, 0, &state->programming_error_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
+  X3Value exception_class = x3_value_invalid();
+  if (host->builtin_value(package, "Exception", &exception_class) != X3_STATUS_OK ||
+      host->class_set_base(state->error_class, exception_class) != X3_STATUS_OK ||
+      host->class_set_base(state->database_error_class, state->error_class) != X3_STATUS_OK ||
+      host->class_set_base(state->operational_error_class, state->database_error_class) != X3_STATUS_OK ||
+      host->class_set_base(state->programming_error_class, state->database_error_class) != X3_STATUS_OK) {
+    host->value_release(exception_class);
+    return X3_STATUS_ERROR;
+  }
+  host->value_release(exception_class);
   host->module_add_value(sqlite, "Error", state->error_class);
   host->module_add_value(sqlite, "DatabaseError", state->database_error_class);
   host->module_add_value(sqlite, "OperationalError", state->operational_error_class);

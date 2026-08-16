@@ -135,6 +135,7 @@ struct Value {
   static Value class_object(
       std::string name,
       std::vector<std::pair<std::string, Value>> attrs,
+      Value base = Value::invalid(),
       std::vector<std::string> instance_slots = {});
   static Value instance(Value klass);
   static Value bound_method(Value self, Value function);

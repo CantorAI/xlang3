@@ -13,6 +13,8 @@
 
 import sqlite3
 
+print(sqlite3.OperationalError("manual sqlite error"))
+
 conn = sqlite3.connect(":memory:")
 cur = conn.cursor()
 
@@ -66,4 +68,12 @@ try:
             failing_cur.execute("SELECT * FROM missing_table")
 except sqlite3.OperationalError as err:
     print("sqlite error caught")
+    print(err)
+
+try:
+    with sqlite3.connect(":memory:") as failing_base:
+        with failing_base.cursor() as failing_base_cur:
+            failing_base_cur.execute("SELECT * FROM another_missing_table")
+except sqlite3.Error as err:
+    print("sqlite base error caught")
     print(err)

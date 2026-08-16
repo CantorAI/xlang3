@@ -37,3 +37,15 @@ try:
 except ImportError as err:
     print("import caught")
     print(err)
+
+try:
+    raise RuntimeError("broad runtime")
+except Exception as err:
+    print("exception base caught")
+    print(err)
+
+try:
+    raise TypeError("base type")
+except BaseException as err:
+    print("base caught")
+    print(err)

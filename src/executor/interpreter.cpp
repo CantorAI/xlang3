@@ -838,7 +838,7 @@ RuntimeResult Interpreter::run_function(
     }
     Value exception_type = runtime_.exception_type(current_exception);
     auto* raised_class = value_as_class(exception_type);
-    return raised_class != nullptr && &raised_class->header == &handler_class->header;
+    return raised_class != nullptr && class_is_subclass(raised_class, handler_class);
   };
 
   for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {
@@ -1251,7 +1251,8 @@ RuntimeResult Interpreter::run_function(
           }
           attrs.push_back(std::make_pair(attr.first, regs[attr.second]));
         }
-        regs[in.dst] = Value::class_object(fn.names[in.a], std::move(attrs), fn.class_instance_slots[in.c]);
+        regs[in.dst] =
+            Value::class_object(fn.names[in.a], std::move(attrs), Value::invalid(), fn.class_instance_slots[in.c]);
         break;
       }
       case ir::Op::MakeFunction: {
@@ -1767,16 +1768,17 @@ RuntimeResult Interpreter::run_function(
           CallArgsView init_args = call_args;
           init_args.leading = &instance;
           init_args.leading_count = 1;
-          auto init_it = klass->attrs.find("__init__");
-          if (init_it != klass->attrs.end()) {
-            if (auto* native = value_as_native_function(init_it->second)) {
+          Value init_value;
+          std::string init_error;
+          if (object_get_attr(method, "__init__", init_value, init_error)) {
+            if (auto* native = value_as_native_function(init_value)) {
               Value ignored;
               if (!call_native_function(native, init_args, ignored)) {
                 if (!result.errors.empty()) return result;
                 continue;
               }
               value_assign_fast(regs[in.dst], instance);
-            } else if (auto* init_fn = value_as_function(init_it->second)) {
+            } else if (auto* init_fn = value_as_function(init_value)) {
               const ir::Module* call_module = &module;
               auto call_module_owner = module_owner;
               if (init_fn->module != nullptr) {
@@ -2037,9 +2039,10 @@ RuntimeResult Interpreter::run_function(
               }
             }
           }
-          auto init_it = klass->attrs.find("__init__");
-          if (init_it != klass->attrs.end()) {
-            if (auto* native = value_as_native_function(init_it->second)) {
+          Value init_value;
+          std::string init_error;
+          if (object_get_attr(callee, "__init__", init_value, init_error)) {
+            if (auto* native = value_as_native_function(init_value)) {
               if (!call_site_cache.empty()) {
                 auto& cache = call_site_cache[ip];
                 cache.callee_object = callee.as.obj;
@@ -2054,7 +2057,7 @@ RuntimeResult Interpreter::run_function(
                 continue;
               }
               value_assign_fast(regs[in.dst], instance);
-            } else if (auto* fn_obj = value_as_function(init_it->second)) {
+            } else if (auto* fn_obj = value_as_function(init_value)) {
               if (!call_site_cache.empty()) {
                 auto& cache = call_site_cache[ip];
                 cache.callee_object = callee.as.obj;

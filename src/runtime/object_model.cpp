@@ -78,11 +78,13 @@ void recycle_instance_object(InstanceObject* instance) {
 Value Value::class_object(
     std::string name,
     std::vector<std::pair<std::string, Value>> attrs,
+    Value base,
     std::vector<std::string> instance_slots) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object_model<ClassObject>(ObjectKind::Class);
   obj->name = std::move(name);
+  obj->base = std::move(base);
   for (auto& attr : attrs) {
     obj->attrs[std::move(attr.first)] = std::move(attr.second);
   }
@@ -164,6 +166,9 @@ std::string object_model_to_string(const Value& value) {
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (auto* klass = value_as_class(object)) {
     auto it = klass->attrs.find(name);
+    if (it == klass->attrs.end() && value_as_class(klass->base) != nullptr) {
+      return object_get_attr(klass->base, name, out, error);
+    }
     if (it == klass->attrs.end()) {
       error = "class '" + klass->name + "' has no attribute '" + name + "'";
       return false;
@@ -195,14 +200,21 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
     }
     auto class_it = klass->attrs.find(name);
-    if (class_it == klass->attrs.end()) {
+    Value class_attr;
+    if (class_it != klass->attrs.end()) {
+      value_assign_fast(class_attr, class_it->second);
+    } else if (value_as_class(klass->base) != nullptr) {
+      std::string ignored;
+      object_get_attr(klass->base, name, class_attr, ignored);
+    }
+    if (class_attr.tag == ValueTag::Invalid) {
       error = "object has no attribute '" + name + "'";
       return false;
     }
-    if (value_as_function(class_it->second) != nullptr || value_as_native_function(class_it->second) != nullptr) {
-      out = Value::bound_method(object, class_it->second);
+    if (value_as_function(class_attr) != nullptr || value_as_native_function(class_attr) != nullptr) {
+      out = Value::bound_method(object, class_attr);
     } else {
-      value_assign_fast(out, class_it->second);
+      value_assign_fast(out, class_attr);
     }
     return true;
   }
@@ -250,6 +262,31 @@ bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out,
   }
   out = Value::instance(std::move(klass));
   return true;
+}
+
+bool class_set_base(Value klass, Value base, std::string& error) {
+  auto* klass_obj = value_as_class(klass);
+  if (klass_obj == nullptr) {
+    error = "object is not a class";
+    return false;
+  }
+  if (base.tag != ValueTag::Invalid && value_as_class(base) == nullptr) {
+    error = "base object is not a class";
+    return false;
+  }
+  klass_obj->base = std::move(base);
+  ++klass_obj->version;
+  return true;
+}
+
+bool class_is_subclass(const ClassObject* klass, const ClassObject* base) {
+  for (const ClassObject* current = klass; current != nullptr;) {
+    if (&current->header == &base->header) {
+      return true;
+    }
+    current = value_as_class(current->base);
+  }
+  return false;
 }
 
 bool instance_set_native_data(

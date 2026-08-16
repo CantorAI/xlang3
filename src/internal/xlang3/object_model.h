@@ -25,6 +25,7 @@ namespace xlang3 {
 struct ClassObject {
   Object header;
   std::string name;
+  Value base;
   std::unordered_map<std::string, Value> attrs;
   std::vector<std::string> instance_slot_names;
   std::unordered_map<std::string, uint32_t> instance_slot_indices;
@@ -88,6 +89,8 @@ std::string object_model_to_string(const Value& value);
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
+bool class_set_base(Value klass, Value base, std::string& error);
+bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
 bool instance_set_native_data(
     Value instance,
     std::string native_type,

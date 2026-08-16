@@ -5,3 +5,7 @@ len() expected 1 argument
 bare fallback
 import caught
 import boom
+exception base caught
+broad runtime
+base caught
+base type

@@ -42,21 +42,21 @@ bool exception_init(
   return true;
 }
 
-void register_exception_class(Runtime& runtime, const char* name) {
+void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__init__", runtime.make_native_function(std::string(name) + ".__init__", exception_init));
-  runtime.register_builtin(name, Value::class_object(name, std::move(attrs)));
+  runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }
 
 } // namespace
 
 void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "BaseException");
-  register_exception_class(runtime, "Exception");
-  register_exception_class(runtime, "RuntimeError");
-  register_exception_class(runtime, "TypeError");
-  register_exception_class(runtime, "ValueError");
-  register_exception_class(runtime, "ImportError");
+  register_exception_class(runtime, "Exception", *runtime.find_builtin("BaseException"));
+  register_exception_class(runtime, "RuntimeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
 }
 
 } // namespace xlang3

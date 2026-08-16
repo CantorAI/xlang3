@@ -267,6 +267,32 @@ X3Status host_module_add_class(
   return X3_STATUS_OK;
 }
 
+X3Status host_builtin_value(X3Package* package, const char* name, X3Value* out_value) {
+  if (package == nullptr || package->runtime == nullptr || name == nullptr || out_value == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  const Value* value = package->runtime->find_builtin(name);
+  if (value == nullptr) {
+    package->runtime->set_last_error(std::string("builtin '") + name + "' is not defined");
+    return X3_STATUS_ERROR;
+  }
+  *out_value = to_c_value(*value);
+  return X3_STATUS_OK;
+}
+
+X3Status host_class_set_base(X3Value klass, X3Value base) {
+  std::string error;
+  Value internal_class = from_c_value(klass, error);
+  if (!error.empty()) {
+    return X3_STATUS_ERROR;
+  }
+  Value internal_base = from_c_value(base, error);
+  if (!error.empty()) {
+    return X3_STATUS_ERROR;
+  }
+  return class_set_base(std::move(internal_class), std::move(internal_base), error) ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
 X3Status host_instance_set_native_data(
     X3Value instance,
     const char* type_name,
@@ -378,6 +404,8 @@ const X3PackageHost kPackageHost = {
     x3_dict_set_item,
     x3_dict_get_entry,
     host_module_add_class,
+    host_builtin_value,
+    host_class_set_base,
     host_instance_set_native_data,
     host_instance_get_native_data,
     host_value_instance,

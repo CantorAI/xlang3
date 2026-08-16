@@ -1,3 +1,4 @@
+manual sqlite error
 <Cursor object>
 <Cursor object>
 <Cursor object>
@@ -29,3 +30,5 @@ None
 None
 sqlite error caught
 prepare failed: no such table: missing_table
+sqlite base error caught
+prepare failed: no such table: another_missing_table
