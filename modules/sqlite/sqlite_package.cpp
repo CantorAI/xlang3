@@ -210,6 +210,19 @@ X3Status connection_cursor(
   return X3_STATUS_OK;
 }
 
+X3Status connection_enter(
+    X3CallContext* context,
+    X3Runtime*,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* host = state_from(user_data)->host;
+  if (!check_argc(host, context, argc, 1, "Connection.__enter__()")) return X3_STATUS_ERROR;
+  *result = args[0];
+  return X3_STATUS_OK;
+}
+
 X3Status connection_commit(
     X3CallContext* context,
     X3Runtime*,
@@ -229,6 +242,25 @@ X3Status connection_commit(
     return X3_STATUS_ERROR;
   }
   *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
+X3Status connection_exit(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* host = state_from(user_data)->host;
+  if (!check_argc(host, context, argc, 4, "Connection.__exit__()")) return X3_STATUS_ERROR;
+  X3Value ignored = x3_value_invalid();
+  const X3Status status = connection_commit(context, runtime, user_data, args, 1, &ignored);
+  host->value_release(ignored);
+  if (status != X3_STATUS_OK) {
+    return status;
+  }
+  *result = x3_value_bool(0);
   return X3_STATUS_OK;
 }
 
@@ -288,6 +320,38 @@ X3Status cursor_close(
     cursor->stmt = nullptr;
   }
   *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
+X3Status cursor_enter(
+    X3CallContext* context,
+    X3Runtime*,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* host = state_from(user_data)->host;
+  if (!check_argc(host, context, argc, 1, "Cursor.__enter__()")) return X3_STATUS_ERROR;
+  *result = args[0];
+  return X3_STATUS_OK;
+}
+
+X3Status cursor_exit(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* host = state_from(user_data)->host;
+  if (!check_argc(host, context, argc, 4, "Cursor.__exit__()")) return X3_STATUS_ERROR;
+  X3Value ignored = x3_value_invalid();
+  const X3Status status = cursor_close(context, runtime, user_data, args, 1, &ignored);
+  host->value_release(ignored);
+  if (status != X3_STATUS_OK) {
+    return status;
+  }
+  *result = x3_value_bool(0);
   return X3_STATUS_OK;
 }
 
@@ -695,34 +759,40 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
     return X3_STATUS_ERROR;
   }
 
-  X3NativeFunctionDef connection_methods[5]{};
+  X3NativeFunctionDef connection_methods[7]{};
   def_method(connection_methods[0], "__init__", connection_init, state);
   def_method(connection_methods[1], "cursor", connection_cursor, state);
   def_method(connection_methods[2], "commit", connection_commit, state);
   def_method(connection_methods[3], "rollback", connection_rollback, state);
   def_method(connection_methods[4], "close", connection_close, state);
-  if (host->module_add_class(sqlite3, "Connection", connection_methods, 5, &state->connection_class) != X3_STATUS_OK) {
+  def_method(connection_methods[5], "__enter__", connection_enter, state);
+  def_method(connection_methods[6], "__exit__", connection_exit, state);
+  if (host->module_add_class(sqlite3, "Connection", connection_methods, 7, &state->connection_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 
-  X3NativeFunctionDef cursor_methods[4]{};
+  X3NativeFunctionDef cursor_methods[6]{};
   def_method(cursor_methods[0], "execute", cursor_execute, state);
   def_method(cursor_methods[1], "fetchone", cursor_fetchone, state);
   def_method(cursor_methods[2], "fetchall", cursor_fetchall, state);
   def_method(cursor_methods[3], "close", cursor_close, state);
-  if (host->module_add_class(sqlite3, "Cursor", cursor_methods, 4, &state->cursor_class) != X3_STATUS_OK) {
+  def_method(cursor_methods[4], "__enter__", cursor_enter, state);
+  def_method(cursor_methods[5], "__exit__", cursor_exit, state);
+  if (host->module_add_class(sqlite3, "Cursor", cursor_methods, 6, &state->cursor_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
   add_function(host, sqlite3, "connect", sqlite3_connect, state);
 
-  X3NativeFunctionDef database_methods[6]{};
+  X3NativeFunctionDef database_methods[8]{};
   def_method(database_methods[0], "__init__", connection_init, state);
   def_method(database_methods[1], "exec", database_exec, state);
   def_method(database_methods[2], "statement", database_statement, state);
   def_method(database_methods[3], "beginTransaction", database_begin, state);
   def_method(database_methods[4], "endTransaction", database_end, state);
   def_method(database_methods[5], "close", database_close, state);
-  if (host->module_add_class(sqlite, "Database", database_methods, 6, &state->database_class) != X3_STATUS_OK) {
+  def_method(database_methods[6], "__enter__", connection_enter, state);
+  def_method(database_methods[7], "__exit__", connection_exit, state);
+  if (host->module_add_class(sqlite, "Database", database_methods, 8, &state->database_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
   add_function(host, sqlite, "connect", sqlite3_connect, state);

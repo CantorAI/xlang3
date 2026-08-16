@@ -48,3 +48,14 @@ print(cur.fetchone())
 
 print(cur.close())
 print(conn.close())
+
+with sqlite3.connect(":memory:") as scoped:
+    with scoped.cursor() as scoped_cur:
+        print(scoped_cur.execute("CREATE TABLE scoped (value INTEGER)"))
+        print(scoped_cur.execute("INSERT INTO scoped (value) VALUES (?)", [7]))
+
+check = scoped.cursor()
+print(check.execute("SELECT value FROM scoped"))
+print(check.fetchone()[0])
+print(check.close())
+print(scoped.close())

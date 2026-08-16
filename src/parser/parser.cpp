@@ -110,6 +110,20 @@ ast::StmtPtr Parser::parse_statement() {
     stmt->except_body = parse_block();
     return stmt;
   }
+  if (match(TokenKind::KwWith)) {
+    auto stmt = std::make_unique<ast::WithStmt>();
+    stmt->manager = parse_expression();
+    if (match(TokenKind::KwAs)) {
+      const Token target = peek();
+      if (!consume(TokenKind::Identifier, "expected name after as")) return nullptr;
+      stmt->target = target.text;
+    }
+    consume(TokenKind::Colon, "expected ':' after with");
+    consume(TokenKind::Newline, "expected newline after with");
+    consume(TokenKind::Indent, "expected indented with body");
+    stmt->body = parse_block();
+    return stmt;
+  }
   if (match(TokenKind::KwWhile)) {
     auto stmt = std::make_unique<ast::WhileStmt>();
     stmt->condition = parse_expression();

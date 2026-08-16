@@ -42,6 +42,7 @@ $cases = @(
     "runtime_error_exceptions",
     "classes",
     "class_dynamic_attrs",
+    "context_managers",
     "builtin_methods",
     "closures",
     "nonlocal_counter"

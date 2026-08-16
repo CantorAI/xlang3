@@ -193,6 +193,12 @@ struct TryExceptStmt final : Stmt {
   std::vector<StmtPtr> except_body;
 };
 
+struct WithStmt final : Stmt {
+  ExprPtr manager;
+  std::string target;
+  std::vector<StmtPtr> body;
+};
+
 struct WhileStmt final : Stmt {
   ExprPtr condition;
   std::vector<StmtPtr> body;

@@ -158,6 +158,11 @@ void collect_self_attr_slots_stmt(
   if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
     for (const auto& child : try_except->try_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
     for (const auto& child : try_except->except_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*with->manager, self_name, slots, seen);
+    for (const auto& child : with->body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
   }
 }
 
@@ -173,6 +178,8 @@ void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& 
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
       collect_global_names(try_except->try_body, names);
       collect_global_names(try_except->except_body, names);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
+      collect_global_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_global_names(loop->body, names);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
@@ -502,6 +509,32 @@ private:
     patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
   }
 
+  uint32_t emit_call_method(uint32_t object, const std::string& name, std::vector<uint32_t> args) {
+    const auto dst = new_reg();
+    emit(ir::Op::CallMethod, dst, object, add_name(name), add_call_args(std::move(args)));
+    return dst;
+  }
+
+  void lower_with(const ast::WithStmt& stmt) {
+    const auto manager = lower_expr(*stmt.manager);
+    const auto entered = emit_call_method(manager, "__enter__", {});
+    if (!stmt.target.empty()) {
+      store_named_value(stmt.target, entered);
+    } else {
+      emit(ir::Op::Pop, 0, entered);
+    }
+    lower_body(stmt.body);
+    const auto none_type = new_reg();
+    const auto none_value = new_reg();
+    const auto none_tb = new_reg();
+    const auto none_const = add_const(Value::none());
+    emit(ir::Op::LoadConst, none_type, none_const);
+    emit(ir::Op::LoadConst, none_value, none_const);
+    emit(ir::Op::LoadConst, none_tb, none_const);
+    const auto exit_result = emit_call_method(manager, "__exit__", {none_type, none_value, none_tb});
+    emit(ir::Op::Pop, 0, exit_result);
+  }
+
   bool try_emit_direct_local_assign(const ast::AssignStmt& assign) {
     uint32_t dst_slot = 0;
     if (!direct_local_slot(assign.name, dst_slot)) {
@@ -731,6 +764,10 @@ private:
     }
     if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
       lower_try_except(*try_except);
+      return;
+    }
+    if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+      lower_with(*with);
       return;
     }
     if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {

@@ -50,6 +50,11 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
       collect_assigned_names(try_except->try_body, names, seen);
       collect_assigned_names(try_except->except_body, names, seen);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
+      if (!with->target.empty()) {
+        add_unique(names, seen, with->target);
+      }
+      collect_assigned_names(with->body, names, seen);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_assigned_names(loop->body, names, seen);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
@@ -71,6 +76,8 @@ void collect_nonlocal_names(const std::vector<ast::StmtPtr>& body, NameSet& name
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
       collect_nonlocal_names(try_except->try_body, names);
       collect_nonlocal_names(try_except->except_body, names);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
+      collect_nonlocal_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_nonlocal_names(loop->body, names);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
@@ -91,6 +98,8 @@ void collect_global_names(const std::vector<ast::StmtPtr>& body, NameSet& names)
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
       collect_global_names(try_except->try_body, names);
       collect_global_names(try_except->except_body, names);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
+      collect_global_names(with->body, names);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_global_names(loop->body, names);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
@@ -181,6 +190,9 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
       collect_reads_body(try_except->try_body, names, seen);
       collect_reads_body(try_except->except_body, names, seen);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
+      collect_reads_expr(*with->manager, names, seen);
+      collect_reads_body(with->body, names, seen);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_reads_expr(*loop->condition, names, seen);
       collect_reads_body(loop->body, names, seen);
