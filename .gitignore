@@ -14,6 +14,7 @@
 build/
 build-embedded-host/
 build-rp2040/
+build-rp2040-vs/
 .xlang3/
 tmp-ir/
 scratch/

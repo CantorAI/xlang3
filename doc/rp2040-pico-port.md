@@ -34,10 +34,23 @@ cmake -S D:\CantorAI\xlang3\ports\rp2040 -B D:\CantorAI\xlang3\build-rp2040 -G N
 cmake --build D:\CantorAI\xlang3\build-rp2040
 ```
 
+Current Windows setup used for bring-up:
+
+```text
+Pico SDK: D:\pico\pico-sdk
+ARM GCC:  %APPDATA%\xPacks\@xpack-dev-tools\arm-none-eabi-gcc\15.2.1-1.1.1\.content\bin
+```
+
 Or build and flash a Pico mounted as `RPI-RP2`:
 
 ```powershell
 D:\CantorAI\xlang3\ports\rp2040\build_and_flash.ps1
+```
+
+On Windows without an already-open Visual Studio developer shell:
+
+```cmd
+D:\CantorAI\xlang3\ports\rp2040\build_and_flash_vs.cmd
 ```
 
 Expected output:

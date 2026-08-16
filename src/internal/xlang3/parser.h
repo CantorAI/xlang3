@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/ast.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
