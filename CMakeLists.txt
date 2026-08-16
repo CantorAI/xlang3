@@ -109,6 +109,18 @@ add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 
+add_executable(xlang3_native_package_real_tests tests/cpp/native_package_real_tests.cpp)
+target_link_libraries(xlang3_native_package_real_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_native_package_real_tests PRIVATE XLANG3_USE_SHARED)
+target_include_directories(xlang3_native_package_real_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+)
+add_test(
+  NAME xlang3_native_package_real_tests
+  COMMAND xlang3_native_package_real_tests $<TARGET_FILE_DIR:xlang_json_native_package>
+)
+
 add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
 target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
@@ -116,6 +128,13 @@ add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
 add_test(
   NAME xlang3_cli_yaml_module_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py
+)
+
+add_test(
+  NAME xlang3_cli_real_native_imports
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
 )
 
 add_test(
