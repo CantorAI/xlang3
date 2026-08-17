@@ -20,8 +20,10 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
+#include "xlang3/value_hash.h"
 
 #include <cmath>
+#include <limits>
 #if defined(XLANG3_EMBEDDED)
 #include <cstdio>
 #else
@@ -473,6 +475,33 @@ bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   return true;
 }
 
+bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    if (rhs.as.i64 == 0) {
+      error = "integer division by zero";
+      return false;
+    }
+    int64_t q = lhs.as.i64 / rhs.as.i64;
+    const int64_t r = lhs.as.i64 % rhs.as.i64;
+    if (r != 0 && ((r < 0) != (rhs.as.i64 < 0))) {
+      --q;
+    }
+    value_set_int64(out, q);
+    return true;
+  }
+  if (!is_number(lhs) || !is_number(rhs)) {
+    error = "unsupported operands for //";
+    return false;
+  }
+  const double divisor = as_double(rhs);
+  if (divisor == 0.0) {
+    error = "float floor division by zero";
+    return false;
+  }
+  value_set_number(out, std::floor(as_double(lhs) / divisor));
+  return true;
+}
+
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     if (rhs.as.i64 == 0) {
@@ -503,6 +532,101 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   return true;
 }
 
+bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (!is_number(lhs) || !is_number(rhs)) {
+    error = "unsupported operands for **";
+    return false;
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64 && rhs.as.i64 >= 0) {
+    int64_t result = 1;
+    int64_t base = lhs.as.i64;
+    uint64_t exponent = static_cast<uint64_t>(rhs.as.i64);
+    while (exponent != 0) {
+      if ((exponent & 1u) != 0) {
+        result *= base;
+      }
+      exponent >>= 1u;
+      if (exponent != 0) {
+        base *= base;
+      }
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  value_set_number(out, std::pow(as_double(lhs), as_double(rhs)));
+  return true;
+}
+
+bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for &";
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 & rhs.as.i64);
+  return true;
+}
+
+bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for |";
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 | rhs.as.i64);
+  return true;
+}
+
+bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for ^";
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 ^ rhs.as.i64);
+  return true;
+}
+
+bool value_shift_left(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for <<";
+    return false;
+  }
+  if (rhs.as.i64 < 0) {
+    error = "negative shift count";
+    return false;
+  }
+  if (rhs.as.i64 >= 63) {
+    error = "shift count too large for int64";
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 << rhs.as.i64);
+  return true;
+}
+
+bool value_shift_right(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for >>";
+    return false;
+  }
+  if (rhs.as.i64 < 0) {
+    error = "negative shift count";
+    return false;
+  }
+  if (rhs.as.i64 >= 63) {
+    value_set_int64(out, lhs.as.i64 < 0 ? -1 : 0);
+    return true;
+  }
+  value_set_int64(out, lhs.as.i64 >> rhs.as.i64);
+  return true;
+}
+
+bool value_invert(const Value& value, Value& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = "unsupported operand for unary ~";
+    return false;
+  }
+  value_set_int64(out, ~value.as.i64);
+  return true;
+}
+
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
   if (is_number(lhs) && is_number(rhs)) {
@@ -527,6 +651,89 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     return true;
   }
   error = "unsupported comparison";
+  return false;
+}
+
+bool value_is(const Value& lhs, const Value& rhs) {
+  if (lhs.tag != rhs.tag) {
+    return false;
+  }
+  switch (lhs.tag) {
+    case ValueTag::Invalid:
+    case ValueTag::None:
+      return true;
+    case ValueTag::Bool:
+      return lhs.as.b == rhs.as.b;
+    case ValueTag::Int64:
+      return lhs.as.i64 == rhs.as.i64;
+    case ValueTag::Double:
+      return lhs.as.f64 == rhs.as.f64;
+    case ValueTag::Object:
+      return lhs.as.obj == rhs.as.obj;
+  }
+  return false;
+}
+
+bool value_contains(const Value& container, const Value& item, bool& out, std::string& error) {
+  out = false;
+  if (auto* list = value_as_list(container)) {
+    for (const auto& candidate : list->items) {
+      if (value_key_equal(candidate, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (container.tag == ValueTag::Object && container.as.obj != nullptr && container.as.obj->kind == ObjectKind::Tuple) {
+    auto* tuple = reinterpret_cast<TupleObject*>(container.as.obj);
+    for (const auto& candidate : tuple->items) {
+      if (value_key_equal(candidate, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (container.tag == ValueTag::Object && container.as.obj != nullptr && container.as.obj->kind == ObjectKind::String) {
+    auto* haystack = reinterpret_cast<StringObject*>(container.as.obj);
+    auto* needle = value_as_string(item);
+    if (needle == nullptr) {
+      error = "'in <string>' requires string as left operand";
+      return false;
+    }
+    out = haystack->value.find(needle->value) != std::string::npos;
+    return true;
+  }
+  if (auto* dict = value_as_dict(container)) {
+    for (const auto& entry : dict->entries) {
+      if (value_key_equal(entry.first, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (auto* set = value_as_set(container)) {
+    for (const auto& candidate : set->items) {
+      if (value_key_equal(candidate, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (auto* range = value_as_range(container)) {
+    if (item.tag != ValueTag::Int64 || range->step == 0) {
+      return true;
+    }
+    const int64_t value = item.as.i64;
+    const bool in_bounds = range->step > 0 ? (value >= range->start && value < range->stop)
+                                           : (value <= range->start && value > range->stop);
+    out = in_bounds && ((value - range->start) % range->step == 0);
+    return true;
+  }
+  error = "object is not a container";
   return false;
 }
 

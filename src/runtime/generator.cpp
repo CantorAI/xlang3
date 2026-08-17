@@ -42,7 +42,11 @@ Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args
 }
 
 void generator_release_object(Object* object) {
-  delete reinterpret_cast<GeneratorObject*>(object);
+  auto* generator = reinterpret_cast<GeneratorObject*>(object);
+  if (generator->vm_state_cleanup != nullptr && generator->vm_state != nullptr) {
+    generator->vm_state_cleanup(generator->vm_state);
+  }
+  delete generator;
 }
 
 std::string generator_to_string(const Value&) {
@@ -68,31 +72,21 @@ bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& 
     error = "invalid generator";
     return false;
   }
-  if (!obj->materialized) {
-    auto* function = value_as_function(obj->function);
-    if (function == nullptr || obj->runtime == nullptr) {
-      error = "generator has invalid function";
-      return false;
-    }
-    CallArgsView args;
-    args.leading = obj->args.data();
-    args.leading_count = static_cast<uint32_t>(obj->args.size());
-    Interpreter interpreter(*obj->runtime);
-    RuntimeResult result = interpreter.collect_generator_values(function, args, obj->yielded);
-    obj->materialized = true;
-    if (!result.errors.empty()) {
-      error = result.errors.front();
-      return false;
-    }
-  }
-  if (obj->index >= obj->yielded.size()) {
+  if (obj->done) {
     done = true;
-    obj->done = true;
     value_set_none(out);
     return true;
   }
-  value_assign_fast(out, obj->yielded[obj->index++]);
-  done = false;
+  if (obj->runtime == nullptr) {
+    error = "generator has invalid runtime";
+    return false;
+  }
+  Interpreter interpreter(*obj->runtime);
+  RuntimeResult result = interpreter.resume_generator(*obj, out, done);
+  if (!result.errors.empty()) {
+    error = result.errors.front();
+    return false;
+  }
   return true;
 }
 

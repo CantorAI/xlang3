@@ -65,6 +65,7 @@ enum class TokenKind {
   KwAnd,
   KwOr,
   KwNot,
+  KwIs,
   KwAsync,
   KwAwait,
   KwLambda,
@@ -87,7 +88,14 @@ enum class TokenKind {
   Star,
   DoubleStar,
   Slash,
+  DoubleSlash,
   Percent,
+  Amp,
+  Pipe,
+  Caret,
+  Tilde,
+  LeftShift,
+  RightShift,
   EqualEqual,
   NotEqual,
   Less,
@@ -154,14 +162,20 @@ private:
   ast::ExprPtr parse_with_manager_expr();
   ast::ExprPtr parse_expression();
   ast::ExprPtr parse_tuple();
+  ast::ExprPtr parse_conditional();
   ast::ExprPtr parse_or();
   ast::ExprPtr parse_and();
   ast::ExprPtr parse_not();
   ast::ExprPtr parse_await();
   ast::ExprPtr parse_lambda();
   ast::ExprPtr parse_compare();
+  ast::ExprPtr parse_bit_or();
+  ast::ExprPtr parse_bit_xor();
+  ast::ExprPtr parse_bit_and();
+  ast::ExprPtr parse_shift();
   ast::ExprPtr parse_term();
   ast::ExprPtr parse_factor();
+  ast::ExprPtr parse_power();
   ast::ExprPtr parse_unary();
   ast::ExprPtr parse_call();
   ast::ExprPtr parse_primary();

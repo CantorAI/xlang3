@@ -39,6 +39,19 @@ limitations under the License.
 
 namespace xlang3 {
 
+namespace {
+
+struct GeneratorVMState {
+  std::vector<VMFrame> frames;
+  size_t frame_count = 0;
+};
+
+void destroy_generator_vm_state(void* state) {
+  delete static_cast<GeneratorVMState*>(state);
+}
+
+} // namespace
+
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
     uint32_t function_id,
@@ -47,7 +60,7 @@ RuntimeResult Interpreter::run_function(
     const std::vector<Value>& fn_obj_defaults,
     Value globals_module,
     std::shared_ptr<const ir::Module> module_owner,
-    std::vector<Value>* yielded) {
+    GeneratorObject* generator) {
   RuntimeResult result;
   if (function_id >= module.functions.size()) {
     result.errors.push_back("invalid function id");
@@ -231,10 +244,22 @@ RuntimeResult Interpreter::run_function(
   }
 
   std::vector<VMFrame> frames;
-  frames.reserve(64);
-  frames.emplace_back(
-      module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
-  size_t frame_count = 1;
+  size_t frame_count = 0;
+  bool resumed_generator = false;
+  if (generator != nullptr && generator->vm_state != nullptr) {
+    auto* state = static_cast<GeneratorVMState*>(generator->vm_state);
+    frames = std::move(state->frames);
+    frame_count = state->frame_count;
+    delete state;
+    generator->vm_state = nullptr;
+    generator->vm_state_cleanup = nullptr;
+    resumed_generator = true;
+  } else {
+    frames.reserve(64);
+    frames.emplace_back(
+        module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+    frame_count = 1;
+  }
 
   auto make_generator_if_needed = [&](FunctionObject* fn_obj, CallArgsView call_args, Value& out, bool& made) -> bool {
     made = false;
@@ -396,13 +421,15 @@ RuntimeResult Interpreter::run_function(
     return raised_class != nullptr && class_is_subclass(raised_class, handler_class);
   };
 
-  for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {
-    if (frames[frame_count - 1].fn->cell_slots[i] >= frames[frame_count - 1].locals.size()) {
-      result.errors.push_back("invalid cell local slot");
-      return result;
+  if (!resumed_generator) {
+    for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {
+      if (frames[frame_count - 1].fn->cell_slots[i] >= frames[frame_count - 1].locals.size()) {
+        result.errors.push_back("invalid cell local slot");
+        return result;
+      }
+      frames[frame_count - 1].cells[i] =
+          Value::cell(frames[frame_count - 1].locals[frames[frame_count - 1].fn->cell_slots[i]]);
     }
-    frames[frame_count - 1].cells[i] =
-        Value::cell(frames[frame_count - 1].locals[frames[frame_count - 1].fn->cell_slots[i]]);
   }
 
   while (frame_count != 0) {
@@ -448,6 +475,10 @@ RuntimeResult Interpreter::run_function(
       if (ip >= fn.code.size()) {
         Value none = Value::none();
         if (!finish_frame(none)) {
+          if (generator != nullptr) {
+            generator->done = true;
+            value_set_none(result.value);
+          }
           return result;
         }
         goto switch_frame;
@@ -466,6 +497,13 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         value_assign_fast(regs[in.dst], fn.constants[in.a]);
+        break;
+      case ir::Op::Move:
+        if (in.dst >= regs.size() || in.a >= regs.size()) {
+          result.errors.push_back("invalid register move");
+          return result;
+        }
+        value_assign_fast(regs[in.dst], regs[in.a]);
         break;
       case ir::Op::LoadLocal:
         if (in.a >= locals.size()) {
@@ -1191,6 +1229,23 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::FloorDiv: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        bool divide_by_zero = false;
+        if (!fast_floor_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
+          if (divide_by_zero) {
+            if (raise_runtime_error("division by zero")) continue;
+            return result;
+          }
+          std::string error;
+          if (!value_floor_div(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
       case ir::Op::Mod: {
         const auto& lhs = regs[in.a];
         const auto& rhs = regs[in.b];
@@ -1202,6 +1257,88 @@ RuntimeResult Interpreter::run_function(
           }
           std::string error;
           if (!value_mod(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::Pow: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_pow(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_pow(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::BitAnd: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_bit_and(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_bit_and(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::BitOr: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_bit_or(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_bit_or(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::BitXor: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        if (!fast_bit_xor(lhs, rhs, regs[in.dst])) {
+          std::string error;
+          if (!value_bit_xor(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::Shl: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        bool bad_shift = false;
+        if (!fast_shift_left(lhs, rhs, regs[in.dst], bad_shift)) {
+          if (bad_shift) {
+            if (raise_runtime_error(rhs.tag == ValueTag::Int64 && rhs.as.i64 < 0 ? "negative shift count" : "shift count too large for int64")) continue;
+            return result;
+          }
+          std::string error;
+          if (!value_shift_left(lhs, rhs, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        }
+        break;
+      }
+      case ir::Op::Shr: {
+        const auto& lhs = regs[in.a];
+        const auto& rhs = regs[in.b];
+        bool negative_shift = false;
+        if (!fast_shift_right(lhs, rhs, regs[in.dst], negative_shift)) {
+          if (negative_shift) {
+            if (raise_runtime_error("negative shift count")) continue;
+            return result;
+          }
+          std::string error;
+          if (!value_shift_right(lhs, rhs, regs[in.dst], error)) {
             if (raise_runtime_error(error)) continue;
             return result;
           }
@@ -1227,6 +1364,19 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::Is:
+        value_set_bool(regs[in.dst], value_is(regs[in.a], regs[in.b]) != (in.c != 0));
+        break;
+      case ir::Op::Contains: {
+        bool contains = false;
+        std::string error;
+        if (!value_contains(regs[in.b], regs[in.a], contains, error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
+        value_set_bool(regs[in.dst], contains != (in.c != 0));
+        break;
+      }
       case ir::Op::Not:
         value_set_bool(regs[in.dst], !value_truthy(regs[in.a]));
         break;
@@ -1240,6 +1390,14 @@ RuntimeResult Interpreter::run_function(
           return result;
         }
         break;
+      case ir::Op::Invert: {
+        std::string error;
+        if (!value_invert(regs[in.a], regs[in.dst], error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
+        break;
+      }
       case ir::Op::Jump:
         ip = in.dst;
         continue;
@@ -2444,37 +2602,29 @@ RuntimeResult Interpreter::run_function(
         break;
       }
       case ir::Op::Yield:
-        if (yielded == nullptr) {
-          if (raise_runtime_error("yield used outside generator collection")) continue;
-          return result;
-        }
-        yielded->push_back(regs[in.a]);
-        break;
-      case ir::Op::YieldFrom:
-        if (yielded == nullptr) {
-          if (raise_runtime_error("yield from used outside generator collection")) continue;
+        if (generator == nullptr) {
+          if (raise_runtime_error("yield used outside generator")) continue;
           return result;
         } else {
-          Value iterator;
-          std::string error;
-          if (!sequence_get_iter(regs[in.a], iterator, error)) {
-            if (raise_runtime_error(error)) continue;
-            return result;
+          Value yielded_value;
+          value_assign_fast(yielded_value, regs[in.a]);
+          ++ip;
+          auto* state = new GeneratorVMState();
+          state->frames = std::move(frames);
+          state->frame_count = frame_count;
+          if (generator->vm_state_cleanup != nullptr && generator->vm_state != nullptr) {
+            generator->vm_state_cleanup(generator->vm_state);
           }
-          for (;;) {
-            bool done = false;
-            Value item;
-            if (!sequence_iter_next(iterator, done, item, error)) {
-              if (raise_runtime_error(error)) continue;
-              return result;
-            }
-            if (done) {
-              break;
-            }
-            yielded->push_back(item);
-          }
+          generator->vm_state = state;
+          generator->vm_state_cleanup = destroy_generator_vm_state;
+          generator->done = false;
+          value_assign_fast(result.value, yielded_value);
+          return result;
         }
         break;
+      case ir::Op::YieldFrom:
+        if (raise_runtime_error("internal yield from was not lowered")) continue;
+        return result;
       case ir::Op::Pop:
         break;
       case ir::Op::Return:
@@ -2482,6 +2632,10 @@ RuntimeResult Interpreter::run_function(
           Value return_value;
           value_assign_fast(return_value, regs[in.a]);
           if (!finish_frame(return_value)) {
+            if (generator != nullptr) {
+              generator->done = true;
+              value_set_none(result.value);
+            }
             return result;
           }
         }
@@ -2497,6 +2651,9 @@ switch_frame:
   }
 
   value_set_none(result.value);
+  if (generator != nullptr) {
+    generator->done = true;
+  }
   return result;
 }
 

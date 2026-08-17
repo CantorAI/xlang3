@@ -88,6 +88,12 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     return std::make_unique<ast::BinaryExpr>(clone_expr(*binary->lhs), binary->op, clone_expr(*binary->rhs));
   }
+  if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    return std::make_unique<ast::ConditionalExpr>(
+        clone_expr(*conditional->then_expr),
+        clone_expr(*conditional->condition),
+        clone_expr(*conditional->else_expr));
+  }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
     if (!call->call_args.empty()) {
       std::vector<ast::CallExpr::Arg> args;
@@ -138,6 +144,11 @@ bool expr_contains_yield(const ast::Expr& expr) {
   }
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     return expr_contains_yield(*binary->lhs) || expr_contains_yield(*binary->rhs);
+  }
+  if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    return expr_contains_yield(*conditional->then_expr) ||
+           expr_contains_yield(*conditional->condition) ||
+           expr_contains_yield(*conditional->else_expr);
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
     if (expr_contains_yield(*call->callee)) return true;
@@ -239,11 +250,6 @@ void collect_self_attr_slots_expr(
     std::vector<std::string>& slots,
     std::unordered_set<std::string>& seen) {
   if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
-    if (auto* name = dynamic_cast<const ast::NameExpr*>(attr->object.get())) {
-      if (name->name == self_name) {
-        add_slot_name(attr->name, slots, seen);
-      }
-    }
     collect_self_attr_slots_expr(*attr->object, self_name, slots, seen);
     return;
   }
@@ -262,6 +268,12 @@ void collect_self_attr_slots_expr(
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     collect_self_attr_slots_expr(*binary->lhs, self_name, slots, seen);
     collect_self_attr_slots_expr(*binary->rhs, self_name, slots, seen);
+    return;
+  }
+  if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*conditional->then_expr, self_name, slots, seen);
+    collect_self_attr_slots_expr(*conditional->condition, self_name, slots, seen);
+    collect_self_attr_slots_expr(*conditional->else_expr, self_name, slots, seen);
     return;
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
@@ -1406,7 +1418,9 @@ private:
     if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
       const auto src = lower_expr(*unary->expr);
       const auto reg = new_reg();
-      emit(unary->op == "not" ? ir::Op::Not : ir::Op::Neg, reg, src);
+      if (unary->op == "not") emit(ir::Op::Not, reg, src);
+      else if (unary->op == "~") emit(ir::Op::Invert, reg, src);
+      else emit(ir::Op::Neg, reg, src);
       return reg;
     }
     if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
@@ -1417,7 +1431,19 @@ private:
     }
     if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
       const auto src = lower_expr(*yield->expr);
-      emit(yield->from ? ir::Op::YieldFrom : ir::Op::Yield, 0, src);
+      if (yield->from) {
+        const auto iterator = new_reg();
+        emit(ir::Op::GetIter, iterator, src);
+        const auto start = static_cast<uint32_t>(fn_.code.size());
+        const auto item = new_reg();
+        emit(ir::Op::IterNext, item, iterator, 0);
+        const auto iter_next = fn_.code.size() - 1;
+        emit(ir::Op::Yield, 0, item);
+        emit(ir::Op::Jump, start);
+        patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+      } else {
+        emit(ir::Op::Yield, 0, src);
+      }
       const auto reg = new_reg();
       emit(ir::Op::LoadConst, reg, add_const(Value::none()));
       return reg;
@@ -1430,9 +1456,18 @@ private:
       else if (bin->op == "-") emit(ir::Op::Sub, reg, lhs, rhs);
       else if (bin->op == "*") emit(ir::Op::Mul, reg, lhs, rhs);
       else if (bin->op == "/") emit(ir::Op::Div, reg, lhs, rhs);
+      else if (bin->op == "//") emit(ir::Op::FloorDiv, reg, lhs, rhs);
       else if (bin->op == "%") emit(ir::Op::Mod, reg, lhs, rhs);
+      else if (bin->op == "**") emit(ir::Op::Pow, reg, lhs, rhs);
+      else if (bin->op == "&") emit(ir::Op::BitAnd, reg, lhs, rhs);
+      else if (bin->op == "|") emit(ir::Op::BitOr, reg, lhs, rhs);
+      else if (bin->op == "^") emit(ir::Op::BitXor, reg, lhs, rhs);
+      else if (bin->op == "<<") emit(ir::Op::Shl, reg, lhs, rhs);
+      else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
       else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
       else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
+      else if (bin->op == "is" || bin->op == "is not") emit(ir::Op::Is, reg, lhs, rhs, bin->op == "is not" ? 1u : 0u);
+      else if (bin->op == "in" || bin->op == "not in") emit(ir::Op::Contains, reg, lhs, rhs, bin->op == "not in" ? 1u : 0u);
       else {
         uint32_t cmp = 0;
         if (bin->op == "==") cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
@@ -1441,8 +1476,24 @@ private:
         else if (bin->op == "<=") cmp = static_cast<uint32_t>(ir::CompareOp::Le);
         else if (bin->op == ">") cmp = static_cast<uint32_t>(ir::CompareOp::Gt);
         else if (bin->op == ">=") cmp = static_cast<uint32_t>(ir::CompareOp::Ge);
+        else cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
         emit(ir::Op::Compare, reg, lhs, rhs, cmp);
       }
+      return reg;
+    }
+    if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+      const auto reg = new_reg();
+      const auto condition = lower_expr(*conditional->condition);
+      const auto else_jump = emit_jump(ir::Op::JumpIfFalse, condition);
+      const auto then_value = lower_expr(*conditional->then_expr);
+      emit(ir::Op::Pop, 0, then_value);
+      emit(ir::Op::Move, reg, then_value);
+      const auto done_jump = emit_jump(ir::Op::Jump);
+      patch_jump(else_jump, static_cast<uint32_t>(fn_.code.size()));
+      const auto else_value = lower_expr(*conditional->else_expr);
+      emit(ir::Op::Pop, 0, else_value);
+      emit(ir::Op::Move, reg, else_value);
+      patch_jump(done_jump, static_cast<uint32_t>(fn_.code.size()));
       return reg;
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {

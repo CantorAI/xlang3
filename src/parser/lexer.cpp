@@ -271,6 +271,7 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       else if (text == "and") kind = TokenKind::KwAnd;
       else if (text == "or") kind = TokenKind::KwOr;
       else if (text == "not") kind = TokenKind::KwNot;
+      else if (text == "is") kind = TokenKind::KwIs;
       else if (text == "async") kind = TokenKind::KwAsync;
       else if (text == "await") kind = TokenKind::KwAwait;
       else if (text == "lambda") kind = TokenKind::KwLambda;
@@ -329,6 +330,9 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
     if (two == ">=") { emit(TokenKind::GreaterEqual, two, line_no, col); i += 2; continue; }
     if (two == "->") { emit(TokenKind::Arrow, two, line_no, col); i += 2; continue; }
     if (two == "**") { emit(TokenKind::DoubleStar, two, line_no, col); i += 2; continue; }
+    if (two == "//") { emit(TokenKind::DoubleSlash, two, line_no, col); i += 2; continue; }
+    if (two == "<<") { emit(TokenKind::LeftShift, two, line_no, col); i += 2; continue; }
+    if (two == ">>") { emit(TokenKind::RightShift, two, line_no, col); i += 2; continue; }
     switch (ch) {
       case '(': emit(TokenKind::LParen, "(", line_no, col); break;
       case ')': emit(TokenKind::RParen, ")", line_no, col); break;
@@ -347,6 +351,10 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       case '*': emit(TokenKind::Star, "*", line_no, col); break;
       case '/': emit(TokenKind::Slash, "/", line_no, col); break;
       case '%': emit(TokenKind::Percent, "%", line_no, col); break;
+      case '&': emit(TokenKind::Amp, "&", line_no, col); break;
+      case '|': emit(TokenKind::Pipe, "|", line_no, col); break;
+      case '^': emit(TokenKind::Caret, "^", line_no, col); break;
+      case '~': emit(TokenKind::Tilde, "~", line_no, col); break;
       case '<': emit(TokenKind::Less, "<", line_no, col); break;
       case '>': emit(TokenKind::Greater, ">", line_no, col); break;
       default:

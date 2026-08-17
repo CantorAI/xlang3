@@ -23,6 +23,7 @@ namespace {
 const char* op_name(Op op) {
   switch (op) {
     case Op::LoadConst: return "LoadConst";
+    case Op::Move: return "Move";
     case Op::LoadLocal: return "LoadLocal";
     case Op::StoreLocal: return "StoreLocal";
     case Op::MoveLocal: return "MoveLocal";
@@ -69,12 +70,22 @@ const char* op_name(Op op) {
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
     case Op::Div: return "Div";
+    case Op::FloorDiv: return "FloorDiv";
     case Op::Mod: return "Mod";
+    case Op::Pow: return "Pow";
+    case Op::BitAnd: return "BitAnd";
+    case Op::BitOr: return "BitOr";
+    case Op::BitXor: return "BitXor";
+    case Op::Shl: return "Shl";
+    case Op::Shr: return "Shr";
     case Op::BoolAnd: return "BoolAnd";
     case Op::BoolOr: return "BoolOr";
     case Op::Compare: return "Compare";
+    case Op::Is: return "Is";
+    case Op::Contains: return "Contains";
     case Op::Not: return "Not";
     case Op::Neg: return "Neg";
+    case Op::Invert: return "Invert";
     case Op::Jump: return "Jump";
     case Op::JumpIfFalse: return "JumpIfFalse";
     case Op::JumpIfLocalConstFalse: return "JumpIfLocalConstFalse";

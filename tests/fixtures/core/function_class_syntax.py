@@ -127,3 +127,16 @@ delegated = 0
 for item in gen_delegate():
     delegated = delegated + item
 print(delegated)
+
+events = []
+
+def gen_side_effects():
+    events.append(1)
+    yield 10
+    events.append(2)
+    yield 20
+
+side = gen_side_effects()
+print(events)
+print(next(side), events)
+print(next(side), events)

@@ -45,3 +45,27 @@ print(q.total())
 Point.__init__ = other_init
 r = Point(1, 1)
 print(r.total())
+
+class Defaults:
+    prop1 = 10
+
+    def get_prop1(self):
+        return self.prop1
+
+a = Defaults()
+b = Defaults()
+print(a.prop1, b.prop1, a.get_prop1())
+Defaults.prop1 = 20
+print(a.prop1, b.prop1, a.get_prop1())
+a.prop1 = 99
+print(a.prop1, b.prop1, Defaults.prop1)
+Defaults.prop1 = 30
+print(a.prop1, b.prop1, Defaults.prop1)
+
+class Child(Defaults):
+    pass
+
+c = Child()
+print(c.prop1)
+Child.prop1 = 40
+print(c.prop1, b.prop1)

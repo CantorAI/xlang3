@@ -25,6 +25,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct GeneratorObject;
+
 struct RuntimeResult {
   Value value;
   std::vector<std::string> errors;
@@ -70,7 +72,7 @@ public:
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
   RuntimeResult run_function_value(FunctionObject* function, CallArgsView args);
-  RuntimeResult collect_generator_values(FunctionObject* function, CallArgsView args, std::vector<Value>& yielded);
+  RuntimeResult resume_generator(GeneratorObject& generator, Value& out, bool& done);
 
 private:
   RuntimeResult run_function(
@@ -81,7 +83,7 @@ private:
       const std::vector<Value>& defaults,
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner,
-      std::vector<Value>* yielded);
+      GeneratorObject* generator);
 
   Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;

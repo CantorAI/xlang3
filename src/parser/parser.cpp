@@ -109,9 +109,9 @@ ast::StmtPtr Parser::parse_statement() {
         if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
           const std::string key(advance().text);
           advance();
-          keywords.push_back(std::make_pair(key, parse_or()));
+          keywords.push_back(std::make_pair(key, parse_conditional()));
         } else {
-          bases.push_back(parse_or());
+          bases.push_back(parse_conditional());
         }
         if (!match(TokenKind::Comma)) {
           break;
@@ -279,7 +279,7 @@ ast::StmtPtr Parser::parse_try_statement() {
 }
 
 ast::ExprPtr Parser::parse_with_manager_expr() {
-  return parse_or();
+  return parse_conditional();
 }
 
 ast::StmtPtr Parser::parse_with_statement() {
@@ -584,7 +584,7 @@ ast::ExprPtr Parser::parse_expression() {
 }
 
 ast::ExprPtr Parser::parse_tuple() {
-  auto first = parse_or();
+  auto first = parse_conditional();
   if (!match(TokenKind::Comma)) {
     return first;
   }
@@ -592,12 +592,26 @@ ast::ExprPtr Parser::parse_tuple() {
   std::vector<ast::ExprPtr> items;
   items.push_back(std::move(first));
   while (!check(TokenKind::RParen) && !check(TokenKind::Newline) && !check(TokenKind::End)) {
-    items.push_back(parse_or());
+    items.push_back(parse_conditional());
     if (!match(TokenKind::Comma)) {
       break;
     }
   }
   return std::make_unique<ast::TupleExpr>(std::move(items));
+}
+
+ast::ExprPtr Parser::parse_conditional() {
+  auto expr = parse_or();
+  const auto saved = current_;
+  if (match(TokenKind::KwIf)) {
+    auto condition = parse_or();
+    if (match(TokenKind::KwElse)) {
+      expr = std::make_unique<ast::ConditionalExpr>(std::move(expr), std::move(condition), parse_conditional());
+    } else {
+      current_ = saved;
+    }
+  }
+  return expr;
 }
 
 ast::ExprPtr Parser::parse_or() {
@@ -654,7 +668,7 @@ ast::ExprPtr Parser::parse_lambda() {
 }
 
 ast::ExprPtr Parser::parse_compare() {
-  auto expr = parse_term();
+  auto expr = parse_bit_or();
   while (true) {
     std::string op;
     if (match(TokenKind::EqualEqual)) op = "==";
@@ -663,6 +677,51 @@ ast::ExprPtr Parser::parse_compare() {
     else if (match(TokenKind::LessEqual)) op = "<=";
     else if (match(TokenKind::Greater)) op = ">";
     else if (match(TokenKind::GreaterEqual)) op = ">=";
+    else if (match(TokenKind::KwIs)) op = match(TokenKind::KwNot) ? "is not" : "is";
+    else if (match(TokenKind::KwIn)) op = "in";
+    else if (match(TokenKind::KwNot)) {
+      if (!match(TokenKind::KwIn)) {
+        errors_.push_back("expected 'in' after 'not' in comparison");
+        break;
+      }
+      op = "not in";
+    }
+    else break;
+    expr = std::make_unique<ast::BinaryExpr>(std::move(expr), op, parse_bit_or());
+  }
+  return expr;
+}
+
+ast::ExprPtr Parser::parse_bit_or() {
+  auto expr = parse_bit_xor();
+  while (match(TokenKind::Pipe)) {
+    expr = std::make_unique<ast::BinaryExpr>(std::move(expr), "|", parse_bit_xor());
+  }
+  return expr;
+}
+
+ast::ExprPtr Parser::parse_bit_xor() {
+  auto expr = parse_bit_and();
+  while (match(TokenKind::Caret)) {
+    expr = std::make_unique<ast::BinaryExpr>(std::move(expr), "^", parse_bit_and());
+  }
+  return expr;
+}
+
+ast::ExprPtr Parser::parse_bit_and() {
+  auto expr = parse_shift();
+  while (match(TokenKind::Amp)) {
+    expr = std::make_unique<ast::BinaryExpr>(std::move(expr), "&", parse_shift());
+  }
+  return expr;
+}
+
+ast::ExprPtr Parser::parse_shift() {
+  auto expr = parse_term();
+  while (true) {
+    std::string op;
+    if (match(TokenKind::LeftShift)) op = "<<";
+    else if (match(TokenKind::RightShift)) op = ">>";
     else break;
     expr = std::make_unique<ast::BinaryExpr>(std::move(expr), op, parse_term());
   }
@@ -687,9 +746,18 @@ ast::ExprPtr Parser::parse_factor() {
     std::string op;
     if (match(TokenKind::Star)) op = "*";
     else if (match(TokenKind::Slash)) op = "/";
+    else if (match(TokenKind::DoubleSlash)) op = "//";
     else if (match(TokenKind::Percent)) op = "%";
     else break;
     expr = std::make_unique<ast::BinaryExpr>(std::move(expr), op, parse_unary());
+  }
+  return expr;
+}
+
+ast::ExprPtr Parser::parse_power() {
+  auto expr = parse_call();
+  if (match(TokenKind::DoubleStar)) {
+    expr = std::make_unique<ast::BinaryExpr>(std::move(expr), "**", parse_unary());
   }
   return expr;
 }
@@ -701,7 +769,10 @@ ast::ExprPtr Parser::parse_unary() {
   if (match(TokenKind::Plus)) {
     return parse_unary();
   }
-  return parse_call();
+  if (match(TokenKind::Tilde)) {
+    return std::make_unique<ast::UnaryExpr>("~", parse_unary());
+  }
+  return parse_power();
 }
 
 ast::ExprPtr Parser::parse_call() {
@@ -715,19 +786,19 @@ ast::ExprPtr Parser::parse_call() {
           ast::CallExpr::Arg arg;
           if (match(TokenKind::DoubleStar)) {
             arg.kw_star = true;
-            arg.value = parse_or();
+            arg.value = parse_conditional();
             simple_positional = false;
           } else if (match(TokenKind::Star)) {
             arg.star = true;
-            arg.value = parse_or();
+            arg.value = parse_conditional();
             simple_positional = false;
           } else if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
             arg.name = std::string(advance().text);
             advance();
-            arg.value = parse_or();
+            arg.value = parse_conditional();
             simple_positional = false;
           } else {
-            arg.value = parse_or();
+            arg.value = parse_conditional();
           }
           args.push_back(std::move(arg));
         } while (match(TokenKind::Comma));
@@ -786,7 +857,7 @@ ast::ExprPtr Parser::parse_primary() {
     if (match(TokenKind::RBracket)) {
       return std::make_unique<ast::ListExpr>(std::vector<ast::ExprPtr>{});
     }
-    auto first = parse_or();
+    auto first = parse_conditional();
     if (match(TokenKind::KwFor)) {
       const Token target = peek();
       consume(TokenKind::Identifier, "expected comprehension target after for");
@@ -802,7 +873,7 @@ ast::ExprPtr Parser::parse_primary() {
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));
     while (match(TokenKind::Comma) && !check(TokenKind::RBracket)) {
-      items.push_back(parse_or());
+      items.push_back(parse_conditional());
     }
     consume(TokenKind::RBracket, "expected ']' after list literal");
     return std::make_unique<ast::ListExpr>(std::move(items));
@@ -811,14 +882,14 @@ ast::ExprPtr Parser::parse_primary() {
     if (match(TokenKind::RBrace)) {
       return std::make_unique<ast::DictExpr>(std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>>{});
     }
-    auto first = parse_or();
+    auto first = parse_conditional();
     if (match(TokenKind::Colon)) {
       std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
-      entries.push_back(std::make_pair(std::move(first), parse_or()));
+      entries.push_back(std::make_pair(std::move(first), parse_conditional()));
       while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
-        auto key = parse_or();
+        auto key = parse_conditional();
         consume(TokenKind::Colon, "expected ':' after dict key");
-        entries.push_back(std::make_pair(std::move(key), parse_or()));
+        entries.push_back(std::make_pair(std::move(key), parse_conditional()));
       }
       consume(TokenKind::RBrace, "expected '}' after dict literal");
       return std::make_unique<ast::DictExpr>(std::move(entries));
@@ -826,7 +897,7 @@ ast::ExprPtr Parser::parse_primary() {
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));
     while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
-      items.push_back(parse_or());
+      items.push_back(parse_conditional());
     }
     consume(TokenKind::RBrace, "expected '}' after set literal");
     return std::make_unique<ast::SetExpr>(std::move(items));
@@ -871,7 +942,7 @@ ast::ExprPtr Parser::parse_optional_annotation() {
   if (!match(TokenKind::Colon)) {
     return nullptr;
   }
-  return parse_or();
+  return parse_conditional();
 }
 
 bool Parser::parse_function_signature(
@@ -919,7 +990,7 @@ bool Parser::parse_function_signature(
       }
 
       if (match(TokenKind::Assign)) {
-        param.default_value = parse_or();
+        param.default_value = parse_conditional();
       }
       params.push_back(param.name);
       signature.push_back(std::move(param));

@@ -71,6 +71,14 @@ struct BinaryExpr final : Expr {
       : op(std::move(op)), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
+struct ConditionalExpr final : Expr {
+  ExprPtr then_expr;
+  ExprPtr condition;
+  ExprPtr else_expr;
+  ConditionalExpr(ExprPtr then_expr, ExprPtr condition, ExprPtr else_expr)
+      : then_expr(std::move(then_expr)), condition(std::move(condition)), else_expr(std::move(else_expr)) {}
+};
+
 struct CallExpr final : Expr {
   struct Arg {
     std::string name;

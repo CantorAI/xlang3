@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/interpreter.h"
 
+#include "xlang3/generator.h"
 #include "xlang3/module_object.h"
 
 namespace xlang3 {
@@ -82,13 +83,17 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
       nullptr);
 }
 
-RuntimeResult Interpreter::collect_generator_values(FunctionObject* function, CallArgsView args, std::vector<Value>& yielded) {
+RuntimeResult Interpreter::resume_generator(GeneratorObject& generator, Value& out, bool& done) {
   RuntimeResult result;
+  auto* function = value_as_function(generator.function);
   if (function == nullptr || function->module == nullptr) {
     result.errors.push_back("function has no module");
     return result;
   }
-  return run_function(
+  CallArgsView args;
+  args.leading = generator.args.data();
+  args.leading_count = static_cast<uint32_t>(generator.args.size());
+  result = run_function(
       *function->module,
       function->function_id,
       args,
@@ -96,7 +101,13 @@ RuntimeResult Interpreter::collect_generator_values(FunctionObject* function, Ca
       function->defaults,
       function->globals_module,
       function->module,
-      &yielded);
+      &generator);
+  if (!result.errors.empty()) {
+    return result;
+  }
+  value_assign_fast(out, result.value);
+  done = generator.done;
+  return result;
 }
 
 } // namespace xlang3

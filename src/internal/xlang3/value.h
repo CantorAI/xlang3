@@ -342,7 +342,17 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_shift_left(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_shift_right(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_invert(const Value& value, Value& out, std::string& error);
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_is(const Value& lhs, const Value& rhs);
+bool value_contains(const Value& container, const Value& item, bool& out, std::string& error);
 
 } // namespace xlang3

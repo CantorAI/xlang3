@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/ir.h"
 #include "xlang3/runtime.h"
 
+#include <cmath>
 #include <string>
 
 namespace xlang3 {
@@ -91,6 +92,33 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_div(const Value& lhs, const Value& rhs, Val
   return true;
 }
 
+XLANG3_HOT_INLINE bool xlang_vm_fast_floor_div(const Value& lhs, const Value& rhs, Value& out, bool& divide_by_zero) {
+  divide_by_zero = false;
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    if (rhs.as.i64 == 0) {
+      divide_by_zero = true;
+      return false;
+    }
+    int64_t q = lhs.as.i64 / rhs.as.i64;
+    const int64_t r = lhs.as.i64 % rhs.as.i64;
+    if (r != 0 && ((r < 0) != (rhs.as.i64 < 0))) {
+      --q;
+    }
+    value_set_int64(out, q);
+    return true;
+  }
+  if (!xlang_vm_value_is_number(lhs) || !xlang_vm_value_is_number(rhs)) {
+    return false;
+  }
+  const double divisor = xlang_vm_value_to_double_fast(rhs);
+  if (divisor == 0.0) {
+    divide_by_zero = true;
+    return false;
+  }
+  value_set_number(out, std::floor(xlang_vm_value_to_double_fast(lhs) / divisor));
+  return true;
+}
+
 XLANG3_HOT_INLINE bool xlang_vm_fast_mod(const Value& lhs, const Value& rhs, Value& out, bool& modulo_by_zero) {
   modulo_by_zero = false;
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
@@ -105,6 +133,70 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_mod(const Value& lhs, const Value& rhs, Val
     result += rhs.as.i64;
   }
   value_set_int64(out, result);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_fast_pow(const Value& lhs, const Value& rhs, Value& out) {
+  if (!xlang_vm_value_is_number(lhs) || !xlang_vm_value_is_number(rhs)) {
+    return false;
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64 && rhs.as.i64 >= 0) {
+    int64_t result = 1;
+    int64_t base = lhs.as.i64;
+    uint64_t exponent = static_cast<uint64_t>(rhs.as.i64);
+    while (exponent != 0) {
+      if ((exponent & 1u) != 0) result *= base;
+      exponent >>= 1u;
+      if (exponent != 0) base *= base;
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  value_set_number(out, std::pow(xlang_vm_value_to_double_fast(lhs), xlang_vm_value_to_double_fast(rhs)));
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_fast_bit_and(const Value& lhs, const Value& rhs, Value& out) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
+  value_set_int64(out, lhs.as.i64 & rhs.as.i64);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_fast_bit_or(const Value& lhs, const Value& rhs, Value& out) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
+  value_set_int64(out, lhs.as.i64 | rhs.as.i64);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_fast_bit_xor(const Value& lhs, const Value& rhs, Value& out) {
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
+  value_set_int64(out, lhs.as.i64 ^ rhs.as.i64);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_fast_shift_left(const Value& lhs, const Value& rhs, Value& out, bool& bad_shift) {
+  bad_shift = false;
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
+  if (rhs.as.i64 < 0 || rhs.as.i64 >= 63) {
+    bad_shift = true;
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 << rhs.as.i64);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_fast_shift_right(const Value& lhs, const Value& rhs, Value& out, bool& negative_shift) {
+  negative_shift = false;
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
+  if (rhs.as.i64 < 0) {
+    negative_shift = true;
+    return false;
+  }
+  if (rhs.as.i64 >= 63) {
+    value_set_int64(out, lhs.as.i64 < 0 ? -1 : 0);
+    return true;
+  }
+  value_set_int64(out, lhs.as.i64 >> rhs.as.i64);
   return true;
 }
 
@@ -128,7 +220,10 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_compare(ir::CompareOp op, const Value& lhs,
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_is_inline_binary_op(ir::Op op) {
-  return op == ir::Op::Add || op == ir::Op::Sub || op == ir::Op::Mul || op == ir::Op::Div || op == ir::Op::Mod;
+  return op == ir::Op::Add || op == ir::Op::Sub || op == ir::Op::Mul || op == ir::Op::Div ||
+         op == ir::Op::FloorDiv || op == ir::Op::Mod || op == ir::Op::Pow ||
+         op == ir::Op::BitAnd || op == ir::Op::BitOr || op == ir::Op::BitXor ||
+         op == ir::Op::Shl || op == ir::Op::Shr;
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_execute_binary_op(
@@ -156,6 +251,15 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_binary_op(
       }
       return value_div(lhs, rhs, out, error);
     }
+    case ir::Op::FloorDiv: {
+      bool divide_by_zero = false;
+      if (xlang_vm_fast_floor_div(lhs, rhs, out, divide_by_zero)) return true;
+      if (divide_by_zero) {
+        error = "division by zero";
+        return false;
+      }
+      return value_floor_div(lhs, rhs, out, error);
+    }
     case ir::Op::Mod: {
       bool modulo_by_zero = false;
       if (xlang_vm_fast_mod(lhs, rhs, out, modulo_by_zero)) return true;
@@ -164,6 +268,36 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_binary_op(
         return false;
       }
       return value_mod(lhs, rhs, out, error);
+    }
+    case ir::Op::Pow:
+      if (xlang_vm_fast_pow(lhs, rhs, out)) return true;
+      return value_pow(lhs, rhs, out, error);
+    case ir::Op::BitAnd:
+      if (xlang_vm_fast_bit_and(lhs, rhs, out)) return true;
+      return value_bit_and(lhs, rhs, out, error);
+    case ir::Op::BitOr:
+      if (xlang_vm_fast_bit_or(lhs, rhs, out)) return true;
+      return value_bit_or(lhs, rhs, out, error);
+    case ir::Op::BitXor:
+      if (xlang_vm_fast_bit_xor(lhs, rhs, out)) return true;
+      return value_bit_xor(lhs, rhs, out, error);
+    case ir::Op::Shl: {
+      bool bad_shift = false;
+      if (xlang_vm_fast_shift_left(lhs, rhs, out, bad_shift)) return true;
+      if (bad_shift) {
+        error = rhs.tag == ValueTag::Int64 && rhs.as.i64 < 0 ? "negative shift count" : "shift count too large for int64";
+        return false;
+      }
+      return value_shift_left(lhs, rhs, out, error);
+    }
+    case ir::Op::Shr: {
+      bool negative_shift = false;
+      if (xlang_vm_fast_shift_right(lhs, rhs, out, negative_shift)) return true;
+      if (negative_shift) {
+        error = "negative shift count";
+        return false;
+      }
+      return value_shift_right(lhs, rhs, out, error);
     }
     default:
       error = "unsupported inline function operation";
@@ -191,8 +325,36 @@ XLANG3_HOT_INLINE bool fast_div(const Value& lhs, const Value& rhs, Value& out, 
   return xlang_vm_fast_div(lhs, rhs, out, divide_by_zero);
 }
 
+XLANG3_HOT_INLINE bool fast_floor_div(const Value& lhs, const Value& rhs, Value& out, bool& divide_by_zero) {
+  return xlang_vm_fast_floor_div(lhs, rhs, out, divide_by_zero);
+}
+
 XLANG3_HOT_INLINE bool fast_mod(const Value& lhs, const Value& rhs, Value& out, bool& modulo_by_zero) {
   return xlang_vm_fast_mod(lhs, rhs, out, modulo_by_zero);
+}
+
+XLANG3_HOT_INLINE bool fast_pow(const Value& lhs, const Value& rhs, Value& out) {
+  return xlang_vm_fast_pow(lhs, rhs, out);
+}
+
+XLANG3_HOT_INLINE bool fast_bit_and(const Value& lhs, const Value& rhs, Value& out) {
+  return xlang_vm_fast_bit_and(lhs, rhs, out);
+}
+
+XLANG3_HOT_INLINE bool fast_bit_or(const Value& lhs, const Value& rhs, Value& out) {
+  return xlang_vm_fast_bit_or(lhs, rhs, out);
+}
+
+XLANG3_HOT_INLINE bool fast_bit_xor(const Value& lhs, const Value& rhs, Value& out) {
+  return xlang_vm_fast_bit_xor(lhs, rhs, out);
+}
+
+XLANG3_HOT_INLINE bool fast_shift_left(const Value& lhs, const Value& rhs, Value& out, bool& bad_shift) {
+  return xlang_vm_fast_shift_left(lhs, rhs, out, bad_shift);
+}
+
+XLANG3_HOT_INLINE bool fast_shift_right(const Value& lhs, const Value& rhs, Value& out, bool& negative_shift) {
+  return xlang_vm_fast_shift_right(lhs, rhs, out, negative_shift);
 }
 
 XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Value& rhs, Value& out) {

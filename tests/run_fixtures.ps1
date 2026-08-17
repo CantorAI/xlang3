@@ -28,6 +28,7 @@ $cases = @(
     "if_else",
     "syntax_logical_lines",
     "statement_syntax",
+    "expression_operators",
     "function_class_syntax",
     "builtin_alias",
     "tuples",

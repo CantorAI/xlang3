@@ -26,9 +26,8 @@ struct GeneratorObject {
   Runtime* runtime = nullptr;
   Value function;
   std::vector<Value> args;
-  std::vector<Value> yielded;
-  size_t index = 0;
-  bool materialized = false;
+  void* vm_state = nullptr;
+  void (*vm_state_cleanup)(void*) = nullptr;
   bool done = false;
 };
 

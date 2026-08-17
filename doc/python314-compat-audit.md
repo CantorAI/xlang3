@@ -105,8 +105,8 @@ Legend:
 - [x] `await expr`
 - [~] `async for` syntax accepted; async iterator protocol pending
 - [~] `async with` syntax accepted; async context manager protocol pending
-- [~] generators: `yield` with generator object and iteration; suspended-frame semantics pending
-- [~] generators: `yield from` over iterable values; suspended delegation semantics pending
+- [~] generators: `yield` with suspended XlangVM frame; `send` / `throw` / `close` pending
+- [~] generators: `yield from` lowered to incremental delegation; StopIteration return-value propagation pending
 - [ ] async generators
 - [x] lambda expressions
 
@@ -131,22 +131,22 @@ Legend:
 - [x] binary `*`
 - [x] binary `/`
 - [x] binary `%`
-- [ ] floor division `//`
-- [ ] power `**`
-- [ ] bitwise `&`
-- [ ] bitwise `|`
-- [ ] bitwise `^`
-- [ ] shifts `<<` / `>>`
-- [ ] unary bit invert `~`
+- [x] floor division `//`
+- [x] power `**`
+- [x] bitwise `&`
+- [x] bitwise `|`
+- [x] bitwise `^`
+- [x] shifts `<<` / `>>`
+- [x] unary bit invert `~`
 - [x] comparisons `== != < <= > >=`
 - [ ] chained comparisons
-- [ ] `is`
-- [ ] `is not`
-- [ ] `in`
-- [ ] `not in`
+- [x] `is`
+- [x] `is not`
+- [x] `in`
+- [x] `not in`
 - [x] boolean `and`
 - [x] boolean `or`
-- [ ] conditional expression `a if cond else b`
+- [x] conditional expression `a if cond else b`
 - [x] calls: positional args
 - [x] calls: keyword args
 - [x] calls: `*args`
