@@ -82,6 +82,7 @@ const char* op_name(Op op) {
     case Op::CallModuleMethod: return "CallModuleMethod";
     case Op::CallMethod: return "CallMethod";
     case Op::Call: return "Call";
+    case Op::Await: return "Await";
     case Op::Pop: return "Pop";
     case Op::Return: return "Return";
   }

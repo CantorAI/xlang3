@@ -53,6 +53,10 @@ void collect_self_attr_slots_expr(
     collect_self_attr_slots_expr(*unary->expr, self_name, slots, seen);
     return;
   }
+  if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*await->expr, self_name, slots, seen);
+    return;
+  }
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     collect_self_attr_slots_expr(*binary->lhs, self_name, slots, seen);
     collect_self_attr_slots_expr(*binary->rhs, self_name, slots, seen);
@@ -959,6 +963,12 @@ private:
       const auto src = lower_expr(*unary->expr);
       const auto reg = new_reg();
       emit(unary->op == "not" ? ir::Op::Not : ir::Op::Neg, reg, src);
+      return reg;
+    }
+    if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+      const auto src = lower_expr(*await->expr);
+      const auto reg = new_reg();
+      emit(ir::Op::Await, reg, src);
       return reg;
     }
     if (auto* bin = dynamic_cast<const ast::BinaryExpr*>(&expr)) {

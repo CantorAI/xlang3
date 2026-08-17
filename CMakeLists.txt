@@ -80,6 +80,12 @@ set(XLANG3_THREAD_RUNTIME_SOURCES
   src/runtime/modules/thread/thread_objects.cpp
 )
 
+set(XLANG3_TASK_RUNTIME_SOURCES
+  src/runtime/modules/task/asyncio_module.cpp
+  src/runtime/modules/task/task_module.cpp
+  src/runtime/modules/task/task_objects.cpp
+)
+
 if(NOT XLANG3_EMBEDDED)
   list(APPEND XLANG3_RUNTIME_SOURCES
     src/ir/dump.cpp
@@ -105,6 +111,7 @@ endif()
 add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
+add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
 
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
@@ -116,20 +123,21 @@ set_target_properties(xlang3_runtime_static PROPERTIES
 
 target_compile_definitions(xlang3_runtime PRIVATE XLANG3_BUILD_SHARED)
 
-foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime)
+foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime xlang3_task_runtime)
 target_include_directories(${xlang3_runtime_target}
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/thread
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/task
 )
 
 target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
 endforeach()
 
-target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime)
-target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime)
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime)
 
 add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
@@ -155,6 +163,7 @@ add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
 add_xlang3_cpp_test(xlang3_threading_tests tests/cpp/threading_tests.cpp)
+add_xlang3_cpp_test(xlang3_task_tests tests/cpp/task_tests.cpp)
 add_xlang3_cpp_test(xlang3_ir_codec_tests tests/cpp/ir_codec_tests.cpp)
 
 add_executable(xlang3_native_package_real_tests tests/cpp/native_package_real_tests.cpp)

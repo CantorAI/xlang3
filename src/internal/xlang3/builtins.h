@@ -26,5 +26,7 @@ void register_raw_block_builtins(Runtime& runtime);
 void register_builtin_modules(Runtime& runtime);
 void register_math_module(Runtime& runtime);
 void register_thread_modules(Runtime& runtime);
+void register_task_modules(Runtime& runtime);
+void register_asyncio_module(Runtime& runtime);
 
 } // namespace xlang3

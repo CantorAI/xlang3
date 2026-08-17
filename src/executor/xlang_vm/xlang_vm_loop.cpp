@@ -25,6 +25,10 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#ifndef XLANG3_EMBEDDED
+#include "task_objects.h"
+#endif
+
 #include <cstddef>
 #include <mutex>
 #include <new>
@@ -1783,6 +1787,18 @@ RuntimeResult Interpreter::run_function(
           if (raise_runtime_error("object is not callable")) continue;
           return result;
         }
+        break;
+      }
+      case ir::Op::Await: {
+#ifndef XLANG3_EMBEDDED
+        std::string await_error;
+        if (!xlang_task_await_value(regs[in.a], regs[in.dst], await_error)) {
+          if (raise_runtime_error(await_error.empty() ? "await failed" : await_error)) continue;
+          return result;
+        }
+#else
+        value_assign_fast(regs[in.dst], regs[in.a]);
+#endif
         break;
       }
       case ir::Op::Pop:

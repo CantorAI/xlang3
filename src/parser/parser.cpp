@@ -51,6 +51,14 @@ ParseResult Parser::parse_module() {
 }
 
 ast::StmtPtr Parser::parse_statement() {
+  bool is_async_def = false;
+  if (match(TokenKind::KwAsync)) {
+    if (!check(TokenKind::KwDef)) {
+      error_here("expected def after async");
+      return nullptr;
+    }
+    is_async_def = true;
+  }
   if (match(TokenKind::KwDef)) {
     const Token name = peek();
     if (!consume(TokenKind::Identifier, "expected function name")) return nullptr;
@@ -71,6 +79,7 @@ ast::StmtPtr Parser::parse_statement() {
     fn->name = std::string(name.text);
     fn->params = std::move(params);
     fn->body = parse_block();
+    fn->is_async = is_async_def;
     return fn;
   }
   if (match(TokenKind::KwClass)) {
@@ -411,6 +420,13 @@ ast::ExprPtr Parser::parse_and() {
 ast::ExprPtr Parser::parse_not() {
   if (match(TokenKind::KwNot)) {
     return std::make_unique<ast::UnaryExpr>("not", parse_not());
+  }
+  return parse_await();
+}
+
+ast::ExprPtr Parser::parse_await() {
+  if (match(TokenKind::KwAwait)) {
+    return std::make_unique<ast::AwaitExpr>(parse_await());
   }
   return parse_compare();
 }

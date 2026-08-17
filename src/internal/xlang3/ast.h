@@ -52,6 +52,11 @@ struct UnaryExpr final : Expr {
   UnaryExpr(std::string op, ExprPtr expr) : op(std::move(op)), expr(std::move(expr)) {}
 };
 
+struct AwaitExpr final : Expr {
+  ExprPtr expr;
+  explicit AwaitExpr(ExprPtr expr) : expr(std::move(expr)) {}
+};
+
 struct BinaryExpr final : Expr {
   std::string op;
   ExprPtr lhs;
@@ -221,6 +226,7 @@ struct FunctionDef final : Stmt {
   std::string name;
   std::vector<std::string> params;
   std::vector<StmtPtr> body;
+  bool is_async = false;
 };
 
 struct ClassDef final : Stmt {

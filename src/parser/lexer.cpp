@@ -175,6 +175,8 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       else if (text == "and") kind = TokenKind::KwAnd;
       else if (text == "or") kind = TokenKind::KwOr;
       else if (text == "not") kind = TokenKind::KwNot;
+      else if (text == "async") kind = TokenKind::KwAsync;
+      else if (text == "await") kind = TokenKind::KwAwait;
       emit(kind, text, line_no, col);
       continue;
     }

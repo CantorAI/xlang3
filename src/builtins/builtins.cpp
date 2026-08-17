@@ -24,6 +24,10 @@ void register_core_builtins(Runtime& runtime) {
   register_builtin_modules(runtime);
   register_math_module(runtime);
   register_thread_modules(runtime);
+#ifndef XLANG3_EMBEDDED
+  register_task_modules(runtime);
+  register_asyncio_module(runtime);
+#endif
 }
 
 } // namespace xlang3

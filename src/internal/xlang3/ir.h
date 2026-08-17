@@ -84,6 +84,7 @@ enum class Op : uint16_t {
   CallModuleMethod,
   CallMethod,
   Call,
+  Await,
   Pop,
   Return,
 };

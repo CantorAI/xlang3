@@ -72,5 +72,17 @@ int main() {
       result,
       dynamic_cast<xlang3::ast::AssignStmt*>(raw.module.body[1].get()) != nullptr,
       "assigned DSL-looking triple string should stay a normal assignment");
+
+  auto async_parsed = xlang3::parse_source(
+      "async def add(a, b):\n"
+      "    return a + b\n"
+      "\n"
+      "async def main():\n"
+      "    return await add(20, 22)\n");
+  xlang3::test::expect_true(result, async_parsed.errors.empty(), "parser should accept async def and await");
+  xlang3::test::expect_true(result, async_parsed.module.body.size() == 2, "async parse should contain two function defs");
+  auto* async_fn = dynamic_cast<xlang3::ast::FunctionDef*>(async_parsed.module.body[0].get());
+  xlang3::test::expect_true(result, async_fn != nullptr && async_fn->is_async, "async def should mark FunctionDef");
+
   return xlang3::test::finish(result);
 }

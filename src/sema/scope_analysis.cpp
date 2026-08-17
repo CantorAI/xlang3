@@ -125,6 +125,8 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     add_unique(names, seen, name->name);
   } else if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
     collect_reads_expr(*unary->expr, names, seen);
+  } else if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    collect_reads_expr(*await->expr, names, seen);
   } else if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     collect_reads_expr(*binary->lhs, names, seen);
     collect_reads_expr(*binary->rhs, names, seen);

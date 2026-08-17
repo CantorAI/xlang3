@@ -57,6 +57,8 @@ enum class TokenKind {
   KwAnd,
   KwOr,
   KwNot,
+  KwAsync,
+  KwAwait,
   LParen,
   RParen,
   LBracket,
@@ -132,6 +134,7 @@ private:
   ast::ExprPtr parse_or();
   ast::ExprPtr parse_and();
   ast::ExprPtr parse_not();
+  ast::ExprPtr parse_await();
   ast::ExprPtr parse_compare();
   ast::ExprPtr parse_term();
   ast::ExprPtr parse_factor();

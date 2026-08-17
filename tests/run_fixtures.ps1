@@ -49,6 +49,9 @@ $cases = @(
     "context_managers",
     "builtin_methods",
     "threading_module",
+    "task_async",
+    "asyncio_module",
+    "async_syntax",
     "closures",
     "nonlocal_counter"
 )
