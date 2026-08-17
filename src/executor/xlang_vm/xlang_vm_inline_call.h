@@ -36,6 +36,8 @@ struct XlangVMArgBinaryFunctionSpec {
   bool has_next = false;
 };
 
+using XlangVMSlotConstructorSpec = std::vector<std::pair<uint32_t, uint32_t>>;
+
 inline bool xlang_vm_analyze_self_binary_method(
     const ir::Module& current_module,
     const FunctionObject& fn_obj,
@@ -127,6 +129,76 @@ inline bool xlang_vm_analyze_arg_binary_function(
   return true;
 }
 
+inline bool xlang_vm_analyze_slot_constructor(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    XlangVMSlotConstructorSpec& spec) {
+  const ir::Module* function_module = &current_module;
+  if (fn_obj.module != nullptr) {
+    function_module = fn_obj.module.get();
+  }
+  if (fn_obj.function_id >= function_module->functions.size()) {
+    return false;
+  }
+  const auto& function = function_module->functions[fn_obj.function_id];
+  if (function.params.empty() || function.free_vars.size() != 0 || function.cell_slots.size() != 0) {
+    return false;
+  }
+  spec.clear();
+  size_t ip = 0;
+  while (ip + 2 < function.code.size()) {
+    const auto& load_self = function.code[ip];
+    const auto& load_arg = function.code[ip + 1];
+    const auto& store_slot = function.code[ip + 2];
+    if (load_self.op != ir::Op::LoadLocal || load_self.a != 0) {
+      break;
+    }
+    if (load_arg.op != ir::Op::LoadLocal || load_arg.a == 0 || load_arg.a >= function.params.size()) {
+      return false;
+    }
+    if (store_slot.op != ir::Op::StoreInstanceSlot || store_slot.dst != load_self.dst ||
+        store_slot.b != load_arg.dst) {
+      return false;
+    }
+    spec.push_back(std::make_pair(store_slot.a, load_arg.a - 1));
+    ip += 3;
+  }
+  if (spec.empty() || ip + 1 >= function.code.size()) {
+    return false;
+  }
+  const auto& load_none = function.code[ip];
+  const auto& ret = function.code[ip + 1];
+  if (load_none.op != ir::Op::LoadConst || ret.op != ir::Op::Return || ret.a != load_none.dst) {
+    return false;
+  }
+  return ip + 2 == function.code.size();
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_execute_slot_constructor(
+    Value klass,
+    CallArgsView args,
+    const XlangVMSlotConstructorSpec& spec,
+    Value& out,
+    std::string& error) {
+  Value instance = Value::instance(std::move(klass));
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr) {
+    error = "invalid constructed instance";
+    return false;
+  }
+  for (const auto& item : spec) {
+    const uint32_t slot = item.first;
+    const uint32_t arg = item.second;
+    if (slot >= instance_slot_count(instance_obj) || arg >= args.size()) {
+      error = "invalid inline constructor slot";
+      return false;
+    }
+    value_assign_fast(instance_slot_at(instance_obj, slot), args.get(arg));
+  }
+  value_assign_fast(out, instance);
+  return true;
+}
+
 inline bool xlang_vm_execute_arg_binary_function(
     CallArgsView args,
     const XlangVMArgBinaryFunctionSpec& spec,
@@ -181,6 +253,7 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_self_binary_method(
 
 using SelfBinaryMethodSpec = XlangVMSelfBinaryMethodSpec;
 using ArgBinaryFunctionSpec = XlangVMArgBinaryFunctionSpec;
+using SlotConstructorSpec = XlangVMSlotConstructorSpec;
 
 inline bool analyze_self_binary_method(
     const ir::Module& current_module,
@@ -197,6 +270,13 @@ inline bool analyze_arg_binary_function(
   return xlang_vm_analyze_arg_binary_function(current_module, fn_obj, argc, spec);
 }
 
+inline bool analyze_slot_constructor(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    SlotConstructorSpec& spec) {
+  return xlang_vm_analyze_slot_constructor(current_module, fn_obj, spec);
+}
+
 inline bool execute_arg_binary_function(
     CallArgsView args,
     const ArgBinaryFunctionSpec& spec,
@@ -211,6 +291,15 @@ XLANG3_HOT_INLINE bool execute_self_binary_method(
     Value& out,
     std::string& error) {
   return xlang_vm_execute_self_binary_method(instance, spec, out, error);
+}
+
+XLANG3_HOT_INLINE bool execute_slot_constructor(
+    Value klass,
+    CallArgsView args,
+    const SlotConstructorSpec& spec,
+    Value& out,
+    std::string& error) {
+  return xlang_vm_execute_slot_constructor(std::move(klass), args, spec, out, error);
 }
 
 } // namespace xlang3

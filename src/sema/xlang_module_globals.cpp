@@ -39,13 +39,21 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
     add_module_slot(slots, assign->name);
     return;
   }
+  if (auto* del = dynamic_cast<const ast::DelStmt*>(&stmt)) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(del->target.get())) {
+      add_module_slot(slots, name->name);
+    }
+    return;
+  }
   if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
     add_module_slot(slots, import->bind_name);
     return;
   }
   if (auto* import = dynamic_cast<const ast::FromImportStmt*>(&stmt)) {
     for (const auto& binding : import->names) {
-      add_module_slot(slots, binding.as_name);
+      if (binding.as_name != "*") {
+        add_module_slot(slots, binding.as_name);
+      }
     }
     return;
   }
@@ -86,7 +94,14 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
       }
       collect_module_body(handler.body, slots);
     }
+    collect_module_body(try_except->else_body, slots);
     collect_module_body(try_except->finally_body, slots);
+    return;
+  }
+  if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+    for (const auto& match_case : match->cases) {
+      collect_module_body(match_case.body, slots);
+    }
   }
 }
 

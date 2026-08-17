@@ -20,6 +20,7 @@ namespace xlang3 {
 
 void register_core_builtins(Runtime& runtime);
 void register_exception_builtins(Runtime& runtime);
+void register_functional_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);
 void register_sequence_builtins(Runtime& runtime);
 void register_raw_block_builtins(Runtime& runtime);

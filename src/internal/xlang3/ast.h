@@ -57,6 +57,12 @@ struct AwaitExpr final : Expr {
   explicit AwaitExpr(ExprPtr expr) : expr(std::move(expr)) {}
 };
 
+struct YieldExpr final : Expr {
+  ExprPtr expr;
+  bool from = false;
+  YieldExpr(ExprPtr expr, bool from) : expr(std::move(expr)), from(from) {}
+};
+
 struct BinaryExpr final : Expr {
   std::string op;
   ExprPtr lhs;
@@ -66,10 +72,19 @@ struct BinaryExpr final : Expr {
 };
 
 struct CallExpr final : Expr {
+  struct Arg {
+    std::string name;
+    ExprPtr value;
+    bool star = false;
+    bool kw_star = false;
+  };
   ExprPtr callee;
   std::vector<ExprPtr> args;
+  std::vector<Arg> call_args;
   CallExpr(ExprPtr callee, std::vector<ExprPtr> args)
       : callee(std::move(callee)), args(std::move(args)) {}
+  CallExpr(ExprPtr callee, std::vector<Arg> call_args)
+      : callee(std::move(callee)), call_args(std::move(call_args)) {}
 };
 
 struct SubscriptExpr final : Expr {
@@ -113,9 +128,34 @@ struct ListCompExpr final : Expr {
       : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
 };
 
+struct LambdaExpr final : Expr {
+  std::vector<std::string> params;
+  ExprPtr body;
+  LambdaExpr(std::vector<std::string> params, ExprPtr body)
+      : params(std::move(params)), body(std::move(body)) {}
+};
+
 struct ExprStmt final : Stmt {
   ExprPtr expr;
   explicit ExprStmt(ExprPtr expr) : expr(std::move(expr)) {}
+};
+
+struct PassStmt final : Stmt {};
+
+struct BreakStmt final : Stmt {};
+
+struct ContinueStmt final : Stmt {};
+
+struct DelStmt final : Stmt {
+  ExprPtr target;
+  explicit DelStmt(ExprPtr target) : target(std::move(target)) {}
+};
+
+struct AssertStmt final : Stmt {
+  ExprPtr condition;
+  ExprPtr message;
+  AssertStmt(ExprPtr condition, ExprPtr message)
+      : condition(std::move(condition)), message(std::move(message)) {}
 };
 
 struct RawBlockStmt final : Stmt {
@@ -174,7 +214,8 @@ struct ReturnStmt final : Stmt {
 
 struct RaiseStmt final : Stmt {
   ExprPtr value;
-  explicit RaiseStmt(ExprPtr value) : value(std::move(value)) {}
+  ExprPtr cause;
+  RaiseStmt(ExprPtr value, ExprPtr cause = {}) : value(std::move(value)), cause(std::move(cause)) {}
 };
 
 struct GlobalStmt final : Stmt {
@@ -202,6 +243,7 @@ struct ExceptHandler {
 struct TryExceptStmt final : Stmt {
   std::vector<StmtPtr> try_body;
   std::vector<ExceptHandler> handlers;
+  std::vector<StmtPtr> else_body;
   std::vector<StmtPtr> finally_body;
 };
 
@@ -222,15 +264,39 @@ struct ForStmt final : Stmt {
   std::vector<StmtPtr> body;
 };
 
+struct MatchCase {
+  ExprPtr pattern;
+  bool wildcard = false;
+  std::vector<StmtPtr> body;
+};
+
+struct MatchStmt final : Stmt {
+  ExprPtr subject;
+  std::vector<MatchCase> cases;
+};
+
 struct FunctionDef final : Stmt {
+  struct Param {
+    enum class Kind { PosOnly, PosOrKeyword, VarArgs, KeywordOnly, KwArgs };
+    std::string name;
+    Kind kind = Kind::PosOrKeyword;
+    ExprPtr default_value;
+    ExprPtr annotation;
+  };
   std::string name;
   std::vector<std::string> params;
+  std::vector<Param> signature;
+  std::vector<ExprPtr> decorators;
+  ExprPtr return_annotation;
   std::vector<StmtPtr> body;
   bool is_async = false;
 };
 
 struct ClassDef final : Stmt {
   std::string name;
+  std::vector<ExprPtr> bases;
+  std::vector<std::pair<std::string, ExprPtr>> keywords;
+  std::vector<ExprPtr> decorators;
   std::vector<StmtPtr> body;
 };
 

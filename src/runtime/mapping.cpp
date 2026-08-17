@@ -151,6 +151,25 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
   return true;
 }
 
+bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
+  auto* dict = value_as_dict(object);
+  if (dict == nullptr) {
+    error = "object does not support item deletion";
+    return false;
+  }
+  if (!ensure_hashable(key, error)) {
+    return false;
+  }
+  for (auto it = dict->entries.begin(); it != dict->entries.end(); ++it) {
+    if (value_key_equal(it->first, key)) {
+      dict->entries.erase(it);
+      return true;
+    }
+  }
+  error = "key not found";
+  return false;
+}
+
 bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
   if (value_as_dict(object) == nullptr) {
     error = "object is not a dict";

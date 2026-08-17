@@ -48,6 +48,7 @@ enum class CallSiteKind : uint8_t {
   NativeFunction,
   UserConstructor,
   NativeConstructor,
+  InlineSlotConstructor,
   InlineSelfBinaryMethod,
   InlineArgBinaryFunction,
 };
@@ -74,6 +75,7 @@ struct CallSiteCache {
   ir::Op next_op = ir::Op::Add;
   bool has_next = false;
   bool fast_releases_vm_lock = false;
+  std::vector<std::pair<uint32_t, uint32_t>> slot_constructor_args;
 };
 
 struct AttrSiteCache {

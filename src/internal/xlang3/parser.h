@@ -37,9 +37,11 @@ enum class TokenKind {
   KwClass,
   KwReturn,
   KwIf,
+  KwElif,
   KwElse,
   KwTry,
   KwExcept,
+  KwCase,
   KwFinally,
   KwRaise,
   KwWith,
@@ -51,6 +53,12 @@ enum class TokenKind {
   KwAs,
   KwGlobal,
   KwNonlocal,
+  KwBreak,
+  KwContinue,
+  KwPass,
+  KwDel,
+  KwAssert,
+  KwMatch,
   KwTrue,
   KwFalse,
   KwNone,
@@ -59,6 +67,8 @@ enum class TokenKind {
   KwNot,
   KwAsync,
   KwAwait,
+  KwLambda,
+  KwYield,
   LParen,
   RParen,
   LBracket,
@@ -67,11 +77,15 @@ enum class TokenKind {
   RBrace,
   Dot,
   Comma,
+  Semicolon,
   Colon,
+  At,
+  Arrow,
   Assign,
   Plus,
   Minus,
   Star,
+  DoubleStar,
   Slash,
   Percent,
   EqualEqual,
@@ -125,22 +139,37 @@ public:
 
 private:
   ast::StmtPtr parse_statement();
+  ast::StmtPtr parse_decorated_statement();
+  ast::StmtPtr parse_if_statement();
+  ast::StmtPtr parse_try_statement();
+  ast::StmtPtr parse_with_statement();
+  ast::StmtPtr parse_match_statement();
   ast::StmtPtr parse_simple_statement();
   ast::StmtPtr parse_raw_block_statement();
   std::vector<ast::StmtPtr> parse_block();
-  bool parse_dotted_name(std::string& out, const std::string& message);
+  bool parse_dotted_name(std::string& out, const std::string& message, bool allow_leading_dots = false);
+  bool consume_suite_header_tail(const std::string& context);
+  bool consume_optional_type_params();
+  bool is_simple_statement_end() const;
+  ast::ExprPtr parse_with_manager_expr();
   ast::ExprPtr parse_expression();
   ast::ExprPtr parse_tuple();
   ast::ExprPtr parse_or();
   ast::ExprPtr parse_and();
   ast::ExprPtr parse_not();
   ast::ExprPtr parse_await();
+  ast::ExprPtr parse_lambda();
   ast::ExprPtr parse_compare();
   ast::ExprPtr parse_term();
   ast::ExprPtr parse_factor();
   ast::ExprPtr parse_unary();
   ast::ExprPtr parse_call();
   ast::ExprPtr parse_primary();
+  bool parse_function_signature(
+      std::vector<std::string>& params,
+      std::vector<ast::FunctionDef::Param>& signature,
+      ast::ExprPtr& return_annotation);
+  ast::ExprPtr parse_optional_annotation();
 
   bool match(TokenKind kind);
   bool check(TokenKind kind) const;
@@ -148,6 +177,7 @@ private:
   const Token& previous() const;
   const Token& advance();
   bool consume(TokenKind kind, const std::string& message);
+  void consume_simple_statement_end();
   void skip_newlines();
   void error_here(const std::string& message);
 

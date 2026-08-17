@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/value.h"
 
+#include "xlang3/generator.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -168,12 +169,14 @@ Value Value::function(
     uint32_t function_id,
     std::vector<Value> closure,
     Value globals_module,
-    std::shared_ptr<const ir::Module> module) {
+    std::shared_ptr<const ir::Module> module,
+    std::vector<Value> defaults) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<FunctionObject>(ObjectKind::Function);
   obj->function_id = function_id;
   obj->closure = std::move(closure);
+  obj->defaults = std::move(defaults);
   obj->globals_module = std::move(globals_module);
   obj->module = std::move(module);
   v.as.obj = &obj->header;
@@ -187,13 +190,15 @@ Value Value::native_function(
     void* user_data,
     void (*user_data_cleanup)(void*),
     NativeFastCallCallback fast_callback,
-    bool fast_releases_vm_lock) {
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
   obj->native_id = native_id;
   obj->name = std::move(name);
   obj->callback = callback;
+  obj->keyword_callback = keyword_callback;
   obj->fast_callback = fast_callback;
   obj->fast_releases_vm_lock = fast_releases_vm_lock;
   obj->user_data = user_data;
@@ -251,6 +256,9 @@ void release(const Value& value) {
     case ObjectKind::RangeIterator:
     case ObjectKind::SequenceIterator:
       sequence_release_object(value.as.obj);
+      break;
+    case ObjectKind::Generator:
+      generator_release_object(value.as.obj);
       break;
     case ObjectKind::Cell:
       delete reinterpret_cast<CellObject*>(value.as.obj);
@@ -324,6 +332,9 @@ std::string value_to_string(const Value& value) {
            value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_to_string(value);
       }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Generator) {
+        return generator_to_string(value);
+      }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Dict ||
            value.as.obj->kind == ObjectKind::DictIterator)) {
@@ -384,6 +395,9 @@ bool value_truthy(const Value& value) {
            value.as.obj->kind == ObjectKind::RangeIterator ||
            value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_truthy(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Generator) {
+        return generator_truthy(value);
       }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Dict ||

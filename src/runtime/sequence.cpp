@@ -14,9 +14,11 @@ limitations under the License.
 */
 #include "xlang3/sequence.h"
 
+#include "xlang3/generator.h"
 #include "xlang3/mapping.h"
 #include "xlang3/set_object.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -167,6 +169,9 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (value_as_set(iterable) != nullptr) {
     return set_get_iter(iterable, out, error);
   }
+  if (value_as_generator(iterable) != nullptr) {
+    return generator_get_iter(iterable, out, error);
+  }
   if (value_as_list(iterable) != nullptr ||
       (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
        (iterable.as.obj->kind == ObjectKind::Tuple || iterable.as.obj->kind == ObjectKind::String))) {
@@ -208,6 +213,9 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
   }
   if (value_as_set_iterator(iterator) != nullptr) {
     return set_iter_next(iterator, done, out, error);
+  }
+  if (value_as_generator(iterator) != nullptr) {
+    return generator_iter_next(iterator, done, out, error);
   }
   error = "invalid iterator";
   return false;
@@ -290,6 +298,27 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
     return mapping_set_item(object, index, item, error);
   }
   error = "object does not support item assignment";
+  return false;
+}
+
+bool sequence_delete_item(Value& object, const Value& index, std::string& error) {
+  if (auto* list = value_as_list(object)) {
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(list->items.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(resolved));
+    return true;
+  }
+  if (value_as_dict(object) != nullptr) {
+    return mapping_delete_item(object, index, error);
+  }
+  error = "object does not support item deletion";
   return false;
 }
 

@@ -49,6 +49,48 @@ bool builtin_print(
   return true;
 }
 
+bool builtin_print_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  std::string sep = " ";
+  std::string end = "\n";
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const char* name = kwargs[i].name;
+    const Value* value = kwargs[i].value;
+    if (name == nullptr || value == nullptr) {
+      error = "print keyword argument is invalid";
+      return false;
+    }
+    if (std::string(name) == "sep") {
+      if (!get_string_arg(*value, "print sep", sep, error)) {
+        return false;
+      }
+    } else if (std::string(name) == "end") {
+      if (!get_string_arg(*value, "print end", end, error)) {
+        return false;
+      }
+    } else {
+      error = std::string("print got unexpected keyword argument '") + name + "'";
+      return false;
+    }
+  }
+  for (uint32_t i = 0; i < argc; ++i) {
+    if (i != 0) {
+      runtime.write_output(sep);
+    }
+    runtime.write_output(value_to_string(args[i]));
+  }
+  runtime.write_output(end);
+  value_set_none(out);
+  return true;
+}
+
 bool builtin_open(
     Runtime& runtime,
     const Value* args,
@@ -107,7 +149,16 @@ bool builtin_open(
 
 void register_io_builtins(Runtime& runtime) {
   runtime.register_native_builtin("open", builtin_open);
-  runtime.register_native_builtin("print", builtin_print);
+  runtime.register_builtin(
+      "print",
+      runtime.make_native_function(
+          "print",
+          builtin_print,
+          nullptr,
+          nullptr,
+          nullptr,
+          false,
+          builtin_print_kw));
 }
 
 } // namespace xlang3

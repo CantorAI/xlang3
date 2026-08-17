@@ -57,7 +57,8 @@ public:
       std::string name,
       NativeFunctionCallback callback,
       NativeFastCallCallback fast_callback = nullptr,
-      bool fast_releases_vm_lock = false);
+      bool fast_releases_vm_lock = false,
+      NativeKeywordFunctionCallback keyword_callback = nullptr);
   Value finish();
 
 private:

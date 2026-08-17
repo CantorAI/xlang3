@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 2;
+constexpr uint32_t kVersion = 5;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -417,6 +417,99 @@ bool read_nested_string_vectors(Reader& r, std::vector<std::vector<std::string>>
   return true;
 }
 
+bool write_params(Writer& w, const std::vector<Param>& params, std::string& error) {
+  if (!write_count(w, params.size(), error)) {
+    return false;
+  }
+  for (const auto& param : params) {
+    if (!w.string(param.name, error)) {
+      return false;
+    }
+    w.u8(static_cast<uint8_t>(param.kind));
+    w.u32(param.default_reg);
+  }
+  return true;
+}
+
+bool read_params(Reader& r, std::vector<Param>& params, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  params.resize(count);
+  for (auto& param : params) {
+    uint8_t kind = 0;
+    if (!r.string(param.name) || !r.u8(kind) || !r.u32(param.default_reg)) {
+      return false;
+    }
+    if (kind > static_cast<uint8_t>(ParamKind::KwArgs)) {
+      error = "IR parameter kind is invalid";
+      return false;
+    }
+    param.kind = static_cast<ParamKind>(kind);
+  }
+  return true;
+}
+
+bool write_call_keyword_args(Writer& w, const std::vector<CallKeywordArg>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!w.string(value.name, error)) {
+      return false;
+    }
+    w.u32(value.value_reg);
+  }
+  return true;
+}
+
+bool read_call_keyword_args(Reader& r, std::vector<CallKeywordArg>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!r.string(value.name) || !r.u32(value.value_reg)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_call_specs(Writer& w, const std::vector<CallSpec>& specs, std::string& error) {
+  if (!write_count(w, specs.size(), error)) {
+    return false;
+  }
+  for (const auto& spec : specs) {
+    if (!write_u32_vector(w, spec.positional, error) ||
+        !write_call_keyword_args(w, spec.keywords, error)) {
+      return false;
+    }
+    w.u32(spec.star_arg);
+    w.u32(spec.kw_star_arg);
+  }
+  return true;
+}
+
+bool read_call_specs(Reader& r, std::vector<CallSpec>& specs, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  specs.resize(count);
+  for (auto& spec : specs) {
+    if (!read_u32_vector(r, spec.positional, error) ||
+        !read_call_keyword_args(r, spec.keywords, error) ||
+        !r.u32(spec.star_arg) ||
+        !r.u32(spec.kw_star_arg)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool write_value(Writer& w, const Value& value, std::string& error) {
   switch (value.tag) {
     case ValueTag::None:
@@ -522,8 +615,12 @@ bool read_values(Reader& r, std::vector<Value>& values, std::string& error) {
 }
 
 bool write_function(Writer& w, const Function& fn, std::string& error) {
-  if (!w.string(fn.name, error) ||
-      !write_string_vector(w, fn.params, error) ||
+  if (!w.string(fn.name, error)) {
+    return false;
+  }
+  w.u8(fn.is_generator ? 1 : 0);
+  if (!write_string_vector(w, fn.params, error) ||
+      !write_params(w, fn.signature, error) ||
       !write_string_vector(w, fn.locals, error) ||
       !write_u32_vector(w, fn.cell_slots, error) ||
       !write_string_vector(w, fn.free_vars, error)) {
@@ -545,6 +642,9 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
     }
   }
   if (!write_nested_u32_vectors(w, fn.call_args, error) ||
+      !write_call_specs(w, fn.call_specs, error) ||
+      !write_nested_u32_vectors(w, fn.function_defaults, error) ||
+      !write_nested_class_attrs(w, fn.function_annotations, error) ||
       !write_nested_u32_vectors(w, fn.tuple_items, error) ||
       !write_nested_u32_vectors(w, fn.list_items, error) ||
       !write_nested_u32_vectors(w, fn.set_items, error) ||
@@ -569,8 +669,11 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
 }
 
 bool read_function(Reader& r, Function& fn, std::string& error) {
+  uint8_t is_generator = 0;
   if (!r.string(fn.name) ||
+      !r.u8(is_generator) ||
       !read_string_vector(r, fn.params, error) ||
+      !read_params(r, fn.signature, error) ||
       !read_string_vector(r, fn.locals, error) ||
       !read_u32_vector(r, fn.cell_slots, error) ||
       !read_string_vector(r, fn.free_vars, error) ||
@@ -579,6 +682,7 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       !read_string_vector(r, fn.names, error)) {
     return false;
   }
+  fn.is_generator = is_generator != 0;
   uint32_t raw_count = 0;
   if (!r.u32(raw_count) || !check_count(raw_count, error)) {
     return false;
@@ -590,6 +694,9 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
     }
   }
   if (!read_nested_u32_vectors(r, fn.call_args, error) ||
+      !read_call_specs(r, fn.call_specs, error) ||
+      !read_nested_u32_vectors(r, fn.function_defaults, error) ||
+      !read_nested_class_attrs(r, fn.function_annotations, error) ||
       !read_nested_u32_vectors(r, fn.tuple_items, error) ||
       !read_nested_u32_vectors(r, fn.list_items, error) ||
       !read_nested_u32_vectors(r, fn.set_items, error) ||

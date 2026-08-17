@@ -33,7 +33,9 @@ void register_builtin_modules(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_builtins");
   auto builtins = builder.finish();
   copy_builtin(runtime, builtins, "print");
+  copy_builtin(runtime, builtins, "_identity");
   copy_builtin(runtime, builtins, "len");
+  copy_builtin(runtime, builtins, "next");
   copy_builtin(runtime, builtins, "ord");
   copy_builtin(runtime, builtins, "str");
   copy_builtin(runtime, builtins, "range");

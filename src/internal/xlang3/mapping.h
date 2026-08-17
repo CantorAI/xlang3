@@ -54,6 +54,7 @@ bool mapping_truthy(const Value& value);
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
+bool mapping_delete_item(Value& object, const Value& key, std::string& error);
 bool mapping_get_iter(const Value& object, Value& out, std::string& error);
 bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
 bool mapping_len(const Value& value, Value& out, std::string& error);

@@ -16,19 +16,27 @@ limitations under the License.
 
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime) {
-  register_exception_builtins(runtime);
-  register_functional_builtins(runtime);
-  register_io_builtins(runtime);
-  register_sequence_builtins(runtime);
-  register_raw_block_builtins(runtime);
-  register_builtin_modules(runtime);
-  register_math_module(runtime);
-  register_thread_modules(runtime);
-#ifndef XLANG3_EMBEDDED
-  register_task_modules(runtime);
-  register_asyncio_module(runtime);
-#endif
+namespace {
+
+bool builtin_identity(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "_identity expected 1 argument, got " + std::to_string(argc);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+} // namespace
+
+void register_functional_builtins(Runtime& runtime) {
+  runtime.register_native_builtin("_identity", builtin_identity);
 }
 
 } // namespace xlang3

@@ -84,5 +84,47 @@ int main() {
   auto* async_fn = dynamic_cast<xlang3::ast::FunctionDef*>(async_parsed.module.body[0].get());
   xlang3::test::expect_true(result, async_fn != nullptr && async_fn->is_async, "async def should mark FunctionDef");
 
+  auto continued = xlang3::parse_source(
+      "a = 1; b = 2; print(a + b)\n"
+      "c = 1 + \\\n"
+      "    2\n"
+      "d = [\n"
+      "    3,\n"
+      "    4,\n"
+      "]\n");
+  xlang3::test::expect_true(result, continued.errors.empty(), "parser should accept semicolon and continued logical lines");
+  xlang3::test::expect_true(result, continued.module.body.size() == 5, "continued parse should produce expected statements");
+
+  auto statements = xlang3::parse_source(
+      "class Box[T](Base):\n"
+      "    pass\n"
+      "\n"
+      "def choose[T](x):\n"
+      "    if x == 1:\n"
+      "        return 1\n"
+      "    elif x == 2:\n"
+      "        return 2\n"
+      "    try:\n"
+      "        pass\n"
+      "    except Exception as e:\n"
+      "        raise e from None\n"
+      "    else:\n"
+      "        pass\n"
+      "    finally:\n"
+      "        pass\n"
+      "    with (a as x, b as y):\n"
+      "        pass\n"
+      "    match x:\n"
+      "        case 1:\n"
+      "            pass\n"
+      "        case _:\n"
+      "            pass\n"
+      "    return 0\n"
+      "\n"
+      "from . import helper\n"
+      "from ..pkg import name\n"
+      "from import_helper import *\n");
+  xlang3::test::expect_true(result, statements.errors.empty(), "parser should accept Python statement syntax coverage");
+
   return xlang3::test::finish(result);
 }

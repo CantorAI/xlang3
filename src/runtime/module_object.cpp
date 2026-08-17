@@ -116,7 +116,8 @@ NativeModuleBuilder& NativeModuleBuilder::function(
     std::string name,
     NativeFunctionCallback callback,
     NativeFastCallCallback fast_callback,
-    bool fast_releases_vm_lock) {
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback) {
   auto full_name = name_ + "." + name;
   value(
       std::move(name),
@@ -126,7 +127,8 @@ NativeModuleBuilder& NativeModuleBuilder::function(
           nullptr,
           nullptr,
           fast_callback,
-          fast_releases_vm_lock));
+          fast_releases_vm_lock,
+          keyword_callback));
   return *this;
 }
 

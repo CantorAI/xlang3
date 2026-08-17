@@ -251,6 +251,39 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
   return false;
 }
 
+bool object_delete_attr(Value& object, const std::string& name, std::string& error) {
+  if (auto* instance = value_as_instance(object)) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr) {
+      auto slot_it = klass->instance_slot_indices.find(name);
+      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+        value_set_invalid(instance_slot_at(instance, slot_it->second));
+        return true;
+      }
+    }
+    for (auto it = instance->attrs.begin(); it != instance->attrs.end(); ++it) {
+      if (it->first == name) {
+        instance->attrs.erase(it);
+        return true;
+      }
+    }
+    error = "object has no attribute '" + name + "'";
+    return false;
+  }
+  if (auto* klass = value_as_class(object)) {
+    auto it = klass->attrs.find(name);
+    if (it == klass->attrs.end()) {
+      error = "class '" + klass->name + "' has no attribute '" + name + "'";
+      return false;
+    }
+    klass->attrs.erase(it);
+    ++klass->version;
+    return true;
+  }
+  error = "object does not support attribute deletion";
+  return false;
+}
+
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error) {
   if (value_as_class(klass) == nullptr) {
     error = "object is not a class";

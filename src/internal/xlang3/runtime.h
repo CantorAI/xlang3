@@ -77,7 +77,8 @@ public:
       void* user_data = nullptr,
       void (*user_data_cleanup)(void*) = nullptr,
       NativeFastCallCallback fast_callback = nullptr,
-      bool fast_releases_vm_lock = false);
+      bool fast_releases_vm_lock = false,
+      NativeKeywordFunctionCallback keyword_callback = nullptr);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));
@@ -90,6 +91,7 @@ public:
       std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error);
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
+  bool import_star(const std::string& module_name, Value& target_module, std::string& error);
   Vfs& vfs() { return *vfs_; }
   const Vfs& vfs() const { return *vfs_; }
 #if !defined(XLANG3_EMBEDDED)

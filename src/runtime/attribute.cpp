@@ -36,6 +36,15 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
   if (value_as_module(object) != nullptr) {
     return module_get_attr(object, name, out, error);
   }
+  if (auto* function = value_as_function(object)) {
+    if (name == "__annotations__") {
+      if (function->annotations.tag == ValueTag::Invalid) {
+        value_assign_fast(function->annotations, Value::dict({}));
+      }
+      value_assign_fast(out, function->annotations);
+      return true;
+    }
+  }
   if (value_as_class(object) != nullptr || value_as_instance(object) != nullptr) {
     return object_get_attr(object, name, out, error);
   }

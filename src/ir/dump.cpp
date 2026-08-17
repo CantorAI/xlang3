@@ -36,17 +36,24 @@ const char* op_name(Op op) {
     case Op::LoadFreeObject: return "LoadFreeObject";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
+    case Op::DeleteLocal: return "DeleteLocal";
+    case Op::DeleteGlobal: return "DeleteGlobal";
+    case Op::DeleteModuleSlot: return "DeleteModuleSlot";
     case Op::LoadModuleSlot: return "LoadModuleSlot";
     case Op::StoreModuleSlot: return "StoreModuleSlot";
     case Op::ImportModule: return "ImportModule";
     case Op::ImportFrom: return "ImportFrom";
+    case Op::ImportStar: return "ImportStar";
     case Op::RawBlock: return "RawBlock";
     case Op::LoadAttr: return "LoadAttr";
     case Op::StoreAttr: return "StoreAttr";
+    case Op::DeleteAttr: return "DeleteAttr";
     case Op::LoadInstanceSlot: return "LoadInstanceSlot";
     case Op::StoreInstanceSlot: return "StoreInstanceSlot";
     case Op::MakeClass: return "MakeClass";
     case Op::MakeFunction: return "MakeFunction";
+    case Op::SetFunctionAnnotations: return "SetFunctionAnnotations";
+    case Op::SetClassBase: return "SetClassBase";
     case Op::MakeTuple: return "MakeTuple";
     case Op::MakeList: return "MakeList";
     case Op::MakeDict: return "MakeDict";
@@ -54,6 +61,7 @@ const char* op_name(Op op) {
     case Op::ListAppend: return "ListAppend";
     case Op::GetItem: return "GetItem";
     case Op::SetItem: return "SetItem";
+    case Op::DeleteItem: return "DeleteItem";
     case Op::GetIter: return "GetIter";
     case Op::IterNext: return "IterNext";
     case Op::ForRangeConstLocalNext: return "ForRangeConstLocalNext";
@@ -81,8 +89,11 @@ const char* op_name(Op op) {
     case Op::MatchException: return "MatchException";
     case Op::CallModuleMethod: return "CallModuleMethod";
     case Op::CallMethod: return "CallMethod";
+    case Op::CallEx: return "CallEx";
     case Op::Call: return "Call";
     case Op::Await: return "Await";
+    case Op::Yield: return "Yield";
+    case Op::YieldFrom: return "YieldFrom";
     case Op::Pop: return "Pop";
     case Op::Return: return "Return";
   }
@@ -101,6 +112,17 @@ const char* compare_name(CompareOp op) {
   return "Unknown";
 }
 
+const char* param_kind_name(ParamKind kind) {
+  switch (kind) {
+    case ParamKind::PosOnly: return "posonly";
+    case ParamKind::PosOrKeyword: return "poskw";
+    case ParamKind::VarArgs: return "varargs";
+    case ParamKind::KeywordOnly: return "kwonly";
+    case ParamKind::KwArgs: return "kwargs";
+  }
+  return "unknown";
+}
+
 } // namespace
 
 std::string dump_module(const Module& module) {
@@ -114,9 +136,18 @@ std::string dump_module(const Module& module) {
   for (size_t fn_i = 0; fn_i < module.functions.size(); ++fn_i) {
     const auto& fn = module.functions[fn_i];
     os << "function #" << fn_i << " " << fn.name << "\n";
+    os << "  generator: " << (fn.is_generator ? "true" : "false") << "\n";
     os << "  params:";
     for (size_t i = 0; i < fn.params.size(); ++i) {
       os << " %" << i << "=" << fn.params[i];
+    }
+    os << "\n";
+    os << "  signature:";
+    for (size_t i = 0; i < fn.signature.size(); ++i) {
+      const auto& param = fn.signature[i];
+      os << " %" << i << "=" << param.name
+         << "/" << param_kind_name(param.kind)
+         << "/d" << param.default_reg;
     }
     os << "\n";
     os << "  locals:";
@@ -145,6 +176,37 @@ std::string dump_module(const Module& module) {
       os << "  call_args #" << args_i << ":";
       for (auto reg : fn.call_args[args_i]) {
         os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t spec_i = 0; spec_i < fn.call_specs.size(); ++spec_i) {
+      const auto& spec = fn.call_specs[spec_i];
+      os << "  call_spec #" << spec_i << ":";
+      for (auto reg : spec.positional) {
+        os << " r" << reg;
+      }
+      for (const auto& kw : spec.keywords) {
+        os << " " << kw.name << "=r" << kw.value_reg;
+      }
+      if (spec.star_arg != UINT32_MAX) {
+        os << " *r" << spec.star_arg;
+      }
+      if (spec.kw_star_arg != UINT32_MAX) {
+        os << " **r" << spec.kw_star_arg;
+      }
+      os << "\n";
+    }
+    for (size_t defaults_i = 0; defaults_i < fn.function_defaults.size(); ++defaults_i) {
+      os << "  function_defaults #" << defaults_i << ":";
+      for (auto reg : fn.function_defaults[defaults_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t annotations_i = 0; annotations_i < fn.function_annotations.size(); ++annotations_i) {
+      os << "  function_annotations #" << annotations_i << ":";
+      for (const auto& annotation : fn.function_annotations[annotations_i]) {
+        os << " " << annotation.first << "=r" << annotation.second;
       }
       os << "\n";
     }

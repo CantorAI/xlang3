@@ -53,7 +53,16 @@ RuntimeResult Interpreter::run_module(
     }
   }
   static const std::vector<Value> empty_closure;
-  return run_function(module, module.entry, {}, empty_closure, std::move(globals_module), std::move(module_owner));
+  static const std::vector<Value> empty_defaults;
+  return run_function(
+      module,
+      module.entry,
+      {},
+      empty_closure,
+      empty_defaults,
+      std::move(globals_module),
+      std::move(module_owner),
+      nullptr);
 }
 
 RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgsView args) {
@@ -67,8 +76,27 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
       function->function_id,
       args,
       function->closure,
+      function->defaults,
       function->globals_module,
-      function->module);
+      function->module,
+      nullptr);
+}
+
+RuntimeResult Interpreter::collect_generator_values(FunctionObject* function, CallArgsView args, std::vector<Value>& yielded) {
+  RuntimeResult result;
+  if (function == nullptr || function->module == nullptr) {
+    result.errors.push_back("function has no module");
+    return result;
+  }
+  return run_function(
+      *function->module,
+      function->function_id,
+      args,
+      function->closure,
+      function->defaults,
+      function->globals_module,
+      function->module,
+      &yielded);
 }
 
 } // namespace xlang3

@@ -56,6 +56,7 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "RuntimeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "AssertionError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
 }
 

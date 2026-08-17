@@ -35,9 +35,20 @@ struct CallArgsView {
   uint32_t leading_count = 0;
   const Value* registers = nullptr;
   const std::vector<uint32_t>* register_args = nullptr;
+  const std::vector<ir::CallKeywordArg>* keyword_args = nullptr;
+  uint32_t star_arg = UINT32_MAX;
+  uint32_t kw_star_arg = UINT32_MAX;
 
   XLANG3_HOT_INLINE size_t size() const {
     return static_cast<size_t>(leading_count) + (register_args == nullptr ? 0 : register_args->size());
+  }
+
+  XLANG3_HOT_INLINE bool has_keywords() const {
+    return keyword_args != nullptr && !keyword_args->empty();
+  }
+
+  XLANG3_HOT_INLINE bool has_expansion() const {
+    return star_arg != UINT32_MAX || kw_star_arg != UINT32_MAX;
   }
 
   XLANG3_HOT_INLINE const Value& get(size_t index) const {
@@ -59,6 +70,7 @@ public:
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
   RuntimeResult run_function_value(FunctionObject* function, CallArgsView args);
+  RuntimeResult collect_generator_values(FunctionObject* function, CallArgsView args, std::vector<Value>& yielded);
 
 private:
   RuntimeResult run_function(
@@ -66,8 +78,10 @@ private:
       uint32_t function_id,
       CallArgsView args,
       const std::vector<Value>& closure,
+      const std::vector<Value>& defaults,
       Value globals_module,
-      std::shared_ptr<const ir::Module> module_owner);
+      std::shared_ptr<const ir::Module> module_owner,
+      std::vector<Value>* yielded);
 
   Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;

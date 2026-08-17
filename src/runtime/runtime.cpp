@@ -166,7 +166,8 @@ Value Runtime::make_native_function(
     void* user_data,
     void (*user_data_cleanup)(void*),
     NativeFastCallCallback fast_callback,
-    bool fast_releases_vm_lock) {
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback) {
   const uint32_t native_id = next_native_id_++;
   return Value::native_function(
       native_id,
@@ -175,7 +176,8 @@ Value Runtime::make_native_function(
       user_data,
       user_data_cleanup,
       fast_callback,
-      fast_releases_vm_lock);
+      fast_releases_vm_lock,
+      keyword_callback);
 }
 
 void Runtime::register_module(std::string name, Value module) {
@@ -237,8 +239,12 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
 }
 
 bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error) {
+  std::string resolved_module = module_name;
+  while (!resolved_module.empty() && resolved_module.front() == '.') {
+    resolved_module.erase(resolved_module.begin());
+  }
   Value module;
-  if (!import_module(module_name, module, error)) {
+  if (!import_module(resolved_module, module, error)) {
     return false;
   }
   if (module_get_attr(module, attr_name, out, error)) {
@@ -246,10 +252,42 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   }
 
   std::string submodule_error;
-  if (import_module(module_name + "." + attr_name, out, submodule_error)) {
+  if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name, out, submodule_error)) {
     return true;
   }
   return false;
+}
+
+bool Runtime::import_star(const std::string& module_name, Value& target_module, std::string& error) {
+  std::string resolved_module = module_name;
+  while (!resolved_module.empty() && resolved_module.front() == '.') {
+    resolved_module.erase(resolved_module.begin());
+  }
+  Value module;
+  if (!import_module(resolved_module, module, error)) {
+    return false;
+  }
+  auto* source = value_as_module(module);
+  if (source == nullptr) {
+    error = "star import source is not a module";
+    return false;
+  }
+  auto* target = value_as_module(target_module);
+  if (target == nullptr) {
+    error = "star import target is not a module";
+    return false;
+  }
+  for (const auto& item : source->name_to_slot) {
+    const std::string& name = item.first;
+    const uint32_t slot = item.second;
+    if (name.empty() || name[0] == '_' || slot >= source->slots.size()) {
+      continue;
+    }
+    if (!module_set_attr(target_module, name, source->slots[slot], error)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 #if !defined(XLANG3_EMBEDDED)

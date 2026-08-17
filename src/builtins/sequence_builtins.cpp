@@ -93,6 +93,32 @@ bool builtin_len(
   return true;
 }
 
+bool builtin_next(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "next() expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value iterator = args[0];
+  bool done = false;
+  if (!sequence_iter_next(iterator, done, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (done) {
+    error = "StopIteration";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  return true;
+}
+
 bool builtin_ord(
     Runtime& runtime,
     const Value* args,
@@ -142,6 +168,7 @@ bool builtin_str(
 void register_sequence_builtins(Runtime& runtime) {
   runtime.register_native_builtin("range", builtin_range);
   runtime.register_native_builtin("len", builtin_len);
+  runtime.register_native_builtin("next", builtin_next);
   runtime.register_native_builtin("ord", builtin_ord);
   runtime.register_native_builtin("str", builtin_str);
 }

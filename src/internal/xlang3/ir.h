@@ -23,6 +23,32 @@ limitations under the License.
 
 namespace xlang3::ir {
 
+enum class ParamKind : uint8_t {
+  PosOnly,
+  PosOrKeyword,
+  VarArgs,
+  KeywordOnly,
+  KwArgs,
+};
+
+struct Param {
+  std::string name;
+  ParamKind kind = ParamKind::PosOrKeyword;
+  uint32_t default_reg = UINT32_MAX;
+};
+
+struct CallKeywordArg {
+  std::string name;
+  uint32_t value_reg = 0;
+};
+
+struct CallSpec {
+  std::vector<uint32_t> positional;
+  std::vector<CallKeywordArg> keywords;
+  uint32_t star_arg = UINT32_MAX;
+  uint32_t kw_star_arg = UINT32_MAX;
+};
+
 enum class Op : uint16_t {
   LoadConst,
   LoadLocal,
@@ -38,17 +64,24 @@ enum class Op : uint16_t {
   LoadFreeObject,
   LoadGlobal,
   StoreGlobal,
+  DeleteLocal,
+  DeleteGlobal,
+  DeleteModuleSlot,
   LoadModuleSlot,
   StoreModuleSlot,
   ImportModule,
   ImportFrom,
+  ImportStar,
   RawBlock,
   LoadAttr,
   StoreAttr,
+  DeleteAttr,
   LoadInstanceSlot,
   StoreInstanceSlot,
   MakeClass,
   MakeFunction,
+  SetFunctionAnnotations,
+  SetClassBase,
   MakeTuple,
   MakeList,
   MakeDict,
@@ -56,6 +89,7 @@ enum class Op : uint16_t {
   ListAppend,
   GetItem,
   SetItem,
+  DeleteItem,
   GetIter,
   IterNext,
   ForRangeConstLocalNext,
@@ -83,8 +117,11 @@ enum class Op : uint16_t {
   MatchException,
   CallModuleMethod,
   CallMethod,
+  CallEx,
   Call,
   Await,
+  Yield,
+  YieldFrom,
   Pop,
   Return,
 };
@@ -108,7 +145,9 @@ struct Instr {
 
 struct Function {
   std::string name;
+  bool is_generator = false;
   std::vector<std::string> params;
+  std::vector<Param> signature;
   std::vector<std::string> locals;
   std::vector<uint32_t> cell_slots;
   std::vector<std::string> free_vars;
@@ -122,6 +161,9 @@ struct Function {
   };
   std::vector<RawBlock> raw_blocks;
   std::vector<std::vector<uint32_t>> call_args;
+  std::vector<CallSpec> call_specs;
+  std::vector<std::vector<uint32_t>> function_defaults;
+  std::vector<std::vector<std::pair<std::string, uint32_t>>> function_annotations;
   std::vector<std::vector<uint32_t>> tuple_items;
   std::vector<std::vector<uint32_t>> list_items;
   std::vector<std::vector<uint32_t>> set_items;

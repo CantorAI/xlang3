@@ -21,6 +21,8 @@ limitations under the License.
 #include "runtime_lock.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/generator.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -42,15 +44,187 @@ RuntimeResult Interpreter::run_function(
     uint32_t function_id,
     CallArgsView args,
     const std::vector<Value>& fn_obj_closure,
+    const std::vector<Value>& fn_obj_defaults,
     Value globals_module,
-    std::shared_ptr<const ir::Module> module_owner) {
+    std::shared_ptr<const ir::Module> module_owner,
+    std::vector<Value>* yielded) {
   RuntimeResult result;
   if (function_id >= module.functions.size()) {
     result.errors.push_back("invalid function id");
     return result;
   }
   const auto& fn = module.functions[function_id];
-  if (args.size() != fn.params.size()) {
+  auto simple_signature = [](const ir::Function& candidate) -> bool {
+    if (candidate.signature.empty()) {
+      return true;
+    }
+    for (const auto& param : candidate.signature) {
+      if (param.kind != ir::ParamKind::PosOrKeyword || param.default_reg != UINT32_MAX) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  auto bind_args = [&](const ir::Function& target_fn,
+                       CallArgsView values,
+                       const std::vector<Value>& defaults,
+                       std::vector<Value>& bound) -> bool {
+    std::vector<ir::Param> synthetic_signature;
+    const std::vector<ir::Param>* signature_ptr = &target_fn.signature;
+    if (target_fn.signature.empty()) {
+      synthetic_signature.reserve(target_fn.params.size());
+      for (const auto& name : target_fn.params) {
+        synthetic_signature.push_back(ir::Param{name, ir::ParamKind::PosOrKeyword, UINT32_MAX});
+      }
+      signature_ptr = &synthetic_signature;
+    }
+    const auto& signature = *signature_ptr;
+    if (target_fn.signature.empty() && !values.has_keywords() && !values.has_expansion()) {
+      if (values.size() != target_fn.params.size()) {
+        result.errors.push_back("function '" + target_fn.name + "' expected " + std::to_string(target_fn.params.size()) +
+                                " arguments, got " + std::to_string(values.size()));
+        return false;
+      }
+      return true;
+    }
+
+    bound.assign(target_fn.params.size(), Value::invalid());
+    std::vector<Value> positional;
+    positional.reserve(values.size());
+    for (size_t i = 0; i < values.size(); ++i) {
+      positional.push_back(values.get(i));
+    }
+    if (values.star_arg != UINT32_MAX) {
+      const Value& star = values.registers[values.star_arg];
+      if (auto* tuple = value_as_tuple(star)) {
+        for (const auto& item : tuple->items) positional.push_back(item);
+      } else if (auto* list = value_as_list(star)) {
+        for (const auto& item : list->items) positional.push_back(item);
+      } else {
+        result.errors.push_back("function '" + target_fn.name + "' * argument must be tuple or list");
+        return false;
+      }
+    }
+
+    int32_t varargs_index = -1;
+    int32_t kwargs_index = -1;
+    size_t next_positional_param = 0;
+    size_t positional_index = 0;
+    std::vector<Value> extra_positional;
+    std::vector<std::pair<Value, Value>> extra_keywords;
+    for (size_t i = 0; i < signature.size(); ++i) {
+      if (signature[i].kind == ir::ParamKind::VarArgs) {
+        varargs_index = static_cast<int32_t>(i);
+      } else if (signature[i].kind == ir::ParamKind::KwArgs) {
+        kwargs_index = static_cast<int32_t>(i);
+      }
+    }
+    while (positional_index < positional.size()) {
+      while (next_positional_param < signature.size() &&
+             (signature[next_positional_param].kind == ir::ParamKind::KeywordOnly ||
+              signature[next_positional_param].kind == ir::ParamKind::VarArgs ||
+              signature[next_positional_param].kind == ir::ParamKind::KwArgs)) {
+        ++next_positional_param;
+      }
+      if (next_positional_param < signature.size()) {
+        value_assign_fast(bound[next_positional_param], positional[positional_index++]);
+        ++next_positional_param;
+      } else if (varargs_index >= 0) {
+        extra_positional.push_back(positional[positional_index++]);
+      } else {
+        result.errors.push_back("function '" + target_fn.name + "' got too many positional arguments");
+        return false;
+      }
+    }
+    if (varargs_index >= 0) {
+      bound[static_cast<size_t>(varargs_index)] = Value::tuple(std::move(extra_positional));
+    }
+
+    auto bind_keyword = [&](const std::string& name, const Value& value) -> bool {
+      for (size_t i = 0; i < signature.size(); ++i) {
+        if (signature[i].name != name) continue;
+        if (signature[i].kind == ir::ParamKind::PosOnly) {
+          result.errors.push_back("function '" + target_fn.name + "' got positional-only argument as keyword");
+          return false;
+        }
+        if (bound[i].tag != ValueTag::Invalid) {
+          result.errors.push_back("function '" + target_fn.name + "' got multiple values for argument '" + name + "'");
+          return false;
+        }
+        value_assign_fast(bound[i], value);
+        return true;
+      }
+      if (kwargs_index >= 0) {
+        extra_keywords.push_back(std::make_pair(Value::string(name), value));
+        return true;
+      }
+      result.errors.push_back("function '" + target_fn.name + "' got unexpected keyword argument '" + name + "'");
+      return false;
+    };
+    if (values.keyword_args != nullptr) {
+      for (const auto& keyword : *values.keyword_args) {
+        if (!bind_keyword(keyword.name, values.registers[keyword.value_reg])) {
+          return false;
+        }
+      }
+    }
+    if (values.kw_star_arg != UINT32_MAX) {
+      auto* dict = value_as_dict(values.registers[values.kw_star_arg]);
+      if (dict == nullptr) {
+        result.errors.push_back("function '" + target_fn.name + "' ** argument must be dict");
+        return false;
+      }
+      for (const auto& entry : dict->entries) {
+        auto* key = value_as_string(entry.first);
+        if (key == nullptr) {
+          result.errors.push_back("function '" + target_fn.name + "' ** argument keys must be strings");
+          return false;
+        }
+        if (!bind_keyword(key->value, entry.second)) {
+          return false;
+        }
+      }
+    }
+    if (kwargs_index >= 0) {
+      bound[static_cast<size_t>(kwargs_index)] = Value::dict(std::move(extra_keywords));
+    }
+    for (size_t i = 0; i < signature.size(); ++i) {
+      if (bound[i].tag != ValueTag::Invalid) {
+        continue;
+      }
+      if (signature[i].default_reg != UINT32_MAX && signature[i].default_reg < defaults.size()) {
+        value_assign_fast(bound[i], defaults[signature[i].default_reg]);
+        continue;
+      }
+      if (signature[i].kind == ir::ParamKind::VarArgs) {
+        bound[i] = Value::tuple({});
+        continue;
+      }
+      if (signature[i].kind == ir::ParamKind::KwArgs) {
+        bound[i] = Value::dict({});
+        continue;
+      }
+      result.errors.push_back("function '" + target_fn.name + "' missing required argument '" + signature[i].name + "'");
+      return false;
+    }
+    return true;
+  };
+
+  std::vector<Value> entry_bound_args;
+  CallArgsView entry_args = args;
+  if (!simple_signature(fn) || args.has_keywords() || args.has_expansion()) {
+    if (!bind_args(fn, args, fn_obj_defaults, entry_bound_args)) {
+      return result;
+    }
+    entry_args.leading = entry_bound_args.data();
+    entry_args.leading_count = static_cast<uint32_t>(entry_bound_args.size());
+    entry_args.registers = nullptr;
+    entry_args.register_args = nullptr;
+    entry_args.keyword_args = nullptr;
+    entry_args.star_arg = UINT32_MAX;
+    entry_args.kw_star_arg = UINT32_MAX;
+  } else if (args.size() != fn.params.size()) {
     result.errors.push_back("function '" + fn.name + "' expected " + std::to_string(fn.params.size()) +
                             " arguments, got " + std::to_string(args.size()));
     return result;
@@ -59,13 +233,60 @@ RuntimeResult Interpreter::run_function(
   std::vector<VMFrame> frames;
   frames.reserve(64);
   frames.emplace_back(
-      module, function_id, args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+      module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
   size_t frame_count = 1;
+
+  auto make_generator_if_needed = [&](FunctionObject* fn_obj, CallArgsView call_args, Value& out, bool& made) -> bool {
+    made = false;
+    if (fn_obj == nullptr) {
+      return true;
+    }
+    const ir::Module* call_module = &module;
+    if (fn_obj->module != nullptr) {
+      call_module = fn_obj->module.get();
+    }
+    if (fn_obj->function_id >= call_module->functions.size()) {
+      result.errors.push_back("invalid function id");
+      return false;
+    }
+    const auto& call_fn = call_module->functions[fn_obj->function_id];
+    if (!call_fn.is_generator) {
+      return true;
+    }
+
+    std::vector<Value> args_for_generator;
+    if (!simple_signature(call_fn) || call_args.has_keywords() || call_args.has_expansion()) {
+      if (!bind_args(call_fn, call_args, fn_obj->defaults, args_for_generator)) {
+        return false;
+      }
+    } else {
+      if (call_args.size() != call_fn.params.size()) {
+        result.errors.push_back("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
+                                " arguments, got " + std::to_string(call_args.size()));
+        return false;
+      }
+      args_for_generator.reserve(call_args.size());
+      for (size_t i = 0; i < call_args.size(); ++i) {
+        args_for_generator.push_back(call_args.get(i));
+      }
+    }
+
+    Value function_value = Value::function(
+        fn_obj->function_id,
+        fn_obj->closure,
+        fn_obj->globals_module,
+        fn_obj->module != nullptr ? fn_obj->module : module_owner,
+        fn_obj->defaults);
+    out = Value::generator(&runtime_, std::move(function_value), std::move(args_for_generator));
+    made = true;
+    return true;
+  };
 
   auto push_frame = [&](const ir::Module& call_module,
                         uint32_t call_function_id,
                         CallArgsView call_args,
                         const std::vector<Value>& closure,
+                        const std::vector<Value>& defaults,
                         Value call_globals_module,
                         std::shared_ptr<const ir::Module> call_module_owner,
                         uint32_t return_dst,
@@ -76,17 +297,30 @@ RuntimeResult Interpreter::run_function(
       return false;
     }
     const auto& call_fn = call_module.functions[call_function_id];
-    if (call_args.size() != call_fn.params.size()) {
+    std::vector<Value> bound_args;
+    CallArgsView frame_args = call_args;
+    if (!simple_signature(call_fn) || call_args.has_keywords() || call_args.has_expansion()) {
+      if (!bind_args(call_fn, call_args, defaults, bound_args)) {
+        return false;
+      }
+      frame_args.leading = bound_args.data();
+      frame_args.leading_count = static_cast<uint32_t>(bound_args.size());
+      frame_args.registers = nullptr;
+      frame_args.register_args = nullptr;
+      frame_args.keyword_args = nullptr;
+      frame_args.star_arg = UINT32_MAX;
+      frame_args.kw_star_arg = UINT32_MAX;
+    } else if (call_args.size() != call_fn.params.size()) {
       result.errors.push_back("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
                               " arguments, got " + std::to_string(call_args.size()));
       return false;
     }
     if (frame_count < frames.size()) {
-      frames[frame_count].reset(call_module, call_function_id, call_args, closure, std::move(call_globals_module),
+      frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                                 std::move(call_module_owner), return_dst, true, return_mode,
                                 std::move(continuation_value));
     } else {
-      frames.emplace_back(call_module, call_function_id, call_args, closure, std::move(call_globals_module),
+      frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                           std::move(call_module_owner), return_dst, true, return_mode,
                           std::move(continuation_value));
     }
@@ -236,6 +470,10 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::LoadLocal:
         if (in.a >= locals.size()) {
           result.errors.push_back("invalid local slot");
+          return result;
+        }
+        if (locals[in.a].tag == ValueTag::Invalid) {
+          if (raise_runtime_error("local variable is not defined")) continue;
           return result;
         }
         value_assign_fast(regs[in.dst], locals[in.a]);
@@ -484,6 +722,35 @@ RuntimeResult Interpreter::run_function(
           global_cache_kind[in.dst] = 2;
         }
         break;
+      case ir::Op::DeleteLocal:
+        if (in.dst >= locals.size()) {
+          result.errors.push_back("invalid local delete");
+          return result;
+        }
+        value_set_invalid(locals[in.dst]);
+        break;
+      case ir::Op::DeleteGlobal:
+        if (in.dst >= fn.names.size()) {
+          result.errors.push_back("invalid global delete");
+          return result;
+        }
+        globals_.erase(fn.names[in.dst]);
+        ++globals_version_;
+        break;
+      case ir::Op::DeleteModuleSlot: {
+        if (in.dst >= module.global_slots.size()) {
+          result.errors.push_back("invalid module slot delete");
+          return result;
+        }
+        auto* globals_module_obj = value_as_module(globals_module);
+        if (globals_module_obj == nullptr || in.dst >= globals_module_obj->slots.size()) {
+          if (raise_runtime_error("module slot is not bound")) continue;
+          return result;
+        }
+        value_set_invalid(globals_module_obj->slots[in.dst]);
+        ++globals_module_obj->version;
+        break;
+      }
       case ir::Op::ImportModule: {
         if (in.a >= fn.names.size()) {
           result.errors.push_back("invalid module name");
@@ -503,6 +770,18 @@ RuntimeResult Interpreter::run_function(
         }
         std::string error;
         if (!runtime_.import_from(fn.names[in.a], fn.names[in.b], regs[in.dst], error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
+        break;
+      }
+      case ir::Op::ImportStar: {
+        if (in.dst >= fn.names.size()) {
+          result.errors.push_back("invalid star import module name");
+          return result;
+        }
+        std::string error;
+        if (!runtime_.import_star(fn.names[in.dst], globals_module, error)) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
@@ -591,6 +870,23 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::DeleteAttr: {
+        if (in.dst >= regs.size() || in.a >= fn.names.size()) {
+          result.errors.push_back("invalid attr delete");
+          return result;
+        }
+        std::string error;
+        if (value_as_module(regs[in.dst]) != nullptr) {
+          if (!module_set_attr(regs[in.dst], fn.names[in.a], Value::invalid(), error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+        } else if (!object_delete_attr(regs[in.dst], fn.names[in.a], error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
+        break;
+      }
       case ir::Op::LoadInstanceSlot: {
         auto* instance = value_as_instance(regs[in.a]);
         if (instance == nullptr || in.b >= instance_slot_count(instance)) {
@@ -646,7 +942,52 @@ RuntimeResult Interpreter::run_function(
           }
           closure.push_back(regs[reg]);
         }
-        regs[in.dst] = Value::function(in.a, std::move(closure), globals_module, module_owner);
+        std::vector<Value> defaults;
+        if (in.c != UINT32_MAX) {
+          if (in.c >= fn.function_defaults.size()) {
+            result.errors.push_back("invalid function defaults list");
+            return result;
+          }
+          defaults.reserve(fn.function_defaults[in.c].size());
+          for (const auto reg : fn.function_defaults[in.c]) {
+            if (reg >= regs.size()) {
+              result.errors.push_back("invalid default register");
+              return result;
+            }
+            defaults.push_back(regs[reg]);
+          }
+        }
+        regs[in.dst] = Value::function(in.a, std::move(closure), globals_module, module_owner, std::move(defaults));
+        break;
+      }
+      case ir::Op::SetFunctionAnnotations: {
+        if (in.a >= fn.function_annotations.size()) {
+          result.errors.push_back("invalid function annotations list");
+          return result;
+        }
+        auto* function = value_as_function(regs[in.dst]);
+        if (function == nullptr) {
+          result.errors.push_back("invalid function annotations target");
+          return result;
+        }
+        std::vector<std::pair<Value, Value>> entries;
+        entries.reserve(fn.function_annotations[in.a].size());
+        for (const auto& annotation : fn.function_annotations[in.a]) {
+          if (annotation.second >= regs.size()) {
+            result.errors.push_back("invalid annotation register");
+            return result;
+          }
+          entries.push_back(std::make_pair(Value::string(annotation.first), regs[annotation.second]));
+        }
+        value_assign_fast(function->annotations, Value::dict(std::move(entries)));
+        break;
+      }
+      case ir::Op::SetClassBase: {
+        std::string error;
+        if (!class_set_base(regs[in.dst], regs[in.a], error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
         break;
       }
       case ir::Op::MakeTuple: {
@@ -736,6 +1077,14 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::SetItem: {
         std::string error;
         if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+          if (raise_runtime_error(error)) continue;
+          return result;
+        }
+        break;
+      }
+      case ir::Op::DeleteItem: {
+        std::string error;
+        if (!sequence_delete_item(regs[in.dst], regs[in.a], error)) {
           if (raise_runtime_error(error)) continue;
           return result;
         }
@@ -942,7 +1291,7 @@ RuntimeResult Interpreter::run_function(
         continue;
       case ir::Op::Reraise:
         if (current_exception.tag == ValueTag::Invalid) {
-          result.errors.push_back("invalid reraised exception");
+          if (raise_runtime_error("No active exception to reraise")) continue;
           return result;
         }
         if (!raise_exception_value(current_exception)) return result;
@@ -1136,6 +1485,251 @@ RuntimeResult Interpreter::run_function(
         }
         break;
       }
+      case ir::Op::CallEx: {
+        if (in.a >= regs.size() || in.b >= fn.call_specs.size()) {
+          result.errors.push_back("invalid extended call");
+          return result;
+        }
+        const auto& spec = fn.call_specs[in.b];
+        CallArgsView call_args;
+        call_args.registers = regs.data();
+        call_args.register_args = &spec.positional;
+        call_args.keyword_args = &spec.keywords;
+        call_args.star_arg = spec.star_arg;
+        call_args.kw_star_arg = spec.kw_star_arg;
+        const auto& callee = regs[in.a];
+        bool pushed_frame = false;
+
+        auto materialize_native_args = [&](CallArgsView values) -> const Value* {
+          native_call_args.clear();
+          native_call_args.reserve(values.size());
+          for (size_t i = 0; i < values.size(); ++i) {
+            native_call_args.push_back(values.get(i));
+          }
+          return native_call_args.data();
+        };
+
+        std::vector<NativeKeywordArg> native_keyword_args;
+        auto materialize_native_call_ex =
+            [&](CallArgsView values, bool& has_keywords, std::string& error) -> const Value* {
+          native_call_args.clear();
+          native_keyword_args.clear();
+          native_call_args.reserve(values.size());
+          for (size_t i = 0; i < values.size(); ++i) {
+            native_call_args.push_back(values.get(i));
+          }
+          if (values.star_arg != UINT32_MAX) {
+            const Value& star = values.registers[values.star_arg];
+            if (auto* tuple = value_as_tuple(star)) {
+              for (const auto& item : tuple->items) native_call_args.push_back(item);
+            } else if (auto* list = value_as_list(star)) {
+              for (const auto& item : list->items) native_call_args.push_back(item);
+            } else {
+              error = "* argument must be tuple or list";
+              return nullptr;
+            }
+          }
+          auto add_keyword = [&](const char* name, const Value* value) -> bool {
+            for (const auto& existing : native_keyword_args) {
+              if (std::string(existing.name) == name) {
+                error = std::string("got multiple values for keyword argument '") + name + "'";
+                return false;
+              }
+            }
+            native_keyword_args.push_back(NativeKeywordArg{name, value});
+            return true;
+          };
+          if (values.keyword_args != nullptr) {
+            for (const auto& keyword : *values.keyword_args) {
+              if (!add_keyword(keyword.name.c_str(), &values.registers[keyword.value_reg])) {
+                return nullptr;
+              }
+            }
+          }
+          if (values.kw_star_arg != UINT32_MAX) {
+            auto* dict = value_as_dict(values.registers[values.kw_star_arg]);
+            if (dict == nullptr) {
+              error = "** argument must be dict";
+              return nullptr;
+            }
+            for (const auto& entry : dict->entries) {
+              auto* key = value_as_string(entry.first);
+              if (key == nullptr) {
+                error = "** argument keys must be strings";
+                return nullptr;
+              }
+              if (!add_keyword(key->value.c_str(), &entry.second)) {
+                return nullptr;
+              }
+            }
+          }
+          has_keywords = !native_keyword_args.empty();
+          return native_call_args.data();
+        };
+
+        auto call_native_function_ex = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
+          std::string error;
+          Value native_result;
+          bool has_materialized_keywords = false;
+          const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
+          const bool use_fast = native->fast_callback != nullptr && !needs_materialized_ex;
+          const Value* native_args = nullptr;
+          if (needs_materialized_ex) {
+            native_args = materialize_native_call_ex(values, has_materialized_keywords, error);
+            if (native_args == nullptr && !error.empty()) {
+              if (raise_runtime_error(error)) return false;
+              return false;
+            }
+            if (has_materialized_keywords && native->keyword_callback == nullptr) {
+              if (raise_runtime_error("native function does not accept keyword arguments")) return false;
+              return false;
+            }
+          } else if (!use_fast) {
+            native_args = materialize_native_args(values);
+          }
+          bool ok = false;
+          if (use_fast && !native->fast_releases_vm_lock) {
+            ok = native->fast_callback(
+                runtime_,
+                values.leading,
+                values.leading_count,
+                values.registers,
+                values.register_args == nullptr ? nullptr : values.register_args->data(),
+                values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                native_result,
+                error,
+                native->user_data);
+          } else {
+            execution_lock.unlock();
+            if (use_fast) {
+              ok = native->fast_callback(
+                  runtime_,
+                  values.leading,
+                  values.leading_count,
+                  values.registers,
+                  values.register_args == nullptr ? nullptr : values.register_args->data(),
+                  values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                  native_result,
+                  error,
+                  native->user_data);
+            } else if (has_materialized_keywords) {
+              ok = native->keyword_callback != nullptr &&
+                   native->keyword_callback(
+                       runtime_,
+                       native_args,
+                       static_cast<uint32_t>(native_call_args.size()),
+                       native_keyword_args.data(),
+                       static_cast<uint32_t>(native_keyword_args.size()),
+                       native_result,
+                       error,
+                       native->user_data);
+            } else {
+              ok = native->callback != nullptr &&
+                   native->callback(
+                       runtime_,
+                       native_args,
+                       static_cast<uint32_t>(needs_materialized_ex ? native_call_args.size() : values.size()),
+                       native_result,
+                       error,
+                       native->user_data);
+            }
+            execution_lock.lock();
+          }
+          if (!ok) {
+            Value pending;
+            if (runtime_.take_pending_exception(pending)) {
+              if (raise_exception_value(std::move(pending))) return false;
+              return false;
+            }
+            if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
+            return false;
+          }
+          out = std::move(native_result);
+          return true;
+        };
+
+        auto call_user_function_ex = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
+          bool made_generator = false;
+          if (!make_generator_if_needed(fn_obj, values, out, made_generator)) {
+            return false;
+          }
+          if (made_generator) {
+            return true;
+          }
+          const ir::Module* call_module = &module;
+          auto call_module_owner = module_owner;
+          if (fn_obj->module != nullptr) {
+            call_module = fn_obj->module.get();
+            call_module_owner = fn_obj->module;
+          }
+          ++ip;
+          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->defaults,
+                          fn_obj->globals_module, std::move(call_module_owner), in.dst)) {
+            return false;
+          }
+          pushed_frame = true;
+          return true;
+        };
+
+        auto call_callable_ex = [&](const Value& function_value, CallArgsView values, Value& out) -> bool {
+          if (auto* native = value_as_native_function(function_value)) {
+            return call_native_function_ex(native, values, out);
+          }
+          if (auto* fn_obj = value_as_function(function_value)) {
+            return call_user_function_ex(fn_obj, values, out);
+          }
+          if (raise_runtime_error("object is not callable")) return false;
+          return false;
+        };
+
+        if (auto* bound = value_as_bound_method(callee)) {
+          CallArgsView bound_args = call_args;
+          bound_args.leading = &bound->self;
+          bound_args.leading_count = 1;
+          if (!call_callable_ex(bound->function, bound_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+          if (pushed_frame) goto switch_frame;
+        } else if (auto* fn_obj = value_as_function(callee)) {
+          if (!call_user_function_ex(fn_obj, call_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+          if (pushed_frame) goto switch_frame;
+        } else if (auto* native = value_as_native_function(callee)) {
+          if (!call_native_function_ex(native, call_args, regs[in.dst])) {
+            if (!result.errors.empty()) return result;
+            continue;
+          }
+        } else if (auto* klass = value_as_class(callee)) {
+          (void)klass;
+          Value instance = Value::instance(callee);
+          CallArgsView init_args = call_args;
+          init_args.leading = &instance;
+          init_args.leading_count = 1;
+          Value init_value;
+          std::string init_error;
+          if (object_get_attr(callee, "__init__", init_value, init_error)) {
+            if (!call_callable_ex(init_value, init_args, regs[in.dst])) {
+              if (!result.errors.empty()) return result;
+              continue;
+            }
+            if (pushed_frame) {
+              frames[frame_count - 1].return_mode = FrameReturnMode::StoreConstructedInstance;
+              frames[frame_count - 1].continuation_value = instance;
+              goto switch_frame;
+            }
+            value_assign_fast(regs[in.dst], instance);
+          } else {
+            value_assign_fast(regs[in.dst], instance);
+          }
+        } else {
+          if (raise_runtime_error("object is not callable")) continue;
+          return result;
+        }
+        break;
+      }
       case ir::Op::CallMethod: {
         if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
           result.errors.push_back("invalid method call");
@@ -1164,7 +1758,13 @@ RuntimeResult Interpreter::run_function(
           return native_call_args.data();
         };
         auto call_user_function = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
-          (void)out;
+          bool made_generator = false;
+          if (!make_generator_if_needed(fn_obj, values, out, made_generator)) {
+            return false;
+          }
+          if (made_generator) {
+            return true;
+          }
           const ir::Module* call_module = &module;
           auto call_module_owner = module_owner;
           if (fn_obj->module != nullptr) {
@@ -1172,7 +1772,7 @@ RuntimeResult Interpreter::run_function(
             call_module_owner = fn_obj->module;
           }
           ++ip;
-          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
+          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                           std::move(call_module_owner), in.dst)) {
             return false;
           }
@@ -1428,7 +2028,7 @@ RuntimeResult Interpreter::run_function(
               Value constructed_instance;
               value_assign_fast(constructed_instance, instance);
               ++ip;
-              if (!push_frame(*call_module, init_fn->function_id, init_args, init_fn->closure, init_fn->globals_module,
+              if (!push_frame(*call_module, init_fn->function_id, init_args, init_fn->closure, init_fn->defaults, init_fn->globals_module,
                               std::move(call_module_owner), in.dst,
                               FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
                 return result;
@@ -1475,7 +2075,13 @@ RuntimeResult Interpreter::run_function(
           return native_call_args.data();
         };
         auto call_user_function = [&](FunctionObject* fn_obj, CallArgsView values, Value& out) -> bool {
-          (void)out;
+          bool made_generator = false;
+          if (!make_generator_if_needed(fn_obj, values, out, made_generator)) {
+            return false;
+          }
+          if (made_generator) {
+            return true;
+          }
           const ir::Module* call_module = &module;
           auto call_module_owner = module_owner;
           if (fn_obj->module != nullptr) {
@@ -1483,7 +2089,7 @@ RuntimeResult Interpreter::run_function(
             call_module_owner = fn_obj->module;
           }
           ++ip;
-          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->globals_module,
+          if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                           std::move(call_module_owner), in.dst)) {
             return false;
           }
@@ -1578,11 +2184,20 @@ RuntimeResult Interpreter::run_function(
               }
               break;
             }
-            if (cache.kind == CallSiteKind::UserConstructor || cache.kind == CallSiteKind::NativeConstructor) {
+            if (cache.kind == CallSiteKind::UserConstructor || cache.kind == CallSiteKind::NativeConstructor ||
+                cache.kind == CallSiteKind::InlineSlotConstructor) {
               auto* cached_class = value_as_class(callee);
               if (cached_class == nullptr || cache.class_version != cached_class->version) {
                 cache.kind = CallSiteKind::Empty;
               } else {
+              if (cache.kind == CallSiteKind::InlineSlotConstructor) {
+                std::string error;
+                if (!execute_slot_constructor(callee, call_args, cache.slot_constructor_args, regs[in.dst], error)) {
+                  if (raise_runtime_error(error)) continue;
+                  return result;
+                }
+                break;
+              }
               Value instance = Value::instance(callee);
               CallArgsView init_args = call_args;
               init_args.leading = &instance;
@@ -1598,7 +2213,7 @@ RuntimeResult Interpreter::run_function(
                 Value constructed_instance;
                 value_assign_fast(constructed_instance, instance);
                 ++ip;
-                if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->globals_module,
+                if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                                 std::move(call_module_owner), in.dst,
                                 FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
                   return result;
@@ -1682,6 +2297,14 @@ RuntimeResult Interpreter::run_function(
           if (!call_site_cache.empty()) {
             auto& cache = call_site_cache[ip];
             if (cache.callee_object == callee.as.obj && cache.class_version == klass->version) {
+              if (cache.kind == CallSiteKind::InlineSlotConstructor) {
+                std::string error;
+                if (!execute_slot_constructor(callee, call_args, cache.slot_constructor_args, regs[in.dst], error)) {
+                  if (raise_runtime_error(error)) continue;
+                  return result;
+                }
+                break;
+              }
               if (cache.kind == CallSiteKind::UserConstructor) {
                 const auto* fn_obj = cache.function;
                 const ir::Module* call_module = &module;
@@ -1693,7 +2316,7 @@ RuntimeResult Interpreter::run_function(
                 Value constructed_instance;
                 value_assign_fast(constructed_instance, instance);
                 ++ip;
-                if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->globals_module,
+                if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                                 std::move(call_module_owner), in.dst,
                                 FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
                   return result;
@@ -1730,6 +2353,25 @@ RuntimeResult Interpreter::run_function(
               }
               value_assign_fast(regs[in.dst], instance);
             } else if (auto* fn_obj = value_as_function(init_value)) {
+              SlotConstructorSpec slot_constructor_spec;
+              if (!call_args.has_keywords() && !call_args.has_expansion() &&
+                  analyze_slot_constructor(module, *fn_obj, slot_constructor_spec)) {
+                if (!call_site_cache.empty()) {
+                  auto& cache = call_site_cache[ip];
+                  cache.callee_object = callee.as.obj;
+                  cache.kind = CallSiteKind::InlineSlotConstructor;
+                  cache.function = fn_obj;
+                  cache.native = nullptr;
+                  cache.class_version = klass->version;
+                  cache.slot_constructor_args = slot_constructor_spec;
+                }
+                std::string error;
+                if (!execute_slot_constructor(callee, call_args, slot_constructor_spec, regs[in.dst], error)) {
+                  if (raise_runtime_error(error)) continue;
+                  return result;
+                }
+                break;
+              }
               if (!call_site_cache.empty()) {
                 auto& cache = call_site_cache[ip];
                 cache.callee_object = callee.as.obj;
@@ -1747,7 +2389,7 @@ RuntimeResult Interpreter::run_function(
               Value constructed_instance;
               value_assign_fast(constructed_instance, instance);
               ++ip;
-              if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->globals_module,
+              if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                               std::move(call_module_owner), in.dst,
                               FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
                 return result;
@@ -1801,6 +2443,38 @@ RuntimeResult Interpreter::run_function(
 #endif
         break;
       }
+      case ir::Op::Yield:
+        if (yielded == nullptr) {
+          if (raise_runtime_error("yield used outside generator collection")) continue;
+          return result;
+        }
+        yielded->push_back(regs[in.a]);
+        break;
+      case ir::Op::YieldFrom:
+        if (yielded == nullptr) {
+          if (raise_runtime_error("yield from used outside generator collection")) continue;
+          return result;
+        } else {
+          Value iterator;
+          std::string error;
+          if (!sequence_get_iter(regs[in.a], iterator, error)) {
+            if (raise_runtime_error(error)) continue;
+            return result;
+          }
+          for (;;) {
+            bool done = false;
+            Value item;
+            if (!sequence_iter_next(iterator, done, item, error)) {
+              if (raise_runtime_error(error)) continue;
+              return result;
+            }
+            if (done) {
+              break;
+            }
+            yielded->push_back(item);
+          }
+        }
+        break;
       case ir::Op::Pop:
         break;
       case ir::Op::Return:

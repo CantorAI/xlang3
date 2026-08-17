@@ -53,6 +53,7 @@ enum class ObjectKind : uint32_t {
   Range,
   RangeIterator,
   SequenceIterator,
+  Generator,
   Module,
   Cell,
   Function,
@@ -76,6 +77,21 @@ using NativeFunctionCallback = bool (*)(
     std::string& error,
     void* user_data);
 
+struct NativeKeywordArg {
+  const char* name = nullptr;
+  const Value* value = nullptr;
+};
+
+using NativeKeywordFunctionCallback = bool (*)(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data);
+
 using NativeFastCallCallback = bool (*)(
     Runtime& runtime,
     const Value* leading,
@@ -92,6 +108,7 @@ struct NativeFunctionObject {
   uint32_t native_id = 0;
   std::string name;
   NativeFunctionCallback callback = nullptr;
+  NativeKeywordFunctionCallback keyword_callback = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
   bool fast_releases_vm_lock = false;
   void* user_data = nullptr;
@@ -133,6 +150,7 @@ struct Value {
   static Value range(int64_t start, int64_t stop, int64_t step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
   static Value sequence_iterator(Value source, uint64_t index);
+  static Value generator(Runtime* runtime, Value function, std::vector<Value> args);
   static Value module(std::string name);
   static Value cell(Value value);
   static Value function(uint32_t function_id, std::vector<Value> closure);
@@ -141,7 +159,8 @@ struct Value {
       uint32_t function_id,
       std::vector<Value> closure,
       Value globals_module,
-      std::shared_ptr<const ir::Module> module);
+      std::shared_ptr<const ir::Module> module,
+      std::vector<Value> defaults = {});
   static Value native_function(
       uint32_t native_id,
       std::string name,
@@ -149,7 +168,8 @@ struct Value {
       void* user_data = nullptr,
       void (*user_data_cleanup)(void*) = nullptr,
       NativeFastCallCallback fast_callback = nullptr,
-      bool fast_releases_vm_lock = false);
+      bool fast_releases_vm_lock = false,
+      NativeKeywordFunctionCallback keyword_callback = nullptr);
   static Value file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable);
   static Value class_object(
       std::string name,
@@ -205,9 +225,25 @@ struct FunctionObject {
   Object header;
   uint32_t function_id = 0;
   std::vector<Value> closure;
+  std::vector<Value> defaults;
+  Value annotations;
   Value globals_module;
   std::shared_ptr<const ir::Module> module;
 };
+
+XLANG3_HOT_INLINE StringObject* value_as_string(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
+    return nullptr;
+  }
+  return reinterpret_cast<StringObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE TupleObject* value_as_tuple(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Tuple) {
+    return nullptr;
+  }
+  return reinterpret_cast<TupleObject*>(value.as.obj);
+}
 
 struct FileObject {
   Object header;

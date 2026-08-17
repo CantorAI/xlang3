@@ -20,6 +20,70 @@ limitations under the License.
 
 namespace xlang3 {
 
+namespace {
+
+std::string_view trim_left_ascii(std::string_view text) {
+  size_t offset = 0;
+  while (offset < text.size() && (text[offset] == ' ' || text[offset] == '\t')) {
+    ++offset;
+  }
+  return text.substr(offset);
+}
+
+bool update_line_join_state(std::string_view line, int& bracket_depth, bool& explicit_continue) {
+  explicit_continue = false;
+  bool in_string = false;
+  char quote = 0;
+  bool escaped = false;
+  size_t last_non_space = std::string_view::npos;
+
+  for (size_t i = 0; i < line.size(); ++i) {
+    const char ch = line[i];
+    if (ch != ' ' && ch != '\t') {
+      last_non_space = i;
+    }
+
+    if (in_string) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch == '\\') {
+        escaped = true;
+      } else if (ch == quote) {
+        in_string = false;
+      }
+      continue;
+    }
+
+    if (ch == '#') {
+      break;
+    }
+    if (ch == '"' || ch == '\'') {
+      in_string = true;
+      quote = ch;
+      continue;
+    }
+    if (ch == '(' || ch == '[' || ch == '{') {
+      ++bracket_depth;
+    } else if ((ch == ')' || ch == ']' || ch == '}') && bracket_depth > 0) {
+      --bracket_depth;
+    }
+  }
+
+  explicit_continue = last_non_space != std::string_view::npos && line[last_non_space] == '\\';
+  return bracket_depth > 0 || explicit_continue;
+}
+
+void remove_trailing_backslash(std::string& line) {
+  while (!line.empty() && (line.back() == ' ' || line.back() == '\t')) {
+    line.pop_back();
+  }
+  if (!line.empty() && line.back() == '\\') {
+    line.pop_back();
+  }
+}
+
+} // namespace
+
 Lexer::Lexer(std::string_view source) : source_(source) {}
 
 void Lexer::emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string) {
@@ -69,7 +133,7 @@ LexResult Lexer::tokenize() {
     const size_t single_triple = line.find("'''", indent);
     const size_t double_triple = line.find("\"\"\"", indent);
     size_t triple_pos = std::string_view::npos;
-      std::string_view opener;
+    std::string_view opener;
     if (single_triple != std::string_view::npos &&
         (double_triple == std::string_view::npos || single_triple < double_triple)) {
       triple_pos = single_triple;
@@ -120,8 +184,32 @@ LexResult Lexer::tokenize() {
       continue;
     }
 
-    tokenize_line(line, line_no, indent);
-    emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
+    std::string logical_line(line);
+    uint32_t logical_end_line = line_no;
+    int bracket_depth = 0;
+    bool explicit_continue = false;
+    bool should_join = update_line_join_state(line, bracket_depth, explicit_continue);
+    while (should_join && line_index + 1 < lines.size()) {
+      if (explicit_continue) {
+        remove_trailing_backslash(logical_line);
+      }
+      const auto next_line = lines[++line_index];
+      logical_end_line = next_line.line;
+      logical_line.push_back(' ');
+      logical_line += std::string(trim_left_ascii(next_line.text));
+      should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
+    }
+
+    if (logical_end_line == line_no) {
+      tokenize_line(line, line_no, indent);
+      emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
+    } else {
+      auto owned = std::make_unique<std::string>(std::move(logical_line));
+      const std::string_view logical_view(*owned);
+      owned_text_.push_back(std::move(owned));
+      tokenize_line(logical_view, line_no, indent);
+      emit(TokenKind::Newline, "", logical_end_line, static_cast<uint32_t>(logical_view.size() + 1));
+    }
   }
   while (indent_stack_.size() > 1) {
     indent_stack_.pop_back();
@@ -155,9 +243,11 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       else if (text == "class") kind = TokenKind::KwClass;
       else if (text == "return") kind = TokenKind::KwReturn;
       else if (text == "if") kind = TokenKind::KwIf;
+      else if (text == "elif") kind = TokenKind::KwElif;
       else if (text == "else") kind = TokenKind::KwElse;
       else if (text == "try") kind = TokenKind::KwTry;
       else if (text == "except") kind = TokenKind::KwExcept;
+      else if (text == "case") kind = TokenKind::KwCase;
       else if (text == "finally") kind = TokenKind::KwFinally;
       else if (text == "raise") kind = TokenKind::KwRaise;
       else if (text == "with") kind = TokenKind::KwWith;
@@ -169,6 +259,12 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       else if (text == "as") kind = TokenKind::KwAs;
       else if (text == "global") kind = TokenKind::KwGlobal;
       else if (text == "nonlocal") kind = TokenKind::KwNonlocal;
+      else if (text == "break") kind = TokenKind::KwBreak;
+      else if (text == "continue") kind = TokenKind::KwContinue;
+      else if (text == "pass") kind = TokenKind::KwPass;
+      else if (text == "del") kind = TokenKind::KwDel;
+      else if (text == "assert") kind = TokenKind::KwAssert;
+      else if (text == "match") kind = TokenKind::KwMatch;
       else if (text == "True") kind = TokenKind::KwTrue;
       else if (text == "False") kind = TokenKind::KwFalse;
       else if (text == "None") kind = TokenKind::KwNone;
@@ -177,6 +273,8 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       else if (text == "not") kind = TokenKind::KwNot;
       else if (text == "async") kind = TokenKind::KwAsync;
       else if (text == "await") kind = TokenKind::KwAwait;
+      else if (text == "lambda") kind = TokenKind::KwLambda;
+      else if (text == "yield") kind = TokenKind::KwYield;
       emit(kind, text, line_no, col);
       continue;
     }
@@ -229,6 +327,8 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
     if (two == "!=") { emit(TokenKind::NotEqual, two, line_no, col); i += 2; continue; }
     if (two == "<=") { emit(TokenKind::LessEqual, two, line_no, col); i += 2; continue; }
     if (two == ">=") { emit(TokenKind::GreaterEqual, two, line_no, col); i += 2; continue; }
+    if (two == "->") { emit(TokenKind::Arrow, two, line_no, col); i += 2; continue; }
+    if (two == "**") { emit(TokenKind::DoubleStar, two, line_no, col); i += 2; continue; }
     switch (ch) {
       case '(': emit(TokenKind::LParen, "(", line_no, col); break;
       case ')': emit(TokenKind::RParen, ")", line_no, col); break;
@@ -238,7 +338,9 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       case '}': emit(TokenKind::RBrace, "}", line_no, col); break;
       case '.': emit(TokenKind::Dot, ".", line_no, col); break;
       case ',': emit(TokenKind::Comma, ",", line_no, col); break;
+      case ';': emit(TokenKind::Semicolon, ";", line_no, col); break;
       case ':': emit(TokenKind::Colon, ":", line_no, col); break;
+      case '@': emit(TokenKind::At, "@", line_no, col); break;
       case '=': emit(TokenKind::Assign, "=", line_no, col); break;
       case '+': emit(TokenKind::Plus, "+", line_no, col); break;
       case '-': emit(TokenKind::Minus, "-", line_no, col); break;

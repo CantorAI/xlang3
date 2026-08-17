@@ -33,10 +33,18 @@ void require(bool condition, const char* message) {
 
 int main() {
   const std::string source =
-      "def add(a, b):\n"
-      "    return a + b\n"
+      "def add(a, b=3, /, c=4, *items, scale=1, **extra):\n"
+      "    return (a + b + c + items[0] + extra['z']) * scale\n"
       "\n"
-      "x = add(2, 3)\n"
+      "args = (5,)\n"
+      "kwargs = {'z': 6}\n"
+      "x = add(2, *args, scale=2, **kwargs)\n"
+      "def gen():\n"
+      "    yield x\n"
+      "    yield from [1, 2]\n"
+      "\n"
+      "for item in gen():\n"
+      "    x = x + item\n"
       "print('sum', x)\n";
 
   auto parsed = xlang3::parse_source(source.c_str());

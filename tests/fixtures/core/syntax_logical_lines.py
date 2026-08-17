@@ -10,13 +10,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+a = 1; b = 2; print(a + b)
 
-value = 7
-star_value = 42
-_hidden = 99
+c = 10 + \
+    20
+print(c)
 
-def add(a, b):
-    return a + b
+items = [
+    4,
+    5,
+    6,
+]
+print(items)
 
-def read_value():
-    return value
+total = (
+    7
+    + 8
+)
+print(total)
