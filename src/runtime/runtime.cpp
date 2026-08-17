@@ -164,9 +164,18 @@ Value Runtime::make_native_function(
     std::string name,
     NativeFunctionCallback callback,
     void* user_data,
-    void (*user_data_cleanup)(void*)) {
+    void (*user_data_cleanup)(void*),
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock) {
   const uint32_t native_id = next_native_id_++;
-  return Value::native_function(native_id, std::move(name), callback, user_data, user_data_cleanup);
+  return Value::native_function(
+      native_id,
+      std::move(name),
+      callback,
+      user_data,
+      user_data_cleanup,
+      fast_callback,
+      fast_releases_vm_lock);
 }
 
 void Runtime::register_module(std::string name, Value module) {

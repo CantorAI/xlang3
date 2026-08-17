@@ -36,6 +36,8 @@ const char* op_name(Op op) {
     case Op::LoadFreeObject: return "LoadFreeObject";
     case Op::LoadGlobal: return "LoadGlobal";
     case Op::StoreGlobal: return "StoreGlobal";
+    case Op::LoadModuleSlot: return "LoadModuleSlot";
+    case Op::StoreModuleSlot: return "StoreModuleSlot";
     case Op::ImportModule: return "ImportModule";
     case Op::ImportFrom: return "ImportFrom";
     case Op::RawBlock: return "RawBlock";
@@ -77,6 +79,7 @@ const char* op_name(Op op) {
     case Op::LoadException: return "LoadException";
     case Op::LoadExceptionType: return "LoadExceptionType";
     case Op::MatchException: return "MatchException";
+    case Op::CallModuleMethod: return "CallModuleMethod";
     case Op::CallMethod: return "CallMethod";
     case Op::Call: return "Call";
     case Op::Pop: return "Pop";
@@ -102,6 +105,11 @@ const char* compare_name(CompareOp op) {
 std::string dump_module(const Module& module) {
   std::ostringstream os;
   os << "entry: #" << module.entry << "\n\n";
+  os << "module_slots:";
+  for (size_t i = 0; i < module.global_slots.size(); ++i) {
+    os << " %" << i << "=" << module.global_slots[i];
+  }
+  os << "\n\n";
   for (size_t fn_i = 0; fn_i < module.functions.size(); ++fn_i) {
     const auto& fn = module.functions[fn_i];
     os << "function #" << fn_i << " " << fn.name << "\n";

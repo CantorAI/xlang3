@@ -12,18 +12,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/builtins.h"
+#include "runtime_lock.h"
 
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime) {
-  register_exception_builtins(runtime);
-  register_io_builtins(runtime);
-  register_sequence_builtins(runtime);
-  register_raw_block_builtins(runtime);
-  register_builtin_modules(runtime);
-  register_math_module(runtime);
-  register_thread_modules(runtime);
+std::recursive_mutex& xlang_runtime_execution_lock() {
+  static std::recursive_mutex lock;
+  return lock;
 }
 
 } // namespace xlang3

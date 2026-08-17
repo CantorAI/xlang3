@@ -75,7 +75,9 @@ public:
       std::string name,
       NativeFunctionCallback callback,
       void* user_data = nullptr,
-      void (*user_data_cleanup)(void*) = nullptr);
+      void (*user_data_cleanup)(void*) = nullptr,
+      NativeFastCallCallback fast_callback = nullptr,
+      bool fast_releases_vm_lock = false);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));

@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -632,6 +632,9 @@ bool encode_module(const Module& module, uint64_t source_hash, EncodedModule& ou
   w.u32(kVersion);
   w.u64(source_hash);
   w.u32(module.entry);
+  if (!write_string_vector(w, module.global_slots, error)) {
+    return false;
+  }
   if (!write_count(w, module.functions.size(), error)) {
     return false;
   }
@@ -664,7 +667,10 @@ bool decode_module(const uint8_t* data, std::size_t size, uint64_t expected_sour
   }
   Module module;
   uint32_t function_count = 0;
-  if (!r.u32(module.entry) || !r.u32(function_count) || !check_count(function_count, error)) {
+  if (!r.u32(module.entry) ||
+      !read_string_vector(r, module.global_slots, error) ||
+      !r.u32(function_count) ||
+      !check_count(function_count, error)) {
     error = error.empty() ? "IR cache is malformed" : error;
     return false;
   }

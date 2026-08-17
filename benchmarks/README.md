@@ -32,6 +32,7 @@ Current groups:
 - `branches`: if/else and comparison dispatch
 - `list_append`: native method binding and list append behavior
 - `range_for`: range iteration and for-loop dispatch
+- `threading_parallel_sum`: CPython-compatible threaded chunk work, lock-protected result collection, and join behavior
 
 Additional tracks:
 

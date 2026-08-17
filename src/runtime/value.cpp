@@ -185,13 +185,17 @@ Value Value::native_function(
     std::string name,
     NativeFunctionCallback callback,
     void* user_data,
-    void (*user_data_cleanup)(void*)) {
+    void (*user_data_cleanup)(void*),
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
   obj->native_id = native_id;
   obj->name = std::move(name);
   obj->callback = callback;
+  obj->fast_callback = fast_callback;
+  obj->fast_releases_vm_lock = fast_releases_vm_lock;
   obj->user_data = user_data;
   obj->user_data_cleanup = user_data_cleanup;
   v.as.obj = &obj->header;
@@ -213,7 +217,7 @@ Value Value::file(FileSystem* fs, std::string path, std::string mode, std::strin
 
 void retain(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
-    ++value.as.obj->refcnt;
+    value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
   }
 }
 
@@ -221,7 +225,7 @@ void release(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return;
   }
-  if (--value.as.obj->refcnt != 0) {
+  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
     return;
   }
   switch (value.as.obj->kind) {

@@ -76,11 +76,13 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
   }
   auto it = module->name_to_slot.find(name);
   if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
-    module->slots[it->second] = value;
+    value_assign_fast(module->slots[it->second], value);
   } else {
     const auto slot = static_cast<uint32_t>(module->slots.size());
     module->name_to_slot[name] = slot;
-    module->slots.push_back(value);
+    Value stored;
+    value_assign_fast(stored, value);
+    module->slots.push_back(std::move(stored));
   }
   ++module->version;
   return true;
@@ -110,9 +112,21 @@ NativeModuleBuilder& NativeModuleBuilder::value(std::string name, Value value) {
   return *this;
 }
 
-NativeModuleBuilder& NativeModuleBuilder::function(std::string name, NativeFunctionCallback callback) {
+NativeModuleBuilder& NativeModuleBuilder::function(
+    std::string name,
+    NativeFunctionCallback callback,
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock) {
   auto full_name = name_ + "." + name;
-  value(std::move(name), runtime_.make_native_function(std::move(full_name), callback));
+  value(
+      std::move(name),
+      runtime_.make_native_function(
+          std::move(full_name),
+          callback,
+          nullptr,
+          nullptr,
+          fast_callback,
+          fast_releases_vm_lock));
   return *this;
 }
 

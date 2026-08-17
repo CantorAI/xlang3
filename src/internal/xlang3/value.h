@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/compiler.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -64,7 +65,7 @@ enum class ObjectKind : uint32_t {
 
 struct Object {
   ObjectKind kind;
-  uint32_t refcnt;
+  std::atomic_uint32_t refcnt;
 };
 
 using NativeFunctionCallback = bool (*)(
@@ -75,11 +76,24 @@ using NativeFunctionCallback = bool (*)(
     std::string& error,
     void* user_data);
 
+using NativeFastCallCallback = bool (*)(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data);
+
 struct NativeFunctionObject {
   Object header;
   uint32_t native_id = 0;
   std::string name;
   NativeFunctionCallback callback = nullptr;
+  NativeFastCallCallback fast_callback = nullptr;
+  bool fast_releases_vm_lock = false;
   void* user_data = nullptr;
   void (*user_data_cleanup)(void*) = nullptr;
 };
@@ -133,7 +147,9 @@ struct Value {
       std::string name,
       NativeFunctionCallback callback,
       void* user_data = nullptr,
-      void (*user_data_cleanup)(void*) = nullptr);
+      void (*user_data_cleanup)(void*) = nullptr,
+      NativeFastCallCallback fast_callback = nullptr,
+      bool fast_releases_vm_lock = false);
   static Value file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable);
   static Value class_object(
       std::string name,

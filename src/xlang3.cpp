@@ -22,6 +22,7 @@ limitations under the License.
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -109,7 +110,8 @@ bool run_source(
     return false;
   }
 
-  auto result = interpreter.run(lowered.module);
+  auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+  auto result = interpreter.run(std::move(module));
   if (!result.errors.empty()) {
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";

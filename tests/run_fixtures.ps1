@@ -48,6 +48,7 @@ $cases = @(
     "class_dynamic_attrs",
     "context_managers",
     "builtin_methods",
+    "threading_module",
     "closures",
     "nonlocal_counter"
 )

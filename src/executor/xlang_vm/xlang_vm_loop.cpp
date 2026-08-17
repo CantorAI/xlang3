@@ -14,749 +14,24 @@ limitations under the License.
 */
 #include "xlang3/interpreter.h"
 
+#include "xlang_frame.h"
+#include "xlang_vm_arithmetic.h"
+#include "xlang_vm_attr.h"
+#include "xlang_vm_inline_call.h"
+#include "runtime_lock.h"
+
 #include "xlang3/attribute.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
 #include <cstddef>
+#include <mutex>
 #include <new>
 #include <sstream>
+#include <thread>
 
 namespace xlang3 {
-
-namespace {
-
-std::string compare_name(ir::CompareOp op) {
-  switch (op) {
-    case ir::CompareOp::Eq: return "==";
-    case ir::CompareOp::Ne: return "!=";
-    case ir::CompareOp::Lt: return "<";
-    case ir::CompareOp::Le: return "<=";
-    case ir::CompareOp::Gt: return ">";
-    case ir::CompareOp::Ge: return ">=";
-  }
-  return "?";
-}
-
-XLANG3_HOT_INLINE bool value_is_number(const Value& value) {
-  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
-}
-
-XLANG3_HOT_INLINE double value_to_double_fast(const Value& value) {
-  return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
-}
-
-XLANG3_HOT_INLINE bool fast_add(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 + rhs.as.i64);
-    return true;
-  }
-  if (value_is_number(lhs) && value_is_number(rhs)) {
-    value_set_number(out, value_to_double_fast(lhs) + value_to_double_fast(rhs));
-    return true;
-  }
-  return false;
-}
-
-XLANG3_HOT_INLINE bool fast_sub(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 - rhs.as.i64);
-    return true;
-  }
-  if (value_is_number(lhs) && value_is_number(rhs)) {
-    value_set_number(out, value_to_double_fast(lhs) - value_to_double_fast(rhs));
-    return true;
-  }
-  return false;
-}
-
-XLANG3_HOT_INLINE bool fast_mul(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 * rhs.as.i64);
-    return true;
-  }
-  if (value_is_number(lhs) && value_is_number(rhs)) {
-    value_set_number(out, value_to_double_fast(lhs) * value_to_double_fast(rhs));
-    return true;
-  }
-  return false;
-}
-
-XLANG3_HOT_INLINE bool fast_div(const Value& lhs, const Value& rhs, Value& out, bool& divide_by_zero) {
-  divide_by_zero = false;
-  if (!value_is_number(lhs) || !value_is_number(rhs)) {
-    return false;
-  }
-  const double divisor = value_to_double_fast(rhs);
-  if (divisor == 0.0) {
-    divide_by_zero = true;
-    return false;
-  }
-  value_set_number(out, value_to_double_fast(lhs) / divisor);
-  return true;
-}
-
-XLANG3_HOT_INLINE bool fast_mod(const Value& lhs, const Value& rhs, Value& out, bool& modulo_by_zero) {
-  modulo_by_zero = false;
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
-    return false;
-  }
-  if (rhs.as.i64 == 0) {
-    modulo_by_zero = true;
-    return false;
-  }
-  int64_t result = lhs.as.i64 % rhs.as.i64;
-  if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {
-    result += rhs.as.i64;
-  }
-  value_set_int64(out, result);
-  return true;
-}
-
-XLANG3_HOT_INLINE bool fast_compare(ir::CompareOp op, const Value& lhs, const Value& rhs, Value& out) {
-  if (!value_is_number(lhs) || !value_is_number(rhs)) {
-    return false;
-  }
-  const double a = value_to_double_fast(lhs);
-  const double b = value_to_double_fast(rhs);
-  bool compare_result = false;
-  switch (op) {
-    case ir::CompareOp::Eq: compare_result = a == b; break;
-    case ir::CompareOp::Ne: compare_result = a != b; break;
-    case ir::CompareOp::Lt: compare_result = a < b; break;
-    case ir::CompareOp::Le: compare_result = a <= b; break;
-    case ir::CompareOp::Gt: compare_result = a > b; break;
-    case ir::CompareOp::Ge: compare_result = a >= b; break;
-  }
-  value_set_bool(out, compare_result);
-  return true;
-}
-
-class SmallValueBuffer {
-public:
-  SmallValueBuffer() = default;
-
-  SmallValueBuffer(size_t size, const Value& fill) : size_(size) {
-    if (size_ <= kInlineCount) {
-      data_ = inline_data();
-      uses_inline_ = true;
-      for (size_t i = 0; i < size_; ++i) {
-        new (data_ + i) Value(fill);
-      }
-      return;
-    }
-    heap_.assign(size_, fill);
-    data_ = heap_.data();
-  }
-
-  SmallValueBuffer(const SmallValueBuffer&) = delete;
-  SmallValueBuffer& operator=(const SmallValueBuffer&) = delete;
-  SmallValueBuffer(SmallValueBuffer&& other) noexcept {
-    move_from(std::move(other));
-  }
-  SmallValueBuffer& operator=(SmallValueBuffer&& other) noexcept = delete;
-
-  ~SmallValueBuffer() {
-    destroy_inline();
-  }
-
-  void reset(size_t size, const Value& fill) {
-    if (size <= kInlineCount) {
-      if (!uses_inline_) {
-        heap_.clear();
-        data_ = inline_data();
-        uses_inline_ = true;
-        for (size_t i = 0; i < size; ++i) {
-          new (data_ + i) Value(fill);
-        }
-        size_ = size;
-        return;
-      }
-      const size_t shared = size < size_ ? size : size_;
-      for (size_t i = 0; i < shared; ++i) {
-        value_assign_fast(data_[i], fill);
-      }
-      for (size_t i = shared; i < size; ++i) {
-        new (data_ + i) Value(fill);
-      }
-      for (size_t i = size; i < size_; ++i) {
-        data_[i].~Value();
-      }
-      size_ = size;
-      return;
-    }
-
-    destroy_inline();
-    uses_inline_ = false;
-    heap_.assign(size, fill);
-    data_ = heap_.data();
-    size_ = size;
-  }
-
-  XLANG3_HOT_INLINE size_t size() const {
-    return size_;
-  }
-
-  XLANG3_HOT_INLINE Value* data() {
-    return data_;
-  }
-
-  XLANG3_HOT_INLINE const Value* data() const {
-    return data_;
-  }
-
-  XLANG3_HOT_INLINE Value& operator[](size_t index) {
-    return data_[index];
-  }
-
-  XLANG3_HOT_INLINE const Value& operator[](size_t index) const {
-    return data_[index];
-  }
-
-private:
-  static constexpr size_t kInlineCount = 64;
-
-  XLANG3_HOT_INLINE Value* inline_data() {
-    return reinterpret_cast<Value*>(inline_storage_);
-  }
-
-  void move_from(SmallValueBuffer&& other) {
-    size_ = other.size_;
-    uses_inline_ = other.uses_inline_;
-    if (other.uses_inline_) {
-      data_ = inline_data();
-      for (size_t i = 0; i < size_; ++i) {
-        new (data_ + i) Value(std::move(other.data_[i]));
-        other.data_[i].~Value();
-      }
-      other.size_ = 0;
-      other.data_ = nullptr;
-      other.uses_inline_ = false;
-      return;
-    }
-
-    heap_ = std::move(other.heap_);
-    data_ = heap_.data();
-    other.size_ = 0;
-    other.data_ = nullptr;
-  }
-
-  void destroy_inline() {
-    if (!uses_inline_) {
-      return;
-    }
-    for (size_t i = 0; i < size_; ++i) {
-      data_[i].~Value();
-    }
-    size_ = 0;
-    data_ = nullptr;
-    uses_inline_ = false;
-  }
-
-  size_t size_ = 0;
-  Value* data_ = nullptr;
-  bool uses_inline_ = false;
-  alignas(Value) std::byte inline_storage_[sizeof(Value) * kInlineCount];
-  std::vector<Value> heap_;
-};
-
-enum class CallSiteKind : uint8_t {
-  Empty,
-  UserFunction,
-  NativeFunction,
-  UserConstructor,
-  NativeConstructor,
-  InlineSelfBinaryMethod,
-  InlineArgBinaryFunction,
-};
-
-enum class AttrSiteKind : uint8_t {
-  Empty,
-  InstanceAttr,
-  InstanceSlot,
-};
-
-struct CallSiteCache {
-  Object* callee_object = nullptr;
-  CallSiteKind kind = CallSiteKind::Empty;
-  FunctionObject* function = nullptr;
-  NativeFunctionObject* native = nullptr;
-  uint64_t class_version = 0;
-  uint32_t lhs_slot = 0;
-  uint32_t rhs_slot = 0;
-  ir::Op inline_op = ir::Op::Add;
-  uint32_t inline_function_id = 0;
-  uint32_t next_arg = 0;
-  ir::Op next_op = ir::Op::Add;
-  bool has_next = false;
-};
-
-struct AttrSiteCache {
-  uint32_t index = 0;
-  AttrSiteKind kind = AttrSiteKind::Empty;
-};
-
-enum class FrameReturnMode : uint8_t {
-  StoreReturnValue,
-  StoreConstructedInstance,
-};
-
-enum class ExceptionHandlerKind : uint8_t {
-  Except,
-  With,
-};
-
-struct ExceptionHandler {
-  uint32_t ip = 0;
-  ExceptionHandlerKind kind = ExceptionHandlerKind::Except;
-  uint32_t manager_reg = 0;
-};
-
-struct VMUnwind {};
-
-struct VMFrame {
-  const ir::Module* module = nullptr;
-  const ir::Function* fn = nullptr;
-  const std::vector<Value>* closure = nullptr;
-  Value globals_module;
-  std::shared_ptr<const ir::Module> module_owner;
-  uint32_t return_dst = 0;
-  bool has_caller = false;
-  FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
-  Value continuation_value;
-  size_t ip = 0;
-
-  SmallValueBuffer locals;
-  SmallValueBuffer cells;
-  SmallValueBuffer regs;
-
-  std::vector<ExceptionHandler> exception_handlers;
-  std::vector<Value> global_value_cache;
-  std::vector<uint32_t> global_slot_cache;
-  std::vector<uint64_t> global_cache_versions;
-  std::vector<uint8_t> global_cache_kind;
-  std::vector<CallSiteCache> call_site_cache;
-  std::vector<AttrSiteCache> attr_site_cache;
-  std::vector<Value> native_call_args;
-
-  VMFrame(
-      const ir::Module& frame_module,
-      uint32_t function_id,
-      CallArgsView args,
-      const std::vector<Value>& frame_closure,
-      Value frame_globals_module,
-      std::shared_ptr<const ir::Module> frame_module_owner,
-      uint32_t frame_return_dst,
-      bool frame_has_caller,
-      FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
-      Value frame_continuation_value = Value::invalid())
-      : module(&frame_module),
-        fn(&frame_module.functions[function_id]),
-        closure(&frame_closure),
-        globals_module(std::move(frame_globals_module)),
-        module_owner(std::move(frame_module_owner)),
-        return_dst(frame_return_dst),
-        has_caller(frame_has_caller),
-        return_mode(frame_return_mode),
-        continuation_value(std::move(frame_continuation_value)),
-        locals(fn->locals.size(), Value::none()),
-        cells(fn->cell_slots.size(), Value::invalid()),
-        regs(fn->register_count, Value::invalid()),
-        global_value_cache(fn->names.size(), Value::invalid()),
-        global_slot_cache(fn->names.size(), 0),
-        global_cache_versions(fn->names.size(), 0),
-        global_cache_kind(fn->names.size(), 0),
-        attr_site_cache(fn->code.size()) {
-    for (size_t i = 0; i < args.size(); ++i) {
-      value_assign_fast(locals[i], args.get(i));
-    }
-    uint32_t max_call_arg_count = 0;
-    for (const auto& arg_regs : fn->call_args) {
-      if (arg_regs.size() > max_call_arg_count) {
-        max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
-      }
-    }
-    if (max_call_arg_count != 0) {
-      native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
-      call_site_cache.resize(fn->code.size());
-    }
-  }
-
-  void reset(
-      const ir::Module& frame_module,
-      uint32_t function_id,
-      CallArgsView args,
-      const std::vector<Value>& frame_closure,
-      Value frame_globals_module,
-      std::shared_ptr<const ir::Module> frame_module_owner,
-      uint32_t frame_return_dst,
-      bool frame_has_caller,
-      FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
-      Value frame_continuation_value = Value::invalid()) {
-    const ir::Function* old_fn = fn;
-    module = &frame_module;
-    fn = &frame_module.functions[function_id];
-    closure = &frame_closure;
-    globals_module = std::move(frame_globals_module);
-    module_owner = std::move(frame_module_owner);
-    return_dst = frame_return_dst;
-    has_caller = frame_has_caller;
-    return_mode = frame_return_mode;
-    continuation_value = std::move(frame_continuation_value);
-    ip = 0;
-
-    locals.reset(fn->locals.size(), Value::none());
-    cells.reset(fn->cell_slots.size(), Value::invalid());
-    regs.reset(fn->register_count, Value::invalid());
-    exception_handlers.clear();
-    native_call_args.clear();
-
-    if (old_fn != fn) {
-      global_value_cache.assign(fn->names.size(), Value::invalid());
-      global_slot_cache.assign(fn->names.size(), 0);
-      global_cache_versions.assign(fn->names.size(), 0);
-      global_cache_kind.assign(fn->names.size(), 0);
-      call_site_cache.clear();
-      attr_site_cache.assign(fn->code.size(), {});
-      uint32_t max_call_arg_count = 0;
-      for (const auto& arg_regs : fn->call_args) {
-        if (arg_regs.size() > max_call_arg_count) {
-          max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
-        }
-      }
-      if (max_call_arg_count != 0) {
-        native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
-        call_site_cache.resize(fn->code.size());
-      }
-    }
-
-    for (size_t i = 0; i < args.size(); ++i) {
-      value_assign_fast(locals[i], args.get(i));
-    }
-  }
-};
-
-XLANG3_NOINLINE bool load_attr_cached(
-    const Value& object,
-    const std::string& name,
-    AttrSiteCache& cache,
-    Value& out,
-    std::string& error) {
-  if (auto* instance = value_as_instance(object)) {
-    if (cache.kind == AttrSiteKind::InstanceSlot && cache.index < instance_slot_count(instance)) {
-      const auto& slot_value = instance_slot_at(instance, cache.index);
-      if (slot_value.tag != ValueTag::Invalid) {
-        value_assign_fast(out, slot_value);
-        return true;
-      }
-      error = "object has no attribute '" + name + "'";
-      return false;
-    }
-    if (cache.kind == AttrSiteKind::InstanceAttr && cache.index < instance->attrs.size() &&
-        instance->attrs[cache.index].first == name) {
-      value_assign_fast(out, instance->attrs[cache.index].second);
-      return true;
-    }
-    if (auto* klass = value_as_class(instance->klass)) {
-      auto slot_it = klass->instance_slot_indices.find(name);
-      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-        const auto& slot_value = instance_slot_at(instance, slot_it->second);
-        if (slot_value.tag == ValueTag::Invalid) {
-          error = "object has no attribute '" + name + "'";
-          return false;
-        }
-        cache.index = slot_it->second;
-        cache.kind = AttrSiteKind::InstanceSlot;
-        value_assign_fast(out, slot_value);
-        return true;
-      }
-    }
-    for (size_t attr_i = 0; attr_i < instance->attrs.size(); ++attr_i) {
-      if (instance->attrs[attr_i].first == name) {
-        cache.index = static_cast<uint32_t>(attr_i);
-        cache.kind = AttrSiteKind::InstanceAttr;
-        value_assign_fast(out, instance->attrs[attr_i].second);
-        return true;
-      }
-    }
-  }
-  return attribute_get(object, name, out, error);
-}
-
-XLANG3_NOINLINE bool store_attr_cached(
-    Value& object,
-    const std::string& name,
-    const Value& value,
-    AttrSiteCache& cache,
-    std::string& error) {
-  if (auto* instance = value_as_instance(object)) {
-    if (cache.kind == AttrSiteKind::InstanceSlot && cache.index < instance_slot_count(instance)) {
-      value_assign_fast(instance_slot_at(instance, cache.index), value);
-      return true;
-    }
-    if (cache.kind == AttrSiteKind::InstanceAttr && cache.index < instance->attrs.size() &&
-        instance->attrs[cache.index].first == name) {
-      value_assign_fast(instance->attrs[cache.index].second, value);
-      return true;
-    }
-    if (auto* klass = value_as_class(instance->klass)) {
-      auto slot_it = klass->instance_slot_indices.find(name);
-      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-        cache.index = slot_it->second;
-        cache.kind = AttrSiteKind::InstanceSlot;
-        value_assign_fast(instance_slot_at(instance, slot_it->second), value);
-        return true;
-      }
-    }
-    for (size_t attr_i = 0; attr_i < instance->attrs.size(); ++attr_i) {
-      if (instance->attrs[attr_i].first == name) {
-        cache.index = static_cast<uint32_t>(attr_i);
-        cache.kind = AttrSiteKind::InstanceAttr;
-        value_assign_fast(instance->attrs[attr_i].second, value);
-        return true;
-      }
-    }
-    instance->attrs.push_back(std::make_pair(name, value));
-    cache.index = static_cast<uint32_t>(instance->attrs.size() - 1);
-    cache.kind = AttrSiteKind::InstanceAttr;
-    return true;
-  }
-  return attribute_set(object, name, value, error);
-}
-
-struct SelfBinaryMethodSpec {
-  uint32_t lhs_slot = 0;
-  uint32_t rhs_slot = 0;
-  ir::Op op = ir::Op::Add;
-};
-
-struct ArgBinaryFunctionSpec {
-  uint32_t lhs_arg = 0;
-  uint32_t rhs_arg = 0;
-  ir::Op op = ir::Op::Add;
-  uint32_t next_arg = 0;
-  ir::Op next_op = ir::Op::Add;
-  bool has_next = false;
-};
-
-bool is_inline_binary_op(ir::Op op) {
-  return op == ir::Op::Add || op == ir::Op::Sub || op == ir::Op::Mul || op == ir::Op::Div || op == ir::Op::Mod;
-}
-
-bool execute_binary_op(ir::Op op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
-  switch (op) {
-    case ir::Op::Add:
-      if (fast_add(lhs, rhs, out)) return true;
-      return value_add(lhs, rhs, out, error);
-    case ir::Op::Sub:
-      if (fast_sub(lhs, rhs, out)) return true;
-      return value_sub(lhs, rhs, out, error);
-    case ir::Op::Mul:
-      if (fast_mul(lhs, rhs, out)) return true;
-      return value_mul(lhs, rhs, out, error);
-    case ir::Op::Div: {
-      bool divide_by_zero = false;
-      if (fast_div(lhs, rhs, out, divide_by_zero)) return true;
-      if (divide_by_zero) {
-        error = "division by zero";
-        return false;
-      }
-      return value_div(lhs, rhs, out, error);
-    }
-    case ir::Op::Mod: {
-      bool modulo_by_zero = false;
-      if (fast_mod(lhs, rhs, out, modulo_by_zero)) return true;
-      if (modulo_by_zero) {
-        error = "integer modulo by zero";
-        return false;
-      }
-      return value_mod(lhs, rhs, out, error);
-    }
-    default:
-      error = "unsupported inline function operation";
-      return false;
-  }
-}
-
-bool analyze_self_binary_method(
-    const ir::Module& current_module,
-    const FunctionObject& fn_obj,
-    SelfBinaryMethodSpec& spec) {
-  const ir::Module* method_module = &current_module;
-  if (fn_obj.module != nullptr) {
-    method_module = fn_obj.module.get();
-  }
-  if (fn_obj.function_id >= method_module->functions.size()) {
-    return false;
-  }
-  const auto& method = method_module->functions[fn_obj.function_id];
-  if (method.params.size() != 1 || method.code.size() < 6) {
-    return false;
-  }
-  const auto& load_self_lhs = method.code[0];
-  const auto& load_lhs = method.code[1];
-  const auto& load_self_rhs = method.code[2];
-  const auto& load_rhs = method.code[3];
-  const auto& binary = method.code[4];
-  const auto& ret = method.code[5];
-  if (load_self_lhs.op != ir::Op::LoadLocal || load_self_lhs.a != 0 ||
-      load_self_rhs.op != ir::Op::LoadLocal || load_self_rhs.a != 0 ||
-      load_lhs.op != ir::Op::LoadInstanceSlot || load_lhs.a != load_self_lhs.dst ||
-      load_rhs.op != ir::Op::LoadInstanceSlot || load_rhs.a != load_self_rhs.dst ||
-      ret.op != ir::Op::Return || ret.a != binary.dst) {
-    return false;
-  }
-  if (!is_inline_binary_op(binary.op)) {
-    return false;
-  }
-  if (binary.a != load_lhs.dst || binary.b != load_rhs.dst) {
-    return false;
-  }
-  spec.lhs_slot = load_lhs.b;
-  spec.rhs_slot = load_rhs.b;
-  spec.op = binary.op;
-  return true;
-}
-
-bool analyze_arg_binary_function(
-    const ir::Module& current_module,
-    const FunctionObject& fn_obj,
-    uint32_t argc,
-    ArgBinaryFunctionSpec& spec) {
-  const ir::Module* function_module = &current_module;
-  if (fn_obj.module != nullptr) {
-    function_module = fn_obj.module.get();
-  }
-  if (fn_obj.function_id >= function_module->functions.size()) {
-    return false;
-  }
-  const auto& function = function_module->functions[fn_obj.function_id];
-  if (function.params.size() != argc || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
-      function.code.size() < 4) {
-    return false;
-  }
-  const auto& load_lhs = function.code[0];
-  const auto& load_rhs = function.code[1];
-  const auto& binary = function.code[2];
-  const auto& ret = function.code[3];
-  if (load_lhs.op != ir::Op::LoadLocal || load_rhs.op != ir::Op::LoadLocal ||
-      load_lhs.a >= argc || load_rhs.a >= argc || !is_inline_binary_op(binary.op) ||
-      binary.a != load_lhs.dst || binary.b != load_rhs.dst) {
-    return false;
-  }
-  spec.lhs_arg = load_lhs.a;
-  spec.rhs_arg = load_rhs.a;
-  spec.op = binary.op;
-  if (ret.op == ir::Op::Return && ret.a == binary.dst) {
-    spec.has_next = false;
-    return true;
-  }
-  if (function.code.size() < 6) {
-    return false;
-  }
-  const auto& load_next = function.code[3];
-  const auto& next_binary = function.code[4];
-  const auto& next_ret = function.code[5];
-  if (load_next.op != ir::Op::LoadLocal || load_next.a >= argc ||
-      !is_inline_binary_op(next_binary.op) ||
-      next_binary.a != binary.dst || next_binary.b != load_next.dst ||
-      next_ret.op != ir::Op::Return || next_ret.a != next_binary.dst) {
-    return false;
-  }
-  spec.next_arg = load_next.a;
-  spec.next_op = next_binary.op;
-  spec.has_next = true;
-  return true;
-}
-
-bool execute_arg_binary_function(
-    CallArgsView args,
-    const ArgBinaryFunctionSpec& spec,
-    Value& out,
-    std::string& error) {
-  if (spec.lhs_arg >= args.size() || spec.rhs_arg >= args.size()) {
-    error = "invalid inline function arg";
-    return false;
-  }
-  if (!execute_binary_op(spec.op, args.get(spec.lhs_arg), args.get(spec.rhs_arg), out, error)) {
-    return false;
-  }
-  if (!spec.has_next) {
-    return true;
-  }
-  if (spec.next_arg >= args.size()) {
-    error = "invalid inline function arg";
-    return false;
-  }
-  Value temp;
-  value_assign_fast(temp, out);
-  return execute_binary_op(spec.next_op, temp, args.get(spec.next_arg), out, error);
-}
-
-XLANG3_HOT_INLINE bool execute_self_binary_method(
-    const InstanceObject& instance,
-    const SelfBinaryMethodSpec& spec,
-    Value& out,
-    std::string& error) {
-  if (spec.lhs_slot >= instance_slot_count(&instance) || spec.rhs_slot >= instance_slot_count(&instance)) {
-    error = "invalid instance slot load";
-    return false;
-  }
-  const auto& lhs = instance_slot_at(&instance, spec.lhs_slot);
-  const auto& rhs = instance_slot_at(&instance, spec.rhs_slot);
-  if (lhs.tag == ValueTag::Invalid || rhs.tag == ValueTag::Invalid) {
-    error = "object has no attribute";
-    return false;
-  }
-  switch (spec.op) {
-    case ir::Op::Add:
-    case ir::Op::Sub:
-    case ir::Op::Mul:
-    case ir::Op::Div:
-    case ir::Op::Mod:
-      return execute_binary_op(spec.op, lhs, rhs, out, error);
-    default:
-      error = "unsupported inline method operation";
-      return false;
-  }
-}
-
-} // namespace
-
-Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
-
-RuntimeResult Interpreter::run(const ir::Module& module) {
-  static const std::vector<Value> empty_closure;
-  return run_function(module, module.entry, {}, empty_closure, Value::invalid(), nullptr);
-}
-
-RuntimeResult Interpreter::run_module(const ir::Module& module, Value globals_module) {
-  return run_module(module, std::move(globals_module), nullptr);
-}
-
-RuntimeResult Interpreter::run_module(
-    const ir::Module& module,
-    Value globals_module,
-    std::shared_ptr<const ir::Module> module_owner) {
-  static const std::vector<Value> empty_closure;
-  return run_function(module, module.entry, {}, empty_closure, std::move(globals_module), std::move(module_owner));
-}
-
-RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgsView args) {
-  RuntimeResult result;
-  if (function == nullptr || function->module == nullptr) {
-    result.errors.push_back("function has no module");
-    return result;
-  }
-  return run_function(
-      *function->module,
-      function->function_id,
-      args,
-      function->closure,
-      function->globals_module,
-      function->module);
-}
 
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
@@ -927,6 +202,9 @@ RuntimeResult Interpreter::run_function(
       return raise_exception_value(runtime_.make_exception("RuntimeError", message));
     };
 
+    XlangRuntimeExecutionGuard execution_lock;
+    uint32_t execution_lock_ticks = 0;
+
     try {
     for (;;) {
       if (ip >= fn.code.size()) {
@@ -938,6 +216,11 @@ RuntimeResult Interpreter::run_function(
       }
 
       const auto& in = fn.code[ip];
+      if ((++execution_lock_ticks & 0x3ffu) == 0) {
+        execution_lock.unlock();
+        std::this_thread::yield();
+        execution_lock.lock();
+      }
       switch (in.op) {
       case ir::Op::LoadConst:
         if (in.a >= fn.constants.size()) {
@@ -1066,6 +349,54 @@ RuntimeResult Interpreter::run_function(
         }
         value_assign_fast(regs[in.dst], fn_obj_closure[in.a]);
         break;
+      case ir::Op::LoadModuleSlot: {
+        if (in.a >= module.global_slots.size()) {
+          result.errors.push_back("invalid module slot");
+          return result;
+        }
+        const auto& name = module.global_slots[in.a];
+        auto* globals_module_obj = value_as_module(globals_module);
+        if (globals_module_obj != nullptr) {
+          if (in.a < globals_module_obj->slots.size() && globals_module_obj->slots[in.a].tag != ValueTag::Invalid) {
+            value_assign_fast(regs[in.dst], globals_module_obj->slots[in.a]);
+            break;
+          }
+          if (const auto* builtin = runtime_.find_builtin(name)) {
+            value_assign_fast(regs[in.dst], *builtin);
+            break;
+          }
+          if (raise_runtime_error("name '" + name + "' is not defined")) continue;
+          return result;
+        }
+        if (auto it = globals_.find(name); it != globals_.end()) {
+          value_assign_fast(regs[in.dst], it->second);
+        } else if (const auto* builtin = runtime_.find_builtin(name)) {
+          value_assign_fast(regs[in.dst], *builtin);
+        } else {
+          if (raise_runtime_error("name '" + name + "' is not defined")) continue;
+          return result;
+        }
+        break;
+      }
+      case ir::Op::StoreModuleSlot: {
+        if (in.dst >= module.global_slots.size() || in.a >= regs.size()) {
+          result.errors.push_back("invalid module slot store");
+          return result;
+        }
+        auto* globals_module_obj = value_as_module(globals_module);
+        if (globals_module_obj != nullptr) {
+          if (in.dst >= globals_module_obj->slots.size()) {
+            result.errors.push_back("module slot is not bound");
+            return result;
+          }
+          value_assign_fast(globals_module_obj->slots[in.dst], regs[in.a]);
+          ++globals_module_obj->version;
+        } else {
+          value_assign_fast(globals_[module.global_slots[in.dst]], regs[in.a]);
+          ++globals_version_;
+        }
+        break;
+      }
       case ir::Op::LoadGlobal: {
         if (in.a >= fn.names.size()) {
           result.errors.push_back("invalid global name");
@@ -1624,6 +955,183 @@ RuntimeResult Interpreter::run_function(
       case ir::Op::MatchException:
         value_set_bool(regs[in.dst], exception_matches(regs[in.a]));
         break;
+      case ir::Op::CallModuleMethod: {
+        if (in.a >= module.global_slots.size() || in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
+          result.errors.push_back("invalid module method call");
+          return result;
+        }
+        auto* globals_module_obj = value_as_module(globals_module);
+        if (globals_module_obj == nullptr || in.a >= globals_module_obj->slots.size()) {
+          if (raise_runtime_error("module slot is not bound")) continue;
+          return result;
+        }
+        const auto& module_value = globals_module_obj->slots[in.a];
+        auto* module_object = value_as_module(module_value);
+        if (module_object == nullptr) {
+          if (raise_runtime_error("imported module binding is not a module")) continue;
+          return result;
+        }
+
+        const auto& call_arg_regs = fn.call_args[in.c];
+        CallArgsView call_args;
+        call_args.registers = regs.data();
+        call_args.register_args = &call_arg_regs;
+
+        auto materialize_native_args = [&](CallArgsView values) -> const Value* {
+          native_call_args.clear();
+          native_call_args.reserve(values.size());
+          for (size_t i = 0; i < values.size(); ++i) {
+            native_call_args.push_back(values.get(i));
+          }
+          return native_call_args.data();
+        };
+
+        auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
+          std::string error;
+          Value native_result;
+          const bool use_fast = native->fast_callback != nullptr;
+          const Value* native_args = nullptr;
+          if (!use_fast) {
+            native_args = materialize_native_args(values);
+          }
+          bool ok = false;
+          if (use_fast && !native->fast_releases_vm_lock) {
+            ok = native->fast_callback(
+                runtime_,
+                values.leading,
+                values.leading_count,
+                values.registers,
+                values.register_args == nullptr ? nullptr : values.register_args->data(),
+                values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                native_result,
+                error,
+                native->user_data);
+          } else {
+            execution_lock.unlock();
+            ok = use_fast
+                ? native->fast_callback(
+                      runtime_,
+                      values.leading,
+                      values.leading_count,
+                      values.registers,
+                      values.register_args == nullptr ? nullptr : values.register_args->data(),
+                      values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                      native_result,
+                      error,
+                      native->user_data)
+                : native->callback != nullptr &&
+                      native->callback(
+                          runtime_,
+                          native_args,
+                          static_cast<uint32_t>(values.size()),
+                          native_result,
+                          error,
+                          native->user_data);
+            execution_lock.lock();
+          }
+          if (!ok) {
+            Value pending;
+            if (runtime_.take_pending_exception(pending)) {
+              if (raise_exception_value(std::move(pending))) return false;
+              return false;
+            }
+            if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
+            return false;
+          }
+          out = std::move(native_result);
+          return true;
+        };
+
+        auto call_cached_fast_function = [&](const CallSiteCache& cache, CallArgsView values, Value& out) -> bool {
+          std::string error;
+          Value native_result;
+          bool ok = false;
+          if (!cache.fast_releases_vm_lock) {
+            ok = cache.fast_callback(
+                runtime_,
+                values.leading,
+                values.leading_count,
+                values.registers,
+                values.register_args == nullptr ? nullptr : values.register_args->data(),
+                values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                native_result,
+                error,
+                cache.native_user_data);
+          } else {
+            execution_lock.unlock();
+            ok = cache.fast_callback(
+                runtime_,
+                values.leading,
+                values.leading_count,
+                values.registers,
+                values.register_args == nullptr ? nullptr : values.register_args->data(),
+                values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                native_result,
+                error,
+                cache.native_user_data);
+            execution_lock.lock();
+          }
+          if (!ok) {
+            Value pending;
+            if (runtime_.take_pending_exception(pending)) {
+              if (raise_exception_value(std::move(pending))) return false;
+              return false;
+            }
+            if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
+            return false;
+          }
+          out = std::move(native_result);
+          return true;
+        };
+
+        if (!call_site_cache.empty()) {
+          auto& cache = call_site_cache[ip];
+          if (cache.callee_object == module_value.as.obj &&
+              cache.class_version == module_object->version &&
+              cache.kind == CallSiteKind::NativeFunction) {
+            if (cache.fast_callback != nullptr) {
+              if (!call_cached_fast_function(cache, call_args, regs[in.dst])) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+            } else if (!call_native_function(cache.native, call_args, regs[in.dst])) {
+              if (!result.errors.empty()) return result;
+              continue;
+            }
+            break;
+          }
+        }
+
+        std::string module_error;
+        uint32_t module_slot = 0;
+        const auto& name = fn.names[in.b];
+        if (!module_find_attr_slot(module_value, name, module_slot, module_error) ||
+            module_slot >= module_object->slots.size()) {
+          if (raise_runtime_error(module_error.empty() ? "module method not found" : module_error)) continue;
+          return result;
+        }
+        auto* native = value_as_native_function(module_object->slots[module_slot]);
+        if (native == nullptr) {
+          if (raise_runtime_error("module method is not a native function")) continue;
+          return result;
+        }
+        if (!call_site_cache.empty()) {
+          auto& cache = call_site_cache[ip];
+          cache.callee_object = module_value.as.obj;
+          cache.kind = CallSiteKind::NativeFunction;
+          cache.function = nullptr;
+          cache.native = native;
+          cache.fast_callback = native->fast_callback;
+          cache.native_user_data = native->user_data;
+          cache.fast_releases_vm_lock = native->fast_releases_vm_lock;
+          cache.class_version = module_object->version;
+        }
+        if (!call_native_function(native, call_args, regs[in.dst])) {
+          if (!result.errors.empty()) return result;
+          continue;
+        }
+        break;
+      }
       case ir::Op::CallMethod: {
         if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
           result.errors.push_back("invalid method call");
@@ -1670,15 +1178,47 @@ RuntimeResult Interpreter::run_function(
         auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
           std::string error;
           Value native_result;
-          const Value* native_args = materialize_native_args(values);
-          if (native->callback == nullptr ||
-              !native->callback(
-                  runtime_,
-                  native_args,
-                  static_cast<uint32_t>(values.size()),
-                  native_result,
-                  error,
-                  native->user_data)) {
+          const bool use_fast = native->fast_callback != nullptr;
+          const Value* native_args = nullptr;
+          if (!use_fast) {
+            native_args = materialize_native_args(values);
+          }
+          bool ok = false;
+          if (use_fast && !native->fast_releases_vm_lock) {
+            ok = native->fast_callback(
+                runtime_,
+                values.leading,
+                values.leading_count,
+                values.registers,
+                values.register_args == nullptr ? nullptr : values.register_args->data(),
+                values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                native_result,
+                error,
+                native->user_data);
+          } else {
+            execution_lock.unlock();
+            ok = use_fast
+                ? native->fast_callback(
+                    runtime_,
+                    values.leading,
+                    values.leading_count,
+                    values.registers,
+                    values.register_args == nullptr ? nullptr : values.register_args->data(),
+                    values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                    native_result,
+                    error,
+                    native->user_data)
+                : native->callback != nullptr &&
+                      native->callback(
+                          runtime_,
+                          native_args,
+                          static_cast<uint32_t>(values.size()),
+                          native_result,
+                          error,
+                      native->user_data);
+            execution_lock.lock();
+          }
+          if (!ok) {
             Value pending;
             if (runtime_.take_pending_exception(pending)) {
               if (raise_exception_value(std::move(pending))) return false;
@@ -1781,6 +1321,43 @@ RuntimeResult Interpreter::run_function(
                 if (pushed_frame) goto switch_frame;
                 break;
               }
+            }
+          }
+        }
+
+        if (auto* module_object = value_as_module(regs[in.a])) {
+          if (!call_site_cache.empty()) {
+            auto& cache = call_site_cache[ip];
+            if (cache.callee_object == regs[in.a].as.obj &&
+                cache.class_version == module_object->version &&
+                cache.kind == CallSiteKind::NativeFunction) {
+              if (!call_native_function(cache.native, call_args, regs[in.dst])) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              break;
+            }
+          }
+
+          std::string module_error;
+          uint32_t module_slot = 0;
+          if (module_find_attr_slot(regs[in.a], name, module_slot, module_error) &&
+              module_slot < module_object->slots.size()) {
+            const Value& module_attr = module_object->slots[module_slot];
+            if (auto* native = value_as_native_function(module_attr)) {
+              if (!call_site_cache.empty()) {
+                auto& cache = call_site_cache[ip];
+                cache.callee_object = regs[in.a].as.obj;
+                cache.kind = CallSiteKind::NativeFunction;
+                cache.function = nullptr;
+                cache.native = native;
+                cache.class_version = module_object->version;
+              }
+              if (!call_native_function(native, call_args, regs[in.dst])) {
+                if (!result.errors.empty()) return result;
+                continue;
+              }
+              break;
             }
           }
         }
@@ -1912,15 +1489,47 @@ RuntimeResult Interpreter::run_function(
         auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
           std::string error;
           Value native_result;
-          const Value* native_args = materialize_native_args(values);
-          if (native->callback == nullptr ||
-              !native->callback(
-                  runtime_,
-                  native_args,
-                  static_cast<uint32_t>(values.size()),
-                  native_result,
-                  error,
-                  native->user_data)) {
+          const bool use_fast = native->fast_callback != nullptr;
+          const Value* native_args = nullptr;
+          if (!use_fast) {
+            native_args = materialize_native_args(values);
+          }
+          bool ok = false;
+          if (use_fast && !native->fast_releases_vm_lock) {
+            ok = native->fast_callback(
+                runtime_,
+                values.leading,
+                values.leading_count,
+                values.registers,
+                values.register_args == nullptr ? nullptr : values.register_args->data(),
+                values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                native_result,
+                error,
+                native->user_data);
+          } else {
+            execution_lock.unlock();
+            ok = use_fast
+                ? native->fast_callback(
+                    runtime_,
+                    values.leading,
+                    values.leading_count,
+                    values.registers,
+                    values.register_args == nullptr ? nullptr : values.register_args->data(),
+                    values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+                    native_result,
+                    error,
+                    native->user_data)
+                : native->callback != nullptr &&
+                      native->callback(
+                          runtime_,
+                          native_args,
+                          static_cast<uint32_t>(values.size()),
+                          native_result,
+                          error,
+                      native->user_data);
+            execution_lock.lock();
+          }
+          if (!ok) {
             Value pending;
             if (runtime_.take_pending_exception(pending)) {
               if (raise_exception_value(std::move(pending))) return false;

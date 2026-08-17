@@ -52,6 +52,7 @@ class Interpreter {
 public:
   explicit Interpreter(Runtime& runtime);
   RuntimeResult run(const ir::Module& module);
+  RuntimeResult run(std::shared_ptr<const ir::Module> module);
   RuntimeResult run_module(const ir::Module& module, Value globals_module);
   RuntimeResult run_module(
       const ir::Module& module,

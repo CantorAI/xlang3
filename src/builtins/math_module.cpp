@@ -48,6 +48,34 @@ bool unary_math(const char* name, double (*fn)(double), const Value* args, uint3
   return true;
 }
 
+XLANG3_HOT_INLINE const Value& fast_arg(
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t index) {
+  if (index < leading_count) {
+    return leading[index];
+  }
+  return registers[register_args[index - leading_count]];
+}
+
+XLANG3_HOT_INLINE bool fast_number_arg(
+    const char* name,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    double& out,
+    std::string& error) {
+  if (leading_count + register_arg_count != 1) {
+    error = std::string(name) + "() expected 1 argument";
+    return false;
+  }
+  return require_number_arg(fast_arg(leading, leading_count, registers, register_args, 0), name, out, error);
+}
+
 bool math_sqrt(
     Runtime& runtime,
     const Value* args,
@@ -58,6 +86,26 @@ bool math_sqrt(
   (void)runtime;
   (void)user_data;
   return unary_math("sqrt", std::sqrt, args, argc, out, error);
+}
+
+bool math_sqrt_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  double value = 0.0;
+  if (!fast_number_arg("sqrt", leading, leading_count, registers, register_args, register_arg_count, value, error)) {
+    return false;
+  }
+  value_set_number(out, std::sqrt(value));
+  return true;
 }
 
 bool math_sin(
@@ -72,6 +120,26 @@ bool math_sin(
   return unary_math("sin", std::sin, args, argc, out, error);
 }
 
+bool math_sin_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  double value = 0.0;
+  if (!fast_number_arg("sin", leading, leading_count, registers, register_args, register_arg_count, value, error)) {
+    return false;
+  }
+  value_set_number(out, std::sin(value));
+  return true;
+}
+
 bool math_cos(
     Runtime& runtime,
     const Value* args,
@@ -84,14 +152,34 @@ bool math_cos(
   return unary_math("cos", std::cos, args, argc, out, error);
 }
 
+bool math_cos_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  double value = 0.0;
+  if (!fast_number_arg("cos", leading, leading_count, registers, register_args, register_arg_count, value, error)) {
+    return false;
+  }
+  value_set_number(out, std::cos(value));
+  return true;
+}
+
 } // namespace
 
 void register_math_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "math");
   builder.value("pi", Value::number(3.14159265358979323846))
-      .function("sqrt", math_sqrt)
-      .function("sin", math_sin)
-      .function("cos", math_cos);
+      .function("sqrt", math_sqrt, math_sqrt_fast)
+      .function("sin", math_sin, math_sin_fast)
+      .function("cos", math_cos, math_cos_fast);
   runtime.register_module("math", builder.finish());
 }
 

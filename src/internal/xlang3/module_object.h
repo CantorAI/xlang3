@@ -46,13 +46,18 @@ std::string module_to_string(const Value& value);
 bool module_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool module_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool module_find_attr_slot(const Value& object, const std::string& name, uint32_t& slot, std::string& error);
+bool module_ensure_attr_slots(Value& object, const std::vector<std::string>& names, std::string& error);
 
 class NativeModuleBuilder {
 public:
   NativeModuleBuilder(Runtime& runtime, std::string name);
 
   NativeModuleBuilder& value(std::string name, Value value);
-  NativeModuleBuilder& function(std::string name, NativeFunctionCallback callback);
+  NativeModuleBuilder& function(
+      std::string name,
+      NativeFunctionCallback callback,
+      NativeFastCallCallback fast_callback = nullptr,
+      bool fast_releases_vm_lock = false);
   Value finish();
 
 private:

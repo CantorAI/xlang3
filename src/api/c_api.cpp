@@ -235,7 +235,8 @@ X3Status x3_runtime_eval_file(X3Runtime* runtime, const char* path, X3Value* res
 
   rt->prepend_import_root(std::filesystem::path(path).parent_path());
   xlang3::Interpreter interpreter(*rt);
-  auto exec_result = interpreter.run(lowered.module);
+  auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+  auto exec_result = interpreter.run(std::move(module));
   if (!exec_result.errors.empty()) {
     return fail(rt, exec_result.errors.front());
   }

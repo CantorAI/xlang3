@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/sema.h"
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -55,7 +56,8 @@ inline CaseResult run_source(const std::string& source, std::string& output) {
   std::ostringstream out;
   Runtime runtime(out);
   Interpreter interp(runtime);
-  auto run_result = interp.run(lowered.module);
+  auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+  auto run_result = interp.run(std::move(module));
   if (!run_result.errors.empty()) {
     result.ok = false;
     result.errors.insert(result.errors.end(), run_result.errors.begin(), run_result.errors.end());

@@ -12,18 +12,43 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/builtins.h"
+#pragma once
+
+#include <mutex>
 
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime) {
-  register_exception_builtins(runtime);
-  register_io_builtins(runtime);
-  register_sequence_builtins(runtime);
-  register_raw_block_builtins(runtime);
-  register_builtin_modules(runtime);
-  register_math_module(runtime);
-  register_thread_modules(runtime);
-}
+#ifndef XLANG3_VM_GLOBAL_LOCK
+#define XLANG3_VM_GLOBAL_LOCK 0
+#endif
+
+std::recursive_mutex& xlang_runtime_execution_lock();
+
+class XlangRuntimeExecutionGuard {
+public:
+  XlangRuntimeExecutionGuard() {
+#if XLANG3_VM_GLOBAL_LOCK
+    xlang_runtime_execution_lock().lock();
+#endif
+  }
+
+  ~XlangRuntimeExecutionGuard() {
+#if XLANG3_VM_GLOBAL_LOCK
+    xlang_runtime_execution_lock().unlock();
+#endif
+  }
+
+  void lock() {
+#if XLANG3_VM_GLOBAL_LOCK
+    xlang_runtime_execution_lock().lock();
+#endif
+  }
+
+  void unlock() {
+#if XLANG3_VM_GLOBAL_LOCK
+    xlang_runtime_execution_lock().unlock();
+#endif
+  }
+};
 
 } // namespace xlang3

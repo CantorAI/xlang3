@@ -56,17 +56,28 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/mapping.cpp
   src/runtime/set_object.cpp
   src/runtime/module_object.cpp
+  src/runtime/module_slots.cpp
   src/runtime/runtime.cpp
   src/runtime/vfs.cpp
   src/parser/source_cursor.cpp
   src/parser/lexer.cpp
   src/parser/parser.cpp
   src/sema/scope_analysis.cpp
+  src/sema/xlang_module_globals.cpp
   src/sema/lower.cpp
   src/ir/codec.cpp
-  src/executor/interpreter.cpp
+  src/executor/xlang_vm/xlang_interpreter.cpp
+  src/executor/xlang_vm/xlang_vm_attr.cpp
+  src/executor/xlang_vm/xlang_vm_loop.cpp
   src/rpc/object_table.cpp
   src/rpc/memory_file_store.cpp
+)
+
+set(XLANG3_THREAD_RUNTIME_SOURCES
+  src/runtime/modules/thread/runtime_lock.cpp
+  src/runtime/modules/thread/thread_module.cpp
+  src/runtime/modules/thread/threading_module.cpp
+  src/runtime/modules/thread/thread_objects.cpp
 )
 
 if(NOT XLANG3_EMBEDDED)
@@ -93,6 +104,7 @@ endif()
 
 add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
+add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
@@ -104,16 +116,20 @@ set_target_properties(xlang3_runtime_static PROPERTIES
 
 target_compile_definitions(xlang3_runtime PRIVATE XLANG3_BUILD_SHARED)
 
-foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static)
+foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime)
 target_include_directories(${xlang3_runtime_target}
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/thread
 )
 
 target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
 endforeach()
+
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime)
 
 add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
@@ -137,6 +153,8 @@ add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
+add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
+add_xlang3_cpp_test(xlang3_threading_tests tests/cpp/threading_tests.cpp)
 add_xlang3_cpp_test(xlang3_ir_codec_tests tests/cpp/ir_codec_tests.cpp)
 
 add_executable(xlang3_native_package_real_tests tests/cpp/native_package_real_tests.cpp)

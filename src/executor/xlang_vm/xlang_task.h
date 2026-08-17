@@ -14,17 +14,41 @@ limitations under the License.
 */
 #pragma once
 
+#include "xlang_thread.h"
 #include "xlang3/runtime.h"
+
+#include <cstdint>
+
+/*
+XlangVM design note
+Author: Shawn Xiong
+
+Purpose:
+Scheduler handle for resumable VM execution.
+
+Runtime rule:
+A task tracks completion, cancellation, result, and exception state. It may run
+cooperatively by the XlangVM scheduler or by a native task pool. It is not a
+physical OS thread.
+*/
 
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime);
-void register_exception_builtins(Runtime& runtime);
-void register_io_builtins(Runtime& runtime);
-void register_sequence_builtins(Runtime& runtime);
-void register_raw_block_builtins(Runtime& runtime);
-void register_builtin_modules(Runtime& runtime);
-void register_math_module(Runtime& runtime);
-void register_thread_modules(Runtime& runtime);
+enum class XlangVMTaskState : uint8_t {
+  Pending,
+  Running,
+  Waiting,
+  Completed,
+  Cancelled,
+  Failed,
+};
+
+struct XlangVMTask {
+  uint64_t id = 0;
+  XlangVMThread* thread = nullptr;
+  XlangVMTaskState state = XlangVMTaskState::Pending;
+  Value result;
+  Value exception;
+};
 
 } // namespace xlang3

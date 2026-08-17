@@ -15,6 +15,8 @@ limitations under the License.
 #include "xlang3/sema.h"
 #include "xlang3/scope_analysis.h"
 
+#include "xlang_module_globals.h"
+
 #include <cstdlib>
 #include <unordered_map>
 #include <unordered_set>
@@ -208,12 +210,16 @@ public:
       bool is_module = false,
       std::string instance_slot_self = {},
       std::unordered_map<std::string, uint32_t> instance_slots = {},
-      std::unordered_map<std::string, ClassInfo> class_infos = {})
+      std::unordered_map<std::string, ClassInfo> class_infos = {},
+      std::unordered_map<std::string, uint32_t> module_global_slots = {},
+      std::unordered_set<uint32_t> imported_module_slots = {})
       : module_(module),
         is_module_(is_module),
         instance_slot_self_(std::move(instance_slot_self)),
         instance_slots_(std::move(instance_slots)),
-        class_infos_(std::move(class_infos)) {
+        class_infos_(std::move(class_infos)),
+        module_global_slots_(std::move(module_global_slots)),
+        imported_module_slots_(std::move(imported_module_slots)) {
     fn_.name = std::move(name);
     fn_.params = std::move(params);
     fn_.free_vars = std::move(free_vars);
@@ -367,6 +373,19 @@ private:
     return cell_indices_.find(name) != cell_indices_.end();
   }
 
+  bool module_global_slot(const std::string& name, uint32_t& slot) const {
+    auto it = module_global_slots_.find(name);
+    if (it == module_global_slots_.end()) {
+      return false;
+    }
+    slot = it->second;
+    return true;
+  }
+
+  bool imported_module_slot(const std::string& name, uint32_t& slot) const {
+    return module_global_slot(name, slot) && imported_module_slots_.find(slot) != imported_module_slots_.end();
+  }
+
   bool direct_local_slot(const std::string& name, uint32_t& slot) const {
     const auto resolved = resolve_name(name);
     if (is_module_ || sema::contains(global_names_, resolved) || is_cell_local(resolved)) {
@@ -422,7 +441,12 @@ private:
     const auto resolved = resolve_name(name);
     if ((is_module_ && hidden_locals_.find(resolved) == hidden_locals_.end()) ||
         (!is_module_ && sema::contains(global_names_, resolved))) {
-      emit(ir::Op::StoreGlobal, add_name(resolved), reg);
+      uint32_t slot = 0;
+      if (module_global_slot(resolved, slot)) {
+        emit(ir::Op::StoreModuleSlot, slot, reg);
+      } else {
+        emit(ir::Op::StoreGlobal, add_name(resolved), reg);
+      }
     } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
       emit(ir::Op::StoreFree, free_it->second, reg);
     } else if (is_cell_local(resolved)) {
@@ -694,7 +718,8 @@ private:
     const auto free_vars = closure_names_for_child(fn);
     FunctionLowerer child_lowerer(
         module_, fn.name, fn.params, free_vars, fn.body, false,
-        std::move(instance_slot_self), std::move(instance_slots), class_infos_);
+        std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
+        imported_module_slots_);
     child_lowerer.lower_body(fn.body);
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
@@ -804,6 +829,10 @@ private:
         store_named_value(import->bind_name, bind_reg);
       } else {
         store_named_value(import->bind_name, reg);
+      }
+      uint32_t import_slot = 0;
+      if (module_global_slot(import->bind_name, import_slot)) {
+        imported_module_slots_.insert(import_slot);
       }
       return;
     }
@@ -917,7 +946,12 @@ private:
       } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
         emit(ir::Op::LoadFree, reg, free_it->second);
       } else {
-        emit(ir::Op::LoadGlobal, reg, add_name(resolved));
+        uint32_t slot = 0;
+        if (module_global_slot(resolved, slot)) {
+          emit(ir::Op::LoadModuleSlot, reg, slot);
+        } else {
+          emit(ir::Op::LoadGlobal, reg, add_name(resolved));
+        }
       }
       return reg;
     }
@@ -952,6 +986,20 @@ private:
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
       if (auto* attr = dynamic_cast<const ast::AttrExpr*>(call->callee.get())) {
+        uint32_t imported_slot = 0;
+        auto* module_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        if (!is_module_ && module_name != nullptr) {
+          const auto resolved = resolve_name(module_name->name);
+          if (imported_module_slot(resolved, imported_slot)) {
+            std::vector<uint32_t> arg_regs;
+            for (const auto& arg : call->args) {
+              arg_regs.push_back(lower_expr(*arg));
+            }
+            const auto dst = new_reg();
+            emit(ir::Op::CallModuleMethod, dst, imported_slot, add_name(attr->name), add_call_args(std::move(arg_regs)));
+            return dst;
+          }
+        }
         const auto object = lower_expr(*attr->object);
         std::vector<uint32_t> arg_regs;
         for (const auto& arg : call->args) {
@@ -1092,6 +1140,8 @@ private:
   std::string instance_slot_self_;
   std::unordered_map<std::string, uint32_t> instance_slots_;
   std::unordered_map<std::string, ClassInfo> class_infos_;
+  std::unordered_map<std::string, uint32_t> module_global_slots_;
+  std::unordered_set<uint32_t> imported_module_slots_;
   ir::Function fn_;
   sema::NameSet local_name_set_;
   sema::NameSet global_names_;
@@ -1109,7 +1159,9 @@ private:
 
 LowerResult lower_to_ir(const ast::Module& module_ast) {
   LowerResult result;
-  FunctionLowerer lowerer(result.module, "<module>", {}, {}, module_ast.body, true);
+  auto global_slots = collect_module_global_slots(module_ast);
+  result.module.global_slots = global_slots.names;
+  FunctionLowerer lowerer(result.module, "<module>", {}, {}, module_ast.body, true, {}, {}, {}, global_slots.slots);
   lowerer.lower_body(module_ast.body);
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);

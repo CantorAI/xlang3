@@ -38,6 +38,8 @@ enum class Op : uint16_t {
   LoadFreeObject,
   LoadGlobal,
   StoreGlobal,
+  LoadModuleSlot,
+  StoreModuleSlot,
   ImportModule,
   ImportFrom,
   RawBlock,
@@ -79,6 +81,7 @@ enum class Op : uint16_t {
   LoadException,
   LoadExceptionType,
   MatchException,
+  CallModuleMethod,
   CallMethod,
   Call,
   Pop,
@@ -130,6 +133,7 @@ struct Function {
 };
 
 struct Module {
+  std::vector<std::string> global_slots;
   std::vector<Function> functions;
   uint32_t entry = 0;
 };
