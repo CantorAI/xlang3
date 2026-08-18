@@ -22,6 +22,72 @@ limitations under the License.
 
 namespace xlang3 {
 
+namespace {
+
+std::string trim_ascii(std::string_view text) {
+  size_t first = 0;
+  while (first < text.size() && std::isspace(static_cast<unsigned char>(text[first]))) {
+    ++first;
+  }
+  size_t last = text.size();
+  while (last > first && std::isspace(static_cast<unsigned char>(text[last - 1]))) {
+    --last;
+  }
+  return std::string(text.substr(first, last - first));
+}
+
+std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
+  std::vector<ast::FStringExpr::Part> parts;
+  std::string literal;
+  for (size_t i = 0; i < text.size();) {
+    if (text[i] == '{') {
+      if (i + 1 < text.size() && text[i + 1] == '{') {
+        literal.push_back('{');
+        i += 2;
+        continue;
+      }
+      if (!literal.empty()) {
+        parts.push_back(ast::FStringExpr::Part{false, std::move(literal)});
+        literal.clear();
+      }
+      const size_t expr_start = ++i;
+      int depth = 0;
+      while (i < text.size()) {
+        if (text[i] == '(' || text[i] == '[' || text[i] == '{') {
+          ++depth;
+        } else if ((text[i] == ')' || text[i] == ']' || text[i] == '}') && depth > 0) {
+          --depth;
+        } else if (text[i] == '}' && depth == 0) {
+          break;
+        }
+        ++i;
+      }
+      auto expr = std::string_view(text.data() + expr_start, i - expr_start);
+      size_t cut = expr.find_first_of("!:");
+      if (cut != std::string_view::npos) {
+        expr = expr.substr(0, cut);
+      }
+      parts.push_back(ast::FStringExpr::Part{true, trim_ascii(expr)});
+      if (i < text.size() && text[i] == '}') {
+        ++i;
+      }
+      continue;
+    }
+    if (text[i] == '}' && i + 1 < text.size() && text[i + 1] == '}') {
+      literal.push_back('}');
+      i += 2;
+      continue;
+    }
+    literal.push_back(text[i++]);
+  }
+  if (!literal.empty()) {
+    parts.push_back(ast::FStringExpr::Part{false, std::move(literal)});
+  }
+  return parts;
+}
+
+} // namespace
+
 Parser::Parser(LexResult lex)
     : tokens_(std::move(lex.tokens)),
       owned_text_(std::move(lex.owned_text)),
@@ -432,6 +498,50 @@ ast::StmtPtr Parser::parse_simple_statement() {
     return std::make_unique<ast::AssignStmt>(name, std::move(value));
   }
   auto expr = parse_expression();
+  auto match_aug_assign = [&]() -> std::string {
+    if (match(TokenKind::PlusAssign)) return "+";
+    if (match(TokenKind::MinusAssign)) return "-";
+    if (match(TokenKind::StarAssign)) return "*";
+    if (match(TokenKind::SlashAssign)) return "/";
+    if (match(TokenKind::DoubleSlashAssign)) return "//";
+    if (match(TokenKind::PercentAssign)) return "%";
+    if (match(TokenKind::DoubleStarAssign)) return "**";
+    if (match(TokenKind::AmpAssign)) return "&";
+    if (match(TokenKind::PipeAssign)) return "|";
+    if (match(TokenKind::CaretAssign)) return "^";
+    if (match(TokenKind::LeftShiftAssign)) return "<<";
+    if (match(TokenKind::RightShiftAssign)) return ">>";
+    return {};
+  };
+  if (auto op = match_aug_assign(); !op.empty()) {
+    auto value = parse_expression();
+    consume_simple_statement_end();
+    if (dynamic_cast<ast::NameExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::SubscriptExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::AttrExpr*>(expr.get()) != nullptr) {
+      return std::make_unique<ast::AugAssignStmt>(std::move(expr), std::move(op), std::move(value));
+    }
+    error_here("expected assignable target");
+    return nullptr;
+  }
+  if (match(TokenKind::Colon)) {
+    auto annotation = parse_expression();
+    ast::ExprPtr value;
+    if (match(TokenKind::Assign)) {
+      value = parse_expression();
+    }
+    consume_simple_statement_end();
+    if (dynamic_cast<ast::NameExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::SubscriptExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::AttrExpr*>(expr.get()) != nullptr) {
+      return std::make_unique<ast::AnnotatedAssignStmt>(
+          std::move(expr),
+          std::move(annotation),
+          std::move(value));
+    }
+    error_here("expected assignable annotated target");
+    return nullptr;
+  }
   if (match(TokenKind::Assign)) {
     auto value = parse_expression();
     consume_simple_statement_end();
@@ -446,6 +556,12 @@ ast::StmtPtr Parser::parse_simple_statement() {
           std::move(attr->object),
       attr->name,
           std::move(value));
+    }
+    if (dynamic_cast<ast::NameExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::TupleExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::ListExpr*>(expr.get()) != nullptr ||
+        dynamic_cast<ast::StarredExpr*>(expr.get()) != nullptr) {
+      return std::make_unique<ast::UnpackAssignStmt>(std::move(expr), std::move(value));
     }
     error_here("expected assignable target");
     return nullptr;
@@ -580,7 +696,21 @@ std::vector<ast::StmtPtr> Parser::parse_block() {
 }
 
 ast::ExprPtr Parser::parse_expression() {
-  return parse_tuple();
+  return parse_named_expression();
+}
+
+ast::ExprPtr Parser::parse_named_expression() {
+  auto expr = parse_tuple();
+  if (match(TokenKind::ColonEqual)) {
+    auto* name = dynamic_cast<ast::NameExpr*>(expr.get());
+    if (name == nullptr) {
+      errors_.push_back("assignment expression target must be a name");
+      return expr;
+    }
+    const auto target = name->name;
+    return std::make_unique<ast::NamedExpr>(target, parse_expression());
+  }
+  return expr;
 }
 
 ast::ExprPtr Parser::parse_tuple() {
@@ -669,6 +799,7 @@ ast::ExprPtr Parser::parse_lambda() {
 
 ast::ExprPtr Parser::parse_compare() {
   auto expr = parse_bit_or();
+  std::vector<std::pair<std::string, ast::ExprPtr>> comparisons;
   while (true) {
     std::string op;
     if (match(TokenKind::EqualEqual)) op = "==";
@@ -687,9 +818,16 @@ ast::ExprPtr Parser::parse_compare() {
       op = "not in";
     }
     else break;
-    expr = std::make_unique<ast::BinaryExpr>(std::move(expr), op, parse_bit_or());
+    comparisons.push_back(std::make_pair(std::move(op), parse_bit_or()));
   }
-  return expr;
+  if (comparisons.empty()) {
+    return expr;
+  }
+  if (comparisons.size() == 1) {
+    auto only = std::move(comparisons.front());
+    return std::make_unique<ast::BinaryExpr>(std::move(expr), std::move(only.first), std::move(only.second));
+  }
+  return std::make_unique<ast::CompareChainExpr>(std::move(expr), std::move(comparisons));
 }
 
 ast::ExprPtr Parser::parse_bit_or() {
@@ -763,6 +901,9 @@ ast::ExprPtr Parser::parse_power() {
 }
 
 ast::ExprPtr Parser::parse_unary() {
+  if (match(TokenKind::Star)) {
+    return std::make_unique<ast::StarredExpr>(parse_unary());
+  }
   if (match(TokenKind::Minus)) {
     return std::make_unique<ast::UnaryExpr>("-", parse_unary());
   }
@@ -815,7 +956,33 @@ ast::ExprPtr Parser::parse_call() {
         expr = std::make_unique<ast::CallExpr>(std::move(expr), std::move(args));
       }
     } else if (match(TokenKind::LBracket)) {
-      auto index = parse_expression();
+      ast::ExprPtr first;
+      if (!check(TokenKind::Colon) && !check(TokenKind::RBracket)) {
+        first = parse_expression();
+      }
+      ast::ExprPtr index;
+      if (match(TokenKind::Colon)) {
+        auto none_expr = []() {
+          return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
+        };
+        ast::ExprPtr start = std::move(first);
+        ast::ExprPtr stop;
+        ast::ExprPtr step;
+        if (!check(TokenKind::Colon) && !check(TokenKind::RBracket)) {
+          stop = parse_expression();
+        }
+        if (match(TokenKind::Colon)) {
+          if (!check(TokenKind::RBracket)) {
+            step = parse_expression();
+          }
+        }
+        if (start == nullptr) start = none_expr();
+        if (stop == nullptr) stop = none_expr();
+        if (step == nullptr) step = none_expr();
+        index = std::make_unique<ast::SliceExpr>(std::move(start), std::move(stop), std::move(step));
+      } else {
+        index = std::move(first);
+      }
       consume(TokenKind::RBracket, "expected ']' after subscript");
       expr = std::make_unique<ast::SubscriptExpr>(std::move(expr), std::move(index));
     } else if (match(TokenKind::Dot)) {
@@ -830,9 +997,28 @@ ast::ExprPtr Parser::parse_call() {
 }
 
 ast::ExprPtr Parser::parse_primary() {
+  auto parse_extra_comp_clauses = [&]() {
+    std::vector<ast::CompClause> clauses;
+    while (match(TokenKind::KwFor)) {
+      ast::CompClause clause;
+      const Token target = peek();
+      consume(TokenKind::Identifier, "expected comprehension target after for");
+      clause.target = std::string(target.text);
+      consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+      clause.iterable = parse_expression();
+      if (match(TokenKind::KwIf)) {
+        clause.filter = parse_expression();
+      }
+      clauses.push_back(std::move(clause));
+    }
+    return clauses;
+  };
+
   if (match(TokenKind::Integer)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, std::string(previous().text));
   if (match(TokenKind::Double)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Double, std::string(previous().text));
   if (match(TokenKind::String)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, std::string(previous().text));
+  if (match(TokenKind::Bytes)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bytes, std::string(previous().text));
+  if (match(TokenKind::FString)) return std::make_unique<ast::FStringExpr>(parse_fstring_parts(previous().text));
   if (match(TokenKind::KwTrue)) {
     auto lit = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bool);
     lit->bool_value = true;
@@ -850,6 +1036,22 @@ ast::ExprPtr Parser::parse_primary() {
       return std::make_unique<ast::TupleExpr>(std::vector<ast::ExprPtr>{});
     }
     auto expr = parse_expression();
+    if (match(TokenKind::KwFor)) {
+      const Token target = peek();
+      consume(TokenKind::Identifier, "expected comprehension target after for");
+      consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+      auto iterable = parse_expression();
+      ast::ExprPtr filter;
+      if (match(TokenKind::KwIf)) {
+        filter = parse_expression();
+      }
+      auto extra_clauses = parse_extra_comp_clauses();
+      consume(TokenKind::RParen, "expected ')' after generator expression");
+      auto gen = std::make_unique<ast::GeneratorExpr>(
+          std::move(expr), std::string(target.text), std::move(iterable), std::move(filter));
+      gen->extra_clauses = std::move(extra_clauses);
+      return gen;
+    }
     consume(TokenKind::RParen, "expected ')' after expression");
     return expr;
   }
@@ -867,8 +1069,11 @@ ast::ExprPtr Parser::parse_primary() {
       if (match(TokenKind::KwIf)) {
         filter = parse_expression();
       }
+      auto extra_clauses = parse_extra_comp_clauses();
       consume(TokenKind::RBracket, "expected ']' after list comprehension");
-      return std::make_unique<ast::ListCompExpr>(std::move(first), std::string(target.text), std::move(iterable), std::move(filter));
+      auto comp = std::make_unique<ast::ListCompExpr>(std::move(first), std::string(target.text), std::move(iterable), std::move(filter));
+      comp->extra_clauses = std::move(extra_clauses);
+      return comp;
     }
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));
@@ -884,8 +1089,25 @@ ast::ExprPtr Parser::parse_primary() {
     }
     auto first = parse_conditional();
     if (match(TokenKind::Colon)) {
+      auto value = parse_conditional();
+      if (match(TokenKind::KwFor)) {
+        const Token target = peek();
+        consume(TokenKind::Identifier, "expected comprehension target after for");
+        consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+        auto iterable = parse_expression();
+        ast::ExprPtr filter;
+        if (match(TokenKind::KwIf)) {
+          filter = parse_expression();
+        }
+        auto extra_clauses = parse_extra_comp_clauses();
+        consume(TokenKind::RBrace, "expected '}' after dict comprehension");
+        auto comp = std::make_unique<ast::DictCompExpr>(
+            std::move(first), std::move(value), std::string(target.text), std::move(iterable), std::move(filter));
+        comp->extra_clauses = std::move(extra_clauses);
+        return comp;
+      }
       std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
-      entries.push_back(std::make_pair(std::move(first), parse_conditional()));
+      entries.push_back(std::make_pair(std::move(first), std::move(value)));
       while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
         auto key = parse_conditional();
         consume(TokenKind::Colon, "expected ':' after dict key");
@@ -893,6 +1115,22 @@ ast::ExprPtr Parser::parse_primary() {
       }
       consume(TokenKind::RBrace, "expected '}' after dict literal");
       return std::make_unique<ast::DictExpr>(std::move(entries));
+    }
+    if (match(TokenKind::KwFor)) {
+      const Token target = peek();
+      consume(TokenKind::Identifier, "expected comprehension target after for");
+      consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+      auto iterable = parse_expression();
+      ast::ExprPtr filter;
+      if (match(TokenKind::KwIf)) {
+        filter = parse_expression();
+      }
+      auto extra_clauses = parse_extra_comp_clauses();
+      consume(TokenKind::RBrace, "expected '}' after set comprehension");
+      auto comp = std::make_unique<ast::SetCompExpr>(
+          std::move(first), std::string(target.text), std::move(iterable), std::move(filter));
+      comp->extra_clauses = std::move(extra_clauses);
+      return comp;
     }
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));

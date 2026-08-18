@@ -44,6 +44,10 @@ enum class ValueTag : uint32_t {
 
 enum class ObjectKind : uint32_t {
   String = 1,
+  Bytes,
+  ByteArray,
+  MemoryView,
+  Slice,
   Tuple,
   List,
   Dict,
@@ -61,6 +65,7 @@ enum class ObjectKind : uint32_t {
   Class,
   Instance,
   BoundMethod,
+  Property,
   File,
 };
 
@@ -120,6 +125,16 @@ struct StringObject {
   std::string value;
 };
 
+struct BytesObject {
+  Object header;
+  std::string value;
+};
+
+struct ByteArrayObject {
+  Object header;
+  std::string value;
+};
+
 struct Value {
   ValueTag tag = ValueTag::Invalid;
   uint32_t flags = 0;
@@ -143,6 +158,10 @@ struct Value {
   static Value int64(int64_t value);
   static Value number(double value);
   static Value string(std::string value);
+  static Value bytes(std::string value);
+  static Value bytearray(std::string value);
+  static Value memoryview(Value owner, size_t offset, size_t size, bool readonly);
+  static Value slice(Value start, Value stop, Value step);
   static Value tuple(std::vector<Value> items);
   static Value list(std::vector<Value> items);
   static Value dict(std::vector<std::pair<Value, Value>> entries);
@@ -178,6 +197,7 @@ struct Value {
       std::vector<std::string> instance_slots = {});
   static Value instance(Value klass);
   static Value bound_method(Value self, Value function);
+  static Value property(Value fget, Value fset, Value fdel, Value doc);
 };
 
 XLANG3_HOT_INLINE Value Value::invalid() {
@@ -211,6 +231,13 @@ XLANG3_HOT_INLINE Value Value::number(double value) {
   return v;
 }
 
+struct SliceObject {
+  Object header;
+  Value start;
+  Value stop;
+  Value step;
+};
+
 struct TupleObject {
   Object header;
   std::vector<Value> items;
@@ -231,6 +258,22 @@ struct FunctionObject {
   std::shared_ptr<const ir::Module> module;
 };
 
+struct MemoryViewObject {
+  Object header;
+  Value owner;
+  size_t offset = 0;
+  size_t size = 0;
+  bool readonly = true;
+};
+
+struct PropertyObject {
+  Object header;
+  Value fget;
+  Value fset;
+  Value fdel;
+  Value doc;
+};
+
 XLANG3_HOT_INLINE StringObject* value_as_string(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
     return nullptr;
@@ -238,11 +281,46 @@ XLANG3_HOT_INLINE StringObject* value_as_string(const Value& value) {
   return reinterpret_cast<StringObject*>(value.as.obj);
 }
 
+XLANG3_HOT_INLINE BytesObject* value_as_bytes(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Bytes) {
+    return nullptr;
+  }
+  return reinterpret_cast<BytesObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE SliceObject* value_as_slice(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Slice) {
+    return nullptr;
+  }
+  return reinterpret_cast<SliceObject*>(value.as.obj);
+}
+
 XLANG3_HOT_INLINE TupleObject* value_as_tuple(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Tuple) {
     return nullptr;
   }
   return reinterpret_cast<TupleObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE ByteArrayObject* value_as_bytearray(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::ByteArray) {
+    return nullptr;
+  }
+  return reinterpret_cast<ByteArrayObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE MemoryViewObject* value_as_memoryview(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::MemoryView) {
+    return nullptr;
+  }
+  return reinterpret_cast<MemoryViewObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE PropertyObject* value_as_property(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Property) {
+    return nullptr;
+  }
+  return reinterpret_cast<PropertyObject*>(value.as.obj);
 }
 
 struct FileObject {

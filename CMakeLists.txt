@@ -40,6 +40,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/builtins/functional_builtins.cpp
   src/builtins/io_builtins.cpp
   src/builtins/math_module.cpp
+  src/builtins/object_type_builtins.cpp
   src/builtins/raw_block_builtins.cpp
   src/builtins/sequence_builtins.cpp
   src/runtime/c_api_bridge.cpp
@@ -51,6 +52,8 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/methods/file_methods.cpp
   src/runtime/methods/set_methods.cpp
   src/runtime/methods/string_methods.cpp
+  src/runtime/methods/bytes_methods.cpp
+  src/runtime/methods/property_methods.cpp
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
   src/runtime/object_model.cpp

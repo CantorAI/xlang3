@@ -1,0 +1,7 @@
+b'A\x00B' 3 65 0 b'\x00B'
+bytearray(b'aZc!?') 5 b'aZc!?'
+5 97 b'Zc'
+bytearray(b'AZc!?') b'AZc!?'
+121 b'x' b'xy'
+True True True
+b'AZc!?' bytearray(b'AZc!?')

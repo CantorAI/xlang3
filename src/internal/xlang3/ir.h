@@ -87,10 +87,20 @@ enum class Op : uint16_t {
   MakeList,
   MakeDict,
   MakeSet,
+  MakeSlice,
   ListAppend,
+  ListExtend,
+  DictSet,
+  SetAdd,
+  SetUpdate,
+  TupleFromList,
+  Len,
+  JoinLen,
+  StringStripReplaceSplit,
   GetItem,
   SetItem,
   DeleteItem,
+  UnpackSequence,
   GetIter,
   IterNext,
   ForRangeConstLocalNext,
@@ -100,6 +110,7 @@ enum class Op : uint16_t {
   Div,
   FloorDiv,
   Mod,
+  ModConst,
   Pow,
   BitAnd,
   BitOr,
@@ -183,6 +194,7 @@ struct Function {
   std::vector<std::vector<std::pair<std::string, uint32_t>>> class_attrs;
   std::vector<std::vector<std::string>> class_instance_slots;
   std::vector<std::pair<uint32_t, uint32_t>> range_specs;
+  std::vector<std::pair<uint32_t, uint32_t>> string_replace_specs;
   std::vector<Instr> code;
 };
 

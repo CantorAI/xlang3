@@ -73,6 +73,176 @@ bool update_line_join_state(std::string_view line, int& bracket_depth, bool& exp
   return bracket_depth > 0 || explicit_continue;
 }
 
+bool is_name_char(char ch) {
+  return std::isalnum(static_cast<unsigned char>(ch)) || ch == '_';
+}
+
+bool is_raw_string_prefix(char ch) {
+  return ch == 'r' || ch == 'R';
+}
+
+bool is_string_prefix_char(char ch) {
+  return ch == 'r' || ch == 'R' || ch == 'b' || ch == 'B' || ch == 'f' || ch == 'F' || ch == 'u' || ch == 'U';
+}
+
+int hex_digit(char ch) {
+  if (ch >= '0' && ch <= '9') return ch - '0';
+  if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+  if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+  return -1;
+}
+
+void append_utf8(uint32_t codepoint, std::string& out) {
+  if (codepoint <= 0x7f) {
+    out.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7ff) {
+    out.push_back(static_cast<char>(0xc0u | (codepoint >> 6u)));
+    out.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  } else if (codepoint <= 0xffff) {
+    out.push_back(static_cast<char>(0xe0u | (codepoint >> 12u)));
+    out.push_back(static_cast<char>(0x80u | ((codepoint >> 6u) & 0x3fu)));
+    out.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  } else {
+    out.push_back(static_cast<char>(0xf0u | (codepoint >> 18u)));
+    out.push_back(static_cast<char>(0x80u | ((codepoint >> 12u) & 0x3fu)));
+    out.push_back(static_cast<char>(0x80u | ((codepoint >> 6u) & 0x3fu)));
+    out.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  }
+}
+
+bool append_hex_escape(std::string_view text, size_t& i, size_t digits, std::string& out) {
+  if (i + digits > text.size()) {
+    return false;
+  }
+  uint32_t value = 0;
+  for (size_t n = 0; n < digits; ++n) {
+    const int digit = hex_digit(text[i + n]);
+    if (digit < 0) {
+      return false;
+    }
+    value = (value << 4u) | static_cast<uint32_t>(digit);
+  }
+  i += digits;
+  append_utf8(value, out);
+  return true;
+}
+
+std::string decode_string_content(std::string_view text, bool raw) {
+  if (raw) {
+    return std::string(text);
+  }
+  std::string out;
+  out.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    if (text[i] != '\\' || i + 1 >= text.size()) {
+      out.push_back(text[i++]);
+      continue;
+    }
+    ++i;
+    const char esc = text[i++];
+    switch (esc) {
+      case 'n': out.push_back('\n'); break;
+      case 'r': out.push_back('\r'); break;
+      case 't': out.push_back('\t'); break;
+      case 'b': out.push_back('\b'); break;
+      case 'f': out.push_back('\f'); break;
+      case 'a': out.push_back('\a'); break;
+      case 'v': out.push_back('\v'); break;
+      case '\\':
+      case '\'':
+      case '"':
+        out.push_back(esc);
+        break;
+      case 'x':
+        if (!append_hex_escape(text, i, 2, out)) {
+          out += "\\x";
+        }
+        break;
+      case 'u':
+        if (!append_hex_escape(text, i, 4, out)) {
+          out += "\\u";
+        }
+        break;
+      case 'U':
+        if (!append_hex_escape(text, i, 8, out)) {
+          out += "\\U";
+        }
+        break;
+      default:
+        out.push_back(esc);
+        break;
+    }
+  }
+  return out;
+}
+
+struct StringPrefix {
+  size_t start = 0;
+  size_t quote = 0;
+  bool raw = false;
+  bool bytes = false;
+  bool fstring = false;
+  bool valid = false;
+};
+
+StringPrefix detect_string_prefix_for_quote(std::string_view line, size_t quote_pos) {
+  StringPrefix prefix;
+  prefix.start = quote_pos;
+  prefix.quote = quote_pos;
+  size_t start = quote_pos;
+  while (start > 0 && quote_pos - start < 2 && is_string_prefix_char(line[start - 1])) {
+    --start;
+  }
+  if (start > 0 && is_name_char(line[start - 1])) {
+    start = quote_pos;
+  }
+  bool raw = false;
+  bool bytes = false;
+  bool fstring = false;
+  bool valid = true;
+  for (size_t i = start; i < quote_pos; ++i) {
+    const char ch = line[i];
+    if (ch == 'r' || ch == 'R') raw = true;
+    else if (ch == 'b' || ch == 'B') bytes = true;
+    else if (ch == 'f' || ch == 'F') fstring = true;
+    else if (ch == 'u' || ch == 'U') {}
+    else valid = false;
+  }
+  if (bytes && fstring) {
+    valid = false;
+  }
+  prefix.start = valid ? start : quote_pos;
+  prefix.raw = raw;
+  prefix.bytes = bytes;
+  prefix.fstring = fstring;
+  prefix.valid = valid;
+  return prefix;
+}
+
+StringPrefix detect_string_start(std::string_view line, size_t pos) {
+  if (pos >= line.size()) {
+    return {};
+  }
+  if (line[pos] == '"' || line[pos] == '\'') {
+    auto prefix = detect_string_prefix_for_quote(line, pos);
+    prefix.start = pos;
+    prefix.valid = true;
+    return prefix;
+  }
+  if (!is_string_prefix_char(line[pos])) {
+    return {};
+  }
+  for (size_t quote = pos + 1; quote < line.size() && quote <= pos + 2; ++quote) {
+    if (line[quote] == '"' || line[quote] == '\'') {
+      auto prefix = detect_string_prefix_for_quote(line, quote);
+      if (prefix.valid && prefix.start == pos) {
+        return prefix;
+      }
+    }
+  }
+  return {};
+}
+
 void remove_trailing_backslash(std::string& line) {
   while (!line.empty() && (line.back() == ' ' || line.back() == '\t')) {
     line.pop_back();
@@ -145,8 +315,10 @@ LexResult Lexer::tokenize() {
 
     if (!opener.empty()) {
       const uint32_t start_line_no = line_no;
-      if (triple_pos > indent) {
-        tokenize_line(line.substr(0, triple_pos), line_no, indent);
+      const auto prefix = detect_string_prefix_for_quote(line, triple_pos);
+      const size_t prefix_start = prefix.start;
+      if (prefix_start > indent) {
+        tokenize_line(line.substr(0, prefix_start), line_no, indent);
       }
       std::string value;
       std::string suffix;
@@ -176,7 +348,9 @@ LexResult Lexer::tokenize() {
           break;
         }
       }
-      emit_owned(TokenKind::String, std::move(value), start_line_no, indent + 1, true);
+      value = decode_string_content(value, prefix.raw);
+      const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
+      emit_owned(kind, std::move(value), start_line_no, static_cast<uint32_t>(prefix_start + 1), true);
       if (suffix.find_first_not_of(" \t") != std::string::npos) {
         tokenize_line(std::string(indent, ' ') + suffix, line_no, indent);
       }
@@ -230,6 +404,39 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
     }
     if (ch == '#') {
       return;
+    }
+    const auto prefix = detect_string_start(line_text, i);
+    if (prefix.valid) {
+      const char quote = line_text[prefix.quote];
+      i = prefix.quote + 1;
+      std::string value;
+      bool closed = false;
+      while (i < line_text.size()) {
+        if (line_text[i] == quote) {
+          closed = true;
+          break;
+        }
+        if (!prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+          value.push_back(line_text[i++]);
+          value.push_back(line_text[i++]);
+          continue;
+        }
+        if (prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+          value.push_back(line_text[i++]);
+          value.push_back(line_text[i++]);
+          continue;
+        }
+        value.push_back(line_text[i++]);
+      }
+      if (!closed) {
+        errors_.push_back("line " + std::to_string(line_no) + ": unterminated string");
+        return;
+      }
+      ++i;
+      value = decode_string_content(value, prefix.raw);
+      const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
+      emit_owned(kind, std::move(value), line_no, col);
+      continue;
     }
     if (std::isalpha(static_cast<unsigned char>(ch)) || ch == '_') {
       size_t start = i++;
@@ -295,40 +502,26 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       emit(is_double ? TokenKind::Double : TokenKind::Integer, line_text.substr(start, i - start), line_no, col);
       continue;
     }
-    if (ch == '"' || ch == '\'') {
-      const char quote = ch;
-      size_t start = ++i;
-      std::string value;
-      bool closed = false;
-      while (i < line_text.size()) {
-        if (line_text[i] == quote) {
-          closed = true;
-          break;
-        }
-        if (line_text[i] == '\\' && i + 1 < line_text.size()) {
-          ++i;
-          if (line_text[i] == 'n') value.push_back('\n');
-          else value.push_back(line_text[i]);
-          ++i;
-          continue;
-        }
-        value.push_back(line_text[i++]);
-      }
-      if (!closed) {
-        errors_.push_back("line " + std::to_string(line_no) + ": unterminated string");
-        return;
-      }
-      ++i;
-      (void)start;
-      emit_owned(TokenKind::String, std::move(value), line_no, col);
-      continue;
-    }
+    auto three = i + 2 < line_text.size() ? line_text.substr(i, 3) : std::string_view{};
+    if (three == "**=") { emit(TokenKind::DoubleStarAssign, three, line_no, col); i += 3; continue; }
+    if (three == "//=") { emit(TokenKind::DoubleSlashAssign, three, line_no, col); i += 3; continue; }
+    if (three == "<<=") { emit(TokenKind::LeftShiftAssign, three, line_no, col); i += 3; continue; }
+    if (three == ">>=") { emit(TokenKind::RightShiftAssign, three, line_no, col); i += 3; continue; }
     auto two = i + 1 < line_text.size() ? line_text.substr(i, 2) : std::string_view{};
     if (two == "==") { emit(TokenKind::EqualEqual, two, line_no, col); i += 2; continue; }
+    if (two == ":=") { emit(TokenKind::ColonEqual, two, line_no, col); i += 2; continue; }
     if (two == "!=") { emit(TokenKind::NotEqual, two, line_no, col); i += 2; continue; }
     if (two == "<=") { emit(TokenKind::LessEqual, two, line_no, col); i += 2; continue; }
     if (two == ">=") { emit(TokenKind::GreaterEqual, two, line_no, col); i += 2; continue; }
     if (two == "->") { emit(TokenKind::Arrow, two, line_no, col); i += 2; continue; }
+    if (two == "+=") { emit(TokenKind::PlusAssign, two, line_no, col); i += 2; continue; }
+    if (two == "-=") { emit(TokenKind::MinusAssign, two, line_no, col); i += 2; continue; }
+    if (two == "*=") { emit(TokenKind::StarAssign, two, line_no, col); i += 2; continue; }
+    if (two == "/=") { emit(TokenKind::SlashAssign, two, line_no, col); i += 2; continue; }
+    if (two == "%=") { emit(TokenKind::PercentAssign, two, line_no, col); i += 2; continue; }
+    if (two == "&=") { emit(TokenKind::AmpAssign, two, line_no, col); i += 2; continue; }
+    if (two == "|=") { emit(TokenKind::PipeAssign, two, line_no, col); i += 2; continue; }
+    if (two == "^=") { emit(TokenKind::CaretAssign, two, line_no, col); i += 2; continue; }
     if (two == "**") { emit(TokenKind::DoubleStar, two, line_no, col); i += 2; continue; }
     if (two == "//") { emit(TokenKind::DoubleSlash, two, line_no, col); i += 2; continue; }
     if (two == "<<") { emit(TokenKind::LeftShift, two, line_no, col); i += 2; continue; }

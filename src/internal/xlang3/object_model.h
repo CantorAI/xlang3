@@ -26,10 +26,15 @@ struct ClassObject {
   Object header;
   std::string name;
   Value base;
+  std::vector<Value> bases;
   std::unordered_map<std::string, Value> attrs;
   std::vector<std::string> instance_slot_names;
   std::unordered_map<std::string, uint32_t> instance_slot_indices;
   uint64_t version = 1;
+  bool has_explicit_bases = false;
+  bool has_descriptors = false;
+  std::vector<Value> mro_cache;
+  uint64_t mro_cache_version = 0;
 };
 
 struct InstanceObject {
@@ -89,6 +94,7 @@ std::string object_model_to_string(const Value& value);
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_delete_attr(Value& object, const std::string& name, std::string& error);
+bool object_get_class_attr_for_instance(const Value& object, const std::string& name, Value& out, std::string& error);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool class_set_base(Value klass, Value base, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);

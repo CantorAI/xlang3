@@ -59,10 +59,20 @@ const char* op_name(Op op) {
     case Op::MakeList: return "MakeList";
     case Op::MakeDict: return "MakeDict";
     case Op::MakeSet: return "MakeSet";
+    case Op::MakeSlice: return "MakeSlice";
     case Op::ListAppend: return "ListAppend";
+    case Op::ListExtend: return "ListExtend";
+    case Op::DictSet: return "DictSet";
+    case Op::SetAdd: return "SetAdd";
+    case Op::SetUpdate: return "SetUpdate";
+    case Op::TupleFromList: return "TupleFromList";
+    case Op::Len: return "Len";
+    case Op::JoinLen: return "JoinLen";
+    case Op::StringStripReplaceSplit: return "StringStripReplaceSplit";
     case Op::GetItem: return "GetItem";
     case Op::SetItem: return "SetItem";
     case Op::DeleteItem: return "DeleteItem";
+    case Op::UnpackSequence: return "UnpackSequence";
     case Op::GetIter: return "GetIter";
     case Op::IterNext: return "IterNext";
     case Op::ForRangeConstLocalNext: return "ForRangeConstLocalNext";
@@ -72,6 +82,7 @@ const char* op_name(Op op) {
     case Op::Div: return "Div";
     case Op::FloorDiv: return "FloorDiv";
     case Op::Mod: return "Mod";
+    case Op::ModConst: return "ModConst";
     case Op::Pow: return "Pow";
     case Op::BitAnd: return "BitAnd";
     case Op::BitOr: return "BitOr";

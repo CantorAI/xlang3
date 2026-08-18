@@ -49,6 +49,10 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
           lhs.as.obj->kind == ObjectKind::String && rhs.as.obj->kind == ObjectKind::String) {
         return value_to_string(lhs) == value_to_string(rhs);
       }
+      if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+          lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
+        return reinterpret_cast<BytesObject*>(lhs.as.obj)->value == reinterpret_cast<BytesObject*>(rhs.as.obj)->value;
+      }
       return false;
   }
   return false;
@@ -74,6 +78,10 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         out = std::hash<std::string>{}(value_to_string(value));
+        return true;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        out = std::hash<std::string>{}(reinterpret_cast<BytesObject*>(value.as.obj)->value);
         return true;
       }
       error = "object is not hashable";

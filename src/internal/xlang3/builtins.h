@@ -19,6 +19,8 @@ limitations under the License.
 namespace xlang3 {
 
 void register_core_builtins(Runtime& runtime);
+void register_object_type_builtins(Runtime& runtime);
+bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out);
 void register_exception_builtins(Runtime& runtime);
 void register_functional_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);

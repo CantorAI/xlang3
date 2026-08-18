@@ -39,6 +39,12 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
     add_module_slot(slots, assign->name);
     return;
   }
+  if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+      add_module_slot(slots, name->name);
+    }
+    return;
+  }
   if (auto* del = dynamic_cast<const ast::DelStmt*>(&stmt)) {
     if (auto* name = dynamic_cast<const ast::NameExpr*>(del->target.get())) {
       add_module_slot(slots, name->name);

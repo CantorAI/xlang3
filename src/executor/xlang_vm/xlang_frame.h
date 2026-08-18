@@ -51,12 +51,19 @@ enum class CallSiteKind : uint8_t {
   InlineSlotConstructor,
   InlineSelfBinaryMethod,
   InlineArgBinaryFunction,
+  InlineConstMethod,
+  InlineSmallSelfMethod,
+  InlineSelfSlotMethod,
+  InlineSelfSlotConstSumMethod,
+  InlineCachedStringMethod,
+  InlineCachedLen,
 };
 
 enum class AttrSiteKind : uint8_t {
   Empty,
   InstanceAttr,
   InstanceSlot,
+  Descriptor,
 };
 
 struct CallSiteCache {
@@ -66,6 +73,8 @@ struct CallSiteCache {
   NativeFunctionObject* native = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
   void* native_user_data = nullptr;
+  Object* arg0_object = nullptr;
+  Object* arg1_object = nullptr;
   uint64_t class_version = 0;
   uint32_t lhs_slot = 0;
   uint32_t rhs_slot = 0;
@@ -73,14 +82,32 @@ struct CallSiteCache {
   uint32_t inline_function_id = 0;
   uint32_t next_arg = 0;
   ir::Op next_op = ir::Op::Add;
+  Value inline_const;
   bool has_next = false;
   bool fast_releases_vm_lock = false;
   std::vector<std::pair<uint32_t, uint32_t>> slot_constructor_args;
+  std::vector<Value> cached_values;
 };
 
 struct AttrSiteCache {
   uint32_t index = 0;
   AttrSiteKind kind = AttrSiteKind::Empty;
+  Object* owner = nullptr;
+  uint64_t version = 0;
+  Value value;
+  uint32_t getter_slot = 0;
+  uint32_t setter_slot = 0;
+  uint32_t deleter_slot = 0;
+  ir::Op getter_op = ir::Op::Add;
+  ir::Op setter_op = ir::Op::Add;
+  Value getter_const;
+  Value setter_const;
+  Value deleter_const;
+  bool getter_inline = false;
+  bool getter_has_const = false;
+  bool setter_inline = false;
+  bool setter_has_const = false;
+  bool deleter_inline = false;
 };
 
 enum class FrameReturnMode : uint8_t {
@@ -116,7 +143,8 @@ struct XlangVMFrame {
 
   XlangVMSmallValueBuffer locals;
   XlangVMSmallValueBuffer cells;
-  XlangVMSmallValueBuffer regs;
+  XlangVMSmallRegisterBuffer regs;
+  XlangVMTempArena temps;
 
   std::vector<ExceptionHandler> exception_handlers;
   std::vector<Value> global_value_cache;
@@ -187,6 +215,7 @@ struct XlangVMFrame {
     locals.reset(fn->locals.size(), Value::none());
     cells.reset(fn->cell_slots.size(), Value::invalid());
     regs.reset(fn->register_count, Value::invalid());
+    temps.clear();
     exception_handlers.clear();
     native_call_args.clear();
 

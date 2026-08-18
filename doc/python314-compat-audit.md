@@ -98,7 +98,7 @@ Legend:
 - [x] closures
 - [x] `class C:`
 - [x] base classes: `class C(Base):`
-- [~] multiple base classes syntax accepted; MRO semantics pending
+- [x] multiple base classes with C3 MRO for tested class lookup
 - [~] metaclass keyword syntax accepted/evaluated; metaclass semantics pending
 - [x] class decorators
 - [x] `async def`
@@ -116,11 +116,11 @@ Legend:
 - [x] integer literals
 - [x] floating-point literals
 - [x] string literals
-- [~] string escapes
-- [ ] raw strings
-- [ ] bytes literals
-- [ ] f-strings
-- [ ] unicode escape completeness
+- [x] string escapes
+- [x] raw strings
+- [x] bytes literals
+- [~] f-strings
+- [x] unicode escape completeness
 - [x] `None`
 - [x] `True` / `False`
 - [x] unary `+`
@@ -139,7 +139,7 @@ Legend:
 - [x] shifts `<<` / `>>`
 - [x] unary bit invert `~`
 - [x] comparisons `== != < <= > >=`
-- [ ] chained comparisons
+- [x] chained comparisons
 - [x] `is`
 - [x] `is not`
 - [x] `in`
@@ -153,34 +153,34 @@ Legend:
 - [x] calls: `**kwargs`
 - [x] attribute access
 - [x] subscript access
-- [ ] slices `a[start:stop]`
-- [ ] extended slices `a[start:stop:step]`
-- [ ] tuple unpacking
-- [ ] list unpacking
-- [ ] starred expression unpacking
+- [x] slices `a[start:stop]`
+- [x] extended slices `a[start:stop:step]`
+- [x] tuple unpacking assignment
+- [x] list unpacking assignment
+- [x] starred expression unpacking
 - [x] tuple literals
 - [x] list literals
 - [x] dict literals
 - [x] set literals
 - [x] list comprehensions, simple
 - [x] list comprehensions with optional `if`
-- [ ] nested list comprehensions
-- [ ] dict comprehensions
-- [ ] set comprehensions
-- [ ] generator expressions
-- [ ] walrus operator `:=`
+- [x] nested list comprehensions
+- [x] dict comprehensions
+- [x] set comprehensions
+- [x] generator expressions
+- [x] walrus operator `:=`
 
 ### Assignment Syntax
 
 - [x] name assignment
 - [x] attribute assignment
 - [x] subscript assignment
-- [ ] tuple/list unpacking assignment
-- [ ] starred assignment
-- [ ] augmented assignment `+= -= *= /= %=`
-- [ ] augmented assignment for all Python operators
-- [ ] annotated assignment
-- [ ] assignment expression `:=`
+- [x] tuple/list unpacking assignment
+- [x] starred assignment
+- [x] augmented assignment `+= -= *= /= %=`
+- [x] augmented assignment for implemented Python operators
+- [x] annotated assignment
+- [x] assignment expression `:=`
 
 ## Runtime Compatibility
 
@@ -190,15 +190,17 @@ Legend:
 - [x] direct scalar storage for int/double/bool/None
 - [x] object-backed strings/containers/functions/classes
 - [x] refcounted object model
-- [ ] Python-compatible `type`
-- [ ] Python-compatible `object`
-- [ ] `id`
+- [~] Python-compatible `type`: first-class type object and one-arg `type(x)` basics
+- [x] Python-compatible `object` root and `object()`
+- [x] `id`
 - [ ] identity behavior audit
-- [ ] `isinstance`
-- [ ] `issubclass`
-- [ ] MRO
-- [ ] descriptors
-- [ ] properties
+- [x] `isinstance`
+- [x] `issubclass`
+- [x] MRO
+- [ ] three-argument `type(name, bases, namespace)`
+- [ ] full metaclass object model
+- [~] descriptors: VM dispatch supports built-in property get/set; general `__get__` / `__set__` protocol pending
+- [~] properties: `property(fget, fset, fdel, doc)`, `@property`, `.getter`, `.setter`, `.deleter`, get/set/delete dispatch; CPython edge-case audit pending
 - [ ] `__getattr__`
 - [ ] `__getattribute__`
 - [ ] `__setattr__`
@@ -213,9 +215,9 @@ Legend:
 - [x] class constructor calls
 - [x] nested function calls
 - [x] closure cells
-- [ ] default args runtime behavior
-- [ ] keyword args runtime behavior
-- [ ] varargs/kwargs objects
+- [~] default args runtime behavior
+- [~] keyword args runtime behavior
+- [~] varargs/kwargs objects
 - [ ] function object attributes: `__name__`, `__module__`, `__defaults__`
 - [ ] code objects
 - [ ] frame objects
@@ -233,8 +235,8 @@ Legend:
 - [ ] exception hierarchy completeness
 - [ ] traceback capture
 - [ ] exception chaining
-- [ ] `raise from`
-- [ ] bare `raise`
+- [ ] `raise from` runtime cause/context metadata
+- [ ] bare `raise` runtime behavior outside active exception
 - [ ] `sys.exc_info`
 - [ ] `__traceback__`, `__context__`, `__cause__`
 
@@ -262,13 +264,13 @@ Legend:
 - [x] basic string object
 - [x] indexing
 - [x] basic concatenation
-- [~] selected string methods
+- [x] selected string methods
 - [ ] full Python Unicode behavior
 - [ ] encoding/decoding
-- [ ] string formatting
-- [ ] f-string runtime formatting
-- [ ] bytes / bytearray
-- [ ] memoryview
+- [~] string formatting
+- [~] f-string runtime formatting
+- [~] bytes / bytearray
+- [~] memoryview
 
 ### Imports And Modules
 
@@ -291,16 +293,19 @@ Legend:
 - [x] `print`
 - [x] `len`
 - [x] `range`
-- [~] `type`
-- [ ] `object`
-- [ ] `bool`
-- [ ] `int`
-- [ ] `float`
-- [ ] `str`
-- [ ] `list`
-- [ ] `dict`
-- [ ] `set`
-- [ ] `tuple`
+- [~] `type`: object plus one-arg call; three-arg dynamic class creation pending
+- [x] `object`
+- [~] `bool`
+- [~] `int`
+- [~] `float`
+- [~] `str`
+- [~] `bytes`
+- [~] `bytearray`
+- [~] `memoryview`
+- [~] `list`
+- [~] `dict`
+- [~] `set`
+- [~] `tuple`
 - [ ] `enumerate`
 - [ ] `zip`
 - [ ] `map`
@@ -419,7 +424,14 @@ For each item:
 4. Mark the feature as implemented only when behavior matches for the scoped test.
 5. If behavior intentionally differs, document the difference in a separate compatibility note.
 
-Compatibility tests should live under:
+Current checkpoint tests live under:
+
+```text
+tests/fixtures/core/
+tests/fixtures/expected/
+```
+
+Dedicated CPython-vs-XLang3 compatibility tests should live under:
 
 ```text
 tests/compat/python314/

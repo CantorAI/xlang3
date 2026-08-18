@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/sema.h"
+#include "xlang3/parser.h"
 #include "xlang3/scope_analysis.h"
 
 #include "xlang_module_globals.h"
@@ -73,6 +74,9 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     out->bool_value = lit->bool_value;
     return out;
   }
+  if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+    return std::make_unique<ast::FStringExpr>(fstring->parts);
+  }
   if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
     return std::make_unique<ast::NameExpr>(name->name);
   }
@@ -88,11 +92,24 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     return std::make_unique<ast::BinaryExpr>(clone_expr(*binary->lhs), binary->op, clone_expr(*binary->rhs));
   }
+  if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    std::vector<std::pair<std::string, ast::ExprPtr>> comparisons;
+    for (const auto& comparison : chain->comparisons) {
+      comparisons.push_back(std::make_pair(comparison.first, clone_expr(*comparison.second)));
+    }
+    return std::make_unique<ast::CompareChainExpr>(clone_expr(*chain->first), std::move(comparisons));
+  }
   if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
     return std::make_unique<ast::ConditionalExpr>(
         clone_expr(*conditional->then_expr),
         clone_expr(*conditional->condition),
         clone_expr(*conditional->else_expr));
+  }
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    return std::make_unique<ast::NamedExpr>(named->name, clone_expr(*named->value));
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    return std::make_unique<ast::StarredExpr>(clone_expr(*starred->expr));
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
     if (!call->call_args.empty()) {
@@ -116,6 +133,12 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
   if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
     return std::make_unique<ast::SubscriptExpr>(clone_expr(*subscript->object), clone_expr(*subscript->index));
   }
+  if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    return std::make_unique<ast::SliceExpr>(
+        clone_expr(*slice->start),
+        clone_expr(*slice->stop),
+        clone_expr(*slice->step));
+  }
   if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
     return std::make_unique<ast::AttrExpr>(clone_expr(*attr->object), attr->name);
   }
@@ -128,6 +151,67 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     std::vector<ast::ExprPtr> items;
     for (const auto& item : list->items) items.push_back(clone_expr(*item));
     return std::make_unique<ast::ListExpr>(std::move(items));
+  }
+  if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    auto out = std::make_unique<ast::ListCompExpr>(
+        clone_expr(*comp->result),
+        comp->target,
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
+  }
+  if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    auto out = std::make_unique<ast::DictCompExpr>(
+        clone_expr(*comp->key),
+        clone_expr(*comp->value),
+        comp->target,
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
+  }
+  if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    auto out = std::make_unique<ast::SetCompExpr>(
+        clone_expr(*comp->result),
+        comp->target,
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
+  }
+  if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    auto out = std::make_unique<ast::GeneratorExpr>(
+        clone_expr(*comp->result),
+        comp->target,
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
   }
   return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
 }
@@ -142,13 +226,29 @@ bool expr_contains_yield(const ast::Expr& expr) {
   if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
     return expr_contains_yield(*await->expr);
   }
+  if (dynamic_cast<const ast::FStringExpr*>(&expr) != nullptr) {
+    return false;
+  }
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     return expr_contains_yield(*binary->lhs) || expr_contains_yield(*binary->rhs);
+  }
+  if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    if (expr_contains_yield(*chain->first)) return true;
+    for (const auto& comparison : chain->comparisons) {
+      if (expr_contains_yield(*comparison.second)) return true;
+    }
+    return false;
   }
   if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
     return expr_contains_yield(*conditional->then_expr) ||
            expr_contains_yield(*conditional->condition) ||
            expr_contains_yield(*conditional->else_expr);
+  }
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    return expr_contains_yield(*named->value);
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    return expr_contains_yield(*starred->expr);
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
     if (expr_contains_yield(*call->callee)) return true;
@@ -163,6 +263,9 @@ bool expr_contains_yield(const ast::Expr& expr) {
   if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
     return expr_contains_yield(*subscript->object) || expr_contains_yield(*subscript->index);
   }
+  if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    return expr_contains_yield(*slice->start) || expr_contains_yield(*slice->stop) || expr_contains_yield(*slice->step);
+  }
   if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
     return expr_contains_yield(*attr->object);
   }
@@ -175,6 +278,63 @@ bool expr_contains_yield(const ast::Expr& expr) {
   if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
     for (const auto& item : list->items) {
       if (expr_contains_yield(*item)) return true;
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->result) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->key) ||
+        expr_contains_yield(*comp->value) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->result) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->result) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
     }
     return false;
   }
@@ -196,6 +356,10 @@ bool stmt_contains_yield(const ast::Stmt& stmt) {
   }
   if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
     return expr_contains_yield(*assign->value);
+  }
+  if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+    if (assign->value == nullptr) return false;
+    return expr_contains_yield(*assign->target) || expr_contains_yield(*assign->value);
   }
   if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
     return expr_contains_yield(*assign->object) || expr_contains_yield(*assign->index) ||
@@ -265,15 +429,33 @@ void collect_self_attr_slots_expr(
     collect_self_attr_slots_expr(*yield->expr, self_name, slots, seen);
     return;
   }
+  if (dynamic_cast<const ast::FStringExpr*>(&expr) != nullptr) {
+    return;
+  }
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     collect_self_attr_slots_expr(*binary->lhs, self_name, slots, seen);
     collect_self_attr_slots_expr(*binary->rhs, self_name, slots, seen);
+    return;
+  }
+  if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*chain->first, self_name, slots, seen);
+    for (const auto& comparison : chain->comparisons) {
+      collect_self_attr_slots_expr(*comparison.second, self_name, slots, seen);
+    }
     return;
   }
   if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
     collect_self_attr_slots_expr(*conditional->then_expr, self_name, slots, seen);
     collect_self_attr_slots_expr(*conditional->condition, self_name, slots, seen);
     collect_self_attr_slots_expr(*conditional->else_expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*named->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*starred->expr, self_name, slots, seen);
     return;
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
@@ -289,6 +471,12 @@ void collect_self_attr_slots_expr(
   if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
     collect_self_attr_slots_expr(*subscript->object, self_name, slots, seen);
     collect_self_attr_slots_expr(*subscript->index, self_name, slots, seen);
+    return;
+  }
+  if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*slice->start, self_name, slots, seen);
+    collect_self_attr_slots_expr(*slice->stop, self_name, slots, seen);
+    collect_self_attr_slots_expr(*slice->step, self_name, slots, seen);
     return;
   }
   if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
@@ -322,6 +510,55 @@ void collect_self_attr_slots_expr(
     if (comp->filter) {
       collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
     }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->key, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->value, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->result, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->result, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
     return;
   }
   if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
@@ -346,6 +583,13 @@ void collect_self_attr_slots_stmt(
   }
   if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
     collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assign->target, self_name, slots, seen);
+    if (assign->value != nullptr) {
+      collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    }
     return;
   }
   if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
@@ -595,6 +839,11 @@ private:
     return static_cast<uint32_t>(fn_.range_specs.size() - 1);
   }
 
+  uint32_t add_string_replace_spec(uint32_t old_const, uint32_t new_const) {
+    fn_.string_replace_specs.push_back(std::make_pair(old_const, new_const));
+    return static_cast<uint32_t>(fn_.string_replace_specs.size() - 1);
+  }
+
   uint32_t ensure_local(const std::string& name) {
     auto it = locals_.find(name);
     if (it != locals_.end()) {
@@ -690,6 +939,29 @@ private:
 
   void patch_iter_done(size_t at, uint32_t target) {
     fn_.code[at].b = target;
+  }
+
+  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs) {
+    if (op == "is" || op == "is not") {
+      emit(ir::Op::Is, dst, lhs, rhs, op == "is not" ? 1u : 0u);
+      return true;
+    }
+    if (op == "in" || op == "not in") {
+      emit(ir::Op::Contains, dst, lhs, rhs, op == "not in" ? 1u : 0u);
+      return true;
+    }
+
+    uint32_t cmp = 0;
+    if (op == "==") cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
+    else if (op == "!=") cmp = static_cast<uint32_t>(ir::CompareOp::Ne);
+    else if (op == "<") cmp = static_cast<uint32_t>(ir::CompareOp::Lt);
+    else if (op == "<=") cmp = static_cast<uint32_t>(ir::CompareOp::Le);
+    else if (op == ">") cmp = static_cast<uint32_t>(ir::CompareOp::Gt);
+    else if (op == ">=") cmp = static_cast<uint32_t>(ir::CompareOp::Ge);
+    else return false;
+
+    emit(ir::Op::Compare, dst, lhs, rhs, cmp);
+    return true;
   }
 
   void emit_return_none() {
@@ -1134,20 +1406,50 @@ private:
       class_info.slots[instance_slots[i]] = static_cast<uint32_t>(i);
     }
     class_infos_[klass.name] = class_info;
+
+    std::unordered_map<std::string, std::string> saved_aliases;
+    std::unordered_set<std::string> erased_aliases;
+    std::unordered_set<std::string> class_aliases;
+    auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
+      const std::string hidden_name = "#class." + klass.name + "." + name;
+      if (class_aliases.insert(name).second) {
+        if (name_aliases_.find(name) == name_aliases_.end()) {
+          erased_aliases.insert(name);
+        } else {
+          saved_aliases[name] = name_aliases_[name];
+        }
+      }
+      hidden_locals_.insert(hidden_name);
+      name_aliases_[name] = hidden_name;
+      store_named_value(name, reg);
+    };
+
     for (const auto& stmt : klass.body) {
       if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
-        attrs.push_back(std::make_pair(
-            fn->name,
-            lower_function_value(*fn, fn->params.empty() ? std::string{} : fn->params[0], class_info.slots)));
+        const auto attr_reg = apply_decorators(
+            lower_function_value(*fn, fn->params.empty() ? std::string{} : fn->params[0], class_info.slots),
+            fn->decorators);
+        attrs.push_back(std::make_pair(fn->name, attr_reg));
+        bind_class_attr_alias(fn->name, attr_reg);
       } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
-        attrs.push_back(std::make_pair(assign->name, lower_expr(*assign->value)));
+        const auto attr_reg = lower_expr(*assign->value);
+        attrs.push_back(std::make_pair(assign->name, attr_reg));
+        bind_class_attr_alias(assign->name, attr_reg);
       }
     }
+
+    for (const auto& name : erased_aliases) {
+      name_aliases_.erase(name);
+    }
+    for (const auto& item : saved_aliases) {
+      name_aliases_[item.first] = item.second;
+    }
+
     const auto reg = new_reg();
     emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)),
          add_class_instance_slots(std::move(instance_slots)));
-    if (!klass.bases.empty()) {
-      const auto base = lower_expr(*klass.bases[0]);
+    for (const auto& base_expr : klass.bases) {
+      const auto base = lower_expr(*base_expr);
       emit(ir::Op::SetClassBase, reg, base);
     }
     for (const auto& keyword : klass.keywords) {
@@ -1167,6 +1469,125 @@ private:
     }
     auto* object_name = dynamic_cast<const ast::NameExpr*>(&object);
     return object_name != nullptr && object_name->name == instance_slot_self_;
+  }
+
+  bool lower_assign_target(const ast::Expr& target, uint32_t value_reg) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+      store_named_value(name->name, value_reg);
+      return true;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&target)) {
+      const auto object = lower_expr(*attr->object);
+      if (is_instance_slot_target(*attr->object, attr->name)) {
+        emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], value_reg);
+      } else {
+        emit(ir::Op::StoreAttr, object, add_name(attr->name), value_reg);
+      }
+      return true;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&target)) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      emit(ir::Op::SetItem, object, index, value_reg);
+      return true;
+    }
+    if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+      return lower_assign_target(*starred->expr, value_reg);
+    }
+    if (dynamic_cast<const ast::TupleExpr*>(&target) != nullptr || dynamic_cast<const ast::ListExpr*>(&target) != nullptr) {
+      lower_unpack_assign(target, value_reg);
+      return true;
+    }
+    return false;
+  }
+
+  void lower_unpack_assign(const ast::Expr& target, uint32_t value_reg) {
+    std::vector<const ast::Expr*> items;
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+      for (const auto& item : tuple->items) items.push_back(item.get());
+    } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+      for (const auto& item : list->items) items.push_back(item.get());
+    } else {
+      lower_assign_target(target, value_reg);
+      return;
+    }
+
+    size_t star_index = items.size();
+    for (size_t i = 0; i < items.size(); ++i) {
+      if (dynamic_cast<const ast::StarredExpr*>(items[i]) != nullptr) {
+        star_index = i;
+        break;
+      }
+    }
+    const bool has_star = star_index != items.size();
+    const uint32_t before_count = has_star ? static_cast<uint32_t>(star_index) : static_cast<uint32_t>(items.size());
+    const uint32_t after_count = has_star ? static_cast<uint32_t>(items.size() - star_index - 1) : 0;
+    const uint32_t output_count = before_count + after_count + (has_star ? 1u : 0u);
+    const uint32_t first_output = new_reg();
+    for (uint32_t i = 1; i < output_count; ++i) {
+      (void)new_reg();
+    }
+    emit(ir::Op::UnpackSequence, first_output, value_reg, before_count, after_count | (has_star ? 0x80000000u : 0u));
+
+    for (uint32_t i = 0; i < before_count; ++i) {
+      lower_assign_target(*items[i], first_output + i);
+    }
+    if (has_star) {
+      lower_assign_target(*items[star_index], first_output + before_count);
+      for (uint32_t i = 0; i < after_count; ++i) {
+        lower_assign_target(*items[star_index + 1 + i], first_output + before_count + 1 + i);
+      }
+    }
+  }
+
+  ir::Op binary_op_for_aug_assign(const std::string& op) const {
+    if (op == "+") return ir::Op::Add;
+    if (op == "-") return ir::Op::Sub;
+    if (op == "*") return ir::Op::Mul;
+    if (op == "/") return ir::Op::Div;
+    if (op == "//") return ir::Op::FloorDiv;
+    if (op == "%") return ir::Op::Mod;
+    if (op == "**") return ir::Op::Pow;
+    if (op == "&") return ir::Op::BitAnd;
+    if (op == "|") return ir::Op::BitOr;
+    if (op == "^") return ir::Op::BitXor;
+    if (op == "<<") return ir::Op::Shl;
+    if (op == ">>") return ir::Op::Shr;
+    return ir::Op::Add;
+  }
+
+  void lower_aug_assign(const ast::AugAssignStmt& assign) {
+    const auto rhs = lower_expr(*assign.value);
+    const auto result = new_reg();
+    const auto op = binary_op_for_aug_assign(assign.op);
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign.target.get())) {
+      const auto current = lower_expr(*assign.target);
+      emit(op, result, current, rhs);
+      store_named_value(name->name, result);
+      return;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(assign.target.get())) {
+      const auto object = lower_expr(*attr->object);
+      const auto current = new_reg();
+      if (is_instance_slot_target(*attr->object, attr->name)) {
+        emit(ir::Op::LoadInstanceSlot, current, object, instance_slots_[attr->name]);
+        emit(op, result, current, rhs);
+        emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], result);
+      } else {
+        emit(ir::Op::LoadAttr, current, object, add_name(attr->name));
+        emit(op, result, current, rhs);
+        emit(ir::Op::StoreAttr, object, add_name(attr->name), result);
+      }
+      return;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(assign.target.get())) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      const auto current = new_reg();
+      emit(ir::Op::GetItem, current, object, index);
+      emit(op, result, current, rhs);
+      emit(ir::Op::SetItem, object, index, result);
+    }
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
@@ -1235,6 +1656,23 @@ private:
         return;
       }
       store_named_value(assign->name, lower_expr(*assign->value));
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+      if (assign->value == nullptr) {
+        return;
+      }
+      const auto value = lower_expr(*assign->value);
+      lower_assign_target(*assign->target, value);
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+      const auto value = lower_expr(*assign->value);
+      lower_assign_target(*assign->target, value);
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+      lower_aug_assign(*assign);
       return;
     }
     if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
@@ -1371,6 +1809,311 @@ private:
     }
   }
 
+  uint32_t lower_compare_chain(const ast::CompareChainExpr& chain) {
+    const auto result = new_reg();
+    const auto false_const = add_const(Value::boolean(false));
+    const auto true_const = add_const(Value::boolean(true));
+    std::vector<size_t> false_jumps;
+
+    auto lhs = lower_expr(*chain.first);
+    for (const auto& comparison : chain.comparisons) {
+      const auto rhs = lower_expr(*comparison.second);
+      const auto cmp = new_reg();
+      emit_compare_op(comparison.first, cmp, lhs, rhs);
+      false_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, cmp));
+      lhs = rhs;
+    }
+
+    emit(ir::Op::LoadConst, result, true_const);
+    const auto done = emit_jump(ir::Op::Jump);
+    const auto false_label = static_cast<uint32_t>(fn_.code.size());
+    emit(ir::Op::LoadConst, result, false_const);
+    const auto end = static_cast<uint32_t>(fn_.code.size());
+
+    for (const auto jump : false_jumps) {
+      patch_jump(jump, false_label);
+    }
+    patch_jump(done, end);
+    return result;
+  }
+
+  ast::ExprPtr parse_embedded_expression(const std::string& source) {
+    auto parsed = parse_source("__x = " + source);
+    if (!parsed.errors.empty() || parsed.module.body.empty()) {
+      return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, "{" + source + "}");
+    }
+    auto* assign = dynamic_cast<ast::AssignStmt*>(parsed.module.body[0].get());
+    if (assign == nullptr || assign->value == nullptr) {
+      return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, "{" + source + "}");
+    }
+    return clone_expr(*assign->value);
+  }
+
+  uint32_t lower_fstring(const ast::FStringExpr& fstring) {
+    uint32_t result = UINT32_MAX;
+    bool has_part = false;
+    for (const auto& part : fstring.parts) {
+      uint32_t value = 0;
+      if (part.is_expr) {
+        auto expr = parse_embedded_expression(part.text);
+        std::vector<ast::ExprPtr> args;
+        args.push_back(std::move(expr));
+        auto call = ast::CallExpr(std::make_unique<ast::NameExpr>("str"), std::move(args));
+        value = lower_expr(call);
+      } else {
+        value = new_reg();
+        emit(ir::Op::LoadConst, value, add_const(Value::string(part.text)));
+      }
+      if (!has_part) {
+        result = value;
+        has_part = true;
+        continue;
+      }
+      const auto joined = new_reg();
+      emit(ir::Op::Add, joined, result, value);
+      result = joined;
+    }
+    if (!has_part) {
+      result = new_reg();
+      emit(ir::Op::LoadConst, result, add_const(Value::string("")));
+    }
+    return result;
+  }
+
+  bool has_starred_item(const std::vector<ast::ExprPtr>& items) const {
+    for (const auto& item : items) {
+      if (dynamic_cast<const ast::StarredExpr*>(item.get()) != nullptr) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool string_literal_const(const ast::Expr& expr, uint32_t& out) {
+    auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
+    if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+      return false;
+    }
+    out = add_const(Value::string(literal->text));
+    return true;
+  }
+
+  bool try_lower_string_strip_replace_split(const ast::CallExpr& split_call, uint32_t& dst) {
+    auto* split_attr = dynamic_cast<const ast::AttrExpr*>(split_call.callee.get());
+    if (split_attr == nullptr || split_attr->name != "split" || split_call.args.size() != 1) {
+      return false;
+    }
+    auto* replace_call = dynamic_cast<const ast::CallExpr*>(split_attr->object.get());
+    if (replace_call == nullptr || replace_call->args.size() != 2) {
+      return false;
+    }
+    auto* replace_attr = dynamic_cast<const ast::AttrExpr*>(replace_call->callee.get());
+    if (replace_attr == nullptr || replace_attr->name != "replace") {
+      return false;
+    }
+    auto* strip_call = dynamic_cast<const ast::CallExpr*>(replace_attr->object.get());
+    if (strip_call == nullptr || !strip_call->args.empty()) {
+      return false;
+    }
+    auto* strip_attr = dynamic_cast<const ast::AttrExpr*>(strip_call->callee.get());
+    if (strip_attr == nullptr || strip_attr->name != "strip") {
+      return false;
+    }
+    uint32_t old_const = 0;
+    uint32_t new_const = 0;
+    uint32_t sep_const = 0;
+    if (!string_literal_const(*replace_call->args[0], old_const) ||
+        !string_literal_const(*replace_call->args[1], new_const) ||
+        !string_literal_const(*split_call.args[0], sep_const)) {
+      return false;
+    }
+    const auto source = lower_expr(*strip_attr->object);
+    dst = new_reg();
+    emit(ir::Op::StringStripReplaceSplit, dst, source, add_string_replace_spec(old_const, new_const), sep_const);
+    return true;
+  }
+
+  uint32_t lower_list_with_unpack(const std::vector<ast::ExprPtr>& items) {
+    const auto dst = new_reg();
+    emit(ir::Op::MakeList, dst, add_list_items({}));
+    for (const auto& item : items) {
+      if (auto* starred = dynamic_cast<const ast::StarredExpr*>(item.get())) {
+        emit(ir::Op::ListExtend, dst, lower_expr(*starred->expr));
+      } else {
+        emit(ir::Op::ListAppend, dst, lower_expr(*item));
+      }
+    }
+    return dst;
+  }
+
+  uint32_t lower_tuple_with_unpack(const std::vector<ast::ExprPtr>& items) {
+    const auto list = lower_list_with_unpack(items);
+    const auto tuple = new_reg();
+    emit(ir::Op::TupleFromList, tuple, list);
+    return tuple;
+  }
+
+  uint32_t lower_set_with_unpack(const std::vector<ast::ExprPtr>& items) {
+    const auto dst = new_reg();
+    emit(ir::Op::MakeSet, dst, add_set_items({}));
+    for (const auto& item : items) {
+      if (auto* starred = dynamic_cast<const ast::StarredExpr*>(item.get())) {
+        emit(ir::Op::SetUpdate, dst, lower_expr(*starred->expr));
+      } else {
+        emit(ir::Op::SetAdd, dst, lower_expr(*item));
+      }
+    }
+    return dst;
+  }
+
+  template <typename Body>
+  uint32_t lower_comprehension_loop(
+      const std::string& target,
+      const ast::Expr& iterable,
+      const ast::Expr* filter,
+      uint32_t dst,
+      Body body) {
+    const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + target;
+    hidden_locals_.insert(hidden_name);
+    const auto hidden_slot = ensure_local(hidden_name);
+    const auto old_alias = name_aliases_.find(target);
+    const bool had_alias = old_alias != name_aliases_.end();
+    const std::string old_value = had_alias ? old_alias->second : std::string{};
+    name_aliases_[target] = hidden_name;
+
+    int64_t range_start = 0;
+    int64_t range_stop = 0;
+    int64_t range_step = 1;
+    size_t loop_exit = 0;
+    uint32_t start = 0;
+    bool fused_range = false;
+    if (try_parse_const_range_call(iterable, range_start, range_stop, range_step)) {
+      fused_range = true;
+      const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target;
+      hidden_locals_.insert(state_name);
+      const auto state_slot = ensure_local(state_name);
+      const auto start_reg = new_reg();
+      emit(ir::Op::LoadConst, start_reg, add_const(Value::int64(range_start)));
+      emit(ir::Op::StoreLocal, state_slot, start_reg);
+      start = static_cast<uint32_t>(fn_.code.size());
+      emit(ir::Op::ForRangeConstLocalNext, 0, hidden_slot, state_slot,
+           add_range_spec(add_const(Value::int64(range_stop)), add_const(Value::int64(range_step))));
+      loop_exit = fn_.code.size() - 1;
+    } else {
+      const auto iterable_reg = lower_expr(iterable);
+      const auto iterator_reg = new_reg();
+      emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+      start = static_cast<uint32_t>(fn_.code.size());
+      const auto item_reg = new_reg();
+      emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+      loop_exit = fn_.code.size() - 1;
+      store_named_value(target, item_reg);
+    }
+    size_t skip_append = 0;
+    const bool has_filter = filter != nullptr;
+    if (has_filter) {
+      const auto filter_reg = lower_expr(*filter);
+      skip_append = emit_jump(ir::Op::JumpIfFalse, filter_reg);
+    }
+    body();
+    if (has_filter) {
+      patch_jump(skip_append, static_cast<uint32_t>(fn_.code.size()));
+    }
+    emit(ir::Op::Jump, start);
+    if (fused_range) {
+      patch_jump(loop_exit, static_cast<uint32_t>(fn_.code.size()));
+    } else {
+      patch_iter_done(loop_exit, static_cast<uint32_t>(fn_.code.size()));
+    }
+
+    if (had_alias) {
+      name_aliases_[target] = old_value;
+    } else {
+      name_aliases_.erase(target);
+    }
+    return dst;
+  }
+
+  struct LowerCompClause {
+    std::string target;
+    const ast::Expr* iterable = nullptr;
+    const ast::Expr* filter = nullptr;
+  };
+
+  template <typename Body>
+  uint32_t lower_comprehension_clauses(
+      const std::vector<LowerCompClause>& clauses,
+      size_t index,
+      uint32_t dst,
+      Body body) {
+    if (index >= clauses.size()) {
+      body();
+      return dst;
+    }
+    const auto& clause = clauses[index];
+    return lower_comprehension_loop(
+        clause.target,
+        *clause.iterable,
+        clause.filter,
+        dst,
+        [&]() { lower_comprehension_clauses(clauses, index + 1, dst, body); });
+  }
+
+  std::vector<LowerCompClause> list_comp_clauses(const ast::ListCompExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+    }
+    return clauses;
+  }
+
+  std::vector<LowerCompClause> dict_comp_clauses(const ast::DictCompExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+    }
+    return clauses;
+  }
+
+  std::vector<LowerCompClause> set_comp_clauses(const ast::SetCompExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+    }
+    return clauses;
+  }
+
+  std::vector<LowerCompClause> generator_comp_clauses(const ast::GeneratorExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+    }
+    return clauses;
+  }
+
+  uint32_t lower_generator_expr(const ast::GeneratorExpr& comp) {
+    FunctionLowerer child_lowerer(
+        module_, "#genexpr", {}, {}, {}, std::vector<ast::StmtPtr>{}, true, false,
+        instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
+    const auto clauses = child_lowerer.generator_comp_clauses(comp);
+    child_lowerer.lower_comprehension_clauses(
+        clauses, 0, 0, [&]() {
+          const auto value = child_lowerer.lower_expr(*comp.result);
+          child_lowerer.emit(ir::Op::Yield, 0, value);
+        });
+    module_.functions.push_back(child_lowerer.finish());
+    const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
+    const auto callee = new_reg();
+    emit(ir::Op::MakeFunction, callee, function_id, add_function_closure({}), UINT32_MAX);
+    const auto dst = new_reg();
+    emit(ir::Op::Call, dst, callee, add_call_args({}));
+    return dst;
+  }
+
   uint32_t lower_expr(const ast::Expr& expr) {
     if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
       const auto reg = new_reg();
@@ -1390,8 +2133,14 @@ private:
         case ast::LiteralExpr::Kind::String:
           emit(ir::Op::LoadConst, reg, add_const(Value::string(lit->text)));
           break;
+        case ast::LiteralExpr::Kind::Bytes:
+          emit(ir::Op::LoadConst, reg, add_const(Value::bytes(lit->text)));
+          break;
       }
       return reg;
+    }
+    if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+      return lower_fstring(*fstring);
     }
     if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
       const auto reg = new_reg();
@@ -1448,8 +2197,20 @@ private:
       emit(ir::Op::LoadConst, reg, add_const(Value::none()));
       return reg;
     }
+    if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+      return lower_compare_chain(*chain);
+    }
     if (auto* bin = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
       const auto lhs = lower_expr(*bin->lhs);
+      if (bin->op == "%") {
+        if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get())) {
+          if (lit->kind == ast::LiteralExpr::Kind::Int) {
+            const auto reg = new_reg();
+            emit(ir::Op::ModConst, reg, lhs, add_const(literal_value(*lit)));
+            return reg;
+          }
+        }
+      }
       const auto rhs = lower_expr(*bin->rhs);
       const auto reg = new_reg();
       if (bin->op == "+") emit(ir::Op::Add, reg, lhs, rhs);
@@ -1466,19 +2227,7 @@ private:
       else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
       else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
       else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
-      else if (bin->op == "is" || bin->op == "is not") emit(ir::Op::Is, reg, lhs, rhs, bin->op == "is not" ? 1u : 0u);
-      else if (bin->op == "in" || bin->op == "not in") emit(ir::Op::Contains, reg, lhs, rhs, bin->op == "not in" ? 1u : 0u);
-      else {
-        uint32_t cmp = 0;
-        if (bin->op == "==") cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
-        else if (bin->op == "!=") cmp = static_cast<uint32_t>(ir::CompareOp::Ne);
-        else if (bin->op == "<") cmp = static_cast<uint32_t>(ir::CompareOp::Lt);
-        else if (bin->op == "<=") cmp = static_cast<uint32_t>(ir::CompareOp::Le);
-        else if (bin->op == ">") cmp = static_cast<uint32_t>(ir::CompareOp::Gt);
-        else if (bin->op == ">=") cmp = static_cast<uint32_t>(ir::CompareOp::Ge);
-        else cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
-        emit(ir::Op::Compare, reg, lhs, rhs, cmp);
-      }
+      else emit_compare_op(bin->op, reg, lhs, rhs);
       return reg;
     }
     if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
@@ -1496,7 +2245,16 @@ private:
       patch_jump(done_jump, static_cast<uint32_t>(fn_.code.size()));
       return reg;
     }
+    if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+      const auto value = lower_expr(*named->value);
+      store_named_value(named->name, value);
+      return value;
+    }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+      uint32_t string_pipeline = 0;
+      if (try_lower_string_strip_replace_split(*call, string_pipeline)) {
+        return string_pipeline;
+      }
       if (!call->call_args.empty()) {
         const auto callee = lower_expr(*call->callee);
         ir::CallSpec spec;
@@ -1515,6 +2273,27 @@ private:
         const auto dst = new_reg();
         emit(ir::Op::CallEx, dst, callee, add_call_spec(std::move(spec)));
         return dst;
+      }
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(call->callee.get())) {
+        if (resolve_name(name->name) == "len" && call->args.size() == 1) {
+          if (auto* join_call = dynamic_cast<const ast::CallExpr*>(call->args[0].get())) {
+            if (join_call->args.size() == 1) {
+              if (auto* join_attr = dynamic_cast<const ast::AttrExpr*>(join_call->callee.get())) {
+                if (join_attr->name == "join") {
+                  const auto separator = lower_expr(*join_attr->object);
+                  const auto sequence = lower_expr(*join_call->args[0]);
+                  const auto dst = new_reg();
+                  emit(ir::Op::JoinLen, dst, separator, sequence);
+                  return dst;
+                }
+              }
+            }
+          }
+          const auto value = lower_expr(*call->args[0]);
+          const auto dst = new_reg();
+          emit(ir::Op::Len, dst, value);
+          return dst;
+        }
       }
       if (auto* attr = dynamic_cast<const ast::AttrExpr*>(call->callee.get())) {
         uint32_t imported_slot = 0;
@@ -1556,6 +2335,14 @@ private:
       emit(ir::Op::GetItem, dst, object, index);
       return dst;
     }
+    if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+      const auto start = lower_expr(*slice->start);
+      const auto stop = lower_expr(*slice->stop);
+      const auto step = lower_expr(*slice->step);
+      const auto dst = new_reg();
+      emit(ir::Op::MakeSlice, dst, start, stop, step);
+      return dst;
+    }
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
       const auto object = lower_expr(*attr->object);
       const auto dst = new_reg();
@@ -1567,6 +2354,9 @@ private:
       return dst;
     }
     if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+      if (has_starred_item(tuple->items)) {
+        return lower_tuple_with_unpack(tuple->items);
+      }
       std::vector<uint32_t> item_regs;
       for (const auto& item : tuple->items) {
         item_regs.push_back(lower_expr(*item));
@@ -1576,6 +2366,9 @@ private:
       return dst;
     }
     if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+      if (has_starred_item(list->items)) {
+        return lower_list_with_unpack(list->items);
+      }
       std::vector<uint32_t> item_regs;
       for (const auto& item : list->items) {
         item_regs.push_back(lower_expr(*item));
@@ -1596,6 +2389,9 @@ private:
       return dst;
     }
     if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+      if (has_starred_item(set->items)) {
+        return lower_set_with_unpack(set->items);
+      }
       std::vector<uint32_t> item_regs;
       for (const auto& item : set->items) {
         item_regs.push_back(lower_expr(*item));
@@ -1607,43 +2403,34 @@ private:
     if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
       const auto dst = new_reg();
       emit(ir::Op::MakeList, dst, add_list_items({}));
-      const auto iterable_reg = lower_expr(*comp->iterable);
-      const auto iterator_reg = new_reg();
-      emit(ir::Op::GetIter, iterator_reg, iterable_reg);
-
-      const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + comp->target;
-      hidden_locals_.insert(hidden_name);
-      ensure_local(hidden_name);
-      const auto old_alias = name_aliases_.find(comp->target);
-      const bool had_alias = old_alias != name_aliases_.end();
-      const std::string old_value = had_alias ? old_alias->second : std::string{};
-      name_aliases_[comp->target] = hidden_name;
-
-      const auto start = static_cast<uint32_t>(fn_.code.size());
-      const auto item_reg = new_reg();
-      emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
-      const auto iter_next = fn_.code.size() - 1;
-      store_named_value(comp->target, item_reg);
-      size_t skip_append = 0;
-      bool has_filter = comp->filter != nullptr;
-      if (has_filter) {
-        const auto filter_reg = lower_expr(*comp->filter);
-        skip_append = emit_jump(ir::Op::JumpIfFalse, filter_reg);
-      }
-      const auto value_reg = lower_expr(*comp->result);
-      emit(ir::Op::ListAppend, dst, value_reg);
-      if (has_filter) {
-        patch_jump(skip_append, static_cast<uint32_t>(fn_.code.size()));
-      }
-      emit(ir::Op::Jump, start);
-      patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
-
-      if (had_alias) {
-        name_aliases_[comp->target] = old_value;
-      } else {
-        name_aliases_.erase(comp->target);
-      }
-      return dst;
+      const auto clauses = list_comp_clauses(*comp);
+      return lower_comprehension_clauses(
+          clauses, 0, dst, [&]() {
+            emit(ir::Op::ListAppend, dst, lower_expr(*comp->result));
+          });
+    }
+    if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+      const auto dst = new_reg();
+      emit(ir::Op::MakeDict, dst, add_dict_items({}));
+      const auto clauses = dict_comp_clauses(*comp);
+      return lower_comprehension_clauses(
+          clauses, 0, dst, [&]() {
+            const auto key = lower_expr(*comp->key);
+            const auto value = lower_expr(*comp->value);
+            emit(ir::Op::DictSet, dst, key, value);
+          });
+    }
+    if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+      const auto dst = new_reg();
+      emit(ir::Op::MakeSet, dst, add_set_items({}));
+      const auto clauses = set_comp_clauses(*comp);
+      return lower_comprehension_clauses(
+          clauses, 0, dst, [&]() {
+            emit(ir::Op::SetAdd, dst, lower_expr(*comp->result));
+          });
+    }
+    if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+      return lower_generator_expr(*comp);
     }
     if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
       ast::FunctionDef fn;
@@ -1675,6 +2462,8 @@ private:
         return Value::number(std::strtod(lit.text.c_str(), nullptr));
       case ast::LiteralExpr::Kind::String:
         return Value::string(lit.text);
+      case ast::LiteralExpr::Kind::Bytes:
+        return Value::bytes(lit.text);
     }
     return Value::none();
   }

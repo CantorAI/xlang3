@@ -33,12 +33,21 @@ using ExprPtr = std::unique_ptr<Expr>;
 using StmtPtr = std::unique_ptr<Stmt>;
 
 struct LiteralExpr final : Expr {
-  enum class Kind { None, Bool, Int, Double, String };
+  enum class Kind { None, Bool, Int, Double, String, Bytes };
   Kind kind;
   std::string text;
   bool bool_value = false;
 
   explicit LiteralExpr(Kind kind, std::string text = {}) : kind(kind), text(std::move(text)) {}
+};
+
+struct FStringExpr final : Expr {
+  struct Part {
+    bool is_expr = false;
+    std::string text;
+  };
+  std::vector<Part> parts;
+  explicit FStringExpr(std::vector<Part> parts) : parts(std::move(parts)) {}
 };
 
 struct NameExpr final : Expr {
@@ -71,12 +80,30 @@ struct BinaryExpr final : Expr {
       : op(std::move(op)), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 };
 
+struct CompareChainExpr final : Expr {
+  ExprPtr first;
+  std::vector<std::pair<std::string, ExprPtr>> comparisons;
+  CompareChainExpr(ExprPtr first, std::vector<std::pair<std::string, ExprPtr>> comparisons)
+      : first(std::move(first)), comparisons(std::move(comparisons)) {}
+};
+
 struct ConditionalExpr final : Expr {
   ExprPtr then_expr;
   ExprPtr condition;
   ExprPtr else_expr;
   ConditionalExpr(ExprPtr then_expr, ExprPtr condition, ExprPtr else_expr)
       : then_expr(std::move(then_expr)), condition(std::move(condition)), else_expr(std::move(else_expr)) {}
+};
+
+struct NamedExpr final : Expr {
+  std::string name;
+  ExprPtr value;
+  NamedExpr(std::string name, ExprPtr value) : name(std::move(name)), value(std::move(value)) {}
+};
+
+struct StarredExpr final : Expr {
+  ExprPtr expr;
+  explicit StarredExpr(ExprPtr expr) : expr(std::move(expr)) {}
 };
 
 struct CallExpr final : Expr {
@@ -99,6 +126,14 @@ struct SubscriptExpr final : Expr {
   ExprPtr object;
   ExprPtr index;
   SubscriptExpr(ExprPtr object, ExprPtr index) : object(std::move(object)), index(std::move(index)) {}
+};
+
+struct SliceExpr final : Expr {
+  ExprPtr start;
+  ExprPtr stop;
+  ExprPtr step;
+  SliceExpr(ExprPtr start, ExprPtr stop, ExprPtr step)
+      : start(std::move(start)), stop(std::move(stop)), step(std::move(step)) {}
 };
 
 struct AttrExpr final : Expr {
@@ -127,12 +162,54 @@ struct SetExpr final : Expr {
   explicit SetExpr(std::vector<ExprPtr> items) : items(std::move(items)) {}
 };
 
+struct CompClause {
+  std::string target;
+  ExprPtr iterable;
+  ExprPtr filter;
+};
+
 struct ListCompExpr final : Expr {
   ExprPtr result;
   std::string target;
   ExprPtr iterable;
   ExprPtr filter;
+  std::vector<CompClause> extra_clauses;
   ListCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
+      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
+};
+
+struct DictCompExpr final : Expr {
+  ExprPtr key;
+  ExprPtr value;
+  std::string target;
+  ExprPtr iterable;
+  ExprPtr filter;
+  std::vector<CompClause> extra_clauses;
+  DictCompExpr(ExprPtr key, ExprPtr value, std::string target, ExprPtr iterable, ExprPtr filter = {})
+      : key(std::move(key)),
+        value(std::move(value)),
+        target(std::move(target)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
+};
+
+struct SetCompExpr final : Expr {
+  ExprPtr result;
+  std::string target;
+  ExprPtr iterable;
+  ExprPtr filter;
+  std::vector<CompClause> extra_clauses;
+  SetCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
+      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
+};
+
+struct GeneratorExpr final : Expr {
+  ExprPtr result;
+  std::string target;
+  ExprPtr iterable;
+  ExprPtr filter;
+  std::vector<CompClause> extra_clauses;
+  GeneratorExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
       : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
 };
 
@@ -194,6 +271,28 @@ struct AttrAssignStmt final : Stmt {
   ExprPtr value;
   AttrAssignStmt(ExprPtr object, std::string name, ExprPtr value)
       : object(std::move(object)), name(std::move(name)), value(std::move(value)) {}
+};
+
+struct AnnotatedAssignStmt final : Stmt {
+  ExprPtr target;
+  ExprPtr annotation;
+  ExprPtr value;
+  AnnotatedAssignStmt(ExprPtr target, ExprPtr annotation, ExprPtr value)
+      : target(std::move(target)), annotation(std::move(annotation)), value(std::move(value)) {}
+};
+
+struct UnpackAssignStmt final : Stmt {
+  ExprPtr target;
+  ExprPtr value;
+  UnpackAssignStmt(ExprPtr target, ExprPtr value) : target(std::move(target)), value(std::move(value)) {}
+};
+
+struct AugAssignStmt final : Stmt {
+  ExprPtr target;
+  std::string op;
+  ExprPtr value;
+  AugAssignStmt(ExprPtr target, std::string op, ExprPtr value)
+      : target(std::move(target)), op(std::move(op)), value(std::move(value)) {}
 };
 
 struct ImportBinding {

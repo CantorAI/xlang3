@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 5;
+constexpr uint32_t kVersion = 8;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -34,6 +34,7 @@ enum class ConstTag : uint8_t {
   Int64 = 3,
   Double = 4,
   String = 5,
+  Bytes = 6,
 };
 
 struct Writer {
@@ -532,6 +533,10 @@ bool write_value(Writer& w, const Value& value, std::string& error) {
         w.u8(static_cast<uint8_t>(ConstTag::String));
         return w.string(reinterpret_cast<StringObject*>(value.as.obj)->value, error);
       }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        w.u8(static_cast<uint8_t>(ConstTag::Bytes));
+        return w.string(reinterpret_cast<BytesObject*>(value.as.obj)->value, error);
+      }
       break;
     default:
       break;
@@ -579,6 +584,14 @@ bool read_value(Reader& r, Value& value) {
         return false;
       }
       value = Value::string(std::move(s));
+      return true;
+    }
+    case ConstTag::Bytes: {
+      std::string s;
+      if (!r.string(s)) {
+        return false;
+      }
+      value = Value::bytes(std::move(s));
       return true;
     }
   }
@@ -652,7 +665,8 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
       !write_nested_u32_vectors(w, fn.function_closures, error) ||
       !write_nested_class_attrs(w, fn.class_attrs, error) ||
       !write_nested_string_vectors(w, fn.class_instance_slots, error) ||
-      !write_u32_pair_vector(w, fn.range_specs, error)) {
+      !write_u32_pair_vector(w, fn.range_specs, error) ||
+      !write_u32_pair_vector(w, fn.string_replace_specs, error)) {
     return false;
   }
   if (!write_count(w, fn.code.size(), error)) {
@@ -704,7 +718,8 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       !read_nested_u32_vectors(r, fn.function_closures, error) ||
       !read_nested_class_attrs(r, fn.class_attrs, error) ||
       !read_nested_string_vectors(r, fn.class_instance_slots, error) ||
-      !read_u32_pair_vector(r, fn.range_specs, error)) {
+      !read_u32_pair_vector(r, fn.range_specs, error) ||
+      !read_u32_pair_vector(r, fn.string_replace_specs, error)) {
     return false;
   }
   uint32_t code_count = 0;

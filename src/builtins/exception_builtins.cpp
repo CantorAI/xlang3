@@ -51,7 +51,8 @@ void register_exception_class(Runtime& runtime, const char* name, Value base = V
 } // namespace
 
 void register_exception_builtins(Runtime& runtime) {
-  register_exception_class(runtime, "BaseException");
+  Value object_base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
+  register_exception_class(runtime, "BaseException", std::move(object_base));
   register_exception_class(runtime, "Exception", *runtime.find_builtin("BaseException"));
   register_exception_class(runtime, "RuntimeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));

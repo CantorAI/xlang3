@@ -26,7 +26,12 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
     Value& out,
     std::string& error) {
   if (auto* instance = value_as_instance(object)) {
-    if (cache.kind == AttrSiteKind::InstanceSlot && cache.index < instance_slot_count(instance)) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::InstanceSlot &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        cache.index < instance_slot_count(instance)) {
       const auto& slot_value = instance_slot_at(instance, cache.index);
       if (slot_value.tag != ValueTag::Invalid) {
         value_assign_fast(out, slot_value);
@@ -35,12 +40,37 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       error = "object has no attribute '" + name + "'";
       return false;
     }
-    if (cache.kind == AttrSiteKind::InstanceAttr && cache.index < instance->attrs.size() &&
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::InstanceAttr &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        cache.index < instance->attrs.size() &&
         instance->attrs[cache.index].first == name) {
       value_assign_fast(out, instance->attrs[cache.index].second);
       return true;
     }
-    if (auto* klass = value_as_class(instance->klass)) {
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::Descriptor &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        value_as_property(cache.value) != nullptr) {
+      value_assign_fast(out, cache.value);
+      return true;
+    }
+    if (klass != nullptr && klass->has_descriptors) {
+      Value descriptor;
+      std::string descriptor_error;
+      if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
+          value_as_property(descriptor) != nullptr) {
+        cache.kind = AttrSiteKind::Descriptor;
+        cache.owner = &klass->header;
+        cache.version = klass->version;
+        value_assign_fast(cache.value, descriptor);
+        value_assign_fast(out, descriptor);
+        return true;
+      }
+    }
+    if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
         const auto& slot_value = instance_slot_at(instance, slot_it->second);
@@ -50,6 +80,8 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         }
         cache.index = slot_it->second;
         cache.kind = AttrSiteKind::InstanceSlot;
+        cache.owner = &klass->header;
+        cache.version = klass->version;
         value_assign_fast(out, slot_value);
         return true;
       }
@@ -58,6 +90,10 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       if (instance->attrs[attr_i].first == name) {
         cache.index = static_cast<uint32_t>(attr_i);
         cache.kind = AttrSiteKind::InstanceAttr;
+        if (klass != nullptr) {
+          cache.owner = &klass->header;
+          cache.version = klass->version;
+        }
         value_assign_fast(out, instance->attrs[attr_i].second);
         return true;
       }
@@ -73,20 +109,52 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     AttrSiteCache& cache,
     std::string& error) {
   if (auto* instance = value_as_instance(object)) {
-    if (cache.kind == AttrSiteKind::InstanceSlot && cache.index < instance_slot_count(instance)) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::InstanceSlot &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        cache.index < instance_slot_count(instance)) {
       value_assign_fast(instance_slot_at(instance, cache.index), value);
       return true;
     }
-    if (cache.kind == AttrSiteKind::InstanceAttr && cache.index < instance->attrs.size() &&
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::InstanceAttr &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        cache.index < instance->attrs.size() &&
         instance->attrs[cache.index].first == name) {
       value_assign_fast(instance->attrs[cache.index].second, value);
       return true;
     }
-    if (auto* klass = value_as_class(instance->klass)) {
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::Descriptor &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        value_as_property(cache.value) != nullptr) {
+      error = "descriptor assignment requires VM dispatch";
+      return false;
+    }
+    if (klass != nullptr && klass->has_descriptors) {
+      Value descriptor;
+      std::string descriptor_error;
+      if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
+          value_as_property(descriptor) != nullptr) {
+        cache.kind = AttrSiteKind::Descriptor;
+        cache.owner = &klass->header;
+        cache.version = klass->version;
+        value_assign_fast(cache.value, descriptor);
+        error = "descriptor assignment requires VM dispatch";
+        return false;
+      }
+    }
+    if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
         cache.index = slot_it->second;
         cache.kind = AttrSiteKind::InstanceSlot;
+        cache.owner = &klass->header;
+        cache.version = klass->version;
         value_assign_fast(instance_slot_at(instance, slot_it->second), value);
         return true;
       }
@@ -95,6 +163,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
       if (instance->attrs[attr_i].first == name) {
         cache.index = static_cast<uint32_t>(attr_i);
         cache.kind = AttrSiteKind::InstanceAttr;
+        if (klass != nullptr) {
+          cache.owner = &klass->header;
+          cache.version = klass->version;
+        }
         value_assign_fast(instance->attrs[attr_i].second, value);
         return true;
       }
@@ -102,6 +174,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     instance->attrs.push_back(std::make_pair(name, value));
     cache.index = static_cast<uint32_t>(instance->attrs.size() - 1);
     cache.kind = AttrSiteKind::InstanceAttr;
+    if (klass != nullptr) {
+      cache.owner = &klass->header;
+      cache.version = klass->version;
+    }
     return true;
   }
   return attribute_set(object, name, value, error);

@@ -33,6 +33,8 @@ enum class TokenKind {
   Integer,
   Double,
   String,
+  Bytes,
+  FString,
   KwDef,
   KwClass,
   KwReturn,
@@ -80,9 +82,22 @@ enum class TokenKind {
   Comma,
   Semicolon,
   Colon,
+  ColonEqual,
   At,
   Arrow,
   Assign,
+  PlusAssign,
+  MinusAssign,
+  StarAssign,
+  DoubleStarAssign,
+  SlashAssign,
+  DoubleSlashAssign,
+  PercentAssign,
+  AmpAssign,
+  PipeAssign,
+  CaretAssign,
+  LeftShiftAssign,
+  RightShiftAssign,
   Plus,
   Minus,
   Star,
@@ -161,6 +176,7 @@ private:
   bool is_simple_statement_end() const;
   ast::ExprPtr parse_with_manager_expr();
   ast::ExprPtr parse_expression();
+  ast::ExprPtr parse_named_expression();
   ast::ExprPtr parse_tuple();
   ast::ExprPtr parse_conditional();
   ast::ExprPtr parse_or();

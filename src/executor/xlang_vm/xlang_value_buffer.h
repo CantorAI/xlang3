@@ -17,7 +17,9 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <new>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -31,20 +33,138 @@ Inline-first storage for VM locals, registers, and cells.
 Performance rule:
 Small frames avoid heap allocation; large frames fall back to std::vector-backed
 storage without changing the frame access path.
+
+Execution-value rule:
+IR names virtual registers. XlangVM allocates one physical register cell for
+each function virtual register count, so desktop execution does not spill hot
+expressions through heap objects. XlangVMRegister is intentionally separate
+from public Value even while it currently stores Value-compatible payloads; the
+next optimization layer can add frame-local temps/views behind this boundary
+without changing the IR or public runtime ABI.
 */
 
 namespace xlang3 {
 
-class XlangVMSmallValueBuffer {
-public:
-  XlangVMSmallValueBuffer() = default;
+static constexpr uint32_t kXlangVMRegisterTempFlag = 0x80000000u;
 
-  XlangVMSmallValueBuffer(size_t size, const Value& fill) : size_(size) {
-    if (size_ <= kInlineCount) {
+enum class XlangVMTempKind : uint8_t {
+  Empty,
+  NativeIntermediate,
+};
+
+/*
+XlangVMTempValue is the generic placeholder for non-materialized intermediate
+results. It deliberately does not encode string/list/etc. operation kinds.
+Native/runtime operations can later attach compact op descriptors through
+producer_id and payload slots, while the frame remains the lifetime owner.
+*/
+struct XlangVMTempValue {
+  XlangVMTempKind kind = XlangVMTempKind::Empty;
+  uint32_t producer_id = 0;
+  Value source;
+  Value arg0;
+  Value arg1;
+  uint32_t payload0 = 0;
+  uint32_t payload1 = 0;
+};
+
+class XlangVMTempArena {
+public:
+  uint32_t allocate(XlangVMTempValue temp) {
+    if (temps_.size() < kInlineCount) {
+      temps_.push_back(std::move(temp));
+      return static_cast<uint32_t>(temps_.size() - 1);
+    }
+    overflow_.push_back(std::move(temp));
+    return static_cast<uint32_t>(kInlineCount + overflow_.size() - 1);
+  }
+
+  XLANG3_HOT_INLINE XlangVMTempValue* get(uint32_t index) {
+    if (index < temps_.size()) {
+      return &temps_[index];
+    }
+    index -= static_cast<uint32_t>(kInlineCount);
+    if (index < overflow_.size()) {
+      return &overflow_[index];
+    }
+    return nullptr;
+  }
+
+  XLANG3_HOT_INLINE const XlangVMTempValue* get(uint32_t index) const {
+    if (index < temps_.size()) {
+      return &temps_[index];
+    }
+    index -= static_cast<uint32_t>(kInlineCount);
+    if (index < overflow_.size()) {
+      return &overflow_[index];
+    }
+    return nullptr;
+  }
+
+  void clear() {
+    temps_.clear();
+    overflow_.clear();
+  }
+
+private:
+  static constexpr size_t kInlineCount = 32;
+
+  std::vector<XlangVMTempValue> temps_;
+  std::vector<XlangVMTempValue> overflow_;
+};
+
+struct XlangVMRegister : Value {
+  XlangVMRegister() = default;
+  XlangVMRegister(const Value& value) : Value(value) {}
+  XlangVMRegister(Value&& value) noexcept : Value(std::move(value)) {}
+
+  XlangVMRegister& operator=(const Value& value) {
+    Value::operator=(value);
+    return *this;
+  }
+
+  XlangVMRegister& operator=(Value&& value) noexcept {
+    Value::operator=(std::move(value));
+    return *this;
+  }
+
+  XLANG3_HOT_INLINE Value& materialized_value() {
+    return *this;
+  }
+
+  XLANG3_HOT_INLINE const Value& materialized_value() const {
+    return *this;
+  }
+
+  XLANG3_HOT_INLINE bool is_temp() const {
+    return tag == ValueTag::Invalid && (flags & kXlangVMRegisterTempFlag) != 0;
+  }
+
+  XLANG3_HOT_INLINE uint32_t temp_index() const {
+    return static_cast<uint32_t>(as.i64);
+  }
+
+  XLANG3_HOT_INLINE void set_temp(uint32_t index) {
+    value_release_if_object(*this);
+    tag = ValueTag::Invalid;
+    flags = kXlangVMRegisterTempFlag;
+    as.i64 = static_cast<int64_t>(index);
+  }
+};
+
+static_assert(sizeof(XlangVMRegister) == sizeof(Value), "VMRegister must stay Value-layout compatible");
+
+template <typename Cell, size_t InlineCount>
+class XlangVMSmallBuffer {
+public:
+  XlangVMSmallBuffer() = default;
+
+  XlangVMSmallBuffer(size_t size, const Value& fill) : size_(size) {
+    if (size_ <= InlineCount) {
       data_ = inline_data();
       uses_inline_ = true;
       for (size_t i = 0; i < size_; ++i) {
-        new (data_ + i) Value(fill);
+        new (data_ + i) Cell(fill);
       }
       return;
     }
@@ -52,25 +172,25 @@ public:
     data_ = heap_.data();
   }
 
-  XlangVMSmallValueBuffer(const XlangVMSmallValueBuffer&) = delete;
-  XlangVMSmallValueBuffer& operator=(const XlangVMSmallValueBuffer&) = delete;
-  XlangVMSmallValueBuffer(XlangVMSmallValueBuffer&& other) noexcept {
+  XlangVMSmallBuffer(const XlangVMSmallBuffer&) = delete;
+  XlangVMSmallBuffer& operator=(const XlangVMSmallBuffer&) = delete;
+  XlangVMSmallBuffer(XlangVMSmallBuffer&& other) noexcept {
     move_from(std::move(other));
   }
-  XlangVMSmallValueBuffer& operator=(XlangVMSmallValueBuffer&& other) noexcept = delete;
+  XlangVMSmallBuffer& operator=(XlangVMSmallBuffer&& other) noexcept = delete;
 
-  ~XlangVMSmallValueBuffer() {
+  ~XlangVMSmallBuffer() {
     destroy_inline();
   }
 
   void reset(size_t size, const Value& fill) {
-    if (size <= kInlineCount) {
+    if (size <= InlineCount) {
       if (!uses_inline_) {
         heap_.clear();
         data_ = inline_data();
         uses_inline_ = true;
         for (size_t i = 0; i < size; ++i) {
-          new (data_ + i) Value(fill);
+          new (data_ + i) Cell(fill);
         }
         size_ = size;
         return;
@@ -80,10 +200,10 @@ public:
         value_assign_fast(data_[i], fill);
       }
       for (size_t i = shared; i < size; ++i) {
-        new (data_ + i) Value(fill);
+        new (data_ + i) Cell(fill);
       }
       for (size_t i = size; i < size_; ++i) {
-        data_[i].~Value();
+        data_[i].~Cell();
       }
       size_ = size;
       return;
@@ -100,37 +220,43 @@ public:
     return size_;
   }
 
-  XLANG3_HOT_INLINE Value* data() {
+  XLANG3_HOT_INLINE Cell* data() {
     return data_;
   }
 
-  XLANG3_HOT_INLINE const Value* data() const {
+  XLANG3_HOT_INLINE const Cell* data() const {
     return data_;
   }
 
-  XLANG3_HOT_INLINE Value& operator[](size_t index) {
+  XLANG3_HOT_INLINE Value* value_data() {
+    return reinterpret_cast<Value*>(data_);
+  }
+
+  XLANG3_HOT_INLINE const Value* value_data() const {
+    return reinterpret_cast<const Value*>(data_);
+  }
+
+  XLANG3_HOT_INLINE Cell& operator[](size_t index) {
     return data_[index];
   }
 
-  XLANG3_HOT_INLINE const Value& operator[](size_t index) const {
+  XLANG3_HOT_INLINE const Cell& operator[](size_t index) const {
     return data_[index];
   }
 
 private:
-  static constexpr size_t kInlineCount = 64;
-
-  XLANG3_HOT_INLINE Value* inline_data() {
-    return reinterpret_cast<Value*>(inline_storage_);
+  XLANG3_HOT_INLINE Cell* inline_data() {
+    return reinterpret_cast<Cell*>(inline_storage_);
   }
 
-  void move_from(XlangVMSmallValueBuffer&& other) {
+  void move_from(XlangVMSmallBuffer&& other) {
     size_ = other.size_;
     uses_inline_ = other.uses_inline_;
     if (other.uses_inline_) {
       data_ = inline_data();
       for (size_t i = 0; i < size_; ++i) {
-        new (data_ + i) Value(std::move(other.data_[i]));
-        other.data_[i].~Value();
+        new (data_ + i) Cell(std::move(other.data_[i]));
+        other.data_[i].~Cell();
       }
       other.size_ = 0;
       other.data_ = nullptr;
@@ -149,7 +275,7 @@ private:
       return;
     }
     for (size_t i = 0; i < size_; ++i) {
-      data_[i].~Value();
+      data_[i].~Cell();
     }
     size_ = 0;
     data_ = nullptr;
@@ -157,12 +283,38 @@ private:
   }
 
   size_t size_ = 0;
-  Value* data_ = nullptr;
+  Cell* data_ = nullptr;
   bool uses_inline_ = false;
-  alignas(Value) std::byte inline_storage_[sizeof(Value) * kInlineCount];
-  std::vector<Value> heap_;
+  alignas(Cell) std::byte inline_storage_[sizeof(Cell) * InlineCount];
+  std::vector<Cell> heap_;
 };
 
+using XlangVMSmallValueBuffer = XlangVMSmallBuffer<Value, 64>;
+using XlangVMSmallRegisterBuffer = XlangVMSmallBuffer<XlangVMRegister, 128>;
 using SmallValueBuffer = XlangVMSmallValueBuffer;
+
+XLANG3_HOT_INLINE bool xlang_vm_register_is_materialized(const XlangVMRegister& reg) {
+  return !reg.is_temp();
+}
+
+inline bool xlang_vm_materialize_register(
+    XlangVMRegister& reg,
+    XlangVMTempArena& temps,
+    Value& out,
+    std::string& error) {
+  if (!reg.is_temp()) {
+    value_assign_fast(out, reg.materialized_value());
+    return true;
+  }
+
+  const auto* temp = temps.get(reg.temp_index());
+  if (temp == nullptr || temp->kind == XlangVMTempKind::Empty) {
+    error = "invalid VM temporary";
+    return false;
+  }
+
+  error = "VM temporary materializer is not installed";
+  return false;
+}
 
 } // namespace xlang3

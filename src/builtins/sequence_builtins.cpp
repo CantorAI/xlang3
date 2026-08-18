@@ -166,11 +166,9 @@ bool builtin_str(
 } // namespace
 
 void register_sequence_builtins(Runtime& runtime) {
-  runtime.register_native_builtin("range", builtin_range);
   runtime.register_native_builtin("len", builtin_len);
   runtime.register_native_builtin("next", builtin_next);
   runtime.register_native_builtin("ord", builtin_ord);
-  runtime.register_native_builtin("str", builtin_str);
 }
 
 } // namespace xlang3

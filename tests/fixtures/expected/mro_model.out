@@ -1,0 +1,11 @@
+base B
+base C
+mro D
+mro B
+mro C
+mro A
+mro object
+B C
+B C
+True True True True
+True True True
