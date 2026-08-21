@@ -71,6 +71,7 @@ $cases = @(
     "collections_queue_modules",
     "collections_queue_facades",
     "types_module",
+    "traceback_module",
     "file_import",
     "global_from_import",
     "package_import",

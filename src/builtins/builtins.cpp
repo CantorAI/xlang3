@@ -35,6 +35,7 @@ void register_core_builtins(Runtime& runtime) {
   register_collections_module(runtime);
   register_queue_module(runtime);
   register_types_module(runtime);
+  register_traceback_module(runtime);
 #endif
   register_thread_modules(runtime);
 #ifndef XLANG3_EMBEDDED

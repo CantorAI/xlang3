@@ -355,7 +355,7 @@ High-level Python modules to run from Python source where possible:
 - [ ] `socket`
 - [x] `json` through native package, not CPython-compatible package yet
 - [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
-- [ ] `traceback`
+- [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [ ] `inspect`
 - [ ] `runpy`
 - [ ] `importlib`
