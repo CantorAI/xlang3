@@ -47,16 +47,17 @@ private:
       const std::string& message,
       const std::string& body_json);
   std::string make_event(const std::string& event, const std::string& body_json);
+  std::string initialized_event();
   std::string stopped_event();
   std::string terminated_event();
   std::string status_body() const;
+  std::string threads_body() const;
   std::string stack_trace_body() const;
-  std::string scopes_body() const;
+  std::string scopes_body(int64_t frame_id) const;
   std::string variables_body(int64_t variables_reference) const;
 
   DebugSession debug_;
   int64_t next_seq_ = 1;
-  int64_t globals_variables_reference_ = 1;
 };
 
 } // namespace xlang3::dap

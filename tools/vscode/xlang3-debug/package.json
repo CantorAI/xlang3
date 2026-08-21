@@ -1,0 +1,75 @@
+{
+  "name": "xlang3-debug",
+  "displayName": "XLang3 Debug",
+  "description": "VS Code debug adapter registration for XLang3 Python-compatible .py files.",
+  "version": "0.0.1",
+  "publisher": "CantorAI",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onDebugInitialConfigurations:xlang3",
+    "onDebugResolve:xlang3"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "XLang3",
+      "properties": {
+        "xlang3.debugAdapterPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to xlang3.exe. If empty, the extension tries XLANG3_EXE and then xlang3 on PATH."
+        }
+      }
+    },
+    "debuggers": [
+      {
+        "type": "xlang3",
+        "label": "XLang3",
+        "languages": [
+          "python"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "The Python-compatible .py file to debug."
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [],
+                "description": "Program arguments."
+              },
+              "adapterPath": {
+                "type": "string",
+                "default": "",
+                "description": "Optional path to xlang3.exe for this launch configuration."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": "XLang3: Current Python File",
+            "type": "xlang3",
+            "request": "launch",
+            "program": "${file}",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -46,6 +46,18 @@ Json single_response(
   return Json::parse(responses[0]);
 }
 
+Json response_at(
+    xlang3::test::CaseResult& result,
+    const std::vector<std::string>& responses,
+    size_t index,
+    const std::string& label) {
+  xlang3::test::expect_true(result, responses.size() > index, label + " should include response");
+  if (responses.size() <= index) {
+    return Json::object();
+  }
+  return Json::parse(responses[index]);
+}
+
 } // namespace
 
 int main() {
@@ -73,12 +85,21 @@ int main() {
     std::ostringstream output;
     xlang3::dap::DapSession session(output);
 
-    Json initialize = single_response(result, session, request(1, "initialize"), "initialize");
+    auto initialize_messages = session.handle_payload(request(1, "initialize").dump());
+    xlang3::test::expect_true(
+        result,
+        initialize_messages.size() == 2,
+        "initialize should produce response and initialized event");
+    Json initialize = response_at(result, initialize_messages, 0, "initialize");
     xlang3::test::expect_true(result, initialize.value("success", false), "initialize should succeed");
     xlang3::test::expect_true(
         result,
         initialize["body"].value("supportsConfigurationDoneRequest", false),
         "initialize should advertise configurationDone");
+    if (initialize_messages.size() == 2) {
+      Json initialized = Json::parse(initialize_messages[1]);
+      xlang3::test::expect_true(result, initialized.value("event", "") == "initialized", "initialize should signal ready");
+    }
 
     const std::string source =
         "x = 1\n"
@@ -100,7 +121,14 @@ int main() {
         set_breakpoints["body"]["breakpoints"][0].value("verified", false),
         "setBreakpoints should verify a line breakpoint");
 
-    auto configuration_done = session.handle_payload(request(4, "configurationDone").dump());
+    Json exception_breakpoints =
+        single_response(result, session, request(4, "setExceptionBreakpoints"), "setExceptionBreakpoints");
+    xlang3::test::expect_true(
+        result,
+        exception_breakpoints.value("success", false),
+        "setExceptionBreakpoints should be accepted for IDE clients");
+
+    auto configuration_done = session.handle_payload(request(5, "configurationDone").dump());
     xlang3::test::expect_true(
         result,
         configuration_done.size() == 2,
@@ -116,18 +144,29 @@ int main() {
           "configurationDone stop reason should be breakpoint");
     }
 
-    Json stack_trace = single_response(result, session, request(5, "stackTrace"), "stackTrace");
+    Json threads = single_response(result, session, request(6, "threads"), "threads");
+    xlang3::test::expect_true(
+        result,
+        threads["body"]["threads"][0].value("id", 0) == 1,
+        "threads should expose the main thread");
+
+    Json stack_trace = single_response(result, session, request(7, "stackTrace"), "stackTrace");
     xlang3::test::expect_true(
         result,
         stack_trace["body"]["stackFrames"][0].value("line", 0) == 3,
         "stackTrace should report breakpoint line");
 
-    Json scopes = single_response(result, session, request(6, "scopes"), "scopes");
-    const int64_t globals_ref = scopes["body"]["scopes"][0].value("variablesReference", 0);
+    Json scopes = single_response(result, session, request(8, "scopes"), "scopes");
+    int64_t globals_ref = 0;
+    for (const auto& item : scopes["body"]["scopes"]) {
+      if (item.value("name", "") == "Globals") {
+        globals_ref = item.value("variablesReference", 0);
+      }
+    }
     xlang3::test::expect_true(result, globals_ref != 0, "scopes should expose globals reference");
 
     Json variables =
-        single_response(result, session, request(7, "variables", Json{{"variablesReference", globals_ref}}), "variables");
+        single_response(result, session, request(9, "variables", Json{{"variablesReference", globals_ref}}), "variables");
     bool found_y = false;
     for (const auto& item : variables["body"]["variables"]) {
       if (item.value("name", "") == "y" && item.value("value", "") == "3" && item.value("type", "") == "int") {
@@ -136,7 +175,7 @@ int main() {
     }
     xlang3::test::expect_true(result, found_y, "variables should expose computed global y");
 
-    auto continue_messages = session.handle_payload(request(8, "continue").dump());
+    auto continue_messages = session.handle_payload(request(10, "continue").dump());
     xlang3::test::expect_true(
         result,
         continue_messages.size() == 2,
@@ -155,6 +194,71 @@ int main() {
         result,
         output_event["body"].value("output", "") == "3\n",
         "output event should contain captured stdout");
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::dap::DapSession session(output);
+    session.handle_payload(request(20, "initialize").dump());
+
+    const std::string source =
+        "def f(a):\n"
+        "    b = a + 1\n"
+        "    print(b)\n"
+        "\n"
+        "f(4)\n";
+    xlang3::test::expect_true(
+        result,
+        single_response(
+            result,
+            session,
+            request(21, "launch", Json{{"program", "dap_locals.py"}, {"source", source}}),
+            "launch locals")
+            .value("success", false),
+        "function local launch should succeed");
+    single_response(
+        result,
+        session,
+        request(
+            22,
+            "setBreakpoints",
+            Json{
+                {"source", {{"path", "dap_locals.py"}}},
+                {"breakpoints", Json::array({Json{{"line", 3}}})},
+            }),
+        "setBreakpoints locals");
+
+    auto stopped = session.handle_payload(request(23, "configurationDone").dump());
+    xlang3::test::expect_true(result, stopped.size() == 2, "function breakpoint should stop");
+
+    Json stack = single_response(result, session, request(24, "stackTrace"), "stackTrace locals");
+    xlang3::test::expect_true(
+        result,
+        stack["body"]["stackFrames"].size() >= 2,
+        "stackTrace should expose current frame and caller frame");
+    xlang3::test::expect_true(
+        result,
+        stack["body"]["stackFrames"][0].value("name", "") == "f",
+        "top frame should be function f");
+
+    Json scopes_for_f = single_response(result, session, request(25, "scopes", Json{{"frameId", 1}}), "scopes locals");
+    int64_t locals_ref = 0;
+    for (const auto& item : scopes_for_f["body"]["scopes"]) {
+      if (item.value("name", "") == "Locals") {
+        locals_ref = item.value("variablesReference", 0);
+      }
+    }
+    xlang3::test::expect_true(result, locals_ref != 0, "scopes should expose locals reference");
+
+    Json locals =
+        single_response(result, session, request(26, "variables", Json{{"variablesReference", locals_ref}}), "variables locals");
+    bool found_b = false;
+    for (const auto& item : locals["body"]["variables"]) {
+      if (item.value("name", "") == "b" && item.value("value", "") == "5") {
+        found_b = true;
+      }
+    }
+    xlang3::test::expect_true(result, found_b, "locals should expose function local b");
   }
 
   return xlang3::test::finish(result);

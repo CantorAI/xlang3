@@ -63,11 +63,25 @@ $inputText += New-DapFrame @{
 $inputText += New-DapFrame @{
   seq = 3
   type = "request"
+  command = "setExceptionBreakpoints"
+  arguments = @{
+    filters = @()
+  }
+}
+$inputText += New-DapFrame @{
+  seq = 4
+  type = "request"
   command = "configurationDone"
   arguments = @{}
 }
 $inputText += New-DapFrame @{
-  seq = 4
+  seq = 5
+  type = "request"
+  command = "threads"
+  arguments = @{}
+}
+$inputText += New-DapFrame @{
+  seq = 6
   type = "request"
   command = "disconnect"
   arguments = @{}
@@ -104,9 +118,24 @@ if ($null -eq $initialize -or -not $initialize.success) {
   throw "initialize response missing or unsuccessful"
 }
 
+$initialized = $frames | Where-Object { $_.type -eq "event" -and $_.event -eq "initialized" } | Select-Object -First 1
+if ($null -eq $initialized) {
+  throw "initialized event missing"
+}
+
 $launch = $frames | Where-Object { $_.type -eq "response" -and $_.command -eq "launch" } | Select-Object -First 1
 if ($null -eq $launch -or -not $launch.success) {
   throw "launch response missing or unsuccessful"
+}
+
+$exceptions = $frames | Where-Object { $_.type -eq "response" -and $_.command -eq "setExceptionBreakpoints" } | Select-Object -First 1
+if ($null -eq $exceptions -or -not $exceptions.success) {
+  throw "setExceptionBreakpoints response missing or unsuccessful"
+}
+
+$threads = $frames | Where-Object { $_.type -eq "response" -and $_.command -eq "threads" } | Select-Object -First 1
+if ($null -eq $threads -or -not $threads.success -or $threads.body.threads[0].id -ne 1) {
+  throw "threads response missing or wrong"
 }
 
 $output = $frames | Where-Object { $_.type -eq "event" -and $_.event -eq "output" } | Select-Object -First 1

@@ -232,16 +232,21 @@ Initial command surface:
 
 ```text
 initialize
+initialized event
 launch
 setBreakpoints
+setExceptionBreakpoints
 configurationDone
 continue
 next
 stepIn
 stepOut
+threads
 stackTrace
 scopes
 variables
+output event
+terminated event
 disconnect
 terminate
 ```
@@ -260,6 +265,41 @@ In stdio DAP mode, stdout is reserved for framed DAP protocol messages. Program
 stdout is captured by the session and emitted as DAP `output` events, so user
 `print()` calls do not corrupt the protocol stream. A socket mode can be layered
 over the same `DapSession` protocol core later.
+
+### VS Code Registration
+
+VS Code does not launch arbitrary DAP executables from `launch.json` alone. It
+needs a debug type contributed by an extension. XLang3 keeps this layer small:
+
+```text
+tools/vscode/xlang3-debug
+  -> registers debug type: xlang3
+  -> starts: xlang3 --dap-stdio
+```
+
+The extension contributes an `XLang3: Current Python File` launch shape:
+
+```json
+{
+  "name": "XLang3: Current Python File",
+  "type": "xlang3",
+  "request": "launch",
+  "program": "${file}",
+  "adapterPath": "D:/CantorAI/xlang3/build/Release/xlang3.exe",
+  "args": []
+}
+```
+
+The adapter path can also come from:
+
+```text
+xlang3.debugAdapterPath
+XLANG3_EXE
+xlang3 on PATH
+```
+
+This registration layer must remain transport-only. It should not contain VM,
+breakpoint, or stepping logic.
 
 ## Source Mapping
 

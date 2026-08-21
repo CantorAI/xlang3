@@ -139,6 +139,80 @@ Json value_to_dap_variable(const std::string& name, const Value& value) {
   return item;
 }
 
+int64_t value_int_or_zero(const Value& value) {
+  if (value.tag == ValueTag::Int64) {
+    return value.as.i64;
+  }
+  return 0;
+}
+
+bool frame_attr(const Value& frame, const char* name, Value& out) {
+  std::string ignored;
+  return object_get_attr(frame, name, out, ignored);
+}
+
+Value frame_by_id(Value frame, int64_t frame_id) {
+  if (frame_id <= 0) {
+    return Value::invalid();
+  }
+
+  for (int64_t current = 1; current < frame_id; ++current) {
+    Value back;
+    if (!frame_attr(frame, "f_back", back) || back.tag == ValueTag::None || value_as_frame(back) == nullptr) {
+      return Value::invalid();
+    }
+    frame = std::move(back);
+  }
+  return frame;
+}
+
+std::string frame_code_string_attr(const Value& frame, const char* attr, const std::string& fallback) {
+  Value code;
+  if (!frame_attr(frame, "f_code", code)) {
+    return fallback;
+  }
+  Value value;
+  if (!frame_attr(code, attr, value)) {
+    return fallback;
+  }
+  return value_to_string(value);
+}
+
+int64_t frame_line(const Value& frame, uint32_t fallback) {
+  Value line;
+  if (!frame_attr(frame, "f_lineno", line)) {
+    return fallback;
+  }
+  const int64_t value = value_int_or_zero(line);
+  return value == 0 ? fallback : value;
+}
+
+Json variables_from_frame_attr(const Value& frame, const char* attr) {
+  Json variables = Json::array();
+  Value mapping;
+  if (!frame_attr(frame, attr, mapping)) {
+    return variables;
+  }
+  if (auto* dict = value_as_dict(mapping)) {
+    for (const auto& entry : dict->entries) {
+      variables.push_back(value_to_dap_variable(value_to_string(entry.first), entry.second));
+    }
+  }
+  return variables;
+}
+
+int64_t make_scope_ref(int64_t frame_id, int64_t scope_kind) {
+  return frame_id * 10 + scope_kind;
+}
+
+int64_t scope_frame_id(int64_t variables_reference) {
+  return variables_reference / 10;
+}
+
+int64_t scope_kind(int64_t variables_reference) {
+  return variables_reference % 10;
+}
+
 } // namespace
 
 bool try_read_framed_message(std::string& buffer, FramedMessage& out, std::string& error) {
@@ -219,10 +293,15 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
     Json body = {
         {"supportsConfigurationDoneRequest", true},
         {"supportsTerminateRequest", true},
+        {"supportsTerminateDebuggee", true},
         {"supportsStepBack", false},
         {"supportsSetVariable", false},
+        {"supportsEvaluateForHovers", false},
+        {"supportsExceptionOptions", false},
+        {"supportsExceptionInfoRequest", false},
+        {"supportsDelayedStackTraceLoading", false},
     };
-    return {make_response_body(seq, command, true, "", body.dump())};
+    return {make_response_body(seq, command, true, "", body.dump()), initialized_event()};
   }
   if (command == "launch") {
     std::string program = args.value("program", "");
@@ -262,6 +341,10 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
       breakpoints.push_back({{"verified", line != 0}, {"line", line}});
     }
     Json body = {{"breakpoints", breakpoints}};
+    return {make_response_body(seq, command, true, "", body.dump())};
+  }
+  if (command == "setExceptionBreakpoints") {
+    Json body = {{"breakpoints", Json::array()}};
     return {make_response_body(seq, command, true, "", body.dump())};
   }
   if (command == "configurationDone") {
@@ -318,8 +401,12 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
   if (command == "stackTrace") {
     return {make_response_body(seq, command, true, "", stack_trace_body())};
   }
+  if (command == "threads") {
+    return {make_response_body(seq, command, true, "", threads_body())};
+  }
   if (command == "scopes") {
-    return {make_response_body(seq, command, true, "", scopes_body())};
+    const int64_t frame_id = args.value("frameId", 1);
+    return {make_response_body(seq, command, true, "", scopes_body(frame_id))};
   }
   if (command == "variables") {
     const int64_t ref = args.value("variablesReference", 0);
@@ -373,6 +460,10 @@ std::string DapSession::make_output_event(const std::string& output) {
   return make_event("output", body.dump());
 }
 
+std::string DapSession::initialized_event() {
+  return make_event("initialized", "{}");
+}
+
 std::string DapSession::stopped_event() {
   Json body = {
       {"reason", reason_name(debug_.status().reason)},
@@ -398,26 +489,38 @@ std::string DapSession::status_body() const {
   return body.dump();
 }
 
+std::string DapSession::threads_body() const {
+  Json threads = Json::array();
+  threads.push_back({
+      {"id", 1},
+      {"name", "MainThread"},
+  });
+  return Json({{"threads", threads}}).dump();
+}
+
 std::string DapSession::stack_trace_body() const {
   Json frames = Json::array();
   if (debug_.status().paused) {
-    Json frame = {
-        {"id", 1},
-        {"name", "<module>"},
-        {"line", debug_.status().line},
-        {"column", 1},
-        {"source", {{"path", debug_.status().file}, {"name", debug_.status().file}}},
-    };
-    Value code;
-    std::string ignored;
-    if (object_get_attr(debug_.status().frame, "f_code", code, ignored)) {
-      Value name;
-      ignored.clear();
-      if (object_get_attr(code, "co_name", name, ignored)) {
-        frame["name"] = value_to_string(name);
+    Value current = debug_.status().frame;
+    int64_t frame_id = 1;
+    while (value_as_frame(current) != nullptr && frame_id < 128) {
+      const std::string file = frame_code_string_attr(current, "co_filename", debug_.status().file);
+      Json frame = {
+          {"id", frame_id},
+          {"name", frame_code_string_attr(current, "co_name", "<module>")},
+          {"line", frame_line(current, frame_id == 1 ? debug_.status().line : 0)},
+          {"column", 1},
+          {"source", {{"path", file}, {"name", file}}},
+      };
+      frames.push_back(std::move(frame));
+
+      Value back;
+      if (!frame_attr(current, "f_back", back) || back.tag == ValueTag::None) {
+        break;
       }
+      current = std::move(back);
+      ++frame_id;
     }
-    frames.push_back(std::move(frame));
   }
   Json body = {
       {"stackFrames", frames},
@@ -426,12 +529,17 @@ std::string DapSession::stack_trace_body() const {
   return body.dump();
 }
 
-std::string DapSession::scopes_body() const {
+std::string DapSession::scopes_body(int64_t frame_id) const {
   Json scopes = Json::array();
-  if (debug_.status().paused) {
+  if (debug_.status().paused && value_as_frame(frame_by_id(debug_.status().frame, frame_id)) != nullptr) {
+    scopes.push_back({
+        {"name", "Locals"},
+        {"variablesReference", make_scope_ref(frame_id, 1)},
+        {"expensive", false},
+    });
     scopes.push_back({
         {"name", "Globals"},
-        {"variablesReference", globals_variables_reference_},
+        {"variablesReference", make_scope_ref(frame_id, 2)},
         {"expensive", false},
     });
   }
@@ -440,14 +548,13 @@ std::string DapSession::scopes_body() const {
 
 std::string DapSession::variables_body(int64_t variables_reference) const {
   Json variables = Json::array();
-  if (debug_.status().paused && variables_reference == globals_variables_reference_) {
-    Value globals;
-    std::string ignored;
-    if (object_get_attr(debug_.status().frame, "f_globals", globals, ignored)) {
-      if (auto* dict = value_as_dict(globals)) {
-        for (const auto& entry : dict->entries) {
-          variables.push_back(value_to_dap_variable(value_to_string(entry.first), entry.second));
-        }
+  if (debug_.status().paused) {
+    const Value frame = frame_by_id(debug_.status().frame, scope_frame_id(variables_reference));
+    if (value_as_frame(frame) != nullptr) {
+      if (scope_kind(variables_reference) == 1) {
+        variables = variables_from_frame_attr(frame, "f_locals");
+      } else if (scope_kind(variables_reference) == 2) {
+        variables = variables_from_frame_attr(frame, "f_globals");
       }
     }
   }
