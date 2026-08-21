@@ -68,6 +68,7 @@ $cases = @(
     "atexit_module",
     "io_os_modules",
     "imp_stat_modules",
+    "collections_queue_modules",
     "file_import",
     "global_from_import",
     "package_import",

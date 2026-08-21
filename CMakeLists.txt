@@ -102,9 +102,11 @@ set(XLANG3_TASK_RUNTIME_SOURCES
 
 set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/atexit_module.cpp
+  src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/imp_module.cpp
   src/runtime/modules/system/io_module.cpp
   src/runtime/modules/system/os_module.cpp
+  src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/stat_module.cpp
   src/runtime/modules/system/time_module.cpp
 )

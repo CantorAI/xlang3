@@ -345,8 +345,8 @@ Native or runtime-backed foundation:
 - [ ] `_socket`
 - [ ] `select`
 - [ ] `_weakref`
-- [ ] `_collections`
-- [ ] `_queue`
+- [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
+- [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty; blocking semantics pending
 
 High-level Python modules to run from Python source where possible:
 
