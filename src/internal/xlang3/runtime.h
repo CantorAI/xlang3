@@ -119,6 +119,10 @@ public:
   void set_current_globals_module(const Value& globals_module);
   const Value& current_globals_module() const { return current_globals_module_; }
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
+  void set_trace_function(Value trace_function);
+  const Value& trace_function() const { return trace_function_; }
+  void set_thread_trace_function(Value trace_function);
+  const Value& thread_trace_function() const { return thread_trace_function_; }
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
@@ -135,6 +139,8 @@ private:
   Value pending_exception_;
   Value active_exception_;
   Value current_globals_module_;
+  Value trace_function_;
+  Value thread_trace_function_;
   const std::vector<std::string>* current_local_names_ = nullptr;
   const Value* current_local_values_ = nullptr;
   size_t current_local_count_ = 0;

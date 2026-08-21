@@ -47,6 +47,31 @@ bool sys_exc_info(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
+bool sys_settrace(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.settrace expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.set_trace_function(args[0]);
+  value_set_none(out);
+  return true;
+}
+
+bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.gettrace expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (runtime.trace_function().tag == ValueTag::Invalid) {
+    value_set_none(out);
+  } else {
+    value_assign_fast(out, runtime.trace_function());
+  }
+  return true;
+}
+
 } // namespace
 
 void register_builtin_modules(Runtime& runtime) {
@@ -97,6 +122,8 @@ void register_builtin_modules(Runtime& runtime) {
   module_set_attr(sys, "modules", modules_ref, error);
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
+  module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
+  module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
   runtime.register_module("sys", std::move(sys));
 }
 

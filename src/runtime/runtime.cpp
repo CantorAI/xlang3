@@ -126,6 +126,8 @@ Runtime::~Runtime() {
   value_set_invalid(pending_exception_);
   value_set_invalid(active_exception_);
   value_set_invalid(current_globals_module_);
+  value_set_invalid(trace_function_);
+  value_set_invalid(thread_trace_function_);
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
       it->second(it->first);
@@ -191,6 +193,14 @@ bool Runtime::set_sys_argv(const std::vector<std::string>& argv, std::string& er
     values.push_back(Value::string(item));
   }
   return module_set_attr(sys, "argv", Value::list(std::move(values)), error);
+}
+
+void Runtime::set_trace_function(Value trace_function) {
+  trace_function_ = trace_function;
+}
+
+void Runtime::set_thread_trace_function(Value trace_function) {
+  thread_trace_function_ = trace_function;
 }
 
 void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {

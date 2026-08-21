@@ -86,13 +86,21 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
   }
   auto it = module->name_to_slot.find(name);
   if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
-    value_assign_fast(module->slots[it->second], value);
+    if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
+      value_assign_fast(module->slots[it->second], value);
+    } else {
+      module->slots[it->second] = value;
+    }
   } else {
     const auto slot = static_cast<uint32_t>(module->slots.size());
     module->name_to_slot[name] = slot;
-    Value stored;
-    value_assign_fast(stored, value);
-    module->slots.push_back(std::move(stored));
+    if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
+      Value stored;
+      value_assign_fast(stored, value);
+      module->slots.push_back(std::move(stored));
+    } else {
+      module->slots.push_back(value);
+    }
   }
   ++module->version;
   return true;

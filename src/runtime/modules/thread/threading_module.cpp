@@ -80,6 +80,41 @@ bool threading_active_count(
   return true;
 }
 
+bool threading_settrace(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "threading.settrace() expected one argument";
+    return false;
+  }
+  runtime.set_thread_trace_function(args[0]);
+  value_set_none(out);
+  return true;
+}
+
+bool threading_gettrace(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 0) {
+    error = "threading.gettrace() expected no arguments";
+    return false;
+  }
+  if (runtime.thread_trace_function().tag == ValueTag::Invalid) {
+    value_set_none(out);
+  } else {
+    value_assign_fast(out, runtime.thread_trace_function());
+  }
+  return true;
+}
+
 } // namespace
 
 void register_thread_modules(Runtime& runtime) {
@@ -89,7 +124,9 @@ void register_thread_modules(Runtime& runtime) {
   builder.value("Thread", xlang_thread_make_thread_class(runtime))
       .function("Lock", threading_lock)
       .function("get_ident", threading_get_ident)
-      .function("active_count", threading_active_count);
+      .function("active_count", threading_active_count)
+      .function("settrace", threading_settrace)
+      .function("gettrace", threading_gettrace);
   runtime.register_module("threading", builder.finish());
 }
 

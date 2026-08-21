@@ -398,10 +398,10 @@ High-level Python modules to run from Python source where possible:
 ### Debugger Compatibility
 
 - [~] Python CLI compatibility for debugpy command shapes: script args, `-c`, `-m`, and `sys.argv` basics; full CPython flag matrix pending
-- [ ] `sys.settrace`
-- [ ] `sys.gettrace`
-- [ ] `threading.settrace`
-- [ ] `threading.gettrace`
+- [~] `sys.settrace`: hook storage foundation; VM call/line/return events pending
+- [~] `sys.gettrace`: returns stored hook
+- [~] `threading.settrace`: default thread hook storage foundation; native thread propagation/events pending
+- [~] `threading.gettrace`: returns stored default hook
 - [~] frame objects
 - [~] code objects
 - [~] traceback objects

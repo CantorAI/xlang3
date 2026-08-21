@@ -97,6 +97,7 @@ $cases = @(
     "context_managers",
     "builtin_methods",
     "threading_module",
+    "trace_hooks",
     "task_async",
     "asyncio_module",
     "async_syntax",
