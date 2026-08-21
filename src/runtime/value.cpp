@@ -452,13 +452,20 @@ Value Value::code(std::shared_ptr<const ir::Module> module, uint32_t function_id
   return v;
 }
 
-Value Value::frame(std::shared_ptr<const ir::Module> module, uint32_t function_id, Value globals_module) {
+Value Value::frame(
+    std::shared_ptr<const ir::Module> module,
+    uint32_t function_id,
+    Value globals_module,
+    uint32_t instruction_index,
+    Value locals) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<FrameObject>(ObjectKind::Frame);
   obj->module = std::move(module);
   obj->function_id = function_id;
+  obj->instruction_index = instruction_index;
   obj->globals_module = std::move(globals_module);
+  obj->locals = std::move(locals);
   v.as.obj = &obj->header;
   return v;
 }

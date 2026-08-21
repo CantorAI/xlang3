@@ -204,7 +204,12 @@ struct Value {
       std::shared_ptr<const ir::Module> module,
       std::vector<Value> defaults = {});
   static Value code(std::shared_ptr<const ir::Module> module, uint32_t function_id, std::string mode = "exec");
-  static Value frame(std::shared_ptr<const ir::Module> module, uint32_t function_id, Value globals_module);
+  static Value frame(
+      std::shared_ptr<const ir::Module> module,
+      uint32_t function_id,
+      Value globals_module,
+      uint32_t instruction_index = 0,
+      Value locals = Value::invalid());
   static Value traceback(Value frame, Value next, int64_t line);
   static Value native_function(
       uint32_t native_id,
@@ -383,7 +388,9 @@ struct FrameObject {
   Object header;
   std::shared_ptr<const ir::Module> module;
   uint32_t function_id = 0;
+  uint32_t instruction_index = 0;
   Value globals_module;
+  Value locals;
 };
 
 struct MemoryViewObject {

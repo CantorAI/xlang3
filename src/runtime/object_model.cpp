@@ -270,6 +270,29 @@ bool descriptor_lookup_method(const Value& value, const std::string& name) {
   return class_lookup_attr(klass, name, ignored, error);
 }
 
+Value module_globals_snapshot(const Value& module_value) {
+  auto* module = value_as_module(module_value);
+  if (module == nullptr) {
+    return Value::dict({});
+  }
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(module->name_to_slot.size() + 1);
+  entries.push_back({Value::string("__name__"), Value::string(module->name)});
+  for (const auto& item : module->name_to_slot) {
+    if (item.first.empty() || item.first[0] == '#') {
+      continue;
+    }
+    if (item.first == "__name__") {
+      continue;
+    }
+    if (item.second >= module->slots.size()) {
+      continue;
+    }
+    entries.push_back({Value::string(item.first), module->slots[item.second]});
+  }
+  return Value::dict(std::move(entries));
+}
+
 } // namespace
 
 Value Value::class_object(
@@ -482,11 +505,19 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_globals") {
-      value_assign_fast(out, frame->globals_module);
+      out = module_globals_snapshot(frame->globals_module);
       return true;
     }
     if (name == "f_lineno") {
-      out = Value::int64(0);
+      out = Value::int64(frame->instruction_index);
+      return true;
+    }
+    if (name == "f_locals") {
+      if (frame->locals.tag == ValueTag::Invalid) {
+        out = Value::dict({});
+      } else {
+        value_assign_fast(out, frame->locals);
+      }
       return true;
     }
     error = "frame has no attribute '" + name + "'";

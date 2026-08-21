@@ -73,6 +73,13 @@ RuntimeResult Interpreter::run_function(
     return result;
   }
   const auto& fn = module.functions[function_id];
+  struct CurrentFrameGuard {
+    Runtime& runtime;
+
+    ~CurrentFrameGuard() {
+      runtime.clear_current_frame();
+    }
+  } current_frame_guard{runtime_};
   auto simple_signature = [](const ir::Function& candidate) -> bool {
     if (candidate.signature.empty()) {
       return true;
@@ -503,6 +510,7 @@ RuntimeResult Interpreter::run_function(
         goto switch_frame;
       }
 
+      runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
       runtime_.set_current_globals_module(globals_module);
       runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
       const auto& in = fn.code[ip];

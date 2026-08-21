@@ -128,6 +128,7 @@ Runtime::~Runtime() {
   value_set_invalid(current_globals_module_);
   value_set_invalid(trace_function_);
   value_set_invalid(thread_trace_function_);
+  clear_current_frame();
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
       it->second(it->first);
@@ -201,6 +202,38 @@ void Runtime::set_trace_function(Value trace_function) {
 
 void Runtime::set_thread_trace_function(Value trace_function) {
   thread_trace_function_ = trace_function;
+}
+
+void Runtime::set_current_frame(
+    const std::shared_ptr<const ir::Module>* module_owner,
+    uint32_t function_id,
+    const Value* globals_module,
+    uint32_t instruction_index) {
+  current_frame_module_owner_ = module_owner;
+  current_frame_function_id_ = function_id;
+  current_frame_globals_module_ = globals_module;
+  current_frame_instruction_index_ = instruction_index;
+}
+
+void Runtime::clear_current_frame() {
+  current_frame_module_owner_ = nullptr;
+  current_frame_globals_module_ = nullptr;
+  current_frame_function_id_ = 0;
+  current_frame_instruction_index_ = 0;
+  clear_current_frame_locals();
+}
+
+Value Runtime::current_frame_snapshot() const {
+  if (current_frame_module_owner_ == nullptr || current_frame_globals_module_ == nullptr ||
+      current_frame_module_owner_->get() == nullptr) {
+    return Value::none();
+  }
+  return Value::frame(
+      *current_frame_module_owner_,
+      current_frame_function_id_,
+      *current_frame_globals_module_,
+      current_frame_instruction_index_,
+      current_locals_snapshot());
 }
 
 void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {

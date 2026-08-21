@@ -82,12 +82,12 @@ bool inspect_istraceback(Runtime&, const Value* args, uint32_t argc, Value& out,
   return inspect_arity_one("istraceback", argc, error) && inspect_return_bool(value_as_traceback(args[0]) != nullptr, out);
 }
 
-bool inspect_currentframe(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool inspect_currentframe(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "inspect.currentframe() expected no arguments";
     return false;
   }
-  value_set_none(out);
+  out = runtime.current_frame_snapshot();
   return true;
 }
 

@@ -46,8 +46,16 @@ RuntimeResult Interpreter::run_module(
     Value globals_module,
     std::shared_ptr<const ir::Module> module_owner) {
   RuntimeResult result;
-  if (value_as_module(globals_module) != nullptr) {
+  if (auto* globals = value_as_module(globals_module)) {
     std::string error;
+    Value existing_name;
+    if (!module_get_attr(globals_module, "__name__", existing_name, error)) {
+      error.clear();
+      if (!module_set_attr(globals_module, "__name__", Value::string(globals->name.empty() ? "__main__" : globals->name), error)) {
+        result.errors.push_back(error);
+        return result;
+      }
+    }
     if (!module_ensure_attr_slots(globals_module, module.global_slots, error)) {
       result.errors.push_back(error);
       return result;

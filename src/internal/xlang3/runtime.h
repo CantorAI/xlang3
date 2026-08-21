@@ -123,6 +123,13 @@ public:
   const Value& trace_function() const { return trace_function_; }
   void set_thread_trace_function(Value trace_function);
   const Value& thread_trace_function() const { return thread_trace_function_; }
+  void set_current_frame(
+      const std::shared_ptr<const ir::Module>* module_owner,
+      uint32_t function_id,
+      const Value* globals_module,
+      uint32_t instruction_index);
+  void clear_current_frame();
+  Value current_frame_snapshot() const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
@@ -141,6 +148,10 @@ private:
   Value current_globals_module_;
   Value trace_function_;
   Value thread_trace_function_;
+  const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
+  const Value* current_frame_globals_module_ = nullptr;
+  uint32_t current_frame_function_id_ = 0;
+  uint32_t current_frame_instruction_index_ = 0;
   const std::vector<std::string>* current_local_names_ = nullptr;
   const Value* current_local_values_ = nullptr;
   size_t current_local_count_ = 0;
