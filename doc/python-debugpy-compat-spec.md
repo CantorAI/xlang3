@@ -177,6 +177,36 @@ The hot path must remain fast when tracing is disabled:
 
 The trace hook is not a Pico communication mechanism and should not own transport pumping. It is the VM execution event source for debugging.
 
+## Debug Session Controller
+
+The desktop debugger path should use a reusable runtime controller before any
+socket or DAP transport code:
+
+```text
+DAP/debugpy transport
+  -> XLang3 DebugSession
+    -> Runtime debug state
+    -> Interpreter pause/resume
+    -> XlangVM
+```
+
+`DebugSession` owns the loaded module, `Runtime`, `Interpreter`, current paused
+state, breakpoint state, and source location status. It exposes debugger verbs:
+
+```text
+launch
+continue
+step into
+step over
+step out
+request pause
+add/clear breakpoints
+```
+
+The DAP server must call this controller instead of duplicating VM control
+logic. This keeps the transport layer small and preserves one source of truth
+for frame-stack pause/resume behavior.
+
 ## Source Mapping
 
 The IR must carry enough source mapping for Python-level debugging:
