@@ -356,7 +356,7 @@ High-level Python modules to run from Python source where possible:
 - [x] `json` through native package, not CPython-compatible package yet
 - [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
-- [ ] `inspect`
+- [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`, and basic `getmembers`; full frame/source/signature semantics pending
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
 - [~] `importlib`: `import_module`, `invalidate_caches`, and `importlib.util.find_spec` basics
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending

@@ -75,6 +75,7 @@ $cases = @(
     "runpy_module",
     "importlib_module",
     "weakref_module",
+    "inspect_module",
     "file_import",
     "global_from_import",
     "package_import",

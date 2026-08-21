@@ -39,6 +39,7 @@ void register_core_builtins(Runtime& runtime) {
   register_runpy_module(runtime);
   register_importlib_module(runtime);
   register_weakref_module(runtime);
+  register_inspect_module(runtime);
 #endif
   register_thread_modules(runtime);
 #ifndef XLANG3_EMBEDDED
