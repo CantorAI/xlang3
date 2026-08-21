@@ -375,8 +375,52 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto source_line_for_frame = [](const VMFrame& trace_frame) -> uint32_t {
+    if (trace_frame.fn != nullptr && trace_frame.ip < trace_frame.fn->source_lines.size()) {
+      return trace_frame.fn->source_lines[trace_frame.ip];
+    }
+    return 0;
+  };
+
+  auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg) -> bool {
+    const Value& hook = runtime_.trace_function();
+    auto* hook_fn = value_as_function(hook);
+    if (hook_fn == nullptr || runtime_.trace_dispatch_active()) {
+      return true;
+    }
+    runtime_.set_current_frame(
+        &trace_frame.module_owner,
+        trace_frame.function_id,
+        &trace_frame.globals_module,
+        static_cast<uint32_t>(trace_frame.ip));
+    runtime_.set_current_globals_module(trace_frame.globals_module);
+    runtime_.set_current_frame_locals(&trace_frame.fn->locals, trace_frame.locals.value_data(), trace_frame.locals.size());
+
+    Value trace_args_storage[3] = {
+        runtime_.current_frame_snapshot(),
+        Value::string(event_name),
+        arg,
+    };
+    CallArgsView trace_args;
+    trace_args.leading = trace_args_storage;
+    trace_args.leading_count = 3;
+
+    runtime_.set_trace_dispatch_active(true);
+    Interpreter trace_interpreter(runtime_);
+    RuntimeResult trace_result = trace_interpreter.run_function_value(hook_fn, trace_args);
+    runtime_.set_trace_dispatch_active(false);
+    if (!trace_result.errors.empty()) {
+      result.errors.insert(result.errors.end(), trace_result.errors.begin(), trace_result.errors.end());
+      return false;
+    }
+    return true;
+  };
+
   auto finish_frame = [&](const Value& return_value) -> bool {
     VMFrame& finished = frames[frame_count - 1];
+    if (!emit_trace_event(finished, "return", return_value)) {
+      return false;
+    }
     const uint32_t return_dst = finished.return_dst;
     const bool has_caller = finished.has_caller;
     const FrameReturnMode return_mode = finished.return_mode;
@@ -518,6 +562,21 @@ RuntimeResult Interpreter::run_function(
       runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
       runtime_.set_current_globals_module(globals_module);
       runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
+      if (runtime_.trace_function().tag == ValueTag::Object && !runtime_.trace_dispatch_active()) {
+        if (!frame.trace_call_emitted) {
+          frame.trace_call_emitted = true;
+          if (!emit_trace_event(frame, "call", Value::none())) {
+            return result;
+          }
+        }
+        const uint32_t source_line = source_line_for_frame(frame);
+        if (source_line != 0 && source_line != frame.last_trace_line) {
+          frame.last_trace_line = source_line;
+          if (!emit_trace_event(frame, "line", Value::none())) {
+            return result;
+          }
+        }
+      }
       const auto& in = fn.code[ip];
       if ((++execution_lock_ticks & 0x3ffu) == 0) {
         execution_lock.unlock();

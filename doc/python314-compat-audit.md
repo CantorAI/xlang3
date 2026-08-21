@@ -406,9 +406,9 @@ High-level Python modules to run from Python source where possible:
 - [~] code objects
 - [~] traceback objects
 - [x] IR source line map: parser statement line stamps lower to per-instruction line metadata and serialize through IR cache
-- [ ] line events
-- [ ] call events
-- [ ] return events
+- [~] line events: global `sys.settrace` hook receives source-backed line events; local trace chaining pending
+- [~] call events: Python function calls emit trace call events; native/builtin call event policy pending
+- [~] return events: Python function returns emit trace return events; generator/exception edge cases pending
 - [ ] exception events
 - [ ] breakpoint mapping
 - [ ] step over

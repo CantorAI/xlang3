@@ -99,6 +99,7 @@ $cases = @(
     "builtin_methods",
     "threading_module",
     "trace_hooks",
+    "trace_events",
     "task_async",
     "asyncio_module",
     "async_syntax",

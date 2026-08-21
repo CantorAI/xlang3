@@ -121,6 +121,8 @@ public:
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
   void set_trace_function(Value trace_function);
   const Value& trace_function() const { return trace_function_; }
+  bool trace_dispatch_active() const { return trace_dispatch_active_; }
+  void set_trace_dispatch_active(bool active) { trace_dispatch_active_ = active; }
   void set_thread_trace_function(Value trace_function);
   const Value& thread_trace_function() const { return thread_trace_function_; }
   void set_current_frame(
@@ -148,6 +150,7 @@ private:
   Value current_globals_module_;
   Value trace_function_;
   Value thread_trace_function_;
+  bool trace_dispatch_active_ = false;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
   const Value* current_frame_globals_module_ = nullptr;
   uint32_t current_frame_function_id_ = 0;

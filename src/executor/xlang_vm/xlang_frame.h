@@ -161,6 +161,8 @@ struct XlangVMFrame {
   FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
   Value continuation_value;
   size_t ip = 0;
+  uint32_t last_trace_line = 0;
+  bool trace_call_emitted = false;
 
   XlangVMSmallValueBuffer locals;
   XlangVMSmallValueBuffer cells;
@@ -227,6 +229,8 @@ struct XlangVMFrame {
     return_mode = frame_return_mode;
     continuation_value = std::move(frame_continuation_value);
     ip = 0;
+    last_trace_line = 0;
+    trace_call_emitted = false;
 
     locals.reset(fn->locals.size(), Value::none());
     cells.reset(fn->cell_slots.size(), Value::invalid());
