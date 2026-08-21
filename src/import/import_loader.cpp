@@ -67,6 +67,47 @@ std::string module_leaf_name(const std::string& name) {
 
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
   const auto parts = split_module_name(name);
+  const auto parent_name = parent_module_name(name);
+  if (!parent_name.empty()) {
+    Value parent;
+    std::string ignored;
+    if (runtime.import_module(parent_name, parent, ignored)) {
+      Value package_path;
+      if (module_get_attr(parent, "__path__", package_path, ignored)) {
+        std::vector<std::filesystem::path> package_roots;
+        if (auto* string = value_as_string(package_path)) {
+          package_roots.emplace_back(string_object_view(*string));
+        } else if (auto* list = value_as_list(package_path)) {
+          for (const auto& item : list->items) {
+            if (auto* item_string = value_as_string(item)) {
+              package_roots.emplace_back(string_object_view(*item_string));
+            }
+          }
+        }
+        for (const auto& package_root : package_roots) {
+          auto candidate_base = package_root / module_leaf_name(name);
+          auto candidate = candidate_base;
+          candidate += ".py";
+          VfsStat stat;
+          std::string error;
+          if (runtime.vfs().stat(candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+            out.path = candidate.string();
+            out.is_package = false;
+            out.package_dir.clear();
+            return true;
+          }
+          auto package_init = candidate_base / "__init__.py";
+          if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+            out.path = package_init.string();
+            out.package_dir = candidate_base.string();
+            out.is_package = true;
+            return true;
+          }
+        }
+      }
+    }
+  }
+
   std::vector<std::filesystem::path> roots;
   Value sys;
   std::string ignored;

@@ -103,6 +103,10 @@ set(XLANG3_TASK_RUNTIME_SOURCES
 set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/atexit_module.cpp
   src/runtime/modules/system/collections_module.cpp
+  src/runtime/modules/system/contextlib_module.cpp
+  src/runtime/modules/system/dataclasses_module.cpp
+  src/runtime/modules/system/functools_module.cpp
+  src/runtime/modules/system/future_module.cpp
   src/runtime/modules/system/imp_module.cpp
   src/runtime/modules/system/inspect_module.cpp
   src/runtime/modules/system/importlib_module.cpp
@@ -111,13 +115,16 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/os_module.cpp
   src/runtime/modules/system/pathlib_module.cpp
   src/runtime/modules/system/queue_module.cpp
+  src/runtime/modules/system/re_module.cpp
   src/runtime/modules/system/runpy_module.cpp
   src/runtime/modules/system/socket_select_module.cpp
   src/runtime/modules/system/stat_module.cpp
   src/runtime/modules/system/time_module.cpp
   src/runtime/modules/system/traceback_module.cpp
+  src/runtime/modules/system/typing_module.cpp
   src/runtime/modules/system/types_module.cpp
   src/runtime/modules/system/weakref_module.cpp
+  src/runtime/modules/system/warnings_module.cpp
 )
 
 if(NOT XLANG3_EMBEDDED)

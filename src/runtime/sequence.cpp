@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/set_object.h"
 
@@ -566,6 +567,16 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       return false;
     }
     value_set_int64(out, static_cast<unsigned char>(storage.data[static_cast<size_t>(resolved)]));
+    return true;
+  }
+  if (instance_get_native_data(object, "typing._Alias") != nullptr) {
+    value_assign_fast(out, object);
+    return true;
+  }
+  if (value_as_class(object) != nullptr ||
+      value_as_function(object) != nullptr ||
+      value_as_native_function(object) != nullptr) {
+    value_assign_fast(out, object);
     return true;
   }
   error = "object is not subscriptable";

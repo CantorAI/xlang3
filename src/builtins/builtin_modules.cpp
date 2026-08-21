@@ -243,6 +243,11 @@ void register_builtin_modules(Runtime& runtime) {
   value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
   module_set_attr(sys, "modules", modules_ref, error);
   module_set_attr(sys, "argv", Value::list({}), error);
+  module_set_attr(sys, "version_info", Value::tuple({Value::int64(3), Value::int64(14), Value::int64(0), Value::string("final"), Value::int64(0)}), error);
+  module_set_attr(sys, "version", Value::string("3.14.0 (XLang3)"), error);
+  module_set_attr(sys, "executable", Value::string(""), error);
+  module_set_attr(sys, "prefix", Value::string(""), error);
+  module_set_attr(sys, "base_prefix", Value::string(""), error);
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);

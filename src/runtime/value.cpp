@@ -26,8 +26,9 @@ limitations under the License.
 
 #include "runtime/memory/x3_runtime_memory.h"
 
-#include <cmath>
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -992,6 +993,26 @@ bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& 
 }
 
 bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const auto type_like = [](const Value& value) {
+    if (value.tag == ValueTag::None) {
+      return true;
+    }
+    if (value_as_class(value) != nullptr ||
+        value_as_function(value) != nullptr ||
+        value_as_native_function(value) != nullptr ||
+        instance_get_native_data(value, "typing._Alias") != nullptr) {
+      return true;
+    }
+    if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+      return true;
+    }
+    return false;
+  };
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      type_like(lhs) && type_like(rhs)) {
+    out = Value::tuple({lhs, rhs});
+    return true;
+  }
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
     error = "unsupported operands for |";
     return false;
@@ -1054,6 +1075,44 @@ bool value_invert(const Value& value, Value& out, std::string& error) {
 
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
+  if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
+      lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+      lhs.as.obj->kind == ObjectKind::Tuple && rhs.as.obj->kind == ObjectKind::Tuple) {
+    const auto* left = reinterpret_cast<const TupleObject*>(lhs.as.obj);
+    const auto* right = reinterpret_cast<const TupleObject*>(rhs.as.obj);
+    const size_t common = std::min(left->items.size(), right->items.size());
+    int ordering = 0;
+    for (size_t i = 0; i < common; ++i) {
+      Value equal;
+      if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
+        return false;
+      }
+      if (equal.tag == ValueTag::Bool && equal.as.b) {
+        continue;
+      }
+      Value less;
+      if (!value_compare("<", left->items[i], right->items[i], less, error)) {
+        return false;
+      }
+      ordering = (less.tag == ValueTag::Bool && less.as.b) ? -1 : 1;
+      break;
+    }
+    if (ordering == 0 && left->items.size() != right->items.size()) {
+      ordering = left->items.size() < right->items.size() ? -1 : 1;
+    }
+    if (op == "==") result = ordering == 0;
+    else if (op == "!=") result = ordering != 0;
+    else if (op == "<") result = ordering < 0;
+    else if (op == "<=") result = ordering <= 0;
+    else if (op == ">") result = ordering > 0;
+    else if (op == ">=") result = ordering >= 0;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
   if (is_number(lhs) && is_number(rhs)) {
     const double a = as_double(lhs);
     const double b = as_double(rhs);

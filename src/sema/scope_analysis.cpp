@@ -126,8 +126,13 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_assigned_names(loop->body, names, seen);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
-      add_unique(names, seen, loop->target);
+      if (loop->target_expr != nullptr) {
+        collect_assigned_target(*loop->target_expr, names, seen);
+      } else if (!loop->target.empty()) {
+        add_unique(names, seen, loop->target);
+      }
       collect_assigned_names(loop->body, names, seen);
+      collect_assigned_names(loop->else_body, names, seen);
     } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(stmt.get())) {
       for (const auto& match_case : match->cases) {
         collect_assigned_names(match_case.body, names, seen);
@@ -438,6 +443,7 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
       collect_reads_expr(*loop->iterable, names, seen);
       collect_reads_body(loop->body, names, seen);
+      collect_reads_body(loop->else_body, names, seen);
     } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
       for (const auto& param : fn->signature) {
         if (param.default_value != nullptr) {

@@ -36,7 +36,7 @@ using ExprPtr = std::unique_ptr<Expr>;
 using StmtPtr = std::unique_ptr<Stmt>;
 
 struct LiteralExpr final : Expr {
-  enum class Kind { None, Bool, Int, Double, String, Bytes };
+  enum class Kind { None, Bool, Int, Double, String, Bytes, Ellipsis };
   Kind kind;
   std::string text;
   bool bool_value = false;
@@ -370,8 +370,10 @@ struct WhileStmt final : Stmt {
 
 struct ForStmt final : Stmt {
   std::string target;
+  ExprPtr target_expr;
   ExprPtr iterable;
   std::vector<StmtPtr> body;
+  std::vector<StmtPtr> else_body;
 };
 
 struct MatchCase {

@@ -1072,26 +1072,33 @@ private:
     }
   }
 
-  void lower_for_loop(const std::string& target, const ast::Expr& iterable, const std::vector<ast::StmtPtr>& body) {
-    if (try_lower_const_range_for(target, iterable, body)) {
+  void lower_for_loop(const ast::ForStmt& loop) {
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(loop.target_expr.get());
+    const std::string target = target_name != nullptr ? target_name->name : loop.target;
+    if (target_name != nullptr && try_lower_const_range_for(target, *loop.iterable, loop.body)) {
       return;
     }
-    const auto iterable_reg = lower_expr(iterable);
+    const auto iterable_reg = lower_expr(*loop.iterable);
     const auto iterator_reg = new_reg();
     emit(ir::Op::GetIter, iterator_reg, iterable_reg);
     const auto start = static_cast<uint32_t>(fn_.code.size());
     const auto item_reg = new_reg();
     emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
     const auto iter_next = fn_.code.size() - 1;
-    store_named_value(target, item_reg);
+    if (loop.target_expr != nullptr) {
+      lower_unpack_assign(*loop.target_expr, item_reg);
+    } else {
+      store_named_value(target, item_reg);
+    }
     loop_continue_targets_.push_back(start);
     loop_break_jumps_.push_back({});
-    lower_body(body);
+    lower_body(loop.body);
     auto break_jumps = std::move(loop_break_jumps_.back());
     loop_break_jumps_.pop_back();
     loop_continue_targets_.pop_back();
     emit(ir::Op::Jump, start);
     patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+    lower_body(loop.else_body);
     for (const auto jump : break_jumps) {
       patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
     }
@@ -1841,7 +1848,7 @@ private:
       return;
     }
     if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
-      lower_for_loop(loop->target, *loop->iterable, loop->body);
+      lower_for_loop(*loop);
       return;
     }
     if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
@@ -2140,6 +2147,9 @@ private:
           break;
         case ast::LiteralExpr::Kind::Bytes:
           emit(ir::Op::LoadConst, reg, add_const(Value::bytes(lit->text)));
+          break;
+        case ast::LiteralExpr::Kind::Ellipsis:
+          emit(ir::Op::LoadConst, reg, add_const(Value::none()));
           break;
       }
       return reg;
@@ -2452,6 +2462,8 @@ private:
         return Value::string(lit.text);
       case ast::LiteralExpr::Kind::Bytes:
         return Value::bytes(lit.text);
+      case ast::LiteralExpr::Kind::Ellipsis:
+        return Value::none();
     }
     return Value::none();
   }

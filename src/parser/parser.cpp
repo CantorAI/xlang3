@@ -36,6 +36,15 @@ std::string trim_ascii(std::string_view text) {
   return std::string(text.substr(first, last - first));
 }
 
+bool is_identifier_like_token(TokenKind kind) {
+  return kind == TokenKind::Identifier ||
+         (kind >= TokenKind::KwDef && kind <= TokenKind::KwYield);
+}
+
+bool is_soft_identifier_token(TokenKind kind) {
+  return kind == TokenKind::KwMatch || kind == TokenKind::KwCase;
+}
+
 std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
   std::vector<ast::FStringExpr::Part> parts;
   std::string literal;
@@ -151,15 +160,22 @@ ast::StmtPtr Parser::parse_statement_impl() {
   if (match(TokenKind::KwAsync)) {
     if (match(TokenKind::KwFor)) {
       auto stmt = std::make_unique<ast::ForStmt>();
-      const Token target = peek();
-      if (!consume(TokenKind::Identifier, "expected loop target after async for")) return nullptr;
-      stmt->target = std::string(target.text);
+      stmt->target_expr = parse_for_target();
+      if (auto* name = dynamic_cast<ast::NameExpr*>(stmt->target_expr.get())) {
+        stmt->target = name->name;
+      }
       consume(TokenKind::KwIn, "expected 'in' after loop target");
       stmt->iterable = parse_expression();
       consume(TokenKind::Colon, "expected ':' after async for iterable");
       consume(TokenKind::Newline, "expected newline after async for");
       consume(TokenKind::Indent, "expected indented async for body");
       stmt->body = parse_block();
+      if (match(TokenKind::KwElse)) {
+        consume(TokenKind::Colon, "expected ':' after async for else");
+        consume(TokenKind::Newline, "expected newline after async for else");
+        consume(TokenKind::Indent, "expected indented async for else body");
+        stmt->else_body = parse_block();
+      }
       return stmt;
     }
     if (match(TokenKind::KwWith)) {
@@ -173,7 +189,12 @@ ast::StmtPtr Parser::parse_statement_impl() {
   }
   if (match(TokenKind::KwDef)) {
     const Token name = peek();
-    if (!consume(TokenKind::Identifier, "expected function name")) return nullptr;
+    if (is_identifier_like_token(name.kind)) {
+      advance();
+    } else {
+      error_here("expected function name");
+      return nullptr;
+    }
     consume_optional_type_params();
     std::vector<std::string> params;
     std::vector<ast::FunctionDef::Param> signature;
@@ -193,7 +214,12 @@ ast::StmtPtr Parser::parse_statement_impl() {
   }
   if (match(TokenKind::KwClass)) {
     const Token name = peek();
-    if (!consume(TokenKind::Identifier, "expected class name")) return nullptr;
+    if (is_identifier_like_token(name.kind)) {
+      advance();
+    } else {
+      error_here("expected class name");
+      return nullptr;
+    }
     consume_optional_type_params();
     std::vector<ast::ExprPtr> bases;
     std::vector<std::pair<std::string, ast::ExprPtr>> keywords;
@@ -242,15 +268,22 @@ ast::StmtPtr Parser::parse_statement_impl() {
   }
   if (match(TokenKind::KwFor)) {
     auto stmt = std::make_unique<ast::ForStmt>();
-    const Token target = peek();
-    if (!consume(TokenKind::Identifier, "expected loop target after for")) return nullptr;
-    stmt->target = std::string(target.text);
+    stmt->target_expr = parse_for_target();
+    if (auto* name = dynamic_cast<ast::NameExpr*>(stmt->target_expr.get())) {
+      stmt->target = name->name;
+    }
     consume(TokenKind::KwIn, "expected 'in' after loop target");
     stmt->iterable = parse_expression();
     consume(TokenKind::Colon, "expected ':' after for iterable");
     consume(TokenKind::Newline, "expected newline after for");
     consume(TokenKind::Indent, "expected indented for body");
     stmt->body = parse_block();
+    if (match(TokenKind::KwElse)) {
+      consume(TokenKind::Colon, "expected ':' after for else");
+      consume(TokenKind::Newline, "expected newline after for else");
+      consume(TokenKind::Indent, "expected indented for else body");
+      stmt->else_body = parse_block();
+    }
     return stmt;
   }
   if (match(TokenKind::KwFrom)) {
@@ -373,6 +406,53 @@ ast::StmtPtr Parser::parse_try_statement() {
 
 ast::ExprPtr Parser::parse_with_manager_expr() {
   return parse_conditional();
+}
+
+ast::ExprPtr Parser::parse_for_target() {
+  auto parse_one = [&]() -> ast::ExprPtr {
+    if (match(TokenKind::Star)) {
+      const Token name = peek();
+      if (!consume(TokenKind::Identifier, "expected name after '*' in loop target")) {
+        return std::make_unique<ast::NameExpr>("_");
+      }
+      return std::make_unique<ast::StarredExpr>(std::make_unique<ast::NameExpr>(std::string(name.text)));
+    }
+    if (match(TokenKind::LParen)) {
+      std::vector<ast::ExprPtr> items;
+      if (!check(TokenKind::RParen)) {
+        do {
+          items.push_back(parse_for_target());
+        } while (match(TokenKind::Comma) && !check(TokenKind::RParen));
+      }
+      consume(TokenKind::RParen, "expected ')' after loop target");
+      return std::make_unique<ast::TupleExpr>(std::move(items));
+    }
+    if (match(TokenKind::LBracket)) {
+      std::vector<ast::ExprPtr> items;
+      if (!check(TokenKind::RBracket)) {
+        do {
+          items.push_back(parse_for_target());
+        } while (match(TokenKind::Comma) && !check(TokenKind::RBracket));
+      }
+      consume(TokenKind::RBracket, "expected ']' after loop target");
+      return std::make_unique<ast::ListExpr>(std::move(items));
+    }
+    const Token name = peek();
+    if (!consume(TokenKind::Identifier, "expected loop target")) {
+      return std::make_unique<ast::NameExpr>("_");
+    }
+    return std::make_unique<ast::NameExpr>(std::string(name.text));
+  };
+
+  std::vector<ast::ExprPtr> items;
+  items.push_back(parse_one());
+  while (match(TokenKind::Comma) && !check(TokenKind::KwIn)) {
+    items.push_back(parse_one());
+  }
+  if (items.size() == 1) {
+    return std::move(items.front());
+  }
+  return std::make_unique<ast::TupleExpr>(std::move(items));
 }
 
 ast::StmtPtr Parser::parse_with_statement() {
@@ -969,7 +1049,7 @@ ast::ExprPtr Parser::parse_call() {
             arg.value = parse_conditional();
           }
           args.push_back(std::move(arg));
-        } while (match(TokenKind::Comma));
+        } while (match(TokenKind::Comma) && !check(TokenKind::RParen));
       }
       consume(TokenKind::RParen, "expected ')' after call arguments");
       if (simple_positional) {
@@ -1014,7 +1094,11 @@ ast::ExprPtr Parser::parse_call() {
       expr = std::make_unique<ast::SubscriptExpr>(std::move(expr), std::move(index));
     } else if (match(TokenKind::Dot)) {
       const Token attr = peek();
-      consume(TokenKind::Identifier, "expected attribute name after '.'");
+      if (is_identifier_like_token(attr.kind)) {
+        advance();
+      } else {
+        error_here("expected attribute name after '.'");
+      }
       expr = std::make_unique<ast::AttrExpr>(std::move(expr), std::string(attr.text));
     } else {
       break;
@@ -1043,9 +1127,16 @@ ast::ExprPtr Parser::parse_primary() {
 
   if (match(TokenKind::Integer)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, std::string(previous().text));
   if (match(TokenKind::Double)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Double, std::string(previous().text));
-  if (match(TokenKind::String)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, std::string(previous().text));
+  if (match(TokenKind::String)) {
+    std::string text(previous().text);
+    while (match(TokenKind::String)) {
+      text += std::string(previous().text);
+    }
+    return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, std::move(text));
+  }
   if (match(TokenKind::Bytes)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bytes, std::string(previous().text));
   if (match(TokenKind::FString)) return std::make_unique<ast::FStringExpr>(parse_fstring_parts(previous().text));
+  if (match(TokenKind::Ellipsis)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Ellipsis);
   if (match(TokenKind::KwTrue)) {
     auto lit = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bool);
     lit->bool_value = true;
@@ -1058,6 +1149,10 @@ ast::ExprPtr Parser::parse_primary() {
   }
   if (match(TokenKind::KwNone)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
   if (match(TokenKind::Identifier)) return std::make_unique<ast::NameExpr>(std::string(previous().text));
+  if (is_soft_identifier_token(peek().kind)) {
+    const Token name = advance();
+    return std::make_unique<ast::NameExpr>(std::string(name.text));
+  }
   if (match(TokenKind::LParen)) {
     if (match(TokenKind::RParen)) {
       return std::make_unique<ast::TupleExpr>(std::vector<ast::ExprPtr>{});
@@ -1215,6 +1310,16 @@ bool Parser::parse_function_signature(
     std::vector<ast::FunctionDef::Param>& signature,
     ast::ExprPtr& return_annotation) {
   consume(TokenKind::LParen, "expected '(' after function name");
+  auto consume_parameter_name = [&](const std::string& message, std::string& out) -> bool {
+    const Token name = peek();
+    if (name.kind == TokenKind::Identifier || is_soft_identifier_token(name.kind)) {
+      advance();
+      out = std::string(name.text);
+      return true;
+    }
+    error_here(message);
+    return false;
+  };
   bool saw_keyword_only_marker = false;
   if (!check(TokenKind::RParen)) {
     do {
@@ -1229,9 +1334,7 @@ bool Parser::parse_function_signature(
 
       ast::FunctionDef::Param param;
       if (match(TokenKind::DoubleStar)) {
-        const Token name = peek();
-        if (!consume(TokenKind::Identifier, "expected ** parameter name")) return false;
-        param.name = std::string(name.text);
+        if (!consume_parameter_name("expected ** parameter name", param.name)) return false;
         param.kind = ast::FunctionDef::Param::Kind::KwArgs;
         param.annotation = parse_optional_annotation();
       } else if (match(TokenKind::Star)) {
@@ -1239,15 +1342,11 @@ bool Parser::parse_function_signature(
         if (check(TokenKind::Comma) || check(TokenKind::RParen)) {
           continue;
         }
-        const Token name = peek();
-        if (!consume(TokenKind::Identifier, "expected * parameter name")) return false;
-        param.name = std::string(name.text);
+        if (!consume_parameter_name("expected * parameter name", param.name)) return false;
         param.kind = ast::FunctionDef::Param::Kind::VarArgs;
         param.annotation = parse_optional_annotation();
       } else {
-        const Token name = peek();
-        if (!consume(TokenKind::Identifier, "expected parameter name")) return false;
-        param.name = std::string(name.text);
+        if (!consume_parameter_name("expected parameter name", param.name)) return false;
         param.kind = saw_keyword_only_marker
             ? ast::FunctionDef::Param::Kind::KeywordOnly
             : ast::FunctionDef::Param::Kind::PosOrKeyword;

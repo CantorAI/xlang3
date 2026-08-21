@@ -46,6 +46,8 @@ Legend:
 - [x] `elif`
 - [x] `while`
 - [x] `for`
+- [x] `for` tuple/list/starred target unpacking
+- [x] `for` / `else`
 - [x] `break`
 - [x] `continue`
 - [x] `pass`
@@ -71,12 +73,13 @@ Legend:
 - [x] `from module import *`
 - [x] relative import syntax: `from . import x`
 - [x] relative import syntax: `from ..pkg import x`
-- [ ] package-context exact relative import resolution
+- [x] package-context relative import resolution for package modules
 - [x] `global`
 - [x] `nonlocal`
 - [x] `del`
 - [x] `assert`
 - [x] `match` / `case` literal-expression and wildcard cases
+- [x] `match` / `case` soft keyword use in expression, parameter, and definition-name contexts
 - [ ] full structural pattern matching semantics
 - [x] type parameter syntax accepted on `def` / `class`
 - [ ] type parameter runtime metadata

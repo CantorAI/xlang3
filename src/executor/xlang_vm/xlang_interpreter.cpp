@@ -55,13 +55,10 @@ RuntimeResult Interpreter::run_module(
       return result;
     }
     Value existing;
-    if (!module_get_attr(globals_module, "__name__", existing, error)) {
-      error.clear();
-      auto name = globals->name.empty() ? "__main__" : globals->name;
-      if (!module_set_attr(globals_module, "__name__", Value::string(name), error)) {
-        result.errors.push_back(error);
-        return result;
-      }
+    auto name = globals->name.empty() ? "__main__" : globals->name;
+    if (!module_set_attr(globals_module, "__name__", Value::string(name), error)) {
+      result.errors.push_back(error);
+      return result;
     }
     if (!module.source_file.empty() &&
         !module_get_attr(globals_module, "__file__", existing, error)) {

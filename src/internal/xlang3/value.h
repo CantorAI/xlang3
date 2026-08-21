@@ -376,6 +376,7 @@ struct FunctionObject {
   Value annotations;
   Value globals_module;
   std::shared_ptr<const ir::Module> module;
+  std::vector<std::pair<std::string, Value>> attrs;
 };
 
 struct CodeObject {

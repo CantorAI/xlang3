@@ -78,6 +78,7 @@ enum class TokenKind {
   RBracket,
   LBrace,
   RBrace,
+  Ellipsis,
   Dot,
   Comma,
   Semicolon,
@@ -182,6 +183,7 @@ private:
   bool consume_optional_type_params();
   bool is_simple_statement_end() const;
   ast::ExprPtr parse_with_manager_expr();
+  ast::ExprPtr parse_for_target();
   ast::ExprPtr parse_expression();
   ast::ExprPtr parse_named_expression();
   ast::ExprPtr parse_tuple();

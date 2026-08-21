@@ -32,6 +32,13 @@ void register_core_builtins(Runtime& runtime) {
   register_os_module(runtime);
   register_stat_module(runtime);
   register_imp_module(runtime);
+  register_dataclasses_module(runtime);
+  register_functools_module(runtime);
+  register_future_module(runtime);
+  register_typing_module(runtime);
+  register_contextlib_module(runtime);
+  register_warnings_module(runtime);
+  register_re_module(runtime);
   register_collections_module(runtime);
   register_queue_module(runtime);
   register_types_module(runtime);

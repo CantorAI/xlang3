@@ -27,6 +27,7 @@ void add_module_slot(ModuleGlobalSlots& slots, const std::string& name) {
 }
 
 void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots);
+void collect_module_target(const ast::Expr& expr, ModuleGlobalSlots& slots);
 
 void collect_module_body(const std::vector<ast::StmtPtr>& body, ModuleGlobalSlots& slots) {
   for (const auto& stmt : body) {
@@ -72,8 +73,13 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
     return;
   }
   if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
-    add_module_slot(slots, loop->target);
+    if (loop->target_expr != nullptr) {
+      collect_module_target(*loop->target_expr, slots);
+    } else if (!loop->target.empty()) {
+      add_module_slot(slots, loop->target);
+    }
     collect_module_body(loop->body, slots);
+    collect_module_body(loop->else_body, slots);
     return;
   }
   if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
@@ -108,6 +114,18 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
     for (const auto& match_case : match->cases) {
       collect_module_body(match_case.body, slots);
     }
+  }
+}
+
+void collect_module_target(const ast::Expr& expr, ModuleGlobalSlots& slots) {
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    add_module_slot(slots, name->name);
+  } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) collect_module_target(*item, slots);
+  } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) collect_module_target(*item, slots);
+  } else if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    collect_module_target(*starred->expr, slots);
   }
 }
 

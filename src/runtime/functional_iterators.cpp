@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/functional_iterators.h"
 
+#include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
@@ -145,6 +146,17 @@ bool runtime_call_callable(
   }
 
   if (auto* function = value_as_function(callable)) {
+    if (function->module != nullptr &&
+        function->function_id < function->module->functions.size() &&
+        function->module->functions[function->function_id].is_generator) {
+      std::vector<Value> generator_args;
+      generator_args.reserve(argc);
+      for (uint32_t i = 0; i < argc; ++i) {
+        generator_args.push_back(args[i]);
+      }
+      out = Value::generator(&runtime, callable, std::move(generator_args));
+      return true;
+    }
     CallArgsView call_args;
     call_args.leading = args;
     call_args.leading_count = argc;

@@ -412,6 +412,12 @@ std::string object_model_to_string(const Value& value) {
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (auto* function = value_as_function(object)) {
+    for (const auto& attr : function->attrs) {
+      if (attr.first == name) {
+        value_assign_fast(out, attr.second);
+        return true;
+      }
+    }
     if (name == "__name__") {
       if (function->module != nullptr && function->function_id < function->module->functions.size()) {
         out = Value::string(function->module->functions[function->function_id].name);
@@ -668,6 +674,16 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
 }
 
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error) {
+  if (auto* function = value_as_function(object)) {
+    for (auto& attr : function->attrs) {
+      if (attr.first == name) {
+        value_assign_fast(attr.second, value);
+        return true;
+      }
+    }
+    function->attrs.push_back(std::make_pair(name, value));
+    return true;
+  }
   if (auto* instance = value_as_instance(object)) {
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr) {

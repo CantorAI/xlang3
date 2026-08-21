@@ -30,6 +30,33 @@ std::string_view trim_left_ascii(std::string_view text) {
   return text.substr(offset);
 }
 
+std::string_view trim_inline_comment_for_join(std::string_view line) {
+  bool in_string = false;
+  char quote = 0;
+  bool escaped = false;
+  for (size_t i = 0; i < line.size(); ++i) {
+    const char ch = line[i];
+    if (in_string) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch == '\\') {
+        escaped = true;
+      } else if (ch == quote) {
+        in_string = false;
+      }
+      continue;
+    }
+    if (ch == '#') {
+      return line.substr(0, i);
+    }
+    if (ch == '"' || ch == '\'') {
+      in_string = true;
+      quote = ch;
+    }
+  }
+  return line;
+}
+
 bool update_line_join_state(std::string_view line, int& bracket_depth, bool& explicit_continue) {
   explicit_continue = false;
   bool in_string = false;
@@ -358,7 +385,7 @@ LexResult Lexer::tokenize() {
       continue;
     }
 
-    std::string logical_line(line);
+    std::string logical_line(trim_inline_comment_for_join(line));
     uint32_t logical_end_line = line_no;
     int bracket_depth = 0;
     bool explicit_continue = false;
@@ -370,7 +397,7 @@ LexResult Lexer::tokenize() {
       const auto next_line = lines[++line_index];
       logical_end_line = next_line.line;
       logical_line.push_back(' ');
-      logical_line += std::string(trim_left_ascii(next_line.text));
+      logical_line += std::string(trim_left_ascii(trim_inline_comment_for_join(next_line.text)));
       should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
     }
 
@@ -503,6 +530,7 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       continue;
     }
     auto three = i + 2 < line_text.size() ? line_text.substr(i, 3) : std::string_view{};
+    if (three == "...") { emit(TokenKind::Ellipsis, three, line_no, col); i += 3; continue; }
     if (three == "**=") { emit(TokenKind::DoubleStarAssign, three, line_no, col); i += 3; continue; }
     if (three == "//=") { emit(TokenKind::DoubleSlashAssign, three, line_no, col); i += 3; continue; }
     if (three == "<<=") { emit(TokenKind::LeftShiftAssign, three, line_no, col); i += 3; continue; }

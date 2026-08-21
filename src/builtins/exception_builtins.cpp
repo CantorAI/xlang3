@@ -71,6 +71,17 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "OSError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "Warning", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "UserWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "DeprecationWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "PendingDeprecationWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "RuntimeWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "SyntaxWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "FutureWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "ImportWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "UnicodeWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "BytesWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "ResourceWarning", *runtime.find_builtin("Warning"));
 }
 
 } // namespace xlang3

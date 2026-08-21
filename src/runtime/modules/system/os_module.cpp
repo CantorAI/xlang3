@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/vfs.h"
 
 #include <cstdlib>
+#include <filesystem>
 
 namespace xlang3 {
 
@@ -175,9 +176,81 @@ bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return false;
 }
 
+bool path_unary(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "os.path function expected one argument";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+  const char* op = static_cast<const char*>(user_data);
+  std::filesystem::path fs_path(path);
+  std::error_code ec;
+  if (std::string(op) == "abspath") {
+    out = Value::string(std::filesystem::absolute(fs_path, ec).lexically_normal().string());
+  } else if (std::string(op) == "dirname") {
+    out = Value::string(fs_path.parent_path().string());
+  } else if (std::string(op) == "basename") {
+    out = Value::string(fs_path.filename().string());
+  } else if (std::string(op) == "exists") {
+    out = Value::boolean(std::filesystem::exists(fs_path, ec));
+  } else if (std::string(op) == "isdir") {
+    out = Value::boolean(std::filesystem::is_directory(fs_path, ec));
+  } else if (std::string(op) == "isfile") {
+    out = Value::boolean(std::filesystem::is_regular_file(fs_path, ec));
+  } else {
+    value_assign_fast(out, args[0]);
+  }
+  return true;
+}
+
+bool path_join(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "join() expected at least one path";
+    return false;
+  }
+  std::filesystem::path joined;
+  for (uint32_t i = 0; i < argc; ++i) {
+    std::string part;
+    if (!get_string_arg(args[i], "path", part, error)) {
+      return false;
+    }
+    if (i == 0) {
+      joined = std::filesystem::path(part);
+    } else {
+      joined /= std::filesystem::path(part);
+    }
+  }
+  out = Value::string(joined.string());
+  return true;
+}
+
+Value make_os_path_module(Runtime& runtime) {
+  NativeModuleBuilder builder(runtime, "os.path");
+  builder.value("abspath", runtime.make_native_function("os.path.abspath", path_unary, const_cast<char*>("abspath")))
+      .value("dirname", runtime.make_native_function("os.path.dirname", path_unary, const_cast<char*>("dirname")))
+      .value("basename", runtime.make_native_function("os.path.basename", path_unary, const_cast<char*>("basename")))
+      .value("exists", runtime.make_native_function("os.path.exists", path_unary, const_cast<char*>("exists")))
+      .value("isdir", runtime.make_native_function("os.path.isdir", path_unary, const_cast<char*>("isdir")))
+      .value("isfile", runtime.make_native_function("os.path.isfile", path_unary, const_cast<char*>("isfile")))
+      .function("join", path_join)
+#if defined(_WIN32)
+      .value("sep", Value::string("\\"))
+#else
+      .value("sep", Value::string("/"))
+#endif
+      .value("curdir", Value::string("."))
+      .value("pardir", Value::string(".."));
+  return builder.finish();
+}
+
 } // namespace
 
 void register_os_module(Runtime& runtime) {
+  Value path_module = make_os_path_module(runtime);
+  Value env_dict = Value::dict({});
   NativeModuleBuilder builder(runtime, "os");
   builder.function("getcwd", os_getcwd)
       .function("chdir", os_chdir)
@@ -187,6 +260,8 @@ void register_os_module(Runtime& runtime) {
       .function("stat", os_stat)
       .function("getenv", os_getenv)
       .function("fspath", os_fspath)
+      .value("path", path_module)
+      .value("environ", env_dict)
 #if defined(_WIN32)
       .value("name", Value::string("nt"))
       .value("sep", Value::string("\\"))
@@ -202,9 +277,12 @@ void register_os_module(Runtime& runtime) {
 #endif
   auto module = builder.finish();
   runtime.register_module("os", module);
+  runtime.register_module("os.path", path_module);
 #if defined(_WIN32)
+  runtime.register_module("ntpath", path_module);
   runtime.register_module("nt", std::move(module));
 #else
+  runtime.register_module("posixpath", path_module);
   runtime.register_module("posix", std::move(module));
 #endif
 }

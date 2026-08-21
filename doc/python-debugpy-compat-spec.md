@@ -118,6 +118,20 @@ This is preferred over writing a custom debugger first because:
 
 This does not mean XLang3 becomes CPython. It means XLang3 exposes Python-compatible debugger APIs backed by XlangVM state.
 
+## Current Debugpy Import Status
+
+As of the current checkpoint:
+
+- `import debugpy` from the Visual Studio 2026 bundled Python extension path passes.
+- `import debugpy._vendored` passes after adding package relative import resolution, soft keyword identifiers, tuple loop targets, and `for ... else`.
+- `contextlib.contextmanager`, `warnings`, `re`, `os.path`, `os.environ`, and common warning classes have minimal native compatibility scaffolding.
+- `from debugpy.server import cli` now reaches the vendored `pydevd` import path. It no longer fails on top-level debugpy, `_vendored`, `DeprecationWarning`, or `warnings.simplefilter(category=...)`.
+- The next blocker is deeper vendored `pydevd` import/runtime compatibility. That layer should be audited as its own batch because it pulls in a much larger CPython stdlib/debugger surface.
+
+Known temporary limitation:
+
+- Native `contextlib.contextmanager` currently creates and enters generator context managers, but does not yet resume the generator for finalization on `__exit__`. The VM generator-close path needs a proper fix before this becomes full CPython behavior.
+
 ## Required Runtime API Surface
 
 The debugger-facing Python runtime APIs must become first-class XLang3 runtime objects and modules.

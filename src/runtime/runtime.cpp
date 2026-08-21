@@ -559,7 +559,11 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     if (import_native_package(*this, name, out, native_error)) {
       return true;
     }
-    error = native_error.empty() ? python_error : native_error;
+    if (!python_error.empty() && !native_error.empty()) {
+      error = python_error + "; native package candidates tried:\n" + native_error;
+    } else {
+      error = native_error.empty() ? python_error : native_error;
+    }
 #else
     error = "module '" + name + "' not found in embedded runtime";
 #endif
@@ -582,7 +586,7 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   if (!import_module(resolved_module, module, error)) {
     return false;
   }
-  if (module_get_attr(module, attr_name, out, error)) {
+  if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
     return true;
   }
 

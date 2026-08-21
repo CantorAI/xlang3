@@ -16,6 +16,7 @@ limitations under the License.
 #include "xlang3/dap_session.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
+#include "xlang3/module_object.h"
 #include "xlang3/parser.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
@@ -152,6 +153,27 @@ bool dump_ir_file(const xlang3::RunConfig& config, const xlang3::ir::Module& mod
   out << xlang3::ir::dump_module(module);
   std::cerr << "debug: wrote IR " << output_path.string() << "\n";
   return true;
+}
+
+bool publish_process_sys_attrs(xlang3::Runtime& runtime, const char* argv0, std::string& error) {
+  xlang3::Value sys;
+  if (!runtime.import_module("sys", sys, error)) {
+    return false;
+  }
+  std::filesystem::path executable = argv0 == nullptr ? std::filesystem::path() : std::filesystem::path(argv0);
+  std::error_code ec;
+  auto absolute = std::filesystem::absolute(executable, ec);
+  if (!ec) {
+    executable = std::move(absolute);
+  }
+  if (!xlang3::module_set_attr(sys, "executable", xlang3::Value::string(executable.string()), error)) {
+    return false;
+  }
+  const auto prefix = executable.parent_path().string();
+  if (!xlang3::module_set_attr(sys, "prefix", xlang3::Value::string(prefix), error)) {
+    return false;
+  }
+  return xlang3::module_set_attr(sys, "base_prefix", xlang3::Value::string(prefix), error);
 }
 
 bool run_source(
@@ -342,6 +364,10 @@ int main(int argc, char** argv) {
     runtime.prepend_import_root(std::filesystem::current_path());
   }
   std::string argv_error;
+  if (!publish_process_sys_attrs(runtime, argc > 0 ? argv[0] : nullptr, argv_error)) {
+    std::cerr << "runtime: " << argv_error << "\n";
+    return 1;
+  }
   if (!runtime.publish_sys_path(argv_error)) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
