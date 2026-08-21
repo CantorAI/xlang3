@@ -206,7 +206,8 @@ void Runtime::set_thread_trace_function(Value trace_function) {
 }
 
 void Runtime::refresh_debug_poll_needed() {
-  debug_poll_needed_ = value_as_function(debug_hook_) != nullptr && !debug_dispatch_active_ &&
+  const bool debug_session_active = debug_enabled_ || value_as_function(debug_hook_) != nullptr;
+  debug_poll_needed_ = debug_session_active && !debug_dispatch_active_ &&
                        (debug_step_mode_ != RuntimeDebugStepMode::Continue || !debug_breakpoints_.empty());
 }
 
@@ -218,6 +219,15 @@ void Runtime::set_debug_hook(Value hook) {
 void Runtime::set_debug_dispatch_active(bool active) {
   debug_dispatch_active_ = active;
   refresh_debug_poll_needed();
+}
+
+void Runtime::set_debug_enabled(bool enabled) {
+  debug_enabled_ = enabled;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::set_debug_pause_on_hit(bool enabled) {
+  debug_pause_on_hit_ = enabled;
 }
 
 void Runtime::debug_add_breakpoint(std::string file, uint32_t line) {

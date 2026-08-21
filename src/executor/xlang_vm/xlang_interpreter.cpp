@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/interpreter.h"
 
+#include "xlang_vm_inline_support.h"
+
 #include "xlang3/generator.h"
 #include "xlang3/module_object.h"
 
@@ -89,6 +91,31 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
       function->globals_module,
       function->module,
       nullptr);
+}
+
+RuntimeResult Interpreter::resume_paused(std::shared_ptr<RuntimeDebugPauseState> pause_state) {
+  RuntimeResult result;
+  if (pause_state == nullptr || pause_state->frame_count == 0 || pause_state->frames.empty()) {
+    result.errors.push_back("invalid paused debug state");
+    return result;
+  }
+  const auto& entry = pause_state->frames[0];
+  if (entry.module == nullptr || entry.fn == nullptr) {
+    result.errors.push_back("invalid paused debug frame");
+    return result;
+  }
+  static const std::vector<Value> empty_closure;
+  static const std::vector<Value> empty_defaults;
+  return run_function(
+      *entry.module,
+      entry.function_id,
+      {},
+      entry.closure == nullptr ? empty_closure : *entry.closure,
+      empty_defaults,
+      entry.globals_module,
+      entry.module_owner,
+      nullptr,
+      std::move(pause_state));
 }
 
 RuntimeResult Interpreter::resume_generator(GeneratorObject& generator, Value& out, bool& done) {

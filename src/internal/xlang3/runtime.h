@@ -163,6 +163,9 @@ public:
   void set_debug_dispatch_active(bool active);
   bool debug_poll_needed() const { return debug_poll_needed_; }
   bool debug_step_active() const { return debug_step_mode_ != RuntimeDebugStepMode::Continue; }
+  bool debug_pause_on_hit() const { return debug_pause_on_hit_; }
+  void set_debug_enabled(bool enabled);
+  void set_debug_pause_on_hit(bool enabled);
   void debug_add_breakpoint(std::string file, uint32_t line);
   void debug_clear_breakpoints();
   void debug_step_into();
@@ -188,6 +191,8 @@ private:
   bool trace_dispatch_active_ = false;
   bool debug_dispatch_active_ = false;
   bool debug_poll_needed_ = false;
+  bool debug_enabled_ = false;
+  bool debug_pause_on_hit_ = false;
   RuntimeDebugStepMode debug_step_mode_ = RuntimeDebugStepMode::Continue;
   std::vector<RuntimeDebugBreakpoint> debug_breakpoints_;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;

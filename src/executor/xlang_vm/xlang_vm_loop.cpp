@@ -67,13 +67,15 @@ RuntimeResult Interpreter::run_function(
     const std::vector<Value>& fn_obj_defaults,
     Value globals_module,
     std::shared_ptr<const ir::Module> module_owner,
-    GeneratorObject* generator) {
+    GeneratorObject* generator,
+    std::shared_ptr<RuntimeDebugPauseState> pause_state) {
   RuntimeResult result;
   if (function_id >= module.functions.size()) {
     result.errors.push_back("invalid function id");
     return result;
   }
   const auto& fn = module.functions[function_id];
+  const bool resuming_pause = pause_state != nullptr;
   struct CurrentFrameGuard {
     Runtime& runtime;
 
@@ -240,7 +242,9 @@ RuntimeResult Interpreter::run_function(
 
   std::vector<Value> entry_bound_args;
   CallArgsView entry_args = args;
-  if (!simple_signature(fn) || args.has_keywords() || args.has_expansion()) {
+  if (resuming_pause) {
+    entry_args = {};
+  } else if (!simple_signature(fn) || args.has_keywords() || args.has_expansion()) {
     if (!bind_args(fn, args, fn_obj_defaults, entry_bound_args)) {
       return result;
     }
@@ -261,7 +265,10 @@ RuntimeResult Interpreter::run_function(
   std::vector<RuntimeFrameView> runtime_frame_views;
   size_t frame_count = 0;
   bool resumed_generator = false;
-  if (generator != nullptr && generator->vm_state != nullptr) {
+  if (pause_state != nullptr) {
+    frames = std::move(pause_state->frames);
+    frame_count = pause_state->frame_count;
+  } else if (generator != nullptr && generator->vm_state != nullptr) {
     auto* state = static_cast<GeneratorVMState*>(generator->vm_state);
     frames = std::move(state->frames);
     frame_count = state->frame_count;
@@ -478,6 +485,24 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto pause_debug_execution = [&](RuntimePauseReason reason, uint32_t source_line) -> bool {
+    refresh_runtime_frame_views();
+    auto& paused_frame = frames[frame_count - 1];
+    result.paused = true;
+    result.pause_reason = reason;
+    result.pause_line = source_line;
+    result.selected_frame = static_cast<uint32_t>(frame_count - 1);
+    result.pause_file = paused_frame.module != nullptr ? paused_frame.module->source_file : std::string();
+    result.pause_frame = runtime_.current_frame_snapshot();
+
+    auto state = std::make_shared<RuntimeDebugPauseState>();
+    state->reason = reason;
+    state->frame_count = frame_count;
+    state->frames = std::move(frames);
+    result.pause_state = std::move(state);
+    return false;
+  };
+
   auto poll_debug_event = [&](VMFrame& debug_frame) -> bool {
     const uint32_t source_line = source_line_for_frame(debug_frame);
     if (source_line == 0 || source_line == debug_frame.last_debug_line) {
@@ -487,10 +512,16 @@ RuntimeResult Interpreter::run_function(
     const std::string_view source_file =
         debug_frame.module != nullptr ? std::string_view(debug_frame.module->source_file) : std::string_view();
     if (runtime_.debug_breakpoint_matches(source_file, source_line)) {
-      return emit_debug_event(debug_frame, "breakpoint");
+      if (!emit_debug_event(debug_frame, "breakpoint")) {
+        return false;
+      }
+      return runtime_.debug_pause_on_hit() ? pause_debug_execution(RuntimePauseReason::Breakpoint, source_line) : true;
     }
     if (runtime_.debug_step_active()) {
-      return emit_debug_event(debug_frame, "step");
+      if (!emit_debug_event(debug_frame, "step")) {
+        return false;
+      }
+      return runtime_.debug_pause_on_hit() ? pause_debug_execution(RuntimePauseReason::Step, source_line) : true;
     }
     return true;
   };

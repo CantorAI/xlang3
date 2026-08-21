@@ -26,10 +26,25 @@ limitations under the License.
 namespace xlang3 {
 
 struct GeneratorObject;
+struct RuntimeDebugPauseState;
+
+enum class RuntimePauseReason : uint8_t {
+  None,
+  Breakpoint,
+  Step,
+  PauseRequest,
+};
 
 struct RuntimeResult {
   Value value;
   std::vector<std::string> errors;
+  bool paused = false;
+  RuntimePauseReason pause_reason = RuntimePauseReason::None;
+  std::string pause_file;
+  uint32_t pause_line = 0;
+  uint32_t selected_frame = 0;
+  Value pause_frame;
+  std::shared_ptr<RuntimeDebugPauseState> pause_state;
 };
 
 struct CallArgsView {
@@ -72,6 +87,7 @@ public:
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
   RuntimeResult run_function_value(FunctionObject* function, CallArgsView args);
+  RuntimeResult resume_paused(std::shared_ptr<RuntimeDebugPauseState> pause_state);
   RuntimeResult resume_generator(GeneratorObject& generator, Value& out, bool& done);
 
 private:
@@ -83,7 +99,8 @@ private:
       const std::vector<Value>& defaults,
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner,
-      GeneratorObject* generator);
+      GeneratorObject* generator,
+      std::shared_ptr<RuntimeDebugPauseState> pause_state = nullptr);
 
   Runtime& runtime_;
   std::unordered_map<std::string, Value> globals_;

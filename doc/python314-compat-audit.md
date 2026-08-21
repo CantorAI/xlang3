@@ -411,9 +411,10 @@ High-level Python modules to run from Python source where possible:
 - [~] return events: Python function returns emit trace return events; generator/exception edge cases pending
 - [~] exception events: raised Python exceptions emit trace exception events before handler/unwind dispatch
 - [~] VM debug poll gate: debugger hook is runtime-disabled by default; breakpoint/step checks activate through a cached poll-needed flag
-- [~] breakpoint mapping: private VM hook supports filename/line breakpoint hits; DAP/debugpy protocol binding pending
+- [~] VM debug pause/resume: breakpoint/step hits can preserve the XlangVM frame stack and resume from the same instruction; host protocol binding pending
+- [~] breakpoint mapping: private VM hook and pause state support filename/line breakpoint hits; DAP/debugpy protocol binding pending
 - [ ] step over
-- [~] step in: private VM hook supports source-line step-into hits; pause/resume protocol pending
+- [~] step in: private VM hook and pause state support source-line step-into hits; step-over/out policies pending
 - [ ] step out
 - [~] locals/globals variable inspection: current frame snapshots expose locals/globals dicts; debugger mutation/watch semantics pending
 - [ ] evaluate expression in selected frame

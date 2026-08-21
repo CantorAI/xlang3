@@ -48,6 +48,12 @@ struct GeneratorVMState {
   size_t frame_count = 0;
 };
 
+struct RuntimeDebugPauseState {
+  std::vector<VMFrame> frames;
+  size_t frame_count = 0;
+  RuntimePauseReason reason = RuntimePauseReason::None;
+};
+
 XLANG3_HOT_INLINE bool analyze_const_method(const ir::Module& current_module, const FunctionObject& fn_obj, Value& out) {
   const ir::Module* fn_module = nullptr;
   if (!module_for_function(current_module, fn_obj, fn_module)) {

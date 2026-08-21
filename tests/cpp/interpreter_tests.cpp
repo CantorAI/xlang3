@@ -14,6 +14,9 @@ limitations under the License.
 */
 #include "test_harness.h"
 
+#include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+
 int main() {
   xlang3::test::CaseResult result;
 
@@ -251,6 +254,61 @@ int main() {
     result.ok = result.ok && run.ok;
     xlang3::test::expect_true(result, output == "3\n1\nTrue\n",
                               "math native module should import and call native functions");
+  }
+
+  {
+    const std::string source =
+        "x = 1\n"
+        "y = x + 2\n"
+        "print(y)\n";
+    auto parsed = xlang3::parse_source(source);
+    result.errors.insert(result.errors.end(), parsed.errors.begin(), parsed.errors.end());
+    xlang3::test::expect_true(result, parsed.errors.empty(), "debug pause source should parse");
+    if (parsed.errors.empty()) {
+      auto lowered = xlang3::lower_to_ir(parsed.module);
+      result.errors.insert(result.errors.end(), lowered.errors.begin(), lowered.errors.end());
+      xlang3::test::expect_true(result, lowered.errors.empty(), "debug pause source should lower");
+      if (lowered.errors.empty()) {
+        auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+        module->source_file = "debug_pause_resume.py";
+        std::ostringstream out;
+        xlang3::Runtime runtime(out);
+        runtime.set_debug_enabled(true);
+        runtime.set_debug_pause_on_hit(true);
+        runtime.debug_add_breakpoint("debug_pause_resume.py", 3);
+        xlang3::Interpreter interpreter(runtime);
+        auto paused = interpreter.run(module);
+        xlang3::test::expect_true(result, paused.errors.empty(), "debug pause should not produce errors");
+        xlang3::test::expect_true(result, paused.paused, "debug breakpoint should pause execution");
+        xlang3::test::expect_true(
+            result,
+            paused.pause_reason == xlang3::RuntimePauseReason::Breakpoint,
+            "debug pause reason should be breakpoint");
+        xlang3::test::expect_true(result, paused.pause_line == 3, "debug pause should report source line");
+        xlang3::test::expect_true(result, out.str().empty(), "debug pause should happen before print executes");
+        xlang3::Value paused_globals;
+        std::string attr_error;
+        xlang3::test::expect_true(
+            result,
+            xlang3::object_get_attr(paused.pause_frame, "f_globals", paused_globals, attr_error),
+            "debug pause frame should expose globals");
+        xlang3::Value y_value;
+        attr_error.clear();
+        xlang3::test::expect_true(
+            result,
+            xlang3::sequence_get_item(paused_globals, xlang3::Value::string("y"), y_value, attr_error),
+            "debug pause globals should include assigned y");
+        xlang3::test::expect_true(
+            result,
+            y_value.tag == xlang3::ValueTag::Int64 && y_value.as.i64 == 3,
+            "debug pause globals should preserve y value");
+        runtime.debug_continue();
+        auto resumed = interpreter.resume_paused(paused.pause_state);
+        xlang3::test::expect_true(result, resumed.errors.empty(), "debug resume should not produce errors");
+        xlang3::test::expect_true(result, !resumed.paused, "debug continue should run to completion");
+        xlang3::test::expect_true(result, out.str() == "3\n", "debug resume should continue paused frame stack");
+      }
+    }
   }
 
   return xlang3::test::finish(result);
