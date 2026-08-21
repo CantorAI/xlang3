@@ -311,5 +311,140 @@ int main() {
     }
   }
 
+  {
+    const std::string source =
+        "def inner():\n"
+        "    a = 10\n"
+        "    return a\n"
+        "\n"
+        "def outer():\n"
+        "    x = 1\n"
+        "    y = inner()\n"
+        "    z = y + 1\n"
+        "    print(z)\n"
+        "\n"
+        "outer()\n";
+    auto parsed = xlang3::parse_source(source);
+    result.errors.insert(result.errors.end(), parsed.errors.begin(), parsed.errors.end());
+    xlang3::test::expect_true(result, parsed.errors.empty(), "debug step over source should parse");
+    if (parsed.errors.empty()) {
+      auto lowered = xlang3::lower_to_ir(parsed.module);
+      result.errors.insert(result.errors.end(), lowered.errors.begin(), lowered.errors.end());
+      xlang3::test::expect_true(result, lowered.errors.empty(), "debug step over source should lower");
+      if (lowered.errors.empty()) {
+        auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+        module->source_file = "debug_step_over.py";
+        std::ostringstream out;
+        xlang3::Runtime runtime(out);
+        runtime.set_debug_enabled(true);
+        runtime.set_debug_pause_on_hit(true);
+        runtime.debug_add_breakpoint("debug_step_over.py", 7);
+        xlang3::Interpreter interpreter(runtime);
+        auto paused = interpreter.run(module);
+        xlang3::test::expect_true(result, paused.paused && paused.pause_line == 7, "debug should pause before call");
+        runtime.debug_clear_breakpoints();
+        runtime.debug_step_over(static_cast<size_t>(paused.selected_frame) + 1, paused.pause_line);
+        auto stepped = interpreter.resume_paused(paused.pause_state);
+        xlang3::test::expect_true(result, stepped.errors.empty(), "debug step over should not produce errors");
+        xlang3::test::expect_true(result, stepped.paused, "debug step over should pause again");
+        xlang3::test::expect_true(
+            result,
+            stepped.pause_reason == xlang3::RuntimePauseReason::StepOver,
+            "debug step over pause reason should be StepOver");
+        xlang3::test::expect_true(result, stepped.pause_line == 8, "debug step over should stop after call line");
+        xlang3::test::expect_true(result, out.str().empty(), "debug step over should pause before print");
+        runtime.debug_continue();
+        auto resumed = interpreter.resume_paused(stepped.pause_state);
+        xlang3::test::expect_true(result, resumed.errors.empty() && !resumed.paused, "debug step over continue should finish");
+        xlang3::test::expect_true(result, out.str() == "11\n", "debug step over resume should print result");
+      }
+    }
+  }
+
+  {
+    const std::string source =
+        "def inner():\n"
+        "    a = 10\n"
+        "    return a\n"
+        "\n"
+        "def outer():\n"
+        "    y = inner()\n"
+        "    z = y + 1\n"
+        "    print(z)\n"
+        "\n"
+        "outer()\n";
+    auto parsed = xlang3::parse_source(source);
+    result.errors.insert(result.errors.end(), parsed.errors.begin(), parsed.errors.end());
+    xlang3::test::expect_true(result, parsed.errors.empty(), "debug step out source should parse");
+    if (parsed.errors.empty()) {
+      auto lowered = xlang3::lower_to_ir(parsed.module);
+      result.errors.insert(result.errors.end(), lowered.errors.begin(), lowered.errors.end());
+      xlang3::test::expect_true(result, lowered.errors.empty(), "debug step out source should lower");
+      if (lowered.errors.empty()) {
+        auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+        module->source_file = "debug_step_out.py";
+        std::ostringstream out;
+        xlang3::Runtime runtime(out);
+        runtime.set_debug_enabled(true);
+        runtime.set_debug_pause_on_hit(true);
+        runtime.debug_add_breakpoint("debug_step_out.py", 2);
+        xlang3::Interpreter interpreter(runtime);
+        auto paused = interpreter.run(module);
+        xlang3::test::expect_true(result, paused.paused && paused.pause_line == 2, "debug should pause inside callee");
+        runtime.debug_clear_breakpoints();
+        runtime.debug_step_out(static_cast<size_t>(paused.selected_frame) + 1);
+        auto stepped = interpreter.resume_paused(paused.pause_state);
+        xlang3::test::expect_true(result, stepped.errors.empty(), "debug step out should not produce errors");
+        xlang3::test::expect_true(result, stepped.paused, "debug step out should pause in caller");
+        xlang3::test::expect_true(
+            result,
+            stepped.pause_reason == xlang3::RuntimePauseReason::StepOut,
+            "debug step out pause reason should be StepOut");
+        xlang3::test::expect_true(result, stepped.pause_line == 7, "debug step out should stop after callee returns");
+        runtime.debug_continue();
+        auto resumed = interpreter.resume_paused(stepped.pause_state);
+        xlang3::test::expect_true(result, resumed.errors.empty() && !resumed.paused, "debug step out continue should finish");
+        xlang3::test::expect_true(result, out.str() == "11\n", "debug step out resume should print result");
+      }
+    }
+  }
+
+  {
+    const std::string source =
+        "x = 1\n"
+        "y = x + 1\n"
+        "print(y)\n";
+    auto parsed = xlang3::parse_source(source);
+    result.errors.insert(result.errors.end(), parsed.errors.begin(), parsed.errors.end());
+    xlang3::test::expect_true(result, parsed.errors.empty(), "debug pause request source should parse");
+    if (parsed.errors.empty()) {
+      auto lowered = xlang3::lower_to_ir(parsed.module);
+      result.errors.insert(result.errors.end(), lowered.errors.begin(), lowered.errors.end());
+      xlang3::test::expect_true(result, lowered.errors.empty(), "debug pause request source should lower");
+      if (lowered.errors.empty()) {
+        auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+        module->source_file = "debug_pause_request.py";
+        std::ostringstream out;
+        xlang3::Runtime runtime(out);
+        runtime.set_debug_enabled(true);
+        runtime.set_debug_pause_on_hit(true);
+        runtime.debug_request_pause();
+        xlang3::Interpreter interpreter(runtime);
+        auto paused = interpreter.run(module);
+        xlang3::test::expect_true(result, paused.errors.empty(), "debug pause request should not produce errors");
+        xlang3::test::expect_true(result, paused.paused, "debug pause request should pause");
+        xlang3::test::expect_true(
+            result,
+            paused.pause_reason == xlang3::RuntimePauseReason::PauseRequest,
+            "debug pause request reason should be PauseRequest");
+        xlang3::test::expect_true(result, paused.pause_line == 1, "debug pause request should stop at next line");
+        runtime.debug_continue();
+        auto resumed = interpreter.resume_paused(paused.pause_state);
+        xlang3::test::expect_true(result, resumed.errors.empty() && !resumed.paused, "debug pause request continue should finish");
+        xlang3::test::expect_true(result, out.str() == "2\n", "debug pause request resume should print result");
+      }
+    }
+  }
+
   return xlang3::test::finish(result);
 }

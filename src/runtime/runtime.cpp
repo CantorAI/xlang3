@@ -208,7 +208,9 @@ void Runtime::set_thread_trace_function(Value trace_function) {
 void Runtime::refresh_debug_poll_needed() {
   const bool debug_session_active = debug_enabled_ || value_as_function(debug_hook_) != nullptr;
   debug_poll_needed_ = debug_session_active && !debug_dispatch_active_ &&
-                       (debug_step_mode_ != RuntimeDebugStepMode::Continue || !debug_breakpoints_.empty());
+                       (debug_pause_requested_ ||
+                        debug_step_mode_ != RuntimeDebugStepMode::Continue ||
+                        !debug_breakpoints_.empty());
 }
 
 void Runtime::set_debug_hook(Value hook) {
@@ -228,6 +230,11 @@ void Runtime::set_debug_enabled(bool enabled) {
 
 void Runtime::set_debug_pause_on_hit(bool enabled) {
   debug_pause_on_hit_ = enabled;
+}
+
+void Runtime::debug_request_pause() {
+  debug_pause_requested_ = true;
+  refresh_debug_poll_needed();
 }
 
 void Runtime::debug_add_breakpoint(std::string file, uint32_t line) {
@@ -250,12 +257,52 @@ void Runtime::debug_clear_breakpoints() {
 
 void Runtime::debug_step_into() {
   debug_step_mode_ = RuntimeDebugStepMode::StepInto;
+  debug_step_frame_count_ = 0;
+  debug_step_line_ = 0;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_step_over(size_t frame_count, uint32_t line) {
+  debug_step_mode_ = RuntimeDebugStepMode::StepOver;
+  debug_step_frame_count_ = frame_count;
+  debug_step_line_ = line;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_step_out(size_t frame_count) {
+  debug_step_mode_ = RuntimeDebugStepMode::StepOut;
+  debug_step_frame_count_ = frame_count;
+  debug_step_line_ = 0;
   refresh_debug_poll_needed();
 }
 
 void Runtime::debug_continue() {
   debug_step_mode_ = RuntimeDebugStepMode::Continue;
+  debug_step_frame_count_ = 0;
+  debug_step_line_ = 0;
+  debug_pause_requested_ = false;
   refresh_debug_poll_needed();
+}
+
+RuntimePauseReason Runtime::debug_step_pause_reason(size_t frame_count, uint32_t line) const {
+  if (debug_pause_requested_) {
+    return RuntimePauseReason::PauseRequest;
+  }
+  if (line == 0) {
+    return RuntimePauseReason::None;
+  }
+  if (debug_step_mode_ == RuntimeDebugStepMode::StepInto) {
+    return RuntimePauseReason::Step;
+  }
+  if (debug_step_mode_ == RuntimeDebugStepMode::StepOver &&
+      frame_count <= debug_step_frame_count_ &&
+      line != debug_step_line_) {
+    return RuntimePauseReason::StepOver;
+  }
+  if (debug_step_mode_ == RuntimeDebugStepMode::StepOut && frame_count < debug_step_frame_count_) {
+    return RuntimePauseReason::StepOut;
+  }
+  return RuntimePauseReason::None;
 }
 
 bool Runtime::debug_breakpoint_matches(std::string_view file, uint32_t line) const {

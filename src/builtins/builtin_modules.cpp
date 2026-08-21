@@ -133,6 +133,46 @@ bool sys_xlang3_debug_step_into(Runtime& runtime, const Value*, uint32_t argc, V
   return true;
 }
 
+bool sys_xlang3_debug_step_over(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64 || args[0].as.i64 <= 0 ||
+      args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0) {
+    error = "sys._xlang3_debug_step_over expected frame_count and line";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_step_over(static_cast<size_t>(args[0].as.i64), static_cast<uint32_t>(args[1].as.i64));
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_step_out(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64 || args[0].as.i64 <= 0) {
+    error = "sys._xlang3_debug_step_out expected frame_count";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_step_out(static_cast<size_t>(args[0].as.i64));
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_request_pause(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._xlang3_debug_request_pause expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_request_pause();
+  value_set_none(out);
+  return true;
+}
+
 bool sys_xlang3_debug_continue(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys._xlang3_debug_continue expected 0 arguments";
@@ -225,6 +265,21 @@ void register_builtin_modules(Runtime& runtime) {
       sys,
       "_xlang3_debug_step_into",
       runtime.make_native_function("sys._xlang3_debug_step_into", sys_xlang3_debug_step_into),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_step_over",
+      runtime.make_native_function("sys._xlang3_debug_step_over", sys_xlang3_debug_step_over),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_step_out",
+      runtime.make_native_function("sys._xlang3_debug_step_out", sys_xlang3_debug_step_out),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_request_pause",
+      runtime.make_native_function("sys._xlang3_debug_request_pause", sys_xlang3_debug_request_pause),
       error);
   module_set_attr(
       sys,

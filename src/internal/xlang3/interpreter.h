@@ -28,13 +28,6 @@ namespace xlang3 {
 struct GeneratorObject;
 struct RuntimeDebugPauseState;
 
-enum class RuntimePauseReason : uint8_t {
-  None,
-  Breakpoint,
-  Step,
-  PauseRequest,
-};
-
 struct RuntimeResult {
   Value value;
   std::vector<std::string> errors;

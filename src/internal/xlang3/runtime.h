@@ -50,6 +50,17 @@ struct RuntimeFrameView {
 enum class RuntimeDebugStepMode : uint8_t {
   Continue,
   StepInto,
+  StepOver,
+  StepOut,
+};
+
+enum class RuntimePauseReason : uint8_t {
+  None,
+  Breakpoint,
+  Step,
+  StepOver,
+  StepOut,
+  PauseRequest,
 };
 
 struct RuntimeDebugBreakpoint {
@@ -166,10 +177,14 @@ public:
   bool debug_pause_on_hit() const { return debug_pause_on_hit_; }
   void set_debug_enabled(bool enabled);
   void set_debug_pause_on_hit(bool enabled);
+  void debug_request_pause();
   void debug_add_breakpoint(std::string file, uint32_t line);
   void debug_clear_breakpoints();
   void debug_step_into();
+  void debug_step_over(size_t frame_count, uint32_t line);
+  void debug_step_out(size_t frame_count);
   void debug_continue();
+  RuntimePauseReason debug_step_pause_reason(size_t frame_count, uint32_t line) const;
   bool debug_breakpoint_matches(std::string_view file, uint32_t line) const;
   void register_exit_function(Value callable, std::vector<Value> args);
   void unregister_exit_function(const Value& callable);
@@ -193,7 +208,10 @@ private:
   bool debug_poll_needed_ = false;
   bool debug_enabled_ = false;
   bool debug_pause_on_hit_ = false;
+  bool debug_pause_requested_ = false;
   RuntimeDebugStepMode debug_step_mode_ = RuntimeDebugStepMode::Continue;
+  size_t debug_step_frame_count_ = 0;
+  uint32_t debug_step_line_ = 0;
   std::vector<RuntimeDebugBreakpoint> debug_breakpoints_;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
   const Value* current_frame_globals_module_ = nullptr;

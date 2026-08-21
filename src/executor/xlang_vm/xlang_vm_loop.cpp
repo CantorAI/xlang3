@@ -517,11 +517,12 @@ RuntimeResult Interpreter::run_function(
       }
       return runtime_.debug_pause_on_hit() ? pause_debug_execution(RuntimePauseReason::Breakpoint, source_line) : true;
     }
-    if (runtime_.debug_step_active()) {
+    const RuntimePauseReason step_reason = runtime_.debug_step_pause_reason(frame_count, source_line);
+    if (step_reason != RuntimePauseReason::None) {
       if (!emit_debug_event(debug_frame, "step")) {
         return false;
       }
-      return runtime_.debug_pause_on_hit() ? pause_debug_execution(RuntimePauseReason::Step, source_line) : true;
+      return runtime_.debug_pause_on_hit() ? pause_debug_execution(step_reason, source_line) : true;
     }
     return true;
   };
