@@ -14,11 +14,23 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
 
 namespace xlang3 {
 
 namespace {
+
+struct OpenMode {
+  bool readable = false;
+  bool writable = false;
+  bool append = false;
+  bool create = false;
+  bool truncate = false;
+  bool exclusive = false;
+  bool update = false;
+  bool binary = false;
+};
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
@@ -26,6 +38,112 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
     return false;
   }
   out = string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj));
+  return true;
+}
+
+bool get_path_arg(const Value& value, const char* name, std::string& out, std::string& error) {
+  if (get_string_arg(value, name, out, error)) {
+    return true;
+  }
+  std::string ignored;
+  Value path_value;
+  if (object_get_attr(value, "__xlang3_string_value__", path_value, ignored) && value_as_string(path_value) != nullptr) {
+    out = string_object_to_string(*value_as_string(path_value));
+    error.clear();
+    return true;
+  }
+  if (object_get_attr(value, "_path", path_value, ignored) && value_as_string(path_value) != nullptr) {
+    out = string_object_to_string(*value_as_string(path_value));
+    error.clear();
+    return true;
+  }
+  error = std::string(name) + " must be str or path-like";
+  return false;
+}
+
+bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error) {
+  if (mode.empty()) {
+    error = "empty open mode";
+    return false;
+  }
+  bool saw_action = false;
+  bool saw_text = false;
+  bool saw_binary = false;
+  for (char ch : mode) {
+    switch (ch) {
+      case 'r':
+        if (saw_action) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        saw_action = true;
+        out.readable = true;
+        break;
+      case 'w':
+        if (saw_action) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        saw_action = true;
+        out.writable = true;
+        out.create = true;
+        out.truncate = true;
+        break;
+      case 'a':
+        if (saw_action) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        saw_action = true;
+        out.writable = true;
+        out.create = true;
+        out.append = true;
+        break;
+      case 'x':
+        if (saw_action) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        saw_action = true;
+        out.writable = true;
+        out.create = true;
+        out.exclusive = true;
+        break;
+      case '+':
+        if (out.update) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        out.update = true;
+        break;
+      case 't':
+        if (saw_text || saw_binary) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        saw_text = true;
+        break;
+      case 'b':
+        if (saw_text || saw_binary) {
+          error = "invalid open mode: " + mode;
+          return false;
+        }
+        saw_binary = true;
+        out.binary = true;
+        break;
+      default:
+        error = "invalid open mode: " + mode;
+        return false;
+    }
+  }
+  if (!saw_action) {
+    error = "invalid open mode: " + mode;
+    return false;
+  }
+  if (out.update) {
+    out.readable = true;
+    out.writable = true;
+  }
   return true;
 }
 
@@ -104,18 +222,15 @@ bool builtin_open(
   }
   std::string path;
   std::string mode = "r";
-  if (!get_string_arg(args[0], "open path", path, error)) {
+  if (!get_path_arg(args[0], "open path", path, error)) {
     return false;
   }
   if (argc == 2 && !get_string_arg(args[1], "open mode", mode, error)) {
     return false;
   }
 
-  const bool readable = mode == "r" || mode == "rt" || mode == "a" || mode == "at";
-  const bool writable = mode == "w" || mode == "wt" || mode == "a" || mode == "at";
-  const bool append = mode == "a" || mode == "at";
-  if (!readable && !writable) {
-    error = "unsupported open mode: " + mode;
+  OpenMode parsed;
+  if (!parse_open_mode(mode, parsed, error)) {
     return false;
   }
 
@@ -125,23 +240,34 @@ bool builtin_open(
   }
 
   std::string buffer;
-  if (readable) {
+  VfsStat stat;
+  std::string stat_error;
+  const bool stat_ok = resolved.fs->stat(resolved.path, stat, stat_error);
+  const bool exists = stat_ok && stat.kind == VfsNodeKind::File;
+  if (parsed.exclusive && exists) {
+    error = "file exists: " + path;
+    return false;
+  }
+  if (parsed.readable || parsed.append) {
     std::vector<uint8_t> bytes;
-    VfsStat stat;
-    if (resolved.fs->stat(resolved.path, stat, error) && stat.kind == VfsNodeKind::File) {
+    if (exists && !parsed.truncate) {
       if (!resolved.fs->read_file(resolved.path, bytes, error)) {
         return false;
       }
       buffer.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-    } else if (!writable) {
+    } else if (!parsed.writable) {
       error = "file not found: " + path;
       return false;
     }
   }
 
-  out = Value::file(resolved.fs, resolved.path, mode, std::move(buffer), writable);
+  out = Value::file(resolved.fs, resolved.path, mode, std::move(buffer), parsed.writable);
   auto* file = reinterpret_cast<FileObject*>(out.as.obj);
-  file->cursor = append ? file->buffer.size() : 0;
+  file->readable = parsed.readable;
+  file->writable = parsed.writable;
+  file->append = parsed.append;
+  file->binary = parsed.binary;
+  file->cursor = parsed.append ? file->buffer.size() : 0;
   return true;
 }
 

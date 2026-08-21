@@ -493,7 +493,10 @@ struct FileObject {
   std::string mode;
   std::string buffer;
   std::size_t cursor = 0;
+  bool readable = false;
   bool writable = false;
+  bool append = false;
+  bool binary = false;
   bool closed = false;
 };
 

@@ -14,7 +14,10 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
+
+#include <algorithm>
 
 namespace xlang3 {
 namespace {
@@ -41,6 +44,23 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
   return true;
 }
 
+bool get_write_bytes_arg(const Value& value, bool binary, const char* name, std::string& out, std::string& error) {
+  if (!binary) {
+    return get_string_arg(value, name, out, error);
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    auto view = bytes_object_view(*bytes);
+    out.assign(view.data(), view.size());
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    out = bytearray->value;
+    return true;
+  }
+  error = std::string(name) + " must be bytes-like";
+  return false;
+}
+
 bool flush_file(FileObject& file, std::string& error) {
   if (!file.writable) {
     return true;
@@ -56,16 +76,40 @@ bool flush_file(FileObject& file, std::string& error) {
       error);
 }
 
+void file_read_result(FileObject& file, std::string data, Value& out) {
+  if (file.binary) {
+    out = Value::bytes(std::move(data));
+  } else {
+    out = Value::string(std::move(data));
+  }
+}
+
 bool file_read_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 1, "file.read", error)) {
+  if (argc < 1 || argc > 2) {
+    error = "file.read() expected optional size";
     return false;
   }
   auto* file = require_file(args[0], "file.read", error);
   if (file == nullptr) {
     return false;
   }
-  out = Value::string(file->buffer.substr(file->cursor));
-  file->cursor = file->buffer.size();
+  if (!file->readable) {
+    error = "file is not readable";
+    return false;
+  }
+  size_t size = file->buffer.size() - std::min(file->cursor, file->buffer.size());
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "file.read size must be int";
+      return false;
+    }
+    if (args[1].as.i64 >= 0) {
+      size = std::min<size_t>(size, static_cast<size_t>(args[1].as.i64));
+    }
+  }
+  const size_t start = std::min(file->cursor, file->buffer.size());
+  file_read_result(*file, file->buffer.substr(start, size), out);
+  file->cursor = start + size;
   return true;
 }
 
@@ -82,15 +126,193 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   std::string text;
-  if (!get_string_arg(args[1], "file.write data", text, error)) {
+  if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
     return false;
+  }
+  if (file->append) {
+    file->cursor = file->buffer.size();
   }
   if (file->cursor > file->buffer.size()) {
     file->cursor = file->buffer.size();
   }
-  file->buffer.insert(file->cursor, text);
+  if (file->cursor + text.size() > file->buffer.size()) {
+    file->buffer.resize(file->cursor + text.size(), '\0');
+  }
+  std::copy(text.begin(), text.end(), file->buffer.begin() + static_cast<std::ptrdiff_t>(file->cursor));
   file->cursor += text.size();
   value_set_int64(out, static_cast<int64_t>(text.size()));
+  return true;
+}
+
+bool file_readline_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "file.readline() expected optional size";
+    return false;
+  }
+  auto* file = require_file(args[0], "file.readline", error);
+  if (file == nullptr) {
+    return false;
+  }
+  if (!file->readable) {
+    error = "file is not readable";
+    return false;
+  }
+  size_t limit = file->buffer.size();
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "file.readline size must be int";
+      return false;
+    }
+    if (args[1].as.i64 >= 0) {
+      limit = std::min(file->buffer.size(), file->cursor + static_cast<size_t>(args[1].as.i64));
+    }
+  }
+  const size_t start = std::min(file->cursor, file->buffer.size());
+  size_t end = start;
+  while (end < limit && end < file->buffer.size()) {
+    ++end;
+    if (file->buffer[end - 1] == '\n') {
+      break;
+    }
+  }
+  file_read_result(*file, file->buffer.substr(start, end - start), out);
+  file->cursor = end;
+  return true;
+}
+
+bool read_line(FileObject& file, Value& out, std::string& error) {
+  const size_t start = std::min(file.cursor, file.buffer.size());
+  size_t end = start;
+  while (end < file.buffer.size()) {
+    ++end;
+    if (file.buffer[end - 1] == '\n') {
+      break;
+    }
+  }
+  file_read_result(file, file.buffer.substr(start, end - start), out);
+  file.cursor = end;
+  return true;
+}
+
+bool file_readlines_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "file.readlines() expected optional hint";
+    return false;
+  }
+  auto* file = require_file(args[0], "file.readlines", error);
+  if (file == nullptr) {
+    return false;
+  }
+  if (!file->readable) {
+    error = "file is not readable";
+    return false;
+  }
+  std::vector<Value> lines;
+  while (file->cursor < file->buffer.size()) {
+    Value line;
+    if (!read_line(*file, line, error)) {
+      return false;
+    }
+    lines.push_back(std::move(line));
+  }
+  out = Value::list(std::move(lines));
+  return true;
+}
+
+bool write_bytes(FileObject& file, const Value& value, Value& out, std::string& error) {
+  std::string text;
+  if (!get_write_bytes_arg(value, file.binary, "file.write data", text, error)) {
+    return false;
+  }
+  if (file.append) {
+    file.cursor = file.buffer.size();
+  }
+  if (file.cursor > file.buffer.size()) {
+    file.cursor = file.buffer.size();
+  }
+  if (file.cursor + text.size() > file.buffer.size()) {
+    file.buffer.resize(file.cursor + text.size(), '\0');
+  }
+  std::copy(text.begin(), text.end(), file.buffer.begin() + static_cast<std::ptrdiff_t>(file.cursor));
+  file.cursor += text.size();
+  value_set_int64(out, static_cast<int64_t>(text.size()));
+  return true;
+}
+
+bool file_writelines_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "file.writelines() expected iterable";
+    return false;
+  }
+  auto* file = require_file(args[0], "file.writelines", error);
+  if (file == nullptr) {
+    return false;
+  }
+  if (!file->writable) {
+    error = "file is not writable";
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    Value ignored;
+    if (!write_bytes(*file, item, ignored, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool file_seek_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64) {
+    error = "file.seek() expected offset and optional whence";
+    return false;
+  }
+  auto* file = require_file(args[0], "file.seek", error);
+  if (file == nullptr) {
+    return false;
+  }
+  int64_t base = 0;
+  const int64_t whence = argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0;
+  if (whence == 0) {
+    base = 0;
+  } else if (whence == 1) {
+    base = static_cast<int64_t>(file->cursor);
+  } else if (whence == 2) {
+    base = static_cast<int64_t>(file->buffer.size());
+  } else {
+    error = "invalid whence";
+    return false;
+  }
+  int64_t next = base + args[1].as.i64;
+  if (next < 0) {
+    next = 0;
+  }
+  file->cursor = static_cast<size_t>(next);
+  value_set_int64(out, static_cast<int64_t>(file->cursor));
+  return true;
+}
+
+bool file_tell_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.tell", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.tell", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(file->cursor));
   return true;
 }
 
@@ -116,6 +338,19 @@ bool file_close_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   }
   file->closed = true;
   value_set_none(out);
+  return true;
+}
+
+bool file_closed_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.closed", error)) {
+    return false;
+  }
+  if (args[0].tag != ValueTag::Object || args[0].as.obj == nullptr || args[0].as.obj->kind != ObjectKind::File) {
+    error = "file.closed target is not a file";
+    return false;
+  }
+  auto* file = reinterpret_cast<FileObject*>(args[0].as.obj);
+  value_set_bool(out, file->closed);
   return true;
 }
 
@@ -154,9 +389,15 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
       {"__enter__", "file.__enter__", file_enter_method},
       {"__exit__", "file.__exit__", file_exit_method},
       {"close", "file.close", file_close_method},
+      {"closed", "file.closed", file_closed_method},
       {"flush", "file.flush", file_flush_method},
       {"read", "file.read", file_read_method},
+      {"readline", "file.readline", file_readline_method},
+      {"readlines", "file.readlines", file_readlines_method},
+      {"seek", "file.seek", file_seek_method},
+      {"tell", "file.tell", file_tell_method},
       {"write", "file.write", file_write_method},
+      {"writelines", "file.writelines", file_writelines_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }

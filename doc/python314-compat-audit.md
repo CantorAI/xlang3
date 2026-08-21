@@ -385,11 +385,11 @@ High-level Python modules to run from Python source where possible:
 ### Filesystem And IO
 
 - [x] runtime VFS abstraction
-- [x] basic file object
+- [~] file object: read/write/close/context manager plus read(size), readline(s), writelines, seek/tell, closed; iterator/newline/full errors pending
 - [x] host filesystem backend
 - [x] Pico flash file store foundation
-- [ ] CPython-compatible `open`
-- [ ] text/binary modes
+- [~] CPython-compatible `open`: VFS path/path-like input and `r/w/a/x/+` mode parsing; full error classes/opener semantics pending
+- [~] text/binary modes: text strings and binary bytes/bytearray for core read/write paths
 - [ ] buffering behavior
 - [ ] encoding behavior
 - [ ] `io` module

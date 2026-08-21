@@ -84,6 +84,7 @@ $cases = @(
     "import_system_model",
     "vfs_file_io",
     "file_context_open",
+    "file_io_compat",
     "exceptions",
     "runtime_error_exceptions",
     "exception_unwind_with",
