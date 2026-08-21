@@ -168,6 +168,7 @@ public:
 
 private:
   ast::StmtPtr parse_statement();
+  ast::StmtPtr parse_statement_impl();
   ast::StmtPtr parse_decorated_statement();
   ast::StmtPtr parse_if_statement();
   ast::StmtPtr parse_try_statement();

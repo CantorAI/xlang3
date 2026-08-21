@@ -135,6 +135,15 @@ ParseExpressionResult Parser::parse_expression_module() {
 }
 
 ast::StmtPtr Parser::parse_statement() {
+  const uint32_t line = peek().line;
+  auto stmt = parse_statement_impl();
+  if (stmt != nullptr && stmt->line == 0) {
+    stmt->line = line;
+  }
+  return stmt;
+}
+
+ast::StmtPtr Parser::parse_statement_impl() {
   if (check(TokenKind::At)) {
     return parse_decorated_statement();
   }

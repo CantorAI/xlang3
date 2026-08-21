@@ -934,10 +934,12 @@ private:
 
   void emit(ir::Op op, uint32_t dst = 0, uint32_t a = 0, uint32_t b = 0, uint32_t c = 0) {
     fn_.code.push_back(ir::Instr{op, dst, a, b, c});
+    fn_.source_lines.push_back(current_source_line_);
   }
 
   size_t emit_jump(ir::Op op, uint32_t cond = 0) {
     fn_.code.push_back(ir::Instr{op, 0, cond, 0, 0});
+    fn_.source_lines.push_back(current_source_line_);
     return fn_.code.size() - 1;
   }
 
@@ -1624,6 +1626,17 @@ private:
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
+    struct SourceLineScope {
+      uint32_t& current;
+      uint32_t saved;
+
+      ~SourceLineScope() {
+        current = saved;
+      }
+    } source_line_scope{current_source_line_, current_source_line_};
+    if (stmt.line != 0) {
+      current_source_line_ = stmt.line;
+    }
     if (dynamic_cast<const ast::GlobalStmt*>(&stmt) != nullptr) {
       return;
     }
@@ -2448,6 +2461,7 @@ private:
   std::unordered_map<std::string, ClassInfo> class_infos_;
   std::unordered_map<std::string, uint32_t> module_global_slots_;
   std::unordered_set<uint32_t> imported_module_slots_;
+  uint32_t current_source_line_ = 0;
   ir::Function fn_;
   sema::NameSet local_name_set_;
   sema::NameSet global_names_;

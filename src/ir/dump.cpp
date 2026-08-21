@@ -293,7 +293,9 @@ std::string dump_module(const Module& module) {
     }
     for (size_t ip = 0; ip < fn.code.size(); ++ip) {
       const auto& in = fn.code[ip];
+      const uint32_t line = ip < fn.source_lines.size() ? fn.source_lines[ip] : 0;
       os << "  " << ip << ": " << op_name(in.op)
+         << " line=" << line
          << " dst=" << in.dst << " a=" << in.a << " b=" << in.b << " c=" << in.c << "\n";
       if (in.op == Op::Compare) {
         os << "       compare=" << compare_name(static_cast<CompareOp>(in.c)) << "\n";

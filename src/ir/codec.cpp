@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 9;
+constexpr uint32_t kVersion = 10;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -679,6 +679,9 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
     w.u32(instr.b);
     w.u32(instr.c);
   }
+  if (!write_u32_vector(w, fn.source_lines, error)) {
+    return false;
+  }
   return true;
 }
 
@@ -733,6 +736,9 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       return false;
     }
     instr.op = static_cast<Op>(op);
+  }
+  if (!read_u32_vector(r, fn.source_lines, error)) {
+    return false;
   }
   return true;
 }

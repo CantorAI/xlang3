@@ -404,7 +404,12 @@ RuntimeResult Interpreter::run_function(
     for (size_t index = frame_count; index > 0; --index) {
       const auto& captured = frames[index - 1];
       Value frame_object = Value::frame(captured.module_owner, captured.function_id, captured.globals_module);
-      next = Value::traceback(std::move(frame_object), std::move(next), static_cast<int64_t>(captured.ip));
+      int64_t source_line = static_cast<int64_t>(captured.ip);
+      if (captured.fn != nullptr && captured.ip < captured.fn->source_lines.size() &&
+          captured.fn->source_lines[captured.ip] != 0) {
+        source_line = static_cast<int64_t>(captured.fn->source_lines[captured.ip]);
+      }
+      next = Value::traceback(std::move(frame_object), std::move(next), source_line);
     }
     return next;
   };

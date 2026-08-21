@@ -21,7 +21,7 @@ def probe(a):
     print(frame.f_globals["__name__"])
     print(frame.f_locals["a"])
     print(frame.f_locals["b"])
-    print(frame.f_lineno >= 0)
+    print(frame.f_lineno)
 
 
 probe(41)

@@ -402,10 +402,10 @@ High-level Python modules to run from Python source where possible:
 - [~] `sys.gettrace`: returns stored hook
 - [~] `threading.settrace`: default thread hook storage foundation; native thread propagation/events pending
 - [~] `threading.gettrace`: returns stored default hook
-- [~] frame objects: `inspect.currentframe()`, `f_code`, `f_globals`, `f_locals`, and `f_lineno` foundation; `f_lineno` is still IR instruction index until source maps land
+- [~] frame objects: `inspect.currentframe()`, `f_code`, `f_globals`, `f_locals`, and source-backed `f_lineno` foundation
 - [~] code objects
 - [~] traceback objects
-- [ ] IR source line map
+- [x] IR source line map: parser statement line stamps lower to per-instruction line metadata and serialize through IR cache
 - [ ] line events
 - [ ] call events
 - [ ] return events

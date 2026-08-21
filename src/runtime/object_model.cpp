@@ -293,6 +293,17 @@ Value module_globals_snapshot(const Value& module_value) {
   return Value::dict(std::move(entries));
 }
 
+int64_t frame_source_line(const FrameObject& frame) {
+  if (frame.module == nullptr || frame.function_id >= frame.module->functions.size()) {
+    return static_cast<int64_t>(frame.instruction_index);
+  }
+  const auto& fn = frame.module->functions[frame.function_id];
+  if (frame.instruction_index < fn.source_lines.size() && fn.source_lines[frame.instruction_index] != 0) {
+    return static_cast<int64_t>(fn.source_lines[frame.instruction_index]);
+  }
+  return static_cast<int64_t>(frame.instruction_index);
+}
+
 } // namespace
 
 Value Value::class_object(
@@ -509,7 +520,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_lineno") {
-      out = Value::int64(frame->instruction_index);
+      out = Value::int64(frame_source_line(*frame));
       return true;
     }
     if (name == "f_locals") {

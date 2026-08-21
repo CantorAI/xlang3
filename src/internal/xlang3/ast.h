@@ -14,6 +14,7 @@ limitations under the License.
 */
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -26,6 +27,8 @@ struct Expr {
 };
 
 struct Stmt {
+  uint32_t line = 0;
+
   virtual ~Stmt() = default;
 };
 

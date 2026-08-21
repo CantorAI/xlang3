@@ -195,6 +195,7 @@ struct Function {
   std::vector<std::pair<uint32_t, uint32_t>> range_specs;
   std::vector<std::pair<uint32_t, uint32_t>> string_replace_specs;
   std::vector<Instr> code;
+  std::vector<uint32_t> source_lines;
 };
 
 struct Module {
