@@ -121,9 +121,13 @@ public:
 } // namespace
 
 #if !defined(XLANG3_EMBEDDED)
-Vfs::Vfs() : root_(std::make_unique<OsFileSystem>()) {}
+Vfs::Vfs() : root_(std::make_unique<OsFileSystem>()) {
+  std::error_code ec;
+  auto cwd = std::filesystem::current_path(ec);
+  current_directory_ = ec ? "." : cwd.string();
+}
 #else
-Vfs::Vfs() = default;
+Vfs::Vfs() : current_directory_("/") {}
 #endif
 Vfs::~Vfs() = default;
 
@@ -141,7 +145,19 @@ bool Vfs::resolve(const std::string& path, ResolvedPath& out, std::string& error
     return false;
   }
   out.fs = root_.get();
-  out.path = path;
+#if !defined(XLANG3_EMBEDDED)
+  std::filesystem::path fs_path(path);
+  if (!fs_path.is_absolute() && !current_directory_.empty()) {
+    fs_path = std::filesystem::path(current_directory_) / fs_path;
+  }
+  out.path = fs_path.lexically_normal().string();
+#else
+  if (!current_directory_.empty() && path.front() != '/') {
+    out.path = current_directory_ + "/" + path;
+  } else {
+    out.path = path;
+  }
+#endif
   return true;
 }
 
@@ -168,6 +184,23 @@ bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::
 bool Vfs::stat(const std::string& path, VfsStat& out, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->stat(resolved.path, out, error);
+}
+
+bool Vfs::chdir(const std::string& path, std::string& error) {
+  ResolvedPath resolved;
+  if (!resolve(path, resolved, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!resolved.fs->stat(resolved.path, stat, error)) {
+    return false;
+  }
+  if (stat.kind != VfsNodeKind::Directory) {
+    error = "not a directory: " + path;
+    return false;
+  }
+  current_directory_ = std::move(resolved.path);
+  return true;
 }
 
 } // namespace xlang3

@@ -14,28 +14,16 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/module_object.h"
+
 namespace xlang3 {
 
-void register_core_builtins(Runtime& runtime) {
-  register_object_type_builtins(runtime);
-  register_exception_builtins(runtime);
-  register_functional_builtins(runtime);
-  register_io_builtins(runtime);
-  register_sequence_builtins(runtime);
-  register_raw_block_builtins(runtime);
-  register_builtin_modules(runtime);
-  register_math_module(runtime);
-#ifndef XLANG3_EMBEDDED
-  register_time_module(runtime);
-  register_atexit_module(runtime);
-  register_io_module(runtime);
-  register_os_module(runtime);
-#endif
-  register_thread_modules(runtime);
-#ifndef XLANG3_EMBEDDED
-  register_task_modules(runtime);
-  register_asyncio_module(runtime);
-#endif
+void register_io_module(Runtime& runtime) {
+  NativeModuleBuilder builder(runtime, "_io");
+  if (const Value* open = runtime.find_builtin("open")) {
+    builder.value("open", *open);
+  }
+  runtime.register_module("_io", builder.finish());
 }
 
 } // namespace xlang3

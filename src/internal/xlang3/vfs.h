@@ -59,9 +59,12 @@ public:
   bool remove(const std::string& path, std::string& error);
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error);
   bool stat(const std::string& path, VfsStat& out, std::string& error);
+  const std::string& cwd() const { return current_directory_; }
+  bool chdir(const std::string& path, std::string& error);
 
 private:
   std::unique_ptr<FileSystem> root_;
+  std::string current_directory_;
 };
 
 } // namespace xlang3

@@ -145,10 +145,76 @@ bool builtin_open(
   return true;
 }
 
+bool builtin_open_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "open expected path and optional mode";
+    return false;
+  }
+  std::vector<Value> positional;
+  positional.reserve(2);
+  positional.push_back(args[0]);
+  if (argc == 2) {
+    positional.push_back(args[1]);
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const char* name = kwargs[i].name;
+    const Value* value = kwargs[i].value;
+    if (name == nullptr || value == nullptr) {
+      error = "open keyword argument is invalid";
+      return false;
+    }
+    const std::string key(name);
+    if (key == "mode") {
+      if (positional.size() == 2) {
+        error = "open got multiple values for argument 'mode'";
+        return false;
+      }
+      positional.push_back(*value);
+    } else if (key == "encoding" || key == "errors" || key == "newline") {
+      if (value_as_string(*value) == nullptr && value->tag != ValueTag::None) {
+        error = "open " + key + " must be str or None";
+        return false;
+      }
+    } else if (key == "buffering") {
+      if (value->tag != ValueTag::Int64) {
+        error = "open buffering must be int";
+        return false;
+      }
+    } else {
+      error = "open got unsupported keyword argument '" + key + "'";
+      return false;
+    }
+  }
+  return builtin_open(
+      runtime,
+      positional.data(),
+      static_cast<uint32_t>(positional.size()),
+      out,
+      error,
+      user_data);
+}
+
 } // namespace
 
 void register_io_builtins(Runtime& runtime) {
-  runtime.register_native_builtin("open", builtin_open);
+  runtime.register_builtin(
+      "open",
+      runtime.make_native_function(
+          "open",
+          builtin_open,
+          nullptr,
+          nullptr,
+          nullptr,
+          false,
+          builtin_open_kw));
   runtime.register_builtin(
       "print",
       runtime.make_native_function(

@@ -338,10 +338,10 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `sleep`
 - [x] `_thread` subset
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
-- [ ] `nt` / `posix`
+- [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [ ] `_stat`
 - [ ] `_imp`
-- [ ] `_io`
+- [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
 - [ ] `_socket`
 - [ ] `select`
 - [ ] `_weakref`
@@ -351,7 +351,7 @@ Native or runtime-backed foundation:
 High-level Python modules to run from Python source where possible:
 
 - [~] `threading`
-- [ ] `os`
+- [~] `os`: VFS-backed `listdir`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics
 - [ ] `socket`
 - [x] `json` through native package, not CPython-compatible package yet
 - [ ] `queue`
