@@ -31,20 +31,58 @@ XLANG3_HOT_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, const
   return false;
 }
 
-XLANG3_HOT_INLINE bool bind_builtin_method(
-    const Value& object,
-    std::string full_name,
-    NativeFunctionCallback callback,
-    Value& out) {
-  out = Value::bound_method(object, Value::native_function(0, std::move(full_name), callback));
-  return true;
+template <NativeFunctionCallback Callback, uint32_t MaxArgc>
+XLANG3_HOT_INLINE bool builtin_method_fast_adapter(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (leading_count != 1 || leading == nullptr || registers == nullptr ||
+      (register_arg_count != 0 && register_args == nullptr) || register_arg_count + 1 > MaxArgc) {
+    error = "invalid builtin method fast call";
+    return false;
+  }
+  Value args[MaxArgc];
+  args[0] = leading[0];
+  for (uint32_t i = 0; i < register_arg_count; ++i) {
+    args[i + 1] = registers[register_args[i]];
+  }
+  return Callback(runtime, args, register_arg_count + 1, out, error, user_data);
 }
 
 struct BuiltinMethodSpec {
   const char* name;
   const char* full_name;
   NativeFunctionCallback callback;
+  NativeFastCallCallback fast_callback = nullptr;
+  bool fast_releases_vm_lock = false;
 };
+
+XLANG3_HOT_INLINE bool bind_builtin_method(
+    const Value& object,
+    std::string full_name,
+    NativeFunctionCallback callback,
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock,
+    Value& out) {
+  out = Value::bound_method(
+      object,
+      Value::native_function(
+          0,
+          std::move(full_name),
+          callback,
+          nullptr,
+          nullptr,
+          fast_callback,
+          fast_releases_vm_lock,
+          nullptr));
+  return true;
+}
 
 XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
     const Value& object,
@@ -54,21 +92,41 @@ XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
     Value& out) {
   for (size_t i = 0; i < method_count; ++i) {
     if (name == methods[i].name) {
-      return bind_builtin_method(object, methods[i].full_name, methods[i].callback, out);
+      return bind_builtin_method(
+          object,
+          methods[i].full_name,
+          methods[i].callback,
+          methods[i].fast_callback,
+          methods[i].fast_releases_vm_lock,
+          out);
     }
   }
   return false;
 }
 
 bool list_get_method(const Value& object, const std::string& name, Value& out);
+const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::string& name);
+bool tuple_get_method(const Value& object, const std::string& name, Value& out);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
 bool file_get_method(const Value& object, const std::string& name, Value& out);
 bool set_get_method(const Value& object, const std::string& name, Value& out);
 bool string_get_method(const Value& object, const std::string& name, Value& out);
-bool string_get_method_callback(const Value& object, const std::string& name, NativeFunctionCallback& callback);
+const BuiltinMethodSpec* string_find_method_spec(const Value& object, const std::string& name);
 bool bytes_get_method(const Value& object, const std::string& name, Value& out);
 bool bytearray_get_method(const Value& object, const std::string& name, Value& out);
 bool memoryview_get_method(const Value& object, const std::string& name, Value& out);
 bool property_get_method(const Value& object, const std::string& name, Value& out);
+
+XLANG3_HOT_INLINE const BuiltinMethodSpec* builtin_method_find_spec_for_call(
+    const Value& object,
+    const std::string& name) {
+  if (const auto* spec = string_find_method_spec(object, name)) {
+    return spec;
+  }
+  if (const auto* spec = list_find_method_spec(object, name)) {
+    return spec;
+  }
+  return nullptr;
+}
 
 } // namespace xlang3

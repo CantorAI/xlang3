@@ -43,12 +43,7 @@ bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
     error = "dict.keys target is not a dict";
     return false;
   }
-  std::vector<Value> keys;
-  keys.reserve(dict->entries.size());
-  for (const auto& entry : dict->entries) {
-    keys.push_back(entry.first);
-  }
-  out = Value::list(std::move(keys));
+  out = mapping_keys_view(args[0]);
   return true;
 }
 
@@ -61,12 +56,7 @@ bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     error = "dict.values target is not a dict";
     return false;
   }
-  std::vector<Value> values;
-  values.reserve(dict->entries.size());
-  for (const auto& entry : dict->entries) {
-    values.push_back(entry.second);
-  }
-  out = Value::list(std::move(values));
+  out = mapping_values_view(args[0]);
   return true;
 }
 
@@ -79,15 +69,7 @@ bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     error = "dict.items target is not a dict";
     return false;
   }
-  std::vector<Value> items;
-  items.reserve(dict->entries.size());
-  for (const auto& entry : dict->entries) {
-    std::vector<Value> pair;
-    pair.push_back(entry.first);
-    pair.push_back(entry.second);
-    items.push_back(Value::tuple(std::move(pair)));
-  }
-  out = Value::list(std::move(items));
+  out = mapping_items_view(args[0]);
   return true;
 }
 

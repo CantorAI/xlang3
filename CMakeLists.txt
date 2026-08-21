@@ -45,6 +45,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/builtins/sequence_builtins.cpp
   src/runtime/c_api_bridge.cpp
   src/runtime/exceptions.cpp
+  src/runtime/functional_iterators.cpp
   src/runtime/generator.cpp
   src/runtime/attribute.cpp
   src/runtime/methods/list_methods.cpp
@@ -52,8 +53,16 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/methods/file_methods.cpp
   src/runtime/methods/set_methods.cpp
   src/runtime/methods/string_methods.cpp
+  src/runtime/methods/tuple_methods.cpp
   src/runtime/methods/bytes_methods.cpp
   src/runtime/methods/property_methods.cpp
+  src/runtime/memory/x3_bucket_allocator.cpp
+  src/runtime/memory/x3_memory.cpp
+  src/runtime/memory/x3_object_pool.cpp
+  src/runtime/memory/x3_page_allocator.cpp
+  src/runtime/memory/x3_runtime_memory.cpp
+  src/runtime/memory/x3_temp_arena.cpp
+  src/runtime/perf_counters.cpp
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
   src/runtime/object_model.cpp
@@ -107,6 +116,7 @@ target_include_directories(xlang3_runtime_embedded
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
 )
 target_compile_features(xlang3_runtime_embedded PUBLIC cxx_std_17)
@@ -133,6 +143,7 @@ target_include_directories(${xlang3_runtime_target}
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/thread
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/task
@@ -156,6 +167,7 @@ function(add_xlang3_cpp_test name source)
   target_link_libraries(${name} PRIVATE xlang3_runtime)
   target_compile_definitions(${name} PRIVATE XLANG3_USE_SHARED)
   target_include_directories(${name} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
   )
@@ -164,6 +176,7 @@ endfunction()
 
 add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
+add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)

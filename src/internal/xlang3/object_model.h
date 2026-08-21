@@ -33,6 +33,10 @@ struct ClassObject {
   uint64_t version = 1;
   bool has_explicit_bases = false;
   bool has_descriptors = false;
+  bool has_getattribute_hook = false;
+  bool has_getattr_hook = false;
+  bool has_setattr_hook = false;
+  bool has_delattr_hook = false;
   std::vector<Value> mro_cache;
   uint64_t mro_cache_version = 0;
 };
@@ -95,6 +99,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_delete_attr(Value& object, const std::string& name, std::string& error);
 bool object_get_class_attr_for_instance(const Value& object, const std::string& name, Value& out, std::string& error);
+bool object_lookup_class_attr(const Value& klass, const std::string& name, Value& out, std::string& error);
+bool object_value_has_descriptor_get(const Value& value);
+bool object_value_has_descriptor_set(const Value& value);
+bool object_value_has_descriptor_delete(const Value& value);
+bool object_value_is_descriptor(const Value& value);
+bool object_value_is_data_descriptor(const Value& value);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool class_set_base(Value klass, Value base, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);

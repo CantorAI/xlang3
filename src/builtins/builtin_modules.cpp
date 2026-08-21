@@ -62,6 +62,14 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "ValueError");
   copy_builtin(runtime, builtins, "ImportError");
   runtime.register_module("_builtins", std::move(builtins));
+
+  NativeModuleBuilder sys_builder(runtime, "sys");
+  auto sys = sys_builder.finish();
+  std::string error;
+  Value modules_ref;
+  value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
+  module_set_attr(sys, "modules", modules_ref, error);
+  runtime.register_module("sys", std::move(sys));
 }
 
 } // namespace xlang3

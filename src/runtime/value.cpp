@@ -15,15 +15,23 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include "xlang3/generator.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
 
+#include "runtime/memory/x3_runtime_memory.h"
+
 #include <cmath>
+#include <array>
+#include <cstring>
 #include <limits>
+#include <new>
+#include <vector>
 #if defined(XLANG3_EMBEDDED)
 #include <cstdio>
 #else
@@ -39,7 +47,145 @@ T* allocate_object(ObjectKind kind) {
   auto* obj = new T();
   obj->header.kind = kind;
   obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
   return obj;
+}
+
+void release_string_block(StringObject* object) {
+  const size_t alloc_size = object->alloc_size;
+  object->~StringObject();
+  memory::x3_thread_buckets().release(object, alloc_size);
+}
+
+StringObject* allocate_string_object(size_t size) {
+  constexpr size_t kMaxStringPayload =
+      static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - sizeof(StringObject) - 1;
+  if (size > kMaxStringPayload) {
+    size = kMaxStringPayload;
+  }
+  const size_t total_size = sizeof(StringObject) + size + 1;
+  void* block = memory::x3_thread_buckets().allocate(total_size);
+  auto* obj = new (block) StringObject();
+  obj->header.kind = ObjectKind::String;
+  obj->header.refcnt = 1;
+  obj->size = static_cast<uint32_t>(size);
+  obj->alloc_size = static_cast<uint32_t>(total_size);
+  string_object_mutable_data(*obj)[size] = '\0';
+  xlang_perf_count_object_alloc(ObjectKind::String);
+  return obj;
+}
+
+BytesObject* allocate_bytes_object(size_t size) {
+  constexpr size_t kMaxBytesPayload =
+      static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - sizeof(BytesObject) - 1;
+  if (size > kMaxBytesPayload) {
+    size = kMaxBytesPayload;
+  }
+  const size_t total_size = sizeof(BytesObject) + size + 1;
+  void* block = memory::x3_thread_buckets().allocate(total_size);
+  auto* obj = new (block) BytesObject();
+  obj->header.kind = ObjectKind::Bytes;
+  obj->header.refcnt = 1;
+  obj->size = static_cast<uint32_t>(size);
+  obj->alloc_size = static_cast<uint32_t>(total_size);
+  bytes_object_mutable_data(*obj)[size] = '\0';
+  xlang_perf_count_object_alloc(ObjectKind::Bytes);
+  return obj;
+}
+
+constexpr size_t align_up_size(size_t value, size_t alignment) {
+  return (value + alignment - 1) & ~(alignment - 1);
+}
+
+constexpr size_t tuple_items_offset() {
+  return align_up_size(sizeof(TupleObject), alignof(Value));
+}
+
+void release_tuple_block(TupleObject* object) {
+  const size_t capacity = object->items.capacity();
+  Value* item_storage = object->items.begin();
+  const size_t alloc_size = object->alloc_size;
+  object->items.clear();
+  for (size_t i = 0; i < capacity; ++i) {
+    item_storage[i].~Value();
+  }
+  object->~TupleObject();
+  memory::x3_thread_buckets().release(object, alloc_size);
+}
+
+struct TupleObjectFreeLists {
+  ~TupleObjectFreeLists() {
+    for (auto& list : small) {
+      for (auto* object : list) {
+        release_tuple_block(object);
+      }
+    }
+  }
+
+  std::array<std::vector<TupleObject*>, 9> small;
+};
+
+thread_local TupleObjectFreeLists tuple_object_free_lists;
+
+TupleObject* allocate_tuple_object(size_t capacity) {
+  constexpr size_t kMaxTupleItems =
+      (static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - tuple_items_offset()) / sizeof(Value);
+  if (capacity > kMaxTupleItems) {
+    capacity = kMaxTupleItems;
+  }
+  if (capacity < tuple_object_free_lists.small.size()) {
+    auto& list = tuple_object_free_lists.small[capacity];
+    if (!list.empty()) {
+      auto* obj = list.back();
+      list.pop_back();
+      obj->header.kind = ObjectKind::Tuple;
+      obj->header.refcnt = 1;
+      xlang_perf_count_object_alloc(ObjectKind::Tuple);
+      return obj;
+    }
+  }
+  const size_t total_size = tuple_items_offset() + capacity * sizeof(Value);
+  void* block = memory::x3_thread_buckets().allocate(total_size);
+  auto* obj = new (block) TupleObject();
+  xlang_perf_count_object_alloc(ObjectKind::Tuple);
+  obj->header.kind = ObjectKind::Tuple;
+  obj->header.refcnt = 1;
+  obj->alloc_size = static_cast<uint32_t>(total_size);
+  auto* item_storage = reinterpret_cast<Value*>(static_cast<unsigned char*>(block) + tuple_items_offset());
+  for (size_t i = 0; i < capacity; ++i) {
+    new (item_storage + i) Value();
+  }
+  obj->items.bind(item_storage, static_cast<uint32_t>(capacity));
+  return obj;
+}
+
+void recycle_tuple_object(TupleObject* object) {
+  const uint32_t capacity = object->items.capacity();
+  object->items.clear();
+  if (capacity < tuple_object_free_lists.small.size()) {
+    auto& list = tuple_object_free_lists.small[capacity];
+    if (list.size() < 4096) {
+      list.push_back(object);
+      return;
+    }
+  }
+  release_tuple_block(object);
+}
+
+void string_object_set_bytes(StringObject* object, const char* source, size_t size) {
+  if (object->size != 0) {
+    std::memcpy(string_object_mutable_data(*object), source, object->size);
+  }
+}
+
+void recycle_string_object(StringObject* object) {
+  release_string_block(object);
+}
+
+void recycle_bytes_object(BytesObject* object) {
+  const size_t alloc_size = object->alloc_size;
+  object->~BytesObject();
+  memory::x3_thread_buckets().release(object, alloc_size);
 }
 
 bool is_number(const Value& value) {
@@ -66,7 +212,7 @@ TupleObject* as_tuple(Object* obj) {
   return reinterpret_cast<TupleObject*>(obj);
 }
 
-std::string bytes_repr(const std::string& value) {
+std::string bytes_repr(std::string_view value) {
   std::string text = "b'";
   for (const unsigned char ch : value) {
     if (ch == '\\' || ch == '\'') {
@@ -99,6 +245,18 @@ NativeFunctionObject* as_native_function(Object* obj) {
   return reinterpret_cast<NativeFunctionObject*>(obj);
 }
 
+CodeObject* as_code(Object* obj) {
+  return reinterpret_cast<CodeObject*>(obj);
+}
+
+FrameObject* as_frame(Object* obj) {
+  return reinterpret_cast<FrameObject*>(obj);
+}
+
+TracebackObject* as_traceback(Object* obj) {
+  return reinterpret_cast<TracebackObject*>(obj);
+}
+
 FileObject* as_file(Object* obj) {
   return reinterpret_cast<FileObject*>(obj);
 }
@@ -127,7 +285,7 @@ std::string format_f64(double value) {
 
 } // namespace
 
-Value::Value(const Value& other) : tag(other.tag), flags(other.flags), as(other.as) {
+Value::Value(const Value& other) : tag(other.tag), flags(other.flags & ~kXlangValueBorrowedRefFlag), as(other.as) {
   retain(*this);
 }
 
@@ -142,7 +300,7 @@ Value& Value::operator=(const Value& other) {
   }
   release(*this);
   tag = other.tag;
-  flags = other.flags;
+  flags = other.flags & ~kXlangValueBorrowedRefFlag;
   as = other.as;
   retain(*this);
   return *this;
@@ -166,10 +324,22 @@ Value::~Value() {
 }
 
 Value Value::string(std::string value) {
+  return string_view(std::string_view(value.data(), value.size()));
+}
+
+Value Value::string_view(std::string_view value) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_object<StringObject>(ObjectKind::String);
-  obj->value = std::move(value);
+  auto* obj = allocate_string_object(value.size());
+  string_object_set_bytes(obj, value.data(), value.size());
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::string_uninitialized(size_t size) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_string_object(size);
   v.as.obj = &obj->header;
   return v;
 }
@@ -177,8 +347,10 @@ Value Value::string(std::string value) {
 Value Value::bytes(std::string value) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_object<BytesObject>(ObjectKind::Bytes);
-  obj->value = std::move(value);
+  auto* obj = allocate_bytes_object(value.size());
+  if (!value.empty()) {
+    std::memcpy(bytes_object_mutable_data(*obj), value.data(), value.size());
+  }
   v.as.obj = &obj->header;
   return v;
 }
@@ -218,8 +390,18 @@ Value Value::slice(Value start, Value stop, Value step) {
 Value Value::tuple(std::vector<Value> items) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_object<TupleObject>(ObjectKind::Tuple);
-  obj->items = std::move(items);
+  auto* obj = allocate_tuple_object(items.size());
+  for (auto& item : items) {
+    obj->items.push_back_unchecked(std::move(item));
+  }
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::tuple_reserved(size_t capacity) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_tuple_object(capacity);
   v.as.obj = &obj->header;
   return v;
 }
@@ -255,6 +437,38 @@ Value Value::function(
   obj->defaults = std::move(defaults);
   obj->globals_module = std::move(globals_module);
   obj->module = std::move(module);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::code(std::shared_ptr<const ir::Module> module, uint32_t function_id) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<CodeObject>(ObjectKind::Code);
+  obj->module = std::move(module);
+  obj->function_id = function_id;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::frame(std::shared_ptr<const ir::Module> module, uint32_t function_id, Value globals_module) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FrameObject>(ObjectKind::Frame);
+  obj->module = std::move(module);
+  obj->function_id = function_id;
+  obj->globals_module = std::move(globals_module);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::traceback(Value frame, Value next, int64_t line) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<TracebackObject>(ObjectKind::Traceback);
+  obj->frame = std::move(frame);
+  obj->next = std::move(next);
+  obj->line = line;
   v.as.obj = &obj->header;
   return v;
 }
@@ -310,6 +524,10 @@ Value Value::file(FileSystem* fs, std::string path, std::string mode, std::strin
 
 void retain(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
+    if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
+      return;
+    }
+    xlang_perf_count_value_incref(value.as.obj->kind);
     value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
   }
 }
@@ -318,15 +536,20 @@ void release(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return;
   }
+  if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
+    return;
+  }
+  xlang_perf_count_value_decref(value.as.obj->kind);
   if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
     return;
   }
+  xlang_perf_count_object_final_release(value.as.obj->kind);
   switch (value.as.obj->kind) {
     case ObjectKind::String:
-      delete as_string(value.as.obj);
+      recycle_string_object(as_string(value.as.obj));
       break;
     case ObjectKind::Bytes:
-      delete as_bytes(value.as.obj);
+      recycle_bytes_object(as_bytes(value.as.obj));
       break;
     case ObjectKind::ByteArray:
       delete as_bytearray(value.as.obj);
@@ -338,9 +561,12 @@ void release(const Value& value) {
       delete value_as_slice(value);
       break;
     case ObjectKind::Tuple:
-      delete as_tuple(value.as.obj);
+      recycle_tuple_object(as_tuple(value.as.obj));
       break;
     case ObjectKind::Dict:
+    case ObjectKind::DictKeysView:
+    case ObjectKind::DictValuesView:
+    case ObjectKind::DictItemsView:
     case ObjectKind::DictIterator:
       mapping_release_object(value.as.obj);
       break;
@@ -357,6 +583,12 @@ void release(const Value& value) {
     case ObjectKind::SequenceIterator:
       sequence_release_object(value.as.obj);
       break;
+    case ObjectKind::EnumerateIterator:
+    case ObjectKind::ZipIterator:
+    case ObjectKind::MapIterator:
+    case ObjectKind::FilterIterator:
+      functional_iterator_release_object(value.as.obj);
+      break;
     case ObjectKind::Generator:
       generator_release_object(value.as.obj);
       break;
@@ -371,6 +603,15 @@ void release(const Value& value) {
         as_native_function(value.as.obj)->user_data_cleanup(as_native_function(value.as.obj)->user_data);
       }
       delete as_native_function(value.as.obj);
+      break;
+    case ObjectKind::Code:
+      delete as_code(value.as.obj);
+      break;
+    case ObjectKind::Frame:
+      delete as_frame(value.as.obj);
+      break;
+    case ObjectKind::Traceback:
+      delete as_traceback(value.as.obj);
       break;
     case ObjectKind::Class:
     case ObjectKind::Instance:
@@ -411,10 +652,10 @@ std::string value_to_string(const Value& value) {
     }
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
-        return as_string(value.as.obj)->value;
+        return string_object_to_string(*as_string(value.as.obj));
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
-        return bytes_repr(as_bytes(value.as.obj)->value);
+        return bytes_repr(bytes_object_view(*as_bytes(value.as.obj)));
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::ByteArray) {
         return "bytearray(" + bytes_repr(as_bytearray(value.as.obj)->value) + ")";
@@ -449,11 +690,17 @@ std::string value_to_string(const Value& value) {
            value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_to_string(value);
       }
+      if (value_is_functional_iterator(value)) {
+        return functional_iterator_to_string(value);
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Generator) {
         return generator_to_string(value);
       }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::DictKeysView ||
+           value.as.obj->kind == ObjectKind::DictValuesView ||
+           value.as.obj->kind == ObjectKind::DictItemsView ||
            value.as.obj->kind == ObjectKind::DictIterator)) {
         return mapping_to_string(value);
       }
@@ -473,6 +720,15 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::NativeFunction) {
         return "<built-in function " + as_native_function(value.as.obj)->name + ">";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Code) {
+        return "<code object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Frame) {
+        return "<frame object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Traceback) {
+        return "<traceback object>";
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Property) {
         return "<property object>";
@@ -504,10 +760,10 @@ bool value_truthy(const Value& value) {
       return value.as.f64 != 0.0;
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
-        return !as_string(value.as.obj)->value.empty();
+        return as_string(value.as.obj)->size != 0;
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
-        return !as_bytes(value.as.obj)->value.empty();
+        return as_bytes(value.as.obj)->size != 0;
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::ByteArray) {
         return !as_bytearray(value.as.obj)->value.empty();
@@ -525,11 +781,17 @@ bool value_truthy(const Value& value) {
            value.as.obj->kind == ObjectKind::SequenceIterator)) {
         return sequence_truthy(value);
       }
+      if (value_is_functional_iterator(value)) {
+        return true;
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Generator) {
         return generator_truthy(value);
       }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::DictKeysView ||
+           value.as.obj->kind == ObjectKind::DictValuesView ||
+           value.as.obj->kind == ObjectKind::DictItemsView ||
            value.as.obj->kind == ObjectKind::DictIterator)) {
         return mapping_truthy(value);
       }
@@ -555,13 +817,33 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
       lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
       lhs.as.obj->kind == ObjectKind::String && rhs.as.obj->kind == ObjectKind::String) {
-    out = Value::string(as_string(lhs.as.obj)->value + as_string(rhs.as.obj)->value);
+    const auto left = string_object_view(*as_string(lhs.as.obj));
+    const auto right = string_object_view(*as_string(rhs.as.obj));
+    out = Value::string_uninitialized(left.size() + right.size());
+    auto* string = value_as_string(out);
+    char* target = string_object_mutable_data(*string);
+    if (!left.empty()) {
+      std::memcpy(target, left.data(), left.size());
+    }
+    if (!right.empty()) {
+      std::memcpy(target + left.size(), right.data(), right.size());
+    }
     return true;
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
       lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
       lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
-    out = Value::bytes(as_bytes(lhs.as.obj)->value + as_bytes(rhs.as.obj)->value);
+    const auto left = bytes_object_view(*as_bytes(lhs.as.obj));
+    const auto right = bytes_object_view(*as_bytes(rhs.as.obj));
+    std::string bytes;
+    bytes.resize(left.size() + right.size());
+    if (!left.empty()) {
+      std::memcpy(bytes.data(), left.data(), left.size());
+    }
+    if (!right.empty()) {
+      std::memcpy(bytes.data() + left.size(), right.data(), right.size());
+    }
+    out = Value::bytes(std::move(bytes));
     return true;
   }
   error = "unsupported operands for +";
@@ -782,7 +1064,7 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
         lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
         lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
-      result = as_bytes(lhs.as.obj)->value == as_bytes(rhs.as.obj)->value;
+      result = bytes_object_view(*as_bytes(lhs.as.obj)) == bytes_object_view(*as_bytes(rhs.as.obj));
     } else {
       result = value_to_string(lhs) == value_to_string(rhs);
     }
@@ -841,7 +1123,7 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
       error = "'in <string>' requires string as left operand";
       return false;
     }
-    out = haystack->value.find(needle->value) != std::string::npos;
+    out = string_object_view(*haystack).find(string_object_view(*needle)) != std::string_view::npos;
     return true;
   }
   if (container.tag == ValueTag::Object && container.as.obj != nullptr && container.as.obj->kind == ObjectKind::Bytes) {
@@ -851,11 +1133,11 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
         out = false;
         return true;
       }
-      out = haystack->value.find(static_cast<char>(item.as.i64)) != std::string::npos;
+      out = bytes_object_view(*haystack).find(static_cast<char>(item.as.i64)) != std::string_view::npos;
       return true;
     }
     if (item.tag == ValueTag::Object && item.as.obj != nullptr && item.as.obj->kind == ObjectKind::Bytes) {
-      out = haystack->value.find(as_bytes(item.as.obj)->value) != std::string::npos;
+      out = bytes_object_view(*haystack).find(bytes_object_view(*as_bytes(item.as.obj))) != std::string_view::npos;
       return true;
     }
     error = "'in <bytes>' requires int or bytes as left operand";
@@ -869,6 +1151,9 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
       }
     }
     return true;
+  }
+  if (value_as_dict_view(container) != nullptr) {
+    return mapping_contains(container, item, out, error);
   }
   if (auto* set = value_as_set(container)) {
     for (const auto& candidate : set->items) {

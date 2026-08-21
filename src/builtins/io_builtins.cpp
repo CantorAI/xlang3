@@ -25,7 +25,7 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
     error = std::string(name) + " must be a string";
     return false;
   }
-  out = reinterpret_cast<StringObject*>(value.as.obj)->value;
+  out = string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj));
   return true;
 }
 

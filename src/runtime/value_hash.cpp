@@ -47,11 +47,13 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
       }
       if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
           lhs.as.obj->kind == ObjectKind::String && rhs.as.obj->kind == ObjectKind::String) {
-        return value_to_string(lhs) == value_to_string(rhs);
+        return string_object_view(*reinterpret_cast<StringObject*>(lhs.as.obj)) ==
+               string_object_view(*reinterpret_cast<StringObject*>(rhs.as.obj));
       }
       if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
           lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
-        return reinterpret_cast<BytesObject*>(lhs.as.obj)->value == reinterpret_cast<BytesObject*>(rhs.as.obj)->value;
+        return bytes_object_view(*reinterpret_cast<BytesObject*>(lhs.as.obj)) ==
+               bytes_object_view(*reinterpret_cast<BytesObject*>(rhs.as.obj));
       }
       return false;
   }
@@ -77,11 +79,11 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       return true;
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
-        out = std::hash<std::string>{}(value_to_string(value));
+        out = std::hash<std::string_view>{}(string_object_view(*reinterpret_cast<StringObject*>(value.as.obj)));
         return true;
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
-        out = std::hash<std::string>{}(reinterpret_cast<BytesObject*>(value.as.obj)->value);
+        out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
         return true;
       }
       error = "object is not hashable";

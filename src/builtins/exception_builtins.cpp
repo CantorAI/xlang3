@@ -38,6 +38,9 @@ bool exception_init(
     return false;
   }
   object_set_attr(const_cast<Value&>(args[0]), "args", argc == 2 ? Value::tuple({message}) : Value::tuple({}), ignored);
+  object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
+  object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
+  object_set_attr(const_cast<Value&>(args[0]), "__context__", Value::none(), ignored);
   value_set_none(out);
   return true;
 }
@@ -58,6 +61,13 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "AssertionError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "NameError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "IndexError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "KeyError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ZeroDivisionError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "OSError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
 }
 

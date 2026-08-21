@@ -13,11 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/sema.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/parser.h"
+#include "xlang3/python_names.h"
 #include "xlang3/scope_analysis.h"
 
 #include "xlang_module_globals.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <unordered_map>
 #include <unordered_set>
@@ -28,6 +31,11 @@ namespace {
 
 struct ClassInfo {
   std::unordered_map<std::string, uint32_t> slots;
+};
+
+enum class KnownValueType : uint8_t {
+  Unknown,
+  String,
 };
 
 void add_slot_name(const std::string& name, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
@@ -1035,6 +1043,31 @@ private:
     return name;
   }
 
+  KnownValueType known_type_for_expr(const ast::Expr& expr) const {
+    if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+      return literal->kind == ast::LiteralExpr::Kind::String ? KnownValueType::String : KnownValueType::Unknown;
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      const auto resolved = resolve_name(name->name);
+      auto it = local_known_types_.find(resolved);
+      return it == local_known_types_.end() ? KnownValueType::Unknown : it->second;
+    }
+    return KnownValueType::Unknown;
+  }
+
+  void update_known_local_type(const std::string& name, const ast::Expr& expr) {
+    const auto resolved = resolve_name(name);
+    if (locals_.find(resolved) == locals_.end()) {
+      return;
+    }
+    const auto type = known_type_for_expr(expr);
+    if (type == KnownValueType::Unknown) {
+      local_known_types_.erase(resolved);
+    } else {
+      local_known_types_[resolved] = type;
+    }
+  }
+
   void lower_for_loop(const std::string& target, const ast::Expr& iterable, const std::vector<ast::StmtPtr>& body) {
     if (try_lower_const_range_for(target, iterable, body)) {
       return;
@@ -1652,6 +1685,7 @@ private:
       return;
     }
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+      update_known_local_type(assign->name, *assign->value);
       if (try_emit_direct_local_assign(*assign)) {
         return;
       }
@@ -1858,7 +1892,7 @@ private:
         auto expr = parse_embedded_expression(part.text);
         std::vector<ast::ExprPtr> args;
         args.push_back(std::move(expr));
-        auto call = ast::CallExpr(std::make_unique<ast::NameExpr>("str"), std::move(args));
+        auto call = ast::CallExpr(std::make_unique<ast::NameExpr>(PythonNames::builtin_str), std::move(args));
         value = lower_expr(call);
       } else {
         value = new_reg();
@@ -1887,50 +1921,6 @@ private:
       }
     }
     return false;
-  }
-
-  bool string_literal_const(const ast::Expr& expr, uint32_t& out) {
-    auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
-    if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
-      return false;
-    }
-    out = add_const(Value::string(literal->text));
-    return true;
-  }
-
-  bool try_lower_string_strip_replace_split(const ast::CallExpr& split_call, uint32_t& dst) {
-    auto* split_attr = dynamic_cast<const ast::AttrExpr*>(split_call.callee.get());
-    if (split_attr == nullptr || split_attr->name != "split" || split_call.args.size() != 1) {
-      return false;
-    }
-    auto* replace_call = dynamic_cast<const ast::CallExpr*>(split_attr->object.get());
-    if (replace_call == nullptr || replace_call->args.size() != 2) {
-      return false;
-    }
-    auto* replace_attr = dynamic_cast<const ast::AttrExpr*>(replace_call->callee.get());
-    if (replace_attr == nullptr || replace_attr->name != "replace") {
-      return false;
-    }
-    auto* strip_call = dynamic_cast<const ast::CallExpr*>(replace_attr->object.get());
-    if (strip_call == nullptr || !strip_call->args.empty()) {
-      return false;
-    }
-    auto* strip_attr = dynamic_cast<const ast::AttrExpr*>(strip_call->callee.get());
-    if (strip_attr == nullptr || strip_attr->name != "strip") {
-      return false;
-    }
-    uint32_t old_const = 0;
-    uint32_t new_const = 0;
-    uint32_t sep_const = 0;
-    if (!string_literal_const(*replace_call->args[0], old_const) ||
-        !string_literal_const(*replace_call->args[1], new_const) ||
-        !string_literal_const(*split_call.args[0], sep_const)) {
-      return false;
-    }
-    const auto source = lower_expr(*strip_attr->object);
-    dst = new_reg();
-    emit(ir::Op::StringStripReplaceSplit, dst, source, add_string_replace_spec(old_const, new_const), sep_const);
-    return true;
   }
 
   uint32_t lower_list_with_unpack(const std::vector<ast::ExprPtr>& items) {
@@ -2251,10 +2241,6 @@ private:
       return value;
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
-      uint32_t string_pipeline = 0;
-      if (try_lower_string_strip_replace_split(*call, string_pipeline)) {
-        return string_pipeline;
-      }
       if (!call->call_args.empty()) {
         const auto callee = lower_expr(*call->callee);
         ir::CallSpec spec;
@@ -2275,20 +2261,7 @@ private:
         return dst;
       }
       if (auto* name = dynamic_cast<const ast::NameExpr*>(call->callee.get())) {
-        if (resolve_name(name->name) == "len" && call->args.size() == 1) {
-          if (auto* join_call = dynamic_cast<const ast::CallExpr*>(call->args[0].get())) {
-            if (join_call->args.size() == 1) {
-              if (auto* join_attr = dynamic_cast<const ast::AttrExpr*>(join_call->callee.get())) {
-                if (join_attr->name == "join") {
-                  const auto separator = lower_expr(*join_attr->object);
-                  const auto sequence = lower_expr(*join_call->args[0]);
-                  const auto dst = new_reg();
-                  emit(ir::Op::JoinLen, dst, separator, sequence);
-                  return dst;
-                }
-              }
-            }
-          }
+        if (resolve_name(name->name) == PythonNames::builtin_len && call->args.size() == 1) {
           const auto value = lower_expr(*call->args[0]);
           const auto dst = new_reg();
           emit(ir::Op::Len, dst, value);
@@ -2479,6 +2452,7 @@ private:
   sema::NameSet local_name_set_;
   sema::NameSet global_names_;
   std::unordered_map<std::string, uint32_t> locals_;
+  std::unordered_map<std::string, KnownValueType> local_known_types_;
   std::unordered_map<std::string, uint32_t> cell_indices_;
   std::unordered_map<std::string, uint32_t> free_indices_;
   std::unordered_map<std::string, uint32_t> name_ids_;

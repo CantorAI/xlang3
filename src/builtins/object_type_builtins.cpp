@@ -22,6 +22,8 @@ limitations under the License.
 
 #include <cstdint>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace xlang3 {
 
@@ -45,6 +47,12 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "list";
     case ObjectKind::Dict:
       return "dict";
+    case ObjectKind::DictKeysView:
+      return "dict_keys";
+    case ObjectKind::DictValuesView:
+      return "dict_values";
+    case ObjectKind::DictItemsView:
+      return "dict_items";
     case ObjectKind::Set:
       return "set";
     case ObjectKind::Range:
@@ -54,6 +62,14 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
     case ObjectKind::DictIterator:
     case ObjectKind::SetIterator:
       return "iterator";
+    case ObjectKind::EnumerateIterator:
+      return "enumerate";
+    case ObjectKind::ZipIterator:
+      return "zip";
+    case ObjectKind::MapIterator:
+      return "map";
+    case ObjectKind::FilterIterator:
+      return "filter";
     case ObjectKind::Generator:
       return "generator";
     case ObjectKind::Module:
@@ -61,6 +77,12 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
     case ObjectKind::Function:
     case ObjectKind::NativeFunction:
       return "function";
+    case ObjectKind::Code:
+      return "code";
+    case ObjectKind::Frame:
+      return "frame";
+    case ObjectKind::Traceback:
+      return "traceback";
     case ObjectKind::Class:
       return "type";
     case ObjectKind::Instance:
@@ -205,6 +227,85 @@ void register_builtin_type(Runtime& runtime, const char* name, const Value& obje
   runtime.register_builtin(name, Value::class_object(name, {}, object_base));
 }
 
+bool builtin_object_getattribute(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "object.__getattribute__ expected 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    error = "attribute name must be string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!object_get_attr(args[0], string_object_to_string(*name), out, error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool builtin_object_setattr(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 3) {
+    error = "object.__setattr__ expected 3 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    error = "attribute name must be string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  if (!object_set_attr(target, string_object_to_string(*name), args[2], error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool builtin_object_delattr(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "object.__delattr__ expected 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    error = "attribute name must be string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  if (!object_delete_attr(target, string_object_to_string(*name), error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 } // namespace
 
 bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
@@ -257,7 +358,11 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
 }
 
 void register_object_type_builtins(Runtime& runtime) {
-  Value object_type = Value::class_object("object", {});
+  std::vector<std::pair<std::string, Value>> object_attrs;
+  object_attrs.push_back({"__getattribute__", Value::native_function(0, "object.__getattribute__", builtin_object_getattribute)});
+  object_attrs.push_back({"__setattr__", Value::native_function(0, "object.__setattr__", builtin_object_setattr)});
+  object_attrs.push_back({"__delattr__", Value::native_function(0, "object.__delattr__", builtin_object_delattr)});
+  Value object_type = Value::class_object("object", std::move(object_attrs));
   runtime.register_builtin("object", object_type);
 
   Value type_type = Value::class_object("type", {}, object_type);
@@ -276,14 +381,24 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "tuple", object_type);
   register_builtin_type(runtime, "list", object_type);
   register_builtin_type(runtime, "dict", object_type);
+  register_builtin_type(runtime, "dict_keys", object_type);
+  register_builtin_type(runtime, "dict_values", object_type);
+  register_builtin_type(runtime, "dict_items", object_type);
   register_builtin_type(runtime, "set", object_type);
   register_builtin_type(runtime, "range", object_type);
   register_builtin_type(runtime, "iterator", object_type);
+  register_builtin_type(runtime, "enumerate", object_type);
+  register_builtin_type(runtime, "zip", object_type);
+  register_builtin_type(runtime, "map", object_type);
+  register_builtin_type(runtime, "filter", object_type);
   register_builtin_type(runtime, "generator", object_type);
   register_builtin_type(runtime, "module", object_type);
   register_builtin_type(runtime, "function", object_type);
   register_builtin_type(runtime, "method", object_type);
   register_builtin_type(runtime, "property", object_type);
+  register_builtin_type(runtime, "code", object_type);
+  register_builtin_type(runtime, "frame", object_type);
+  register_builtin_type(runtime, "traceback", object_type);
   register_builtin_type(runtime, "cell", object_type);
   register_builtin_type(runtime, "file", object_type);
 

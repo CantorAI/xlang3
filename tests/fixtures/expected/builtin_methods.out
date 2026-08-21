@@ -7,9 +7,9 @@
 1
 None
 9
-[a]
-[1]
-[(a, 1)]
+dict_keys([a])
+dict_values([1])
+dict_items([(a, 1)])
 1
 8
 0

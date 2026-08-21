@@ -67,8 +67,6 @@ const char* op_name(Op op) {
     case Op::SetUpdate: return "SetUpdate";
     case Op::TupleFromList: return "TupleFromList";
     case Op::Len: return "Len";
-    case Op::JoinLen: return "JoinLen";
-    case Op::StringStripReplaceSplit: return "StringStripReplaceSplit";
     case Op::GetItem: return "GetItem";
     case Op::SetItem: return "SetItem";
     case Op::DeleteItem: return "DeleteItem";

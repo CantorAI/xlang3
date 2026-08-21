@@ -531,11 +531,11 @@ bool write_value(Writer& w, const Value& value, std::string& error) {
     case ValueTag::Object:
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         w.u8(static_cast<uint8_t>(ConstTag::String));
-        return w.string(reinterpret_cast<StringObject*>(value.as.obj)->value, error);
+        return w.string(string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj)), error);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         w.u8(static_cast<uint8_t>(ConstTag::Bytes));
-        return w.string(reinterpret_cast<BytesObject*>(value.as.obj)->value, error);
+        return w.string(bytes_object_to_string(*reinterpret_cast<BytesObject*>(value.as.obj)), error);
       }
       break;
     default:

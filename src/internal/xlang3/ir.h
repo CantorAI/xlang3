@@ -95,8 +95,6 @@ enum class Op : uint16_t {
   SetUpdate,
   TupleFromList,
   Len,
-  JoinLen,
-  StringStripReplaceSplit,
   GetItem,
   SetItem,
   DeleteItem,

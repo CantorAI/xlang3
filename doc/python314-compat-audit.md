@@ -197,14 +197,14 @@ Legend:
 - [x] `isinstance`
 - [x] `issubclass`
 - [x] MRO
-- [ ] three-argument `type(name, bases, namespace)`
+- [x] three-argument `type(name, bases, namespace)` for class creation from tuple bases and dict namespace
 - [ ] full metaclass object model
-- [~] descriptors: VM dispatch supports built-in property get/set; general `__get__` / `__set__` protocol pending
+- [~] descriptors: VM dispatch supports property plus general `__get__` / `__set__` / `__delete__` foundation; CPython edge-case audit pending
 - [~] properties: `property(fget, fset, fdel, doc)`, `@property`, `.getter`, `.setter`, `.deleter`, get/set/delete dispatch; CPython edge-case audit pending
-- [ ] `__getattr__`
-- [ ] `__getattribute__`
-- [ ] `__setattr__`
-- [ ] `__delattr__`
+- [x] `__getattr__` instance hook foundation
+- [x] `__getattribute__` instance hook foundation
+- [x] `__setattr__` instance hook foundation plus `object.__setattr__`
+- [x] `__delattr__` instance hook foundation plus `object.__delattr__`
 - [ ] `__slots__` compatibility
 
 ### Functions And Calls
@@ -218,10 +218,10 @@ Legend:
 - [~] default args runtime behavior
 - [~] keyword args runtime behavior
 - [~] varargs/kwargs objects
-- [ ] function object attributes: `__name__`, `__module__`, `__defaults__`
-- [ ] code objects
-- [ ] frame objects
-- [ ] traceback objects
+- [~] function object attributes: `__name__`, `__module__`, `__defaults__`, `__annotations__`, `__code__`; broader CPython audit pending
+- [~] code objects: foundation with `co_name`, `co_argcount`, `co_varnames`, `co_names`, `co_consts`; full CPython fields pending
+- [~] frame objects: foundation with `f_code`, `f_globals`, `f_lineno`; locals/source-line semantics pending
+- [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`; precise source-line mapping pending
 
 ### Exceptions
 
@@ -232,13 +232,13 @@ Legend:
 - [x] subclass matching
 - [x] catchable interpreter/native runtime errors
 - [x] `finally` unwind basics
-- [ ] exception hierarchy completeness
-- [ ] traceback capture
+- [~] exception hierarchy completeness: common built-in exception classes registered; full CPython tree pending
+- [~] traceback capture: VM exception path builds frame chain; exact line table pending
 - [ ] exception chaining
 - [ ] `raise from` runtime cause/context metadata
 - [ ] bare `raise` runtime behavior outside active exception
 - [ ] `sys.exc_info`
-- [ ] `__traceback__`, `__context__`, `__cause__`
+- [~] `__traceback__`, `__context__`, `__cause__` basic attributes
 
 ### Containers
 
@@ -251,13 +251,13 @@ Legend:
 - [~] dict methods
 - [~] set methods
 - [~] string methods
-- [ ] tuple methods
+- [~] tuple methods: `count` and `index`; full CPython edge cases pending
 - [ ] slicing semantics
-- [ ] iteration protocol completeness
-- [ ] iterator objects compatibility
+- [~] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, and lazy iterator basics; protocol hooks pending
+- [~] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations; full CPython protocol pending
 - [ ] hashing/equality audit
 - [ ] ordering behavior audit
-- [ ] views: dict keys/items/values compatibility
+- [~] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; set-like view algebra/equality is pending.
 
 ### Strings And Unicode
 
@@ -279,8 +279,8 @@ Legend:
 - [x] native module import
 - [x] native package dynamic library import
 - [x] `xlang_` fallback native package naming
-- [ ] `sys.modules`
-- [ ] module specs: `__spec__`
+- [x] `sys.modules` runtime-maintained module registry dict
+- [~] module specs: `__spec__` placeholder exposed as `None`; real specs/loaders pending
 - [ ] loaders/finders
 - [ ] `importlib` compatibility
 - [ ] namespace packages
@@ -292,6 +292,8 @@ Legend:
 
 - [x] `print`
 - [x] `len`
+- [x] `iter`
+- [~] `next`: default value and `StopIteration` class basics; exact exception payload semantics pending
 - [x] `range`
 - [~] `type`: object plus one-arg call; three-arg dynamic class creation pending
 - [x] `object`
@@ -306,26 +308,27 @@ Legend:
 - [~] `dict`
 - [~] `set`
 - [~] `tuple`
-- [ ] `enumerate`
-- [ ] `zip`
-- [ ] `map`
-- [ ] `filter`
-- [ ] `sum`
-- [ ] `min`
-- [ ] `max`
-- [ ] `abs`
-- [ ] `round`
+- [~] `enumerate`: lazy iterator object foundation; CPython edge cases pending
+- [~] `zip`: lazy iterator object foundation; CPython edge cases pending
+- [~] `map`: lazy iterator object foundation; CPython edge cases pending
+- [~] `filter`: lazy iterator object foundation; CPython edge cases pending
+- [x] `sum`
+- [x] `min`
+- [x] `max`
+- [x] `abs`
+- [~] `round`: numeric basics; CPython edge cases pending
 - [ ] `open` compatibility audit
-- [ ] `getattr`
-- [ ] `setattr`
-- [ ] `hasattr`
-- [ ] `dir`
-- [ ] `vars`
-- [ ] `globals`
+- [x] `getattr`
+- [x] `setattr`
+- [x] `hasattr`
+- [~] `dir`: module/class/instance basics
+- [~] `vars`: module/class/instance snapshot basics
+- [~] `globals`: active module snapshot; live dict semantics pending
 - [ ] `locals`
 - [ ] `eval`
 - [ ] `exec`
 - [ ] `compile`
+- [x] `callable`
 
 ### Standard Modules Needed For Debugpy
 
@@ -399,9 +402,9 @@ High-level Python modules to run from Python source where possible:
 - [ ] `sys.gettrace`
 - [ ] `threading.settrace`
 - [ ] `threading.gettrace`
-- [ ] frame objects
-- [ ] code objects
-- [ ] traceback objects
+- [~] frame objects
+- [~] code objects
+- [~] traceback objects
 - [ ] IR source line map
 - [ ] line events
 - [ ] call events

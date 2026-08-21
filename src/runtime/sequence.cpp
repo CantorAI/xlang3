@@ -14,13 +14,16 @@ limitations under the License.
 */
 #include "xlang3/sequence.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/mapping.h"
+#include "xlang3/perf_counters.h"
 #include "xlang3/set_object.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace xlang3 {
@@ -32,7 +35,44 @@ T* allocate_sequence_object(ObjectKind kind) {
   auto* obj = new T();
   obj->header.kind = kind;
   obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
   return obj;
+}
+
+struct ListObjectFreeList {
+  ~ListObjectFreeList() {
+    for (auto* object : items) {
+      delete object;
+    }
+  }
+
+  std::vector<ListObject*> items;
+};
+
+thread_local ListObjectFreeList list_object_free_list;
+
+ListObject* allocate_list_object() {
+  xlang_perf_count_object_alloc(ObjectKind::List);
+  if (!list_object_free_list.items.empty()) {
+    auto* obj = list_object_free_list.items.back();
+    list_object_free_list.items.pop_back();
+    obj->header.kind = ObjectKind::List;
+    obj->header.refcnt = 1;
+    return obj;
+  }
+  auto* obj = new ListObject();
+  obj->header.kind = ObjectKind::List;
+  obj->header.refcnt = 1;
+  return obj;
+}
+
+void recycle_list_object(ListObject* object) {
+  object->items.clear();
+  if (list_object_free_list.items.size() < 4096) {
+    list_object_free_list.items.push_back(object);
+    return;
+  }
+  delete object;
 }
 
 std::string repr_items(const std::vector<Value>& items, const char* open, const char* close) {
@@ -117,44 +157,39 @@ bool normalize_slice(const SliceObject& slice, int64_t length, int64_t& start, i
   return true;
 }
 
-const std::string* binary_storage(const Value& value, size_t& offset, size_t& size, bool& readonly) {
-  offset = 0;
-  size = 0;
-  readonly = true;
+struct BinaryStorageView {
+  const char* data = nullptr;
+  size_t size = 0;
+  bool readonly = true;
+};
+
+BinaryStorageView binary_storage(const Value& value) {
   if (auto* bytes = value_as_bytes(value)) {
-    size = bytes->value.size();
-    return &bytes->value;
+    const auto view = bytes_object_view(*bytes);
+    return BinaryStorageView{view.data(), view.size(), true};
   }
   if (auto* bytearray = value_as_bytearray(value)) {
-    size = bytearray->value.size();
-    readonly = false;
-    return &bytearray->value;
+    return BinaryStorageView{bytearray->value.data(), bytearray->value.size(), false};
   }
   if (auto* view = value_as_memoryview(value)) {
-    size_t owner_offset = 0;
-    size_t owner_size = 0;
-    bool owner_readonly = true;
-    const auto* storage = binary_storage(view->owner, owner_offset, owner_size, owner_readonly);
-    if (storage == nullptr || view->offset > owner_size) {
-      return nullptr;
+    const auto storage = binary_storage(view->owner);
+    if (storage.data == nullptr || view->offset > storage.size) {
+      return {};
     }
-    offset = owner_offset + view->offset;
-    size = view->size;
-    readonly = view->readonly || owner_readonly;
-    return storage;
+    return BinaryStorageView{storage.data + view->offset, view->size, view->readonly || storage.readonly};
   }
-  return nullptr;
+  return {};
 }
 
-std::string binary_slice_text(const std::string& storage, size_t offset, int64_t start, int64_t stop, int64_t step) {
+std::string binary_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
   std::string text;
   if (step > 0) {
     for (int64_t i = start; i < stop; i += step) {
-      text.push_back(storage[offset + static_cast<size_t>(i)]);
+      text.push_back(storage[static_cast<size_t>(i)]);
     }
   } else {
     for (int64_t i = start; i > stop; i += step) {
-      text.push_back(storage[offset + static_cast<size_t>(i)]);
+      text.push_back(storage[static_cast<size_t>(i)]);
     }
   }
   return text;
@@ -174,8 +209,18 @@ bool int_to_byte(const Value& value, unsigned char& out, std::string& error) {
 Value Value::list(std::vector<Value> items) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_sequence_object<ListObject>(ObjectKind::List);
+  auto* obj = allocate_list_object();
   obj->items = std::move(items);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::list_reserved(size_t capacity) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_list_object();
+  obj->items.clear();
+  obj->items.reserve(capacity);
   v.as.obj = &obj->header;
   return v;
 }
@@ -215,7 +260,7 @@ Value Value::sequence_iterator(Value source, uint64_t index) {
 void sequence_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::List:
-      delete reinterpret_cast<ListObject*>(object);
+      recycle_list_object(reinterpret_cast<ListObject*>(object));
       break;
     case ObjectKind::Range:
       delete reinterpret_cast<RangeObject*>(object);
@@ -272,7 +317,7 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     out = Value::range_iterator(range->start, range->stop, range->step);
     return true;
   }
-  if (value_as_dict(iterable) != nullptr) {
+  if (value_as_dict(iterable) != nullptr || value_as_dict_view(iterable) != nullptr) {
     return mapping_get_iter(iterable, out, error);
   }
   if (value_as_set(iterable) != nullptr) {
@@ -280,6 +325,10 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   }
   if (value_as_generator(iterable) != nullptr) {
     return generator_get_iter(iterable, out, error);
+  }
+  if (value_is_functional_iterator(iterable)) {
+    value_assign_fast(out, iterable);
+    return true;
   }
   if (value_as_list(iterable) != nullptr ||
       (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
@@ -329,6 +378,9 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
   }
   if (value_as_generator(iterator) != nullptr) {
     return generator_iter_next(iterator, done, out, error);
+  }
+  if (value_is_functional_iterator(iterator)) {
+    return functional_iterator_next(iterator, done, out, error);
   }
   error = "invalid iterator";
   return false;
@@ -417,21 +469,22 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(object.as.obj);
+    const auto view = string_object_view(*string);
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
       int64_t stop = 0;
       int64_t step = 1;
-      if (!normalize_slice(*slice, static_cast<int64_t>(string->value.size()), start, stop, step, error)) {
+      if (!normalize_slice(*slice, static_cast<int64_t>(view.size()), start, stop, step, error)) {
         return false;
       }
       std::string text;
       if (step > 0) {
         for (int64_t i = start; i < stop; i += step) {
-          text.push_back(string->value[static_cast<size_t>(i)]);
+          text.push_back(view[static_cast<size_t>(i)]);
         }
       } else {
         for (int64_t i = start; i > stop; i += step) {
-          text.push_back(string->value[static_cast<size_t>(i)]);
+          text.push_back(view[static_cast<size_t>(i)]);
         }
       }
       out = Value::string(std::move(text));
@@ -442,33 +495,25 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(string->value.size()), resolved)) {
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(view.size()), resolved)) {
       error = "index out of range";
       return false;
     }
-    out = Value::string(std::string(1, string->value[static_cast<size_t>(resolved)]));
+    const char ch = view[static_cast<size_t>(resolved)];
+    out = Value::string_view(std::string_view(&ch, 1));
     return true;
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Bytes) {
     auto* bytes = reinterpret_cast<BytesObject*>(object.as.obj);
+    const auto view = bytes_object_view(*bytes);
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
       int64_t stop = 0;
       int64_t step = 1;
-      if (!normalize_slice(*slice, static_cast<int64_t>(bytes->value.size()), start, stop, step, error)) {
+      if (!normalize_slice(*slice, static_cast<int64_t>(view.size()), start, stop, step, error)) {
         return false;
       }
-      std::string text;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          text.push_back(bytes->value[static_cast<size_t>(i)]);
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          text.push_back(bytes->value[static_cast<size_t>(i)]);
-        }
-      }
-      out = Value::bytes(std::move(text));
+      out = Value::bytes(binary_slice_text(view, start, stop, step));
       return true;
     }
     if (index.tag != ValueTag::Int64) {
@@ -476,39 +521,37 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(bytes->value.size()), resolved)) {
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(view.size()), resolved)) {
       error = "index out of range";
       return false;
     }
-    value_set_int64(out, static_cast<unsigned char>(bytes->value[static_cast<size_t>(resolved)]));
+    value_set_int64(out, static_cast<unsigned char>(view[static_cast<size_t>(resolved)]));
     return true;
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr &&
       (object.as.obj->kind == ObjectKind::ByteArray || object.as.obj->kind == ObjectKind::MemoryView)) {
-    size_t offset = 0;
-    size_t size = 0;
-    bool readonly = true;
-    const auto* storage = binary_storage(object, offset, size, readonly);
-    if (storage == nullptr) {
+    const auto storage = binary_storage(object);
+    if (storage.data == nullptr) {
       error = "invalid binary object";
       return false;
     }
+    const std::string_view storage_view(storage.data, storage.size);
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
       int64_t stop = 0;
       int64_t step = 1;
-      if (!normalize_slice(*slice, static_cast<int64_t>(size), start, stop, step, error)) {
+      if (!normalize_slice(*slice, static_cast<int64_t>(storage.size), start, stop, step, error)) {
         return false;
       }
       if (object.as.obj->kind == ObjectKind::MemoryView && step == 1) {
         const auto normalized_size = stop >= start ? static_cast<size_t>(stop - start) : 0;
         out = Value::memoryview(
             reinterpret_cast<MemoryViewObject*>(object.as.obj)->owner,
-            offset + static_cast<size_t>(start),
+            reinterpret_cast<MemoryViewObject*>(object.as.obj)->offset + static_cast<size_t>(start),
             normalized_size,
-            readonly);
+            storage.readonly);
       } else {
-        auto text = binary_slice_text(*storage, offset, start, stop, step);
+        auto text = binary_slice_text(storage_view, start, stop, step);
         out = object.as.obj->kind == ObjectKind::ByteArray ? Value::bytearray(std::move(text)) : Value::bytes(std::move(text));
       }
       return true;
@@ -518,11 +561,11 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(size), resolved)) {
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(storage.size), resolved)) {
       error = "index out of range";
       return false;
     }
-    value_set_int64(out, static_cast<unsigned char>((*storage)[offset + static_cast<size_t>(resolved)]));
+    value_set_int64(out, static_cast<unsigned char>(storage.data[static_cast<size_t>(resolved)]));
     return true;
   }
   error = "object is not subscriptable";
@@ -626,12 +669,12 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(value.as.obj);
-    value_set_int64(out, static_cast<int64_t>(string->value.size()));
+    value_set_int64(out, static_cast<int64_t>(string->size));
     return true;
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
     auto* bytes = reinterpret_cast<BytesObject*>(value.as.obj);
-    value_set_int64(out, static_cast<int64_t>(bytes->value.size()));
+    value_set_int64(out, static_cast<int64_t>(bytes->size));
     return true;
   }
   if (auto* bytearray = value_as_bytearray(value)) {
@@ -642,7 +685,7 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     value_set_int64(out, static_cast<int64_t>(view->size));
     return true;
   }
-  if (value_as_dict(value) != nullptr) {
+  if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr) {
     return mapping_len(value, out, error);
   }
   if (value_as_set(value) != nullptr) {

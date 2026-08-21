@@ -63,7 +63,12 @@ public:
   void write_output(char ch) { write_output(&ch, 1); }
 
   void register_builtin(std::string name, Value value);
-  void register_native_builtin(std::string name, NativeFunctionCallback callback);
+  void register_native_builtin(
+      std::string name,
+      NativeFunctionCallback callback,
+      NativeFastCallCallback fast_callback = nullptr,
+      bool fast_releases_vm_lock = false,
+      NativeKeywordFunctionCallback keyword_callback = nullptr);
   const Value* find_builtin(const std::string& name) const;
   Value make_exception(std::string class_name, std::string message);
   Value make_exception_from_class(Value klass, std::string message);
@@ -81,6 +86,7 @@ public:
       NativeKeywordFunctionCallback keyword_callback = nullptr);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
+  const Value& module_registry_dict() const { return modules_dict_; }
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));
   void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
   bool execute_raw_block(
@@ -101,6 +107,8 @@ public:
 #endif
   void set_last_error(std::string error) { last_error_ = std::move(error); }
   const std::string& last_error() const { return last_error_; }
+  void set_current_globals_module(const Value& globals_module);
+  const Value& current_globals_module() const { return current_globals_module_; }
 
 private:
   void initialize();
@@ -109,9 +117,11 @@ private:
   std::unique_ptr<Vfs> vfs_;
   std::string last_error_;
   Value pending_exception_;
+  Value current_globals_module_;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
+  Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
 #if !defined(XLANG3_EMBEDDED)

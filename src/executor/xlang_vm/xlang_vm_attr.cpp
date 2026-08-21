@@ -53,7 +53,7 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         cache.kind == AttrSiteKind::Descriptor &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
-        value_as_property(cache.value) != nullptr) {
+        object_value_is_descriptor(cache.value)) {
       value_assign_fast(out, cache.value);
       return true;
     }
@@ -61,7 +61,7 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       Value descriptor;
       std::string descriptor_error;
       if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
-          value_as_property(descriptor) != nullptr) {
+          object_value_is_data_descriptor(descriptor)) {
         cache.kind = AttrSiteKind::Descriptor;
         cache.owner = &klass->header;
         cache.version = klass->version;
@@ -74,16 +74,14 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
         const auto& slot_value = instance_slot_at(instance, slot_it->second);
-        if (slot_value.tag == ValueTag::Invalid) {
-          error = "object has no attribute '" + name + "'";
-          return false;
+        if (slot_value.tag != ValueTag::Invalid) {
+          cache.index = slot_it->second;
+          cache.kind = AttrSiteKind::InstanceSlot;
+          cache.owner = &klass->header;
+          cache.version = klass->version;
+          value_assign_fast(out, slot_value);
+          return true;
         }
-        cache.index = slot_it->second;
-        cache.kind = AttrSiteKind::InstanceSlot;
-        cache.owner = &klass->header;
-        cache.version = klass->version;
-        value_assign_fast(out, slot_value);
-        return true;
       }
     }
     for (size_t attr_i = 0; attr_i < instance->attrs.size(); ++attr_i) {
@@ -131,7 +129,7 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.kind == AttrSiteKind::Descriptor &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
-        value_as_property(cache.value) != nullptr) {
+        object_value_is_descriptor(cache.value)) {
       error = "descriptor assignment requires VM dispatch";
       return false;
     }
@@ -139,7 +137,7 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
       Value descriptor;
       std::string descriptor_error;
       if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
-          value_as_property(descriptor) != nullptr) {
+          object_value_is_data_descriptor(descriptor)) {
         cache.kind = AttrSiteKind::Descriptor;
         cache.owner = &klass->header;
         cache.version = klass->version;

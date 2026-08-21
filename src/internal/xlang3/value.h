@@ -17,9 +17,11 @@ limitations under the License.
 #include "xlang3/compiler.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -52,11 +54,18 @@ enum class ObjectKind : uint32_t {
   List,
   Dict,
   Set,
+  DictKeysView,
+  DictValuesView,
+  DictItemsView,
   DictIterator,
   SetIterator,
   Range,
   RangeIterator,
   SequenceIterator,
+  EnumerateIterator,
+  ZipIterator,
+  MapIterator,
+  FilterIterator,
   Generator,
   Module,
   Cell,
@@ -66,6 +75,9 @@ enum class ObjectKind : uint32_t {
   Instance,
   BoundMethod,
   Property,
+  Code,
+  Frame,
+  Traceback,
   File,
 };
 
@@ -73,6 +85,8 @@ struct Object {
   ObjectKind kind;
   std::atomic_uint32_t refcnt;
 };
+
+static constexpr uint32_t kXlangValueBorrowedRefFlag = 0x40000000u;
 
 using NativeFunctionCallback = bool (*)(
     Runtime& runtime,
@@ -122,12 +136,16 @@ struct NativeFunctionObject {
 
 struct StringObject {
   Object header;
-  std::string value;
+  uint32_t size = 0;
+  uint32_t alloc_size = 0;
+  // Immutable string bytes follow this object in the same allocation block.
 };
 
 struct BytesObject {
   Object header;
-  std::string value;
+  uint32_t size = 0;
+  uint32_t alloc_size = 0;
+  // Immutable bytes follow this object in the same allocation block.
 };
 
 struct ByteArrayObject {
@@ -158,13 +176,18 @@ struct Value {
   static Value int64(int64_t value);
   static Value number(double value);
   static Value string(std::string value);
+  static Value string_view(std::string_view value);
+  static Value string_uninitialized(size_t size);
   static Value bytes(std::string value);
   static Value bytearray(std::string value);
   static Value memoryview(Value owner, size_t offset, size_t size, bool readonly);
   static Value slice(Value start, Value stop, Value step);
   static Value tuple(std::vector<Value> items);
+  static Value tuple_reserved(size_t capacity);
   static Value list(std::vector<Value> items);
+  static Value list_reserved(size_t capacity);
   static Value dict(std::vector<std::pair<Value, Value>> entries);
+  static Value dict_reserved(size_t capacity);
   static Value set(std::vector<Value> items);
   static Value range(int64_t start, int64_t stop, int64_t step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
@@ -180,6 +203,9 @@ struct Value {
       Value globals_module,
       std::shared_ptr<const ir::Module> module,
       std::vector<Value> defaults = {});
+  static Value code(std::shared_ptr<const ir::Module> module, uint32_t function_id);
+  static Value frame(std::shared_ptr<const ir::Module> module, uint32_t function_id, Value globals_module);
+  static Value traceback(Value frame, Value next, int64_t line);
   static Value native_function(
       uint32_t native_id,
       std::string name,
@@ -238,9 +264,97 @@ struct SliceObject {
   Value step;
 };
 
+XLANG3_HOT_INLINE void value_assign_fast(Value& out, const Value& value);
+XLANG3_HOT_INLINE void value_move_assign_fast(Value& out, Value& value);
+XLANG3_HOT_INLINE void value_set_invalid(Value& out);
+
+class TupleItems {
+public:
+  using iterator = Value*;
+  using const_iterator = const Value*;
+
+  TupleItems() = default;
+
+  size_t size() const { return size_; }
+  bool empty() const { return size_ == 0; }
+  iterator begin() { return data_; }
+  iterator end() { return data_ + size_; }
+  const_iterator begin() const { return data_; }
+  const_iterator end() const { return data_ + size_; }
+  const_iterator cbegin() const { return data_; }
+  const_iterator cend() const { return data_ + size_; }
+
+  Value& operator[](size_t index) { return data_[index]; }
+  const Value& operator[](size_t index) const { return data_[index]; }
+
+  void bind(Value* data, uint32_t capacity) {
+    data_ = data;
+    size_ = 0;
+    capacity_ = capacity;
+  }
+
+  void push_back(const Value& value) {
+    if (size_ >= capacity_) {
+      return;
+    }
+    value_assign_fast(data_[size_], value);
+    ++size_;
+  }
+
+  void push_back(Value&& value) {
+    if (size_ >= capacity_) {
+      return;
+    }
+    value_move_assign_fast(data_[size_], value);
+    ++size_;
+  }
+
+  XLANG3_HOT_INLINE void push_back_unchecked(const Value& value) {
+    value_assign_fast(data_[size_], value);
+    ++size_;
+  }
+
+  XLANG3_HOT_INLINE void push_back_unchecked(Value&& value) {
+    value_move_assign_fast(data_[size_], value);
+    ++size_;
+  }
+
+  void clear() {
+    for (uint32_t i = 0; i < size_; ++i) {
+      value_set_invalid(data_[i]);
+    }
+    size_ = 0;
+  }
+
+  TupleItems& operator=(std::vector<Value> values) {
+    clear();
+    for (auto& value : values) {
+      push_back(std::move(value));
+    }
+    return *this;
+  }
+
+  operator std::vector<Value>() const {
+    std::vector<Value> values;
+    values.reserve(size_);
+    for (uint32_t i = 0; i < size_; ++i) {
+      values.push_back(data_[i]);
+    }
+    return values;
+  }
+
+  uint32_t capacity() const { return capacity_; }
+
+private:
+  Value* data_ = nullptr;
+  uint32_t size_ = 0;
+  uint32_t capacity_ = 0;
+};
+
 struct TupleObject {
   Object header;
-  std::vector<Value> items;
+  uint32_t alloc_size = 0;
+  TupleItems items;
 };
 
 struct CellObject {
@@ -256,6 +370,19 @@ struct FunctionObject {
   Value annotations;
   Value globals_module;
   std::shared_ptr<const ir::Module> module;
+};
+
+struct CodeObject {
+  Object header;
+  std::shared_ptr<const ir::Module> module;
+  uint32_t function_id = 0;
+};
+
+struct FrameObject {
+  Object header;
+  std::shared_ptr<const ir::Module> module;
+  uint32_t function_id = 0;
+  Value globals_module;
 };
 
 struct MemoryViewObject {
@@ -274,6 +401,13 @@ struct PropertyObject {
   Value doc;
 };
 
+struct TracebackObject {
+  Object header;
+  Value frame;
+  Value next;
+  int64_t line = 0;
+};
+
 XLANG3_HOT_INLINE StringObject* value_as_string(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
     return nullptr;
@@ -281,11 +415,39 @@ XLANG3_HOT_INLINE StringObject* value_as_string(const Value& value) {
   return reinterpret_cast<StringObject*>(value.as.obj);
 }
 
+XLANG3_HOT_INLINE std::string_view string_object_view(const StringObject& value) {
+  return std::string_view(reinterpret_cast<const char*>(&value + 1), value.size);
+}
+
+XLANG3_HOT_INLINE const char* string_object_c_str(const StringObject& value) {
+  return reinterpret_cast<const char*>(&value + 1);
+}
+
+XLANG3_HOT_INLINE char* string_object_mutable_data(StringObject& value) {
+  return reinterpret_cast<char*>(&value + 1);
+}
+
+inline std::string string_object_to_string(const StringObject& value) {
+  return std::string(string_object_view(value));
+}
+
 XLANG3_HOT_INLINE BytesObject* value_as_bytes(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Bytes) {
     return nullptr;
   }
   return reinterpret_cast<BytesObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE std::string_view bytes_object_view(const BytesObject& value) {
+  return std::string_view(reinterpret_cast<const char*>(&value + 1), value.size);
+}
+
+XLANG3_HOT_INLINE char* bytes_object_mutable_data(BytesObject& value) {
+  return reinterpret_cast<char*>(&value + 1);
+}
+
+inline std::string bytes_object_to_string(const BytesObject& value) {
+  return std::string(bytes_object_view(value));
 }
 
 XLANG3_HOT_INLINE SliceObject* value_as_slice(const Value& value) {
@@ -341,6 +503,27 @@ XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {
   return reinterpret_cast<FunctionObject*>(value.as.obj);
 }
 
+XLANG3_HOT_INLINE CodeObject* value_as_code(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Code) {
+    return nullptr;
+  }
+  return reinterpret_cast<CodeObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE FrameObject* value_as_frame(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Frame) {
+    return nullptr;
+  }
+  return reinterpret_cast<FrameObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE TracebackObject* value_as_traceback(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Traceback) {
+    return nullptr;
+  }
+  return reinterpret_cast<TracebackObject*>(value.as.obj);
+}
+
 XLANG3_HOT_INLINE NativeFunctionObject* value_as_native_function(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::NativeFunction) {
     return nullptr;
@@ -359,7 +542,8 @@ void retain(const Value& value);
 void release(const Value& value);
 
 XLANG3_HOT_INLINE void value_release_if_object(Value& value) {
-  if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
+      (value.flags & kXlangValueBorrowedRefFlag) == 0) {
     release(value);
   }
 }
@@ -376,6 +560,39 @@ XLANG3_HOT_INLINE void value_assign_fast(Value& out, const Value& value) {
   out.tag = value.tag;
   out.flags = value.flags;
   out.as = value.as;
+}
+
+XLANG3_HOT_INLINE void value_move_assign_fast(Value& out, Value& value) {
+  if (&out == &value) {
+    return;
+  }
+  if (value.tag == ValueTag::Object && (value.flags & kXlangValueBorrowedRefFlag) != 0) {
+    value_assign_fast(out, value);
+    value.tag = ValueTag::Invalid;
+    value.flags = 0;
+    value.as.obj = nullptr;
+    return;
+  }
+  value_release_if_object(out);
+  out.tag = value.tag;
+  out.flags = value.flags;
+  out.as = value.as;
+  value.tag = ValueTag::Invalid;
+  value.flags = 0;
+  value.as.obj = nullptr;
+}
+
+XLANG3_HOT_INLINE void value_borrow_assign_fast(Value& out, const Value& value) {
+  if (&out == &value) {
+    return;
+  }
+  value_release_if_object(out);
+  out.tag = value.tag;
+  out.flags = value.flags;
+  out.as = value.as;
+  if (out.tag == ValueTag::Object && out.as.obj != nullptr) {
+    out.flags |= kXlangValueBorrowedRefFlag;
+  }
 }
 
 XLANG3_HOT_INLINE void value_set_invalid(Value& out) {

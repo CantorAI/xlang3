@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/module_object.h"
 
+#include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 
 namespace xlang3 {
@@ -25,6 +26,7 @@ T* allocate_module_object(ObjectKind kind) {
   auto* obj = new T();
   obj->header.kind = kind;
   obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
   return obj;
 }
 
@@ -58,6 +60,14 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
   if (module == nullptr) {
     error = "object has no attributes";
     return false;
+  }
+  if (name == "__name__") {
+    out = Value::string(module->name);
+    return true;
+  }
+  if (name == "__spec__") {
+    value_set_none(out);
+    return true;
   }
   auto it = module->name_to_slot.find(name);
   if (it == module->name_to_slot.end() || it->second >= module->slots.size()) {

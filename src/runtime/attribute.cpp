@@ -24,6 +24,7 @@ namespace {
 
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
   return list_get_method(object, name, out) ||
+         tuple_get_method(object, name, out) ||
          dict_get_method(object, name, out) ||
          file_get_method(object, name, out) ||
          set_get_method(object, name, out) ||
@@ -48,8 +49,12 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
       value_assign_fast(out, function->annotations);
       return true;
     }
+    return object_get_attr(object, name, out, error);
   }
-  if (value_as_class(object) != nullptr || value_as_instance(object) != nullptr) {
+  if (value_as_native_function(object) != nullptr || value_as_bound_method(object) != nullptr ||
+      value_as_code(object) != nullptr || value_as_frame(object) != nullptr ||
+      value_as_traceback(object) != nullptr || value_as_class(object) != nullptr ||
+      value_as_instance(object) != nullptr) {
     return object_get_attr(object, name, out, error);
   }
   if (get_builtin_method(object, name, out)) {

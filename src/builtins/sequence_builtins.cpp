@@ -93,6 +93,28 @@ bool builtin_len(
   return true;
 }
 
+bool builtin_len_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (leading_count != 0 || register_arg_count != 1 || registers == nullptr || register_args == nullptr) {
+    error = "len() expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_len(registers[register_args[0]], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
 bool builtin_next(
     Runtime& runtime,
     const Value* args,
@@ -100,8 +122,8 @@ bool builtin_next(
     Value& out,
     std::string& error,
     void*) {
-  if (argc != 1) {
-    error = "next() expected 1 argument";
+  if (argc != 1 && argc != 2) {
+    error = "next() expected 1 or 2 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -112,8 +134,31 @@ bool builtin_next(
     return false;
   }
   if (done) {
-    error = "StopIteration";
-    runtime.raise_class_error("RuntimeError", error);
+    if (argc == 2) {
+      value_assign_fast(out, args[1]);
+      return true;
+    }
+    error = "";
+    runtime.raise_class_error("StopIteration", error);
+    return false;
+  }
+  return true;
+}
+
+bool builtin_iter(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "iter() expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_get_iter(args[0], out, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   return true;
@@ -138,12 +183,13 @@ bool builtin_ord(
     return false;
   }
   auto* string = reinterpret_cast<StringObject*>(args[0].as.obj);
-  if (string->value.size() != 1) {
+  auto text = string_object_view(*string);
+  if (text.size() != 1) {
     error = "ord() expected a character";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::int64(static_cast<unsigned char>(string->value[0]));
+  out = Value::int64(static_cast<unsigned char>(text[0]));
   return true;
 }
 
@@ -166,7 +212,8 @@ bool builtin_str(
 } // namespace
 
 void register_sequence_builtins(Runtime& runtime) {
-  runtime.register_native_builtin("len", builtin_len);
+  runtime.register_native_builtin("len", builtin_len, builtin_len_fast);
+  runtime.register_native_builtin("iter", builtin_iter);
   runtime.register_native_builtin("next", builtin_next);
   runtime.register_native_builtin("ord", builtin_ord);
 }

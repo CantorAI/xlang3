@@ -47,6 +47,9 @@ Value Runtime::make_exception(std::string class_name, std::string message) {
   std::string ignored;
   object_set_attr(instance, "message", message_value, ignored);
   object_set_attr(instance, "args", Value::tuple({message_value}), ignored);
+  object_set_attr(instance, "__traceback__", Value::none(), ignored);
+  object_set_attr(instance, "__cause__", Value::none(), ignored);
+  object_set_attr(instance, "__context__", Value::none(), ignored);
   return instance;
 }
 
@@ -59,6 +62,9 @@ Value Runtime::make_exception_from_class(Value klass, std::string message) {
   std::string ignored;
   object_set_attr(instance, "message", message_value, ignored);
   object_set_attr(instance, "args", Value::tuple({message_value}), ignored);
+  object_set_attr(instance, "__traceback__", Value::none(), ignored);
+  object_set_attr(instance, "__cause__", Value::none(), ignored);
+  object_set_attr(instance, "__context__", Value::none(), ignored);
   return instance;
 }
 

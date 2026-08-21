@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/generator.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/perf_counters.h"
 
 namespace xlang3 {
 
@@ -25,6 +26,7 @@ T* allocate_generator_object(ObjectKind kind) {
   auto* obj = new T();
   obj->header.kind = kind;
   obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
   return obj;
 }
 

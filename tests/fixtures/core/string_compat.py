@@ -29,3 +29,7 @@ print("banana".replace("na", "NA", 1))
 print("banana".find("na"), "banana".count("na"))
 print("abc".startswith("a"), "abc".endswith("c"))
 print("Hi".encode().decode())
+
+parts = "  alpha,beta,gamma  ".strip().replace("a", "A").split(",")
+print(parts)
+print(len(parts[0]), len(parts[1]), parts[2].startswith("gA"))

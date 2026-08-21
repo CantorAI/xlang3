@@ -19,10 +19,35 @@ import time
 from pathlib import Path
 
 
-def run_once(command, source):
+def ensure_large_text_data(root):
+    data_dir = root / "data"
+    data_dir.mkdir(exist_ok=True)
+    path = data_dir / "large_text.txt"
+    if path.exists() and path.stat().st_size > 512 * 1024:
+        return
+
+    phrases = [
+        "alpha beta gamma delta, quick brown runtime.",
+        "ERROR cache miss while parsing nested string payload.",
+        "vectorized text path should avoid needless temporary objects.",
+        "beta channel reports ALPHA-compatible module import timing.",
+        "request id contains unicode-like ascii fallback markers only.",
+    ]
+    with path.open("w", encoding="utf-8", newline="\n") as f:
+        for i in range(9000):
+            phrase = phrases[i % len(phrases)]
+            level = "ERROR" if i % 7 == 0 else "INFO"
+            user = "alpha-user" if i % 5 == 0 else "beta-user"
+            f.write(
+                f"  {i}|{level}|{user}|{phrase} value={i % 97}, bucket={i % 13}.  \n"
+            )
+
+
+def run_once(command, source, cwd):
     start = time.perf_counter()
     completed = subprocess.run(
         [str(command), str(source)],
+        cwd=str(cwd),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -38,15 +63,15 @@ def run_once(command, source):
     return elapsed, completed.stdout.strip()
 
 
-def measure(command, source, warmup, repeats):
+def measure(command, source, warmup, repeats, cwd):
     expected = None
     for _ in range(warmup):
-      _, output = run_once(command, source)
+      _, output = run_once(command, source, cwd)
       expected = output if expected is None else expected
 
     samples = []
     for _ in range(repeats):
-        elapsed, output = run_once(command, source)
+        elapsed, output = run_once(command, source, cwd)
         if expected is not None and output != expected:
             raise RuntimeError(f"{source.name} output changed for {command}: {output!r} != {expected!r}")
         samples.append(elapsed)
@@ -79,6 +104,8 @@ def main():
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent
+    repo_root = root.parent
+    ensure_large_text_data(root)
     cases = sorted((root / "cases").glob("*.py"))
     if not cases:
         cases = [root / "scalar_loop.py"]
@@ -95,8 +122,8 @@ def main():
     print("-" * 67)
 
     for case in cases:
-        py_samples, py_output = measure(python, case, args.warmup, args.repeats)
-        x3_samples, x3_output = measure(xlang3, case, args.warmup, args.repeats)
+        py_samples, py_output = measure(python, case, args.warmup, args.repeats, repo_root)
+        x3_samples, x3_output = measure(xlang3, case, args.warmup, args.repeats, repo_root)
         if py_output != x3_output:
             raise RuntimeError(f"{case.name} output mismatch:\npython={py_output!r}\nxlang3={x3_output!r}")
         py_best = min(py_samples)

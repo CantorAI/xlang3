@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/native_package_loader.h"
 #endif
 #include "xlang3/module_object.h"
+#include "xlang3/mapping.h"
 
 #include <algorithm>
 #include <cstring>
@@ -98,6 +99,7 @@ bool has_import_root(const std::vector<std::filesystem::path>& roots, const std:
 } // namespace
 
 void Runtime::initialize() {
+  modules_dict_ = Value::dict({});
   register_core_builtins(*this);
 #if !defined(XLANG3_EMBEDDED)
   add_default_import_layout(*this, runtime_library_dir());
@@ -119,9 +121,8 @@ Runtime::Runtime(OutputSink output)
 }
 
 Runtime::~Runtime() {
-  modules_.clear();
-  builtins_.clear();
   value_set_invalid(pending_exception_);
+  value_set_invalid(current_globals_module_);
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
       it->second(it->first);
@@ -147,8 +148,20 @@ void Runtime::register_builtin(std::string name, Value value) {
   builtins_[std::move(name)] = std::move(value);
 }
 
-void Runtime::register_native_builtin(std::string name, NativeFunctionCallback callback) {
-  auto function_value = make_native_function(name, callback);
+void Runtime::register_native_builtin(
+    std::string name,
+    NativeFunctionCallback callback,
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback) {
+  auto function_value = make_native_function(
+      name,
+      callback,
+      nullptr,
+      nullptr,
+      fast_callback,
+      fast_releases_vm_lock,
+      keyword_callback);
   register_builtin(std::move(name), std::move(function_value));
 }
 
@@ -158,6 +171,10 @@ const Value* Runtime::find_builtin(const std::string& name) const {
     return nullptr;
   }
   return &it->second;
+}
+
+void Runtime::set_current_globals_module(const Value& globals_module) {
+  value_assign_fast(current_globals_module_, globals_module);
 }
 
 Value Runtime::make_native_function(
@@ -181,11 +198,21 @@ Value Runtime::make_native_function(
 }
 
 void Runtime::register_module(std::string name, Value module) {
+  std::string key = name;
   modules_[std::move(name)] = std::move(module);
+  auto it = modules_.find(key);
+  if (it != modules_.end() && modules_dict_.tag != ValueTag::Invalid) {
+    std::string ignored;
+    mapping_set_item(modules_dict_, Value::string(key), it->second, ignored);
+  }
 }
 
 void Runtime::unregister_module(const std::string& name) {
   modules_.erase(name);
+  if (modules_dict_.tag != ValueTag::Invalid) {
+    std::string ignored;
+    mapping_delete_item(modules_dict_, Value::string(name), ignored);
+  }
 }
 
 void Runtime::register_native_package_cleanup(void* data, void (*cleanup)(void*)) {

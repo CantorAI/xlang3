@@ -26,7 +26,7 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
     error = std::string(name) + " must be a string";
     return false;
   }
-  out = reinterpret_cast<StringObject*>(value.as.obj)->value;
+  out = string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj));
   return true;
 }
 
@@ -52,7 +52,7 @@ bool bytes_decode_method(Runtime&, const Value* args, uint32_t argc, Value& out,
       return false;
     }
   }
-  out = Value::string(reinterpret_cast<BytesObject*>(args[0].as.obj)->value);
+  out = Value::string(bytes_object_to_string(*reinterpret_cast<BytesObject*>(args[0].as.obj)));
   return true;
 }
 
@@ -67,7 +67,8 @@ bool int_to_byte_arg(const Value& value, unsigned char& out, std::string& error)
 
 bool append_bytes_from_value(std::string& target, const Value& value, std::string& error) {
   if (auto* bytes = value_as_bytes(value)) {
-    target += bytes->value;
+    const auto view = bytes_object_view(*bytes);
+    target.append(view.data(), view.size());
     return true;
   }
   if (auto* bytearray = value_as_bytearray(value)) {

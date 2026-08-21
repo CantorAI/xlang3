@@ -14,18 +14,55 @@ limitations under the License.
 */
 #include "xlang3/set_object.h"
 
+#include "xlang3/perf_counters.h"
 #include "xlang3/value_hash.h"
+
+#include "runtime/memory/x3_runtime_memory.h"
 
 namespace xlang3 {
 
 namespace {
 
-template <typename T>
-T* allocate_set_object(ObjectKind kind) {
-  auto* obj = new T();
-  obj->header.kind = kind;
+memory::X3ObjectPoolManager::PoolHandle set_object_pool_handle() {
+  thread_local auto handle = memory::x3_thread_object_pools().register_or_get_pool(memory::X3ObjectPoolDesc{
+      static_cast<uint32_t>(ObjectKind::Set),
+      static_cast<uint32_t>(sizeof(SetObject)),
+      static_cast<uint32_t>(alignof(SetObject))});
+  return handle;
+}
+
+memory::X3ObjectPoolManager::PoolHandle set_iterator_object_pool_handle() {
+  thread_local auto handle = memory::x3_thread_object_pools().register_or_get_pool(memory::X3ObjectPoolDesc{
+      static_cast<uint32_t>(ObjectKind::SetIterator),
+      static_cast<uint32_t>(sizeof(SetIteratorObject)),
+      static_cast<uint32_t>(alignof(SetIteratorObject))});
+  return handle;
+}
+
+SetObject* allocate_set_object() {
+  auto* obj = new (memory::x3_thread_object_pools().allocate(set_object_pool_handle())) SetObject();
+  obj->header.kind = ObjectKind::Set;
   obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(ObjectKind::Set);
   return obj;
+}
+
+SetIteratorObject* allocate_set_iterator_object() {
+  auto* obj = new (memory::x3_thread_object_pools().allocate(set_iterator_object_pool_handle())) SetIteratorObject();
+  obj->header.kind = ObjectKind::SetIterator;
+  obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(ObjectKind::SetIterator);
+  return obj;
+}
+
+void recycle_set_object(SetObject* object) {
+  object->~SetObject();
+  memory::x3_thread_object_pools().release(set_object_pool_handle(), object);
+}
+
+void recycle_set_iterator_object(SetIteratorObject* object) {
+  object->~SetIteratorObject();
+  memory::x3_thread_object_pools().release(set_iterator_object_pool_handle(), object);
 }
 
 bool append_unique(std::vector<Value>& items, const Value& value, std::string& error) {
@@ -45,7 +82,7 @@ bool append_unique(std::vector<Value>& items, const Value& value, std::string& e
 Value make_set_iterator(Value source, uint64_t index) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_set_object<SetIteratorObject>(ObjectKind::SetIterator);
+  auto* obj = allocate_set_iterator_object();
   obj->source = std::move(source);
   obj->index = index;
   v.as.obj = &obj->header;
@@ -57,7 +94,8 @@ Value make_set_iterator(Value source, uint64_t index) {
 Value Value::set(std::vector<Value> items) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_set_object<SetObject>(ObjectKind::Set);
+  auto* obj = allocate_set_object();
+  obj->items.reserve(items.size());
   for (const auto& item : items) {
     std::string error;
     append_unique(obj->items, item, error);
@@ -69,10 +107,10 @@ Value Value::set(std::vector<Value> items) {
 void set_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Set:
-      delete reinterpret_cast<SetObject*>(object);
+      recycle_set_object(reinterpret_cast<SetObject*>(object));
       break;
     case ObjectKind::SetIterator:
-      delete reinterpret_cast<SetIteratorObject*>(object);
+      recycle_set_iterator_object(reinterpret_cast<SetIteratorObject*>(object));
       break;
     default:
       break;

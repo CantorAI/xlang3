@@ -68,6 +68,28 @@ bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool list_append_fast_method(
+    Runtime&,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
+    error = "list.append expected 1 argument";
+    return false;
+  }
+  Value list = leading[0];
+  if (!sequence_list_append(list, registers[register_args[0]], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 && argc != 2) {
     error = "list.pop expected 1 or 2 arguments, got " + std::to_string(argc);
@@ -153,20 +175,33 @@ bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+static constexpr BuiltinMethodSpec kListMethods[] = {
+      {"append", "list.append", list_append_method, list_append_fast_method},
+      {"clear", "list.clear", list_clear_method},
+      {"extend", "list.extend", list_extend_method},
+      {"insert", "list.insert", list_insert_method},
+      {"pop", "list.pop", list_pop_method},
+};
+
 } // namespace
+
+const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::string& name) {
+  if (value_as_list(object) == nullptr) {
+    return nullptr;
+  }
+  for (const auto& method : kListMethods) {
+    if (name == method.name) {
+      return &method;
+    }
+  }
+  return nullptr;
+}
 
 bool list_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_list(object) == nullptr) {
     return false;
   }
-  static constexpr BuiltinMethodSpec methods[] = {
-      {"append", "list.append", list_append_method},
-      {"clear", "list.clear", list_clear_method},
-      {"extend", "list.extend", list_extend_method},
-      {"insert", "list.insert", list_insert_method},
-      {"pop", "list.pop", list_pop_method},
-  };
-  return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
+  return bind_builtin_method_from_table(object, name, kListMethods, std::size(kListMethods), out);
 }
 
 } // namespace xlang3

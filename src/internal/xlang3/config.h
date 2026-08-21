@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <filesystem>
 
+
 namespace xlang3 {
 
 struct DebugConfig {
@@ -26,6 +27,7 @@ struct DebugConfig {
 struct RunConfig {
   std::filesystem::path source_path;
   DebugConfig debug;
+  bool perf_counters = false;
 };
 
 } // namespace xlang3

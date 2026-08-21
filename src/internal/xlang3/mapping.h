@@ -17,21 +17,35 @@ limitations under the License.
 #include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace xlang3 {
 
+enum class DictIterationKind : uint8_t {
+  Keys,
+  Values,
+  Items,
+};
+
 struct DictObject {
   Object header;
   std::vector<std::pair<Value, Value>> entries;
+};
+
+struct DictViewObject {
+  Object header;
+  Value source;
+  DictIterationKind kind = DictIterationKind::Keys;
 };
 
 struct DictIteratorObject {
   Object header;
   Value source;
   uint64_t index = 0;
+  DictIterationKind kind = DictIterationKind::Keys;
 };
 
 XLANG3_HOT_INLINE DictObject* value_as_dict(const Value& value) {
@@ -48,6 +62,24 @@ XLANG3_HOT_INLINE DictIteratorObject* value_as_dict_iterator(const Value& value)
   return reinterpret_cast<DictIteratorObject*>(value.as.obj);
 }
 
+XLANG3_HOT_INLINE DictViewObject* value_as_dict_view(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return nullptr;
+  }
+  switch (value.as.obj->kind) {
+    case ObjectKind::DictKeysView:
+    case ObjectKind::DictValuesView:
+    case ObjectKind::DictItemsView:
+      return reinterpret_cast<DictViewObject*>(value.as.obj);
+    default:
+      return nullptr;
+  }
+}
+
+Value mapping_keys_view(Value source);
+Value mapping_values_view(Value source);
+Value mapping_items_view(Value source);
+
 void mapping_release_object(Object* object);
 std::string mapping_to_string(const Value& value);
 bool mapping_truthy(const Value& value);
@@ -58,5 +90,6 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error);
 bool mapping_get_iter(const Value& object, Value& out, std::string& error);
 bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
 bool mapping_len(const Value& value, Value& out, std::string& error);
+bool mapping_contains(const Value& container, const Value& item, bool& out, std::string& error);
 
 } // namespace xlang3

@@ -16,6 +16,7 @@ limitations under the License.
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
 #include "xlang3/parser.h"
+#include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 
@@ -29,7 +30,7 @@ limitations under the License.
 namespace {
 
 void print_usage() {
-  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] [file.py]\n";
+  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] [--perf-counters] [file.py]\n";
 }
 
 bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
@@ -37,6 +38,10 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
     std::string arg = argv[i];
     if (arg == "--dump-ir") {
       config.debug.dump_ir = true;
+      continue;
+    }
+    if (arg == "--perf-counters") {
+      config.perf_counters = true;
       continue;
     }
     if (arg == "--debug-dir") {
@@ -203,5 +208,14 @@ int main(int argc, char** argv) {
   xlang3::Runtime runtime(std::cout);
   runtime.prepend_import_root(config.source_path.parent_path());
   xlang3::Interpreter interpreter(runtime);
-  return run_source(buffer.str(), config, runtime, interpreter, config.debug.dump_ir) ? 0 : 1;
+  if (config.perf_counters) {
+    xlang3::xlang_perf_reset();
+    xlang3::xlang_perf_set_enabled(true);
+  }
+  const bool ok = run_source(buffer.str(), config, runtime, interpreter, config.debug.dump_ir);
+  if (config.perf_counters) {
+    xlang3::xlang_perf_set_enabled(false);
+    std::cerr << xlang3::xlang_perf_report();
+  }
+  return ok ? 0 : 1;
 }
