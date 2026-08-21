@@ -76,6 +76,7 @@ $cases = @(
     "importlib_module",
     "weakref_module",
     "inspect_module",
+    "logging_pathlib_modules",
     "file_import",
     "global_from_import",
     "package_import",

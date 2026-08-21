@@ -361,6 +361,11 @@ std::string object_model_to_string(const Value& value) {
           }
         }
       }
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == "__xlang3_string_value__" && value_as_string(attr.second) != nullptr) {
+          return string_object_to_string(*value_as_string(attr.second));
+        }
+      }
       return "<" + klass->name + " object>";
     }
     return "<object>";

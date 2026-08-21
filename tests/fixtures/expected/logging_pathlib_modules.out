@@ -1,0 +1,14 @@
+INFO:root:hello world
+WARNING:demo:careful
+ERROR:demo:boom
+xlang3_pathlib_test.txt
+xlang3_pathlib_test.txt
+.txt
+.
+False
+True
+True
+abc
+xlang3_pathlib_test.txt/child.py
+a/b
+xlang3_pathlib_test.txt

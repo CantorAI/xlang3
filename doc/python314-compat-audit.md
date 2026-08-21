@@ -362,8 +362,8 @@ High-level Python modules to run from Python source where possible:
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
 - [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
-- [ ] `logging`
-- [ ] `pathlib`
+- [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
+- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks and basic path transforms; full property/operator/glob semantics pending
 
 ### Async, Tasks, And Threads
 
