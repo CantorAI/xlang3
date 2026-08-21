@@ -392,7 +392,7 @@ High-level Python modules to run from Python source where possible:
 - [~] text/binary modes: text strings and binary bytes/bytearray for core read/write paths
 - [ ] buffering behavior
 - [ ] encoding behavior
-- [ ] `io` module
+- [~] `io` module: `_io` and `io` expose `open`, IO base type placeholders, `StringIO`, and `BytesIO`; full CPython hierarchy pending
 - [ ] path protocol
 
 ### Debugger Compatibility

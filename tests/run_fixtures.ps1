@@ -67,6 +67,7 @@ $cases = @(
     "time_module",
     "atexit_module",
     "io_os_modules",
+    "io_module_streams",
     "imp_stat_modules",
     "collections_queue_modules",
     "collections_queue_facades",
