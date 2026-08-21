@@ -50,17 +50,33 @@ RuntimeResult Interpreter::run_module(
   RuntimeResult result;
   if (auto* globals = value_as_module(globals_module)) {
     std::string error;
-    Value existing_name;
-    if (!module_get_attr(globals_module, "__name__", existing_name, error)) {
+    if (!module_ensure_attr_slots(globals_module, module.global_slots, error)) {
+      result.errors.push_back(error);
+      return result;
+    }
+    Value existing;
+    if (!module_get_attr(globals_module, "__name__", existing, error)) {
       error.clear();
-      if (!module_set_attr(globals_module, "__name__", Value::string(globals->name.empty() ? "__main__" : globals->name), error)) {
+      auto name = globals->name.empty() ? "__main__" : globals->name;
+      if (!module_set_attr(globals_module, "__name__", Value::string(name), error)) {
         result.errors.push_back(error);
         return result;
       }
     }
-    if (!module_ensure_attr_slots(globals_module, module.global_slots, error)) {
-      result.errors.push_back(error);
-      return result;
+    if (!module.source_file.empty() &&
+        !module_get_attr(globals_module, "__file__", existing, error)) {
+      error.clear();
+      if (!module_set_attr(globals_module, "__file__", Value::string(module.source_file), error)) {
+        result.errors.push_back(error);
+        return result;
+      }
+    }
+    if (!module_get_attr(globals_module, "__package__", existing, error)) {
+      error.clear();
+      if (!module_set_attr(globals_module, "__package__", Value::string(""), error)) {
+        result.errors.push_back(error);
+        return result;
+      }
     }
   }
   static const std::vector<Value> empty_closure;

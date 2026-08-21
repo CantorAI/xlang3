@@ -187,6 +187,15 @@ target_link_libraries(xlang3 PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
 
+if(WIN32)
+  add_custom_command(TARGET xlang3 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:xlang3>
+            $<TARGET_FILE_DIR:xlang3>/python.exe
+    COMMENT "Copying xlang3.exe to python.exe for Python-compatible tooling"
+  )
+endif()
+
 enable_testing()
 
 function(add_xlang3_cpp_test name source)

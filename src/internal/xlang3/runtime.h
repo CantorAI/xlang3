@@ -145,6 +145,7 @@ public:
   void add_import_root(std::filesystem::path root);
   void prepend_import_root(std::filesystem::path root);
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
+  bool publish_sys_path(std::string& error);
 #endif
   void set_last_error(std::string error) { last_error_ = std::move(error); }
   const std::string& last_error() const { return last_error_; }

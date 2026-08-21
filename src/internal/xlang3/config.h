@@ -35,6 +35,7 @@ struct RunConfig {
 
   LaunchMode launch_mode = LaunchMode::Repl;
   std::filesystem::path source_path;
+  std::filesystem::path source_file_path;
   std::string command;
   std::string module_name;
   std::vector<std::string> argv;

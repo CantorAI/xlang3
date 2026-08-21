@@ -53,3 +53,34 @@ Assert-Output "module argv" "[cli_module_probe, red, blue]" {
         Pop-Location
     }
 }
+
+Assert-Output "ignored -X option" "[-c, gamma]" {
+    & $XLang3 -X frozen_modules=off -c "import sys`nprint(sys.argv)" gamma
+}
+
+Assert-Output "ignored compact -X option" "[-c, delta]" {
+    & $XLang3 -Xdev -c "import sys`nprint(sys.argv)" delta
+}
+
+$packageDir = Join-Path $WorkDir "cli_package_dir"
+New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+Set-Content -LiteralPath (Join-Path $packageDir "__main__.py") -Value "import sys`nprint(sys.argv)" -NoNewline
+Assert-Output "directory __main__ argv" "[$packageDir, left, right]" {
+    & $XLang3 $packageDir left right
+}
+
+$pathPackageDir = Join-Path $WorkDir "cli_path_package_dir"
+New-Item -ItemType Directory -Force -Path $pathPackageDir | Out-Null
+Set-Content -LiteralPath (Join-Path $pathPackageDir "__main__.py") -Value "import sys`nsys.path[0] = sys.path[0] + '/../'`nprint(sys.path[0])`ndel sys.path[0]`nprint(len(sys.path) > 0)" -NoNewline
+Assert-Output "directory sys.path mutation" "$pathPackageDir/../`nTrue" {
+    & $XLang3 $pathPackageDir
+}
+
+$pythonExe = Join-Path (Split-Path -Parent $XLang3) "python.exe"
+if (-not (Test-Path $pythonExe)) {
+    throw "python.exe copy missing next to xlang3.exe"
+}
+
+Assert-Output "python exe alias" "[-c, alias]" {
+    & $pythonExe -c "import sys`nprint(sys.argv)" alias
+}

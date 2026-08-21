@@ -197,6 +197,21 @@ bool Runtime::set_sys_argv(const std::vector<std::string>& argv, std::string& er
   return module_set_attr(sys, "argv", Value::list(std::move(values)), error);
 }
 
+#if !defined(XLANG3_EMBEDDED)
+bool Runtime::publish_sys_path(std::string& error) {
+  Value sys;
+  if (!import_module("sys", sys, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(import_roots_.size());
+  for (const auto& root : import_roots_) {
+    values.push_back(Value::string(root.string()));
+  }
+  return module_set_attr(sys, "path", Value::list(std::move(values)), error);
+}
+#endif
+
 void Runtime::set_trace_function(Value trace_function) {
   trace_function_ = trace_function;
 }

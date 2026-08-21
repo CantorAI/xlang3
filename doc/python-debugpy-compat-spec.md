@@ -54,7 +54,17 @@ pythonw.exe
 xlang3_runtime.dll
 ```
 
-`python.exe` may be a copy, hardlink, or launcher for `xlang3.exe`. Both `xlang3.exe` and `python.exe` should support Python-compatible CLI semantics.
+On Windows, the initial product layout copies `xlang3.exe` to `python.exe` in the same output folder. Both names run the same CLI host and load the same `xlang3_runtime.dll`.
+
+Later release packaging may choose a hardlink or tiny launcher, but the visible contract remains:
+
+```text
+<release>/xlang3.exe
+<release>/python.exe
+<release>/xlang3_runtime.dll
+```
+
+Both `xlang3.exe` and `python.exe` should support Python-compatible CLI semantics.
 
 There should not be a separate XLang-only CLI language mode. XLang-specific options are additive extensions.
 
@@ -353,10 +363,13 @@ Not all modules need to be Python-source implementations. XLang3 may provide nat
 
 ### Phase D0: Python CLI Compatibility
 
-- `xlang3.exe` and `python.exe` accept Python CLI forms.
-- Implement `-c`, `-m`, script path, `--`, `-V`, `--version`.
-- Accept/ignore safe CPython options such as `-X frozen_modules=off`.
-- Populate `sys.argv`, `sys.executable`, `sys.path`, `sys.prefix`.
+- [x] Windows build places `python.exe` next to `xlang3.exe` as the same CLI host.
+- [~] `xlang3.exe` and `python.exe` accept Python CLI forms.
+- [x] Implement `-c`, `-m`, script path, `--`, `-V`, `--version`.
+- [x] Accept/ignore safe CPython options such as `-X frozen_modules=off`.
+- [~] Populate `sys.argv`, `sys.path`, `__name__`, `__file__`, and `__package__`; `sys.executable`, `sys.prefix`, and full package metadata pending.
+- [x] Directory script execution runs `<dir>/__main__.py`.
+- [x] Python import search consults live `sys.path` before runtime fallback roots, so packages such as `debugpy/__main__.py` can patch `sys.path[0]`.
 
 ### Phase D1: Run Debugpy Entry Points
 
@@ -370,6 +383,7 @@ python.exe path\to\debugpy --connect ...
 ```
 
 - Fill missing module/runtime APIs until debugpy imports and starts.
+- Current next blockers observed from Visual Studio's bundled `debugpy`: `dataclasses`, `functools`, `typing`, and then deeper `debugpy.server` / vendored `pydevd` dependencies.
 
 ### Phase D2: Trace And Frame API
 

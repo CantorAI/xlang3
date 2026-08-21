@@ -397,7 +397,7 @@ High-level Python modules to run from Python source where possible:
 
 ### Debugger Compatibility
 
-- [~] Python CLI compatibility for debugpy command shapes: script args, `-c`, `-m`, and `sys.argv` basics; full CPython flag matrix pending
+- [~] Python CLI compatibility for debugpy command shapes: Windows `python.exe` alias, script args, `-c`, `-m`, directory `__main__.py`, ignored safe `-X` flags, `sys.argv`, and live `sys.path` import search; full CPython flag matrix and debugpy stdlib dependencies pending
 - [~] `sys.settrace`: hook storage plus Python function call/line/return/exception event dispatch; CPython edge cases pending
 - [~] `sys.gettrace`: returns stored hook
 - [~] `threading.settrace`: default thread hook storage foundation; native thread propagation/events pending

@@ -59,6 +59,20 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       config.debug.output_dir = argv[++i];
       continue;
     }
+    if (arg == "-X") {
+      if (i + 1 >= argc) {
+        std::cerr << "-X requires an option value\n";
+        return false;
+      }
+      ++i;
+      continue;
+    }
+    if (arg.rfind("-X", 0) == 0) {
+      continue;
+    }
+    if (arg == "-u" || arg == "-B" || arg == "-E" || arg == "-I" || arg == "-s" || arg == "-S") {
+      continue;
+    }
     if (arg == "-c") {
       if (i + 1 >= argc) {
         std::cerr << "-c requires code\n";
@@ -94,6 +108,11 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       return false;
     }
     config.source_path = arg;
+    if (std::filesystem::is_directory(config.source_path)) {
+      config.source_file_path = config.source_path / "__main__.py";
+    } else {
+      config.source_file_path = config.source_path;
+    }
     config.launch_mode = xlang3::RunConfig::LaunchMode::Script;
     config.argv.push_back(arg);
     for (++i; i < argc; ++i) {
@@ -106,6 +125,13 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
 
 std::filesystem::path default_debug_dir(const std::filesystem::path& source_path) {
   return source_path.parent_path() / ".xlang3" / "ir";
+}
+
+std::filesystem::path source_file_for_run(const xlang3::RunConfig& config) {
+  if (!config.source_file_path.empty()) {
+    return config.source_file_path;
+  }
+  return config.source_path;
 }
 
 bool dump_ir_file(const xlang3::RunConfig& config, const xlang3::ir::Module& module) {
@@ -156,7 +182,7 @@ bool run_source(
 
   auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
   if (!config.source_path.empty()) {
-    module->source_file = config.source_path.string();
+    module->source_file = source_file_for_run(config).string();
   } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
     module->source_file = "<string>";
   }
@@ -307,11 +333,19 @@ int main(int argc, char** argv) {
 
   xlang3::Runtime runtime(std::cout);
   if (!config.source_path.empty()) {
-    runtime.prepend_import_root(config.source_path.parent_path());
+    if (std::filesystem::is_directory(config.source_path)) {
+      runtime.prepend_import_root(config.source_path);
+    } else {
+      runtime.prepend_import_root(config.source_path.parent_path());
+    }
   } else {
     runtime.prepend_import_root(std::filesystem::current_path());
   }
   std::string argv_error;
+  if (!runtime.publish_sys_path(argv_error)) {
+    std::cerr << "runtime: " << argv_error << "\n";
+    return 1;
+  }
   if (!runtime.set_sys_argv(config.argv, argv_error)) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
@@ -327,9 +361,10 @@ int main(int argc, char** argv) {
   } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Module) {
     ok = run_module_name(config, runtime, config.debug.dump_ir);
   } else {
-    std::ifstream file(config.source_path, std::ios::binary);
+    const auto source_file_path = source_file_for_run(config);
+    std::ifstream file(source_file_path, std::ios::binary);
     if (!file) {
-      std::cerr << "cannot open " << config.source_path.string() << "\n";
+      std::cerr << "cannot open " << source_file_path.string() << "\n";
       return 2;
     }
     std::ostringstream buffer;

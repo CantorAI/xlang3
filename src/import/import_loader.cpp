@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
+#include "xlang3/sequence.h"
 
 #include <filesystem>
 #include <memory>
@@ -66,7 +67,28 @@ std::string module_leaf_name(const std::string& name) {
 
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
   const auto parts = split_module_name(name);
-  for (const auto& root : runtime.import_roots()) {
+  std::vector<std::filesystem::path> roots;
+  Value sys;
+  std::string ignored;
+  if (runtime.import_module("sys", sys, ignored)) {
+    Value path;
+    if (module_get_attr(sys, "path", path, ignored)) {
+      if (auto* list = value_as_list(path)) {
+        roots.reserve(list->items.size() + runtime.import_roots().size());
+        for (const auto& item : list->items) {
+          if (auto* string = value_as_string(item)) {
+            roots.emplace_back(string_object_view(*string));
+          }
+        }
+      }
+    }
+  }
+  roots.insert(roots.end(), runtime.import_roots().begin(), runtime.import_roots().end());
+
+  for (auto root : roots) {
+    if (root.empty()) {
+      root = std::filesystem::current_path();
+    }
     auto candidate_base = root;
     for (const auto& part : parts) {
       candidate_base /= part;
