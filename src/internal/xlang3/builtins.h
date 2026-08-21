@@ -40,6 +40,7 @@ void register_types_module(Runtime& runtime);
 void register_traceback_module(Runtime& runtime);
 void register_runpy_module(Runtime& runtime);
 void register_importlib_module(Runtime& runtime);
+void register_weakref_module(Runtime& runtime);
 void register_thread_modules(Runtime& runtime);
 void register_task_modules(Runtime& runtime);
 void register_asyncio_module(Runtime& runtime);

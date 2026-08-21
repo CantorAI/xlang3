@@ -113,6 +113,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/time_module.cpp
   src/runtime/modules/system/traceback_module.cpp
   src/runtime/modules/system/types_module.cpp
+  src/runtime/modules/system/weakref_module.cpp
 )
 
 if(NOT XLANG3_EMBEDDED)

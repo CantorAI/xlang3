@@ -344,7 +344,7 @@ Native or runtime-backed foundation:
 - [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
 - [ ] `_socket`
 - [ ] `select`
-- [ ] `_weakref`
+- [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
 - [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
 - [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty; blocking semantics pending
 
@@ -361,7 +361,7 @@ High-level Python modules to run from Python source where possible:
 - [~] `importlib`: `import_module`, `invalidate_caches`, and `importlib.util.find_spec` basics
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
 - [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending
-- [ ] `weakref`
+- [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [ ] `logging`
 - [ ] `pathlib`
 
