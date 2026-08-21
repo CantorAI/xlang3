@@ -104,6 +104,7 @@ public:
       const std::string& body,
       std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error);
+  bool has_registered_module(const std::string& name) const;
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
   bool import_star(const std::string& module_name, Value& target_module, std::string& error);
   Vfs& vfs() { return *vfs_; }

@@ -325,6 +325,10 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   return true;
 }
 
+bool Runtime::has_registered_module(const std::string& name) const {
+  return modules_.find(name) != modules_.end();
+}
+
 bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error) {
   std::string resolved_module = module_name;
   while (!resolved_module.empty() && resolved_module.front() == '.') {

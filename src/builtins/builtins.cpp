@@ -30,6 +30,8 @@ void register_core_builtins(Runtime& runtime) {
   register_atexit_module(runtime);
   register_io_module(runtime);
   register_os_module(runtime);
+  register_stat_module(runtime);
+  register_imp_module(runtime);
 #endif
   register_thread_modules(runtime);
 #ifndef XLANG3_EMBEDDED

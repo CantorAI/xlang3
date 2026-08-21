@@ -115,7 +115,7 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   if (!runtime.vfs().stat(path, stat, error)) {
     return false;
   }
-  const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0x4000 : stat.kind == VfsNodeKind::File ? 0x8000 : 0;
+  const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
   out = Value::tuple({
       Value::int64(mode),
       Value::int64(0),

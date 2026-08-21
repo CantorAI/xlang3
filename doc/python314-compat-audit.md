@@ -339,8 +339,8 @@ Native or runtime-backed foundation:
 - [x] `_thread` subset
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
-- [ ] `_stat`
-- [ ] `_imp`
+- [~] `_stat`: stat tuple indexes and common file mode constants
+- [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
 - [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
 - [ ] `_socket`
 - [ ] `select`
