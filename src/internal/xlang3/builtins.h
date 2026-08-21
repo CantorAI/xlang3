@@ -44,6 +44,7 @@ void register_weakref_module(Runtime& runtime);
 void register_inspect_module(Runtime& runtime);
 void register_logging_module(Runtime& runtime);
 void register_pathlib_module(Runtime& runtime);
+void register_socket_modules(Runtime& runtime);
 void register_thread_modules(Runtime& runtime);
 void register_task_modules(Runtime& runtime);
 void register_asyncio_module(Runtime& runtime);

@@ -42,6 +42,7 @@ void register_core_builtins(Runtime& runtime) {
   register_inspect_module(runtime);
   register_logging_module(runtime);
   register_pathlib_module(runtime);
+  register_socket_modules(runtime);
 #endif
   register_thread_modules(runtime);
 #ifndef XLANG3_EMBEDDED

@@ -342,8 +342,8 @@ Native or runtime-backed foundation:
 - [~] `_stat`: stat tuple indexes and common file mode constants
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
 - [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
-- [ ] `_socket`
-- [ ] `select`
+- [~] `_socket`: constants and socket object lifecycle facade; native networking pending
+- [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
 - [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
 - [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty; blocking semantics pending
@@ -352,7 +352,7 @@ High-level Python modules to run from Python source where possible:
 
 - [~] `threading`
 - [~] `os`: VFS-backed `listdir`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics
-- [ ] `socket`
+- [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
 - [x] `json` through native package, not CPython-compatible package yet
 - [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
