@@ -415,6 +415,7 @@ High-level Python modules to run from Python source where possible:
 - [~] debug session controller: desktop runtime API owns loaded source, breakpoints, pause status, continue, step in/over/out, and pause request; debugpy transport pending
 - [~] native DAP session: C++ DAP framing plus initialize/launch/setBreakpoints/setExceptionBreakpoints/configurationDone/continue/step/threads/stack/scopes/variables over `DebugSession`; `xlang3 --dap-stdio` host, initialized/output/terminated events, frame-chain stack trace, and locals/globals scopes added; socket host pending
 - [~] VS Code native DAP registration: minimal `tools/vscode/xlang3-debug` extension starts `xlang3 --dap-stdio`; manual IDE validation pending
+- [~] Visual Studio 2026 native DAP smoke: VS Debug Adapter Host launched `xlang3 --dap-stdio`, stopped at entry, continued, and observed clean adapter exit; packaged VSIX/project-system integration pending
 - [~] breakpoint mapping: private VM hook and pause state support filename/line breakpoint hits and native DAP binding; debugpy binding pending
 - [~] step over: VM policy skips deeper frames and pauses at the next source line in the original/caller frame; native DAP binding added, debugpy binding pending
 - [~] step in: private VM hook and pause state support source-line step-into hits; native DAP binding added, debugpy binding pending

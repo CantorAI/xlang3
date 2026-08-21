@@ -199,6 +199,32 @@ int main() {
   {
     std::ostringstream output;
     xlang3::dap::DapSession session(output);
+    session.handle_payload(request(11, "initialize").dump());
+
+    const std::string source =
+        "x = 41\n"
+        "print(x + 1)\n";
+    Json launch = single_response(
+        result,
+        session,
+        request(12, "launch", Json{{"program", "dap_stop_at_entry.py"}, {"source", source}, {"stopAtEntry", true}}),
+        "launch stopAtEntry");
+    xlang3::test::expect_true(result, launch.value("success", false), "launch with stopAtEntry should succeed");
+
+    auto configured = session.handle_payload(request(13, "configurationDone").dump());
+    xlang3::test::expect_true(result, configured.size() == 2, "stopAtEntry should produce stopped event");
+    if (configured.size() == 2) {
+      Json stopped = Json::parse(configured[1]);
+      xlang3::test::expect_true(
+          result,
+          stopped.value("event", "") == "stopped" && stopped["body"].value("reason", "") == "pause",
+          "stopAtEntry should pause at entry");
+    }
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::dap::DapSession session(output);
     session.handle_payload(request(20, "initialize").dump());
 
     const std::string source =

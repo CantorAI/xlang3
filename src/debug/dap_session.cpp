@@ -316,6 +316,9 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
     if (!debug_.load_source(program, source, error)) {
       return {make_response(seq, command, false, error)};
     }
+    if (args.value("stopAtEntry", false) || args.value("stopOnEntry", false)) {
+      debug_.request_pause();
+    }
     if (args.contains("args") && args["args"].is_array()) {
       std::vector<std::string> argv;
       argv.push_back(program);

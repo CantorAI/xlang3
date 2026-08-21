@@ -1,0 +1,9 @@
+{
+  "$adapter": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+  "$adapterArgs": "--dap-stdio",
+  "type": "xlang3",
+  "request": "launch",
+  "program": "D:\\CantorAI\\xlang3\\tests\\ide\\vs2026_debug_smoke.py",
+  "stopAtEntry": true,
+  "args": []
+}
