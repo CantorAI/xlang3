@@ -390,10 +390,10 @@ High-level Python modules to run from Python source where possible:
 - [x] Pico flash file store foundation
 - [~] CPython-compatible `open`: VFS path/path-like input and `r/w/a/x/+` mode parsing; full error classes/opener semantics pending
 - [~] text/binary modes: text strings and binary bytes/bytearray for core read/write paths
-- [ ] buffering behavior
-- [ ] encoding behavior
+- [~] buffering behavior: `buffering` keyword is accepted and validated; buffering policy is still VFS-buffer based
+- [~] encoding behavior: UTF-8 text path accepted through `encoding`/`errors`/`newline` keywords; codec conversion and newline translation pending
 - [~] `io` module: `_io` and `io` expose `open`, IO base type placeholders, `StringIO`, and `BytesIO`; full CPython hierarchy pending
-- [ ] path protocol
+- [~] path protocol: `open(Path(...))`, `os.fspath(Path(...))`, and `Path.__fspath__` basics
 
 ### Debugger Compatibility
 

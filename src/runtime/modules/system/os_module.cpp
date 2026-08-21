@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
 
 #include <cstdlib>
@@ -156,12 +157,22 @@ bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
     error = "os.fspath() expected one argument";
     return false;
   }
-  if (value_as_string(args[0]) == nullptr) {
-    error = "expected str path";
-    return false;
+  if (value_as_string(args[0]) != nullptr) {
+    value_assign_fast(out, args[0]);
+    return true;
   }
-  value_assign_fast(out, args[0]);
-  return true;
+  std::string ignored;
+  Value path_value;
+  if (object_get_attr(args[0], "_path", path_value, ignored) && value_as_string(path_value) != nullptr) {
+    value_assign_fast(out, path_value);
+    return true;
+  }
+  if (object_get_attr(args[0], "__xlang3_string_value__", path_value, ignored) && value_as_string(path_value) != nullptr) {
+    value_assign_fast(out, path_value);
+    return true;
+  }
+  error = "expected str, bytes or os.PathLike object";
+  return false;
 }
 
 } // namespace

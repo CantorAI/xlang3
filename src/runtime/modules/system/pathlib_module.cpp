@@ -123,6 +123,15 @@ bool path_as_posix(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool path_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.__fspath__() expected no arguments";
+    return false;
+  }
+  out = Value::string(to_path_text(args[0]));
+  return true;
+}
+
 bool path_joinpath(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "Path.joinpath() expected at least one argument";
@@ -240,6 +249,7 @@ bool path_write_text(Runtime& runtime, const Value* args, uint32_t argc, Value& 
 Value make_path_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("pathlib.Path.__init__", path_init)});
+  attrs.push_back({"__fspath__", runtime.make_native_function("pathlib.Path.__fspath__", path_fspath)});
   attrs.push_back({"as_posix", runtime.make_native_function("pathlib.Path.as_posix", path_as_posix)});
   attrs.push_back({"joinpath", runtime.make_native_function("pathlib.Path.joinpath", path_joinpath)});
   attrs.push_back({"name", runtime.make_native_function("pathlib.Path.name", path_name_method)});
