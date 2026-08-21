@@ -1188,8 +1188,8 @@ private:
         emit(ir::Op::LoadException, exc_reg);
         store_named_value(handler.name, exc_reg);
       }
-      emit(ir::Op::ClearException);
       lower_body(handler.body);
+      emit(ir::Op::ClearException);
       handler_done_jumps.push_back(emit_jump(ir::Op::Jump));
       if (handler.type != nullptr) {
         patch_jump(next_handler, static_cast<uint32_t>(fn_.code.size()));
@@ -1778,7 +1778,7 @@ private:
       }
       if (raise->cause != nullptr) {
         const auto cause = lower_expr(*raise->cause);
-        emit(ir::Op::Pop, 0, cause);
+        emit(ir::Op::SetExceptionCause, 0, cause);
       }
       const auto reg = lower_expr(*raise->value);
       emit(ir::Op::Raise, 0, reg);

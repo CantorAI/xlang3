@@ -100,6 +100,12 @@ ParseResult parse_source(const std::string& source) {
   return result;
 }
 
+ParseExpressionResult parse_expression_source(const std::string& source) {
+  Lexer lexer(source);
+  Parser parser(lexer.tokenize());
+  return parser.parse_expression_module();
+}
+
 ParseResult Parser::parse_module() {
   ParseResult result;
   skip_newlines();
@@ -111,6 +117,18 @@ ParseResult Parser::parse_module() {
       advance();
     }
     skip_newlines();
+  }
+  result.errors = errors_;
+  return result;
+}
+
+ParseExpressionResult Parser::parse_expression_module() {
+  ParseExpressionResult result;
+  skip_newlines();
+  result.expression = parse_expression();
+  skip_newlines();
+  if (!check(TokenKind::End)) {
+    error_here("expected end of expression");
   }
   result.errors = errors_;
   return result;

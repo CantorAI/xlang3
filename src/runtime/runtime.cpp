@@ -122,6 +122,7 @@ Runtime::Runtime(OutputSink output)
 
 Runtime::~Runtime() {
   value_set_invalid(pending_exception_);
+  value_set_invalid(active_exception_);
   value_set_invalid(current_globals_module_);
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
@@ -175,6 +176,39 @@ const Value* Runtime::find_builtin(const std::string& name) const {
 
 void Runtime::set_current_globals_module(const Value& globals_module) {
   value_assign_fast(current_globals_module_, globals_module);
+}
+
+void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {
+  current_local_names_ = names;
+  current_local_values_ = values;
+  current_local_count_ = count;
+}
+
+void Runtime::clear_current_frame_locals() {
+  current_local_names_ = nullptr;
+  current_local_values_ = nullptr;
+  current_local_count_ = 0;
+}
+
+Value Runtime::current_locals_snapshot() const {
+  if (current_local_names_ == nullptr || current_local_values_ == nullptr) {
+    return Value::dict({});
+  }
+  const size_t count =
+      current_local_count_ < current_local_names_->size() ? current_local_count_ : current_local_names_->size();
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    const auto& name = (*current_local_names_)[i];
+    if (name.empty() || name[0] == '#') {
+      continue;
+    }
+    if (current_local_values_[i].tag == ValueTag::Invalid) {
+      continue;
+    }
+    entries.push_back({Value::string(name), current_local_values_[i]});
+  }
+  return Value::dict(std::move(entries));
 }
 
 Value Runtime::make_native_function(

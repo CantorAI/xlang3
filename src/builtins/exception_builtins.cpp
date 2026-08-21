@@ -41,6 +41,7 @@ bool exception_init(
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__context__", Value::none(), ignored);
+  object_set_attr(const_cast<Value&>(args[0]), "__suppress_context__", Value::boolean(false), ignored);
   value_set_none(out);
   return true;
 }
@@ -61,6 +62,7 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "AssertionError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "SyntaxError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "NameError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "IndexError", *runtime.find_builtin("Exception"));

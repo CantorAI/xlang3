@@ -389,6 +389,8 @@ RuntimeResult Interpreter::run_function(
   };
 
   Value current_exception;
+  Value pending_exception_cause;
+  bool pending_exception_explicit_cause = false;
 
   auto make_traceback_from_frames = [&]() -> Value {
     Value next = Value::none();
@@ -418,6 +420,7 @@ RuntimeResult Interpreter::run_function(
       object_set_attr(exception, "__traceback__", traceback, ignored);
     }
     value_assign_fast(current_exception, exception);
+    runtime_.set_active_exception(current_exception);
     while (frame_count != 0) {
       auto& handlers = frames[frame_count - 1].exception_handlers;
       if (!handlers.empty()) {
@@ -501,6 +504,7 @@ RuntimeResult Interpreter::run_function(
       }
 
       runtime_.set_current_globals_module(globals_module);
+      runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
       const auto& in = fn.code[ip];
       if ((++execution_lock_ticks & 0x3ffu) == 0) {
         execution_lock.unlock();

@@ -53,7 +53,7 @@ Legend:
 - [x] `raise expr`
 - [x] bare `raise`
 - [x] `raise ... from ...` syntax and cause expression evaluation
-- [ ] exception chaining metadata for `raise ... from ...`
+- [~] exception chaining metadata for `raise ... from ...`
 - [x] `try`
 - [x] `except`
 - [x] `except E as e`
@@ -234,11 +234,11 @@ Legend:
 - [x] `finally` unwind basics
 - [~] exception hierarchy completeness: common built-in exception classes registered; full CPython tree pending
 - [~] traceback capture: VM exception path builds frame chain; exact line table pending
-- [ ] exception chaining
-- [ ] `raise from` runtime cause/context metadata
-- [ ] bare `raise` runtime behavior outside active exception
-- [ ] `sys.exc_info`
-- [~] `__traceback__`, `__context__`, `__cause__` basic attributes
+- [~] exception chaining: explicit cause and implicit context metadata basics; display formatting pending
+- [~] `raise from` runtime cause/context metadata
+- [~] bare `raise` runtime behavior inside/outside active exception
+- [~] `sys.exc_info`: active exception tuple basics
+- [~] `__traceback__`, `__context__`, `__cause__`, `__suppress_context__` basic attributes
 
 ### Containers
 
@@ -324,17 +324,17 @@ Legend:
 - [~] `dir`: module/class/instance basics
 - [~] `vars`: module/class/instance snapshot basics
 - [~] `globals`: active module snapshot; live dict semantics pending
-- [ ] `locals`
-- [ ] `eval`
-- [ ] `exec`
-- [ ] `compile`
+- [~] `locals`: active frame snapshot foundation
+- [~] `eval`: string/code-object expression basics using current globals
+- [~] `exec`: string/code-object statement basics using current globals
+- [~] `compile`: `exec`/`eval`/`single` code-object basics
 - [x] `callable`
 
 ### Standard Modules Needed For Debugpy
 
 Native or runtime-backed foundation:
 
-- [ ] `sys`
+- [~] `sys`: `modules` and `exc_info` basics
 - [ ] `time`
 - [x] `_thread` subset
 - [ ] `atexit`

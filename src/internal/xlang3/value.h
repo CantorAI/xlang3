@@ -203,7 +203,7 @@ struct Value {
       Value globals_module,
       std::shared_ptr<const ir::Module> module,
       std::vector<Value> defaults = {});
-  static Value code(std::shared_ptr<const ir::Module> module, uint32_t function_id);
+  static Value code(std::shared_ptr<const ir::Module> module, uint32_t function_id, std::string mode = "exec");
   static Value frame(std::shared_ptr<const ir::Module> module, uint32_t function_id, Value globals_module);
   static Value traceback(Value frame, Value next, int64_t line);
   static Value native_function(
@@ -376,6 +376,7 @@ struct CodeObject {
   Object header;
   std::shared_ptr<const ir::Module> module;
   uint32_t function_id = 0;
+  std::string mode;
 };
 
 struct FrameObject {

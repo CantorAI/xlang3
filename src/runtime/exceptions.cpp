@@ -50,6 +50,7 @@ Value Runtime::make_exception(std::string class_name, std::string message) {
   object_set_attr(instance, "__traceback__", Value::none(), ignored);
   object_set_attr(instance, "__cause__", Value::none(), ignored);
   object_set_attr(instance, "__context__", Value::none(), ignored);
+  object_set_attr(instance, "__suppress_context__", Value::boolean(false), ignored);
   return instance;
 }
 
@@ -65,6 +66,7 @@ Value Runtime::make_exception_from_class(Value klass, std::string message) {
   object_set_attr(instance, "__traceback__", Value::none(), ignored);
   object_set_attr(instance, "__cause__", Value::none(), ignored);
   object_set_attr(instance, "__context__", Value::none(), ignored);
+  object_set_attr(instance, "__suppress_context__", Value::boolean(false), ignored);
   return instance;
 }
 
@@ -92,6 +94,14 @@ bool Runtime::take_pending_exception(Value& out) {
   value_assign_fast(out, pending_exception_);
   value_set_invalid(pending_exception_);
   return true;
+}
+
+void Runtime::set_active_exception(Value exception) {
+  active_exception_ = std::move(exception);
+}
+
+void Runtime::clear_active_exception() {
+  value_set_invalid(active_exception_);
 }
 
 } // namespace xlang3

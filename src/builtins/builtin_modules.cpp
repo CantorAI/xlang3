@@ -15,6 +15,8 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
 
 namespace xlang3 {
 
@@ -25,6 +27,24 @@ void copy_builtin(Runtime& runtime, Value& module, const char* name) {
   if (const auto* value = runtime.find_builtin(name)) {
     module_set_attr(module, name, *value, error);
   }
+}
+
+bool sys_exc_info(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.exc_info expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value& exception = runtime.active_exception();
+  if (exception.tag == ValueTag::Invalid) {
+    out = Value::tuple({Value::none(), Value::none(), Value::none()});
+    return true;
+  }
+  Value traceback = Value::none();
+  std::string ignored;
+  object_get_attr(exception, "__traceback__", traceback, ignored);
+  out = Value::tuple({runtime.exception_type(exception), exception, traceback});
+  return true;
 }
 
 } // namespace
@@ -60,7 +80,12 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "RuntimeError");
   copy_builtin(runtime, builtins, "TypeError");
   copy_builtin(runtime, builtins, "ValueError");
+  copy_builtin(runtime, builtins, "SyntaxError");
   copy_builtin(runtime, builtins, "ImportError");
+  copy_builtin(runtime, builtins, "locals");
+  copy_builtin(runtime, builtins, "compile");
+  copy_builtin(runtime, builtins, "eval");
+  copy_builtin(runtime, builtins, "exec");
   runtime.register_module("_builtins", std::move(builtins));
 
   NativeModuleBuilder sys_builder(runtime, "sys");
@@ -69,6 +94,7 @@ void register_builtin_modules(Runtime& runtime) {
   Value modules_ref;
   value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
   module_set_attr(sys, "modules", modules_ref, error);
+  module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
   runtime.register_module("sys", std::move(sys));
 }
 

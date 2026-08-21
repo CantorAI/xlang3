@@ -130,6 +130,7 @@ enum class Op : uint16_t {
   SetupWith,
   PopExcept,
   Raise,
+  SetExceptionCause,
   Reraise,
   ClearException,
   LoadException,

@@ -76,6 +76,9 @@ public:
   bool raise_class_error(std::string class_name, std::string message);
   void set_pending_exception(Value exception);
   bool take_pending_exception(Value& out);
+  void set_active_exception(Value exception);
+  void clear_active_exception();
+  const Value& active_exception() const { return active_exception_; }
   Value make_native_function(
       std::string name,
       NativeFunctionCallback callback,
@@ -109,6 +112,9 @@ public:
   const std::string& last_error() const { return last_error_; }
   void set_current_globals_module(const Value& globals_module);
   const Value& current_globals_module() const { return current_globals_module_; }
+  void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
+  void clear_current_frame_locals();
+  Value current_locals_snapshot() const;
 
 private:
   void initialize();
@@ -117,7 +123,11 @@ private:
   std::unique_ptr<Vfs> vfs_;
   std::string last_error_;
   Value pending_exception_;
+  Value active_exception_;
   Value current_globals_module_;
+  const std::vector<std::string>* current_local_names_ = nullptr;
+  const Value* current_local_values_ = nullptr;
+  size_t current_local_count_ = 0;
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;

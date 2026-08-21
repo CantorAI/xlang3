@@ -18,6 +18,7 @@ limitations under the License.
 #include "../xlang_vm_arithmetic.h"
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 
 #include <string>
@@ -96,6 +97,9 @@ template <typename RaiseExceptionValue, typename NormalizeException>
 XLANG3_HOT_INLINE XlangVMOpFlow raise_op(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
+    Value& pending_cause,
+    bool& pending_explicit_cause,
+    Value& current_exception,
     RuntimeResult& result,
     RaiseExceptionValue&& raise_exception_value,
     NormalizeException&& normalize_exception) {
@@ -103,8 +107,44 @@ XLANG3_HOT_INLINE XlangVMOpFlow raise_op(
     result.errors.push_back("invalid raise value");
     return XlangVMOpFlow::ReturnResult;
   }
-  return raise_exception_value(normalize_exception(regs[in.a])) ? XlangVMOpFlow::ContinueLoop
-                                                                : XlangVMOpFlow::ReturnResult;
+  Value exception = normalize_exception(regs[in.a]);
+  if (value_as_instance(exception) != nullptr) {
+    std::string ignored;
+    if (pending_explicit_cause) {
+      object_set_attr(exception, "__cause__", pending_cause, ignored);
+      if (current_exception.tag != ValueTag::Invalid) {
+        object_set_attr(exception, "__context__", current_exception, ignored);
+      }
+      object_set_attr(exception, "__suppress_context__", Value::boolean(true), ignored);
+    } else if (current_exception.tag != ValueTag::Invalid) {
+      object_set_attr(exception, "__context__", current_exception, ignored);
+      object_set_attr(exception, "__suppress_context__", Value::boolean(false), ignored);
+    }
+  }
+  value_set_invalid(pending_cause);
+  pending_explicit_cause = false;
+  return raise_exception_value(std::move(exception)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+}
+
+template <typename NormalizeException>
+XLANG3_HOT_INLINE XlangVMOpFlow set_exception_cause(
+    const ir::Instr& in,
+    XlangVMSmallRegisterBuffer& regs,
+    Value& pending_cause,
+    bool& pending_explicit_cause,
+    RuntimeResult& result,
+    NormalizeException&& normalize_exception) {
+  if (in.a >= regs.size()) {
+    result.errors.push_back("invalid exception cause");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (regs[in.a].tag == ValueTag::None) {
+    value_set_none(pending_cause);
+  } else {
+    pending_cause = normalize_exception(regs[in.a]);
+  }
+  pending_explicit_cause = true;
+  return XlangVMOpFlow::Next;
 }
 
 template <typename RaiseExceptionValue, typename RaiseRuntimeError>
@@ -119,8 +159,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow reraise(
   return raise_exception_value(current_exception) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
-XLANG3_HOT_INLINE void clear_exception(Value& current_exception) {
+XLANG3_HOT_INLINE void clear_exception(Runtime& runtime, Value& current_exception) {
   value_set_invalid(current_exception);
+  runtime.clear_active_exception();
 }
 
 XLANG3_HOT_INLINE void load_exception(

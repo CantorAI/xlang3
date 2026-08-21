@@ -102,6 +102,7 @@ const char* op_name(Op op) {
     case Op::SetupWith: return "SetupWith";
     case Op::PopExcept: return "PopExcept";
     case Op::Raise: return "Raise";
+    case Op::SetExceptionCause: return "SetExceptionCause";
     case Op::Reraise: return "Reraise";
     case Op::ClearException: return "ClearException";
     case Op::LoadException: return "LoadException";

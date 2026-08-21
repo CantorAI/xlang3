@@ -138,6 +138,11 @@ struct ParseResult {
   std::vector<std::string> errors;
 };
 
+struct ParseExpressionResult {
+  ast::ExprPtr expression;
+  std::vector<std::string> errors;
+};
+
 class Lexer {
 public:
   explicit Lexer(std::string_view source);
@@ -159,6 +164,7 @@ class Parser {
 public:
   explicit Parser(LexResult lex);
   ParseResult parse_module();
+  ParseExpressionResult parse_expression_module();
 
 private:
   ast::StmtPtr parse_statement();
@@ -218,5 +224,6 @@ private:
 };
 
 ParseResult parse_source(const std::string& source);
+ParseExpressionResult parse_expression_source(const std::string& source);
 
 } // namespace xlang3

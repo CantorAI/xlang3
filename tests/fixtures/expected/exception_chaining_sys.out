@@ -1,0 +1,9 @@
+(None, None, None)
+<class 'ValueError'> inner
+<class 'RuntimeError'> outer
+inner
+inner
+True
+False
+reraised again
+(None, None, None)

@@ -286,6 +286,7 @@ private:
       case ir::Op::Invert:
       case ir::Op::JumpIfFalse:
       case ir::Op::Raise:
+      case ir::Op::SetExceptionCause:
       case ir::Op::MatchException:
       case ir::Op::Yield:
       case ir::Op::Return:

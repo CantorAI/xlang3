@@ -441,12 +441,13 @@ Value Value::function(
   return v;
 }
 
-Value Value::code(std::shared_ptr<const ir::Module> module, uint32_t function_id) {
+Value Value::code(std::shared_ptr<const ir::Module> module, uint32_t function_id, std::string mode) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<CodeObject>(ObjectKind::Code);
   obj->module = std::move(module);
   obj->function_id = function_id;
+  obj->mode = std::move(mode);
   v.as.obj = &obj->header;
   return v;
 }

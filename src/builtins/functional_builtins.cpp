@@ -16,11 +16,16 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/interpreter.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/parser.h"
 #include "xlang3/sequence.h"
+#include "xlang3/sema.h"
 
+#include <cctype>
 #include <cmath>
+#include <memory>
 #include <set>
 #include <algorithm>
 #include <string>
@@ -34,6 +39,107 @@ bool raise_type_error(Runtime& runtime, std::string message, std::string& error)
   error = std::move(message);
   runtime.raise_class_error("TypeError", error);
   return false;
+}
+
+bool value_to_source_text(Runtime& runtime, const Value& value, std::string& out, std::string& error) {
+  auto* string = value_as_string(value);
+  if (string == nullptr) {
+    return raise_type_error(runtime, "source must be str or code object", error);
+  }
+  out = string_object_to_string(*string);
+  return true;
+}
+
+bool eval_source_starts_with_statement_keyword(const std::string& source) {
+  size_t pos = 0;
+  while (pos < source.size() && std::isspace(static_cast<unsigned char>(source[pos])) != 0) {
+    ++pos;
+  }
+  const size_t start = pos;
+  while (pos < source.size() &&
+         (std::isalpha(static_cast<unsigned char>(source[pos])) != 0 || source[pos] == '_')) {
+    ++pos;
+  }
+  if (pos == start) {
+    return false;
+  }
+  const std::string keyword = source.substr(start, pos - start);
+  return keyword == "if" || keyword == "for" || keyword == "while" || keyword == "def" ||
+         keyword == "class" || keyword == "try" || keyword == "except" || keyword == "finally" ||
+         keyword == "with" || keyword == "import" || keyword == "from" || keyword == "return" ||
+         keyword == "raise" || keyword == "pass" || keyword == "break" || keyword == "continue" ||
+         keyword == "del" || keyword == "global" || keyword == "nonlocal";
+}
+
+bool compile_source_to_code(
+    Runtime& runtime,
+    const std::string& source,
+    const std::string& mode,
+    Value& out,
+    std::string& error) {
+  if (mode == "eval") {
+    if (eval_source_starts_with_statement_keyword(source)) {
+      error = "invalid syntax";
+      runtime.raise_class_error("SyntaxError", error);
+      return false;
+    }
+    auto parsed_expr = parse_expression_source(source);
+    if (!parsed_expr.errors.empty()) {
+      error = parsed_expr.errors.front();
+      runtime.raise_class_error("SyntaxError", error);
+      return false;
+    }
+    ast::Module eval_ast;
+    eval_ast.body.push_back(std::make_unique<ast::ReturnStmt>(std::move(parsed_expr.expression)));
+    auto lowered = lower_to_ir(eval_ast);
+    if (!lowered.errors.empty()) {
+      error = lowered.errors.front();
+      runtime.raise_class_error("SyntaxError", error);
+      return false;
+    }
+    auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+    out = Value::code(module, module->entry, mode);
+    return true;
+  } else if (mode != "exec" && mode != "single") {
+    return raise_type_error(runtime, "compile() mode must be 'exec', 'eval', or 'single'", error);
+  }
+
+  auto parsed = parse_source(source);
+  if (!parsed.errors.empty()) {
+    error = parsed.errors.front();
+    runtime.raise_class_error("SyntaxError", error);
+    return false;
+  }
+  auto lowered = lower_to_ir(parsed.module);
+  if (!lowered.errors.empty()) {
+    error = lowered.errors.front();
+    runtime.raise_class_error("SyntaxError", error);
+    return false;
+  }
+  auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+  out = Value::code(module, module->entry, mode == "single" ? "exec" : mode);
+  return true;
+}
+
+bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, Value& out, std::string& error) {
+  if (code.module == nullptr || code.function_id >= code.module->functions.size()) {
+    error = "invalid code object";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  Interpreter interpreter(runtime);
+  Value target_globals = std::move(globals_module);
+  RuntimeResult result = interpreter.run_module(*code.module, target_globals, code.module);
+  if (!result.errors.empty()) {
+    error = result.errors.front();
+    return false;
+  }
+  if (code.mode == "eval") {
+    value_assign_fast(out, result.value);
+    return true;
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
@@ -520,6 +626,135 @@ bool builtin_globals(
   return true;
 }
 
+bool builtin_locals(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 0) {
+    return raise_type_error(runtime, "locals() expected no arguments", error);
+  }
+  out = runtime.current_locals_snapshot();
+  return true;
+}
+
+bool builtin_compile(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 3) {
+    return raise_type_error(runtime, "compile() expected at least 3 arguments", error);
+  }
+  std::string source;
+  if (!value_to_source_text(runtime, args[0], source, error)) {
+    return false;
+  }
+  auto* mode = value_as_string(args[2]);
+  if (mode == nullptr) {
+    return raise_type_error(runtime, "compile() mode must be str", error);
+  }
+  return compile_source_to_code(runtime, source, string_object_to_string(*mode), out, error);
+}
+
+bool builtin_eval(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 3) {
+    return raise_type_error(runtime, "eval() expected 1 to 3 arguments", error);
+  }
+  if (argc >= 2 && value_as_module(args[1]) == nullptr && args[1].tag != ValueTag::None) {
+    return raise_type_error(runtime, "eval() globals must be a module in this XLang3 phase", error);
+  }
+  if (argc == 3 && args[2].tag != ValueTag::None) {
+    return raise_type_error(runtime, "eval() explicit locals are not supported yet", error);
+  }
+
+  Value code_value;
+  if (auto* code = value_as_code(args[0])) {
+    (void)code;
+    value_assign_fast(code_value, args[0]);
+  } else {
+    std::string source;
+    if (!value_to_source_text(runtime, args[0], source, error)) {
+      return false;
+    }
+    if (!compile_source_to_code(runtime, source, "eval", code_value, error)) {
+      return false;
+    }
+  }
+
+  Value globals_module = argc >= 2 && value_as_module(args[1]) != nullptr ? args[1] : runtime.current_globals_module();
+  if (value_as_module(globals_module) == nullptr) {
+    error = "eval() has no active globals module";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  auto* code = value_as_code(code_value);
+  if (code == nullptr) {
+    return raise_type_error(runtime, "eval() expected str or code object", error);
+  }
+  if (code->mode != "eval") {
+    return raise_type_error(runtime, "eval() code object must be compiled with mode 'eval'", error);
+  }
+  return run_code_object(runtime, *code, std::move(globals_module), out, error);
+}
+
+bool builtin_exec(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 3) {
+    return raise_type_error(runtime, "exec() expected 1 to 3 arguments", error);
+  }
+  if (argc >= 2 && value_as_module(args[1]) == nullptr && args[1].tag != ValueTag::None) {
+    return raise_type_error(runtime, "exec() globals must be a module in this XLang3 phase", error);
+  }
+  if (argc == 3 && args[2].tag != ValueTag::None) {
+    return raise_type_error(runtime, "exec() explicit locals are not supported yet", error);
+  }
+
+  Value code_value;
+  if (auto* code = value_as_code(args[0])) {
+    (void)code;
+    value_assign_fast(code_value, args[0]);
+  } else {
+    std::string source;
+    if (!value_to_source_text(runtime, args[0], source, error)) {
+      return false;
+    }
+    if (!compile_source_to_code(runtime, source, "exec", code_value, error)) {
+      return false;
+    }
+  }
+
+  Value globals_module = argc >= 2 && value_as_module(args[1]) != nullptr ? args[1] : runtime.current_globals_module();
+  if (value_as_module(globals_module) == nullptr) {
+    error = "exec() has no active globals module";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  auto* code = value_as_code(code_value);
+  if (code == nullptr) {
+    return raise_type_error(runtime, "exec() expected str or code object", error);
+  }
+  if (code->mode == "eval") {
+    return raise_type_error(runtime, "exec() code object must not be compiled with mode 'eval'", error);
+  }
+  return run_code_object(runtime, *code, std::move(globals_module), out, error);
+}
+
 } // namespace
 
 void register_functional_builtins(Runtime& runtime) {
@@ -540,6 +775,10 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("dir", builtin_dir);
   runtime.register_native_builtin("vars", builtin_vars);
   runtime.register_native_builtin("globals", builtin_globals);
+  runtime.register_native_builtin("locals", builtin_locals);
+  runtime.register_native_builtin("compile", builtin_compile);
+  runtime.register_native_builtin("eval", builtin_eval);
+  runtime.register_native_builtin("exec", builtin_exec);
 }
 
 } // namespace xlang3
