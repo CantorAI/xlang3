@@ -397,7 +397,7 @@ High-level Python modules to run from Python source where possible:
 
 ### Debugger Compatibility
 
-- [ ] Python CLI compatibility for debugpy command shapes
+- [~] Python CLI compatibility for debugpy command shapes: script args, `-c`, `-m`, and `sys.argv` basics; full CPython flag matrix pending
 - [ ] `sys.settrace`
 - [ ] `sys.gettrace`
 - [ ] `threading.settrace`

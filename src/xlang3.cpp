@@ -30,7 +30,7 @@ limitations under the License.
 namespace {
 
 void print_usage() {
-  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] [--perf-counters] [file.py]\n";
+  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] [--perf-counters] [-c code | -m module | file.py] [args...]\n";
 }
 
 bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
@@ -52,6 +52,32 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       config.debug.output_dir = argv[++i];
       continue;
     }
+    if (arg == "-c") {
+      if (i + 1 >= argc) {
+        std::cerr << "-c requires code\n";
+        return false;
+      }
+      config.launch_mode = xlang3::RunConfig::LaunchMode::Command;
+      config.command = argv[++i];
+      config.argv.push_back("-c");
+      for (++i; i < argc; ++i) {
+        config.argv.push_back(argv[i]);
+      }
+      return true;
+    }
+    if (arg == "-m") {
+      if (i + 1 >= argc) {
+        std::cerr << "-m requires a module name\n";
+        return false;
+      }
+      config.launch_mode = xlang3::RunConfig::LaunchMode::Module;
+      config.module_name = argv[++i];
+      config.argv.push_back(config.module_name);
+      for (++i; i < argc; ++i) {
+        config.argv.push_back(argv[i]);
+      }
+      return true;
+    }
     if (!arg.empty() && arg[0] == '-') {
       std::cerr << "unknown option: " << arg << "\n";
       return false;
@@ -61,6 +87,12 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       return false;
     }
     config.source_path = arg;
+    config.launch_mode = xlang3::RunConfig::LaunchMode::Script;
+    config.argv.push_back(arg);
+    for (++i; i < argc; ++i) {
+      config.argv.push_back(argv[i]);
+    }
+    return true;
   }
   return true;
 }
@@ -121,6 +153,21 @@ bool run_source(
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";
     }
+    return false;
+  }
+  return true;
+}
+
+bool run_module_name(
+    const xlang3::RunConfig& config,
+    xlang3::Runtime& runtime,
+    bool dump_ir) {
+  (void)dump_ir;
+  (void)config;
+  std::string error;
+  xlang3::Value module;
+  if (!runtime.import_module(config.module_name, module, error)) {
+    std::cerr << "runtime: " << error << "\n";
     return false;
   }
   return true;
@@ -193,26 +240,41 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  if (config.source_path.empty()) {
+  if (config.launch_mode == xlang3::RunConfig::LaunchMode::Repl) {
     return run_repl();
   }
 
-  std::ifstream file(config.source_path, std::ios::binary);
-  if (!file) {
-    std::cerr << "cannot open " << config.source_path.string() << "\n";
-    return 2;
-  }
-  std::ostringstream buffer;
-  buffer << file.rdbuf();
-
   xlang3::Runtime runtime(std::cout);
-  runtime.prepend_import_root(config.source_path.parent_path());
+  if (!config.source_path.empty()) {
+    runtime.prepend_import_root(config.source_path.parent_path());
+  } else {
+    runtime.prepend_import_root(std::filesystem::current_path());
+  }
+  std::string argv_error;
+  if (!runtime.set_sys_argv(config.argv, argv_error)) {
+    std::cerr << "runtime: " << argv_error << "\n";
+    return 1;
+  }
   xlang3::Interpreter interpreter(runtime);
   if (config.perf_counters) {
     xlang3::xlang_perf_reset();
     xlang3::xlang_perf_set_enabled(true);
   }
-  const bool ok = run_source(buffer.str(), config, runtime, interpreter, config.debug.dump_ir);
+  bool ok = false;
+  if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
+    ok = run_source(config.command, config, runtime, interpreter, false);
+  } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Module) {
+    ok = run_module_name(config, runtime, config.debug.dump_ir);
+  } else {
+    std::ifstream file(config.source_path, std::ios::binary);
+    if (!file) {
+      std::cerr << "cannot open " << config.source_path.string() << "\n";
+      return 2;
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    ok = run_source(buffer.str(), config, runtime, interpreter, config.debug.dump_ir);
+  }
   if (config.perf_counters) {
     xlang3::xlang_perf_set_enabled(false);
     std::cerr << xlang3::xlang_perf_report();

@@ -180,6 +180,19 @@ void Runtime::set_current_globals_module(const Value& globals_module) {
   value_assign_fast(current_globals_module_, globals_module);
 }
 
+bool Runtime::set_sys_argv(const std::vector<std::string>& argv, std::string& error) {
+  Value sys;
+  if (!import_module("sys", sys, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(argv.size());
+  for (const auto& item : argv) {
+    values.push_back(Value::string(item));
+  }
+  return module_set_attr(sys, "argv", Value::list(std::move(values)), error);
+}
+
 void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {
   current_local_names_ = names;
   current_local_values_ = values;

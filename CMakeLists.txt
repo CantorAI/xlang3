@@ -252,3 +252,11 @@ add_test(
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
+
+add_test(
+  NAME xlang3_cli_compat
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+          -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/cli_compat
+)

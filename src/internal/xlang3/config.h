@@ -15,7 +15,8 @@ limitations under the License.
 #pragma once
 
 #include <filesystem>
-
+#include <string>
+#include <vector>
 
 namespace xlang3 {
 
@@ -25,7 +26,18 @@ struct DebugConfig {
 };
 
 struct RunConfig {
+  enum class LaunchMode {
+    Repl,
+    Script,
+    Command,
+    Module,
+  };
+
+  LaunchMode launch_mode = LaunchMode::Repl;
   std::filesystem::path source_path;
+  std::string command;
+  std::string module_name;
+  std::vector<std::string> argv;
   DebugConfig debug;
   bool perf_counters = false;
 };

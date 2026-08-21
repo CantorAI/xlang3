@@ -118,6 +118,7 @@ public:
   const std::string& last_error() const { return last_error_; }
   void set_current_globals_module(const Value& globals_module);
   const Value& current_globals_module() const { return current_globals_module_; }
+  bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
