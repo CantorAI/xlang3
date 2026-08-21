@@ -52,6 +52,7 @@ limitations under the License.
 #include <mutex>
 #include <new>
 #include <sstream>
+#include <string_view>
 #include <thread>
 
 #include "xlang_vm_inline_support.h"
@@ -383,7 +384,8 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg) -> bool {
-    const Value& hook = runtime_.trace_function();
+    const bool is_call_event = std::string_view(event_name) == std::string_view("call");
+    const Value& hook = is_call_event ? runtime_.trace_function() : trace_frame.trace_function;
     auto* hook_fn = value_as_function(hook);
     if (hook_fn == nullptr || runtime_.trace_dispatch_active()) {
       return true;
@@ -412,6 +414,12 @@ RuntimeResult Interpreter::run_function(
     if (!trace_result.errors.empty()) {
       result.errors.insert(result.errors.end(), trace_result.errors.begin(), trace_result.errors.end());
       return false;
+    }
+    if (auto* returned_trace = value_as_function(trace_result.value)) {
+      (void)returned_trace;
+      trace_frame.trace_function = trace_result.value;
+    } else if (trace_result.value.tag == ValueTag::None || trace_result.value.tag == ValueTag::Invalid) {
+      value_set_invalid(trace_frame.trace_function);
     }
     return true;
   };
@@ -474,6 +482,14 @@ RuntimeResult Interpreter::run_function(
       std::string ignored;
       Value traceback = make_traceback_from_frames();
       object_set_attr(exception, "__traceback__", traceback, ignored);
+    }
+    if (frame_count != 0) {
+      Value exception_type = runtime_.exception_type(exception);
+      Value traceback = make_traceback_from_frames();
+      Value event_arg = Value::tuple({exception_type, exception, traceback});
+      if (!emit_trace_event(frames[frame_count - 1], "exception", event_arg)) {
+        return false;
+      }
     }
     value_assign_fast(current_exception, exception);
     runtime_.set_active_exception(current_exception);
@@ -562,7 +578,7 @@ RuntimeResult Interpreter::run_function(
       runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
       runtime_.set_current_globals_module(globals_module);
       runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
-      if (runtime_.trace_function().tag == ValueTag::Object && !runtime_.trace_dispatch_active()) {
+      if (!runtime_.trace_dispatch_active()) {
         if (!frame.trace_call_emitted) {
           frame.trace_call_emitted = true;
           if (!emit_trace_event(frame, "call", Value::none())) {
@@ -570,7 +586,7 @@ RuntimeResult Interpreter::run_function(
           }
         }
         const uint32_t source_line = source_line_for_frame(frame);
-        if (source_line != 0 && source_line != frame.last_trace_line) {
+        if (value_as_function(frame.trace_function) != nullptr && source_line != 0 && source_line != frame.last_trace_line) {
           frame.last_trace_line = source_line;
           if (!emit_trace_event(frame, "line", Value::none())) {
             return result;

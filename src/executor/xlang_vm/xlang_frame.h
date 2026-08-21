@@ -160,6 +160,7 @@ struct XlangVMFrame {
   bool has_caller = false;
   FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
   Value continuation_value;
+  Value trace_function;
   size_t ip = 0;
   uint32_t last_trace_line = 0;
   bool trace_call_emitted = false;
@@ -228,6 +229,7 @@ struct XlangVMFrame {
     has_caller = frame_has_caller;
     return_mode = frame_return_mode;
     continuation_value = std::move(frame_continuation_value);
+    value_set_invalid(trace_function);
     ip = 0;
     last_trace_line = 0;
     trace_call_emitted = false;

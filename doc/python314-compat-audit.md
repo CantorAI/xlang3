@@ -398,7 +398,7 @@ High-level Python modules to run from Python source where possible:
 ### Debugger Compatibility
 
 - [~] Python CLI compatibility for debugpy command shapes: script args, `-c`, `-m`, and `sys.argv` basics; full CPython flag matrix pending
-- [~] `sys.settrace`: hook storage foundation; VM call/line/return events pending
+- [~] `sys.settrace`: hook storage plus Python function call/line/return/exception event dispatch; CPython edge cases pending
 - [~] `sys.gettrace`: returns stored hook
 - [~] `threading.settrace`: default thread hook storage foundation; native thread propagation/events pending
 - [~] `threading.gettrace`: returns stored default hook
@@ -406,10 +406,10 @@ High-level Python modules to run from Python source where possible:
 - [~] code objects
 - [~] traceback objects
 - [x] IR source line map: parser statement line stamps lower to per-instruction line metadata and serialize through IR cache
-- [~] line events: global `sys.settrace` hook receives source-backed line events; local trace chaining pending
+- [~] line events: source-backed line events use per-frame local trace functions
 - [~] call events: Python function calls emit trace call events; native/builtin call event policy pending
 - [~] return events: Python function returns emit trace return events; generator/exception edge cases pending
-- [ ] exception events
+- [~] exception events: raised Python exceptions emit trace exception events before handler/unwind dispatch
 - [ ] breakpoint mapping
 - [ ] step over
 - [ ] step in
