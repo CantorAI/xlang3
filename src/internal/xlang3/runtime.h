@@ -41,6 +41,11 @@ struct RawBlockContext {
   std::function<bool(const std::string& name, const Value& value, std::string& error)> set_var;
 };
 
+struct ExitFunction {
+  Value callable;
+  std::vector<Value> args;
+};
+
 class Runtime {
 public:
   using RawBlockHandler = bool (*)(
@@ -115,6 +120,9 @@ public:
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
+  void register_exit_function(Value callable, std::vector<Value> args);
+  void unregister_exit_function(const Value& callable);
+  bool run_exit_functions(std::string& error);
 
 private:
   void initialize();
@@ -134,6 +142,8 @@ private:
   Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
+  std::vector<ExitFunction> exit_functions_;
+  bool exit_functions_running_ = false;
 #if !defined(XLANG3_EMBEDDED)
   std::vector<std::filesystem::path> import_roots_;
 #endif

@@ -100,6 +100,11 @@ set(XLANG3_TASK_RUNTIME_SOURCES
   src/runtime/modules/task/task_objects.cpp
 )
 
+set(XLANG3_SYSTEM_RUNTIME_SOURCES
+  src/runtime/modules/system/atexit_module.cpp
+  src/runtime/modules/system/time_module.cpp
+)
+
 if(NOT XLANG3_EMBEDDED)
   list(APPEND XLANG3_RUNTIME_SOURCES
     src/ir/dump.cpp
@@ -127,6 +132,7 @@ add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
+add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
 
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
@@ -138,7 +144,7 @@ set_target_properties(xlang3_runtime_static PROPERTIES
 
 target_compile_definitions(xlang3_runtime PRIVATE XLANG3_BUILD_SHARED)
 
-foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime xlang3_task_runtime)
+foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
 target_include_directories(${xlang3_runtime_target}
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -147,13 +153,14 @@ target_include_directories(${xlang3_runtime_target}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/thread
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/task
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/system
 )
 
 target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
 endforeach()
 
-target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime)
-target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime)
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
 
 add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)

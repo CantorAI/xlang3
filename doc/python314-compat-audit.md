@@ -317,7 +317,7 @@ Legend:
 - [x] `max`
 - [x] `abs`
 - [~] `round`: numeric basics; CPython edge cases pending
-- [ ] `open` compatibility audit
+- [~] `open`: VFS-backed text file basics and context-manager methods; encoding/binary/buffering semantics pending
 - [x] `getattr`
 - [x] `setattr`
 - [x] `hasattr`
@@ -335,9 +335,9 @@ Legend:
 Native or runtime-backed foundation:
 
 - [~] `sys`: `modules` and `exc_info` basics
-- [ ] `time`
+- [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `sleep`
 - [x] `_thread` subset
-- [ ] `atexit`
+- [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
 - [ ] `nt` / `posix`
 - [ ] `_stat`
 - [ ] `_imp`

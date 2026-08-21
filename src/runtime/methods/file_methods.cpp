@@ -119,6 +119,31 @@ bool file_close_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool file_enter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.__enter__", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.__enter__", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool file_exit_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 4, "file.__exit__", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.__exit__", error);
+  if (file == nullptr || !flush_file(*file, error)) {
+    return false;
+  }
+  file->closed = true;
+  out = Value::boolean(false);
+  return true;
+}
+
 } // namespace
 
 bool file_get_method(const Value& object, const std::string& name, Value& out) {
@@ -126,6 +151,8 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {
+      {"__enter__", "file.__enter__", file_enter_method},
+      {"__exit__", "file.__exit__", file_exit_method},
       {"close", "file.close", file_close_method},
       {"flush", "file.flush", file_flush_method},
       {"read", "file.read", file_read_method},

@@ -86,6 +86,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "compile");
   copy_builtin(runtime, builtins, "eval");
   copy_builtin(runtime, builtins, "exec");
+  copy_builtin(runtime, builtins, "open");
   runtime.register_module("_builtins", std::move(builtins));
 
   NativeModuleBuilder sys_builder(runtime, "sys");

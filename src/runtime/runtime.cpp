@@ -121,6 +121,8 @@ Runtime::Runtime(OutputSink output)
 }
 
 Runtime::~Runtime() {
+  std::string ignored;
+  run_exit_functions(ignored);
   value_set_invalid(pending_exception_);
   value_set_invalid(active_exception_);
   value_set_invalid(current_globals_module_);
@@ -209,6 +211,30 @@ Value Runtime::current_locals_snapshot() const {
     entries.push_back({Value::string(name), current_local_values_[i]});
   }
   return Value::dict(std::move(entries));
+}
+
+void Runtime::register_exit_function(Value callable, std::vector<Value> args) {
+  exit_functions_.push_back(ExitFunction{std::move(callable), std::move(args)});
+}
+
+void Runtime::unregister_exit_function(const Value& callable) {
+  exit_functions_.erase(
+      std::remove_if(
+          exit_functions_.begin(),
+          exit_functions_.end(),
+          [&](const ExitFunction& entry) {
+            if (entry.callable.tag != callable.tag) {
+              return false;
+            }
+            if (entry.callable.tag == ValueTag::Object) {
+              return entry.callable.as.obj == callable.as.obj;
+            }
+            if (entry.callable.tag == ValueTag::Int64) {
+              return entry.callable.as.i64 == callable.as.i64;
+            }
+            return false;
+          }),
+      exit_functions_.end());
 }
 
 Value Runtime::make_native_function(
