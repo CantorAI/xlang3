@@ -79,6 +79,7 @@ $cases = @(
     "inspect_module",
     "inspect_currentframe",
     "debug_frame_metadata",
+    "debug_breakpoint_step",
     "logging_pathlib_modules",
     "socket_select_modules",
     "file_import",

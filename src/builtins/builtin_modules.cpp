@@ -72,6 +72,88 @@ bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
+bool sys_xlang3_debug_set_hook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys._xlang3_debug_set_hook expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].tag != ValueTag::None && value_as_function(args[0]) == nullptr) {
+    error = "sys._xlang3_debug_set_hook expected function or None";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.set_debug_hook(args[0]);
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_add_breakpoint(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "sys._xlang3_debug_add_breakpoint expected 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* file = value_as_string(args[0]);
+  if (file == nullptr || args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0) {
+    error = "sys._xlang3_debug_add_breakpoint expected file and positive line";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_add_breakpoint(string_object_to_string(*file), static_cast<uint32_t>(args[1].as.i64));
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_clear_breakpoints(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._xlang3_debug_clear_breakpoints expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_clear_breakpoints();
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_step_into(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._xlang3_debug_step_into expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_step_into();
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_continue(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._xlang3_debug_continue expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  runtime.debug_continue();
+  value_set_none(out);
+  return true;
+}
+
+bool sys_xlang3_debug_poll_needed(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._xlang3_debug_poll_needed expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::boolean(runtime.debug_poll_needed());
+  return true;
+}
+
 } // namespace
 
 void register_builtin_modules(Runtime& runtime) {
@@ -124,6 +206,36 @@ void register_builtin_modules(Runtime& runtime) {
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_set_hook",
+      runtime.make_native_function("sys._xlang3_debug_set_hook", sys_xlang3_debug_set_hook),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_add_breakpoint",
+      runtime.make_native_function("sys._xlang3_debug_add_breakpoint", sys_xlang3_debug_add_breakpoint),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_clear_breakpoints",
+      runtime.make_native_function("sys._xlang3_debug_clear_breakpoints", sys_xlang3_debug_clear_breakpoints),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_step_into",
+      runtime.make_native_function("sys._xlang3_debug_step_into", sys_xlang3_debug_step_into),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_continue",
+      runtime.make_native_function("sys._xlang3_debug_continue", sys_xlang3_debug_continue),
+      error);
+  module_set_attr(
+      sys,
+      "_xlang3_debug_poll_needed",
+      runtime.make_native_function("sys._xlang3_debug_poll_needed", sys_xlang3_debug_poll_needed),
+      error);
   runtime.register_module("sys", std::move(sys));
 }
 

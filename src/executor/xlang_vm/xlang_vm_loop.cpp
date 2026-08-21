@@ -443,6 +443,58 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto emit_debug_event = [&](VMFrame& debug_frame, const char* event_name) -> bool {
+    auto* hook_fn = value_as_function(runtime_.debug_hook());
+    if (hook_fn == nullptr || runtime_.debug_dispatch_active()) {
+      return true;
+    }
+    runtime_.set_current_frame(
+        &debug_frame.module_owner,
+        debug_frame.function_id,
+        &debug_frame.globals_module,
+        static_cast<uint32_t>(debug_frame.ip));
+    runtime_.set_current_globals_module(debug_frame.globals_module);
+    runtime_.set_current_frame_locals(
+        &debug_frame.fn->locals,
+        debug_frame.locals.value_data(),
+        debug_frame.locals.size());
+
+    Value debug_args_storage[2] = {
+        runtime_.current_frame_snapshot(),
+        Value::string(event_name),
+    };
+    CallArgsView debug_args;
+    debug_args.leading = debug_args_storage;
+    debug_args.leading_count = 2;
+
+    runtime_.set_debug_dispatch_active(true);
+    Interpreter debug_interpreter(runtime_);
+    RuntimeResult debug_result = debug_interpreter.run_function_value(hook_fn, debug_args);
+    runtime_.set_debug_dispatch_active(false);
+    if (!debug_result.errors.empty()) {
+      result.errors.insert(result.errors.end(), debug_result.errors.begin(), debug_result.errors.end());
+      return false;
+    }
+    return true;
+  };
+
+  auto poll_debug_event = [&](VMFrame& debug_frame) -> bool {
+    const uint32_t source_line = source_line_for_frame(debug_frame);
+    if (source_line == 0 || source_line == debug_frame.last_debug_line) {
+      return true;
+    }
+    debug_frame.last_debug_line = source_line;
+    const std::string_view source_file =
+        debug_frame.module != nullptr ? std::string_view(debug_frame.module->source_file) : std::string_view();
+    if (runtime_.debug_breakpoint_matches(source_file, source_line)) {
+      return emit_debug_event(debug_frame, "breakpoint");
+    }
+    if (runtime_.debug_step_active()) {
+      return emit_debug_event(debug_frame, "step");
+    }
+    return true;
+  };
+
   auto finish_frame = [&](const Value& return_value) -> bool {
     VMFrame& finished = frames[frame_count - 1];
     if (!emit_trace_event(finished, "return", return_value)) {
@@ -598,6 +650,11 @@ RuntimeResult Interpreter::run_function(
       runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
       runtime_.set_current_globals_module(globals_module);
       runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
+      if (XLANG3_UNLIKELY(runtime_.debug_poll_needed())) {
+        if (!poll_debug_event(frame)) {
+          return result;
+        }
+      }
       if (!runtime_.trace_dispatch_active()) {
         if (!frame.trace_call_emitted) {
           frame.trace_call_emitted = true;

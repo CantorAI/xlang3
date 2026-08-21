@@ -26,6 +26,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -44,6 +45,16 @@ struct RuntimeFrameView {
   const size_t* instruction_index = nullptr;
   size_t local_count = 0;
   uint32_t function_id = 0;
+};
+
+enum class RuntimeDebugStepMode : uint8_t {
+  Continue,
+  StepInto,
+};
+
+struct RuntimeDebugBreakpoint {
+  std::string file;
+  uint32_t line = 0;
 };
 
 struct RawBlockContext {
@@ -146,12 +157,24 @@ public:
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
+  void set_debug_hook(Value hook);
+  const Value& debug_hook() const { return debug_hook_; }
+  bool debug_dispatch_active() const { return debug_dispatch_active_; }
+  void set_debug_dispatch_active(bool active);
+  bool debug_poll_needed() const { return debug_poll_needed_; }
+  bool debug_step_active() const { return debug_step_mode_ != RuntimeDebugStepMode::Continue; }
+  void debug_add_breakpoint(std::string file, uint32_t line);
+  void debug_clear_breakpoints();
+  void debug_step_into();
+  void debug_continue();
+  bool debug_breakpoint_matches(std::string_view file, uint32_t line) const;
   void register_exit_function(Value callable, std::vector<Value> args);
   void unregister_exit_function(const Value& callable);
   bool run_exit_functions(std::string& error);
 
 private:
   void initialize();
+  void refresh_debug_poll_needed();
 
   OutputSink output_;
   std::unique_ptr<Vfs> vfs_;
@@ -161,7 +184,12 @@ private:
   Value current_globals_module_;
   Value trace_function_;
   Value thread_trace_function_;
+  Value debug_hook_;
   bool trace_dispatch_active_ = false;
+  bool debug_dispatch_active_ = false;
+  bool debug_poll_needed_ = false;
+  RuntimeDebugStepMode debug_step_mode_ = RuntimeDebugStepMode::Continue;
+  std::vector<RuntimeDebugBreakpoint> debug_breakpoints_;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
   const Value* current_frame_globals_module_ = nullptr;
   uint32_t current_frame_function_id_ = 0;

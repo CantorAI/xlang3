@@ -128,6 +128,7 @@ Runtime::~Runtime() {
   value_set_invalid(current_globals_module_);
   value_set_invalid(trace_function_);
   value_set_invalid(thread_trace_function_);
+  value_set_invalid(debug_hook_);
   clear_current_frame();
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
@@ -202,6 +203,68 @@ void Runtime::set_trace_function(Value trace_function) {
 
 void Runtime::set_thread_trace_function(Value trace_function) {
   thread_trace_function_ = trace_function;
+}
+
+void Runtime::refresh_debug_poll_needed() {
+  debug_poll_needed_ = value_as_function(debug_hook_) != nullptr && !debug_dispatch_active_ &&
+                       (debug_step_mode_ != RuntimeDebugStepMode::Continue || !debug_breakpoints_.empty());
+}
+
+void Runtime::set_debug_hook(Value hook) {
+  debug_hook_ = std::move(hook);
+  refresh_debug_poll_needed();
+}
+
+void Runtime::set_debug_dispatch_active(bool active) {
+  debug_dispatch_active_ = active;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_add_breakpoint(std::string file, uint32_t line) {
+  if (file.empty() || line == 0) {
+    return;
+  }
+  for (const auto& breakpoint : debug_breakpoints_) {
+    if (breakpoint.line == line && breakpoint.file == file) {
+      return;
+    }
+  }
+  debug_breakpoints_.push_back(RuntimeDebugBreakpoint{std::move(file), line});
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_clear_breakpoints() {
+  debug_breakpoints_.clear();
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_step_into() {
+  debug_step_mode_ = RuntimeDebugStepMode::StepInto;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_continue() {
+  debug_step_mode_ = RuntimeDebugStepMode::Continue;
+  refresh_debug_poll_needed();
+}
+
+bool Runtime::debug_breakpoint_matches(std::string_view file, uint32_t line) const {
+  if (line == 0) {
+    return false;
+  }
+  for (const auto& breakpoint : debug_breakpoints_) {
+    if (breakpoint.line != line) {
+      continue;
+    }
+    if (file == breakpoint.file) {
+      return true;
+    }
+    if (file.size() > breakpoint.file.size() &&
+        file.substr(file.size() - breakpoint.file.size()) == breakpoint.file) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void Runtime::set_current_frame(

@@ -14,6 +14,14 @@ limitations under the License.
 */
 #pragma once
 
+#if defined(__GNUC__) || defined(__clang__)
+#define XLANG3_LIKELY(expr) __builtin_expect(!!(expr), 1)
+#define XLANG3_UNLIKELY(expr) __builtin_expect(!!(expr), 0)
+#else
+#define XLANG3_LIKELY(expr) (expr)
+#define XLANG3_UNLIKELY(expr) (expr)
+#endif
+
 #if defined(XLANG3_SIZE_OPT) && XLANG3_SIZE_OPT
 #define XLANG3_FORCE_INLINE inline
 #define XLANG3_HOT_INLINE inline
