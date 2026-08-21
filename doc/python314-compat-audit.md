@@ -357,7 +357,7 @@ High-level Python modules to run from Python source where possible:
 - [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [ ] `inspect`
-- [ ] `runpy`
+- [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
 - [ ] `importlib`
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
 - [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending

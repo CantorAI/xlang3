@@ -72,6 +72,7 @@ $cases = @(
     "collections_queue_facades",
     "types_module",
     "traceback_module",
+    "runpy_module",
     "file_import",
     "global_from_import",
     "package_import",

@@ -36,6 +36,7 @@ void register_core_builtins(Runtime& runtime) {
   register_queue_module(runtime);
   register_types_module(runtime);
   register_traceback_module(runtime);
+  register_runpy_module(runtime);
 #endif
   register_thread_modules(runtime);
 #ifndef XLANG3_EMBEDDED
