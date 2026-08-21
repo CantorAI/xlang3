@@ -144,6 +144,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     return false;
   }
   auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
+  module_ir->source_file = module_file.path;
 
   runtime.register_module(name, module_value);
   Interpreter interpreter(runtime);

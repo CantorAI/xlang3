@@ -36,6 +36,16 @@ struct OutputSink {
   void (*write)(void* context, const char* data, std::size_t size) = nullptr;
 };
 
+struct RuntimeFrameView {
+  const std::shared_ptr<const ir::Module>* module_owner = nullptr;
+  const Value* globals_module = nullptr;
+  const std::vector<std::string>* local_names = nullptr;
+  const Value* local_values = nullptr;
+  const size_t* instruction_index = nullptr;
+  size_t local_count = 0;
+  uint32_t function_id = 0;
+};
+
 struct RawBlockContext {
   std::function<bool(const std::string& name, Value& out, std::string& error)> get_var;
   std::function<bool(const std::string& name, const Value& value, std::string& error)> set_var;
@@ -130,6 +140,7 @@ public:
       uint32_t function_id,
       const Value* globals_module,
       uint32_t instruction_index);
+  void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
   void clear_current_frame();
   Value current_frame_snapshot() const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
@@ -155,6 +166,8 @@ private:
   const Value* current_frame_globals_module_ = nullptr;
   uint32_t current_frame_function_id_ = 0;
   uint32_t current_frame_instruction_index_ = 0;
+  const RuntimeFrameView* current_frame_stack_ = nullptr;
+  size_t current_frame_stack_count_ = 0;
   const std::vector<std::string>* current_local_names_ = nullptr;
   const Value* current_local_values_ = nullptr;
   size_t current_local_count_ = 0;

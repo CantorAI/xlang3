@@ -167,6 +167,7 @@ struct Instr {
 struct Function {
   std::string name;
   bool is_generator = false;
+  uint32_t first_line = 0;
   std::vector<std::string> params;
   std::vector<Param> signature;
   std::vector<std::string> locals;
@@ -199,6 +200,7 @@ struct Function {
 };
 
 struct Module {
+  std::string source_file;
   std::vector<std::string> global_slots;
   std::vector<Function> functions;
   uint32_t entry = 0;

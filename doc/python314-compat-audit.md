@@ -219,8 +219,8 @@ Legend:
 - [~] keyword args runtime behavior
 - [~] varargs/kwargs objects
 - [~] function object attributes: `__name__`, `__module__`, `__defaults__`, `__annotations__`, `__code__`; broader CPython audit pending
-- [~] code objects: foundation with `co_name`, `co_argcount`, `co_varnames`, `co_names`, `co_consts`; full CPython fields pending
-- [~] frame objects: foundation with `f_code`, `f_globals`, `f_lineno`; locals/source-line semantics pending
+- [~] code objects: foundation with `co_name`, `co_argcount`, `co_varnames`, `co_names`, `co_consts`, `co_filename`, and `co_firstlineno`; full CPython fields pending
+- [~] frame objects: foundation with `f_code`, `f_back`, `f_globals`, `f_locals`, and source-backed `f_lineno`; debugger mutation/source semantics pending
 - [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`; precise source-line mapping pending
 
 ### Exceptions
@@ -402,8 +402,8 @@ High-level Python modules to run from Python source where possible:
 - [~] `sys.gettrace`: returns stored hook
 - [~] `threading.settrace`: default thread hook storage foundation; native thread propagation/events pending
 - [~] `threading.gettrace`: returns stored default hook
-- [~] frame objects: `inspect.currentframe()`, `f_code`, `f_globals`, `f_locals`, and source-backed `f_lineno` foundation
-- [~] code objects
+- [~] frame objects: `inspect.currentframe()`, `f_back`, `f_code`, `f_globals`, `f_locals`, and source-backed `f_lineno` foundation
+- [~] code objects: debugger-visible `co_filename` and `co_firstlineno` added; full CPython code metadata pending
 - [~] traceback objects
 - [x] IR source line map: parser statement line stamps lower to per-instruction line metadata and serialize through IR cache
 - [~] line events: source-backed line events use per-frame local trace functions

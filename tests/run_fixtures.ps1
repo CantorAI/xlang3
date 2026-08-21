@@ -78,6 +78,7 @@ $cases = @(
     "weakref_module",
     "inspect_module",
     "inspect_currentframe",
+    "debug_frame_metadata",
     "logging_pathlib_modules",
     "socket_select_modules",
     "file_import",

@@ -149,6 +149,9 @@ const char* param_kind_name(ParamKind kind) {
 std::string dump_module(const Module& module) {
   std::ostringstream os;
   os << "entry: #" << module.entry << "\n\n";
+  if (!module.source_file.empty()) {
+    os << "source_file: " << module.source_file << "\n\n";
+  }
   os << "module_slots:";
   for (size_t i = 0; i < module.global_slots.size(); ++i) {
     os << " %" << i << "=" << module.global_slots[i];
@@ -157,6 +160,7 @@ std::string dump_module(const Module& module) {
   for (size_t fn_i = 0; fn_i < module.functions.size(); ++fn_i) {
     const auto& fn = module.functions[fn_i];
     os << "function #" << fn_i << " " << fn.name << "\n";
+    os << "  first_line: " << fn.first_line << "\n";
     os << "  generator: " << (fn.is_generator ? "true" : "false") << "\n";
     os << "  params:";
     for (size_t i = 0; i < fn.params.size(); ++i) {

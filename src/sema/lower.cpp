@@ -718,6 +718,7 @@ public:
       std::vector<std::string> free_vars,
       const std::vector<ast::StmtPtr>& body,
       bool is_generator,
+      uint32_t first_line = 0,
       bool is_module = false,
       std::string instance_slot_self = {},
       std::unordered_map<std::string, uint32_t> instance_slots = {},
@@ -733,6 +734,7 @@ public:
         imported_module_slots_(std::move(imported_module_slots)) {
     fn_.name = std::move(name);
     fn_.is_generator = is_generator;
+    fn_.first_line = first_line;
     fn_.params = std::move(params);
     fn_.signature = std::move(signature);
     fn_.free_vars = std::move(free_vars);
@@ -1394,7 +1396,7 @@ private:
       annotation_regs.push_back(std::make_pair("return", lower_expr(*fn.return_annotation)));
     }
     FunctionLowerer child_lowerer(
-        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, body_contains_yield(fn.body), false,
+        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, body_contains_yield(fn.body), fn.line, false,
         std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
         imported_module_slots_);
     child_lowerer.lower_body(fn.body);
@@ -2100,7 +2102,7 @@ private:
 
   uint32_t lower_generator_expr(const ast::GeneratorExpr& comp) {
     FunctionLowerer child_lowerer(
-        module_, "#genexpr", {}, {}, {}, std::vector<ast::StmtPtr>{}, true, false,
+        module_, "#genexpr", {}, {}, {}, std::vector<ast::StmtPtr>{}, true, 0, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
     const auto clauses = child_lowerer.generator_comp_clauses(comp);
     child_lowerer.lower_comprehension_clauses(
@@ -2484,7 +2486,7 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
   LowerResult result;
   auto global_slots = collect_module_global_slots(module_ast);
   result.module.global_slots = global_slots.names;
-  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, true, {}, {}, {}, global_slots.slots);
+  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, 1, true, {}, {}, {}, global_slots.slots);
   lowerer.lower_body(module_ast.body);
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);

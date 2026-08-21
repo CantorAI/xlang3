@@ -215,15 +215,68 @@ void Runtime::set_current_frame(
   current_frame_instruction_index_ = instruction_index;
 }
 
+void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {
+  current_frame_stack_ = frames;
+  current_frame_stack_count_ = count;
+}
+
 void Runtime::clear_current_frame() {
   current_frame_module_owner_ = nullptr;
   current_frame_globals_module_ = nullptr;
   current_frame_function_id_ = 0;
   current_frame_instruction_index_ = 0;
+  current_frame_stack_ = nullptr;
+  current_frame_stack_count_ = 0;
   clear_current_frame_locals();
 }
 
+namespace {
+
+Value locals_snapshot_from_view(const RuntimeFrameView& view) {
+  if (view.local_names == nullptr || view.local_values == nullptr) {
+    return Value::dict({});
+  }
+  const size_t count = view.local_count < view.local_names->size() ? view.local_count : view.local_names->size();
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    const auto& name = (*view.local_names)[i];
+    if (name.empty() || name[0] == '#') {
+      continue;
+    }
+    if (view.local_values[i].tag == ValueTag::Invalid) {
+      continue;
+    }
+    entries.push_back({Value::string(name), view.local_values[i]});
+  }
+  return Value::dict(std::move(entries));
+}
+
+Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index) {
+  const auto& view = frames[index];
+  if (view.module_owner == nullptr || view.module_owner->get() == nullptr || view.globals_module == nullptr ||
+      view.instruction_index == nullptr) {
+    return Value::none();
+  }
+  Value back = Value::none();
+  if (index != 0) {
+    back = materialize_frame_from_stack(frames, index - 1);
+  }
+  return Value::frame(
+      *view.module_owner,
+      view.function_id,
+      *view.globals_module,
+      static_cast<uint32_t>(*view.instruction_index),
+      locals_snapshot_from_view(view),
+      std::move(back));
+}
+
+} // namespace
+
 Value Runtime::current_frame_snapshot() const {
+  if (current_frame_stack_ != nullptr && current_frame_stack_count_ != 0) {
+    return materialize_frame_from_stack(current_frame_stack_, current_frame_stack_count_ - 1);
+  }
   if (current_frame_module_owner_ == nullptr || current_frame_globals_module_ == nullptr ||
       current_frame_module_owner_->get() == nullptr) {
     return Value::none();

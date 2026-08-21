@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 10;
+constexpr uint32_t kVersion = 11;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -632,6 +632,7 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
     return false;
   }
   w.u8(fn.is_generator ? 1 : 0);
+  w.u32(fn.first_line);
   if (!write_string_vector(w, fn.params, error) ||
       !write_params(w, fn.signature, error) ||
       !write_string_vector(w, fn.locals, error) ||
@@ -689,6 +690,7 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
   uint8_t is_generator = 0;
   if (!r.string(fn.name) ||
       !r.u8(is_generator) ||
+      !r.u32(fn.first_line) ||
       !read_string_vector(r, fn.params, error) ||
       !read_params(r, fn.signature, error) ||
       !read_string_vector(r, fn.locals, error) ||
@@ -760,6 +762,9 @@ bool encode_module(const Module& module, uint64_t source_hash, EncodedModule& ou
   w.u32(kVersion);
   w.u64(source_hash);
   w.u32(module.entry);
+  if (!w.string(module.source_file, error)) {
+    return false;
+  }
   if (!write_string_vector(w, module.global_slots, error)) {
     return false;
   }
@@ -796,6 +801,7 @@ bool decode_module(const uint8_t* data, std::size_t size, uint64_t expected_sour
   Module module;
   uint32_t function_count = 0;
   if (!r.u32(module.entry) ||
+      !r.string(module.source_file) ||
       !read_string_vector(r, module.global_slots, error) ||
       !r.u32(function_count) ||
       !check_count(function_count, error)) {

@@ -67,6 +67,7 @@ bool run_source_as_module(
   }
 
   auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
+  module_ir->source_file = file_name;
   Value module = Value::module(module_name);
   std::string attr_error;
   module_set_attr(module, "__name__", Value::string(module_name), attr_error);

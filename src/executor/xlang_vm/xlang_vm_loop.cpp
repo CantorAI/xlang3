@@ -258,6 +258,7 @@ RuntimeResult Interpreter::run_function(
   }
 
   std::vector<VMFrame> frames;
+  std::vector<RuntimeFrameView> runtime_frame_views;
   size_t frame_count = 0;
   bool resumed_generator = false;
   if (generator != nullptr && generator->vm_state != nullptr) {
@@ -381,6 +382,24 @@ RuntimeResult Interpreter::run_function(
       return trace_frame.fn->source_lines[trace_frame.ip];
     }
     return 0;
+  };
+
+  auto refresh_runtime_frame_views = [&]() {
+    runtime_frame_views.clear();
+    runtime_frame_views.reserve(frame_count);
+    for (size_t i = 0; i < frame_count; ++i) {
+      auto& view_frame = frames[i];
+      runtime_frame_views.push_back(RuntimeFrameView{
+          &view_frame.module_owner,
+          &view_frame.globals_module,
+          &view_frame.fn->locals,
+          view_frame.locals.value_data(),
+          &view_frame.ip,
+          view_frame.locals.size(),
+          view_frame.function_id,
+      });
+    }
+    runtime_.set_current_frame_stack(runtime_frame_views.data(), runtime_frame_views.size());
   };
 
   auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg) -> bool {
@@ -529,6 +548,7 @@ RuntimeResult Interpreter::run_function(
   }
 
   while (frame_count != 0) {
+    refresh_runtime_frame_views();
     auto& frame = frames[frame_count - 1];
     const auto& module = *frame.module;
     const auto& fn = *frame.fn;

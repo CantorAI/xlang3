@@ -74,6 +74,7 @@ bool eval_source_starts_with_statement_keyword(const std::string& source) {
 bool compile_source_to_code(
     Runtime& runtime,
     const std::string& source,
+    const std::string& filename,
     const std::string& mode,
     Value& out,
     std::string& error) {
@@ -98,6 +99,7 @@ bool compile_source_to_code(
       return false;
     }
     auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+    module->source_file = filename;
     out = Value::code(module, module->entry, mode);
     return true;
   } else if (mode != "exec" && mode != "single") {
@@ -117,6 +119,7 @@ bool compile_source_to_code(
     return false;
   }
   auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+  module->source_file = filename;
   out = Value::code(module, module->entry, mode == "single" ? "exec" : mode);
   return true;
 }
@@ -658,7 +661,9 @@ bool builtin_compile(
   if (mode == nullptr) {
     return raise_type_error(runtime, "compile() mode must be str", error);
   }
-  return compile_source_to_code(runtime, source, string_object_to_string(*mode), out, error);
+  auto* filename = value_as_string(args[1]);
+  const std::string filename_text = filename == nullptr ? "<string>" : string_object_to_string(*filename);
+  return compile_source_to_code(runtime, source, filename_text, string_object_to_string(*mode), out, error);
 }
 
 bool builtin_eval(
@@ -687,7 +692,7 @@ bool builtin_eval(
     if (!value_to_source_text(runtime, args[0], source, error)) {
       return false;
     }
-    if (!compile_source_to_code(runtime, source, "eval", code_value, error)) {
+    if (!compile_source_to_code(runtime, source, "<string>", "eval", code_value, error)) {
       return false;
     }
   }
@@ -734,7 +739,7 @@ bool builtin_exec(
     if (!value_to_source_text(runtime, args[0], source, error)) {
       return false;
     }
-    if (!compile_source_to_code(runtime, source, "exec", code_value, error)) {
+    if (!compile_source_to_code(runtime, source, "<string>", "exec", code_value, error)) {
       return false;
     }
   }

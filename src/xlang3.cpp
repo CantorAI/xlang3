@@ -148,6 +148,11 @@ bool run_source(
   }
 
   auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+  if (!config.source_path.empty()) {
+    module->source_file = config.source_path.string();
+  } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
+    module->source_file = "<string>";
+  }
   auto result = interpreter.run(std::move(module));
   if (!result.errors.empty()) {
     for (const auto& error : result.errors) {

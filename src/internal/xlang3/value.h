@@ -209,7 +209,8 @@ struct Value {
       uint32_t function_id,
       Value globals_module,
       uint32_t instruction_index = 0,
-      Value locals = Value::invalid());
+      Value locals = Value::invalid(),
+      Value back = Value::invalid());
   static Value traceback(Value frame, Value next, int64_t line);
   static Value native_function(
       uint32_t native_id,
@@ -391,6 +392,7 @@ struct FrameObject {
   uint32_t instruction_index = 0;
   Value globals_module;
   Value locals;
+  Value back;
 };
 
 struct MemoryViewObject {

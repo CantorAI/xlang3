@@ -466,6 +466,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       out = Value::string(fn.name);
       return true;
     }
+    if (name == "co_filename") {
+      out = Value::string(code->module->source_file.empty() ? "<xlang3>" : code->module->source_file);
+      return true;
+    }
+    if (name == "co_firstlineno") {
+      out = Value::int64(fn.first_line);
+      return true;
+    }
     if (name == "co_argcount") {
       uint32_t count = 0;
       if (!fn.signature.empty()) {
@@ -517,6 +525,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "f_globals") {
       out = module_globals_snapshot(frame->globals_module);
+      return true;
+    }
+    if (name == "f_back") {
+      if (frame->back.tag == ValueTag::Invalid) {
+        value_set_none(out);
+      } else {
+        value_assign_fast(out, frame->back);
+      }
       return true;
     }
     if (name == "f_lineno") {
