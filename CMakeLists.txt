@@ -123,6 +123,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
 if(NOT XLANG3_EMBEDDED)
   list(APPEND XLANG3_RUNTIME_SOURCES
     src/debug/debug_session.cpp
+    src/debug/dap_session.cpp
     src/ir/dump.cpp
     src/api/c_api.cpp
     src/import/import_loader.cpp
@@ -175,6 +176,9 @@ target_include_directories(${xlang3_runtime_target}
 target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
 endforeach()
 
+target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
+target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
+
 target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
 target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
 
@@ -193,6 +197,7 @@ function(add_xlang3_cpp_test name source)
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json
   )
   add_test(NAME ${name} COMMAND ${name})
 endfunction()
@@ -203,6 +208,7 @@ add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 add_xlang3_cpp_test(xlang3_debug_session_tests tests/cpp/debug_session_tests.cpp)
+add_xlang3_cpp_test(xlang3_dap_session_tests tests/cpp/dap_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
 add_xlang3_cpp_test(xlang3_threading_tests tests/cpp/threading_tests.cpp)
 add_xlang3_cpp_test(xlang3_task_tests tests/cpp/task_tests.cpp)

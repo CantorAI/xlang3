@@ -207,6 +207,50 @@ The DAP server must call this controller instead of duplicating VM control
 logic. This keeps the transport layer small and preserves one source of truth
 for frame-stack pause/resume behavior.
 
+## Native DAP Adapter Track
+
+XLang3 also has a native C++ DAP adapter track for desktop debugging. This is
+not a debugpy rewrite and it is not the Pico/device protocol. It is a direct
+DAP transport binding over `DebugSession`:
+
+```text
+IDE DAP client
+  -> XLang3 native DAP adapter
+    -> DebugSession
+      -> Runtime debug state
+      -> XlangVM
+```
+
+The adapter owns only protocol work:
+
+- read and write DAP framing: `Content-Length: N\r\n\r\n{json}`
+- dispatch debugger commands
+- emit DAP responses and events as separate protocol messages
+- translate paused XLang3 frames/scopes/variables into DAP shape
+
+Initial command surface:
+
+```text
+initialize
+launch
+setBreakpoints
+configurationDone
+continue
+next
+stepIn
+stepOut
+stackTrace
+scopes
+variables
+disconnect
+terminate
+```
+
+The adapter must not duplicate VM stepping logic. Breakpoint ownership,
+pause/resume state, and stack-frame state stay inside `DebugSession` and the
+runtime debug hooks. A socket or stdio adapter process can be added on top of
+the same `DapSession` protocol core.
+
 ## Source Mapping
 
 The IR must carry enough source mapping for Python-level debugging:
@@ -323,7 +367,6 @@ The device runtime must remain no-OS friendly and must not depend on Python debu
 
 - CPython C extension ABI compatibility.
 - Replacing XlangVM with CPython.
-- Implementing a custom DAP adapter as the first path.
 - Making Pico run full debugpy.
 
 These may be separate tracks later.
