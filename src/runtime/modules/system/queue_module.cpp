@@ -136,9 +136,16 @@ Value make_simple_queue_class(Runtime& runtime) {
 } // namespace
 
 void register_queue_module(Runtime& runtime) {
+  Value simple_queue_class = make_simple_queue_class(runtime);
+
   NativeModuleBuilder builder(runtime, "_queue");
-  builder.value("SimpleQueue", make_simple_queue_class(runtime));
+  builder.value("SimpleQueue", simple_queue_class);
   runtime.register_module("_queue", builder.finish());
+
+  NativeModuleBuilder facade(runtime, "queue");
+  facade.value("SimpleQueue", simple_queue_class)
+      .value("Queue", std::move(simple_queue_class));
+  runtime.register_module("queue", facade.finish());
 }
 
 } // namespace xlang3

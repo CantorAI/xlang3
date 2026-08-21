@@ -263,9 +263,15 @@ Value make_deque_class(Runtime& runtime) {
 } // namespace
 
 void register_collections_module(Runtime& runtime) {
+  Value deque_class = make_deque_class(runtime);
+
   NativeModuleBuilder builder(runtime, "_collections");
-  builder.value("deque", make_deque_class(runtime));
+  builder.value("deque", deque_class);
   runtime.register_module("_collections", builder.finish());
+
+  NativeModuleBuilder facade(runtime, "collections");
+  facade.value("deque", std::move(deque_class));
+  runtime.register_module("collections", facade.finish());
 }
 
 } // namespace xlang3

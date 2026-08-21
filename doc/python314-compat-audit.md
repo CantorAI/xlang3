@@ -354,13 +354,13 @@ High-level Python modules to run from Python source where possible:
 - [~] `os`: VFS-backed `listdir`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics
 - [ ] `socket`
 - [x] `json` through native package, not CPython-compatible package yet
-- [ ] `queue`
+- [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
 - [ ] `traceback`
 - [ ] `inspect`
 - [ ] `runpy`
 - [ ] `importlib`
 - [ ] `types`
-- [ ] `collections`
+- [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending
 - [ ] `weakref`
 - [ ] `logging`
 - [ ] `pathlib`
