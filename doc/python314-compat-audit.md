@@ -359,7 +359,7 @@ High-level Python modules to run from Python source where possible:
 - [ ] `inspect`
 - [ ] `runpy`
 - [ ] `importlib`
-- [ ] `types`
+- [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
 - [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending
 - [ ] `weakref`
 - [ ] `logging`
