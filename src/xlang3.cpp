@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/config.h"
+#include "xlang3/dap_session.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
 #include "xlang3/parser.h"
@@ -27,10 +28,16 @@ limitations under the License.
 #include <sstream>
 #include <string>
 
+#if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 namespace {
 
 void print_usage() {
-  std::cerr << "usage: xlang3 [--dump-ir] [--debug-dir <folder>] [--perf-counters] [-c code | -m module | file.py] [args...]\n";
+  std::cerr << "usage: xlang3 [--dap-stdio] [--dump-ir] [--debug-dir <folder>] [--perf-counters] "
+               "[-c code | -m module | file.py] [args...]\n";
 }
 
 bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
@@ -236,9 +243,58 @@ int run_repl() {
   }
 }
 
+void configure_binary_stdio() {
+#if defined(_WIN32)
+  _setmode(_fileno(stdin), _O_BINARY);
+  _setmode(_fileno(stdout), _O_BINARY);
+#endif
+}
+
+void flush_dap_program_output(
+    xlang3::dap::DapSession& session,
+    std::ostringstream& program_output,
+    size_t& emitted_size) {
+  const std::string text = program_output.str();
+  if (text.size() <= emitted_size) {
+    return;
+  }
+  const std::string delta = text.substr(emitted_size);
+  emitted_size = text.size();
+  std::cout << xlang3::dap::make_framed_message(session.make_output_event(delta)) << std::flush;
+}
+
+int run_dap_stdio() {
+  configure_binary_stdio();
+
+  std::ostringstream program_output;
+  xlang3::dap::DapSession session(program_output);
+  size_t emitted_output_size = 0;
+  std::string input_buffer;
+  std::string error;
+
+  char ch = 0;
+  while (std::cin.get(ch)) {
+    input_buffer.push_back(ch);
+    auto responses = session.handle_framed_input(input_buffer, error);
+    for (const auto& response : responses) {
+      std::cout << response << std::flush;
+      flush_dap_program_output(session, program_output, emitted_output_size);
+    }
+    if (!error.empty()) {
+      std::cerr << "dap: " << error << "\n";
+      return 1;
+    }
+  }
+  return 0;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
+  if (argc >= 2 && std::string(argv[1]) == "--dap-stdio") {
+    return run_dap_stdio();
+  }
+
   xlang3::RunConfig config;
   if (!parse_args(argc, argv, config)) {
     print_usage();

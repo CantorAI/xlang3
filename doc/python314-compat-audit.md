@@ -413,7 +413,7 @@ High-level Python modules to run from Python source where possible:
 - [~] VM debug poll gate: debugger hook is runtime-disabled by default; breakpoint/step checks activate through a cached poll-needed flag
 - [~] VM debug pause/resume: breakpoint/step hits can preserve the XlangVM frame stack and resume from the same instruction; host protocol binding pending
 - [~] debug session controller: desktop runtime API owns loaded source, breakpoints, pause status, continue, step in/over/out, and pause request; debugpy transport pending
-- [~] native DAP session: C++ DAP framing plus initialize/launch/setBreakpoints/configurationDone/continue/step/stack/scopes/variables command skeleton over `DebugSession`; stdio/socket host pending
+- [~] native DAP session: C++ DAP framing plus initialize/launch/setBreakpoints/configurationDone/continue/step/stack/scopes/variables command skeleton over `DebugSession`; `xlang3 --dap-stdio` host and output events added, socket host pending
 - [~] breakpoint mapping: private VM hook and pause state support filename/line breakpoint hits and native DAP binding; debugpy binding pending
 - [~] step over: VM policy skips deeper frames and pauses at the next source line in the original/caller frame; native DAP binding added, debugpy binding pending
 - [~] step in: private VM hook and pause state support source-line step-into hits; native DAP binding added, debugpy binding pending

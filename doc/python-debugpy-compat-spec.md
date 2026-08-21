@@ -248,8 +248,18 @@ terminate
 
 The adapter must not duplicate VM stepping logic. Breakpoint ownership,
 pause/resume state, and stack-frame state stay inside `DebugSession` and the
-runtime debug hooks. A socket or stdio adapter process can be added on top of
-the same `DapSession` protocol core.
+runtime debug hooks.
+
+The first adapter process mode is:
+
+```text
+xlang3 --dap-stdio
+```
+
+In stdio DAP mode, stdout is reserved for framed DAP protocol messages. Program
+stdout is captured by the session and emitted as DAP `output` events, so user
+`print()` calls do not corrupt the protocol stream. A socket mode can be layered
+over the same `DapSession` protocol core later.
 
 ## Source Mapping
 

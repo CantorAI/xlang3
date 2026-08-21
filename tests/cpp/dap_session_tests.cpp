@@ -136,9 +136,25 @@ int main() {
     }
     xlang3::test::expect_true(result, found_y, "variables should expose computed global y");
 
-    Json continue_response = single_response(result, session, request(8, "continue"), "continue");
-    xlang3::test::expect_true(result, continue_response.value("success", false), "continue should finish execution");
+    auto continue_messages = session.handle_payload(request(8, "continue").dump());
+    xlang3::test::expect_true(
+        result,
+        continue_messages.size() == 2,
+        "continue should produce response and terminated event");
+    if (continue_messages.size() == 2) {
+      Json continue_response = Json::parse(continue_messages[0]);
+      Json terminated = Json::parse(continue_messages[1]);
+      xlang3::test::expect_true(result, continue_response.value("success", false), "continue should finish execution");
+      xlang3::test::expect_true(result, terminated.value("event", "") == "terminated", "continue should terminate session");
+    }
     xlang3::test::expect_true(result, output.str() == "3\n", "continue should produce program output");
+
+    Json output_event = Json::parse(session.make_output_event(output.str()));
+    xlang3::test::expect_true(result, output_event.value("event", "") == "output", "output event should be DAP output");
+    xlang3::test::expect_true(
+        result,
+        output_event["body"].value("output", "") == "3\n",
+        "output event should contain captured stdout");
   }
 
   return xlang3::test::finish(result);

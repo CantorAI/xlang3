@@ -273,6 +273,9 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
     if (debug_.status().paused) {
       return {response, stopped_event()};
     }
+    if (debug_.status().finished) {
+      return {response, terminated_event()};
+    }
     return {response};
   }
   if (command == "continue") {
@@ -284,6 +287,9 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
     const std::string response = make_response_body(seq, command, true, "", body.dump());
     if (debug_.status().paused) {
       return {response, stopped_event()};
+    }
+    if (debug_.status().finished) {
+      return {response, terminated_event()};
     }
     return {response};
   }
@@ -303,6 +309,9 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
     const std::string response = make_response(seq, command, true, "");
     if (debug_.status().paused) {
       return {response, stopped_event()};
+    }
+    if (debug_.status().finished) {
+      return {response, terminated_event()};
     }
     return {response};
   }
@@ -356,6 +365,14 @@ std::string DapSession::make_event(const std::string& event, const std::string& 
   return message.dump();
 }
 
+std::string DapSession::make_output_event(const std::string& output) {
+  Json body = {
+      {"category", "stdout"},
+      {"output", output},
+  };
+  return make_event("output", body.dump());
+}
+
 std::string DapSession::stopped_event() {
   Json body = {
       {"reason", reason_name(debug_.status().reason)},
@@ -363,6 +380,10 @@ std::string DapSession::stopped_event() {
       {"allThreadsStopped", true},
   };
   return make_event("stopped", body.dump());
+}
+
+std::string DapSession::terminated_event() {
+  return make_event("terminated", "{}");
 }
 
 std::string DapSession::status_body() const {

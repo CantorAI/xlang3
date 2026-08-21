@@ -36,6 +36,7 @@ public:
 
   std::vector<std::string> handle_framed_input(std::string& input_buffer, std::string& error);
   std::vector<std::string> handle_payload(const std::string& payload);
+  std::string make_output_event(const std::string& output);
 
 private:
   std::string make_response(int64_t request_seq, const std::string& command, bool success, const std::string& message);
@@ -47,6 +48,7 @@ private:
       const std::string& body_json);
   std::string make_event(const std::string& event, const std::string& body_json);
   std::string stopped_event();
+  std::string terminated_event();
   std::string status_body() const;
   std::string stack_trace_body() const;
   std::string scopes_body() const;
