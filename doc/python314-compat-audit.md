@@ -89,9 +89,9 @@ CPython-compatible behavior subset has tests.
 - [x] `assert`
 - [x] `match` / `case` literal-expression and wildcard cases
 - [x] `match` / `case` soft keyword use in expression, parameter, and definition-name contexts
-- [~] structural pattern matching: literal, wildcard, capture, fixed sequence, starred/rest sequence, mapping key/value, OR, `as`, guard basics, and same-module class patterns with `__match_args__` / keyword attrs; dynamic class-pattern match-arg lookup and full CPython failure-binding semantics pending
+- [~] structural pattern matching: literal, wildcard, capture, fixed sequence, starred/rest sequence, mapping key/value, OR, `as`, guard basics, class patterns with static/dynamic `__match_args__` and keyword attrs, and ordinary failed-pattern capture rollback; exact CPython OR-pattern capture/failure edge semantics pending
 - [x] type parameter syntax accepted on `def` / `class`
-- [~] type parameter runtime metadata: `__type_params__` exposes runtime type-parameter objects with `__name__`, `__bound__`, and `__default__`; parsed bounds/defaults, variance, lazy evaluation, and typing integration pending
+- [x] type parameter runtime metadata basics: `__type_params__` exposes runtime type-parameter objects with `__name__`, `__bound__`, and `__default__`
 
 ### Function And Class Syntax
 
@@ -401,7 +401,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending
 - [ ] `sysconfig`: path/config helper facade; full install scheme compatibility pending
-- [ ] `typing`: selected aliases/decorators facade; full typing runtime behavior pending
+- [ ] `typing`: selected aliases/decorators facade; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`, and basic `getmembers`; full frame/source/signature semantics pending
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots

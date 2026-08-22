@@ -56,6 +56,31 @@ match p:
     case _:
         print("bad")
 
+dynamic_match_args = ("x", "y")
+
+class DynamicPoint:
+    __match_args__ = dynamic_match_args
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+dp = DynamicPoint(5, 6)
+
+match dp:
+    case DynamicPoint(5, dyn_y):
+        print("point-dynamic", dyn_y)
+    case _:
+        print("bad")
+
+failed_capture = "old"
+
+match [1, 3]:
+    case [failed_capture, 2]:
+        print("bad")
+    case _:
+        print("capture", failed_capture)
+
 fn_t = identity.__type_params__[0]
 box_t = Box.__type_params__[0]
 print(fn_t.__name__, fn_t.__bound__ is None, fn_t.__default__ is None)

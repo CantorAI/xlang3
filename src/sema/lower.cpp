@@ -1785,7 +1785,15 @@ private:
     patch_jump(suppressed, static_cast<uint32_t>(fn_.code.size()));
   }
 
-  uint32_t lower_pattern_to_bool(const ast::Expr& pattern, uint32_t subject) {
+  struct PatternCapture {
+    std::string name;
+    uint32_t source = 0;
+  };
+
+  uint32_t lower_pattern_to_bool(
+      const ast::Expr& pattern,
+      uint32_t subject,
+      std::vector<PatternCapture>* captures = nullptr) {
     if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern)) {
       if (binary->op == "|") {
         const auto lhs = lower_pattern_to_bool(*binary->lhs, subject);
@@ -1805,7 +1813,8 @@ private:
     }
 
     std::vector<size_t> fail_jumps;
-    emit_pattern_checks(pattern, subject, fail_jumps);
+    std::vector<PatternCapture> ignored_captures;
+    emit_pattern_checks(pattern, subject, fail_jumps, captures == nullptr ? ignored_captures : *captures);
     const auto result = new_reg();
     emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
     const auto done = emit_jump(ir::Op::Jump);
@@ -1818,27 +1827,31 @@ private:
     return result;
   }
 
-  void emit_pattern_checks(const ast::Expr& pattern, uint32_t subject, std::vector<size_t>& fail_jumps) {
+  void emit_pattern_checks(
+      const ast::Expr& pattern,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
     if (auto* name = dynamic_cast<const ast::NameExpr*>(&pattern)) {
       if (name->name != "_") {
-        store_named_value(name->name, subject);
+        captures.push_back(PatternCapture{name->name, subject});
       }
       return;
     }
     if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&pattern)) {
-      emit_sequence_pattern_checks(tuple->items, subject, fail_jumps);
+      emit_sequence_pattern_checks(tuple->items, subject, fail_jumps, captures);
       return;
     }
     if (auto* list = dynamic_cast<const ast::ListExpr*>(&pattern)) {
-      emit_sequence_pattern_checks(list->items, subject, fail_jumps);
+      emit_sequence_pattern_checks(list->items, subject, fail_jumps, captures);
       return;
     }
     if (auto* dict = dynamic_cast<const ast::DictExpr*>(&pattern)) {
-      emit_mapping_pattern_checks(*dict, subject, fail_jumps);
+      emit_mapping_pattern_checks(*dict, subject, fail_jumps, captures);
       return;
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&pattern)) {
-      emit_class_pattern_checks(*call, subject, fail_jumps);
+      emit_class_pattern_checks(*call, subject, fail_jumps, captures);
       return;
     }
     const auto value = lower_expr(pattern);
@@ -1853,7 +1866,11 @@ private:
     fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
   }
 
-  void emit_class_pattern_checks(const ast::CallExpr& pattern, uint32_t subject, std::vector<size_t>& fail_jumps) {
+  void emit_class_pattern_checks(
+      const ast::CallExpr& pattern,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
     const auto klass = lower_expr(*pattern.callee);
     const auto isinstance_fn = new_reg();
     emit(ir::Op::LoadGlobal, isinstance_fn, add_name("isinstance"));
@@ -1870,13 +1887,22 @@ private:
     }
 
     auto match_positional = [&](const ast::Expr& item, size_t index) {
-      if (class_info == nullptr || index >= class_info->match_args.size()) {
-        emit_always_fail_pattern(fail_jumps);
-        return;
+      uint32_t attr = 0;
+      if (class_info != nullptr && index < class_info->match_args.size()) {
+        attr = new_reg();
+        emit(ir::Op::LoadAttr, attr, subject, add_name(class_info->match_args[index]));
+      } else {
+        const auto match_args = new_reg();
+        emit(ir::Op::LoadAttr, match_args, klass, add_name("__match_args__"));
+        const auto index_reg = new_reg();
+        emit(ir::Op::LoadConst, index_reg, add_const(Value::int64(static_cast<int64_t>(index))));
+        const auto attr_name = new_reg();
+        emit(ir::Op::GetItem, attr_name, match_args, index_reg);
+        const auto getattr_fn = new_reg();
+        emit(ir::Op::LoadGlobal, getattr_fn, add_name("getattr"));
+        attr = emit_call_value(getattr_fn, {subject, attr_name});
       }
-      const auto attr = new_reg();
-      emit(ir::Op::LoadAttr, attr, subject, add_name(class_info->match_args[index]));
-      emit_pattern_checks(item, attr, fail_jumps);
+      emit_pattern_checks(item, attr, fail_jumps, captures);
     };
 
     if (!pattern.call_args.empty()) {
@@ -1892,7 +1918,7 @@ private:
         }
         const auto attr = new_reg();
         emit(ir::Op::LoadAttr, attr, subject, add_name(arg.name));
-        emit_pattern_checks(*arg.value, attr, fail_jumps);
+        emit_pattern_checks(*arg.value, attr, fail_jumps, captures);
       }
       return;
     }
@@ -1905,7 +1931,8 @@ private:
   void emit_sequence_pattern_checks(
       const std::vector<ast::ExprPtr>& items,
       uint32_t subject,
-      std::vector<size_t>& fail_jumps) {
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
     size_t star_index = items.size();
     for (size_t i = 0; i < items.size(); ++i) {
       if (dynamic_cast<const ast::StarredExpr*>(items[i].get()) != nullptr) {
@@ -1935,17 +1962,18 @@ private:
       emit(ir::Op::UnpackSequence, first_output, subject, static_cast<uint32_t>(before_count),
            static_cast<uint32_t>(after_count) | 0x80000000u);
       for (size_t i = 0; i < before_count; ++i) {
-        emit_pattern_checks(*items[i], first_output + static_cast<uint32_t>(i), fail_jumps);
+        emit_pattern_checks(*items[i], first_output + static_cast<uint32_t>(i), fail_jumps, captures);
       }
       auto* starred = dynamic_cast<const ast::StarredExpr*>(items[star_index].get());
       if (starred != nullptr) {
-        emit_pattern_checks(*starred->expr, first_output + static_cast<uint32_t>(before_count), fail_jumps);
+        emit_pattern_checks(*starred->expr, first_output + static_cast<uint32_t>(before_count), fail_jumps, captures);
       }
       for (size_t i = 0; i < after_count; ++i) {
         emit_pattern_checks(
             *items[star_index + 1 + i],
             first_output + static_cast<uint32_t>(before_count + 1 + i),
-            fail_jumps);
+            fail_jumps,
+            captures);
       }
       return;
     }
@@ -1955,11 +1983,15 @@ private:
       const auto item = new_reg();
       emit(ir::Op::LoadConst, index, add_const(Value::int64(static_cast<int64_t>(i))));
       emit(ir::Op::GetItem, item, subject, index);
-      emit_pattern_checks(*items[i], item, fail_jumps);
+      emit_pattern_checks(*items[i], item, fail_jumps, captures);
     }
   }
 
-  void emit_mapping_pattern_checks(const ast::DictExpr& dict, uint32_t subject, std::vector<size_t>& fail_jumps) {
+  void emit_mapping_pattern_checks(
+      const ast::DictExpr& dict,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
     for (const auto& entry : dict.entries) {
       const auto key = lower_expr(*entry.first);
       const auto present = new_reg();
@@ -1967,7 +1999,7 @@ private:
       fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, present));
       const auto value = new_reg();
       emit(ir::Op::GetItem, value, subject, key);
-      emit_pattern_checks(*entry.second, value, fail_jumps);
+      emit_pattern_checks(*entry.second, value, fail_jumps, captures);
     }
   }
 
@@ -1977,8 +2009,12 @@ private:
     for (const auto& match_case : stmt.cases) {
       size_t next_case = 0;
       if (!match_case.wildcard) {
-        const auto matched = lower_pattern_to_bool(*match_case.pattern, subject);
+        std::vector<PatternCapture> captures;
+        const auto matched = lower_pattern_to_bool(*match_case.pattern, subject, &captures);
         next_case = emit_jump(ir::Op::JumpIfFalse, matched);
+        for (const auto& capture : captures) {
+          store_named_value(capture.name, capture.source);
+        }
         if (!match_case.as_name.empty() && match_case.as_name != "_") {
           store_named_value(match_case.as_name, subject);
         }

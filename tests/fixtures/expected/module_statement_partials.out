@@ -3,5 +3,7 @@ short
 c
 point-pos 3 4
 point-kw 3
+point-dynamic 6
+capture old
 T True True
 T type_parameter
