@@ -109,6 +109,7 @@ $cases = @(
     "task_async",
     "asyncio_module",
     "async_syntax",
+    "async_protocols",
     "closures",
     "nonlocal_counter"
 )

@@ -425,6 +425,7 @@ struct WithStmt final : Stmt {
   ExprPtr manager;
   std::string target;
   std::vector<StmtPtr> body;
+  bool is_async = false;
 };
 
 struct WhileStmt final : Stmt {
@@ -439,6 +440,7 @@ struct ForStmt final : Stmt {
   ExprPtr iterable;
   std::vector<StmtPtr> body;
   std::vector<StmtPtr> else_body;
+  bool is_async = false;
 };
 
 struct MatchCase {

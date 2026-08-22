@@ -173,7 +173,7 @@ private:
   ast::StmtPtr parse_decorated_statement();
   ast::StmtPtr parse_if_statement();
   ast::StmtPtr parse_try_statement();
-  ast::StmtPtr parse_with_statement();
+  ast::StmtPtr parse_with_statement(bool is_async = false);
   ast::StmtPtr parse_match_statement();
   ast::StmtPtr parse_simple_statement();
   ast::StmtPtr parse_raw_block_statement();

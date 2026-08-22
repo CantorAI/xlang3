@@ -231,6 +231,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
   if (match(TokenKind::KwAsync)) {
     if (match(TokenKind::KwFor)) {
       auto stmt = std::make_unique<ast::ForStmt>();
+      stmt->is_async = true;
       stmt->target_expr = parse_for_target();
       if (auto* name = dynamic_cast<ast::NameExpr*>(stmt->target_expr.get())) {
         stmt->target = name->name;
@@ -245,7 +246,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
       return stmt;
     }
     if (match(TokenKind::KwWith)) {
-      return parse_with_statement();
+      return parse_with_statement(true);
     }
     if (!check(TokenKind::KwDef)) {
       error_here("expected def, for, or with after async");
@@ -538,7 +539,7 @@ ast::ExprPtr Parser::parse_for_target() {
   return std::make_unique<ast::TupleExpr>(std::move(items));
 }
 
-ast::StmtPtr Parser::parse_with_statement() {
+ast::StmtPtr Parser::parse_with_statement(bool is_async) {
   struct WithItem {
     ast::ExprPtr manager;
     std::string target;
@@ -564,6 +565,7 @@ ast::StmtPtr Parser::parse_with_statement() {
     stmt->manager = std::move(it->manager);
     stmt->target = std::move(it->target);
     stmt->body = std::move(body);
+    stmt->is_async = is_async;
     body.clear();
     body.push_back(std::move(stmt));
   }

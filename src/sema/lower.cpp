@@ -1452,6 +1452,10 @@ private:
   }
 
   void lower_for_loop(const ast::ForStmt& loop) {
+    if (loop.is_async) {
+      lower_async_for_loop(loop);
+      return;
+    }
     const auto* target_name = dynamic_cast<const ast::NameExpr*>(loop.target_expr.get());
     const std::string target = target_name != nullptr ? target_name->name : loop.target;
     if (target_name != nullptr && try_lower_const_range_for(target, *loop.iterable, loop.body)) {
@@ -1478,6 +1482,46 @@ private:
     emit(ir::Op::Jump, start);
     patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
     lower_body(loop.else_body);
+    for (const auto jump : break_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
+  }
+
+  void lower_async_for_loop(const ast::ForStmt& loop) {
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(loop.target_expr.get());
+    const std::string target = target_name != nullptr ? target_name->name : loop.target;
+    const auto iterable_reg = lower_expr(*loop.iterable);
+    const auto iterator_reg = emit_call_method(iterable_reg, "__aiter__", {});
+    const auto start = static_cast<uint32_t>(fn_.code.size());
+    const auto setup_next = emit_jump(ir::Op::SetupExcept);
+    const auto next_awaitable = emit_call_method(iterator_reg, "__anext__", {});
+    const auto item_reg = emit_await_value(next_awaitable);
+    emit(ir::Op::PopExcept);
+    if (loop.target_expr != nullptr) {
+      lower_unpack_assign(*loop.target_expr, item_reg);
+    } else {
+      store_named_value(target, item_reg);
+    }
+    loop_continue_targets_.push_back(start);
+    loop_break_jumps_.push_back({});
+    lower_body(loop.body);
+    auto break_jumps = std::move(loop_break_jumps_.back());
+    loop_break_jumps_.pop_back();
+    loop_continue_targets_.pop_back();
+    emit(ir::Op::Jump, start);
+
+    patch_jump(setup_next, static_cast<uint32_t>(fn_.code.size()));
+    const auto stop_type = new_reg();
+    emit(ir::Op::LoadGlobal, stop_type, add_name(resolve_name("StopAsyncIteration")));
+    const auto matched = new_reg();
+    emit(ir::Op::MatchException, matched, stop_type);
+    const auto not_stop_async = emit_jump(ir::Op::JumpIfFalse, matched);
+    emit(ir::Op::ClearException);
+    lower_body(loop.else_body);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(not_stop_async, static_cast<uint32_t>(fn_.code.size()));
+    emit(ir::Op::Reraise);
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
     for (const auto jump : break_jumps) {
       patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
     }
@@ -1623,6 +1667,12 @@ private:
     return dst;
   }
 
+  uint32_t emit_await_value(uint32_t value) {
+    const auto dst = new_reg();
+    emit(ir::Op::Await, dst, value);
+    return dst;
+  }
+
   uint32_t apply_decorators(uint32_t object_reg, const std::vector<ast::ExprPtr>& decorators) {
     uint32_t current = object_reg;
     for (auto it = decorators.rbegin(); it != decorators.rend(); ++it) {
@@ -1634,7 +1684,10 @@ private:
 
   void lower_with(const ast::WithStmt& stmt) {
     const auto manager = lower_expr(*stmt.manager);
-    const auto entered = emit_call_method(manager, "__enter__", {});
+    uint32_t entered = emit_call_method(manager, stmt.is_async ? "__aenter__" : "__enter__", {});
+    if (stmt.is_async) {
+      entered = emit_await_value(entered);
+    }
     if (!stmt.target.empty()) {
       store_named_value(stmt.target, entered);
     } else {
@@ -1650,7 +1703,11 @@ private:
     emit(ir::Op::LoadConst, none_type, none_const);
     emit(ir::Op::LoadConst, none_value, none_const);
     emit(ir::Op::LoadConst, none_tb, none_const);
-    const auto exit_result = emit_call_method(manager, "__exit__", {none_type, none_value, none_tb});
+    uint32_t exit_result =
+        emit_call_method(manager, stmt.is_async ? "__aexit__" : "__exit__", {none_type, none_value, none_tb});
+    if (stmt.is_async) {
+      exit_result = emit_await_value(exit_result);
+    }
     emit(ir::Op::Pop, 0, exit_result);
     const auto done = emit_jump(ir::Op::Jump);
     patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
@@ -1660,7 +1717,11 @@ private:
     emit(ir::Op::LoadExceptionType, exc_type);
     emit(ir::Op::LoadException, exc_value);
     emit(ir::Op::LoadConst, exc_tb, none_const);
-    const auto handled = emit_call_method(manager, "__exit__", {exc_type, exc_value, exc_tb});
+    uint32_t handled =
+        emit_call_method(manager, stmt.is_async ? "__aexit__" : "__exit__", {exc_type, exc_value, exc_tb});
+    if (stmt.is_async) {
+      handled = emit_await_value(handled);
+    }
     const auto rereraise = emit_jump(ir::Op::JumpIfFalse, handled);
     emit(ir::Op::ClearException);
     const auto suppressed = emit_jump(ir::Op::Jump);

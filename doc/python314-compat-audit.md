@@ -115,8 +115,8 @@ CPython-compatible behavior subset has tests.
 - [x] class decorators
 - [x] `async def`
 - [x] `await expr`
-- [~] `async for` syntax accepted; async iterator protocol pending
-- [~] `async with` syntax accepted; async context manager protocol pending
+- [x] `async for` with `__aiter__` / awaited `__anext__`, `StopAsyncIteration`, `else`, `break`
+- [x] `async with` with awaited `__aenter__` / `__aexit__` and exception suppression
 - [~] generators: `yield` with suspended XlangVM frame; `send` / `throw` / `close` pending
 - [~] generators: `yield from` lowered to incremental delegation; StopIteration return-value propagation pending
 - [ ] async generators
