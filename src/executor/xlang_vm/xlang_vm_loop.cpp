@@ -270,12 +270,21 @@ RuntimeResult Interpreter::run_function(
     frame_count = pause_state->frame_count;
   } else if (generator != nullptr && generator->vm_state != nullptr) {
     auto* state = static_cast<GeneratorVMState*>(generator->vm_state);
+    const uint32_t send_target = state->send_target;
     frames = std::move(state->frames);
     frame_count = state->frame_count;
     delete state;
     generator->vm_state = nullptr;
     generator->vm_state_cleanup = nullptr;
     resumed_generator = true;
+    if (generator->has_pending_send && send_target != UINT32_MAX && frame_count > 0) {
+      auto& resumed_frame = frames[frame_count - 1];
+      if (send_target < resumed_frame.regs.size()) {
+        value_assign_fast(resumed_frame.regs[send_target], generator->pending_send);
+      }
+      value_set_invalid(generator->pending_send);
+      generator->has_pending_send = false;
+    }
   } else {
     frames.reserve(64);
     frames.emplace_back(
@@ -324,7 +333,7 @@ RuntimeResult Interpreter::run_function(
         fn_obj->globals_module,
         fn_obj->module != nullptr ? fn_obj->module : module_owner,
         fn_obj->defaults);
-    out = Value::generator(&runtime_, std::move(function_value), std::move(args_for_generator));
+    out = Value::generator(&runtime_, std::move(function_value), std::move(args_for_generator), call_fn.is_async);
     made = true;
     return true;
   };

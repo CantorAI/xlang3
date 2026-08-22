@@ -28,6 +28,10 @@ struct GeneratorObject {
   std::vector<Value> args;
   void* vm_state = nullptr;
   void (*vm_state_cleanup)(void*) = nullptr;
+  Value pending_send;
+  bool has_pending_send = false;
+  bool started = false;
+  bool is_async = false;
   bool done = false;
 };
 
@@ -43,5 +47,9 @@ std::string generator_to_string(const Value& value);
 bool generator_truthy(const Value& value);
 bool generator_get_iter(const Value& generator, Value& out, std::string& error);
 bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& error);
+bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error);
+bool generator_close(Value& generator, Value& out, std::string& error);
+bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& out, std::string& error);
+bool generator_get_method(const Value& object, const std::string& name, Value& out);
 
 } // namespace xlang3

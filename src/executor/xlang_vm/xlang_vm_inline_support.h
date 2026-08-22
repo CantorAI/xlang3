@@ -47,6 +47,7 @@ namespace xlang3 {
 struct GeneratorVMState {
   std::vector<VMFrame> frames;
   size_t frame_count = 0;
+  uint32_t send_target = UINT32_MAX;
 };
 
 struct RuntimeDebugPauseState {

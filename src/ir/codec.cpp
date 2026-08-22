@@ -633,6 +633,7 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
     return false;
   }
   w.u8(fn.is_generator ? 1 : 0);
+  w.u8(fn.is_async ? 1 : 0);
   w.u32(fn.first_line);
   if (!write_string_vector(w, fn.params, error) ||
       !write_string_vector(w, fn.type_params, error) ||
@@ -691,9 +692,11 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
 
 bool read_function(Reader& r, Function& fn, std::string& error) {
   uint8_t is_generator = 0;
+  uint8_t is_async = 0;
   if (!r.string(fn.name) ||
       !r.string(fn.qualname) ||
       !r.u8(is_generator) ||
+      !r.u8(is_async) ||
       !r.u32(fn.first_line) ||
       !read_string_vector(r, fn.params, error) ||
       !read_string_vector(r, fn.type_params, error) ||
@@ -707,6 +710,7 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
     return false;
   }
   fn.is_generator = is_generator != 0;
+  fn.is_async = is_async != 0;
   uint32_t raw_count = 0;
   if (!r.u32(raw_count) || !check_count(raw_count, error)) {
     return false;

@@ -154,7 +154,7 @@ bool runtime_call_callable(
       for (uint32_t i = 0; i < argc; ++i) {
         generator_args.push_back(args[i]);
       }
-      out = Value::generator(&runtime, callable, std::move(generator_args));
+      out = Value::generator(&runtime, callable, std::move(generator_args), function->module->functions[function->function_id].is_async);
       return true;
     }
     CallArgsView call_args;

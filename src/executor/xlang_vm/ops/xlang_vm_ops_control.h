@@ -210,6 +210,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
   auto* state = new GeneratorVMState();
   state->frames = std::move(frames);
   state->frame_count = frame_count;
+  state->send_target = in.dst;
   if (generator->vm_state_cleanup != nullptr && generator->vm_state != nullptr) {
     generator->vm_state_cleanup(generator->vm_state);
   }

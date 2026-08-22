@@ -166,6 +166,7 @@ std::string dump_module(const Module& module) {
     }
     os << "  first_line: " << fn.first_line << "\n";
     os << "  generator: " << (fn.is_generator ? "true" : "false") << "\n";
+    os << "  async: " << (fn.is_async ? "true" : "false") << "\n";
     os << "  params:";
     for (size_t i = 0; i < fn.params.size(); ++i) {
       os << " %" << i << "=" << fn.params[i];

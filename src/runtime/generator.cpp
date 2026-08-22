@@ -14,8 +14,15 @@ limitations under the License.
 */
 #include "xlang3/generator.h"
 
+#include "xlang3/builtin_methods.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
+#include "xlang3/runtime.h"
+
+#ifndef XLANG3_EMBEDDED
+#include "task_objects.h"
+#endif
 
 namespace xlang3 {
 
@@ -32,13 +39,14 @@ T* allocate_generator_object(ObjectKind kind) {
 
 } // namespace
 
-Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args) {
+Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_generator_object<GeneratorObject>(ObjectKind::Generator);
   obj->runtime = runtime;
   obj->function = std::move(function);
   obj->args = std::move(args);
+  obj->is_async = is_async;
   v.as.obj = &obj->header;
   return v;
 }
@@ -69,6 +77,10 @@ bool generator_get_iter(const Value& generator, Value& out, std::string& error) 
 }
 
 bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& error) {
+  return generator_send(generator, Value::none(), done, out, error);
+}
+
+bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error) {
   auto* obj = value_as_generator(generator);
   if (obj == nullptr) {
     error = "invalid generator";
@@ -79,17 +91,219 @@ bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& 
     value_set_none(out);
     return true;
   }
+  if (!obj->started && value.tag != ValueTag::None) {
+    error = "can't send non-None value to a just-started generator";
+    return false;
+  }
   if (obj->runtime == nullptr) {
     error = "generator has invalid runtime";
     return false;
   }
+  obj->started = true;
+  value_assign_fast(obj->pending_send, value);
+  obj->has_pending_send = true;
   Interpreter interpreter(*obj->runtime);
   RuntimeResult result = interpreter.resume_generator(*obj, out, done);
+  if (done) {
+    obj->done = true;
+  }
   if (!result.errors.empty()) {
     error = result.errors.front();
     return false;
   }
   return true;
+}
+
+bool generator_close(Value& generator, Value& out, std::string& error) {
+  auto* obj = value_as_generator(generator);
+  if (obj == nullptr) {
+    error = "invalid generator";
+    return false;
+  }
+  if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {
+    obj->vm_state_cleanup(obj->vm_state);
+  }
+  obj->vm_state = nullptr;
+  obj->vm_state_cleanup = nullptr;
+  obj->done = true;
+  value_set_invalid(obj->pending_send);
+  obj->has_pending_send = false;
+  value_set_none(out);
+  return true;
+}
+
+bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& out, std::string& error) {
+  auto* obj = value_as_generator(generator);
+  if (obj == nullptr) {
+    error = "invalid generator";
+    return false;
+  }
+  if (argc < 1 || argc > 3) {
+    error = "generator.throw expected 1 to 3 arguments";
+    return false;
+  }
+  if (obj->runtime == nullptr) {
+    error = "generator has invalid runtime";
+    return false;
+  }
+  Value ignored;
+  if (!generator_close(generator, ignored, error)) {
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  error = argc >= 2 ? value_to_string(args[1]) : value_to_string(args[0]);
+  return false;
+}
+
+namespace {
+
+bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "generator.send", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value generator = args[0];
+  bool done = false;
+  if (!generator_send(generator, args[1], done, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (done) {
+    error.clear();
+    runtime.raise_class_error("StopIteration", error);
+    return false;
+  }
+  return true;
+}
+
+bool generator_next_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "generator.__next__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value generator = args[0];
+  bool done = false;
+  if (!generator_send(generator, Value::none(), done, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (done) {
+    error.clear();
+    runtime.raise_class_error("StopIteration", error);
+    return false;
+  }
+  return true;
+}
+
+bool generator_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "generator.__iter__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return generator_get_iter(args[0], out, error);
+}
+
+bool generator_aiter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "async_generator.__aiter__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* generator = value_as_generator(args[0]);
+  if (generator == nullptr || !generator->is_async) {
+    error = "object is not an async generator";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool generator_anext_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "async_generator.__anext__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* generator = value_as_generator(args[0]);
+  if (generator == nullptr || !generator->is_async) {
+    error = "object is not an async generator";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value generator_value = args[0];
+  bool done = false;
+  Value item;
+  if (!generator_send(generator_value, Value::none(), done, item, error)) {
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (done) {
+    error.clear();
+    runtime.raise_class_error("StopAsyncIteration", error);
+    return false;
+  }
+#ifndef XLANG3_EMBEDDED
+  if (!xlang_task_completed(runtime, item, out, error)) {
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+#else
+  value_assign_fast(out, item);
+#endif
+  return true;
+}
+
+bool generator_close_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "generator.close", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value generator = args[0];
+  if (!generator_close(generator, out, error)) {
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool generator_throw_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "generator.throw expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value generator = args[0];
+  if (!generator_throw(generator, args + 1, argc - 1, out, error)) {
+    if (auto* klass = value_as_class(args[1])) {
+      runtime.raise_class_error(klass->name, error);
+    } else {
+      runtime.set_active_exception(args[1]);
+    }
+    return false;
+  }
+  return true;
+}
+
+static constexpr BuiltinMethodSpec kGeneratorMethods[] = {
+      {"__iter__", "generator.__iter__", generator_iter_method},
+      {"__next__", "generator.__next__", generator_next_method},
+      {"__aiter__", "async_generator.__aiter__", generator_aiter_method},
+      {"__anext__", "async_generator.__anext__", generator_anext_method},
+      {"close", "generator.close", generator_close_method},
+      {"send", "generator.send", generator_send_method},
+      {"throw", "generator.throw", generator_throw_method},
+};
+
+} // namespace
+
+bool generator_get_method(const Value& object, const std::string& name, Value& out) {
+  auto* generator = value_as_generator(object);
+  if (generator == nullptr) {
+    return false;
+  }
+  if ((name == "__aiter__" || name == "__anext__") && !generator->is_async) {
+    return false;
+  }
+  return bind_builtin_method_from_table(object, name, kGeneratorMethods, std::size(kGeneratorMethods), out);
 }
 
 } // namespace xlang3

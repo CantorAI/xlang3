@@ -879,6 +879,7 @@ public:
       std::vector<std::string> free_vars,
       const std::vector<ast::StmtPtr>& body,
       bool is_generator,
+      bool is_async,
       uint32_t first_line = 0,
       bool is_module = false,
       std::string instance_slot_self = {},
@@ -898,6 +899,7 @@ public:
     fn_.name = std::move(name);
     fn_.qualname = qualname_prefix_.empty() ? fn_.name : qualname_prefix_ + "." + fn_.name;
     fn_.is_generator = is_generator;
+    fn_.is_async = is_async;
     fn_.first_line = first_line;
     fn_.params = std::move(params);
     fn_.signature = std::move(signature);
@@ -2164,7 +2166,7 @@ private:
       annotation_regs.push_back(std::make_pair("return", lower_expr(*fn.return_annotation)));
     }
     FunctionLowerer child_lowerer(
-        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, body_contains_yield(fn.body), fn.line, false,
+        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, body_contains_yield(fn.body), fn.is_async, fn.line, false,
         std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
         imported_module_slots_,
         qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
@@ -2985,7 +2987,7 @@ private:
       }
     }
     FunctionLowerer child_lowerer(
-        module_, "#genexpr", {}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, 0, false,
+        module_, "#genexpr", {}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, false, 0, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
     const auto clauses = child_lowerer.generator_comp_clauses(comp);
     child_lowerer.lower_comprehension_clauses(
@@ -3082,6 +3084,7 @@ private:
     }
     if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
       const auto src = lower_expr(*yield->expr);
+      const auto reg = new_reg();
       if (yield->from) {
         const auto iterator = new_reg();
         emit(ir::Op::GetIter, iterator, src);
@@ -3089,14 +3092,12 @@ private:
         const auto item = new_reg();
         emit(ir::Op::IterNext, item, iterator, 0);
         const auto iter_next = fn_.code.size() - 1;
-        emit(ir::Op::Yield, 0, item);
+        emit(ir::Op::Yield, reg, item);
         emit(ir::Op::Jump, start);
         patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
       } else {
-        emit(ir::Op::Yield, 0, src);
+        emit(ir::Op::Yield, reg, src);
       }
-      const auto reg = new_reg();
-      emit(ir::Op::LoadConst, reg, add_const(Value::none()));
       return reg;
     }
     if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
@@ -3435,7 +3436,7 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
   LowerResult result;
   auto global_slots = collect_module_global_slots(module_ast);
   result.module.global_slots = global_slots.names;
-  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, 1, true, {}, {}, {}, global_slots.slots);
+  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, false, 1, true, {}, {}, {}, global_slots.slots);
   lowerer.lower_body(module_ast.body);
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);

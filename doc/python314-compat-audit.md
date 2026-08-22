@@ -111,15 +111,15 @@ CPython-compatible behavior subset has tests.
 - [x] `class C:`
 - [x] base classes: `class C(Base):`
 - [x] multiple base classes with C3 MRO for tested class lookup
-- [~] metaclass keyword syntax accepted/evaluated; metaclass semantics pending
+- [~] metaclass keyword syntax accepted/evaluated and `type`-compatible smoke path covered; full custom metaclass construction protocol pending
 - [x] class decorators
 - [x] `async def`
 - [x] `await expr`
 - [x] `async for` with `__aiter__` / awaited `__anext__`, `StopAsyncIteration`, `else`, `break`
 - [x] `async with` with awaited `__aenter__` / `__aexit__` and exception suppression
-- [~] generators: `yield` with suspended XlangVM frame; `send` / `throw` / `close` pending
+- [~] generators: `yield` with suspended XlangVM frame; `send`, `close`, `__next__`, and uncaught `throw` surface covered; in-frame `throw` injection / `GeneratorExit` finalization pending
 - [~] generators: `yield from` lowered to incremental delegation; StopIteration return-value propagation pending
-- [ ] async generators
+- [~] async generators: async-generator functions produce async-iterable generator objects for `async for`; `asend` / `athrow` / `aclose` protocol objects pending
 - [x] lambda expressions
 
 ### Expression Syntax
