@@ -2763,10 +2763,26 @@ private:
       uint32_t value = 0;
       if (part.is_expr) {
         auto expr = parse_embedded_expression(part.text);
-        std::vector<ast::ExprPtr> args;
-        args.push_back(std::move(expr));
-        auto call = ast::CallExpr(std::make_unique<ast::NameExpr>(PythonNames::builtin_str), std::move(args));
-        value = lower_expr(call);
+        value = lower_expr(*expr);
+        if (part.conversion == 's' || part.conversion == 'r' || part.conversion == 'a') {
+          const auto callee = lower_expr(ast::NameExpr(part.conversion == 's' ? PythonNames::builtin_str : "repr"));
+          const auto converted = new_reg();
+          emit(ir::Op::Call, converted, callee, add_call_args({value}));
+          value = converted;
+        }
+        if (!part.format_spec.empty()) {
+          const auto spec = new_reg();
+          emit(ir::Op::LoadConst, spec, add_const(Value::string(part.format_spec)));
+          const auto callee = lower_expr(ast::NameExpr("format"));
+          const auto formatted = new_reg();
+          emit(ir::Op::Call, formatted, callee, add_call_args({value, spec}));
+          value = formatted;
+        } else if (part.conversion == '\0') {
+          const auto callee = lower_expr(ast::NameExpr(PythonNames::builtin_str));
+          const auto converted = new_reg();
+          emit(ir::Op::Call, converted, callee, add_call_args({value}));
+          value = converted;
+        }
       } else {
         value = new_reg();
         emit(ir::Op::LoadConst, value, add_const(Value::string(part.text)));

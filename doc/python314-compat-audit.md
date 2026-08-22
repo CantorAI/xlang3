@@ -130,9 +130,9 @@ CPython-compatible behavior subset has tests.
 - [x] string literals
 - [x] string escapes
 - [x] raw strings
-- [~] string literal lexing edge cases: normal strings containing `'''` / `"""` no longer start triple-string mode; full CPython tokenizer audit pending
+- [~] string literal lexing edge cases: normal strings containing `'''` / `"""` covered in section fixture; full CPython tokenizer audit pending
 - [x] bytes literals
-- [~] f-strings
+- [~] f-strings: expressions, escaped braces, `!s` / `!r` / `!a`, and simple numeric specs covered; full CPython format mini-language and debug `=` pending
 - [x] unicode escape completeness
 - [x] `None`
 - [x] `True` / `False`

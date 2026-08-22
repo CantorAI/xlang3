@@ -1,0 +1,25 @@
+XLang3 7 2.5 None True False
+A ABC
+a\nb c\td
+''' """
+66 True True
+XLang3:6
+{XLang3} 'abc' 007 3.14
+7 -7 True
+10 4 21 3.5 1 2
+32 512
+2 7 5 32 8 -6
+True True True True
+True True True True
+yes fallback
+left
+21
+10 2 [1, 2, 3] [0, 2, 4]
+8 9 1 [2, 3] 4
+[0, 2, 3, 5] (2, 3, 4)
+(1, 2) [3, 4] 5 True
+[4, 6]
+[[0, 1], [1, 0]]
+3 True
+10
+12 12

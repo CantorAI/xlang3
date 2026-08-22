@@ -192,12 +192,44 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
         }
         ++i;
       }
-      auto expr = std::string_view(text.data() + expr_start, i - expr_start);
-      size_t cut = expr.find_first_of("!:");
-      if (cut != std::string_view::npos) {
-        expr = expr.substr(0, cut);
+      auto field = std::string_view(text.data() + expr_start, i - expr_start);
+      ast::FStringExpr::Part part;
+      part.is_expr = true;
+
+      int nested_depth = 0;
+      size_t conversion_pos = std::string_view::npos;
+      size_t spec_pos = std::string_view::npos;
+      for (size_t j = 0; j < field.size(); ++j) {
+        const char field_ch = field[j];
+        if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
+          ++nested_depth;
+        } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
+          --nested_depth;
+        } else if (nested_depth == 0 && field_ch == '!' && conversion_pos == std::string_view::npos &&
+                   spec_pos == std::string_view::npos) {
+          conversion_pos = j;
+        } else if (nested_depth == 0 && field_ch == ':' && spec_pos == std::string_view::npos) {
+          spec_pos = j;
+        }
       }
-      parts.push_back(ast::FStringExpr::Part{true, trim_ascii(expr)});
+
+      const size_t expr_end = std::min(
+          conversion_pos == std::string_view::npos ? field.size() : conversion_pos,
+          spec_pos == std::string_view::npos ? field.size() : spec_pos);
+      part.text = std::string(trim_ascii(field.substr(0, expr_end)));
+      if (conversion_pos != std::string_view::npos) {
+        const size_t conversion_value_pos = conversion_pos + 1;
+        if (conversion_value_pos < field.size()) {
+          const char conversion = field[conversion_value_pos];
+          if (conversion == 's' || conversion == 'r' || conversion == 'a') {
+            part.conversion = conversion;
+          }
+        }
+      }
+      if (spec_pos != std::string_view::npos) {
+        part.format_spec = std::string(field.substr(spec_pos + 1));
+      }
+      parts.push_back(std::move(part));
       if (i < text.size() && text[i] == '}') {
         ++i;
       }

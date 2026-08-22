@@ -48,6 +48,8 @@ struct FStringExpr final : Expr {
   struct Part {
     bool is_expr = false;
     std::string text;
+    char conversion = '\0';
+    std::string format_spec;
   };
   std::vector<Part> parts;
   explicit FStringExpr(std::vector<Part> parts) : parts(std::move(parts)) {}

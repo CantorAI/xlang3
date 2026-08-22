@@ -26,6 +26,7 @@ limitations under the License.
 
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <set>
 #include <algorithm>
@@ -1118,8 +1119,107 @@ bool builtin_repr(
     error = "repr() expected 1 argument";
     return false;
   }
+  if (auto* string = value_as_string(args[0])) {
+    std::string text;
+    text.push_back('\'');
+    for (char ch : string_object_view(*string)) {
+      if (ch == '\'' || ch == '\\') {
+        text.push_back('\\');
+      }
+      if (ch == '\n') {
+        text += "\\n";
+      } else if (ch == '\r') {
+        text += "\\r";
+      } else if (ch == '\t') {
+        text += "\\t";
+      } else {
+        text.push_back(ch);
+      }
+    }
+    text.push_back('\'');
+    out = Value::string(std::move(text));
+    return true;
+  }
   out = Value::string(value_to_string(args[0]));
   return true;
+}
+
+bool builtin_format(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "format() expected 1 or 2 arguments";
+    return false;
+  }
+  std::string spec;
+  if (argc == 2) {
+    auto* spec_object = value_as_string(args[1]);
+    if (spec_object == nullptr) {
+      error = "format() argument 2 must be str";
+      return false;
+    }
+    spec = string_object_to_string(*spec_object);
+  }
+  if (spec.empty()) {
+    out = Value::string(value_to_string(args[0]));
+    return true;
+  }
+
+  if (args[0].tag == ValueTag::Int64) {
+    bool zero_pad = false;
+    size_t i = 0;
+    if (i < spec.size() && spec[i] == '0') {
+      zero_pad = true;
+      ++i;
+    }
+    int width = 0;
+    while (i < spec.size() && std::isdigit(static_cast<unsigned char>(spec[i]))) {
+      width = width * 10 + (spec[i++] - '0');
+    }
+    if (i < spec.size() && spec[i] == 'd') {
+      ++i;
+    }
+    if (i == spec.size()) {
+      std::string text = value_to_string(args[0]);
+      const bool negative = !text.empty() && text[0] == '-';
+      const size_t sign = negative ? 1 : 0;
+      if (width > static_cast<int>(text.size())) {
+        const auto pad_count = static_cast<size_t>(width) - text.size();
+        if (zero_pad && negative) {
+          text = "-" + std::string(pad_count, '0') + text.substr(sign);
+        } else {
+          text = std::string(pad_count, zero_pad ? '0' : ' ') + text;
+        }
+      }
+      out = Value::string(std::move(text));
+      return true;
+    }
+  }
+
+  if (args[0].tag == ValueTag::Double && spec.size() >= 3 && spec[0] == '.' && spec.back() == 'f') {
+    int precision = 0;
+    bool valid = true;
+    for (size_t i = 1; i + 1 < spec.size(); ++i) {
+      if (!std::isdigit(static_cast<unsigned char>(spec[i]))) {
+        valid = false;
+        break;
+      }
+      precision = precision * 10 + (spec[i] - '0');
+    }
+    if (valid && precision >= 0 && precision <= 32) {
+      char buffer[128];
+      std::snprintf(buffer, sizeof(buffer), "%.*f", precision, args[0].as.f64);
+      out = Value::string(buffer);
+      return true;
+    }
+  }
+
+  error = "unsupported format specifier";
+  return false;
 }
 
 bool builtin_all(
@@ -1205,6 +1305,7 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("abs", builtin_abs);
   runtime.register_native_builtin("round", builtin_round);
   runtime.register_native_builtin("repr", builtin_repr);
+  runtime.register_native_builtin("format", builtin_format);
   runtime.register_native_builtin("all", builtin_all);
   runtime.register_native_builtin("any", builtin_any);
   runtime.register_native_builtin("__import__", builtin_import, nullptr, false, builtin_import_kw);
