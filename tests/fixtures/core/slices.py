@@ -29,3 +29,25 @@ print(text[::-1])
 t = (10, 20, 30, 40, 50)
 print(t[1:4])
 print(t[::-2])
+
+data = b"abcdef"
+print(data[1:5])
+print(data[::-2])
+
+buffer = bytearray(b"abcdef")
+print(buffer[1:5])
+buffer[1:3] = b"XY"
+print(buffer)
+del buffer[2:4]
+print(buffer)
+
+items[1:4] = [9, 8]
+print(items)
+del items[::2]
+print(items)
+
+buffer = bytearray(b"abcdef")
+buffer[1:5:2] = b"XY"
+print(buffer)
+del buffer[::-2]
+print(buffer)

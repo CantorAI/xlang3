@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/set_object.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -203,6 +204,33 @@ bool int_to_byte(const Value& value, unsigned char& out, std::string& error) {
   }
   out = static_cast<unsigned char>(value.as.i64);
   return true;
+}
+
+bool collect_byte_replacement(const Value& value, std::string& out, std::string& error) {
+  const auto storage = binary_storage(value);
+  if (storage.data != nullptr) {
+    out.assign(storage.data, storage.size);
+    return true;
+  }
+  Value iterator;
+  if (!sequence_get_iter(value, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value next;
+    if (!sequence_iter_next(iterator, done, next, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    unsigned char byte = 0;
+    if (!int_to_byte(next, byte, error)) {
+      return false;
+    }
+    out.push_back(static_cast<char>(byte));
+  }
 }
 
 } // namespace
@@ -670,6 +698,47 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
     }
   }
   if (auto* bytearray = value_as_bytearray(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(bytearray->value.size()), start, stop, step, error)) {
+        return false;
+      }
+      std::string replacement;
+      if (!collect_byte_replacement(item, replacement, error)) {
+        return false;
+      }
+      if (step == 1) {
+        bytearray->value.erase(
+            bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
+            bytearray->value.begin() + static_cast<std::ptrdiff_t>(stop));
+        bytearray->value.insert(
+            bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
+            replacement.begin(),
+            replacement.end());
+        return true;
+      }
+      std::vector<size_t> indexes;
+      if (step > 0) {
+        for (int64_t i = start; i < stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      } else {
+        for (int64_t i = start; i > stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      }
+      if (indexes.size() != replacement.size()) {
+        error = "attempt to assign bytes of size " + std::to_string(replacement.size()) +
+                " to extended slice of size " + std::to_string(indexes.size());
+        return false;
+      }
+      for (size_t i = 0; i < indexes.size(); ++i) {
+        bytearray->value[indexes[i]] = replacement[i];
+      }
+      return true;
+    }
     if (index.tag != ValueTag::Int64) {
       error = "sequence index must be int";
       return false;
@@ -743,8 +812,9 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
           indexes.push_back(static_cast<size_t>(i));
         }
       }
-      for (auto it = indexes.rbegin(); it != indexes.rend(); ++it) {
-        list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(*it));
+      std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
+      for (const auto index_to_delete : indexes) {
+        list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(index_to_delete));
       }
       return true;
     }
@@ -767,6 +837,50 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_delete_item(instance->mapping_storage, index, error);
     }
+  }
+  if (auto* bytearray = value_as_bytearray(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(bytearray->value.size()), start, stop, step, error)) {
+        return false;
+      }
+      if (step == 1) {
+        if (start < stop) {
+          bytearray->value.erase(
+              bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
+              bytearray->value.begin() + static_cast<std::ptrdiff_t>(stop));
+        }
+        return true;
+      }
+      std::vector<size_t> indexes;
+      if (step > 0) {
+        for (int64_t i = start; i < stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      } else {
+        for (int64_t i = start; i > stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      }
+      std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
+      for (const auto index_to_delete : indexes) {
+        bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(index_to_delete));
+      }
+      return true;
+    }
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(resolved));
+    return true;
   }
   error = "object does not support item deletion";
   return false;

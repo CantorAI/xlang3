@@ -265,7 +265,7 @@ CPython-compatible behavior subset has tests.
 - [~] set methods
 - [~] string methods
 - [~] tuple methods: `count` and `index`; full CPython edge cases pending
-- [ ] slicing semantics
+- [x] slicing semantics for list/tuple/string/bytes/bytearray reads plus list/bytearray slice assignment and deletion basics
 - [~] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, and lazy iterator basics; protocol hooks pending
 - [~] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations; full CPython protocol pending
 - [ ] hashing/equality audit

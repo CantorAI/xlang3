@@ -11,3 +11,12 @@ ace
 fedcba
 (20, 30, 40)
 (50, 30, 10)
+b'bcde'
+b'fdb'
+bytearray(b'bcde')
+bytearray(b'aXYdef')
+bytearray(b'aXef')
+[0, 9, 8, 4, 5]
+[9, 4]
+bytearray(b'aXcYef')
+bytearray(b'ace')
