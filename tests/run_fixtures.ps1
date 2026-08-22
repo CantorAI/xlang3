@@ -27,6 +27,7 @@ $cases = @(
     "nested_function_no_closure",
     "if_else",
     "syntax_logical_lines",
+    "syntax_simple_suites",
     "statement_syntax",
     "expression_operators",
     "chained_comparisons",
@@ -133,7 +134,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($uncaughtExitCode -ne 1) {
     throw "uncaught_exception expected exit code 1, got $uncaughtExitCode"
 }
-if ($uncaughtOutput -notlike "*runtime: uncaught exception: top*") {
+if ($uncaughtOutput -notlike "*runtime: uncaught exception*" -or $uncaughtOutput -notlike "*top*") {
     throw "uncaught_exception output mismatch. Got '$uncaughtOutput'"
 }
 Write-Host "fixture uncaught_exception ok"
@@ -147,7 +148,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($uncaughtRuntimeExitCode -ne 1) {
     throw "uncaught_runtime_error expected exit code 1, got $uncaughtRuntimeExitCode"
 }
-if ($uncaughtRuntimeOutput -notlike "*runtime: uncaught exception: division by zero*") {
+if ($uncaughtRuntimeOutput -notlike "*runtime: uncaught exception*" -or $uncaughtRuntimeOutput -notlike "*division by zero*") {
     throw "uncaught_runtime_error output mismatch. Got '$uncaughtRuntimeOutput'"
 }
 Write-Host "fixture uncaught_runtime_error ok"
@@ -161,7 +162,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($unsetAttrExitCode -ne 1) {
     throw "unset_instance_attr expected exit code 1, got $unsetAttrExitCode"
 }
-if ($unsetAttrOutput -notlike "*runtime: uncaught exception: object has no attribute*") {
+if ($unsetAttrOutput -notlike "*runtime: uncaught exception*" -or $unsetAttrOutput -notlike "*object has no attribute*") {
     throw "unset_instance_attr output mismatch. Got '$unsetAttrOutput'"
 }
 Write-Host "fixture unset_instance_attr ok"

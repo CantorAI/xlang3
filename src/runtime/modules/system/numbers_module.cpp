@@ -19,19 +19,6 @@ limitations under the License.
 
 namespace xlang3 {
 
-namespace {
-
-void add_numeric_base(Runtime& runtime, const char* name, const Value& number_class) {
-  auto* klass = runtime.find_builtin(name);
-  if (klass == nullptr) {
-    return;
-  }
-  std::string ignored;
-  class_set_base(*klass, number_class, ignored);
-}
-
-} // namespace
-
 void register_numbers_module(Runtime& runtime) {
   const Value object_base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
   Value number_class = Value::class_object("Number", {}, object_base);
@@ -39,10 +26,6 @@ void register_numbers_module(Runtime& runtime) {
   Value real_class = Value::class_object("Real", {}, complex_class);
   Value rational_class = Value::class_object("Rational", {}, real_class);
   Value integral_class = Value::class_object("Integral", {}, rational_class);
-
-  add_numeric_base(runtime, "int", integral_class);
-  add_numeric_base(runtime, "bool", integral_class);
-  add_numeric_base(runtime, "float", real_class);
 
   NativeModuleBuilder builder(runtime, "numbers");
   builder.value("Number", number_class)

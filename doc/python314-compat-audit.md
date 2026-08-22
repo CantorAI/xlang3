@@ -47,7 +47,7 @@ CPython-compatible behavior subset has tests.
 - [x] comments
 - [x] simple statements on separate lines
 - [x] semicolon-separated simple statements
-- [ ] compound statement simple suites on one line: `def f(): return x`, `class C: pass`, `if x: y`
+- [x] compound statement simple suites on one line: `def f(): return x`, `class C: pass`, `if x: y`
 - [x] line continuation with backslash
 - [x] implicit line continuation across brackets for multi-line expressions
 - [x] `if`
@@ -310,7 +310,7 @@ CPython-compatible behavior subset has tests.
 - [x] `range`
 - [~] `type`: object plus one-arg call; three-arg dynamic class creation pending
 - [x] `object`
-- [~] `bool`
+- [~] `bool`: scalar value with CPython-compatible `type(True) is bool`, `isinstance(True, int)`, and `issubclass(bool, int)` basics; full numeric edge cases pending
 - [~] `int`
 - [~] `float`
 - [~] `str`
@@ -386,7 +386,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `json`: native `loads`/`load`/`dumps`/`save` foundation; full CPython `json` package behavior pending
 - [ ] `locale`: constants and encoding helper facade; real locale behavior pending
 - [ ] `marshal`: placeholder module; serialization semantics pending
-- [ ] `numbers`: numeric ABC facade; real ABC integration pending
+- [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
 - [ ] `opcode`: opcode metadata facade; CPython opcode compatibility pending
 - [~] `operator`: selected helpers such as `index` and `getitem`; full operator module pending
 - [ ] `pickle`: exception/classes facade; serialization semantics pending
@@ -410,7 +410,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
-- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks and basic path transforms; full property/operator/glob semantics pending
+- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`suffix`/`parent` properties, and basic path transforms; full operator/glob semantics pending
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [ ] `warnings` / `_warnings`: warning facade; filter/category/showwarning semantics pending
 - [ ] `winreg`: Windows constant facade; real registry operations pending

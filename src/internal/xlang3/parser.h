@@ -177,9 +177,9 @@ private:
   ast::StmtPtr parse_match_statement();
   ast::StmtPtr parse_simple_statement();
   ast::StmtPtr parse_raw_block_statement();
+  std::vector<ast::StmtPtr> parse_suite_after_colon(const std::string& context);
   std::vector<ast::StmtPtr> parse_block();
   bool parse_dotted_name(std::string& out, const std::string& message, bool allow_leading_dots = false);
-  bool consume_suite_header_tail(const std::string& context);
   bool consume_optional_type_params();
   bool is_simple_statement_end() const;
   ast::ExprPtr parse_with_manager_expr();

@@ -238,15 +238,9 @@ ast::StmtPtr Parser::parse_statement_impl() {
       skip_newlines();
       consume(TokenKind::KwIn, "expected 'in' after loop target");
       stmt->iterable = parse_expression();
-      consume(TokenKind::Colon, "expected ':' after async for iterable");
-      consume(TokenKind::Newline, "expected newline after async for");
-      consume(TokenKind::Indent, "expected indented async for body");
-      stmt->body = parse_block();
+      stmt->body = parse_suite_after_colon("async for iterable");
       if (match(TokenKind::KwElse)) {
-        consume(TokenKind::Colon, "expected ':' after async for else");
-        consume(TokenKind::Newline, "expected newline after async for else");
-        consume(TokenKind::Indent, "expected indented async for else body");
-        stmt->else_body = parse_block();
+        stmt->else_body = parse_suite_after_colon("async for else");
       }
       return stmt;
     }
@@ -272,15 +266,12 @@ ast::StmtPtr Parser::parse_statement_impl() {
     std::vector<ast::FunctionDef::Param> signature;
     ast::ExprPtr return_annotation;
     if (!parse_function_signature(params, signature, return_annotation)) return nullptr;
-    consume(TokenKind::Colon, "expected ':' after function header");
-    consume(TokenKind::Newline, "expected newline after function header");
-    consume(TokenKind::Indent, "expected indented function body");
     auto fn = std::make_unique<ast::FunctionDef>();
     fn->name = std::string(name.text);
     fn->params = std::move(params);
     fn->signature = std::move(signature);
     fn->return_annotation = std::move(return_annotation);
-    fn->body = parse_block();
+    fn->body = parse_suite_after_colon("function header");
     fn->is_async = is_async_def;
     return fn;
   }
@@ -310,14 +301,11 @@ ast::StmtPtr Parser::parse_statement_impl() {
       }
       consume(TokenKind::RParen, "expected ')' after class bases");
     }
-    consume(TokenKind::Colon, "expected ':' after class name");
-    consume(TokenKind::Newline, "expected newline after class header");
-    consume(TokenKind::Indent, "expected indented class body");
     auto klass = std::make_unique<ast::ClassDef>();
     klass->name = std::string(name.text);
     klass->bases = std::move(bases);
     klass->keywords = std::move(keywords);
-    klass->body = parse_block();
+    klass->body = parse_suite_after_colon("class name");
     return klass;
   }
   if (match(TokenKind::KwIf)) {
@@ -332,15 +320,9 @@ ast::StmtPtr Parser::parse_statement_impl() {
   if (match(TokenKind::KwWhile)) {
     auto stmt = std::make_unique<ast::WhileStmt>();
     stmt->condition = parse_expression();
-    consume(TokenKind::Colon, "expected ':' after while condition");
-    consume(TokenKind::Newline, "expected newline after while");
-    consume(TokenKind::Indent, "expected indented while body");
-    stmt->body = parse_block();
+    stmt->body = parse_suite_after_colon("while condition");
     if (match(TokenKind::KwElse)) {
-      consume(TokenKind::Colon, "expected ':' after while else");
-      consume(TokenKind::Newline, "expected newline after while else");
-      consume(TokenKind::Indent, "expected indented while else body");
-      stmt->else_body = parse_block();
+      stmt->else_body = parse_suite_after_colon("while else");
     }
     return stmt;
   }
@@ -353,15 +335,9 @@ ast::StmtPtr Parser::parse_statement_impl() {
     skip_newlines();
     consume(TokenKind::KwIn, "expected 'in' after loop target");
     stmt->iterable = parse_expression();
-    consume(TokenKind::Colon, "expected ':' after for iterable");
-    consume(TokenKind::Newline, "expected newline after for");
-    consume(TokenKind::Indent, "expected indented for body");
-    stmt->body = parse_block();
+    stmt->body = parse_suite_after_colon("for iterable");
     if (match(TokenKind::KwElse)) {
-      consume(TokenKind::Colon, "expected ':' after for else");
-      consume(TokenKind::Newline, "expected newline after for else");
-      consume(TokenKind::Indent, "expected indented for else body");
-      stmt->else_body = parse_block();
+      stmt->else_body = parse_suite_after_colon("for else");
     }
     return stmt;
   }
@@ -455,29 +431,20 @@ ast::StmtPtr Parser::parse_decorated_statement() {
 ast::StmtPtr Parser::parse_if_statement() {
   auto stmt = std::make_unique<ast::IfStmt>();
   stmt->condition = parse_expression();
-  consume(TokenKind::Colon, "expected ':' after if condition");
-  consume(TokenKind::Newline, "expected newline after if");
-  consume(TokenKind::Indent, "expected indented if body");
-  stmt->then_body = parse_block();
+  stmt->then_body = parse_suite_after_colon("if condition");
   if (match(TokenKind::KwElif)) {
     std::vector<ast::StmtPtr> nested;
     nested.push_back(parse_if_statement());
     stmt->else_body = std::move(nested);
   } else if (match(TokenKind::KwElse)) {
-    consume(TokenKind::Colon, "expected ':' after else");
-    consume(TokenKind::Newline, "expected newline after else");
-    consume(TokenKind::Indent, "expected indented else body");
-    stmt->else_body = parse_block();
+    stmt->else_body = parse_suite_after_colon("else");
   }
   return stmt;
 }
 
 ast::StmtPtr Parser::parse_try_statement() {
   auto stmt = std::make_unique<ast::TryExceptStmt>();
-  consume(TokenKind::Colon, "expected ':' after try");
-  consume(TokenKind::Newline, "expected newline after try");
-  consume(TokenKind::Indent, "expected indented try body");
-  stmt->try_body = parse_block();
+  stmt->try_body = parse_suite_after_colon("try");
   while (match(TokenKind::KwExcept)) {
     ast::ExceptHandler handler;
     if (!check(TokenKind::Colon)) {
@@ -488,23 +455,14 @@ ast::StmtPtr Parser::parse_try_statement() {
         handler.name = std::string(name.text);
       }
     }
-    consume(TokenKind::Colon, "expected ':' after except");
-    consume(TokenKind::Newline, "expected newline after except");
-    consume(TokenKind::Indent, "expected indented except body");
-    handler.body = parse_block();
+    handler.body = parse_suite_after_colon("except");
     stmt->handlers.push_back(std::move(handler));
   }
   if (match(TokenKind::KwElse)) {
-    consume(TokenKind::Colon, "expected ':' after try else");
-    consume(TokenKind::Newline, "expected newline after try else");
-    consume(TokenKind::Indent, "expected indented try else body");
-    stmt->else_body = parse_block();
+    stmt->else_body = parse_suite_after_colon("try else");
   }
   if (match(TokenKind::KwFinally)) {
-    consume(TokenKind::Colon, "expected ':' after finally");
-    consume(TokenKind::Newline, "expected newline after finally");
-    consume(TokenKind::Indent, "expected indented finally body");
-    stmt->finally_body = parse_block();
+    stmt->finally_body = parse_suite_after_colon("finally");
   }
   if (stmt->handlers.empty() && stmt->finally_body.empty()) {
     error_here("expected except or finally after try body");
@@ -600,10 +558,7 @@ ast::StmtPtr Parser::parse_with_statement() {
   if (parenthesized) {
     consume(TokenKind::RParen, "expected ')' after with items");
   }
-  consume(TokenKind::Colon, "expected ':' after with");
-  consume(TokenKind::Newline, "expected newline after with");
-  consume(TokenKind::Indent, "expected indented with body");
-  auto body = parse_block();
+  auto body = parse_suite_after_colon("with");
   for (auto it = items.rbegin(); it != items.rend(); ++it) {
     auto stmt = std::make_unique<ast::WithStmt>();
     stmt->manager = std::move(it->manager);
@@ -635,10 +590,7 @@ ast::StmtPtr Parser::parse_match_statement() {
     } else {
       match_case.pattern = parse_expression();
     }
-    consume(TokenKind::Colon, "expected ':' after case pattern");
-    consume(TokenKind::Newline, "expected newline after case");
-    consume(TokenKind::Indent, "expected indented case body");
-    match_case.body = parse_block();
+    match_case.body = parse_suite_after_colon("case pattern");
     stmt->cases.push_back(std::move(match_case));
     skip_newlines();
   }
@@ -934,6 +886,29 @@ bool Parser::consume_optional_type_params() {
     }
   }
   return depth == 0;
+}
+
+std::vector<ast::StmtPtr> Parser::parse_suite_after_colon(const std::string& context) {
+  consume(TokenKind::Colon, "expected ':' after " + context);
+  if (match(TokenKind::Newline)) {
+    consume(TokenKind::Indent, "expected indented " + context + " body");
+    return parse_block();
+  }
+
+  std::vector<ast::StmtPtr> body;
+  while (!check(TokenKind::Newline) && !check(TokenKind::Dedent) && !check(TokenKind::End)) {
+    auto stmt = parse_simple_statement();
+    if (stmt) {
+      body.push_back(std::move(stmt));
+    } else {
+      advance();
+    }
+    if (previous().kind == TokenKind::Newline) {
+      break;
+    }
+  }
+  match(TokenKind::Newline);
+  return body;
 }
 
 std::vector<ast::StmtPtr> Parser::parse_block() {
