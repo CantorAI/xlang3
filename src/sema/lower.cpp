@@ -30,6 +30,7 @@ namespace xlang3 {
 namespace {
 
 struct ClassInfo {
+  std::vector<std::string> slot_names;
   std::unordered_map<std::string, uint32_t> slots;
 };
 
@@ -117,6 +118,43 @@ std::vector<std::string> assignment_names(const ast::Expr& target) {
   std::unordered_set<std::string> seen;
   collect_assignment_names(target, names, seen);
   return names;
+}
+
+bool append_literal_slot_name(const ast::Expr& expr, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
+  auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
+  if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+    return false;
+  }
+  if (literal->text == "__dict__" || literal->text == "__weakref__") {
+    return true;
+  }
+  if (seen.insert(literal->text).second) {
+    slots.push_back(literal->text);
+  }
+  return true;
+}
+
+bool collect_literal_slots_from_expr(const ast::Expr& expr, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
+  if (append_literal_slot_name(expr, slots, seen)) {
+    return true;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      if (!append_literal_slot_name(*item, slots, seen)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      if (!append_literal_slot_name(*item, slots, seen)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 ir::ParamKind lower_param_kind(ast::FunctionDef::Param::Kind kind) {
@@ -1877,23 +1915,64 @@ private:
 
   uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true) {
     std::vector<std::pair<std::string, uint32_t>> attrs;
-    std::vector<std::string> instance_slots;
-    std::unordered_set<std::string> seen_instance_slots;
-    if (klass.bases.empty()) {
+    std::vector<std::string> own_instance_slots;
+    std::unordered_set<std::string> seen_own_instance_slots;
+    bool has_explicit_slots = false;
+    for (const auto& stmt : klass.body) {
+      auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get());
+      if (assign != nullptr && assign->name == "__slots__" && assign->value != nullptr) {
+        has_explicit_slots = collect_literal_slots_from_expr(*assign->value, own_instance_slots, seen_own_instance_slots);
+        break;
+      }
+    }
+    if (!has_explicit_slots && klass.bases.empty()) {
       for (const auto& stmt : klass.body) {
         if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
           if (!fn->params.empty()) {
             for (const auto& child : fn->body) {
-              collect_self_attr_slots_stmt(*child, fn->params[0], instance_slots, seen_instance_slots);
+              collect_self_attr_slots_stmt(*child, fn->params[0], own_instance_slots, seen_own_instance_slots);
             }
           }
         }
       }
     }
 
+    std::vector<std::string> lowered_instance_slots;
+    std::unordered_set<std::string> seen_lowered_instance_slots;
+    auto append_lowered_slot = [&](const std::string& name) {
+      if (seen_lowered_instance_slots.insert(name).second) {
+        lowered_instance_slots.push_back(name);
+      }
+    };
+
+    bool known_base_layout = true;
+    for (const auto& base_expr : klass.bases) {
+      auto* base_name = dynamic_cast<const ast::NameExpr*>(base_expr.get());
+      if (base_name == nullptr) {
+        known_base_layout = false;
+        break;
+      }
+      auto base_info = class_infos_.find(base_name->name);
+      if (base_info == class_infos_.end()) {
+        known_base_layout = false;
+        break;
+      }
+      for (const auto& slot_name : base_info->second.slot_names) {
+        append_lowered_slot(slot_name);
+      }
+    }
+    if (known_base_layout) {
+      for (const auto& slot_name : own_instance_slots) {
+        append_lowered_slot(slot_name);
+      }
+    }
+
     ClassInfo class_info;
-    for (size_t i = 0; i < instance_slots.size(); ++i) {
-      class_info.slots[instance_slots[i]] = static_cast<uint32_t>(i);
+    if (known_base_layout) {
+      class_info.slot_names = lowered_instance_slots;
+      for (size_t i = 0; i < lowered_instance_slots.size(); ++i) {
+        class_info.slots[lowered_instance_slots[i]] = static_cast<uint32_t>(i);
+      }
     }
     class_infos_[klass.name] = class_info;
 
@@ -1957,7 +2036,7 @@ private:
 
     const auto reg = new_reg();
     emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)),
-         add_class_instance_slots(std::move(instance_slots)));
+         add_class_instance_slots(std::move(own_instance_slots)));
     for (const auto& base_expr : klass.bases) {
       const auto base = lower_expr(*base_expr);
       emit(ir::Op::SetClassBase, reg, base);

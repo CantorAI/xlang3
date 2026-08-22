@@ -169,6 +169,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         return true;
       }
     }
+    if (klass != nullptr && klass->restrict_instance_attrs && !klass->allow_instance_dict) {
+      error = "object has no attribute '" + name + "'";
+      return false;
+    }
     instance->attrs.push_back(std::make_pair(name, value));
     cache.index = static_cast<uint32_t>(instance->attrs.size() - 1);
     cache.kind = AttrSiteKind::InstanceAttr;

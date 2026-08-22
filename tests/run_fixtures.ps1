@@ -48,6 +48,7 @@ $cases = @(
     "tuple_methods",
     "dict_views",
     "slices",
+    "slots_model",
     "raw_strings",
     "string_compat",
     "binary_buffers",

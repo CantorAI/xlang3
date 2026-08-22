@@ -20,6 +20,8 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/perf_counters.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 #include "xlang3/value.h"
 
 #include <algorithm>
@@ -249,6 +251,52 @@ bool class_or_bases_have_descriptors(const ClassObject* klass) {
   return false;
 }
 
+void add_unique_slot_name(std::vector<std::string>& slots, const std::string& name) {
+  if (name == "__weakref__") {
+    return;
+  }
+  if (std::find(slots.begin(), slots.end(), name) == slots.end()) {
+    slots.push_back(name);
+  }
+}
+
+bool collect_slot_names_from_value(const Value& value, std::vector<std::string>& slots, bool& allow_instance_dict) {
+  if (auto* string = value_as_string(value)) {
+    const auto name = string_object_to_string(*string);
+    if (name == "__dict__") {
+      allow_instance_dict = true;
+    } else {
+      add_unique_slot_name(slots, name);
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 void inherit_special_attr_flags(ClassObject& klass, const ClassObject& base) {
   klass.has_getattribute_hook = klass.has_getattribute_hook || base.has_getattribute_hook;
   klass.has_getattr_hook = klass.has_getattr_hook || base.has_getattr_hook;
@@ -353,13 +401,19 @@ Value Value::class_object(
     if (object_value_is_descriptor(attr.second)) {
       obj->has_descriptors = true;
     }
+    if (attr.first == "__slots__") {
+      obj->restrict_instance_attrs = true;
+      obj->allow_instance_dict = false;
+      collect_slot_names_from_value(attr.second, obj->instance_slot_names, obj->allow_instance_dict);
+    }
     update_special_attr_flags(*obj, attr.first);
     obj->attrs[std::move(attr.first)] = std::move(attr.second);
   }
   for (auto& slot : instance_slots) {
-    if (std::find(obj->instance_slot_names.begin(), obj->instance_slot_names.end(), slot) ==
-        obj->instance_slot_names.end()) {
-      obj->instance_slot_names.push_back(std::move(slot));
+    if (!obj->restrict_instance_attrs ||
+        std::find(obj->instance_slot_names.begin(), obj->instance_slot_names.end(), slot) !=
+            obj->instance_slot_names.end()) {
+      add_unique_slot_name(obj->instance_slot_names, slot);
     }
   }
   for (size_t i = 0; i < obj->instance_slot_names.size(); ++i) {
@@ -893,6 +947,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
         value_assign_fast(attr.second, value);
         return true;
       }
+    }
+    if (klass != nullptr && klass->restrict_instance_attrs && !klass->allow_instance_dict) {
+      error = "object has no attribute '" + name + "'";
+      return false;
     }
     instance->attrs.push_back(std::make_pair(name, value));
     return true;

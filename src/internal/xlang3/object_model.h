@@ -38,6 +38,8 @@ struct ClassObject {
   bool has_getattr_hook = false;
   bool has_setattr_hook = false;
   bool has_delattr_hook = false;
+  bool restrict_instance_attrs = false;
+  bool allow_instance_dict = true;
   std::vector<Value> mro_cache;
   uint64_t mro_cache_version = 0;
 };

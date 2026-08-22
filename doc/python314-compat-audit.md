@@ -218,7 +218,7 @@ CPython-compatible behavior subset has tests.
 - [x] `__getattribute__` instance hook foundation
 - [x] `__setattr__` instance hook foundation plus `object.__setattr__`
 - [x] `__delattr__` instance hook foundation plus `object.__delattr__`
-- [ ] `__slots__` compatibility
+- [~] `__slots__`: explicit string/list/tuple/set declarations, inherited slot layout for known bases, dynamic attribute restriction, deletion, and `__dict__` opt-in basics; descriptors, weakref behavior, and conflict edge cases pending
 
 ### Functions And Calls
 
