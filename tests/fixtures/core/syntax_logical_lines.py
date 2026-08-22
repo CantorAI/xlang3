@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 a = 1; b = 2; print(a + b)
+import sys; print(sys.argv[0] != "")
 
 c = 10 + \
     20

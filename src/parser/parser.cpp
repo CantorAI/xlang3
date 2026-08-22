@@ -306,7 +306,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
         names.push_back(ast::ImportBinding{std::string(name.text), bind_name});
       } while (match(TokenKind::Comma));
     }
-    match(TokenKind::Newline);
+    consume_simple_statement_end();
     return std::make_unique<ast::FromImportStmt>(std::move(module_name), std::move(names));
   }
   if (match(TokenKind::KwImport)) {
@@ -318,7 +318,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
       if (!consume(TokenKind::Identifier, "expected alias after as")) return nullptr;
       bind_name = std::string(alias.text);
     }
-    match(TokenKind::Newline);
+    consume_simple_statement_end();
     return std::make_unique<ast::ImportStmt>(std::move(name), std::move(bind_name));
   }
   if (match(TokenKind::KwMatch)) {
