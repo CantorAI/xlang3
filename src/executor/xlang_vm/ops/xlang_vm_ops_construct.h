@@ -120,6 +120,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_function_annotations(
   return XlangVMOpFlow::Next;
 }
 
+XLANG3_HOT_INLINE XlangVMOpFlow set_function_kwdefaults(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    RuntimeResult& result) {
+  if (in.b >= fn.function_kwdefaults.size()) {
+    result.errors.push_back("invalid function keyword defaults list");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  auto* function = value_as_function(regs[in.dst]);
+  if (function == nullptr) {
+    result.errors.push_back("invalid function keyword defaults target");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  function->kwdefaults.clear();
+  function->kwdefaults.reserve(fn.function_kwdefaults[in.b].size());
+  for (const auto& item : fn.function_kwdefaults[in.b]) {
+    if (item.second >= regs.size()) {
+      result.errors.push_back("invalid keyword default register");
+      return XlangVMOpFlow::ReturnResult;
+    }
+    function->kwdefaults.push_back({item.first, regs[item.second]});
+  }
+  return XlangVMOpFlow::Next;
+}
+
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow set_class_base(
     const ir::Instr& in,

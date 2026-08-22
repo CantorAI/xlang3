@@ -231,7 +231,7 @@ CPython-compatible behavior subset has tests.
 - [~] default args runtime behavior
 - [~] keyword args runtime behavior
 - [~] varargs/kwargs objects
-- [~] function object attributes: `__name__`, `__module__`, `__doc__`, `__defaults__`, `__annotations__`, `__dict__`, `__code__`; `__qualname__`, `__kwdefaults__`, and broader CPython audit pending
+- [~] function object attributes: `__name__`, `__qualname__`, `__module__`, `__doc__`, positional `__defaults__`, keyword-only `__kwdefaults__`, `__annotations__`, custom attrs, snapshot `__dict__`, and `__code__`; live `__dict__`, exact mutation edge cases, and broader CPython audit pending
 - [~] code objects: foundation with `co_name`, `co_argcount`, `co_varnames`, `co_names`, `co_consts`, `co_filename`, and `co_firstlineno`; full CPython fields pending
 - [~] frame objects: foundation with `f_code`, `f_back`, `f_globals`, `f_locals`, and source-backed `f_lineno`; debugger mutation/source semantics pending
 - [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`; precise source-line mapping pending
@@ -499,11 +499,14 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   `is_dir(follow_symlinks=...)`, `is_file(follow_symlinks=...)`, `is_symlink`,
   `stat`, path-like arguments, bytes paths, and error classes.
 
-- [ ] function metadata audit:
+- [~] function metadata audit:
   `__doc__` now returns `None` for functions/native functions when unset.
-  Tests must cover docstrings, explicit assignment through `__dict__`,
-  `__qualname__`, `__kwdefaults__`, annotations, code objects, bound methods,
-  static methods, class methods, and native functions.
+  Covered: positional `__defaults__`, keyword-only `__kwdefaults__`, direct
+  assignment for those defaults, annotations assignment, custom function attrs,
+  and `__qualname__` basics for module functions, nested functions, class
+  methods, and nested class methods. Still pending: docstrings, explicit
+  assignment through live `__dict__`, code object completeness, bound-method
+  metadata, static methods, class methods, and native functions.
 
 - [ ] tokenizer/string-literal audit:
   lexer now avoids treating triple quote sequences inside normal strings as

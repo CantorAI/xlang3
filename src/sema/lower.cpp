@@ -852,15 +852,18 @@ public:
       std::unordered_map<std::string, uint32_t> instance_slots = {},
       std::unordered_map<std::string, ClassInfo> class_infos = {},
       std::unordered_map<std::string, uint32_t> module_global_slots = {},
-      std::unordered_set<uint32_t> imported_module_slots = {})
+      std::unordered_set<uint32_t> imported_module_slots = {},
+      std::string qualname_prefix = {})
       : module_(module),
         is_module_(is_module),
         instance_slot_self_(std::move(instance_slot_self)),
         instance_slots_(std::move(instance_slots)),
         class_infos_(std::move(class_infos)),
         module_global_slots_(std::move(module_global_slots)),
-        imported_module_slots_(std::move(imported_module_slots)) {
+        imported_module_slots_(std::move(imported_module_slots)),
+        qualname_prefix_(std::move(qualname_prefix)) {
     fn_.name = std::move(name);
+    fn_.qualname = qualname_prefix_.empty() ? fn_.name : qualname_prefix_ + "." + fn_.name;
     fn_.is_generator = is_generator;
     fn_.first_line = first_line;
     fn_.params = std::move(params);
@@ -935,6 +938,11 @@ private:
   uint32_t add_function_annotations(std::vector<std::pair<std::string, uint32_t>> annotations) {
     fn_.function_annotations.push_back(std::move(annotations));
     return static_cast<uint32_t>(fn_.function_annotations.size() - 1);
+  }
+
+  uint32_t add_function_kwdefaults(std::vector<std::pair<std::string, uint32_t>> defaults) {
+    fn_.function_kwdefaults.push_back(std::move(defaults));
+    return static_cast<uint32_t>(fn_.function_kwdefaults.size() - 1);
   }
 
   uint32_t add_tuple_items(std::vector<uint32_t> items) {
@@ -1921,7 +1929,8 @@ private:
   uint32_t lower_function_value(
       const ast::FunctionDef& fn,
       std::string instance_slot_self = {},
-      std::unordered_map<std::string, uint32_t> instance_slots = {}) {
+      std::unordered_map<std::string, uint32_t> instance_slots = {},
+      std::string qualname_parent = {}) {
     const auto free_vars = closure_names_for_child(fn);
     for (const auto& name : free_vars) {
       if (sema::contains(local_name_set_, name)) {
@@ -1930,12 +1939,17 @@ private:
     }
     auto signature = lower_signature_metadata(fn);
     std::vector<uint32_t> default_regs;
+    std::vector<std::pair<std::string, uint32_t>> kwdefault_regs;
     std::vector<std::pair<std::string, uint32_t>> annotation_regs;
     if (!fn.signature.empty()) {
       for (size_t i = 0; i < fn.signature.size(); ++i) {
         if (fn.signature[i].default_value != nullptr) {
           signature[i].default_reg = static_cast<uint32_t>(default_regs.size());
-          default_regs.push_back(lower_expr(*fn.signature[i].default_value));
+          const auto default_reg = lower_expr(*fn.signature[i].default_value);
+          default_regs.push_back(default_reg);
+          if (fn.signature[i].kind == ast::FunctionDef::Param::Kind::KeywordOnly) {
+            kwdefault_regs.push_back(std::make_pair(fn.signature[i].name, default_reg));
+          }
         }
         if (fn.signature[i].annotation != nullptr) {
           annotation_regs.push_back(std::make_pair(fn.signature[i].name, lower_expr(*fn.signature[i].annotation)));
@@ -1948,7 +1962,9 @@ private:
     FunctionLowerer child_lowerer(
         module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, body_contains_yield(fn.body), fn.line, false,
         std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
-        imported_module_slots_);
+        imported_module_slots_,
+        qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
+                                : std::move(qualname_parent));
     child_lowerer.lower_body(fn.body);
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
@@ -1971,11 +1987,16 @@ private:
     if (!annotation_regs.empty()) {
       emit(ir::Op::SetFunctionAnnotations, reg, add_function_annotations(std::move(annotation_regs)));
     }
+    if (!kwdefault_regs.empty()) {
+      emit(ir::Op::SetFunctionKwDefaults, reg, add_function_kwdefaults(std::move(kwdefault_regs)));
+    }
     return reg;
   }
 
-  uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true) {
+  uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true, std::string qualname_parent = {}) {
     std::vector<std::pair<std::string, uint32_t>> attrs;
+    const std::string& parent_qualname = qualname_parent.empty() ? qualname_prefix_ : qualname_parent;
+    const std::string class_qualname = parent_qualname.empty() ? klass.name : parent_qualname + "." + klass.name;
     std::vector<std::string> own_instance_slots;
     std::unordered_set<std::string> seen_own_instance_slots;
     bool has_explicit_slots = false;
@@ -2057,7 +2078,7 @@ private:
     for (const auto& stmt : klass.body) {
       if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
         const auto attr_reg = apply_decorators(
-            lower_function_value(*fn, fn->params.empty() ? std::string{} : fn->params[0], class_info.slots),
+            lower_function_value(*fn, fn->params.empty() ? std::string{} : fn->params[0], class_info.slots, class_qualname),
             fn->decorators);
         attrs.push_back(std::make_pair(fn->name, attr_reg));
         bind_class_attr_alias(fn->name, attr_reg);
@@ -2082,7 +2103,7 @@ private:
           }
         }
       } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(stmt.get())) {
-        const auto attr_reg = lower_class_def(*nested, false);
+        const auto attr_reg = lower_class_def(*nested, false, class_qualname);
         attrs.push_back(std::make_pair(nested->name, attr_reg));
         bind_class_attr_alias(nested->name, attr_reg);
       }
@@ -3172,6 +3193,7 @@ private:
   std::unordered_map<std::string, ClassInfo> class_infos_;
   std::unordered_map<std::string, uint32_t> module_global_slots_;
   std::unordered_set<uint32_t> imported_module_slots_;
+  std::string qualname_prefix_;
   uint32_t current_source_line_ = 0;
   ir::Function fn_;
   sema::NameSet local_name_set_;

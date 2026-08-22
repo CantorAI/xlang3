@@ -54,6 +54,7 @@ const char* op_name(Op op) {
     case Op::MakeClass: return "MakeClass";
     case Op::MakeFunction: return "MakeFunction";
     case Op::SetFunctionAnnotations: return "SetFunctionAnnotations";
+    case Op::SetFunctionKwDefaults: return "SetFunctionKwDefaults";
     case Op::SetClassBase: return "SetClassBase";
     case Op::MakeTuple: return "MakeTuple";
     case Op::MakeList: return "MakeList";
@@ -160,6 +161,9 @@ std::string dump_module(const Module& module) {
   for (size_t fn_i = 0; fn_i < module.functions.size(); ++fn_i) {
     const auto& fn = module.functions[fn_i];
     os << "function #" << fn_i << " " << fn.name << "\n";
+    if (!fn.qualname.empty() && fn.qualname != fn.name) {
+      os << "  qualname: " << fn.qualname << "\n";
+    }
     os << "  first_line: " << fn.first_line << "\n";
     os << "  generator: " << (fn.is_generator ? "true" : "false") << "\n";
     os << "  params:";
@@ -232,6 +236,13 @@ std::string dump_module(const Module& module) {
       os << "  function_annotations #" << annotations_i << ":";
       for (const auto& annotation : fn.function_annotations[annotations_i]) {
         os << " " << annotation.first << "=r" << annotation.second;
+      }
+      os << "\n";
+    }
+    for (size_t kwdefaults_i = 0; kwdefaults_i < fn.function_kwdefaults.size(); ++kwdefaults_i) {
+      os << "  function_kwdefaults #" << kwdefaults_i << ":";
+      for (const auto& item : fn.function_kwdefaults[kwdefaults_i]) {
+        os << " " << item.first << "=r" << item.second;
       }
       os << "\n";
     }

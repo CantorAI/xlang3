@@ -431,14 +431,34 @@ Value Value::function(
     std::vector<Value> closure,
     Value globals_module,
     std::shared_ptr<const ir::Module> module,
-    std::vector<Value> defaults) {
+    std::vector<Value> defaults,
+    std::vector<std::pair<std::string, Value>> kwdefaults,
+    std::string qualname) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<FunctionObject>(ObjectKind::Function);
   obj->function_id = function_id;
   obj->closure = std::move(closure);
   obj->defaults = std::move(defaults);
+  obj->kwdefaults = std::move(kwdefaults);
+  if (module != nullptr && function_id < module->functions.size()) {
+    const auto& fn = module->functions[function_id];
+    for (const auto& param : fn.signature) {
+      if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
+          param.default_reg != UINT32_MAX &&
+          param.default_reg < obj->defaults.size()) {
+        obj->positional_defaults.push_back(obj->defaults[param.default_reg]);
+      }
+    }
+  } else {
+    obj->positional_defaults = obj->defaults;
+  }
   obj->globals_module = std::move(globals_module);
+  if (qualname.empty() && module != nullptr && function_id < module->functions.size()) {
+    qualname = module->functions[function_id].qualname.empty() ? module->functions[function_id].name
+                                                               : module->functions[function_id].qualname;
+  }
+  obj->qualname = std::move(qualname);
   obj->module = std::move(module);
   v.as.obj = &obj->header;
   return v;

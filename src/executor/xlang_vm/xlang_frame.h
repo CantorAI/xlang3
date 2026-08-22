@@ -394,6 +394,14 @@ private:
           }
         }
         break;
+      case ir::Op::SetFunctionKwDefaults:
+        one(instr.dst);
+        if (instr.b < this->fn->function_kwdefaults.size()) {
+          for (const auto& item : this->fn->function_kwdefaults[instr.b]) {
+            one(item.second);
+          }
+        }
+        break;
       case ir::Op::SetClassBase:
         one(instr.dst);
         one(instr.a);

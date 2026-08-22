@@ -33,6 +33,7 @@ $cases = @(
     "expression_operators",
     "chained_comparisons",
     "function_class_syntax",
+    "function_metadata",
     "object_type_model",
     "object_attribute_hooks",
     "descriptor_protocol",

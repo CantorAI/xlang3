@@ -205,7 +205,9 @@ struct Value {
       std::vector<Value> closure,
       Value globals_module,
       std::shared_ptr<const ir::Module> module,
-      std::vector<Value> defaults = {});
+      std::vector<Value> defaults = {},
+      std::vector<std::pair<std::string, Value>> kwdefaults = {},
+      std::string qualname = {});
   static Value code(std::shared_ptr<const ir::Module> module, uint32_t function_id, std::string mode = "exec");
   static Value frame(
       std::shared_ptr<const ir::Module> module,
@@ -379,9 +381,12 @@ struct FunctionObject {
   uint32_t function_id = 0;
   std::vector<Value> closure;
   std::vector<Value> defaults;
+  std::vector<Value> positional_defaults;
+  std::vector<std::pair<std::string, Value>> kwdefaults;
   Value annotations;
   Value globals_module;
   std::shared_ptr<const ir::Module> module;
+  std::string qualname;
   std::vector<std::pair<std::string, Value>> attrs;
 };
 

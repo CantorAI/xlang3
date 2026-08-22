@@ -562,6 +562,17 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
+    if (name == "__qualname__") {
+      if (!function->qualname.empty()) {
+        out = Value::string(function->qualname);
+      } else if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+        const auto& fn = function->module->functions[function->function_id];
+        out = Value::string(fn.qualname.empty() ? fn.name : fn.qualname);
+      } else {
+        out = Value::string("<function>");
+      }
+      return true;
+    }
     if (name == "__module__") {
       if (auto* module = value_as_module(function->globals_module)) {
         out = Value::string(module->name);
@@ -575,10 +586,23 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__defaults__") {
-      if (function->defaults.empty()) {
+      if (function->positional_defaults.empty()) {
         value_set_none(out);
       } else {
-        out = Value::tuple(function->defaults);
+        out = Value::tuple(function->positional_defaults);
+      }
+      return true;
+    }
+    if (name == "__kwdefaults__") {
+      if (function->kwdefaults.empty()) {
+        value_set_none(out);
+      } else {
+        std::vector<std::pair<Value, Value>> entries;
+        entries.reserve(function->kwdefaults.size());
+        for (const auto& entry : function->kwdefaults) {
+          entries.push_back({Value::string(entry.first), entry.second});
+        }
+        out = Value::dict(std::move(entries));
       }
       return true;
     }
@@ -924,6 +948,88 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
 
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error) {
   if (auto* function = value_as_function(object)) {
+    if (name == "__qualname__") {
+      auto* string = value_as_string(value);
+      if (string == nullptr) {
+        error = "__qualname__ must be set to a string";
+        return false;
+      }
+      function->qualname = string_object_to_string(*string);
+      return true;
+    }
+    if (name == "__defaults__") {
+      if (value.tag == ValueTag::None) {
+        function->positional_defaults.clear();
+        return true;
+      }
+      auto* tuple = value_as_tuple(value);
+      if (tuple == nullptr) {
+        error = "__defaults__ must be set to a tuple or None";
+        return false;
+      }
+      function->positional_defaults.clear();
+      function->positional_defaults.reserve(tuple->items.size());
+      for (const auto& item : tuple->items) {
+        function->positional_defaults.push_back(item);
+      }
+      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+        const auto& fn = function->module->functions[function->function_id];
+        size_t pos_default_index = 0;
+        for (const auto& param : fn.signature) {
+          if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
+              param.default_reg != UINT32_MAX &&
+              param.default_reg < function->defaults.size()) {
+            if (pos_default_index < function->positional_defaults.size()) {
+              value_assign_fast(function->defaults[param.default_reg], function->positional_defaults[pos_default_index]);
+            }
+            ++pos_default_index;
+          }
+        }
+      }
+      return true;
+    }
+    if (name == "__kwdefaults__") {
+      if (value.tag == ValueTag::None) {
+        function->kwdefaults.clear();
+        return true;
+      }
+      auto* dict = value_as_dict(value);
+      if (dict == nullptr) {
+        error = "__kwdefaults__ must be set to a dict or None";
+        return false;
+      }
+      function->kwdefaults.clear();
+      function->kwdefaults.reserve(dict->entries.size());
+      for (const auto& entry : dict->entries) {
+        auto* key = value_as_string(entry.first);
+        if (key == nullptr) {
+          error = "__kwdefaults__ keys must be strings";
+          return false;
+        }
+        function->kwdefaults.push_back({string_object_to_string(*key), entry.second});
+      }
+      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+        const auto& fn = function->module->functions[function->function_id];
+        for (const auto& param : fn.signature) {
+          if (param.kind != ir::ParamKind::KeywordOnly ||
+              param.default_reg == UINT32_MAX ||
+              param.default_reg >= function->defaults.size()) {
+            continue;
+          }
+          for (const auto& item : function->kwdefaults) {
+            if (item.first == param.name) {
+              value_assign_fast(function->defaults[param.default_reg], item.second);
+              break;
+            }
+          }
+        }
+      }
+      return true;
+    }
+    if (name == "__annotations__") {
+      value_assign_fast(function->annotations, value);
+      return true;
+    }
     for (auto& attr : function->attrs) {
       if (attr.first == name) {
         value_assign_fast(attr.second, value);

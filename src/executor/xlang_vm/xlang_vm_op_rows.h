@@ -53,6 +53,7 @@ XLANG3_VM_FLOW(RawBlock, xlang3::xlang_vm::ops::raw_block(in, fn, runtime_, loca
 XLANG3_VM_FLOW(MakeClass, xlang3::xlang_vm::ops::make_class(in, fn, runtime_, regs, result))
 XLANG3_VM_FLOW(MakeFunction, xlang3::xlang_vm::ops::make_function(in, fn, regs, globals_module, module_owner, result))
 XLANG3_VM_FLOW(SetFunctionAnnotations, xlang3::xlang_vm::ops::set_function_annotations(in, fn, regs, result))
+XLANG3_VM_FLOW(SetFunctionKwDefaults, xlang3::xlang_vm::ops::set_function_kwdefaults(in, fn, regs, result))
 XLANG3_VM_FLOW(SetClassBase, xlang3::xlang_vm::ops::set_class_base(in, regs, raise_runtime_error))
 XLANG3_VM_FLOW(MakeTuple, xlang3::xlang_vm::ops::make_tuple(in, fn, regs, result))
 XLANG3_VM_FLOW(MakeList, xlang3::xlang_vm::ops::make_list(in, fn, regs, result))

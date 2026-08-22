@@ -82,6 +82,7 @@ enum class Op : uint16_t {
   MakeClass,
   MakeFunction,
   SetFunctionAnnotations,
+  SetFunctionKwDefaults,
   SetClassBase,
   MakeTuple,
   MakeList,
@@ -166,6 +167,7 @@ struct Instr {
 
 struct Function {
   std::string name;
+  std::string qualname;
   bool is_generator = false;
   uint32_t first_line = 0;
   std::vector<std::string> params;
@@ -186,6 +188,7 @@ struct Function {
   std::vector<CallSpec> call_specs;
   std::vector<std::vector<uint32_t>> function_defaults;
   std::vector<std::vector<std::pair<std::string, uint32_t>>> function_annotations;
+  std::vector<std::vector<std::pair<std::string, uint32_t>>> function_kwdefaults;
   std::vector<std::vector<uint32_t>> tuple_items;
   std::vector<std::vector<uint32_t>> list_items;
   std::vector<std::vector<uint32_t>> set_items;

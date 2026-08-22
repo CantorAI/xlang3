@@ -628,7 +628,8 @@ bool read_values(Reader& r, std::vector<Value>& values, std::string& error) {
 }
 
 bool write_function(Writer& w, const Function& fn, std::string& error) {
-  if (!w.string(fn.name, error)) {
+  if (!w.string(fn.name, error) ||
+      !w.string(fn.qualname, error)) {
     return false;
   }
   w.u8(fn.is_generator ? 1 : 0);
@@ -659,6 +660,7 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
       !write_call_specs(w, fn.call_specs, error) ||
       !write_nested_u32_vectors(w, fn.function_defaults, error) ||
       !write_nested_class_attrs(w, fn.function_annotations, error) ||
+      !write_nested_class_attrs(w, fn.function_kwdefaults, error) ||
       !write_nested_u32_vectors(w, fn.tuple_items, error) ||
       !write_nested_u32_vectors(w, fn.list_items, error) ||
       !write_nested_u32_vectors(w, fn.set_items, error) ||
@@ -689,6 +691,7 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
 bool read_function(Reader& r, Function& fn, std::string& error) {
   uint8_t is_generator = 0;
   if (!r.string(fn.name) ||
+      !r.string(fn.qualname) ||
       !r.u8(is_generator) ||
       !r.u32(fn.first_line) ||
       !read_string_vector(r, fn.params, error) ||
@@ -716,6 +719,7 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       !read_call_specs(r, fn.call_specs, error) ||
       !read_nested_u32_vectors(r, fn.function_defaults, error) ||
       !read_nested_class_attrs(r, fn.function_annotations, error) ||
+      !read_nested_class_attrs(r, fn.function_kwdefaults, error) ||
       !read_nested_u32_vectors(r, fn.tuple_items, error) ||
       !read_nested_u32_vectors(r, fn.list_items, error) ||
       !read_nested_u32_vectors(r, fn.set_items, error) ||
