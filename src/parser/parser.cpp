@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/source_cursor.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cctype>
 #include <cstdlib>
@@ -36,6 +37,87 @@ std::string trim_ascii(std::string_view text) {
     --last;
   }
   return std::string(text.substr(first, last - first));
+}
+
+bool append_pattern_capture_name(std::vector<std::string>& names, const std::string& name) {
+  if (name == "_") {
+    return true;
+  }
+  if (std::find(names.begin(), names.end(), name) != names.end()) {
+    return false;
+  }
+  names.push_back(name);
+  return true;
+}
+
+std::vector<std::string> sorted_pattern_names(std::vector<std::string> names) {
+  std::sort(names.begin(), names.end());
+  return names;
+}
+
+bool collect_pattern_capture_names(const ast::Expr& pattern, std::vector<std::string>& names) {
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern)) {
+    if (binary->op == "|") {
+      std::vector<std::string> lhs_names;
+      std::vector<std::string> rhs_names;
+      if (!collect_pattern_capture_names(*binary->lhs, lhs_names) ||
+          !collect_pattern_capture_names(*binary->rhs, rhs_names) ||
+          sorted_pattern_names(lhs_names) != sorted_pattern_names(rhs_names)) {
+        return false;
+      }
+      for (const auto& name : lhs_names) {
+        if (!append_pattern_capture_name(names, name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return true;
+  }
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&pattern)) {
+    return append_pattern_capture_name(names, name->name);
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&pattern)) {
+    for (const auto& item : tuple->items) {
+      if (!collect_pattern_capture_names(*item, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&pattern)) {
+    for (const auto& item : list->items) {
+      if (!collect_pattern_capture_names(*item, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&pattern)) {
+    for (const auto& entry : dict->entries) {
+      if (!collect_pattern_capture_names(*entry.second, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&pattern)) {
+    for (const auto& arg : call->args) {
+      if (!collect_pattern_capture_names(*arg, names)) {
+        return false;
+      }
+    }
+    for (const auto& arg : call->call_args) {
+      if (arg.value != nullptr && !collect_pattern_capture_names(*arg.value, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&pattern)) {
+    return collect_pattern_capture_names(*starred->expr, names);
+  }
+  return true;
 }
 
 bool is_identifier_like_token(TokenKind kind) {
@@ -574,6 +656,15 @@ ast::StmtPtr Parser::parse_with_statement(bool is_async) {
   return std::move(body.front());
 }
 
+bool Parser::validate_match_pattern(const ast::Expr& pattern) {
+  std::vector<std::string> names;
+  if (collect_pattern_capture_names(pattern, names)) {
+    return true;
+  }
+  error_here("invalid capture names in match pattern");
+  return false;
+}
+
 ast::StmtPtr Parser::parse_match_statement() {
   auto stmt = std::make_unique<ast::MatchStmt>();
   stmt->subject = parse_expression();
@@ -588,11 +679,18 @@ ast::StmtPtr Parser::parse_match_statement() {
       continue;
     }
     ast::MatchCase match_case;
-    if (check(TokenKind::Identifier) && peek().text == "_") {
+    if (check(TokenKind::Identifier) && peek().text == "_" &&
+        (current_ + 1 >= tokens_.size() ||
+         tokens_[current_ + 1].kind == TokenKind::Colon ||
+         tokens_[current_ + 1].kind == TokenKind::KwAs ||
+         tokens_[current_ + 1].kind == TokenKind::KwIf)) {
       advance();
       match_case.wildcard = true;
     } else {
       match_case.pattern = parse_expression();
+      if (match_case.pattern != nullptr) {
+        validate_match_pattern(*match_case.pattern);
+      }
     }
     if (match(TokenKind::KwAs)) {
       const Token name = peek();

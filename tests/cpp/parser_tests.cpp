@@ -126,5 +126,25 @@ int main() {
       "from import_helper import *\n");
   xlang3::test::expect_true(result, statements.errors.empty(), "parser should accept Python statement syntax coverage");
 
+  // OR-pattern alternatives must bind the same capture names.
+  auto invalid_or_pattern = xlang3::parse_source(
+      "match value:\n"
+      "    case [x] | [y]:\n"
+      "        pass\n");
+  xlang3::test::expect_true(
+      result,
+      !invalid_or_pattern.errors.empty(),
+      "parser should reject OR patterns with different capture names");
+
+  // A single pattern cannot capture the same name twice.
+  auto duplicate_pattern_capture = xlang3::parse_source(
+      "match value:\n"
+      "    case [x, x]:\n"
+      "        pass\n");
+  xlang3::test::expect_true(
+      result,
+      !duplicate_pattern_capture.errors.empty(),
+      "parser should reject duplicate capture names in one pattern");
+
   return xlang3::test::finish(result);
 }

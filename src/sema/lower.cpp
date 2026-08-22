@@ -1796,18 +1796,44 @@ private:
       std::vector<PatternCapture>* captures = nullptr) {
     if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern)) {
       if (binary->op == "|") {
-        const auto lhs = lower_pattern_to_bool(*binary->lhs, subject);
+        std::vector<PatternCapture> lhs_captures;
+        const auto lhs = lower_pattern_to_bool(*binary->lhs, subject, captures == nullptr ? nullptr : &lhs_captures);
         const auto result = new_reg();
+        std::vector<PatternCapture> merged_captures;
+        if (captures != nullptr) {
+          merged_captures.reserve(lhs_captures.size());
+          for (const auto& capture : lhs_captures) {
+            merged_captures.push_back(PatternCapture{capture.name, new_reg()});
+          }
+        }
         const auto lhs_failed = emit_jump(ir::Op::JumpIfFalse, lhs);
+        for (size_t i = 0; i < lhs_captures.size() && i < merged_captures.size(); ++i) {
+          emit(ir::Op::Move, merged_captures[i].source, lhs_captures[i].source);
+        }
         emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
         const auto done = emit_jump(ir::Op::Jump);
         patch_jump(lhs_failed, static_cast<uint32_t>(fn_.code.size()));
-        const auto rhs = lower_pattern_to_bool(*binary->rhs, subject);
+        std::vector<PatternCapture> rhs_captures;
+        const auto rhs = lower_pattern_to_bool(*binary->rhs, subject, captures == nullptr ? nullptr : &rhs_captures);
         emit(ir::Op::LoadConst, result, add_const(Value::boolean(false)));
         const auto rhs_failed = emit_jump(ir::Op::JumpIfFalse, rhs);
+        if (captures != nullptr) {
+          for (auto& merged : merged_captures) {
+            auto found = std::find_if(
+                rhs_captures.begin(),
+                rhs_captures.end(),
+                [&](const PatternCapture& capture) { return capture.name == merged.name; });
+            if (found != rhs_captures.end()) {
+              emit(ir::Op::Move, merged.source, found->source);
+            }
+          }
+        }
         emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
         patch_jump(rhs_failed, static_cast<uint32_t>(fn_.code.size()));
         patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+        if (captures != nullptr) {
+          captures->insert(captures->end(), merged_captures.begin(), merged_captures.end());
+        }
         return result;
       }
     }

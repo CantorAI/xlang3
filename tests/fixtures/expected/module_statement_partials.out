@@ -5,5 +5,7 @@ point-pos 3 4
 point-kw 3
 point-dynamic 6
 capture old
+or-capture 8
+or-wildcard
 T True True
 T type_parameter

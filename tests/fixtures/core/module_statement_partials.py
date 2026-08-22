@@ -75,11 +75,26 @@ match dp:
 
 failed_capture = "old"
 
+# Failed sequence pattern captures must not overwrite an existing name.
 match [1, 3]:
     case [failed_capture, 2]:
         print("bad")
     case _:
         print("capture", failed_capture)
+
+# OR patterns bind from the winning alternative.
+match [8, 2]:
+    case [or_value, 1] | [or_value, 2]:
+        print("or-capture", or_value)
+    case _:
+        print("bad")
+
+# Wildcard can participate inside an OR pattern.
+match 99:
+    case _ | 1:
+        print("or-wildcard")
+    case _:
+        print("bad")
 
 fn_t = identity.__type_params__[0]
 box_t = Box.__type_params__[0]

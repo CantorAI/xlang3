@@ -130,6 +130,24 @@ foreach ($case in $cases) {
     Write-Host "fixture $case ok"
 }
 
+$sectionCases = @(
+    "module_and_statement_syntax"
+)
+
+foreach ($case in $sectionCases) {
+    $source = Join-Path $root "fixtures/compat_sections/$case.py"
+    $expectedPath = Join-Path $root "fixtures/expected/compat_sections/$case.out"
+    $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
+    $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
+    if ($LASTEXITCODE -ne 0) {
+        throw "compat section $case failed with exit code $LASTEXITCODE"
+    }
+    if ($actual -ne $expected) {
+        throw "compat section $case output mismatch. Expected '$expected', got '$actual'"
+    }
+    Write-Host "compat section $case ok"
+}
+
 $uncaughtSource = Join-Path $root "fixtures/core/uncaught_exception.py"
 $oldErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
