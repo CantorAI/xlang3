@@ -38,6 +38,12 @@ or empty facade is not Python compatibility. Mark it [ ] unless a declared
 CPython-compatible behavior subset has tests.
 ```
 
+Section-level fixture coverage:
+
+- `tests/fixtures/compat_sections/module_and_statement_syntax.py`
+- `tests/fixtures/compat_sections/function_and_class_syntax.py`
+- `tests/fixtures/compat_sections/expression_syntax.py`
+
 ## Syntax Compatibility
 
 ### Module And Statement Syntax
