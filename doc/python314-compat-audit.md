@@ -400,7 +400,7 @@ High-level Python modules to run from Python source where possible:
 
 ### Debugger Compatibility
 
-- [~] Python CLI compatibility for debugpy command shapes: Windows `python.exe` alias, script args, `-c`, `-m`, directory `__main__.py`, ignored safe `-X` flags, `sys.argv`, and live `sys.path` import search; full CPython flag matrix and debugpy stdlib dependencies pending
+- [~] Python CLI compatibility: Windows `python.exe` alias, script args, `-c`, `-m`, directory `__main__.py`, ignored safe `-X` flags, `sys.argv`, and live `sys.path` import search; full CPython flag matrix pending
 - [~] `sys.settrace`: hook storage plus Python function call/line/return/exception event dispatch; CPython edge cases pending
 - [~] `sys.gettrace`: returns stored hook
 - [~] `threading.settrace`: default thread hook storage foundation; native thread propagation/events pending
@@ -415,17 +415,17 @@ High-level Python modules to run from Python source where possible:
 - [~] exception events: raised Python exceptions emit trace exception events before handler/unwind dispatch
 - [~] VM debug poll gate: debugger hook is runtime-disabled by default; breakpoint/step checks activate through a cached poll-needed flag
 - [~] VM debug pause/resume: breakpoint/step hits can preserve the XlangVM frame stack and resume from the same instruction; host protocol binding pending
-- [~] debug session controller: desktop runtime API owns loaded source, breakpoints, pause status, continue, step in/over/out, and pause request; debugpy transport pending
+- [~] debug session controller: desktop runtime API owns loaded source, breakpoints, pause status, continue, step in/over/out, and pause request; native DAP is the product transport
 - [~] native DAP session: C++ DAP framing plus initialize/launch/setBreakpoints/setExceptionBreakpoints/configurationDone/continue/step/threads/stack/scopes/variables over `DebugSession`; `xlang3 --dap-stdio` host, initialized/output/terminated events, frame-chain stack trace, and locals/globals scopes added; socket host pending
 - [~] VS Code native DAP registration: minimal `tools/vscode/xlang3-debug` extension starts `xlang3 --dap-stdio`; manual IDE validation pending
 - [~] Visual Studio 2026 native DAP smoke: VS Debug Adapter Host launched `xlang3 --dap-stdio`, stopped at entry, continued, and observed clean adapter exit; packaged VSIX/project-system integration pending
-- [~] breakpoint mapping: private VM hook and pause state support filename/line breakpoint hits and native DAP binding; debugpy binding pending
-- [~] step over: VM policy skips deeper frames and pauses at the next source line in the original/caller frame; native DAP binding added, debugpy binding pending
-- [~] step in: private VM hook and pause state support source-line step-into hits; native DAP binding added, debugpy binding pending
-- [~] step out: VM policy pauses after the selected frame returns to its caller; native DAP binding added, debugpy binding pending
+- [~] breakpoint mapping: private VM hook and pause state support filename/line breakpoint hits and native DAP binding
+- [~] step over: VM policy skips deeper frames and pauses at the next source line in the original/caller frame; native DAP binding added
+- [~] step in: private VM hook and pause state support source-line step-into hits; native DAP binding added
+- [~] step out: VM policy pauses after the selected frame returns to its caller; native DAP binding added
 - [~] pause request: VM can stop at the next source line without a breakpoint; external debugger request channel pending
 - [~] locals/globals variable inspection: current frame snapshots expose locals/globals dicts; debugger mutation/watch semantics pending
-- [ ] evaluate expression in selected frame
+- [~] evaluate expression in selected frame: native DAP parses Python expressions and evaluates names/attrs/indexing/calls/literals/containers/basic operators against paused frame locals/globals; full VM eval mode, mutation, keyword calls, and all Python expression forms pending
 
 ## Audit Method
 

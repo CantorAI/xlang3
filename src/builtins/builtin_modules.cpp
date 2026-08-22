@@ -158,7 +158,7 @@ bool sys_xlang3_debug_step_into(Runtime& runtime, const Value*, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  runtime.debug_step_into();
+  runtime.debug_step_into(0, 0);
   value_set_none(out);
   return true;
 }

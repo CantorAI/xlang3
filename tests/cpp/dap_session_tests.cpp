@@ -287,5 +287,66 @@ int main() {
     xlang3::test::expect_true(result, found_b, "locals should expose function local b");
   }
 
+  {
+    std::ostringstream output;
+    xlang3::dap::DapSession session(output);
+    session.handle_payload(request(30, "initialize").dump());
+
+    const std::string source =
+        "class Point:\n"
+        "    kind = 'point'\n"
+        "    def __init__(self, x, y):\n"
+        "        self.x = x\n"
+        "        self.y = y\n"
+        "    def total(self):\n"
+        "        return self.x + self.y\n"
+        "\n"
+        "p = Point(2, 3)\n"
+        "items = [10, 20, 30]\n"
+        "marker = p.total()\n";
+    xlang3::test::expect_true(
+        result,
+        single_response(
+            result,
+            session,
+            request(31, "launch", Json{{"program", "dap_evaluate.py"}, {"source", source}}),
+            "launch evaluate")
+            .value("success", false),
+        "evaluate launch should succeed");
+    single_response(
+        result,
+        session,
+        request(
+            32,
+            "setBreakpoints",
+            Json{
+                {"source", {{"path", "dap_evaluate.py"}}},
+                {"breakpoints", Json::array({Json{{"line", 11}}})},
+            }),
+        "setBreakpoints evaluate");
+
+    auto stopped = session.handle_payload(request(33, "configurationDone").dump());
+    xlang3::test::expect_true(result, stopped.size() == 2, "evaluate breakpoint should stop");
+
+    auto expect_eval = [&](int64_t seq, const std::string& expression, const std::string& expected) {
+      Json response = single_response(
+          result,
+          session,
+          request(seq, "evaluate", Json{{"frameId", 1}, {"expression", expression}}),
+          "evaluate " + expression);
+      xlang3::test::expect_true(result, response.value("success", false), "evaluate should succeed for " + expression);
+      xlang3::test::expect_true(
+          result,
+          response["body"].value("result", "") == expected,
+          "evaluate result should match for " + expression);
+    };
+
+    expect_eval(34, "p.x", "2");
+    expect_eval(35, "Point.kind", "point");
+    expect_eval(36, "p.total()", "5");
+    expect_eval(37, "items[1]", "20");
+    expect_eval(38, "p.x + items[1]", "22");
+  }
+
   return xlang3::test::finish(result);
 }

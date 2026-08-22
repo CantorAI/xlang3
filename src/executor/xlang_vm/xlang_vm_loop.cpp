@@ -505,13 +505,17 @@ RuntimeResult Interpreter::run_function(
 
   auto poll_debug_event = [&](VMFrame& debug_frame) -> bool {
     const uint32_t source_line = source_line_for_frame(debug_frame);
-    if (source_line == 0 || source_line == debug_frame.last_debug_line) {
+    if (source_line == 0) {
+      return true;
+    }
+    if (source_line == debug_frame.last_debug_line) {
       return true;
     }
     debug_frame.last_debug_line = source_line;
     const std::string_view source_file =
         debug_frame.module != nullptr ? std::string_view(debug_frame.module->source_file) : std::string_view();
-    if (runtime_.debug_breakpoint_matches(source_file, source_line)) {
+    if (!runtime_.debug_skip_breakpoint_at_step_origin(frame_count, source_line) &&
+        runtime_.debug_breakpoint_matches(source_file, source_line)) {
       if (!emit_debug_event(debug_frame, "breakpoint")) {
         return false;
       }

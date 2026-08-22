@@ -101,12 +101,6 @@ void add_default_python_lib_roots(Runtime& runtime) {
   add_import_root_if_dir(runtime, "C:/Python/Python314/Lib");
   add_import_root_if_dir(runtime, "C:/Python/Python313/Lib");
   add_import_root_if_dir(runtime, "C:/Python/Python312/Lib");
-  add_import_root_if_dir(
-      runtime,
-      "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/Extensions/Microsoft/Python/Core");
-  add_import_root_if_dir(
-      runtime,
-      "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/Extensions/Microsoft/Python/Core/debugpy/_vendored/pydevd");
 #else
   add_import_root_if_dir(runtime, "/usr/local/lib/python3.14");
   add_import_root_if_dir(runtime, "/usr/lib/python3.14");
@@ -306,10 +300,10 @@ void Runtime::debug_clear_breakpoints() {
   refresh_debug_poll_needed();
 }
 
-void Runtime::debug_step_into() {
+void Runtime::debug_step_into(size_t frame_count, uint32_t line) {
   debug_step_mode_ = RuntimeDebugStepMode::StepInto;
-  debug_step_frame_count_ = 0;
-  debug_step_line_ = 0;
+  debug_step_frame_count_ = frame_count;
+  debug_step_line_ = line;
   refresh_debug_poll_needed();
 }
 
@@ -343,7 +337,10 @@ RuntimePauseReason Runtime::debug_step_pause_reason(size_t frame_count, uint32_t
     return RuntimePauseReason::None;
   }
   if (debug_step_mode_ == RuntimeDebugStepMode::StepInto) {
-    return RuntimePauseReason::Step;
+    if (frame_count > debug_step_frame_count_ || line != debug_step_line_) {
+      return RuntimePauseReason::Step;
+    }
+    return RuntimePauseReason::None;
   }
   if (debug_step_mode_ == RuntimeDebugStepMode::StepOver &&
       frame_count <= debug_step_frame_count_ &&
@@ -354,6 +351,13 @@ RuntimePauseReason Runtime::debug_step_pause_reason(size_t frame_count, uint32_t
     return RuntimePauseReason::StepOut;
   }
   return RuntimePauseReason::None;
+}
+
+bool Runtime::debug_skip_breakpoint_at_step_origin(size_t frame_count, uint32_t line) const {
+  if (debug_step_mode_ == RuntimeDebugStepMode::Continue || debug_step_line_ == 0) {
+    return false;
+  }
+  return frame_count == debug_step_frame_count_ && line == debug_step_line_;
 }
 
 bool Runtime::debug_breakpoint_matches(std::string_view file, uint32_t line) const {

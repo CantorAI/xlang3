@@ -102,7 +102,11 @@ bool DebugSession::continue_execution(std::string& error) {
 }
 
 bool DebugSession::step_into(std::string& error) {
-  runtime_.debug_step_into();
+  if (!status_.paused) {
+    error = "debug session is not paused";
+    return false;
+  }
+  runtime_.debug_step_into(static_cast<size_t>(status_.selected_frame) + 1, status_.line);
   return resume_with_current_policy(error);
 }
 

@@ -181,11 +181,12 @@ public:
   void debug_request_pause();
   void debug_add_breakpoint(std::string file, uint32_t line);
   void debug_clear_breakpoints();
-  void debug_step_into();
+  void debug_step_into(size_t frame_count, uint32_t line);
   void debug_step_over(size_t frame_count, uint32_t line);
   void debug_step_out(size_t frame_count);
   void debug_continue();
   RuntimePauseReason debug_step_pause_reason(size_t frame_count, uint32_t line) const;
+  bool debug_skip_breakpoint_at_step_origin(size_t frame_count, uint32_t line) const;
   bool debug_breakpoint_matches(std::string_view file, uint32_t line) const;
   void register_exit_function(Value callable, std::vector<Value> args);
   void unregister_exit_function(const Value& callable);

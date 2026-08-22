@@ -15,13 +15,19 @@ limitations under the License.
 #include "xlang3/dap_session.h"
 
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/parser.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 #include "xlang3/value.h"
+#include "xlang3/interpreter.h"
 
 #include "json.hpp"
 
 #include <charconv>
 #include <cctype>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string_view>
@@ -32,6 +38,8 @@ namespace xlang3::dap {
 namespace {
 
 using Json = nlohmann::json;
+
+static constexpr int64_t kVariableRefBase = 1000000;
 
 std::string reason_name(RuntimePauseReason reason) {
   switch (reason) {
@@ -130,12 +138,34 @@ bool read_file_text(const std::string& path, std::string& out) {
   return true;
 }
 
-Json value_to_dap_variable(const std::string& name, const Value& value) {
+bool value_has_dap_children(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return false;
+  }
+
+  switch (value.as.obj->kind) {
+    case ObjectKind::List:
+    case ObjectKind::Tuple:
+    case ObjectKind::Dict:
+    case ObjectKind::Set:
+    case ObjectKind::Module:
+    case ObjectKind::Class:
+    case ObjectKind::Instance:
+    case ObjectKind::Function:
+    case ObjectKind::BoundMethod:
+    case ObjectKind::Frame:
+      return true;
+    default:
+      return false;
+  }
+}
+
+Json value_to_dap_variable(const std::string& name, const Value& value, int64_t variables_reference) {
   Json item;
   item["name"] = name;
   item["value"] = value_to_string(value);
   item["type"] = value_dap_type_name(value);
-  item["variablesReference"] = 0;
+  item["variablesReference"] = variables_reference;
   return item;
 }
 
@@ -149,6 +179,21 @@ int64_t value_int_or_zero(const Value& value) {
 bool frame_attr(const Value& frame, const char* name, Value& out) {
   std::string ignored;
   return object_get_attr(frame, name, out, ignored);
+}
+
+bool dict_lookup_string_key(const Value& mapping, const std::string& name, Value& out) {
+  auto* dict = value_as_dict(mapping);
+  if (dict == nullptr) {
+    return false;
+  }
+  for (const auto& entry : dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key != nullptr && string_object_view(*key) == name) {
+      value_assign_fast(out, entry.second);
+      return true;
+    }
+  }
+  return false;
 }
 
 Value frame_by_id(Value frame, int64_t frame_id) {
@@ -187,7 +232,380 @@ int64_t frame_line(const Value& frame, uint32_t fallback) {
   return value == 0 ? fallback : value;
 }
 
-Json variables_from_frame_attr(const Value& frame, const char* attr) {
+bool lookup_name_in_mapping(const Value& mapping, const std::string& name, Value& out) {
+  if (dict_lookup_string_key(mapping, name, out)) {
+    return true;
+  }
+  std::string ignored;
+  return module_get_attr(mapping, name, out, ignored);
+}
+
+bool parse_i64(const std::string& text, int64_t& out) {
+  const char* first = text.data();
+  const char* last = text.data() + text.size();
+  auto result = std::from_chars(first, last, out);
+  return result.ec == std::errc() && result.ptr == last;
+}
+
+bool parse_f64(const std::string& text, double& out) {
+  char* end = nullptr;
+  out = std::strtod(text.c_str(), &end);
+  return end != nullptr && *end == '\0';
+}
+
+class DebugExpressionEvaluator {
+public:
+  DebugExpressionEvaluator(Runtime& runtime, const Value& frame)
+      : runtime_(runtime) {
+    frame_attr(frame, "f_locals", locals_);
+    frame_attr(frame, "f_globals", globals_);
+  }
+
+  bool eval(const ast::Expr& expr, Value& out, std::string& error) {
+    if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+      return eval_literal(*literal, out, error);
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      return eval_name(name->name, out, error);
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      Value object;
+      if (!eval(*attr->object, object, error)) {
+        return false;
+      }
+      return object_get_attr(object, attr->name, out, error);
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+      Value object;
+      Value index;
+      if (!eval(*subscript->object, object, error) || !eval(*subscript->index, index, error)) {
+        return false;
+      }
+      return sequence_get_item(object, index, out, error);
+    }
+    if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+      Value start = Value::none();
+      Value stop = Value::none();
+      Value step = Value::none();
+      if (slice->start != nullptr && !eval(*slice->start, start, error)) {
+        return false;
+      }
+      if (slice->stop != nullptr && !eval(*slice->stop, stop, error)) {
+        return false;
+      }
+      if (slice->step != nullptr && !eval(*slice->step, step, error)) {
+        return false;
+      }
+      out = Value::slice(std::move(start), std::move(stop), std::move(step));
+      return true;
+    }
+    if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+      return eval_unary(*unary, out, error);
+    }
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+      return eval_binary(*binary, out, error);
+    }
+    if (auto* compare = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+      return eval_compare_chain(*compare, out, error);
+    }
+    if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+      Value condition;
+      if (!eval(*conditional->condition, condition, error)) {
+        return false;
+      }
+      return eval(value_truthy(condition) ? *conditional->then_expr : *conditional->else_expr, out, error);
+    }
+    if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+      return eval_call(*call, out, error);
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+      return eval_sequence(tuple->items, true, out, error);
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+      return eval_sequence(list->items, false, out, error);
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+      std::vector<std::pair<Value, Value>> entries;
+      entries.reserve(dict->entries.size());
+      for (const auto& entry : dict->entries) {
+        Value key;
+        Value value;
+        if (!eval(*entry.first, key, error) || !eval(*entry.second, value, error)) {
+          return false;
+        }
+        entries.push_back({std::move(key), std::move(value)});
+      }
+      out = Value::dict(std::move(entries));
+      return true;
+    }
+    if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+      std::vector<Value> items;
+      items.reserve(set->items.size());
+      for (const auto& item_expr : set->items) {
+        Value item;
+        if (!eval(*item_expr, item, error)) {
+          return false;
+        }
+        items.push_back(std::move(item));
+      }
+      out = Value::set(std::move(items));
+      return true;
+    }
+    error = "unsupported debug expression";
+    return false;
+  }
+
+private:
+  bool eval_literal(const ast::LiteralExpr& literal, Value& out, std::string& error) {
+    switch (literal.kind) {
+      case ast::LiteralExpr::Kind::None:
+        out = Value::none();
+        return true;
+      case ast::LiteralExpr::Kind::Bool:
+        out = Value::boolean(literal.bool_value);
+        return true;
+      case ast::LiteralExpr::Kind::Int: {
+        int64_t value = 0;
+        if (!parse_i64(literal.text, value)) {
+          error = "invalid integer literal";
+          return false;
+        }
+        out = Value::int64(value);
+        return true;
+      }
+      case ast::LiteralExpr::Kind::Double: {
+        double value = 0.0;
+        if (!parse_f64(literal.text, value)) {
+          error = "invalid float literal";
+          return false;
+        }
+        out = Value::number(value);
+        return true;
+      }
+      case ast::LiteralExpr::Kind::String:
+        out = Value::string(literal.text);
+        return true;
+      case ast::LiteralExpr::Kind::Bytes:
+        out = Value::bytes(literal.text);
+        return true;
+      case ast::LiteralExpr::Kind::Ellipsis:
+        error = "ellipsis is not implemented yet";
+        return false;
+    }
+    error = "unsupported literal";
+    return false;
+  }
+
+  bool eval_name(const std::string& name, Value& out, std::string& error) {
+    if (lookup_name_in_mapping(locals_, name, out) || lookup_name_in_mapping(globals_, name, out)) {
+      return true;
+    }
+    if (const auto* builtin = runtime_.find_builtin(name)) {
+      value_assign_fast(out, *builtin);
+      return true;
+    }
+    error = "name not found: " + name;
+    return false;
+  }
+
+  bool eval_unary(const ast::UnaryExpr& unary, Value& out, std::string& error) {
+    Value value;
+    if (!eval(*unary.expr, value, error)) {
+      return false;
+    }
+    if (unary.op == "not") {
+      out = Value::boolean(!value_truthy(value));
+      return true;
+    }
+    if (unary.op == "~") {
+      return value_invert(value, out, error);
+    }
+    if (unary.op == "+") {
+      value_assign_fast(out, value);
+      return true;
+    }
+    if (unary.op == "-") {
+      if (value.tag == ValueTag::Int64) {
+        out = Value::int64(-value.as.i64);
+        return true;
+      }
+      if (value.tag == ValueTag::Double) {
+        out = Value::number(-value.as.f64);
+        return true;
+      }
+    }
+    error = "unsupported unary operator: " + unary.op;
+    return false;
+  }
+
+  bool eval_binary(const ast::BinaryExpr& binary, Value& out, std::string& error) {
+    if (binary.op == "and") {
+      Value lhs;
+      if (!eval(*binary.lhs, lhs, error)) {
+        return false;
+      }
+      if (!value_truthy(lhs)) {
+        value_assign_fast(out, lhs);
+        return true;
+      }
+      return eval(*binary.rhs, out, error);
+    }
+    if (binary.op == "or") {
+      Value lhs;
+      if (!eval(*binary.lhs, lhs, error)) {
+        return false;
+      }
+      if (value_truthy(lhs)) {
+        value_assign_fast(out, lhs);
+        return true;
+      }
+      return eval(*binary.rhs, out, error);
+    }
+
+    Value lhs;
+    Value rhs;
+    if (!eval(*binary.lhs, lhs, error) || !eval(*binary.rhs, rhs, error)) {
+      return false;
+    }
+    if (binary.op == "+") return value_add(lhs, rhs, out, error);
+    if (binary.op == "-") return value_sub(lhs, rhs, out, error);
+    if (binary.op == "*") return value_mul(lhs, rhs, out, error);
+    if (binary.op == "/") return value_div(lhs, rhs, out, error);
+    if (binary.op == "//") return value_floor_div(lhs, rhs, out, error);
+    if (binary.op == "%") return value_mod(lhs, rhs, out, error);
+    if (binary.op == "**") return value_pow(lhs, rhs, out, error);
+    if (binary.op == "&") return value_bit_and(lhs, rhs, out, error);
+    if (binary.op == "|") return value_bit_or(lhs, rhs, out, error);
+    if (binary.op == "^") return value_bit_xor(lhs, rhs, out, error);
+    if (binary.op == "<<") return value_shift_left(lhs, rhs, out, error);
+    if (binary.op == ">>") return value_shift_right(lhs, rhs, out, error);
+    if (binary.op == "in" || binary.op == "not in") {
+      bool contains = false;
+      if (!value_contains(rhs, lhs, contains, error)) {
+        return false;
+      }
+      out = Value::boolean(binary.op == "in" ? contains : !contains);
+      return true;
+    }
+    return value_compare(binary.op, lhs, rhs, out, error);
+  }
+
+  bool eval_compare_chain(const ast::CompareChainExpr& compare, Value& out, std::string& error) {
+    Value lhs;
+    if (!eval(*compare.first, lhs, error)) {
+      return false;
+    }
+    for (const auto& item : compare.comparisons) {
+      Value rhs;
+      Value comparison;
+      if (!eval(*item.second, rhs, error)) {
+        return false;
+      }
+      if (item.first == "is") {
+        comparison = Value::boolean(value_is(lhs, rhs));
+      } else if (item.first == "is not") {
+        comparison = Value::boolean(!value_is(lhs, rhs));
+      } else if (item.first == "in" || item.first == "not in") {
+        bool contains = false;
+        if (!value_contains(rhs, lhs, contains, error)) {
+          return false;
+        }
+        comparison = Value::boolean(item.first == "in" ? contains : !contains);
+      } else if (!value_compare(item.first, lhs, rhs, comparison, error)) {
+        return false;
+      }
+      if (!value_truthy(comparison)) {
+        out = Value::boolean(false);
+        return true;
+      }
+      lhs = std::move(rhs);
+    }
+    out = Value::boolean(true);
+    return true;
+  }
+
+  bool eval_call(const ast::CallExpr& call, Value& out, std::string& error) {
+    Value callee;
+    if (!eval(*call.callee, callee, error)) {
+      return false;
+    }
+    std::vector<Value> args;
+    if (!call.call_args.empty()) {
+      for (const auto& arg : call.call_args) {
+        if (!arg.name.empty() || arg.star || arg.kw_star) {
+          error = "keyword and unpacked debug calls are not implemented yet";
+          return false;
+        }
+        Value value;
+        if (!eval(*arg.value, value, error)) {
+          return false;
+        }
+        args.push_back(std::move(value));
+      }
+    } else {
+      for (const auto& arg_expr : call.args) {
+        Value value;
+        if (!eval(*arg_expr, value, error)) {
+          return false;
+        }
+        args.push_back(std::move(value));
+      }
+    }
+    return call_value(callee, args, out, error);
+  }
+
+  bool call_value(const Value& callee, std::vector<Value>& args, Value& out, std::string& error) {
+    if (auto* bound = value_as_bound_method(callee)) {
+      std::vector<Value> bound_args;
+      bound_args.reserve(args.size() + 1);
+      bound_args.push_back(bound->self);
+      bound_args.insert(bound_args.end(), args.begin(), args.end());
+      return call_value(bound->function, bound_args, out, error);
+    }
+    if (auto* native = value_as_native_function(callee)) {
+      if (native->callback == nullptr) {
+        error = "native function is not callable through debug evaluate";
+        return false;
+      }
+      return native->callback(runtime_, args.data(), static_cast<uint32_t>(args.size()), out, error, native->user_data);
+    }
+    if (auto* function = value_as_function(callee)) {
+      CallArgsView view;
+      view.leading = args.data();
+      view.leading_count = static_cast<uint32_t>(args.size());
+      Interpreter interpreter(runtime_);
+      RuntimeResult result = interpreter.run_function_value(function, view);
+      if (!result.errors.empty()) {
+        error = result.errors.front();
+        return false;
+      }
+      value_assign_fast(out, result.value);
+      return true;
+    }
+    error = "object is not callable";
+    return false;
+  }
+
+  bool eval_sequence(const std::vector<ast::ExprPtr>& exprs, bool tuple, Value& out, std::string& error) {
+    std::vector<Value> items;
+    items.reserve(exprs.size());
+    for (const auto& item_expr : exprs) {
+      Value item;
+      if (!eval(*item_expr, item, error)) {
+        return false;
+      }
+      items.push_back(std::move(item));
+    }
+    out = tuple ? Value::tuple(std::move(items)) : Value::list(std::move(items));
+    return true;
+  }
+
+  Runtime& runtime_;
+  Value locals_ = Value::invalid();
+  Value globals_ = Value::invalid();
+};
+
+Json variables_from_frame_attr(const Value& frame, const char* attr, const DapSession& session) {
   Json variables = Json::array();
   Value mapping;
   if (!frame_attr(frame, attr, mapping)) {
@@ -195,7 +613,10 @@ Json variables_from_frame_attr(const Value& frame, const char* attr) {
   }
   if (auto* dict = value_as_dict(mapping)) {
     for (const auto& entry : dict->entries) {
-      variables.push_back(value_to_dap_variable(value_to_string(entry.first), entry.second));
+      variables.push_back(value_to_dap_variable(
+          value_to_string(entry.first),
+          entry.second,
+          session.register_variable_ref(entry.second)));
     }
   }
   return variables;
@@ -296,7 +717,7 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
         {"supportsTerminateDebuggee", true},
         {"supportsStepBack", false},
         {"supportsSetVariable", false},
-        {"supportsEvaluateForHovers", false},
+        {"supportsEvaluateForHovers", true},
         {"supportsExceptionOptions", false},
         {"supportsExceptionInfoRequest", false},
         {"supportsDelayedStackTraceLoading", false},
@@ -414,6 +835,16 @@ std::vector<std::string> DapSession::handle_payload(const std::string& payload) 
   if (command == "variables") {
     const int64_t ref = args.value("variablesReference", 0);
     return {make_response_body(seq, command, true, "", variables_body(ref))};
+  }
+  if (command == "evaluate") {
+    bool ok = false;
+    std::string error;
+    const std::string body = evaluate_body(
+        args.value("expression", ""),
+        args.value("frameId", 1),
+        ok,
+        error);
+    return {make_response_body(seq, command, ok, error, body)};
   }
   if (command == "disconnect" || command == "terminate") {
     return {make_response(seq, command, true, "")};
@@ -550,17 +981,138 @@ std::string DapSession::scopes_body(int64_t frame_id) const {
 }
 
 std::string DapSession::variables_body(int64_t variables_reference) const {
+  if (is_variable_ref(variables_reference)) {
+    return variable_ref_body(variables_reference);
+  }
+
   Json variables = Json::array();
   if (debug_.status().paused) {
     const Value frame = frame_by_id(debug_.status().frame, scope_frame_id(variables_reference));
     if (value_as_frame(frame) != nullptr) {
       if (scope_kind(variables_reference) == 1) {
-        variables = variables_from_frame_attr(frame, "f_locals");
+        variables = variables_from_frame_attr(frame, "f_locals", *this);
+        if (variables.empty() && frame_code_string_attr(frame, "co_name", "") == "<module>") {
+          variables = variables_from_frame_attr(frame, "f_globals", *this);
+        }
       } else if (scope_kind(variables_reference) == 2) {
-        variables = variables_from_frame_attr(frame, "f_globals");
+        variables = variables_from_frame_attr(frame, "f_globals", *this);
       }
     }
   }
+  return Json({{"variables", variables}}).dump();
+}
+
+std::string DapSession::evaluate_body(const std::string& expression, int64_t frame_id, bool& ok, std::string& error) {
+  ok = false;
+  error.clear();
+  if (!debug_.status().paused) {
+    error = "debuggee is not paused";
+    return "{}";
+  }
+
+  auto parsed = parse_expression_source(expression);
+  if (!parsed.errors.empty() || parsed.expression == nullptr) {
+    error = parsed.errors.empty() ? "invalid expression" : parsed.errors.front();
+    return "{}";
+  }
+
+  const Value frame = frame_by_id(debug_.status().frame, frame_id);
+  if (value_as_frame(frame) == nullptr) {
+    error = "invalid frame";
+    return "{}";
+  }
+
+  Value current;
+  DebugExpressionEvaluator evaluator(debug_.runtime(), frame);
+  if (!evaluator.eval(*parsed.expression, current, error)) {
+    return "{}";
+  }
+
+  ok = true;
+  Json body = {
+      {"result", value_to_string(current)},
+      {"type", value_dap_type_name(current)},
+      {"variablesReference", register_variable_ref(current)},
+  };
+  return body.dump();
+}
+
+int64_t DapSession::register_variable_ref(const Value& value) const {
+  if (!value_has_dap_children(value)) {
+    return 0;
+  }
+  variable_refs_.push_back(value);
+  return kVariableRefBase + static_cast<int64_t>(variable_refs_.size());
+}
+
+bool DapSession::is_variable_ref(int64_t variables_reference) const {
+  const int64_t index = variables_reference - kVariableRefBase;
+  return index > 0 && static_cast<size_t>(index) <= variable_refs_.size();
+}
+
+std::string DapSession::variable_ref_body(int64_t variables_reference) const {
+  Json variables = Json::array();
+  const int64_t index = variables_reference - kVariableRefBase;
+  if (index <= 0 || static_cast<size_t>(index) > variable_refs_.size()) {
+    return Json({{"variables", variables}}).dump();
+  }
+
+  const Value& value = variable_refs_[static_cast<size_t>(index - 1)];
+  if (auto* instance = value_as_instance(value)) {
+    if (auto* klass = value_as_class(instance->klass)) {
+      for (uint32_t i = 0; i < instance->slot_count && i < klass->instance_slot_names.size(); ++i) {
+        const Value& slot = instance_slot_at(instance, i);
+        variables.push_back(value_to_dap_variable(klass->instance_slot_names[i], slot, register_variable_ref(slot)));
+      }
+    }
+    for (const auto& attr : instance->attrs) {
+      variables.push_back(value_to_dap_variable(attr.first, attr.second, register_variable_ref(attr.second)));
+    }
+    variables.push_back(value_to_dap_variable("__class__", instance->klass, register_variable_ref(instance->klass)));
+  } else if (auto* klass = value_as_class(value)) {
+    variables.push_back(value_to_dap_variable("__name__", Value::string(klass->name), 0));
+    for (const auto& attr : klass->attrs) {
+      variables.push_back(value_to_dap_variable(attr.first, attr.second, register_variable_ref(attr.second)));
+    }
+  } else if (auto* list = value_as_list(value)) {
+    for (size_t i = 0; i < list->items.size(); ++i) {
+      const Value& item = list->items[i];
+      variables.push_back(value_to_dap_variable("[" + std::to_string(i) + "]", item, register_variable_ref(item)));
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    for (size_t i = 0; i < tuple->items.size(); ++i) {
+      const Value& item = tuple->items[i];
+      variables.push_back(value_to_dap_variable("[" + std::to_string(i) + "]", item, register_variable_ref(item)));
+    }
+  } else if (auto* dict = value_as_dict(value)) {
+    for (const auto& entry : dict->entries) {
+      variables.push_back(value_to_dap_variable(value_to_string(entry.first), entry.second, register_variable_ref(entry.second)));
+    }
+  } else if (auto* set = value_as_set(value)) {
+    for (size_t i = 0; i < set->items.size(); ++i) {
+      const Value& item = set->items[i];
+      variables.push_back(value_to_dap_variable("[" + std::to_string(i) + "]", item, register_variable_ref(item)));
+    }
+  } else if (auto* module = value_as_module(value)) {
+    for (const auto& entry : module->name_to_slot) {
+      if (entry.second < module->slots.size()) {
+        const Value& slot = module->slots[entry.second];
+        variables.push_back(value_to_dap_variable(entry.first, slot, register_variable_ref(slot)));
+      }
+    }
+  } else if (auto* function = value_as_function(value)) {
+    variables.push_back(value_to_dap_variable("__name__", Value::string(value_to_string(value)), 0));
+    Value defaults = Value::tuple(function->defaults);
+    variables.push_back(value_to_dap_variable("__defaults__", defaults, register_variable_ref(defaults)));
+  } else if (auto* method = value_as_bound_method(value)) {
+    variables.push_back(value_to_dap_variable("__self__", method->self, register_variable_ref(method->self)));
+    variables.push_back(value_to_dap_variable("__func__", method->function, register_variable_ref(method->function)));
+  } else if (auto* frame = value_as_frame(value)) {
+    variables.push_back(value_to_dap_variable("f_locals", frame->locals, register_variable_ref(frame->locals)));
+    variables.push_back(value_to_dap_variable("f_globals", frame->globals_module, register_variable_ref(frame->globals_module)));
+    variables.push_back(value_to_dap_variable("f_back", frame->back, register_variable_ref(frame->back)));
+  }
+
   return Json({{"variables", variables}}).dump();
 }
 

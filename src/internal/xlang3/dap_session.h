@@ -37,6 +37,7 @@ public:
   std::vector<std::string> handle_framed_input(std::string& input_buffer, std::string& error);
   std::vector<std::string> handle_payload(const std::string& payload);
   std::string make_output_event(const std::string& output);
+  int64_t register_variable_ref(const Value& value) const;
 
 private:
   std::string make_response(int64_t request_seq, const std::string& command, bool success, const std::string& message);
@@ -55,9 +56,13 @@ private:
   std::string stack_trace_body() const;
   std::string scopes_body(int64_t frame_id) const;
   std::string variables_body(int64_t variables_reference) const;
+  std::string evaluate_body(const std::string& expression, int64_t frame_id, bool& ok, std::string& error);
+  bool is_variable_ref(int64_t variables_reference) const;
+  std::string variable_ref_body(int64_t variables_reference) const;
 
   DebugSession debug_;
   int64_t next_seq_ = 1;
+  mutable std::vector<Value> variable_refs_;
 };
 
 } // namespace xlang3::dap
