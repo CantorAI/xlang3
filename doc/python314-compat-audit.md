@@ -89,9 +89,9 @@ CPython-compatible behavior subset has tests.
 - [x] `assert`
 - [x] `match` / `case` literal-expression and wildcard cases
 - [x] `match` / `case` soft keyword use in expression, parameter, and definition-name contexts
-- [~] structural pattern matching: literal, wildcard, capture, fixed sequence, starred/rest sequence, mapping key/value, OR, `as`, and guard basics; class patterns and full CPython failure-binding semantics pending
+- [~] structural pattern matching: literal, wildcard, capture, fixed sequence, starred/rest sequence, mapping key/value, OR, `as`, guard basics, and same-module class patterns with `__match_args__` / keyword attrs; dynamic class-pattern match-arg lookup and full CPython failure-binding semantics pending
 - [x] type parameter syntax accepted on `def` / `class`
-- [~] type parameter runtime metadata: `__type_params__` exposes parsed type parameter names; full CPython type-parameter objects, bounds, defaults, variance, and typing integration pending
+- [~] type parameter runtime metadata: `__type_params__` exposes runtime type-parameter objects with `__name__`, `__bound__`, and `__default__`; parsed bounds/defaults, variance, lazy evaluation, and typing integration pending
 
 ### Function And Class Syntax
 

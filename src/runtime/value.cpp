@@ -543,6 +543,17 @@ Value Value::property(Value fget, Value fset, Value fdel, Value doc) {
   return v;
 }
 
+Value Value::type_param(std::string name) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<TypeParamObject>(ObjectKind::TypeParam);
+  obj->name = std::move(name);
+  obj->bound = Value::none();
+  obj->default_value = Value::none();
+  v.as.obj = &obj->header;
+  return v;
+}
+
 Value Value::file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable) {
   Value v;
   v.tag = ValueTag::Object;
@@ -661,6 +672,9 @@ void release(const Value& value) {
     case ObjectKind::File:
       delete as_file(value.as.obj);
       break;
+    case ObjectKind::TypeParam:
+      delete value_as_type_param(value);
+      break;
   }
 }
 
@@ -769,6 +783,9 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Property) {
         return "<property object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::TypeParam) {
+        return "<type parameter " + value_as_type_param(value)->name + ">";
       }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Class ||

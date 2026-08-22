@@ -24,7 +24,7 @@ limitations under the License.
 
 namespace xlang3 {
 
-constexpr uint32_t xlang_perf_object_kind_count = static_cast<uint32_t>(ObjectKind::File) + 1;
+constexpr uint32_t xlang_perf_object_kind_count = static_cast<uint32_t>(ObjectKind::TypeParam) + 1;
 
 struct XlangPerfCounters {
   std::atomic_bool enabled{false};

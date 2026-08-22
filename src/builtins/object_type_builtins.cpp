@@ -101,6 +101,8 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "cell";
     case ObjectKind::File:
       return "file";
+    case ObjectKind::TypeParam:
+      return "type_parameter";
   }
   return "object";
 }
@@ -517,6 +519,7 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "traceback", object_type);
   register_builtin_type(runtime, "cell", object_type);
   register_builtin_type(runtime, "file", object_type);
+  register_builtin_type(runtime, "type_parameter", object_type);
 
   runtime.register_native_builtin("id", builtin_id);
   runtime.register_native_builtin("isinstance", builtin_isinstance);

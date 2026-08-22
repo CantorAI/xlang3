@@ -32,6 +32,7 @@ namespace {
 struct ClassInfo {
   std::vector<std::string> slot_names;
   std::unordered_map<std::string, uint32_t> slots;
+  std::vector<std::string> match_args;
 };
 
 enum class KnownValueType : uint8_t {
@@ -149,6 +150,38 @@ bool collect_literal_slots_from_expr(const ast::Expr& expr, std::vector<std::str
   if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
     for (const auto& item : list->items) {
       if (!append_literal_slot_name(*item, slots, seen)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+bool append_literal_string_name(const ast::Expr& expr, std::vector<std::string>& names) {
+  auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
+  if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+    return false;
+  }
+  names.push_back(literal->text);
+  return true;
+}
+
+bool collect_literal_string_sequence(const ast::Expr& expr, std::vector<std::string>& names) {
+  if (append_literal_string_name(expr, names)) {
+    return true;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      if (!append_literal_string_name(*item, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      if (!append_literal_string_name(*item, names)) {
         return false;
       }
     }
@@ -950,7 +983,7 @@ private:
     items.reserve(type_params.size());
     for (const auto& type_param : type_params) {
       const auto reg = new_reg();
-      emit(ir::Op::LoadConst, reg, add_const(Value::string(type_param)));
+      emit(ir::Op::LoadConst, reg, add_const(Value::type_param(type_param)));
       items.push_back(reg);
     }
     const auto tuple = new_reg();
@@ -1804,10 +1837,69 @@ private:
       emit_mapping_pattern_checks(*dict, subject, fail_jumps);
       return;
     }
+    if (auto* call = dynamic_cast<const ast::CallExpr*>(&pattern)) {
+      emit_class_pattern_checks(*call, subject, fail_jumps);
+      return;
+    }
     const auto value = lower_expr(pattern);
     const auto matched = new_reg();
     emit(ir::Op::Compare, matched, subject, value, static_cast<uint32_t>(ir::CompareOp::Eq));
     fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
+  }
+
+  void emit_always_fail_pattern(std::vector<size_t>& fail_jumps) {
+    const auto matched = new_reg();
+    emit(ir::Op::LoadConst, matched, add_const(Value::boolean(false)));
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
+  }
+
+  void emit_class_pattern_checks(const ast::CallExpr& pattern, uint32_t subject, std::vector<size_t>& fail_jumps) {
+    const auto klass = lower_expr(*pattern.callee);
+    const auto isinstance_fn = new_reg();
+    emit(ir::Op::LoadGlobal, isinstance_fn, add_name("isinstance"));
+    const auto is_match = emit_call_value(isinstance_fn, {subject, klass});
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, is_match));
+
+    const auto* class_name = dynamic_cast<const ast::NameExpr*>(pattern.callee.get());
+    const ClassInfo* class_info = nullptr;
+    if (class_name != nullptr) {
+      const auto found = class_infos_.find(class_name->name);
+      if (found != class_infos_.end()) {
+        class_info = &found->second;
+      }
+    }
+
+    auto match_positional = [&](const ast::Expr& item, size_t index) {
+      if (class_info == nullptr || index >= class_info->match_args.size()) {
+        emit_always_fail_pattern(fail_jumps);
+        return;
+      }
+      const auto attr = new_reg();
+      emit(ir::Op::LoadAttr, attr, subject, add_name(class_info->match_args[index]));
+      emit_pattern_checks(item, attr, fail_jumps);
+    };
+
+    if (!pattern.call_args.empty()) {
+      size_t positional_index = 0;
+      for (const auto& arg : pattern.call_args) {
+        if (arg.star || arg.kw_star || arg.value == nullptr) {
+          emit_always_fail_pattern(fail_jumps);
+          continue;
+        }
+        if (arg.name.empty()) {
+          match_positional(*arg.value, positional_index++);
+          continue;
+        }
+        const auto attr = new_reg();
+        emit(ir::Op::LoadAttr, attr, subject, add_name(arg.name));
+        emit_pattern_checks(*arg.value, attr, fail_jumps);
+      }
+      return;
+    }
+
+    for (size_t i = 0; i < pattern.args.size(); ++i) {
+      match_positional(*pattern.args[i], i);
+    }
   }
 
   void emit_sequence_pattern_checks(
@@ -2050,12 +2142,18 @@ private:
     const std::string class_qualname = parent_qualname.empty() ? klass.name : parent_qualname + "." + klass.name;
     std::vector<std::string> own_instance_slots;
     std::unordered_set<std::string> seen_own_instance_slots;
+    std::vector<std::string> match_args;
     bool has_explicit_slots = false;
     for (const auto& stmt : klass.body) {
       auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get());
       if (assign != nullptr && assign->name == "__slots__" && assign->value != nullptr) {
         has_explicit_slots = collect_literal_slots_from_expr(*assign->value, own_instance_slots, seen_own_instance_slots);
-        break;
+      }
+      if (assign != nullptr && assign->name == "__match_args__" && assign->value != nullptr) {
+        std::vector<std::string> parsed_match_args;
+        if (collect_literal_string_sequence(*assign->value, parsed_match_args)) {
+          match_args = std::move(parsed_match_args);
+        }
       }
     }
     if (!has_explicit_slots && klass.bases.empty()) {
@@ -2101,6 +2199,7 @@ private:
     }
 
     ClassInfo class_info;
+    class_info.match_args = match_args;
     if (known_base_layout) {
       class_info.slot_names = lowered_instance_slots;
       for (size_t i = 0; i < lowered_instance_slots.size(); ++i) {

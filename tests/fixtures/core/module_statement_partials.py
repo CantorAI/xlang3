@@ -35,5 +35,28 @@ def identity[T, U](value):
 class Box[T]:
     pass
 
-print(identity.__type_params__)
-print(Box.__type_params__)
+class Point:
+    __match_args__ = ("x", "y")
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+p = Point(2, [3, 4])
+
+match p:
+    case Point(2, [first, second]):
+        print("point-pos", first, second)
+    case _:
+        print("bad")
+
+match p:
+    case Point(x=2, y=yy):
+        print("point-kw", yy[0])
+    case _:
+        print("bad")
+
+fn_t = identity.__type_params__[0]
+box_t = Box.__type_params__[0]
+print(fn_t.__name__, fn_t.__bound__ is None, fn_t.__default__ is None)
+print(box_t.__name__, type(box_t).__name__)

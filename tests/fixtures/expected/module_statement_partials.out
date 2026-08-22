@@ -1,5 +1,7 @@
 1 [2, 3] 4
 short
 c
-(T, U)
-(T,)
+point-pos 3 4
+point-kw 3
+T True True
+T type_parameter

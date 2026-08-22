@@ -547,6 +547,23 @@ std::string object_model_to_string(const Value& value) {
 }
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
+  if (auto* type_param = value_as_type_param(object)) {
+    if (name == "__name__") {
+      out = Value::string(type_param->name);
+      return true;
+    }
+    if (name == "__bound__") {
+      value_assign_fast(out, type_param->bound);
+      return true;
+    }
+    if (name == "__default__") {
+      value_assign_fast(out, type_param->default_value);
+      return true;
+    }
+    error = "type parameter has no attribute '" + name + "'";
+    return false;
+  }
+
   if (auto* function = value_as_function(object)) {
     for (const auto& attr : function->attrs) {
       if (attr.first == name) {
@@ -610,7 +627,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       std::vector<Value> values;
       values.reserve(function->type_params.size());
       for (const auto& type_param : function->type_params) {
-        values.push_back(Value::string(type_param));
+        values.push_back(Value::type_param(type_param));
       }
       out = Value::tuple(std::move(values));
       return true;

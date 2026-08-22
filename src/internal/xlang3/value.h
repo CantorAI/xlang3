@@ -82,6 +82,7 @@ enum class ObjectKind : uint32_t {
   Frame,
   Traceback,
   File,
+  TypeParam,
 };
 
 struct Object {
@@ -238,6 +239,7 @@ struct Value {
   static Value class_method(Value function);
   static Value super_object(Value klass, Value self);
   static Value property(Value fget, Value fset, Value fdel, Value doc);
+  static Value type_param(std::string name);
 };
 
 XLANG3_HOT_INLINE Value Value::invalid() {
@@ -391,6 +393,13 @@ struct FunctionObject {
   std::vector<std::pair<std::string, Value>> attrs;
 };
 
+struct TypeParamObject {
+  Object header;
+  std::string name;
+  Value bound;
+  Value default_value;
+};
+
 struct CodeObject {
   Object header;
   std::shared_ptr<const ir::Module> module;
@@ -506,6 +515,13 @@ XLANG3_HOT_INLINE PropertyObject* value_as_property(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<PropertyObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE TypeParamObject* value_as_type_param(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::TypeParam) {
+    return nullptr;
+  }
+  return reinterpret_cast<TypeParamObject*>(value.as.obj);
 }
 
 struct FileObject {
