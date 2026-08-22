@@ -1,0 +1,7 @@
+capture 10
+list 1 two
+tuple 3 4 (3, 4)
+dict Ada
+or
+length
+missing

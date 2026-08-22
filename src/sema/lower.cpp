@@ -1048,8 +1048,8 @@ private:
     } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
       prepare_captured_locals_from_expr(*match->subject);
       for (const auto& match_case : match->cases) {
-        if (match_case.pattern != nullptr) {
-          prepare_captured_locals_from_expr(*match_case.pattern);
+        if (match_case.guard != nullptr) {
+          prepare_captured_locals_from_expr(*match_case.guard);
         }
         prepare_captured_locals(match_case.body);
       }
@@ -1632,20 +1632,118 @@ private:
     patch_jump(suppressed, static_cast<uint32_t>(fn_.code.size()));
   }
 
+  uint32_t lower_pattern_to_bool(const ast::Expr& pattern, uint32_t subject) {
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern)) {
+      if (binary->op == "|") {
+        const auto lhs = lower_pattern_to_bool(*binary->lhs, subject);
+        const auto result = new_reg();
+        const auto lhs_failed = emit_jump(ir::Op::JumpIfFalse, lhs);
+        emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
+        const auto done = emit_jump(ir::Op::Jump);
+        patch_jump(lhs_failed, static_cast<uint32_t>(fn_.code.size()));
+        const auto rhs = lower_pattern_to_bool(*binary->rhs, subject);
+        emit(ir::Op::LoadConst, result, add_const(Value::boolean(false)));
+        const auto rhs_failed = emit_jump(ir::Op::JumpIfFalse, rhs);
+        emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
+        patch_jump(rhs_failed, static_cast<uint32_t>(fn_.code.size()));
+        patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+        return result;
+      }
+    }
+
+    std::vector<size_t> fail_jumps;
+    emit_pattern_checks(pattern, subject, fail_jumps);
+    const auto result = new_reg();
+    emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
+    const auto done = emit_jump(ir::Op::Jump);
+    const auto fail_target = static_cast<uint32_t>(fn_.code.size());
+    for (const auto jump : fail_jumps) {
+      patch_jump(jump, fail_target);
+    }
+    emit(ir::Op::LoadConst, result, add_const(Value::boolean(false)));
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    return result;
+  }
+
+  void emit_pattern_checks(const ast::Expr& pattern, uint32_t subject, std::vector<size_t>& fail_jumps) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&pattern)) {
+      if (name->name != "_") {
+        store_named_value(name->name, subject);
+      }
+      return;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&pattern)) {
+      emit_sequence_pattern_checks(tuple->items, subject, fail_jumps);
+      return;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&pattern)) {
+      emit_sequence_pattern_checks(list->items, subject, fail_jumps);
+      return;
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&pattern)) {
+      emit_mapping_pattern_checks(*dict, subject, fail_jumps);
+      return;
+    }
+    const auto value = lower_expr(pattern);
+    const auto matched = new_reg();
+    emit(ir::Op::Compare, matched, subject, value, static_cast<uint32_t>(ir::CompareOp::Eq));
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
+  }
+
+  void emit_sequence_pattern_checks(
+      const std::vector<ast::ExprPtr>& items,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps) {
+    const auto length = new_reg();
+    const auto expected = new_reg();
+    const auto length_ok = new_reg();
+    emit(ir::Op::Len, length, subject);
+    emit(ir::Op::LoadConst, expected, add_const(Value::int64(static_cast<int64_t>(items.size()))));
+    emit(ir::Op::Compare, length_ok, length, expected, static_cast<uint32_t>(ir::CompareOp::Eq));
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, length_ok));
+    for (size_t i = 0; i < items.size(); ++i) {
+      const auto index = new_reg();
+      const auto item = new_reg();
+      emit(ir::Op::LoadConst, index, add_const(Value::int64(static_cast<int64_t>(i))));
+      emit(ir::Op::GetItem, item, subject, index);
+      emit_pattern_checks(*items[i], item, fail_jumps);
+    }
+  }
+
+  void emit_mapping_pattern_checks(const ast::DictExpr& dict, uint32_t subject, std::vector<size_t>& fail_jumps) {
+    for (const auto& entry : dict.entries) {
+      const auto key = lower_expr(*entry.first);
+      const auto present = new_reg();
+      emit(ir::Op::Contains, present, key, subject);
+      fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, present));
+      const auto value = new_reg();
+      emit(ir::Op::GetItem, value, subject, key);
+      emit_pattern_checks(*entry.second, value, fail_jumps);
+    }
+  }
+
   void lower_match(const ast::MatchStmt& stmt) {
     const auto subject = lower_expr(*stmt.subject);
     std::vector<size_t> done_jumps;
     for (const auto& match_case : stmt.cases) {
       size_t next_case = 0;
       if (!match_case.wildcard) {
-        const auto pattern = lower_expr(*match_case.pattern);
-        const auto matched = new_reg();
-        emit(ir::Op::Compare, matched, subject, pattern, static_cast<uint32_t>(ir::CompareOp::Eq));
+        const auto matched = lower_pattern_to_bool(*match_case.pattern, subject);
         next_case = emit_jump(ir::Op::JumpIfFalse, matched);
+        if (!match_case.as_name.empty() && match_case.as_name != "_") {
+          store_named_value(match_case.as_name, subject);
+        }
+        if (match_case.guard != nullptr) {
+          const auto guard = lower_expr(*match_case.guard);
+          next_case = emit_jump(ir::Op::JumpIfFalse, guard);
+        }
+      } else if (match_case.guard != nullptr) {
+        const auto guard = lower_expr(*match_case.guard);
+        next_case = emit_jump(ir::Op::JumpIfFalse, guard);
       }
       lower_body(match_case.body);
       done_jumps.push_back(emit_jump(ir::Op::Jump));
-      if (!match_case.wildcard) {
+      if (!match_case.wildcard || match_case.guard != nullptr) {
         patch_jump(next_case, static_cast<uint32_t>(fn_.code.size()));
       }
     }

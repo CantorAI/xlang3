@@ -590,6 +590,16 @@ ast::StmtPtr Parser::parse_match_statement() {
     } else {
       match_case.pattern = parse_expression();
     }
+    if (match(TokenKind::KwAs)) {
+      const Token name = peek();
+      if (!consume(TokenKind::Identifier, "expected name after as in case pattern")) {
+        return nullptr;
+      }
+      match_case.as_name = std::string(name.text);
+    }
+    if (match(TokenKind::KwIf)) {
+      match_case.guard = parse_expression();
+    }
     match_case.body = parse_suite_after_colon("case pattern");
     stmt->cases.push_back(std::move(match_case));
     skip_newlines();

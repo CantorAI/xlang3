@@ -443,6 +443,8 @@ struct ForStmt final : Stmt {
 
 struct MatchCase {
   ExprPtr pattern;
+  ExprPtr guard;
+  std::string as_name;
   bool wildcard = false;
   std::vector<StmtPtr> body;
 };

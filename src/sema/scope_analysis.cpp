@@ -79,6 +79,37 @@ void collect_assigned_target(const ast::Expr& expr, std::vector<std::string>& na
   }
 }
 
+void collect_pattern_captures(const ast::Expr& expr, std::vector<std::string>& names, NameSet& seen) {
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    if (name->name != "_") {
+      add_unique(names, seen, name->name);
+    }
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) collect_pattern_captures(*item, names, seen);
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) collect_pattern_captures(*item, names, seen);
+    return;
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    for (const auto& entry : dict->entries) collect_pattern_captures(*entry.second, names, seen);
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    collect_pattern_captures(*starred->expr, names, seen);
+    return;
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    if (binary->op == "|") {
+      collect_pattern_captures(*binary->lhs, names, seen);
+      collect_pattern_captures(*binary->rhs, names, seen);
+    }
+  }
+}
+
 std::vector<std::string> comp_target_names(const ast::Expr& target) {
   std::vector<std::string> names;
   NameSet seen;
@@ -155,6 +186,12 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
       collect_assigned_names(loop->else_body, names, seen);
     } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(stmt.get())) {
       for (const auto& match_case : match->cases) {
+        if (match_case.pattern != nullptr) {
+          collect_pattern_captures(*match_case.pattern, names, seen);
+        }
+        if (!match_case.as_name.empty() && match_case.as_name != "_") {
+          add_unique(names, seen, match_case.as_name);
+        }
         collect_assigned_names(match_case.body, names, seen);
       }
     }
@@ -394,6 +431,49 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
   }
 }
 
+void collect_pattern_reads(const ast::Expr& expr, std::vector<std::string>& names, NameSet& seen) {
+  if (dynamic_cast<const ast::NameExpr*>(&expr) != nullptr) {
+    return;
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    collect_pattern_reads(*unary->expr, names, seen);
+    return;
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    if (binary->op == "|") {
+      collect_pattern_reads(*binary->lhs, names, seen);
+      collect_pattern_reads(*binary->rhs, names, seen);
+    } else {
+      collect_reads_expr(expr, names, seen);
+    }
+    return;
+  }
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    collect_reads_expr(*attr->object, names, seen);
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) collect_pattern_reads(*item, names, seen);
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) collect_pattern_reads(*item, names, seen);
+    return;
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    for (const auto& entry : dict->entries) {
+      collect_reads_expr(*entry.first, names, seen);
+      collect_pattern_reads(*entry.second, names, seen);
+    }
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    collect_pattern_reads(*starred->expr, names, seen);
+    return;
+  }
+  collect_reads_expr(expr, names, seen);
+}
+
 void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names, NameSet& seen) {
   for (const auto& stmt : body) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
@@ -503,7 +583,10 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
       collect_reads_expr(*match->subject, names, seen);
       for (const auto& match_case : match->cases) {
         if (match_case.pattern != nullptr) {
-          collect_reads_expr(*match_case.pattern, names, seen);
+          collect_pattern_reads(*match_case.pattern, names, seen);
+        }
+        if (match_case.guard != nullptr) {
+          collect_reads_expr(*match_case.guard, names, seen);
         }
         collect_reads_body(match_case.body, names, seen);
       }
