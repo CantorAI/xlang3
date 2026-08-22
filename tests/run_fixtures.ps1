@@ -29,6 +29,7 @@ $cases = @(
     "syntax_logical_lines",
     "syntax_simple_suites",
     "statement_syntax",
+    "module_statement_partials",
     "structural_pattern_matching",
     "expression_operators",
     "chained_comparisons",

@@ -606,6 +606,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
+    if (name == "__type_params__") {
+      std::vector<Value> values;
+      values.reserve(function->type_params.size());
+      for (const auto& type_param : function->type_params) {
+        values.push_back(Value::string(type_param));
+      }
+      out = Value::tuple(std::move(values));
+      return true;
+    }
     if (name == "__annotations__") {
       if (function->annotations.tag == ValueTag::Invalid) {
         out = Value::dict({});

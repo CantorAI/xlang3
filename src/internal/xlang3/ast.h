@@ -466,6 +466,7 @@ struct FunctionDef final : Stmt {
   };
   std::string name;
   std::vector<std::string> params;
+  std::vector<std::string> type_params;
   std::vector<Param> signature;
   std::vector<ExprPtr> decorators;
   ExprPtr return_annotation;
@@ -475,6 +476,7 @@ struct FunctionDef final : Stmt {
 
 struct ClassDef final : Stmt {
   std::string name;
+  std::vector<std::string> type_params;
   std::vector<ExprPtr> bases;
   std::vector<std::pair<std::string, ExprPtr>> keywords;
   std::vector<ExprPtr> decorators;

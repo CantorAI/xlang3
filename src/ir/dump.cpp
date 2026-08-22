@@ -171,6 +171,13 @@ std::string dump_module(const Module& module) {
       os << " %" << i << "=" << fn.params[i];
     }
     os << "\n";
+    if (!fn.type_params.empty()) {
+      os << "  type_params:";
+      for (size_t i = 0; i < fn.type_params.size(); ++i) {
+        os << " #" << i << "=" << fn.type_params[i];
+      }
+      os << "\n";
+    }
     os << "  signature:";
     for (size_t i = 0; i < fn.signature.size(); ++i) {
       const auto& param = fn.signature[i];

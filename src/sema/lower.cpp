@@ -945,6 +945,19 @@ private:
     return static_cast<uint32_t>(fn_.function_kwdefaults.size() - 1);
   }
 
+  uint32_t emit_type_params_tuple(const std::vector<std::string>& type_params) {
+    std::vector<uint32_t> items;
+    items.reserve(type_params.size());
+    for (const auto& type_param : type_params) {
+      const auto reg = new_reg();
+      emit(ir::Op::LoadConst, reg, add_const(Value::string(type_param)));
+      items.push_back(reg);
+    }
+    const auto tuple = new_reg();
+    emit(ir::Op::MakeTuple, tuple, add_tuple_items(std::move(items)));
+    return tuple;
+  }
+
   uint32_t add_tuple_items(std::vector<uint32_t> items) {
     fn_.tuple_items.push_back(std::move(items));
     return static_cast<uint32_t>(fn_.tuple_items.size() - 1);
@@ -1801,13 +1814,50 @@ private:
       const std::vector<ast::ExprPtr>& items,
       uint32_t subject,
       std::vector<size_t>& fail_jumps) {
+    size_t star_index = items.size();
+    for (size_t i = 0; i < items.size(); ++i) {
+      if (dynamic_cast<const ast::StarredExpr*>(items[i].get()) != nullptr) {
+        star_index = i;
+        break;
+      }
+    }
+    const bool has_star = star_index != items.size();
+    const size_t before_count = has_star ? star_index : items.size();
+    const size_t after_count = has_star ? items.size() - star_index - 1 : 0;
+    const size_t fixed_count = before_count + after_count;
     const auto length = new_reg();
     const auto expected = new_reg();
     const auto length_ok = new_reg();
     emit(ir::Op::Len, length, subject);
-    emit(ir::Op::LoadConst, expected, add_const(Value::int64(static_cast<int64_t>(items.size()))));
-    emit(ir::Op::Compare, length_ok, length, expected, static_cast<uint32_t>(ir::CompareOp::Eq));
+    emit(ir::Op::LoadConst, expected, add_const(Value::int64(static_cast<int64_t>(fixed_count))));
+    emit(ir::Op::Compare, length_ok, length, expected,
+         static_cast<uint32_t>(has_star ? ir::CompareOp::Ge : ir::CompareOp::Eq));
     fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, length_ok));
+
+    if (has_star) {
+      const uint32_t output_count = static_cast<uint32_t>(fixed_count + 1);
+      const auto first_output = new_reg();
+      for (uint32_t i = 1; i < output_count; ++i) {
+        (void)new_reg();
+      }
+      emit(ir::Op::UnpackSequence, first_output, subject, static_cast<uint32_t>(before_count),
+           static_cast<uint32_t>(after_count) | 0x80000000u);
+      for (size_t i = 0; i < before_count; ++i) {
+        emit_pattern_checks(*items[i], first_output + static_cast<uint32_t>(i), fail_jumps);
+      }
+      auto* starred = dynamic_cast<const ast::StarredExpr*>(items[star_index].get());
+      if (starred != nullptr) {
+        emit_pattern_checks(*starred->expr, first_output + static_cast<uint32_t>(before_count), fail_jumps);
+      }
+      for (size_t i = 0; i < after_count; ++i) {
+        emit_pattern_checks(
+            *items[star_index + 1 + i],
+            first_output + static_cast<uint32_t>(before_count + 1 + i),
+            fail_jumps);
+      }
+      return;
+    }
+
     for (size_t i = 0; i < items.size(); ++i) {
       const auto index = new_reg();
       const auto item = new_reg();
@@ -1965,6 +2015,7 @@ private:
         imported_module_slots_,
         qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
                                 : std::move(qualname_parent));
+    child_lowerer.fn_.type_params = fn.type_params;
     child_lowerer.lower_body(fn.body);
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
@@ -2074,6 +2125,12 @@ private:
       name_aliases_[name] = hidden_name;
       store_named_value(name, reg);
     };
+
+    if (!klass.type_params.empty()) {
+      const auto attr_reg = emit_type_params_tuple(klass.type_params);
+      attrs.push_back(std::make_pair("__type_params__", attr_reg));
+      bind_class_attr_alias("__type_params__", attr_reg);
+    }
 
     for (const auto& stmt : klass.body) {
       if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {

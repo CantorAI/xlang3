@@ -383,6 +383,7 @@ struct FunctionObject {
   std::vector<Value> defaults;
   std::vector<Value> positional_defaults;
   std::vector<std::pair<std::string, Value>> kwdefaults;
+  std::vector<std::string> type_params;
   Value annotations;
   Value globals_module;
   std::shared_ptr<const ir::Module> module;

@@ -262,7 +262,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
       error_here("expected function name");
       return nullptr;
     }
-    consume_optional_type_params();
+    auto type_params = consume_optional_type_params();
     std::vector<std::string> params;
     std::vector<ast::FunctionDef::Param> signature;
     ast::ExprPtr return_annotation;
@@ -270,6 +270,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
     auto fn = std::make_unique<ast::FunctionDef>();
     fn->name = std::string(name.text);
     fn->params = std::move(params);
+    fn->type_params = std::move(type_params);
     fn->signature = std::move(signature);
     fn->return_annotation = std::move(return_annotation);
     fn->body = parse_suite_after_colon("function header");
@@ -284,7 +285,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
       error_here("expected class name");
       return nullptr;
     }
-    consume_optional_type_params();
+    auto type_params = consume_optional_type_params();
     std::vector<ast::ExprPtr> bases;
     std::vector<std::pair<std::string, ast::ExprPtr>> keywords;
     if (match(TokenKind::LParen)) {
@@ -304,6 +305,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
     }
     auto klass = std::make_unique<ast::ClassDef>();
     klass->name = std::string(name.text);
+    klass->type_params = std::move(type_params);
     klass->bases = std::move(bases);
     klass->keywords = std::move(keywords);
     klass->body = parse_suite_after_colon("class name");
@@ -883,21 +885,32 @@ bool Parser::parse_dotted_name(std::string& out, const std::string& message, boo
   return true;
 }
 
-bool Parser::consume_optional_type_params() {
+std::vector<std::string> Parser::consume_optional_type_params() {
+  std::vector<std::string> names;
   if (!match(TokenKind::LBracket)) {
-    return true;
+    return names;
   }
   uint32_t depth = 1;
+  bool expect_name = true;
   while (depth != 0 && !check(TokenKind::End)) {
     if (match(TokenKind::LBracket)) {
       ++depth;
     } else if (match(TokenKind::RBracket)) {
       --depth;
+    } else if (depth == 1 && match(TokenKind::Comma)) {
+      expect_name = true;
+    } else if (depth == 1 && (match(TokenKind::Star) || match(TokenKind::DoubleStar))) {
+      expect_name = true;
+    } else if (depth == 1 && expect_name && check(TokenKind::Identifier)) {
+      names.push_back(std::string(advance().text));
+      expect_name = false;
+    } else if (depth == 1 && (match(TokenKind::Colon) || match(TokenKind::Assign))) {
+      expect_name = false;
     } else {
       advance();
     }
   }
-  return depth == 0;
+  return names;
 }
 
 std::vector<ast::StmtPtr> Parser::parse_suite_after_colon(const std::string& context) {

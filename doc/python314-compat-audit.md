@@ -64,7 +64,7 @@ CPython-compatible behavior subset has tests.
 - [x] `raise expr`
 - [x] bare `raise`
 - [x] `raise ... from ...` syntax and cause expression evaluation
-- [~] exception chaining metadata for `raise ... from ...`
+- [x] exception chaining metadata for `raise ... from ...`
 - [x] `try`
 - [x] `except`
 - [x] `except E as e`
@@ -89,9 +89,9 @@ CPython-compatible behavior subset has tests.
 - [x] `assert`
 - [x] `match` / `case` literal-expression and wildcard cases
 - [x] `match` / `case` soft keyword use in expression, parameter, and definition-name contexts
-- [~] structural pattern matching: literal, wildcard, capture, fixed sequence, mapping key/value, OR, `as`, and guard basics; class patterns, starred/rest patterns, and full CPython failure-binding semantics pending
+- [~] structural pattern matching: literal, wildcard, capture, fixed sequence, starred/rest sequence, mapping key/value, OR, `as`, and guard basics; class patterns and full CPython failure-binding semantics pending
 - [x] type parameter syntax accepted on `def` / `class`
-- [ ] type parameter runtime metadata
+- [~] type parameter runtime metadata: `__type_params__` exposes parsed type parameter names; full CPython type-parameter objects, bounds, defaults, variance, and typing integration pending
 
 ### Function And Class Syntax
 

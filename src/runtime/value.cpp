@@ -443,6 +443,7 @@ Value Value::function(
   obj->kwdefaults = std::move(kwdefaults);
   if (module != nullptr && function_id < module->functions.size()) {
     const auto& fn = module->functions[function_id];
+    obj->type_params = fn.type_params;
     for (const auto& param : fn.signature) {
       if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
           param.default_reg != UINT32_MAX &&

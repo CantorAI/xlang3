@@ -168,6 +168,7 @@ struct Instr {
 struct Function {
   std::string name;
   std::string qualname;
+  std::vector<std::string> type_params;
   bool is_generator = false;
   uint32_t first_line = 0;
   std::vector<std::string> params;

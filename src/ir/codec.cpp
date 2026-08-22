@@ -635,6 +635,7 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
   w.u8(fn.is_generator ? 1 : 0);
   w.u32(fn.first_line);
   if (!write_string_vector(w, fn.params, error) ||
+      !write_string_vector(w, fn.type_params, error) ||
       !write_params(w, fn.signature, error) ||
       !write_string_vector(w, fn.locals, error) ||
       !write_u32_vector(w, fn.cell_slots, error) ||
@@ -695,6 +696,7 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       !r.u8(is_generator) ||
       !r.u32(fn.first_line) ||
       !read_string_vector(r, fn.params, error) ||
+      !read_string_vector(r, fn.type_params, error) ||
       !read_params(r, fn.signature, error) ||
       !read_string_vector(r, fn.locals, error) ||
       !read_u32_vector(r, fn.cell_slots, error) ||
