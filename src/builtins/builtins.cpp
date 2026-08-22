@@ -27,12 +27,16 @@ void register_core_builtins(Runtime& runtime) {
   register_math_module(runtime);
 #ifndef XLANG3_EMBEDDED
   register_time_module(runtime);
+  register_abc_module(runtime);
+  register_argparse_module(runtime);
   register_atexit_module(runtime);
+  register_ast_module(runtime);
   register_io_module(runtime);
   register_os_module(runtime);
   register_platform_module(runtime);
   register_pkgutil_module(runtime);
   register_stat_module(runtime);
+  register_string_module(runtime);
   register_imp_module(runtime);
   register_dataclasses_module(runtime);
   register_functools_module(runtime);
@@ -44,8 +48,10 @@ void register_core_builtins(Runtime& runtime) {
   register_fnmatch_glob_modules(runtime);
   register_ctypes_module(runtime);
   register_dis_module(runtime);
+  register_enum_module(runtime);
   register_getpass_module(runtime);
   register_itertools_module(runtime);
+  register_json_module(runtime);
   register_sysconfig_module(runtime);
   register_urllib_module(runtime);
   register_codecs_module(runtime);
@@ -54,6 +60,7 @@ void register_core_builtins(Runtime& runtime) {
   register_code_module(runtime);
   register_xmlrpc_http_modules(runtime);
   register_collections_module(runtime);
+  register_site_module(runtime);
   register_queue_module(runtime);
   register_types_module(runtime);
   register_traceback_module(runtime);
@@ -62,8 +69,15 @@ void register_core_builtins(Runtime& runtime) {
   register_weakref_module(runtime);
   register_inspect_module(runtime);
   register_logging_module(runtime);
+  register_locale_module(runtime);
+  register_marshal_module(runtime);
+  register_numbers_module(runtime);
+  register_opcode_module(runtime);
+  register_operator_module(runtime);
   register_pathlib_module(runtime);
-  register_pydevd_compat_modules(runtime);
+  register_pickle_module(runtime);
+  register_subprocess_module(runtime);
+  register_winreg_module(runtime);
   register_socket_modules(runtime);
 #endif
   register_thread_modules(runtime);

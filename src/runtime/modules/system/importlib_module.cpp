@@ -153,6 +153,15 @@ bool importlib_module_from_spec(Runtime&, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool importlib_metadata_distributions(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "importlib.metadata.distributions() expected no arguments";
+    return false;
+  }
+  out = Value::list({});
+  return true;
+}
+
 } // namespace
 
 void register_importlib_module(Runtime& runtime) {
@@ -163,10 +172,17 @@ void register_importlib_module(Runtime& runtime) {
   Value util = util_builder.finish();
   runtime.register_module("importlib.util", util);
 
+  NativeModuleBuilder metadata_builder(runtime, "importlib.metadata");
+  metadata_builder.function("distributions", importlib_metadata_distributions);
+  Value metadata = metadata_builder.finish();
+  runtime.register_module("importlib.metadata", metadata);
+  runtime.register_module("importlib_metadata", metadata);
+
   NativeModuleBuilder builder(runtime, "importlib");
   builder.function("import_module", importlib_import_module)
       .function("invalidate_caches", importlib_invalidate_caches)
-      .value("util", util);
+      .value("util", util)
+      .value("metadata", metadata);
   runtime.register_module("importlib", builder.finish());
 }
 

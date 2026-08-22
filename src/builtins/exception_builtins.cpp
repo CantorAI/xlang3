@@ -27,9 +27,14 @@ bool exception_init(
     Value& out,
     std::string& error,
     void*) {
-  if (argc < 1 || argc > 2) {
-    error = "Exception.__init__() expected 0 or 1 arguments";
+  if (argc < 1) {
+    error = "Exception.__init__() self is missing";
     return false;
+  }
+  std::vector<Value> exception_args;
+  exception_args.reserve(argc - 1);
+  for (uint32_t i = 1; i < argc; ++i) {
+    exception_args.push_back(args[i]);
   }
   Value message = argc == 2 ? args[1] : Value::string("");
   std::string ignored;
@@ -37,7 +42,7 @@ bool exception_init(
     error = "Exception.__init__() self is invalid";
     return false;
   }
-  object_set_attr(const_cast<Value&>(args[0]), "args", argc == 2 ? Value::tuple({message}) : Value::tuple({}), ignored);
+  object_set_attr(const_cast<Value&>(args[0]), "args", Value::tuple(std::move(exception_args)), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__context__", Value::none(), ignored);
@@ -59,17 +64,23 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "BaseException", std::move(object_base));
   register_exception_class(runtime, "Exception", *runtime.find_builtin("BaseException"));
   register_exception_class(runtime, "RuntimeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "NotImplementedError", *runtime.find_builtin("RuntimeError"));
   register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "AssertionError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "SyntaxError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "NameError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "LookupError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "IndexError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "KeyError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ZeroDivisionError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "StopAsyncIteration", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "EOFError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "OSError", *runtime.find_builtin("Exception"));
+  runtime.register_builtin("IOError", *runtime.find_builtin("OSError"));
+  runtime.register_builtin("WindowsError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "FileNotFoundError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "PermissionError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "IsADirectoryError", *runtime.find_builtin("OSError"));

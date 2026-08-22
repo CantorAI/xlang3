@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 
 namespace xlang3 {
 
@@ -209,6 +210,43 @@ bool builtin_str(
   return true;
 }
 
+bool builtin_frozenset(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc > 1) {
+    error = "frozenset() expected at most 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc == 0) {
+    out = Value::set({});
+    return true;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> items;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      out = Value::set(std::move(items));
+      return true;
+    }
+    items.push_back(std::move(item));
+  }
+}
+
 } // namespace
 
 void register_sequence_builtins(Runtime& runtime) {
@@ -216,6 +254,7 @@ void register_sequence_builtins(Runtime& runtime) {
   runtime.register_native_builtin("iter", builtin_iter);
   runtime.register_native_builtin("next", builtin_next);
   runtime.register_native_builtin("ord", builtin_ord);
+  runtime.register_native_builtin("frozenset", builtin_frozenset);
 }
 
 } // namespace xlang3

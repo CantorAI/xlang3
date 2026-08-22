@@ -121,6 +121,30 @@ bool imp_extension_suffixes(Runtime&, const Value*, uint32_t argc, Value& out, s
   return true;
 }
 
+bool imp_source_hash(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "_imp.source_hash() expected magic and source bytes";
+    return false;
+  }
+  out = Value::bytes(std::string(8, '\0'));
+  return true;
+}
+
+bool imp_fix_co_filename(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "_imp._fix_co_filename() expected code and filename";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool imp_dynamic_not_available(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "dynamic extension loading is not available through _imp";
+  runtime.raise_class_error("ImportError", error);
+  return false;
+}
+
 } // namespace
 
 void register_imp_module(Runtime& runtime) {
@@ -131,7 +155,13 @@ void register_imp_module(Runtime& runtime) {
       .function("is_builtin", imp_is_builtin)
       .function("is_frozen", imp_is_frozen)
       .function("get_magic", imp_get_magic)
-      .function("extension_suffixes", imp_extension_suffixes);
+      .function("extension_suffixes", imp_extension_suffixes)
+      .function("source_hash", imp_source_hash)
+      .function("_fix_co_filename", imp_fix_co_filename)
+      .function("create_dynamic", imp_dynamic_not_available)
+      .function("exec_dynamic", imp_dynamic_not_available)
+      .value("pyc_magic_number_token", Value::int64(0x0a0d5833))
+      .value("check_hash_based_pycs", Value::string("default"));
   runtime.register_module("_imp", builder.finish());
 }
 

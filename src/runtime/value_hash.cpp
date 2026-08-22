@@ -86,6 +86,22 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
         return true;
       }
+      if (value.as.obj != nullptr) {
+        switch (value.as.obj->kind) {
+          case ObjectKind::ByteArray:
+          case ObjectKind::List:
+          case ObjectKind::Dict:
+          case ObjectKind::Set:
+          case ObjectKind::DictKeysView:
+          case ObjectKind::DictValuesView:
+          case ObjectKind::DictItemsView:
+            error = "object is not hashable";
+            return false;
+          default:
+            out = std::hash<const void*>{}(value.as.obj);
+            return true;
+        }
+      }
       error = "object is not hashable";
       return false;
   }

@@ -89,6 +89,12 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return nullptr;
     case ObjectKind::BoundMethod:
       return "method";
+    case ObjectKind::StaticMethod:
+      return "staticmethod";
+    case ObjectKind::ClassMethod:
+      return "classmethod";
+    case ObjectKind::Super:
+      return "super";
     case ObjectKind::Property:
       return "property";
     case ObjectKind::Cell:
@@ -223,8 +229,109 @@ bool builtin_issubclass(
   return true;
 }
 
+bool builtin_object_new(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1) {
+    error = "object.__new__ expected a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "object.__new__ first argument must be a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::instance(args[0]);
+  return true;
+}
+
+bool builtin_type_new(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 4) {
+    error = "type.__new__ expected metaclass, name, bases, and namespace";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "type.__new__ metaclass must be a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  auto* bases = value_as_tuple(args[2]);
+  auto* namespace_dict = value_as_dict(args[3]);
+  if (name == nullptr || bases == nullptr || namespace_dict == nullptr) {
+    error = "type.__new__ expected str, tuple, and dict";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.reserve(namespace_dict->entries.size());
+  for (const auto& entry : namespace_dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key == nullptr) {
+      error = "type.__new__ namespace keys must be strings";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    attrs.push_back({string_object_to_string(*key), entry.second});
+  }
+
+  Value base = Value::invalid();
+  if (bases->items.empty()) {
+    if (const auto* object_type = runtime.find_builtin("object")) {
+      value_assign_fast(base, *object_type);
+    }
+  } else {
+    for (const auto& item : bases->items) {
+      if (value_as_class(item) == nullptr) {
+        error = "type.__new__ bases must be classes";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    }
+    value_assign_fast(base, bases->items[0]);
+  }
+
+  out = Value::class_object(string_object_to_string(*name), std::move(attrs), base);
+  for (size_t i = 1; i < bases->items.size(); ++i) {
+    if (!class_set_base(out, bases->items[i], error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return true;
+}
+
 void register_builtin_type(Runtime& runtime, const char* name, const Value& object_base) {
   runtime.register_builtin(name, Value::class_object(name, {}, object_base));
+}
+
+bool builtin_object_init(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "object.__init__ expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool builtin_object_getattribute(
@@ -272,6 +379,7 @@ bool builtin_object_setattr(
   }
   Value target = args[0];
   if (!object_set_attr(target, string_object_to_string(*name), args[2], error)) {
+    error = "object.__setattr__ target " + value_to_string(args[0]) + ": " + error;
     runtime.raise_class_error("AttributeError", error);
     return false;
   }
@@ -359,13 +467,18 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
 
 void register_object_type_builtins(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> object_attrs;
+  object_attrs.push_back({"__new__", Value::native_function(0, "object.__new__", builtin_object_new)});
+  object_attrs.push_back({"__init__", Value::native_function(0, "object.__init__", builtin_object_init)});
   object_attrs.push_back({"__getattribute__", Value::native_function(0, "object.__getattribute__", builtin_object_getattribute)});
   object_attrs.push_back({"__setattr__", Value::native_function(0, "object.__setattr__", builtin_object_setattr)});
   object_attrs.push_back({"__delattr__", Value::native_function(0, "object.__delattr__", builtin_object_delattr)});
   Value object_type = Value::class_object("object", std::move(object_attrs));
   runtime.register_builtin("object", object_type);
 
-  Value type_type = Value::class_object("type", {}, object_type);
+  Value type_type = Value::class_object(
+      "type",
+      {{"__new__", Value::native_function(0, "type.__new__", builtin_type_new)}},
+      object_type);
   runtime.register_builtin("type", type_type);
 
   register_builtin_type(runtime, "NoneType", object_type);
@@ -373,6 +486,7 @@ void register_object_type_builtins(Runtime& runtime) {
   const Value* int_type = runtime.find_builtin("int");
   register_builtin_type(runtime, "bool", int_type != nullptr ? *int_type : object_type);
   register_builtin_type(runtime, "float", object_type);
+  register_builtin_type(runtime, "complex", object_type);
   register_builtin_type(runtime, "str", object_type);
   register_builtin_type(runtime, "bytes", object_type);
   register_builtin_type(runtime, "bytearray", object_type);
@@ -396,6 +510,8 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "function", object_type);
   register_builtin_type(runtime, "method", object_type);
   register_builtin_type(runtime, "property", object_type);
+  register_builtin_type(runtime, "classmethod", object_type);
+  register_builtin_type(runtime, "staticmethod", object_type);
   register_builtin_type(runtime, "code", object_type);
   register_builtin_type(runtime, "frame", object_type);
   register_builtin_type(runtime, "traceback", object_type);

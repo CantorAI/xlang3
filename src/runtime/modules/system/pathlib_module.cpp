@@ -172,15 +172,15 @@ bool path_property_value(const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool path_name_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool path_name_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return path_property_value(args, argc, out, error, "name");
 }
 
-bool path_suffix_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool path_suffix_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return path_property_value(args, argc, out, error, "suffix");
 }
 
-bool path_parent_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool path_parent_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return path_property_value(args, argc, out, error, "parent");
 }
 
@@ -252,9 +252,21 @@ Value make_path_class(Runtime& runtime, const char* name) {
   attrs.push_back({"__fspath__", runtime.make_native_function("pathlib.Path.__fspath__", path_fspath)});
   attrs.push_back({"as_posix", runtime.make_native_function("pathlib.Path.as_posix", path_as_posix)});
   attrs.push_back({"joinpath", runtime.make_native_function("pathlib.Path.joinpath", path_joinpath)});
-  attrs.push_back({"name", runtime.make_native_function("pathlib.Path.name", path_name_method)});
-  attrs.push_back({"suffix", runtime.make_native_function("pathlib.Path.suffix", path_suffix_method)});
-  attrs.push_back({"parent", runtime.make_native_function("pathlib.Path.parent", path_parent_method)});
+  attrs.push_back({"name", Value::property(
+                               runtime.make_native_function("pathlib.Path.name", path_name_getter),
+                               Value::none(),
+                               Value::none(),
+                               Value::none())});
+  attrs.push_back({"suffix", Value::property(
+                                 runtime.make_native_function("pathlib.Path.suffix", path_suffix_getter),
+                                 Value::none(),
+                                 Value::none(),
+                                 Value::none())});
+  attrs.push_back({"parent", Value::property(
+                                 runtime.make_native_function("pathlib.Path.parent", path_parent_getter),
+                                 Value::none(),
+                                 Value::none(),
+                                 Value::none())});
   attrs.push_back({"exists", runtime.make_native_function("pathlib.Path.exists", path_exists)});
   attrs.push_back({"is_file", runtime.make_native_function("pathlib.Path.is_file", path_is_file)});
   attrs.push_back({"is_dir", runtime.make_native_function("pathlib.Path.is_dir", path_is_dir)});

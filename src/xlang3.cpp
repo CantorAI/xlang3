@@ -22,6 +22,8 @@ limitations under the License.
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 
+#include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -155,6 +157,22 @@ bool dump_ir_file(const xlang3::RunConfig& config, const xlang3::ir::Module& mod
   return true;
 }
 
+bool frontend_timings_enabled() {
+  return std::getenv("XLANG3_FRONTEND_TIMINGS") != nullptr;
+}
+
+double seconds_since(std::chrono::steady_clock::time_point start) {
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  return std::chrono::duration<double>(elapsed).count();
+}
+
+void trace_frontend_timing(const char* phase, std::chrono::steady_clock::time_point start) {
+  if (!frontend_timings_enabled()) {
+    return;
+  }
+  std::cerr << "xlang3 frontend timing: " << phase << " " << seconds_since(start) << "s\n";
+}
+
 bool publish_process_sys_attrs(xlang3::Runtime& runtime, const char* argv0, std::string& error) {
   xlang3::Value sys;
   if (!runtime.import_module("sys", sys, error)) {
@@ -173,7 +191,10 @@ bool publish_process_sys_attrs(xlang3::Runtime& runtime, const char* argv0, std:
   if (!xlang3::module_set_attr(sys, "prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
-  return xlang3::module_set_attr(sys, "base_prefix", xlang3::Value::string(prefix), error);
+  if (!xlang3::module_set_attr(sys, "base_prefix", xlang3::Value::string(prefix), error)) {
+    return false;
+  }
+  return xlang3::module_set_attr(sys, "real_prefix", xlang3::Value::string(prefix), error);
 }
 
 bool run_source(
@@ -182,7 +203,10 @@ bool run_source(
     xlang3::Runtime& runtime,
     xlang3::Interpreter& interpreter,
     bool dump_ir) {
+  const auto run_start = std::chrono::steady_clock::now();
+  trace_frontend_timing("parse-begin", run_start);
   auto parsed = xlang3::parse_source(source);
+  trace_frontend_timing("parse-end", run_start);
   if (!parsed.errors.empty()) {
     for (const auto& error : parsed.errors) {
       std::cerr << "parse: " << error << "\n";
@@ -190,7 +214,9 @@ bool run_source(
     return false;
   }
 
+  trace_frontend_timing("lower-begin", run_start);
   auto lowered = xlang3::lower_to_ir(parsed.module);
+  trace_frontend_timing("lower-end", run_start);
   if (!lowered.errors.empty()) {
     for (const auto& error : lowered.errors) {
       std::cerr << "lower: " << error << "\n";
@@ -208,7 +234,9 @@ bool run_source(
   } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
     module->source_file = "<string>";
   }
+  trace_frontend_timing("exec-begin", run_start);
   auto result = interpreter.run(std::move(module));
+  trace_frontend_timing("exec-end", run_start);
   if (!result.errors.empty()) {
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";
@@ -339,6 +367,8 @@ int run_dap_stdio() {
 } // namespace
 
 int main(int argc, char** argv) {
+  configure_binary_stdio();
+
   if (argc >= 2 && std::string(argv[1]) == "--dap-stdio") {
     return run_dap_stdio();
   }

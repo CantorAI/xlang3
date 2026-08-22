@@ -34,9 +34,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump(const ir::Instr& in, size_t& ip) {
 
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false(
     const ir::Instr& in,
+    const ir::Module& module,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip) {
-  if (!value_truthy(regs[in.a])) {
+  if (!xlang_vm_truthy(module, regs[in.a])) {
     ip = in.dst;
     return XlangVMOpFlow::ContinueLoop;
   }

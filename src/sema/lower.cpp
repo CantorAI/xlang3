@@ -973,13 +973,85 @@ private:
     }
     for (const auto& stmt : body) {
       auto* child = dynamic_cast<const ast::FunctionDef*>(stmt.get());
-      if (child == nullptr) {
-        continue;
-      }
-      for (const auto& name : closure_names_for_child(*child)) {
-        if (sema::contains(local_name_set_, name)) {
-          ensure_cell_for_local(name);
+      if (child != nullptr) {
+        for (const auto& name : closure_names_for_child(*child)) {
+          if (sema::contains(local_name_set_, name)) {
+            ensure_cell_for_local(name);
+          }
         }
+      }
+      prepare_captured_locals_from_stmt(*stmt);
+    }
+  }
+
+  void prepare_captured_locals_from_expr(const ast::Expr& expr) {
+    std::vector<std::string> names;
+    std::unordered_set<std::string> seen;
+    std::unordered_set<std::string> local_targets;
+    collect_expression_captures(expr, local_targets, names, seen);
+    for (const auto& name : names) {
+      if (sema::contains(local_name_set_, name)) {
+        ensure_cell_for_local(name);
+      }
+    }
+  }
+
+  void prepare_captured_locals_from_stmt(const ast::Stmt& stmt) {
+    if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->object);
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->object);
+      prepare_captured_locals_from_expr(*assign->index);
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*expr->expr);
+    } else if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*ret->value);
+    } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->target);
+      if (assign->value != nullptr) {
+        prepare_captured_locals_from_expr(*assign->value);
+      }
+    } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->target);
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*ifs->condition);
+      prepare_captured_locals(ifs->then_body);
+      prepare_captured_locals(ifs->else_body);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*loop->condition);
+      prepare_captured_locals(loop->body);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*loop->iterable);
+      prepare_captured_locals(loop->body);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*with->manager);
+      prepare_captured_locals(with->body);
+    } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+      prepare_captured_locals(try_except->try_body);
+      for (const auto& handler : try_except->handlers) {
+        if (handler.type != nullptr) {
+          prepare_captured_locals_from_expr(*handler.type);
+        }
+        prepare_captured_locals(handler.body);
+      }
+      prepare_captured_locals(try_except->else_body);
+      prepare_captured_locals(try_except->finally_body);
+    } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*match->subject);
+      for (const auto& match_case : match->cases) {
+        if (match_case.pattern != nullptr) {
+          prepare_captured_locals_from_expr(*match_case.pattern);
+        }
+        prepare_captured_locals(match_case.body);
       }
     }
   }
@@ -1104,6 +1176,30 @@ private:
       for (const auto& item : set->items) {
         collect_expression_captures(*item, local_targets, names, seen);
       }
+      return;
+    }
+    if (auto* generator = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+      for (const auto& name : closure_names_for_generator(*generator)) {
+        if (local_targets.find(name) == local_targets.end() && seen.insert(name).second) {
+          names.push_back(name);
+        }
+      }
+      return;
+    }
+    if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+      std::unordered_set<std::string> lambda_targets;
+      for (const auto& param : lambda->signature) {
+        if (!param.name.empty()) {
+          lambda_targets.insert(resolve_name(param.name));
+        }
+      }
+      if (lambda_targets.empty()) {
+        for (const auto& param : lambda->params) {
+          lambda_targets.insert(resolve_name(param));
+        }
+      }
+      collect_expression_captures(*lambda->body, lambda_targets, names, seen);
+      return;
     }
   }
 
@@ -1146,6 +1242,24 @@ private:
 
   bool imported_module_slot(const std::string& name, uint32_t& slot) const {
     return module_global_slot(name, slot) && imported_module_slots_.find(slot) != imported_module_slots_.end();
+  }
+
+  void lower_import_binding(const std::string& name, const std::string& bind_name) {
+    const auto reg = new_reg();
+    emit(ir::Op::ImportModule, reg, add_name(name));
+    const auto root_dot = name.find('.');
+    const auto root_name = root_dot == std::string::npos ? name : name.substr(0, root_dot);
+    if (root_dot != std::string::npos && bind_name == root_name) {
+      const auto bind_reg = new_reg();
+      emit(ir::Op::ImportModule, bind_reg, add_name(bind_name));
+      store_named_value(bind_name, bind_reg);
+    } else {
+      store_named_value(bind_name, reg);
+    }
+    uint32_t import_slot = 0;
+    if (module_global_slot(bind_name, import_slot)) {
+      imported_module_slots_.insert(import_slot);
+    }
   }
 
   bool direct_local_slot(const std::string& name, uint32_t& slot) const {
@@ -1612,6 +1726,11 @@ private:
       std::string instance_slot_self = {},
       std::unordered_map<std::string, uint32_t> instance_slots = {}) {
     const auto free_vars = closure_names_for_child(fn);
+    for (const auto& name : free_vars) {
+      if (sema::contains(local_name_set_, name)) {
+        ensure_cell_for_local(name);
+      }
+    }
     auto signature = lower_signature_metadata(fn);
     std::vector<uint32_t> default_regs;
     std::vector<std::pair<std::string, uint32_t>> annotation_regs;
@@ -1658,15 +1777,17 @@ private:
     return reg;
   }
 
-  void lower_class_def(const ast::ClassDef& klass) {
+  uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true) {
     std::vector<std::pair<std::string, uint32_t>> attrs;
     std::vector<std::string> instance_slots;
     std::unordered_set<std::string> seen_instance_slots;
-    for (const auto& stmt : klass.body) {
-      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
-        if (!fn->params.empty()) {
-          for (const auto& child : fn->body) {
-            collect_self_attr_slots_stmt(*child, fn->params[0], instance_slots, seen_instance_slots);
+    if (klass.bases.empty()) {
+      for (const auto& stmt : klass.body) {
+        if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
+          if (!fn->params.empty()) {
+            for (const auto& child : fn->body) {
+              collect_self_attr_slots_stmt(*child, fn->params[0], instance_slots, seen_instance_slots);
+            }
           }
         }
       }
@@ -1706,6 +1827,26 @@ private:
         const auto attr_reg = lower_expr(*assign->value);
         attrs.push_back(std::make_pair(assign->name, attr_reg));
         bind_class_attr_alias(assign->name, attr_reg);
+      } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(stmt.get())) {
+        const auto attr_reg = lower_expr(*assign->value);
+        for (const auto& target : assign->targets) {
+          if (auto* name = dynamic_cast<const ast::NameExpr*>(target.get())) {
+            attrs.push_back(std::make_pair(name->name, attr_reg));
+            bind_class_attr_alias(name->name, attr_reg);
+          }
+        }
+      } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(stmt.get())) {
+        if (assign->value != nullptr) {
+          if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+            const auto attr_reg = lower_expr(*assign->value);
+            attrs.push_back(std::make_pair(name->name, attr_reg));
+            bind_class_attr_alias(name->name, attr_reg);
+          }
+        }
+      } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(stmt.get())) {
+        const auto attr_reg = lower_class_def(*nested, false);
+        attrs.push_back(std::make_pair(nested->name, attr_reg));
+        bind_class_attr_alias(nested->name, attr_reg);
       }
     }
 
@@ -1727,7 +1868,11 @@ private:
       const auto ignored = lower_expr(*keyword.second);
       emit(ir::Op::Pop, 0, ignored);
     }
-    store_named_value(klass.name, apply_decorators(reg, klass.decorators));
+    const auto decorated_reg = apply_decorators(reg, klass.decorators);
+    if (store_name) {
+      store_named_value(klass.name, decorated_reg);
+    }
+    return decorated_reg;
   }
 
   bool is_instance_slot_target(const ast::Expr& object, const std::string& name) const {
@@ -1983,20 +2128,12 @@ private:
       return;
     }
     if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
-      const auto reg = new_reg();
-      emit(ir::Op::ImportModule, reg, add_name(import->name));
-      const auto root_dot = import->name.find('.');
-      const auto root_name = root_dot == std::string::npos ? import->name : import->name.substr(0, root_dot);
-      if (root_dot != std::string::npos && import->bind_name == root_name) {
-        const auto bind_reg = new_reg();
-        emit(ir::Op::ImportModule, bind_reg, add_name(import->bind_name));
-        store_named_value(import->bind_name, bind_reg);
-      } else {
-        store_named_value(import->bind_name, reg);
-      }
-      uint32_t import_slot = 0;
-      if (module_global_slot(import->bind_name, import_slot)) {
-        imported_module_slots_.insert(import_slot);
+      lower_import_binding(import->name, import->bind_name);
+      return;
+    }
+    if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(&stmt)) {
+      for (const auto& binding : import->names) {
+        lower_import_binding(binding.name, binding.as_name);
       }
       return;
     }
@@ -2076,6 +2213,7 @@ private:
       loop_continue_targets_.pop_back();
       emit(ir::Op::Jump, start);
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+      lower_body(loop->else_body);
       for (const auto jump : break_jumps) {
         patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
       }
@@ -2489,6 +2627,26 @@ private:
     }
     if (auto* bin = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
       const auto lhs = lower_expr(*bin->lhs);
+      if (bin->op == "and") {
+        const auto reg = new_reg();
+        emit(ir::Op::Move, reg, lhs);
+        const auto done_if_false = emit_jump(ir::Op::JumpIfFalse, lhs);
+        const auto rhs = lower_expr(*bin->rhs);
+        emit(ir::Op::Move, reg, rhs);
+        patch_jump(done_if_false, static_cast<uint32_t>(fn_.code.size()));
+        return reg;
+      }
+      if (bin->op == "or") {
+        const auto reg = new_reg();
+        emit(ir::Op::Move, reg, lhs);
+        const auto rhs_jump = emit_jump(ir::Op::JumpIfFalse, lhs);
+        const auto done = emit_jump(ir::Op::Jump);
+        patch_jump(rhs_jump, static_cast<uint32_t>(fn_.code.size()));
+        const auto rhs = lower_expr(*bin->rhs);
+        emit(ir::Op::Move, reg, rhs);
+        patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+        return reg;
+      }
       if (bin->op == "%") {
         if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get())) {
           if (lit->kind == ast::LiteralExpr::Kind::Int) {
@@ -2706,11 +2864,40 @@ private:
       ast::FunctionDef fn;
       fn.name = "<lambda>";
       fn.params = lambda->params;
-      for (const auto& name : lambda->params) {
+      if (!lambda->signature.empty()) {
+        fn.signature.reserve(lambda->signature.size());
+        for (const auto& lambda_param : lambda->signature) {
+          ast::FunctionDef::Param param;
+          param.name = lambda_param.name;
+          switch (lambda_param.kind) {
+            case ast::LambdaExpr::Param::Kind::PosOnly:
+              param.kind = ast::FunctionDef::Param::Kind::PosOnly;
+              break;
+            case ast::LambdaExpr::Param::Kind::PosOrKeyword:
+              param.kind = ast::FunctionDef::Param::Kind::PosOrKeyword;
+              break;
+            case ast::LambdaExpr::Param::Kind::VarArgs:
+              param.kind = ast::FunctionDef::Param::Kind::VarArgs;
+              break;
+            case ast::LambdaExpr::Param::Kind::KeywordOnly:
+              param.kind = ast::FunctionDef::Param::Kind::KeywordOnly;
+              break;
+            case ast::LambdaExpr::Param::Kind::KwArgs:
+              param.kind = ast::FunctionDef::Param::Kind::KwArgs;
+              break;
+          }
+          if (lambda_param.default_value != nullptr) {
+            param.default_value = clone_expr(*lambda_param.default_value);
+          }
+          fn.signature.push_back(std::move(param));
+        }
+      } else {
+        for (const auto& name : lambda->params) {
         ast::FunctionDef::Param param;
         param.name = name;
         param.kind = ast::FunctionDef::Param::Kind::PosOrKeyword;
         fn.signature.push_back(std::move(param));
+        }
       }
       fn.body.push_back(std::make_unique<ast::ReturnStmt>(clone_expr(*lambda->body)));
       return lower_function_value(fn);

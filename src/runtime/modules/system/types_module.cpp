@@ -59,6 +59,15 @@ bool types_method_type(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool types_mapping_proxy_type(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "MappingProxyType() expected mapping";
+    return false;
+  }
+  out = args[0];
+  return true;
+}
+
 bool types_simple_namespace(
     Runtime&,
     const Value* args,
@@ -97,12 +106,30 @@ bool types_simple_namespace_positional(Runtime&, const Value*, uint32_t argc, Va
   return false;
 }
 
+Value make_types_class(const std::string& name) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("types")});
+  return Value::class_object(name, std::move(attrs));
+}
+
 } // namespace
 
 void register_types_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "types");
   builder.function("ModuleType", types_module_type)
-      .function("MethodType", types_method_type);
+      .function("MethodType", types_method_type)
+      .function("MappingProxyType", types_mapping_proxy_type);
+  builder.value("FrameType", make_types_class("FrameType"))
+      .value("CodeType", make_types_class("CodeType"))
+      .value("FunctionType", make_types_class("FunctionType"))
+      .value("LambdaType", make_types_class("FunctionType"))
+      .value("BuiltinFunctionType", make_types_class("BuiltinFunctionType"))
+      .value("BuiltinMethodType", make_types_class("BuiltinFunctionType"))
+      .value("MethodWrapperType", make_types_class("MethodWrapperType"))
+      .value("TracebackType", make_types_class("TracebackType"))
+      .value("GeneratorType", make_types_class("GeneratorType"))
+      .value("CoroutineType", make_types_class("CoroutineType"))
+      .value("DynamicClassAttribute", make_types_class("DynamicClassAttribute"));
   builder.value(
       "SimpleNamespace",
       runtime.make_native_function(

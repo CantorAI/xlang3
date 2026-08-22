@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -462,11 +463,210 @@ bool namedtuple_factory(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+Value* ordered_dict_storage(const Value& self, std::string& error);
+
+bool ordered_dict_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "OrderedDict.__init__() expected optional mapping";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  if (argc == 2) {
+    const Value* source = &args[1];
+    if (auto* source_instance = value_as_instance(*source)) {
+      if (value_as_dict(source_instance->mapping_storage) != nullptr) {
+        source = &source_instance->mapping_storage;
+      }
+    }
+    auto* source_dict = value_as_dict(*source);
+    if (source_dict == nullptr) {
+      error = "OrderedDict.__init__() mapping must be a dict";
+      return false;
+    }
+    auto* target_dict = value_as_dict(*storage);
+    target_dict->entries.clear();
+    for (const auto& entry : source_dict->entries) {
+      target_dict->entries.push_back(entry);
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+Value* ordered_dict_storage(const Value& self, std::string& error) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr || value_as_dict(instance->mapping_storage) == nullptr) {
+    error = "invalid OrderedDict object";
+    return nullptr;
+  }
+  return &instance->mapping_storage;
+}
+
+bool ordered_dict_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "OrderedDict.__getitem__() expected key";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  if (!mapping_get_item(*storage, args[1], out, error)) {
+    runtime.raise_class_error("KeyError", error);
+    return false;
+  }
+  return true;
+}
+
+bool ordered_dict_setitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "OrderedDict.__setitem__() expected key and value";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  if (!mapping_set_item(*storage, args[1], args[2], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool ordered_dict_delitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "OrderedDict.__delitem__() expected key";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  if (!mapping_delete_item(*storage, args[1], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool ordered_dict_len(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "OrderedDict.__len__() expected no arguments";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  return mapping_len(*storage, out, error);
+}
+
+bool ordered_dict_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "OrderedDict.__contains__() expected key";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  bool contains = false;
+  if (!mapping_contains(*storage, args[1], contains, error)) {
+    return false;
+  }
+  value_set_bool(out, contains);
+  return true;
+}
+
+bool ordered_dict_get(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "OrderedDict.get() expected key and optional default";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  std::string ignored;
+  if (mapping_get_item(*storage, args[1], out, ignored)) {
+    return true;
+  }
+  if (argc == 3) {
+    value_assign_fast(out, args[2]);
+  } else {
+    value_set_none(out);
+  }
+  return true;
+}
+
+bool ordered_dict_pop(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "OrderedDict.pop() expected key and optional default";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  std::string ignored;
+  if (mapping_get_item(*storage, args[1], out, ignored)) {
+    return mapping_delete_item(*storage, args[1], error);
+  }
+  if (argc == 3) {
+    value_assign_fast(out, args[2]);
+    return true;
+  }
+  error = "key not found";
+  return false;
+}
+
+bool ordered_dict_items(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "OrderedDict.items() expected no arguments";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  auto* dict = value_as_dict(*storage);
+  std::vector<Value> values;
+  values.reserve(dict->entries.size());
+  for (const auto& entry : dict->entries) {
+    values.push_back(Value::tuple({entry.first, entry.second}));
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+Value make_ordered_dict_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("collections")});
+  attrs.push_back({"__init__", runtime.make_native_function("collections.OrderedDict.__init__", ordered_dict_init)});
+  attrs.push_back({"__getitem__", runtime.make_native_function("collections.OrderedDict.__getitem__", ordered_dict_getitem)});
+  attrs.push_back({"__setitem__", runtime.make_native_function("collections.OrderedDict.__setitem__", ordered_dict_setitem)});
+  attrs.push_back({"__delitem__", runtime.make_native_function("collections.OrderedDict.__delitem__", ordered_dict_delitem)});
+  attrs.push_back({"__iter__", runtime.make_native_function("collections.OrderedDict.__iter__", ordered_dict_items)});
+  attrs.push_back({"__len__", runtime.make_native_function("collections.OrderedDict.__len__", ordered_dict_len)});
+  attrs.push_back({"__contains__", runtime.make_native_function("collections.OrderedDict.__contains__", ordered_dict_contains)});
+  attrs.push_back({"get", runtime.make_native_function("collections.OrderedDict.get", ordered_dict_get)});
+  attrs.push_back({"pop", runtime.make_native_function("collections.OrderedDict.pop", ordered_dict_pop)});
+  attrs.push_back({"items", runtime.make_native_function("collections.OrderedDict.items", ordered_dict_items)});
+  attrs.push_back({"keys", runtime.make_native_function("collections.OrderedDict.keys", ordered_dict_items)});
+  attrs.push_back({"values", runtime.make_native_function("collections.OrderedDict.values", ordered_dict_items)});
+  return Value::class_object("OrderedDict", std::move(attrs));
+}
+
 } // namespace
 
 void register_collections_module(Runtime& runtime) {
   Value deque_class = make_deque_class(runtime);
   Value defaultdict_class = make_defaultdict_class(runtime);
+  Value ordered_dict_class = make_ordered_dict_class(runtime);
 
   NativeModuleBuilder builder(runtime, "_collections");
   builder.value("deque", deque_class);
@@ -475,6 +675,7 @@ void register_collections_module(Runtime& runtime) {
   NativeModuleBuilder facade(runtime, "collections");
   facade.value("deque", std::move(deque_class))
       .value("defaultdict", std::move(defaultdict_class))
+      .value("OrderedDict", std::move(ordered_dict_class))
       .function("namedtuple", namedtuple_factory);
   runtime.register_module("collections", facade.finish());
 }

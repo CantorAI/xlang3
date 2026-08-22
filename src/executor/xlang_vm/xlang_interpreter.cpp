@@ -61,14 +61,14 @@ RuntimeResult Interpreter::run_module(
       return result;
     }
     if (!module.source_file.empty() &&
-        !module_get_attr(globals_module, "__file__", existing, error)) {
+        (!module_get_attr(globals_module, "__file__", existing, error) || existing.tag == ValueTag::Invalid)) {
       error.clear();
       if (!module_set_attr(globals_module, "__file__", Value::string(module.source_file), error)) {
         result.errors.push_back(error);
         return result;
       }
     }
-    if (!module_get_attr(globals_module, "__package__", existing, error)) {
+    if (!module_get_attr(globals_module, "__package__", existing, error) || existing.tag == ValueTag::Invalid) {
       error.clear();
       if (!module_set_attr(globals_module, "__package__", Value::string(""), error)) {
         result.errors.push_back(error);

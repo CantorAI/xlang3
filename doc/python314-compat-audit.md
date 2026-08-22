@@ -30,6 +30,14 @@ Legend:
 - [~] partial
 - [ ] missing or not audited yet
 
+Important audit rule:
+
+```text
+An importable module, placeholder class, return-none stub, identity decorator,
+or empty facade is not Python compatibility. Mark it [ ] unless a declared
+CPython-compatible behavior subset has tests.
+```
+
 ## Syntax Compatibility
 
 ### Module And Statement Syntax
@@ -39,6 +47,7 @@ Legend:
 - [x] comments
 - [x] simple statements on separate lines
 - [x] semicolon-separated simple statements
+- [ ] compound statement simple suites on one line: `def f(): return x`, `class C: pass`, `if x: y`
 - [x] line continuation with backslash
 - [x] implicit line continuation across brackets for multi-line expressions
 - [x] `if`
@@ -121,6 +130,7 @@ Legend:
 - [x] string literals
 - [x] string escapes
 - [x] raw strings
+- [~] string literal lexing edge cases: normal strings containing `'''` / `"""` no longer start triple-string mode; full CPython tokenizer audit pending
 - [x] bytes literals
 - [~] f-strings
 - [x] unicode escape completeness
@@ -221,7 +231,7 @@ Legend:
 - [~] default args runtime behavior
 - [~] keyword args runtime behavior
 - [~] varargs/kwargs objects
-- [~] function object attributes: `__name__`, `__module__`, `__defaults__`, `__annotations__`, `__code__`; broader CPython audit pending
+- [~] function object attributes: `__name__`, `__module__`, `__doc__`, `__defaults__`, `__annotations__`, `__dict__`, `__code__`; `__qualname__`, `__kwdefaults__`, and broader CPython audit pending
 - [~] code objects: foundation with `co_name`, `co_argcount`, `co_varnames`, `co_names`, `co_consts`, `co_filename`, and `co_firstlineno`; full CPython fields pending
 - [~] frame objects: foundation with `f_code`, `f_back`, `f_globals`, `f_locals`, and source-backed `f_lineno`; debugger mutation/source semantics pending
 - [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`; precise source-line mapping pending
@@ -333,31 +343,65 @@ Legend:
 - [~] `compile`: `exec`/`eval`/`single` code-object basics
 - [x] `callable`
 
-### Standard Modules Needed For Debugpy
+### Standard Modules Foundation
 
 Native or runtime-backed foundation:
 
 - [~] `sys`: `modules` and `exc_info` basics
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `sleep`
 - [x] `_thread` subset
+- [~] `abc` / `_abc`: ABC cache-token/register/check facade; real ABC registry/cache semantics pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes and common file mode constants
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
 - [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
+- [~] `_signal`: signal constants and `signal`/`getsignal` facade; real signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
 - [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
 - [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty; blocking semantics pending
 
-High-level Python modules to run from Python source where possible:
+High-level modules currently backed by native/runtime code:
 
 - [~] `threading`
-- [~] `os`: VFS-backed `listdir`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics
+- [~] `os`: VFS-backed `listdir`, `scandir`/`DirEntry` foundation, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
+- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation; full path normalization/platform semantics pending
+- [~] `stat`: stat tuple indexes and common constants
+- [ ] `argparse`: simple `ArgumentParser` facade exists; CPython parser behavior not audited
+- [ ] `ast`: AST class-name facade exists; real parser-to-AST compatibility pending
+- [ ] `code`: `compile_command` facade exists; interactive compiler semantics pending
+- [~] `codecs`: `lookup`, `encode`, and `decode` foundation; full codec registry/error handling pending
+- [ ] `contextlib`: contextmanager/closing/suppress facade exists; generator context-manager behavior pending
+- [ ] `ctypes`: small facade exists; real FFI semantics pending
+- [ ] `dataclasses`: decorator/field facade exists; real dataclass transformation pending
+- [ ] `dis`: code-object inspection facade exists; real bytecode/disassembly compatibility pending
+- [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
+- [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
+- [ ] `functools`: `update_wrapper`/`partial` foundation plus identity cache decorators; full descriptor/cache semantics pending
+- [ ] `__future__`: feature-name constants facade only
+- [ ] `getpass`: `getpass`/`getuser` facade only
+- [~] `itertools`: selected iterator helpers foundation; full iterator algebra pending
+- [~] `json`: native `loads`/`load`/`dumps`/`save` foundation; full CPython `json` package behavior pending
+- [ ] `locale`: constants and encoding helper facade; real locale behavior pending
+- [ ] `marshal`: placeholder module; serialization semantics pending
+- [ ] `numbers`: numeric ABC facade; real ABC integration pending
+- [ ] `opcode`: opcode metadata facade; CPython opcode compatibility pending
+- [~] `operator`: selected helpers such as `index` and `getitem`; full operator module pending
+- [ ] `pickle`: exception/classes facade; serialization semantics pending
+- [~] `platform`: platform/python version helpers foundation
+- [ ] `pkgutil`: package utility facade; loader/resource semantics pending
+- [~] `re`: regex compile/match/search/fullmatch/escape facade; full CPython regex semantics pending
+- [ ] `signal`: public signal facade over `_signal`; real delivery semantics pending
+- [ ] `site`: site-package path helper facade; startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
-- [x] `json` through native package, not CPython-compatible package yet
 - [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
+- [ ] `string`: formatter helper facade; full `Formatter`/constants behavior pending
+- [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
+- [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending
+- [ ] `sysconfig`: path/config helper facade; full install scheme compatibility pending
+- [ ] `typing`: selected aliases/decorators facade; full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`, and basic `getmembers`; full frame/source/signature semantics pending
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
@@ -367,6 +411,10 @@ High-level Python modules to run from Python source where possible:
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks and basic path transforms; full property/operator/glob semantics pending
+- [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
+- [ ] `warnings` / `_warnings`: warning facade; filter/category/showwarning semantics pending
+- [ ] `winreg`: Windows constant facade; real registry operations pending
+- [ ] `xmlrpc` / `http` package placeholders: module/package import foundation only
 
 ### Async, Tasks, And Threads
 
@@ -426,6 +474,42 @@ High-level Python modules to run from Python source where possible:
 - [~] pause request: VM can stop at the next source line without a breakpoint; external debugger request channel pending
 - [~] locals/globals variable inspection: current frame snapshots expose locals/globals dicts; debugger mutation/watch semantics pending
 - [~] evaluate expression in selected frame: native DAP parses Python expressions and evaluates names/attrs/indexing/calls/literals/containers/basic operators against paused frame locals/globals; full VM eval mode, mutation, keyword calls, and all Python expression forms pending
+
+## Recent Compatibility Debt
+
+These items are useful Python 3.14 compatibility work, but they must not be
+considered complete until CPython-vs-XLang3 tests exist for the declared scope.
+
+- [ ] `enum` audit:
+  current native module is a foundation. It must be tested against CPython for
+  member creation, value lookup, aliases, `auto()`, `IntEnum`, `IntFlag`, `Flag`
+  operators, decorators such as `unique`, class attributes, `repr`, `str`, and
+  pickling-facing helpers.
+
+- [ ] inherited builtin constructor audit:
+  subclasses of `int`, `str`, `float`, and `bytes` can route through builtin
+  constructors. This needs tests for normal subclass construction,
+  class-level constants, `isinstance`, arithmetic/string behavior, and whether
+  the result should be base scalar or subclass instance in each Python case.
+
+- [ ] `os.scandir` / `DirEntry` audit:
+  current implementation materializes a list-like result and minimal `DirEntry`
+  objects. CPython returns a scandir iterator/context manager. Tests must cover
+  iterator behavior, context manager cleanup, `name`, `path`, `inode`,
+  `is_dir(follow_symlinks=...)`, `is_file(follow_symlinks=...)`, `is_symlink`,
+  `stat`, path-like arguments, bytes paths, and error classes.
+
+- [ ] function metadata audit:
+  `__doc__` now returns `None` for functions/native functions when unset.
+  Tests must cover docstrings, explicit assignment through `__dict__`,
+  `__qualname__`, `__kwdefaults__`, annotations, code objects, bound methods,
+  static methods, class methods, and native functions.
+
+- [ ] tokenizer/string-literal audit:
+  lexer now avoids treating triple quote sequences inside normal strings as
+  triple-string openers. Tests must cover raw strings, bytes strings, f-strings,
+  adjacent literals, triple strings after expressions, comments, escaped quotes,
+  and CPython `Lib/tokenize.py`.
 
 ## Audit Method
 

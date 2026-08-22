@@ -27,6 +27,7 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
          tuple_get_method(object, name, out) ||
          dict_get_method(object, name, out) ||
          file_get_method(object, name, out) ||
+         int_get_method(object, name, out) ||
          set_get_method(object, name, out) ||
          string_get_method(object, name, out) ||
          bytes_get_method(object, name, out) ||
@@ -54,7 +55,7 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
   if (value_as_native_function(object) != nullptr || value_as_bound_method(object) != nullptr ||
       value_as_code(object) != nullptr || value_as_frame(object) != nullptr ||
       value_as_traceback(object) != nullptr || value_as_class(object) != nullptr ||
-      value_as_instance(object) != nullptr) {
+      value_as_instance(object) != nullptr || value_as_super(object) != nullptr) {
     return object_get_attr(object, name, out, error);
   }
   if (get_builtin_method(object, name, out)) {

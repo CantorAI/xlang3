@@ -111,6 +111,10 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
       }
     } else if (auto* import = dynamic_cast<const ast::ImportStmt*>(stmt.get())) {
       add_unique(names, seen, import->bind_name);
+    } else if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(stmt.get())) {
+      for (const auto& binding : import->names) {
+        add_unique(names, seen, binding.as_name);
+      }
     } else if (auto* import = dynamic_cast<const ast::FromImportStmt*>(stmt.get())) {
       for (const auto& binding : import->names) {
         if (binding.as_name != "*") {

@@ -270,6 +270,52 @@ StringPrefix detect_string_start(std::string_view line, size_t pos) {
   return {};
 }
 
+struct TripleStringStart {
+  StringPrefix prefix;
+  std::string_view opener;
+  bool found = false;
+};
+
+TripleStringStart find_first_triple_string_start(std::string_view line, size_t indent) {
+  for (size_t i = indent; i < line.size();) {
+    const char ch = line[i];
+    if (ch == '#') {
+      return {};
+    }
+    const auto prefix = detect_string_start(line, i);
+    if (!prefix.valid) {
+      ++i;
+      continue;
+    }
+
+    const bool is_triple = prefix.quote + 2 < line.size() &&
+                           line[prefix.quote] == line[prefix.quote + 1] &&
+                           line[prefix.quote] == line[prefix.quote + 2];
+    if (is_triple) {
+      return TripleStringStart{
+          prefix,
+          line.substr(prefix.quote, 3),
+          true,
+      };
+    }
+
+    const char quote = line[prefix.quote];
+    i = prefix.quote + 1;
+    while (i < line.size()) {
+      if (line[i] == '\\' && i + 1 < line.size()) {
+        i += 2;
+        continue;
+      }
+      if (line[i] == quote) {
+        ++i;
+        break;
+      }
+      ++i;
+    }
+  }
+  return {};
+}
+
 void remove_trailing_backslash(std::string& line) {
   while (!line.empty() && (line.back() == ' ' || line.back() == '\t')) {
     line.pop_back();
@@ -327,22 +373,12 @@ LexResult Lexer::tokenize() {
       }
     }
 
-    const size_t single_triple = line.find("'''", indent);
-    const size_t double_triple = line.find("\"\"\"", indent);
-    size_t triple_pos = std::string_view::npos;
-    std::string_view opener;
-    if (single_triple != std::string_view::npos &&
-        (double_triple == std::string_view::npos || single_triple < double_triple)) {
-      triple_pos = single_triple;
-      opener = "'''";
-    } else if (double_triple != std::string_view::npos) {
-      triple_pos = double_triple;
-      opener = "\"\"\"";
-    }
-
-    if (!opener.empty()) {
+    const auto triple_start = find_first_triple_string_start(line, indent);
+    if (triple_start.found) {
       const uint32_t start_line_no = line_no;
-      const auto prefix = detect_string_prefix_for_quote(line, triple_pos);
+      const auto prefix = triple_start.prefix;
+      const size_t triple_pos = prefix.quote;
+      const auto opener = triple_start.opener;
       const size_t prefix_start = prefix.start;
       if (prefix_start > indent) {
         tokenize_line(line.substr(0, prefix_start), line_no, indent);

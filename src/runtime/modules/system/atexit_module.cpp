@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/interpreter.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 
 #include <algorithm>
 
@@ -25,7 +26,8 @@ namespace {
 
 bool is_callable_value(const Value& value) {
   return value_as_function(value) != nullptr ||
-         value_as_native_function(value) != nullptr;
+         value_as_native_function(value) != nullptr ||
+         value_as_bound_method(value) != nullptr;
 }
 
 bool call_exit_callable(Runtime& runtime, const Value& callable, const Value* args, uint32_t argc, Value& out, std::string& error) {
@@ -49,6 +51,22 @@ bool call_exit_callable(Runtime& runtime, const Value& callable, const Value* ar
     }
     value_assign_fast(out, result.value);
     return true;
+  }
+
+  if (auto* bound = value_as_bound_method(callable)) {
+    std::vector<Value> bound_args;
+    bound_args.reserve(static_cast<size_t>(argc) + 1);
+    bound_args.push_back(bound->self);
+    for (uint32_t i = 0; i < argc; ++i) {
+      bound_args.push_back(args[i]);
+    }
+    return call_exit_callable(
+        runtime,
+        bound->function,
+        bound_args.data(),
+        static_cast<uint32_t>(bound_args.size()),
+        out,
+        error);
   }
 
   error = "exit function is not callable";

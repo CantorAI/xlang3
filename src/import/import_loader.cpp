@@ -20,7 +20,10 @@ limitations under the License.
 #include "xlang3/sema.h"
 #include "xlang3/sequence.h"
 
+#include <chrono>
+#include <cstdlib>
 #include <filesystem>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -32,6 +35,7 @@ struct ModuleFile {
   std::string path;
   std::string package_dir;
   bool is_package = false;
+  bool is_namespace_package = false;
 };
 
 std::vector<std::string> split_module_name(const std::string& name) {
@@ -105,6 +109,14 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             out.path = python_path_string(package_init);
             out.package_dir = python_path_string(candidate_base);
             out.is_package = true;
+            out.is_namespace_package = false;
+            return true;
+          }
+          if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
+            out.path.clear();
+            out.package_dir = python_path_string(candidate_base);
+            out.is_package = true;
+            out.is_namespace_package = true;
             return true;
           }
         }
@@ -155,6 +167,15 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
       out.path = python_path_string(package_init);
       out.package_dir = python_path_string(candidate_base);
       out.is_package = true;
+      out.is_namespace_package = false;
+      return true;
+    }
+
+    if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
+      out.path.clear();
+      out.package_dir = python_path_string(candidate_base);
+      out.is_package = true;
+      out.is_namespace_package = true;
       return true;
     }
   }
@@ -171,9 +192,27 @@ bool read_file(Runtime& runtime, const std::string& path, std::string& out, std:
   return true;
 }
 
+bool import_timings_enabled() {
+  return std::getenv("XLANG3_IMPORT_TIMINGS") != nullptr;
+}
+
+double seconds_since(std::chrono::steady_clock::time_point start) {
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  return std::chrono::duration<double>(elapsed).count();
+}
+
+void trace_import_timing(const std::string& name, const char* phase, std::chrono::steady_clock::time_point start) {
+  if (!import_timings_enabled()) {
+    return;
+  }
+  std::cerr << "xlang3 import timing: " << name << " " << phase << " " << seconds_since(start) << "s\n";
+}
+
 } // namespace
 
 bool import_python_module(Runtime& runtime, const std::string& name, Value& out, std::string& error) {
+  const auto import_start = std::chrono::steady_clock::now();
+  trace_import_timing(name, "begin", import_start);
   const auto parent_name = parent_module_name(name);
   Value parent_module;
   if (!parent_name.empty() && !runtime.import_module(parent_name, parent_module, error)) {
@@ -185,11 +224,29 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     error = "module '" + name + "' not found";
     return false;
   }
+  trace_import_timing(name, "found", import_start);
+
+  if (module_file.is_namespace_package) {
+    auto module_value = Value::module(name);
+    std::string attr_error;
+    module_set_attr(module_value, "__name__", Value::string(name), attr_error);
+    module_set_attr(module_value, "__file__", Value::none(), attr_error);
+    module_set_attr(module_value, "__package__", Value::string(name), attr_error);
+    module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
+    runtime.register_module(name, module_value);
+    out = std::move(module_value);
+    if (!parent_name.empty()) {
+      module_set_attr(parent_module, module_leaf_name(name), out, attr_error);
+    }
+    trace_import_timing(name, "namespace-done", import_start);
+    return true;
+  }
 
   std::string source;
   if (!read_file(runtime, module_file.path, source, error)) {
     return false;
   }
+  trace_import_timing(name, "read", import_start);
 
   auto module_value = Value::module(name);
   std::string attr_error;
@@ -200,12 +257,16 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
   }
 
+  trace_import_timing(name, "parse-begin", import_start);
   auto parsed = parse_source(source);
+  trace_import_timing(name, "parse-end", import_start);
   if (!parsed.errors.empty()) {
     error = "parse error importing module '" + name + "': " + parsed.errors.front();
     return false;
   }
+  trace_import_timing(name, "lower-begin", import_start);
   auto lowered = lower_to_ir(parsed.module);
+  trace_import_timing(name, "lower-end", import_start);
   if (!lowered.errors.empty()) {
     error = "lower error importing module '" + name + "': " + lowered.errors.front();
     return false;
@@ -215,7 +276,9 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
 
   runtime.register_module(name, module_value);
   Interpreter interpreter(runtime);
+  trace_import_timing(name, "exec-begin", import_start);
   auto result = interpreter.run_module(*module_ir, module_value, module_ir);
+  trace_import_timing(name, "exec-end", import_start);
   if (!result.errors.empty()) {
     runtime.unregister_module(name);
     error = "runtime error importing module '" + name + "': " + result.errors.front();
@@ -226,6 +289,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   if (!parent_name.empty()) {
     module_set_attr(parent_module, module_leaf_name(name), out, attr_error);
   }
+  trace_import_timing(name, "done", import_start);
   return true;
 }
 

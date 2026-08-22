@@ -57,6 +57,18 @@ bool partial_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       error);
 }
 
+bool partial_call_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return partial_call(runtime, args, argc, out, error, user_data);
+}
+
 bool partial_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "functools.partial() expected callable";
@@ -68,7 +80,14 @@ bool partial_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   for (uint32_t i = 1; i < argc; ++i) {
     state->bound_args.push_back(args[i]);
   }
-  out = runtime.make_native_function("functools.partial.<call>", partial_call, state, partial_cleanup);
+  out = runtime.make_native_function(
+      "functools.partial.<call>",
+      partial_call,
+      state,
+      partial_cleanup,
+      nullptr,
+      false,
+      partial_call_kw);
   return true;
 }
 

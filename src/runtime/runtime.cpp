@@ -25,6 +25,8 @@ limitations under the License.
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <unordered_map>
 #include <utility>
 
 #if !defined(XLANG3_EMBEDDED)
@@ -36,6 +38,28 @@ limitations under the License.
 #endif
 
 namespace xlang3 {
+
+namespace {
+
+struct RuntimeCurrentFrameState {
+  const std::shared_ptr<const ir::Module>* module_owner = nullptr;
+  const Value* globals_module = nullptr;
+  uint32_t function_id = 0;
+  uint32_t instruction_index = 0;
+  const RuntimeFrameView* frame_stack = nullptr;
+  size_t frame_stack_count = 0;
+  const std::vector<std::string>* local_names = nullptr;
+  const Value* local_values = nullptr;
+  size_t local_count = 0;
+};
+
+thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
+
+RuntimeCurrentFrameState& current_frame_state(const Runtime& runtime) {
+  return g_runtime_current_frames[&runtime];
+}
+
+} // namespace
 
 namespace {
 
@@ -384,24 +408,27 @@ void Runtime::set_current_frame(
     uint32_t function_id,
     const Value* globals_module,
     uint32_t instruction_index) {
-  current_frame_module_owner_ = module_owner;
-  current_frame_function_id_ = function_id;
-  current_frame_globals_module_ = globals_module;
-  current_frame_instruction_index_ = instruction_index;
+  auto& state = current_frame_state(*this);
+  state.module_owner = module_owner;
+  state.function_id = function_id;
+  state.globals_module = globals_module;
+  state.instruction_index = instruction_index;
 }
 
 void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {
-  current_frame_stack_ = frames;
-  current_frame_stack_count_ = count;
+  auto& state = current_frame_state(*this);
+  state.frame_stack = frames;
+  state.frame_stack_count = count;
 }
 
 void Runtime::clear_current_frame() {
-  current_frame_module_owner_ = nullptr;
-  current_frame_globals_module_ = nullptr;
-  current_frame_function_id_ = 0;
-  current_frame_instruction_index_ = 0;
-  current_frame_stack_ = nullptr;
-  current_frame_stack_count_ = 0;
+  auto& state = current_frame_state(*this);
+  state.module_owner = nullptr;
+  state.globals_module = nullptr;
+  state.function_id = 0;
+  state.instruction_index = 0;
+  state.frame_stack = nullptr;
+  state.frame_stack_count = 0;
   clear_current_frame_locals();
 }
 
@@ -449,52 +476,64 @@ Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index)
 } // namespace
 
 Value Runtime::current_frame_snapshot() const {
-  if (current_frame_stack_ != nullptr && current_frame_stack_count_ != 0) {
-    return materialize_frame_from_stack(current_frame_stack_, current_frame_stack_count_ - 1);
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1);
   }
-  if (current_frame_module_owner_ == nullptr || current_frame_globals_module_ == nullptr ||
-      current_frame_module_owner_->get() == nullptr) {
+  if (state.module_owner == nullptr || state.globals_module == nullptr ||
+      state.module_owner->get() == nullptr) {
     return Value::none();
   }
   return Value::frame(
-      *current_frame_module_owner_,
-      current_frame_function_id_,
-      *current_frame_globals_module_,
-      current_frame_instruction_index_,
+      *state.module_owner,
+      state.function_id,
+      *state.globals_module,
+      state.instruction_index,
       current_locals_snapshot());
 }
 
 void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {
-  current_local_names_ = names;
-  current_local_values_ = values;
-  current_local_count_ = count;
+  auto& state = current_frame_state(*this);
+  state.local_names = names;
+  state.local_values = values;
+  state.local_count = count;
 }
 
 void Runtime::clear_current_frame_locals() {
-  current_local_names_ = nullptr;
-  current_local_values_ = nullptr;
-  current_local_count_ = 0;
+  auto& state = current_frame_state(*this);
+  state.local_names = nullptr;
+  state.local_values = nullptr;
+  state.local_count = 0;
 }
 
 Value Runtime::current_locals_snapshot() const {
-  if (current_local_names_ == nullptr || current_local_values_ == nullptr) {
+  const auto& state = current_frame_state(*this);
+  if (state.local_names == nullptr || state.local_values == nullptr) {
     return Value::dict({});
   }
   const size_t count =
-      current_local_count_ < current_local_names_->size() ? current_local_count_ : current_local_names_->size();
+      state.local_count < state.local_names->size() ? state.local_count : state.local_names->size();
   std::vector<std::pair<Value, Value>> entries;
   entries.reserve(count);
   for (size_t i = 0; i < count; ++i) {
-    const auto& name = (*current_local_names_)[i];
+    const auto& name = (*state.local_names)[i];
     if (name.empty() || name[0] == '#') {
       continue;
     }
-    if (current_local_values_[i].tag == ValueTag::Invalid) {
+    if (state.local_values[i].tag == ValueTag::Invalid) {
       continue;
     }
-    entries.push_back({Value::string(name), current_local_values_[i]});
+    entries.push_back({Value::string(name), state.local_values[i]});
   }
   return Value::dict(std::move(entries));
+}
+
+uint32_t Runtime::current_frame_function_id() const {
+  return current_frame_state(*this).function_id;
+}
+
+const std::shared_ptr<const ir::Module>* Runtime::current_frame_module_owner() const {
+  return current_frame_state(*this).module_owner;
 }
 
 void Runtime::register_exit_function(Value callable, std::vector<Value> args) {
@@ -588,6 +627,10 @@ bool Runtime::execute_raw_block(
 }
 
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
+  static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
+  if (trace_imports) {
+    std::cerr << "xlang3 import: " << name << "\n";
+  }
   auto it = modules_.find(name);
   if (it == modules_.end()) {
 #if !defined(XLANG3_EMBEDDED)

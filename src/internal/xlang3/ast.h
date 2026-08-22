@@ -260,10 +260,19 @@ struct GeneratorExpr final : Expr {
 };
 
 struct LambdaExpr final : Expr {
+  struct Param {
+    enum class Kind { PosOnly, PosOrKeyword, VarArgs, KeywordOnly, KwArgs };
+    std::string name;
+    Kind kind = Kind::PosOrKeyword;
+    ExprPtr default_value;
+  };
   std::vector<std::string> params;
+  std::vector<Param> signature;
   ExprPtr body;
   LambdaExpr(std::vector<std::string> params, ExprPtr body)
       : params(std::move(params)), body(std::move(body)) {}
+  LambdaExpr(std::vector<std::string> params, std::vector<Param> signature, ExprPtr body)
+      : params(std::move(params)), signature(std::move(signature)), body(std::move(body)) {}
 };
 
 struct ExprStmt final : Stmt {
@@ -360,6 +369,11 @@ struct ImportStmt final : Stmt {
       : name(std::move(name)), bind_name(std::move(bind_name)) {}
 };
 
+struct ImportManyStmt final : Stmt {
+  std::vector<ImportBinding> names;
+  explicit ImportManyStmt(std::vector<ImportBinding> names) : names(std::move(names)) {}
+};
+
 struct FromImportStmt final : Stmt {
   std::string module;
   std::vector<ImportBinding> names;
@@ -416,6 +430,7 @@ struct WithStmt final : Stmt {
 struct WhileStmt final : Stmt {
   ExprPtr condition;
   std::vector<StmtPtr> body;
+  std::vector<StmtPtr> else_body;
 };
 
 struct ForStmt final : Stmt {

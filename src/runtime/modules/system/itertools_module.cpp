@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/sequence.h"
 
 #include <limits>
 
@@ -67,13 +68,54 @@ bool itertools_takewhile(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool itertools_batched(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "itertools.batched() expected iterable, n, and optional strict";
+    return false;
+  }
+  int64_t count = 0;
+  if (!int_arg(args[1], count) || count < 1) {
+    error = "itertools.batched() n must be at least one";
+    return false;
+  }
+
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    return false;
+  }
+
+  std::vector<Value> batches;
+  bool done = false;
+  while (!done) {
+    std::vector<Value> batch;
+    batch.reserve(static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+      batch.push_back(std::move(item));
+    }
+    if (!batch.empty()) {
+      batches.push_back(Value::tuple(std::move(batch)));
+    }
+  }
+
+  out = Value::list(std::move(batches));
+  return true;
+}
+
 } // namespace
 
 void register_itertools_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "itertools");
   builder.function("count", itertools_count)
       .function("islice", itertools_islice)
-      .function("takewhile", itertools_takewhile);
+      .function("takewhile", itertools_takewhile)
+      .function("batched", itertools_batched);
   runtime.register_module("itertools", builder.finish());
 }
 

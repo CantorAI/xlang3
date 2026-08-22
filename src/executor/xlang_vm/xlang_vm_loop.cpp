@@ -600,6 +600,15 @@ RuntimeResult Interpreter::run_function(
     }
     value_assign_fast(current_exception, exception);
     runtime_.set_active_exception(current_exception);
+    std::string failing_function;
+    std::string failing_location;
+    if (frame_count != 0 && frames[frame_count - 1].fn != nullptr) {
+      failing_function = frames[frame_count - 1].fn->name;
+      if (frames[frame_count - 1].module != nullptr) {
+        failing_location = frames[frame_count - 1].module->source_file + ":" +
+                           std::to_string(frames[frame_count - 1].fn->first_line);
+      }
+    }
     while (frame_count != 0) {
       auto& handlers = frames[frame_count - 1].exception_handlers;
       if (!handlers.empty()) {
@@ -610,7 +619,18 @@ RuntimeResult Interpreter::run_function(
       }
       --frame_count;
     }
-    result.errors.push_back("uncaught exception: " + value_to_string(current_exception));
+    const std::string exception_text = value_to_string(current_exception);
+    const std::string exception_type_text = value_to_string(runtime_.exception_type(current_exception));
+    const std::string exception_summary =
+        exception_text.empty() ? exception_type_text : exception_type_text + ": " + exception_text;
+    std::string frame_summary = failing_function;
+    if (!failing_location.empty()) {
+      frame_summary += " (" + failing_location + ")";
+    }
+    result.errors.push_back(
+        frame_summary.empty()
+            ? "uncaught exception: " + exception_summary
+            : "uncaught exception in " + frame_summary + ": " + exception_summary);
     return false;
   };
 
@@ -664,6 +684,10 @@ RuntimeResult Interpreter::run_function(
 
     auto raise_runtime_error = [&](const std::string& message) -> bool {
       return raise_exception_value(runtime_.make_exception("RuntimeError", message));
+    };
+
+    auto raise_import_error = [&](const std::string& message) -> bool {
+      return raise_exception_value(runtime_.make_exception("ImportError", message));
     };
 
     XlangRuntimeExecutionGuard execution_lock;

@@ -76,17 +76,26 @@ Value make_catch_warnings_class(Runtime& runtime) {
   return Value::class_object("catch_warnings", std::move(attrs));
 }
 
-} // namespace
-
-void register_warnings_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "warnings");
+Value make_warnings_module(Runtime& runtime, const char* module_name) {
+  NativeModuleBuilder builder(runtime, module_name);
   builder.value("warn", runtime.make_native_function("warnings.warn", none_entry, nullptr, nullptr, nullptr, false, none_entry_keywords))
+      .value("warn_explicit", runtime.make_native_function("warnings.warn_explicit", none_entry, nullptr, nullptr, nullptr, false, none_entry_keywords))
       .value("simplefilter", runtime.make_native_function("warnings.simplefilter", none_entry, nullptr, nullptr, nullptr, false, none_entry_keywords))
       .value("filterwarnings", runtime.make_native_function("warnings.filterwarnings", none_entry, nullptr, nullptr, nullptr, false, none_entry_keywords))
       .value("resetwarnings", runtime.make_native_function("warnings.resetwarnings", none_entry, nullptr, nullptr, nullptr, false, none_entry_keywords))
       .value("catch_warnings", make_catch_warnings_class(runtime))
-      .value("WarningMessage", make_warning_class("WarningMessage"));
-  runtime.register_module("warnings", builder.finish());
+      .value("WarningMessage", make_warning_class("WarningMessage"))
+      .value("filters", Value::list({}))
+      .value("defaultaction", Value::string("default"))
+      .value("onceregistry", Value::dict({}));
+  return builder.finish();
+}
+
+} // namespace
+
+void register_warnings_module(Runtime& runtime) {
+  runtime.register_module("warnings", make_warnings_module(runtime, "warnings"));
+  runtime.register_module("_warnings", make_warnings_module(runtime, "_warnings"));
 }
 
 } // namespace xlang3

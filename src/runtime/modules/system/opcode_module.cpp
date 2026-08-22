@@ -1,0 +1,57 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/builtins.h"
+
+#include "xlang3/module_object.h"
+
+namespace xlang3 {
+
+namespace {
+
+bool opcode_false(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_bool(out, false);
+  return true;
+}
+
+bool opcode_zero(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  out = Value::int64(0);
+  return true;
+}
+
+bool opcode_empty_list(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  out = Value::list({});
+  return true;
+}
+
+} // namespace
+
+void register_opcode_module(Runtime& runtime) {
+  NativeModuleBuilder builder(runtime, "_opcode");
+  builder.function("stack_effect", opcode_zero)
+      .function("has_arg", opcode_false)
+      .function("has_const", opcode_false)
+      .function("has_name", opcode_false)
+      .function("has_jump", opcode_false)
+      .function("has_free", opcode_false)
+      .function("has_local", opcode_false)
+      .function("has_exc", opcode_false)
+      .function("get_intrinsic1_descs", opcode_empty_list)
+      .function("get_intrinsic2_descs", opcode_empty_list)
+      .function("get_special_method_names", opcode_empty_list)
+      .function("get_nb_ops", opcode_empty_list);
+  runtime.register_module("_opcode", builder.finish());
+}
+
+} // namespace xlang3

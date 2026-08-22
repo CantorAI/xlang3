@@ -445,12 +445,14 @@ XLANG3_HOT_INLINE void maybe_specialize_get_item_int(
   }
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMInstrCache& cache,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   xlang_vm_cache_touch(cache, XlangVMCacheDomain::GetItem);
   if (regs[in.b].tag == ValueTag::Int64 && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
     const int64_t raw_index = regs[in.b].as.i64;
@@ -581,6 +583,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   std::string error;
   if (!sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
     xlang_vm_cache_note_miss(cache);
+    bool is_mapping_miss = error == "key not found" && value_as_dict(regs[in.a]) != nullptr;
+    if (!is_mapping_miss) {
+      if (auto* instance = value_as_instance(regs[in.a])) {
+        is_mapping_miss = value_as_dict(instance->mapping_storage) != nullptr;
+      }
+    }
+    if (is_mapping_miss) {
+      return raise_exception_value(runtime.make_exception("KeyError", value_to_string(regs[in.b])))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   xlang_vm_cache_note_hit(cache);

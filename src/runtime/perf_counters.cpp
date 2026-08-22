@@ -83,6 +83,9 @@ const char* xlang_perf_object_kind_name(ObjectKind kind) {
     case ObjectKind::Class: return "Class";
     case ObjectKind::Instance: return "Instance";
     case ObjectKind::BoundMethod: return "BoundMethod";
+    case ObjectKind::StaticMethod: return "StaticMethod";
+    case ObjectKind::ClassMethod: return "ClassMethod";
+    case ObjectKind::Super: return "Super";
     case ObjectKind::Property: return "Property";
     case ObjectKind::File: return "File";
   }

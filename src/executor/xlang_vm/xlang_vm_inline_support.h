@@ -451,6 +451,9 @@ enum class XlangVMBuiltinConstructor : uint8_t {
   ByteArray,
   MemoryView,
   Property,
+  ClassMethod,
+  StaticMethod,
+  Super,
 };
 
 struct XlangVMBuiltinConstructorSpec {
@@ -475,6 +478,9 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
       {XlangVMNames::builtin_bytearray, XlangVMBuiltinConstructor::ByteArray},
       {XlangVMNames::builtin_memoryview, XlangVMBuiltinConstructor::MemoryView},
       {XlangVMNames::builtin_property, XlangVMBuiltinConstructor::Property},
+      {XlangVMNames::builtin_classmethod, XlangVMBuiltinConstructor::ClassMethod},
+      {XlangVMNames::builtin_staticmethod, XlangVMBuiltinConstructor::StaticMethod},
+      {XlangVMNames::builtin_super, XlangVMBuiltinConstructor::Super},
   };
   for (const auto& spec : specs) {
     if (name == spec.name) {
@@ -483,6 +489,78 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
   }
   return XlangVMBuiltinConstructor::Unknown;
 }
+
+XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_inherited_builtin_constructor(const ClassObject& klass) {
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_int)) {
+    return XlangVMBuiltinConstructor::Int;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_str)) {
+    return XlangVMBuiltinConstructor::Str;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_float)) {
+    return XlangVMBuiltinConstructor::Float;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_bytes)) {
+    return XlangVMBuiltinConstructor::Bytes;
+  }
+  return XlangVMBuiltinConstructor::Unknown;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
+    Runtime& runtime,
+    const Value& self,
+    Value& out,
+    std::string& error) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    error = "super(): current self is not an instance";
+    return false;
+  }
+  Value mro_value;
+  if (!object_get_attr(instance->klass, "__mro__", mro_value, error)) {
+    return false;
+  }
+  auto* mro = value_as_tuple(mro_value);
+  if (mro == nullptr) {
+    error = "super(): invalid method resolution order";
+    return false;
+  }
+  const uint32_t current_function_id = runtime.current_frame_function_id();
+  const auto* current_module_owner = runtime.current_frame_module_owner();
+  Value defining_class;
+  for (const auto& class_value : mro->items) {
+    auto* klass = value_as_class(class_value);
+    if (klass == nullptr) {
+      continue;
+    }
+    for (const auto& attr : klass->attrs) {
+      Value function_value;
+      if (auto* method = value_as_static_method(attr.second)) {
+        value_assign_fast(function_value, method->function);
+      } else if (auto* method = value_as_class_method(attr.second)) {
+        value_assign_fast(function_value, method->function);
+      } else {
+        value_assign_fast(function_value, attr.second);
+      }
+      auto* function = value_as_function(function_value);
+      const bool same_module =
+          function != nullptr &&
+          current_module_owner != nullptr &&
+          function->module != nullptr &&
+          function->module.get() == current_module_owner->get();
+      if (same_module && function->function_id == current_function_id) {
+        value_assign_fast(defining_class, class_value);
+      }
+    }
+  }
+  if (defining_class.tag != ValueTag::Invalid) {
+    value_assign_fast(out, defining_class);
+    return true;
+  }
+  value_assign_fast(out, instance->klass);
+  return true;
+}
+
 XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Runtime& runtime,
     const ClassObject& klass,
@@ -490,7 +568,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     XlangRuntimeExecutionGuard& execution_lock,
     Value& out,
     std::string& error) {
-  const auto constructor = xlang_vm_find_builtin_constructor(klass.name);
+  auto constructor = xlang_vm_find_builtin_constructor(klass.name);
+  if (constructor == XlangVMBuiltinConstructor::Unknown) {
+    constructor = xlang_vm_find_inherited_builtin_constructor(klass);
+  }
   if (constructor == XlangVMBuiltinConstructor::Unknown) {
     return false;
   }
@@ -621,7 +702,17 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return true;
       }
     }
-    error = "int() argument must be a string, number, or bool";
+    if (auto* bytes = value_as_bytes(value)) {
+      const std::string owned_text = bytes_object_to_string(*bytes);
+      char* end = nullptr;
+      const char* start = owned_text.c_str();
+      const int64_t parsed = std::strtoll(start, &end, 10);
+      if (end != start && *end == '\0') {
+        out = Value::int64(parsed);
+        return true;
+      }
+    }
+    error = "int() argument must be a string, bytes-like object, number, or bool";
     return false;
   }
 
@@ -770,11 +861,64 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   };
 
   if (constructor == XlangVMBuiltinConstructor::Dict) {
-    if (args.size() != 0) {
-      error = "dict() iterable construction is not implemented yet";
+    if (args.size() > 1) {
+      error = "dict() expected at most 1 argument";
       return false;
     }
     out = Value::dict({});
+    if (args.size() == 0) {
+      return true;
+    }
+    const Value& source = args.get(0);
+    if (auto* dict = value_as_dict(source)) {
+      for (const auto& entry : dict->entries) {
+        if (!mapping_set_item(out, entry.first, entry.second, error)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (auto* instance = value_as_instance(source)) {
+      if (auto* storage = value_as_dict(instance->mapping_storage)) {
+        for (const auto& entry : storage->entries) {
+          if (!mapping_set_item(out, entry.first, entry.second, error)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+    Value iterator;
+    if (!sequence_get_iter(source, iterator, error)) {
+      return false;
+    }
+    for (;;) {
+      bool done = false;
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+      const TupleObject* tuple = value_as_tuple(item);
+      const ListObject* list = value_as_list(item);
+      const Value* key = nullptr;
+      const Value* value = nullptr;
+      if (tuple != nullptr && tuple->items.size() == 2) {
+        key = &tuple->items[0];
+        value = &tuple->items[1];
+      } else if (list != nullptr && list->items.size() == 2) {
+        key = &list->items[0];
+        value = &list->items[1];
+      } else {
+        error = "dictionary update sequence element has length other than 2";
+        return false;
+      }
+      if (!mapping_set_item(out, *key, *value, error)) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -844,6 +988,53 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         args.size() > 1 ? args.get(1) : Value::none(),
         args.size() > 2 ? args.get(2) : Value::none(),
         args.size() > 3 ? args.get(3) : Value::none());
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::ClassMethod ||
+      constructor == XlangVMBuiltinConstructor::StaticMethod) {
+    if (args.size() != 1) {
+      error = klass.name + "() expected 1 argument";
+      return false;
+    }
+    const Value& function = args.get(0);
+    if (value_as_function(function) == nullptr &&
+        value_as_native_function(function) == nullptr &&
+        value_as_bound_method(function) == nullptr) {
+      error = klass.name + "() argument must be callable";
+      return false;
+    }
+    out = constructor == XlangVMBuiltinConstructor::ClassMethod
+        ? Value::class_method(function)
+        : Value::static_method(function);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Super) {
+    if (args.size() != 0 && args.size() != 2) {
+      error = "super() expected 0 or 2 arguments";
+      return false;
+    }
+    Value klass;
+    Value self;
+    if (args.size() == 2) {
+      if (value_as_class(args.get(0)) == nullptr) {
+        error = "super() first argument must be type";
+        return false;
+      }
+      value_assign_fast(klass, args.get(0));
+      value_assign_fast(self, args.get(1));
+    } else {
+      Value locals = runtime.current_locals_snapshot();
+      if (!mapping_get_item(locals, Value::string("self"), self, error)) {
+        error = "super(): no current instance";
+        return false;
+      }
+      if (!xlang_vm_infer_super_defining_class(runtime, self, klass, error)) {
+        return false;
+      }
+    }
+    out = Value::super_object(std::move(klass), std::move(self));
     return true;
   }
 

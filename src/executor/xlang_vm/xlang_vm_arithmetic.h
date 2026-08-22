@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "xlang3/ir.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 
 #include <cmath>
@@ -40,6 +41,55 @@ XLANG3_HOT_INLINE bool xlang_vm_value_is_number(const Value& value) {
 
 XLANG3_HOT_INLINE double xlang_vm_value_to_double_fast(const Value& value) {
   return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_function_module(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const ir::Module*& out) {
+  out = fn_obj.module != nullptr ? fn_obj.module.get() : &current_module;
+  return fn_obj.function_id < out->functions.size();
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_const_bool_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    bool& out) {
+  const ir::Module* fn_module = nullptr;
+  if (!xlang_vm_function_module(current_module, fn_obj, fn_module)) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+      function.code.size() < 2) {
+    return false;
+  }
+  const auto& load_const = function.code[0];
+  const auto& ret = function.code[1];
+  if (load_const.op != ir::Op::LoadConst || load_const.a >= function.constants.size() ||
+      ret.op != ir::Op::Return || ret.a != load_const.dst) {
+    return false;
+  }
+  const auto& value = function.constants[load_const.a];
+  if (value.tag != ValueTag::Bool) {
+    return false;
+  }
+  out = value.as.b;
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_truthy(const ir::Module& current_module, const Value& value) {
+  Value bool_method;
+  std::string ignored;
+  if (object_get_class_attr_for_instance(value, "__bool__", bool_method, ignored)) {
+    if (auto* function = value_as_function(bool_method)) {
+      bool out = true;
+      if (xlang_vm_const_bool_method(current_module, *function, out)) {
+        return out;
+      }
+    }
+  }
+  return value_truthy(value);
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_add(const Value& lhs, const Value& rhs, Value& out) {
@@ -169,8 +219,16 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_bit_or(const Value& lhs, const Value& rhs, 
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_bit_xor(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  value_set_int64(out, lhs.as.i64 ^ rhs.as.i64);
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) return false;
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value ^ rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value ^ rhs_value);
+  }
   return true;
 }
 

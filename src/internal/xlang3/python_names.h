@@ -36,6 +36,9 @@ struct PythonNames {
   static constexpr const char* builtin_bytearray = "bytearray";
   static constexpr const char* builtin_memoryview = "memoryview";
   static constexpr const char* builtin_property = "property";
+  static constexpr const char* builtin_classmethod = "classmethod";
+  static constexpr const char* builtin_staticmethod = "staticmethod";
+  static constexpr const char* builtin_super = "super";
 
   static constexpr const char* builtin_len = "len";
 

@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -41,17 +42,29 @@ struct XlangLockState {
   bool locked = false;
 };
 
+struct XlangRLockState {
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::thread::id owner;
+  uint32_t depth = 0;
+};
+
 int64_t xlang_thread_current_ident();
 bool xlang_thread_tuple_to_args(const Value& value, std::vector<Value>& out, std::string& error);
-bool xlang_thread_start_state(XlangThreadState& state, std::string& error);
+bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::string& error);
 bool xlang_thread_start_detached(Runtime& runtime, Value target, std::vector<Value> args, int64_t& ident, std::string& error);
 void xlang_thread_join_state(XlangThreadState& state);
 bool xlang_thread_is_alive_state(XlangThreadState& state);
+bool xlang_lock_acquire_value(const Value& lock, bool blocking, std::string& error);
+bool xlang_lock_release_value(const Value& lock, std::string& error);
 void xlang_thread_state_cleanup(void* data);
 void xlang_lock_state_cleanup(void* data);
+void xlang_rlock_state_cleanup(void* data);
 
 Value xlang_thread_make_thread_class(Runtime& runtime);
 Value xlang_thread_make_lock_class(Runtime& runtime);
+Value xlang_thread_make_rlock_class(Runtime& runtime);
 Value xlang_thread_make_lock_instance(Runtime& runtime);
+Value xlang_thread_make_rlock_instance(Runtime& runtime);
 
 } // namespace xlang3

@@ -19,7 +19,7 @@ if p.exists():
 print(p.as_posix())
 print(p.name())
 print(p.suffix())
-print(p.parent().as_posix())
+print(p.parent.as_posix())
 print(p.exists())
 p.write_text("abc")
 print(p.exists())

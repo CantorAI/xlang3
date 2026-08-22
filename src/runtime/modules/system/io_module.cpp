@@ -223,6 +223,21 @@ bool stream_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
+bool io_open_code(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "io.open_code() expected path";
+    return false;
+  }
+  const Value* open_value = runtime.find_builtin("open");
+  auto* open_fn = open_value == nullptr ? nullptr : value_as_native_function(*open_value);
+  if (open_fn == nullptr || open_fn->callback == nullptr) {
+    error = "builtin open is not available";
+    return false;
+  }
+  Value open_args[2] = {args[0], Value::string("rb")};
+  return open_fn->callback(runtime, open_args, 2, out, error, open_fn->user_data);
+}
+
 Value make_memory_stream_class(Runtime& runtime, const char* name, const char* type, NativeFunctionCallback init) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});
@@ -247,6 +262,7 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       .value("BufferedIOBase", buffered_io_base)
       .value("StringIO", string_io)
       .value("BytesIO", bytes_io)
+      .value("open_code", runtime.make_native_function("io.open_code", io_open_code))
       .value("DEFAULT_BUFFER_SIZE", Value::int64(8192));
 }
 

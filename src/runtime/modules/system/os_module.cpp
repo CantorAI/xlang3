@@ -22,6 +22,14 @@ limitations under the License.
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#include <random>
+#include <system_error>
+
+#if defined(_WIN32)
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace xlang3 {
 
@@ -68,6 +76,66 @@ bool os_chdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool os_urandom(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "os.urandom() expected size";
+    return false;
+  }
+  const int64_t requested = args[0].as.i64;
+  if (requested < 0) {
+    error = "negative argument not allowed";
+    return false;
+  }
+  std::string bytes;
+  bytes.resize(static_cast<size_t>(requested));
+  std::random_device random;
+  size_t offset = 0;
+  while (offset < bytes.size()) {
+    unsigned int random_value = random();
+    for (size_t i = 0; i < sizeof(random_value) && offset < bytes.size(); ++i) {
+      bytes[offset++] = static_cast<char>((random_value >> (i * 8)) & 0xffu);
+    }
+  }
+  out = Value::bytes(std::move(bytes));
+  return true;
+}
+
+bool os_getpid(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "os.getpid", error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  value_set_int64(out, static_cast<int64_t>(_getpid()));
+#else
+  value_set_int64(out, static_cast<int64_t>(getpid()));
+#endif
+  return true;
+}
+
+bool os_getppid(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "os.getppid", error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  value_set_int64(out, 0);
+#else
+  value_set_int64(out, static_cast<int64_t>(getppid()));
+#endif
+  return true;
+}
+
+bool os_exit(Runtime&, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "os._exit() expected integer status";
+    return false;
+  }
+#if defined(_WIN32)
+  _exit(static_cast<int>(args[0].as.i64));
+#else
+  _exit(static_cast<int>(args[0].as.i64));
+#endif
+}
+
 bool os_listdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
     error = "os.listdir() expected at most one argument";
@@ -90,6 +158,105 @@ bool os_listdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+std::string dir_entry_path(const Value& self) {
+  Value path;
+  std::string ignored;
+  if (object_get_attr(self, "path", path, ignored)) {
+    if (auto* text = value_as_string(path)) {
+      return string_object_to_string(*text);
+    }
+  }
+  return {};
+}
+
+Value make_stat_result(const std::filesystem::directory_entry& entry) {
+  std::error_code ec;
+  const uintmax_t size = entry.is_regular_file(ec) ? entry.file_size(ec) : 0;
+  auto write_time = entry.last_write_time(ec);
+  int64_t mtime_ns = 0;
+  if (!ec) {
+    mtime_ns = static_cast<int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(write_time.time_since_epoch()).count());
+  }
+
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"st_size", Value::int64(static_cast<int64_t>(size))});
+  attrs.push_back({"st_mtime_ns", Value::int64(mtime_ns)});
+  attrs.push_back({"st_mtime", Value::number(static_cast<double>(mtime_ns) / 1000000000.0)});
+  Value klass = Value::class_object("stat_result", std::move(attrs));
+  return Value::instance(std::move(klass));
+}
+
+bool dir_entry_is_dir(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "DirEntry.is_dir() expected optional follow_symlinks";
+    return false;
+  }
+  std::error_code ec;
+  out = Value::boolean(std::filesystem::is_directory(dir_entry_path(args[0]), ec));
+  return true;
+}
+
+bool dir_entry_is_file(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "DirEntry.is_file() expected optional follow_symlinks";
+    return false;
+  }
+  std::error_code ec;
+  out = Value::boolean(std::filesystem::is_regular_file(dir_entry_path(args[0]), ec));
+  return true;
+}
+
+bool dir_entry_stat(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "DirEntry.stat() expected optional follow_symlinks";
+    return false;
+  }
+  const std::filesystem::directory_entry entry(dir_entry_path(args[0]));
+  out = make_stat_result(entry);
+  return true;
+}
+
+Value make_dir_entry(Runtime& runtime, const std::filesystem::directory_entry& entry) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("os")});
+  attrs.push_back({"is_dir", runtime.make_native_function("os.DirEntry.is_dir", dir_entry_is_dir)});
+  attrs.push_back({"is_file", runtime.make_native_function("os.DirEntry.is_file", dir_entry_is_file)});
+  attrs.push_back({"stat", runtime.make_native_function("os.DirEntry.stat", dir_entry_stat)});
+  Value klass = Value::class_object("DirEntry", std::move(attrs));
+  Value instance = Value::instance(klass);
+
+  const auto path = entry.path().string();
+  const auto name = entry.path().filename().string();
+  std::string ignored;
+  object_set_attr(instance, "path", Value::string(path), ignored);
+  object_set_attr(instance, "name", Value::string(name), ignored);
+  return instance;
+}
+
+bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 1) {
+    error = "os.scandir() expected at most one argument";
+    return false;
+  }
+  std::string path = ".";
+  if (argc == 1 && !get_string_arg(args[0], "os.scandir path", path, error)) {
+    return false;
+  }
+  std::error_code ec;
+  std::filesystem::directory_iterator it(path, ec);
+  if (ec) {
+    error = ec.message();
+    return false;
+  }
+  std::vector<Value> entries;
+  for (const auto& entry : it) {
+    entries.push_back(make_dir_entry(runtime, entry));
+  }
+  out = Value::list(std::move(entries));
+  return true;
+}
+
 bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "os.remove() expected one argument";
@@ -100,6 +267,33 @@ bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   if (!runtime.vfs().remove(path, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_makedirs(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "os.makedirs() expected path and optional exist_ok";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "os.makedirs path", path, error)) {
+    return false;
+  }
+  const bool exist_ok = argc == 2 && value_truthy(args[1]);
+  std::error_code ec;
+  if (std::filesystem::exists(path, ec)) {
+    if (exist_ok || std::filesystem::is_directory(path, ec)) {
+      value_set_none(out);
+      return true;
+    }
+    error = "path exists and is not a directory";
+    return false;
+  }
+  if (!std::filesystem::create_directories(path, ec) && ec) {
+    error = ec.message();
     return false;
   }
   value_set_none(out);
@@ -371,7 +565,13 @@ void register_os_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "os");
   builder.function("getcwd", os_getcwd)
       .function("chdir", os_chdir)
+      .function("urandom", os_urandom)
+      .function("getpid", os_getpid)
+      .function("getppid", os_getppid)
+      .function("_exit", os_exit)
       .function("listdir", os_listdir)
+      .function("scandir", os_scandir)
+      .function("makedirs", os_makedirs)
       .function("remove", os_remove)
       .function("unlink", os_remove)
       .function("stat", os_stat)
@@ -384,6 +584,7 @@ void register_os_module(Runtime& runtime) {
       .value("sep", Value::string("\\"))
       .value("altsep", Value::string("/"))
       .value("pathsep", Value::string(";"))
+      .value("devnull", Value::string("NUL"))
       .value("curdir", Value::string("."))
       .value("pardir", Value::string(".."));
 #else
@@ -391,6 +592,7 @@ void register_os_module(Runtime& runtime) {
       .value("sep", Value::string("/"))
       .value("altsep", Value())
       .value("pathsep", Value::string(":"))
+      .value("devnull", Value::string("/dev/null"))
       .value("curdir", Value::string("."))
       .value("pardir", Value::string(".."));
 #endif

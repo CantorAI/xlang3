@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/generator.h"
+#include "xlang3/ir.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
@@ -210,6 +211,60 @@ bool inspect_getmembers(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool inspect_getfullargspec(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "inspect.getfullargspec() expected callable";
+    return false;
+  }
+  std::vector<Value> arg_names;
+  Value defaults = Value::none();
+  if (auto* function = value_as_function(args[0])) {
+    if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+      const auto& fn = function->module->functions[function->function_id];
+      arg_names.reserve(fn.params.size());
+      for (const auto& param : fn.params) {
+        arg_names.push_back(Value::string(param));
+      }
+    }
+    if (!function->defaults.empty()) {
+      defaults = Value::tuple(function->defaults);
+    }
+  } else if (auto* bound = value_as_bound_method(args[0])) {
+    if (auto* function = value_as_function(bound->function)) {
+      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+        const auto& fn = function->module->functions[function->function_id];
+        uint32_t start = fn.params.empty() ? 0 : 1;
+        for (uint32_t i = start; i < fn.params.size(); ++i) {
+          arg_names.push_back(Value::string(fn.params[i]));
+        }
+      }
+      if (!function->defaults.empty()) {
+        defaults = Value::tuple(function->defaults);
+      }
+    }
+  } else if (value_as_native_function(args[0]) == nullptr) {
+    error = "inspect.getfullargspec() expected callable";
+    return false;
+  }
+
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"args", Value::list(std::move(arg_names))});
+  attrs.push_back({"varargs", Value::none()});
+  attrs.push_back({"varkw", Value::none()});
+  attrs.push_back({"defaults", std::move(defaults)});
+  attrs.push_back({"kwonlyargs", Value::list({})});
+  attrs.push_back({"kwonlydefaults", Value::none()});
+  attrs.push_back({"annotations", Value::dict({})});
+  Value klass = Value::class_object("FullArgSpec", {{"__module__", Value::string("inspect")}});
+  out = Value::instance(klass);
+  for (const auto& attr : attrs) {
+    if (!object_set_attr(out, attr.first, attr.second, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace
 
 void register_inspect_module(Runtime& runtime) {
@@ -229,6 +284,7 @@ void register_inspect_module(Runtime& runtime) {
       .function("getmodule", inspect_getmodule)
       .function("getfile", inspect_getfile)
       .function("getsourcefile", inspect_getfile)
+      .function("getfullargspec", inspect_getfullargspec)
       .function("getmembers", inspect_getmembers);
   runtime.register_module("inspect", builder.finish());
 }

@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace xlang3 {
@@ -44,6 +45,7 @@ struct ClassObject {
 struct InstanceObject {
   Object header;
   Value klass;
+  Value mapping_storage;
   uint32_t slot_count = 0;
   std::string native_type;
   void* native_data = nullptr;
@@ -57,6 +59,22 @@ struct BoundMethodObject {
   Object header;
   Value self;
   Value function;
+};
+
+struct StaticMethodObject {
+  Object header;
+  Value function;
+};
+
+struct ClassMethodObject {
+  Object header;
+  Value function;
+};
+
+struct SuperObject {
+  Object header;
+  Value klass;
+  Value self;
 };
 
 XLANG3_HOT_INLINE ClassObject* value_as_class(const Value& value) {
@@ -78,6 +96,27 @@ XLANG3_HOT_INLINE BoundMethodObject* value_as_bound_method(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<BoundMethodObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE StaticMethodObject* value_as_static_method(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::StaticMethod) {
+    return nullptr;
+  }
+  return reinterpret_cast<StaticMethodObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE ClassMethodObject* value_as_class_method(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::ClassMethod) {
+    return nullptr;
+  }
+  return reinterpret_cast<ClassMethodObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE SuperObject* value_as_super(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Super) {
+    return nullptr;
+  }
+  return reinterpret_cast<SuperObject*>(value.as.obj);
 }
 
 XLANG3_HOT_INLINE uint32_t instance_slot_count(const InstanceObject* instance) {
@@ -108,6 +147,7 @@ bool object_value_is_data_descriptor(const Value& value);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool class_set_base(Value klass, Value base, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
+bool class_has_builtin_base_name(ClassObject* klass, std::string_view name);
 bool instance_set_native_data(
     Value instance,
     std::string native_type,

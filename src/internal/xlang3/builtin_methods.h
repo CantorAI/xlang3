@@ -61,6 +61,7 @@ struct BuiltinMethodSpec {
   NativeFunctionCallback callback;
   NativeFastCallCallback fast_callback = nullptr;
   bool fast_releases_vm_lock = false;
+  NativeKeywordFunctionCallback keyword_callback = nullptr;
 };
 
 XLANG3_HOT_INLINE bool bind_builtin_method(
@@ -84,6 +85,28 @@ XLANG3_HOT_INLINE bool bind_builtin_method(
   return true;
 }
 
+XLANG3_HOT_INLINE bool bind_builtin_method(
+    const Value& object,
+    std::string full_name,
+    NativeFunctionCallback callback,
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback,
+    Value& out) {
+  out = Value::bound_method(
+      object,
+      Value::native_function(
+          0,
+          std::move(full_name),
+          callback,
+          nullptr,
+          nullptr,
+          fast_callback,
+          fast_releases_vm_lock,
+          keyword_callback));
+  return true;
+}
+
 XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
     const Value& object,
     const std::string& name,
@@ -98,6 +121,7 @@ XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
           methods[i].callback,
           methods[i].fast_callback,
           methods[i].fast_releases_vm_lock,
+          methods[i].keyword_callback,
           out);
     }
   }
@@ -109,6 +133,7 @@ const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::s
 bool tuple_get_method(const Value& object, const std::string& name, Value& out);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
 bool file_get_method(const Value& object, const std::string& name, Value& out);
+bool int_get_method(const Value& object, const std::string& name, Value& out);
 bool set_get_method(const Value& object, const std::string& name, Value& out);
 bool string_get_method(const Value& object, const std::string& name, Value& out);
 const BuiltinMethodSpec* string_find_method_spec(const Value& object, const std::string& name);

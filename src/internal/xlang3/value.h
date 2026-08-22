@@ -74,6 +74,9 @@ enum class ObjectKind : uint32_t {
   Class,
   Instance,
   BoundMethod,
+  StaticMethod,
+  ClassMethod,
+  Super,
   Property,
   Code,
   Frame,
@@ -229,6 +232,9 @@ struct Value {
       std::vector<std::string> instance_slots = {});
   static Value instance(Value klass);
   static Value bound_method(Value self, Value function);
+  static Value static_method(Value function);
+  static Value class_method(Value function);
+  static Value super_object(Value klass, Value self);
   static Value property(Value fget, Value fset, Value fdel, Value doc);
 };
 
@@ -508,6 +514,7 @@ struct FileObject {
   bool append = false;
   bool binary = false;
   bool closed = false;
+  bool devnull = false;
 };
 
 XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {

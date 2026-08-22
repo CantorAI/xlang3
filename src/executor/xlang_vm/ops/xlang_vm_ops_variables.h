@@ -402,12 +402,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_cell(
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow load_free(
     const ir::Instr& in,
+    const ir::Function& fn,
     XlangVMSmallRegisterBuffer& regs,
     const std::vector<Value>& fn_obj_closure,
     RuntimeResult& result,
     RaiseRuntimeError&&) {
   if (in.a >= fn_obj_closure.size()) {
-    result.errors.push_back("invalid free slot");
+    const std::string message =
+        "invalid free slot in " + std::string(fn.name.empty() ? "<function>" : fn.name) +
+        ": requested " + std::to_string(in.a) +
+        ", closure size " + std::to_string(fn_obj_closure.size());
+    result.errors.push_back(message);
     return XlangVMOpFlow::ReturnResult;
   }
   auto* cell = value_as_cell(fn_obj_closure[in.a]);

@@ -166,6 +166,8 @@ public:
   void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
   void clear_current_frame();
   Value current_frame_snapshot() const;
+  uint32_t current_frame_function_id() const;
+  const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;

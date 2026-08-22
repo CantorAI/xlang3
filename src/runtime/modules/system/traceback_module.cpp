@@ -120,6 +120,15 @@ bool traceback_format_exc(Runtime& runtime, const Value*, uint32_t argc, Value& 
   return true;
 }
 
+bool traceback_format_stack(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "traceback.format_stack() expected optional frame and limit";
+    return false;
+  }
+  out = Value::list({});
+  return true;
+}
+
 bool traceback_print_exception(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   Value lines;
   if (!traceback_format_exception(runtime, args, argc, lines, error, nullptr)) {
@@ -142,6 +151,7 @@ void register_traceback_module(Runtime& runtime) {
   builder.function("format_exception", traceback_format_exception)
       .function("format_exception_only", traceback_format_exception_only)
       .function("format_exc", traceback_format_exc)
+      .function("format_stack", traceback_format_stack)
       .function("print_exception", traceback_print_exception);
   runtime.register_module("traceback", builder.finish());
 }

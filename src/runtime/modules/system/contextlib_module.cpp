@@ -110,7 +110,26 @@ bool generator_context_exit(Runtime& runtime, const Value* args, uint32_t argc, 
     runtime.raise_class_error("RuntimeError", error);
     return false;
   }
-  (void)runtime;
+  auto* generator = value_as_generator(state->generator);
+  if (generator == nullptr) {
+    error = "contextmanager function did not return a generator";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value ignored;
+  bool done = false;
+  Interpreter interpreter(runtime);
+  RuntimeResult result = interpreter.resume_generator(*generator, ignored, done);
+  if (!result.errors.empty()) {
+    error = result.errors.front();
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (!done) {
+    error = "generator didn't stop";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
   state->entered = false;
   out = Value::boolean(false);
   return true;

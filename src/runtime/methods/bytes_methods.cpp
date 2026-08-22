@@ -16,6 +16,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <cctype>
+#include <cstring>
 
 namespace xlang3 {
 
@@ -47,12 +48,180 @@ bool bytes_decode_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     for (auto& ch : encoding) {
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
-    if (encoding != "utf-8" && encoding != "utf8") {
-      error = "only utf-8 encoding is supported";
+    if (encoding != "utf-8" && encoding != "utf8" && encoding != "ascii") {
+      error = "only utf-8/ascii encoding is supported";
       return false;
     }
   }
   out = Value::string(bytes_object_to_string(*reinterpret_cast<BytesObject*>(args[0].as.obj)));
+  return true;
+}
+
+bool get_bytes_like_view(const Value& value, const char* name, std::string_view& out, std::string& error) {
+  if (auto* bytes = value_as_bytes(value)) {
+    out = bytes_object_view(*bytes);
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    out = std::string_view(bytearray->value.data(), bytearray->value.size());
+    return true;
+  }
+  error = std::string(name) + " must be bytes-like";
+  return false;
+}
+
+bool bytes_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "bytes.startswith", error)) {
+    return false;
+  }
+  std::string_view text;
+  std::string_view prefix;
+  if (!get_bytes_like_view(args[0], "bytes.startswith target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.startswith prefix", prefix, error)) {
+    return false;
+  }
+  value_set_bool(out, prefix.size() <= text.size() &&
+                          (prefix.empty() || std::memcmp(text.data(), prefix.data(), prefix.size()) == 0));
+  return true;
+}
+
+bool bytes_endswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "bytes.endswith", error)) {
+    return false;
+  }
+  std::string_view text;
+  std::string_view suffix;
+  if (!get_bytes_like_view(args[0], "bytes.endswith target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.endswith suffix", suffix, error)) {
+    return false;
+  }
+  value_set_bool(out, suffix.size() <= text.size() &&
+                          (suffix.empty() ||
+                           std::memcmp(text.data() + (text.size() - suffix.size()), suffix.data(), suffix.size()) == 0));
+  return true;
+}
+
+bool bytes_partition_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "bytes.partition", error)) {
+    return false;
+  }
+  std::string_view text;
+  std::string_view sep;
+  if (!get_bytes_like_view(args[0], "bytes.partition target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.partition separator", sep, error)) {
+    return false;
+  }
+  if (sep.empty()) {
+    error = "empty separator";
+    return false;
+  }
+  const size_t pos = text.find(sep);
+  if (pos == std::string_view::npos) {
+    out = Value::tuple({Value::bytes(std::string(text)), Value::bytes({}), Value::bytes({})});
+    return true;
+  }
+  out = Value::tuple({
+      Value::bytes(std::string(text.substr(0, pos))),
+      Value::bytes(std::string(sep)),
+      Value::bytes(std::string(text.substr(pos + sep.size())))});
+  return true;
+}
+
+bool bytes_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "bytes.split expected optional separator";
+    return false;
+  }
+  std::string_view text;
+  if (!get_bytes_like_view(args[0], "bytes.split target", text, error)) {
+    return false;
+  }
+  std::vector<Value> parts;
+  if (argc == 1 || args[1].tag == ValueTag::None) {
+    size_t i = 0;
+    while (i < text.size()) {
+      while (i < text.size() && std::isspace(static_cast<unsigned char>(text[i]))) {
+        ++i;
+      }
+      const size_t start = i;
+      while (i < text.size() && !std::isspace(static_cast<unsigned char>(text[i]))) {
+        ++i;
+      }
+      if (start != i) {
+        parts.push_back(Value::bytes(std::string(text.substr(start, i - start))));
+      }
+    }
+    out = Value::list(std::move(parts));
+    return true;
+  }
+  std::string_view sep;
+  if (!get_bytes_like_view(args[1], "bytes.split separator", sep, error)) {
+    return false;
+  }
+  if (sep.empty()) {
+    error = "empty separator";
+    return false;
+  }
+  size_t start = 0;
+  while (start <= text.size()) {
+    const size_t pos = text.find(sep, start);
+    if (pos == std::string_view::npos) {
+      parts.push_back(Value::bytes(std::string(text.substr(start))));
+      break;
+    }
+    parts.push_back(Value::bytes(std::string(text.substr(start, pos - start))));
+    start = pos + sep.size();
+  }
+  out = Value::list(std::move(parts));
+  return true;
+}
+
+bool bytes_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "bytes.join", error)) {
+    return false;
+  }
+  std::string_view sep;
+  if (!get_bytes_like_view(args[0], "bytes.join separator", sep, error)) {
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+
+  std::vector<Value> items;
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    items.push_back(item);
+  }
+
+  std::vector<std::string_view> views;
+  views.reserve(items.size());
+  size_t total = sep.size() * (items.empty() ? 0 : items.size() - 1);
+  for (const auto& item : items) {
+    std::string_view view;
+    if (!get_bytes_like_view(item, "bytes.join item", view, error)) {
+      return false;
+    }
+    total += view.size();
+    views.push_back(view);
+  }
+  std::string result;
+  result.reserve(total);
+  for (size_t i = 0; i < views.size(); ++i) {
+    if (i != 0) {
+      result.append(sep.data(), sep.size());
+    }
+    result.append(views[i].data(), views[i].size());
+  }
+  out = Value::bytes(std::move(result));
   return true;
 }
 
@@ -148,6 +317,11 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
   }
   static constexpr BuiltinMethodSpec methods[] = {
       {"decode", "bytes.decode", bytes_decode_method},
+      {"endswith", "bytes.endswith", bytes_endswith_method},
+      {"join", "bytes.join", bytes_join_method},
+      {"partition", "bytes.partition", bytes_partition_method},
+      {"split", "bytes.split", bytes_split_method},
+      {"startswith", "bytes.startswith", bytes_startswith_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }

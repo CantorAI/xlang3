@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -48,6 +49,115 @@ bool value_to_source_text(Runtime& runtime, const Value& value, std::string& out
   }
   out = string_object_to_string(*string);
   return true;
+}
+
+bool builtin_import(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 5) {
+    error = "__import__() expected name, globals, locals, fromlist, level";
+    return false;
+  }
+  std::string name;
+  auto* name_string = value_as_string(args[0]);
+  if (name_string == nullptr) {
+    return raise_type_error(runtime, "__import__() name must be str", error);
+  }
+  name = string_object_to_string(*name_string);
+  Value module;
+  if (!runtime.import_module(name, module, error)) {
+    return false;
+  }
+
+  bool has_fromlist = false;
+  if (argc >= 4 && args[3].tag != ValueTag::None) {
+    if (auto* list = value_as_list(args[3])) {
+      has_fromlist = !list->items.empty();
+    } else if (auto* tuple = value_as_tuple(args[3])) {
+      has_fromlist = !tuple->items.empty();
+    } else {
+      has_fromlist = value_truthy(args[3]);
+    }
+  }
+  if (!has_fromlist) {
+    const auto dot = name.find('.');
+    if (dot != std::string::npos) {
+      Value top;
+      if (runtime.import_module(name.substr(0, dot), top, error)) {
+        value_assign_fast(out, top);
+        return true;
+      }
+    }
+  }
+  value_assign_fast(out, module);
+  return true;
+}
+
+bool builtin_import_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc > 5) {
+    error = "__import__() expected name, globals, locals, fromlist, level";
+    return false;
+  }
+
+  std::vector<Value> positional;
+  positional.reserve(5);
+  for (uint32_t i = 0; i < argc; ++i) {
+    positional.push_back(args[i]);
+  }
+
+  auto set_arg = [&](uint32_t index, const Value& value, const char* name) -> bool {
+    while (positional.size() < index) {
+      positional.push_back(Value::none());
+    }
+    if (positional.size() > index) {
+      error = std::string("__import__() got multiple values for argument '") + name + "'";
+      return false;
+    }
+    positional.push_back(value);
+    return true;
+  };
+
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const char* name = kwargs[i].name;
+    const Value* value = kwargs[i].value;
+    if (name == nullptr || value == nullptr) {
+      error = "__import__() keyword argument is invalid";
+      return false;
+    }
+    const std::string key(name);
+    if (key == "name") {
+      if (!set_arg(0, *value, "name")) return false;
+    } else if (key == "globals") {
+      if (!set_arg(1, *value, "globals")) return false;
+    } else if (key == "locals") {
+      if (!set_arg(2, *value, "locals")) return false;
+    } else if (key == "fromlist") {
+      if (!set_arg(3, *value, "fromlist")) return false;
+    } else if (key == "level") {
+      if (!set_arg(4, *value, "level")) return false;
+    } else {
+      error = "__import__() got unsupported keyword argument '" + key + "'";
+      return false;
+    }
+  }
+
+  if (positional.empty()) {
+    error = "__import__() missing required argument 'name'";
+    return false;
+  }
+  return builtin_import(
+      runtime,
+      positional.data(),
+      static_cast<uint32_t>(positional.size()),
+      out,
+      error,
+      user_data);
 }
 
 bool eval_source_starts_with_statement_keyword(const std::string& source) {
@@ -145,6 +255,57 @@ bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, V
   return true;
 }
 
+bool copy_dict_to_module(const Value& dict_value, Value& module, std::string& error) {
+  auto* dict = value_as_dict(dict_value);
+  if (dict == nullptr) {
+    return false;
+  }
+  for (const auto& entry : dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key == nullptr) {
+      continue;
+    }
+    if (!module_set_attr(module, string_object_to_string(*key), entry.second, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool eval_globals_from_args(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error) {
+  if (argc >= 2 && value_as_module(args[1]) != nullptr) {
+    value_assign_fast(out, args[1]);
+    return true;
+  }
+  if (argc < 2 || args[1].tag == ValueTag::None) {
+    out = runtime.current_globals_module();
+    return value_as_module(out) != nullptr;
+  }
+  if (value_as_dict(args[1]) == nullptr) {
+    return false;
+  }
+
+  out = Value::module("<eval>");
+  module_set_attr(out, "__name__", Value::string("<eval>"), error);
+  if (!copy_dict_to_module(args[1], out, error)) {
+    return false;
+  }
+  if (argc >= 3 && args[2].tag != ValueTag::None) {
+    if (value_as_dict(args[2]) == nullptr) {
+      return false;
+    }
+    if (!copy_dict_to_module(args[2], out, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
   Value iterator;
   if (!sequence_get_iter(iterable, iterator, error)) {
@@ -177,6 +338,131 @@ bool builtin_identity(
     return false;
   }
   value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool builtin_classmethod(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "classmethod() expected 1 argument", error);
+  }
+  if (!value_truthy(Value::boolean(
+          value_as_function(args[0]) != nullptr ||
+          value_as_native_function(args[0]) != nullptr ||
+          value_as_bound_method(args[0]) != nullptr))) {
+    return raise_type_error(runtime, "classmethod() argument must be callable", error);
+  }
+  out = Value::class_method(args[0]);
+  return true;
+}
+
+bool builtin_staticmethod(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "staticmethod() expected 1 argument", error);
+  }
+  if (!value_truthy(Value::boolean(
+          value_as_function(args[0]) != nullptr ||
+          value_as_native_function(args[0]) != nullptr ||
+          value_as_bound_method(args[0]) != nullptr))) {
+    return raise_type_error(runtime, "staticmethod() argument must be callable", error);
+  }
+  out = Value::static_method(args[0]);
+  return true;
+}
+
+bool infer_super_defining_class(Runtime& runtime, const Value& self, Value& out, std::string& error) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    error = "super(): current self is not an instance";
+    return false;
+  }
+  Value mro_value;
+  if (!object_get_attr(instance->klass, "__mro__", mro_value, error)) {
+    return false;
+  }
+  auto* mro = value_as_tuple(mro_value);
+  if (mro == nullptr) {
+    error = "super(): invalid method resolution order";
+    return false;
+  }
+  const uint32_t current_function_id = runtime.current_frame_function_id();
+  const auto* current_module_owner = runtime.current_frame_module_owner();
+  Value defining_class;
+  for (const auto& class_value : mro->items) {
+    auto* klass = value_as_class(class_value);
+    if (klass == nullptr) {
+      continue;
+    }
+    for (const auto& attr : klass->attrs) {
+      Value function_value;
+      if (auto* method = value_as_static_method(attr.second)) {
+        value_assign_fast(function_value, method->function);
+      } else if (auto* method = value_as_class_method(attr.second)) {
+        value_assign_fast(function_value, method->function);
+      } else {
+        value_assign_fast(function_value, attr.second);
+      }
+      auto* function = value_as_function(function_value);
+      const bool same_module =
+          function != nullptr &&
+          current_module_owner != nullptr &&
+          function->module != nullptr &&
+          function->module.get() == current_module_owner->get();
+      if (same_module && function->function_id == current_function_id) {
+        value_assign_fast(defining_class, class_value);
+      }
+    }
+  }
+  if (defining_class.tag != ValueTag::Invalid) {
+    value_assign_fast(out, defining_class);
+    return true;
+  }
+  value_assign_fast(out, instance->klass);
+  return true;
+}
+
+bool builtin_super(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 0 && argc != 2) {
+    return raise_type_error(runtime, "super() expected 0 or 2 arguments", error);
+  }
+
+  Value klass;
+  Value self;
+  if (argc == 2) {
+    if (value_as_class(args[0]) == nullptr) {
+      return raise_type_error(runtime, "super() first argument must be type", error);
+    }
+    value_assign_fast(klass, args[0]);
+    value_assign_fast(self, args[1]);
+  } else {
+    Value locals = runtime.current_locals_snapshot();
+    if (!mapping_get_item(locals, Value::string("self"), self, error)) {
+      return raise_type_error(runtime, "super(): no current instance", error);
+    }
+    if (!infer_super_defining_class(runtime, self, klass, error)) {
+      std::string message = error;
+      return raise_type_error(runtime, std::move(message), error);
+    }
+  }
+
+  out = Value::super_object(std::move(klass), std::move(self));
   return true;
 }
 
@@ -327,6 +613,67 @@ bool builtin_sum(
     }
     total = std::move(next_total);
   }
+}
+
+bool builtin_sorted(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "sorted() expected 1 argument", error);
+  }
+  std::vector<Value> values;
+  if (!collect_iterable(runtime, args[0], values, error)) {
+    return false;
+  }
+  std::sort(values.begin(), values.end(), [&](const Value& lhs, const Value& rhs) {
+    Value less;
+    std::string compare_error;
+    if (!value_compare("<", lhs, rhs, less, compare_error)) {
+      return false;
+    }
+    return value_truthy(less);
+  });
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool builtin_sorted_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  bool reverse = false;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      return raise_type_error(runtime, "sorted() received invalid keyword argument", error);
+    }
+    if (name == "reverse") {
+      reverse = value_truthy(*kwargs[i].value);
+    } else if (name == "key") {
+      // Accepted for CPython call shape. Generic native-to-Python callback keys
+      // are handled by the VM call path in a later compatibility pass.
+    } else {
+      return raise_type_error(runtime, "sorted() got an unexpected keyword argument '" + name + "'", error);
+    }
+  }
+  if (!builtin_sorted(runtime, args, argc, out, error, nullptr)) {
+    return false;
+  }
+  if (reverse) {
+    if (auto* list = value_as_list(out)) {
+      std::reverse(list->items.begin(), list->items.end());
+    }
+  }
+  return true;
 }
 
 bool minmax_common(
@@ -529,8 +876,12 @@ bool builtin_dir(
     Value& out,
     std::string& error,
     void*) {
+  if (argc == 0) {
+    out = Value::list({});
+    return true;
+  }
   if (argc != 1) {
-    return raise_type_error(runtime, "dir() expected 1 argument", error);
+    return raise_type_error(runtime, "dir() expected at most 1 argument", error);
   }
   std::set<std::string> names;
   if (auto* module = value_as_module(args[0])) {
@@ -676,13 +1027,6 @@ bool builtin_eval(
   if (argc < 1 || argc > 3) {
     return raise_type_error(runtime, "eval() expected 1 to 3 arguments", error);
   }
-  if (argc >= 2 && value_as_module(args[1]) == nullptr && args[1].tag != ValueTag::None) {
-    return raise_type_error(runtime, "eval() globals must be a module in this XLang3 phase", error);
-  }
-  if (argc == 3 && args[2].tag != ValueTag::None) {
-    return raise_type_error(runtime, "eval() explicit locals are not supported yet", error);
-  }
-
   Value code_value;
   if (auto* code = value_as_code(args[0])) {
     (void)code;
@@ -697,7 +1041,10 @@ bool builtin_eval(
     }
   }
 
-  Value globals_module = argc >= 2 && value_as_module(args[1]) != nullptr ? args[1] : runtime.current_globals_module();
+  Value globals_module;
+  if (!eval_globals_from_args(runtime, args, argc, globals_module, error)) {
+    return raise_type_error(runtime, "eval() globals and locals must be dict or module", error);
+  }
   if (value_as_module(globals_module) == nullptr) {
     error = "eval() has no active globals module";
     runtime.raise_class_error("RuntimeError", error);
@@ -760,22 +1107,107 @@ bool builtin_exec(
   return run_code_object(runtime, *code, std::move(globals_module), out, error);
 }
 
+bool builtin_repr(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "repr() expected 1 argument";
+    return false;
+  }
+  out = Value::string(value_to_string(args[0]));
+  return true;
+}
+
+bool builtin_all(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "all() expected 1 argument", error);
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      out = Value::boolean(true);
+      return true;
+    }
+    if (!value_truthy(item)) {
+      out = Value::boolean(false);
+      return true;
+    }
+  }
+}
+
+bool builtin_any(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "any() expected 1 argument", error);
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      out = Value::boolean(false);
+      return true;
+    }
+    if (value_truthy(item)) {
+      out = Value::boolean(true);
+      return true;
+    }
+  }
+}
+
 } // namespace
 
 void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("_identity", builtin_identity);
-  runtime.register_native_builtin("classmethod", builtin_identity);
-  runtime.register_native_builtin("staticmethod", builtin_identity);
+  runtime.register_native_builtin("super", builtin_super);
   runtime.register_native_builtin("callable", builtin_callable);
   runtime.register_native_builtin("enumerate", builtin_enumerate);
   runtime.register_native_builtin("zip", builtin_zip);
   runtime.register_native_builtin("map", builtin_map);
   runtime.register_native_builtin("filter", builtin_filter);
   runtime.register_native_builtin("sum", builtin_sum);
+  runtime.register_native_builtin("sorted", builtin_sorted, nullptr, false, builtin_sorted_kw);
   runtime.register_native_builtin("min", builtin_min);
   runtime.register_native_builtin("max", builtin_max);
   runtime.register_native_builtin("abs", builtin_abs);
   runtime.register_native_builtin("round", builtin_round);
+  runtime.register_native_builtin("repr", builtin_repr);
+  runtime.register_native_builtin("all", builtin_all);
+  runtime.register_native_builtin("any", builtin_any);
+  runtime.register_native_builtin("__import__", builtin_import, nullptr, false, builtin_import_kw);
   runtime.register_native_builtin("getattr", builtin_getattr);
   runtime.register_native_builtin("setattr", builtin_setattr);
   runtime.register_native_builtin("hasattr", builtin_hasattr);

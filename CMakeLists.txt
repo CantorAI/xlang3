@@ -51,6 +51,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/methods/list_methods.cpp
   src/runtime/methods/dict_methods.cpp
   src/runtime/methods/file_methods.cpp
+  src/runtime/methods/int_methods.cpp
   src/runtime/methods/set_methods.cpp
   src/runtime/methods/string_methods.cpp
   src/runtime/methods/tuple_methods.cpp
@@ -101,6 +102,9 @@ set(XLANG3_TASK_RUNTIME_SOURCES
 )
 
 set(XLANG3_SYSTEM_RUNTIME_SOURCES
+  src/runtime/modules/system/abc_module.cpp
+  src/runtime/modules/system/argparse_module.cpp
+  src/runtime/modules/system/ast_module.cpp
   src/runtime/modules/system/atexit_module.cpp
   src/runtime/modules/system/code_module.cpp
   src/runtime/modules/system/codecs_module.cpp
@@ -109,6 +113,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/ctypes_module.cpp
   src/runtime/modules/system/dataclasses_module.cpp
   src/runtime/modules/system/dis_module.cpp
+  src/runtime/modules/system/enum_module.cpp
   src/runtime/modules/system/fnmatch_glob_module.cpp
   src/runtime/modules/system/functools_module.cpp
   src/runtime/modules/system/getpass_module.cpp
@@ -118,18 +123,28 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/importlib_module.cpp
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
+  src/runtime/modules/system/json_module.cpp
+  src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/logging_module.cpp
+  src/runtime/modules/system/marshal_module.cpp
+  src/runtime/modules/system/numbers_module.cpp
+  src/runtime/modules/system/opcode_module.cpp
+  src/runtime/modules/system/operator_module.cpp
   src/runtime/modules/system/os_module.cpp
   src/runtime/modules/system/platform_module.cpp
+  src/runtime/modules/system/pickle_module.cpp
   src/runtime/modules/system/pkgutil_module.cpp
   src/runtime/modules/system/pathlib_module.cpp
+  src/runtime/modules/system/subprocess_module.cpp
   src/runtime/modules/system/pydevd_compat_module.cpp
   src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/re_module.cpp
   src/runtime/modules/system/runpy_module.cpp
   src/runtime/modules/system/signal_module.cpp
+  src/runtime/modules/system/site_module.cpp
   src/runtime/modules/system/socket_select_module.cpp
   src/runtime/modules/system/stat_module.cpp
+  src/runtime/modules/system/string_module.cpp
   src/runtime/modules/system/struct_module.cpp
   src/runtime/modules/system/sysconfig_module.cpp
   src/runtime/modules/system/time_module.cpp
@@ -139,6 +154,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/types_module.cpp
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp
+  src/runtime/modules/system/winreg_module.cpp
   src/runtime/modules/system/xmlrpc_http_module.cpp
 )
 
@@ -200,9 +216,15 @@ endforeach()
 
 target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
+target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 
 target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
 target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
+
+if(WIN32)
+  target_link_libraries(xlang3_runtime PRIVATE ws2_32)
+  target_link_libraries(xlang3_runtime_static PRIVATE ws2_32)
+endif()
 
 add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)

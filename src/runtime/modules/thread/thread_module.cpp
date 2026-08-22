@@ -34,7 +34,8 @@ bool thread_start_new_thread(
     error = "_thread.start_new_thread() expected function and optional args";
     return false;
   }
-  if (value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr) {
+  if (value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr &&
+      value_as_bound_method(args[0]) == nullptr) {
     error = "_thread.start_new_thread() first argument must be callable";
     return false;
   }

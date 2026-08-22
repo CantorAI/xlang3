@@ -434,6 +434,11 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
   if (value_as_dict(object) != nullptr) {
     return mapping_get_item(object, index, out, error);
   }
+  if (auto* instance = value_as_instance(object)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_get_item(instance->mapping_storage, index, out, error);
+    }
+  }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Tuple) {
     auto* tuple = reinterpret_cast<TupleObject*>(object.as.obj);
     if (auto* slice = value_as_slice(index)) {
@@ -585,6 +590,65 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
 
 bool sequence_set_item(Value& object, const Value& index, const Value& item, std::string& error) {
   if (auto* list = value_as_list(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(list->items.size()), start, stop, step, error)) {
+        return false;
+      }
+      std::vector<Value> replacement;
+      if (auto* replacement_list = value_as_list(item)) {
+        replacement = replacement_list->items;
+      } else if (auto* replacement_tuple = value_as_tuple(item)) {
+        replacement = replacement_tuple->items;
+      } else {
+        Value iterator;
+        if (!sequence_get_iter(item, iterator, error)) {
+          return false;
+        }
+        while (true) {
+          bool done = false;
+          Value next;
+          if (!sequence_iter_next(iterator, done, next, error)) {
+            return false;
+          }
+          if (done) {
+            break;
+          }
+          replacement.push_back(std::move(next));
+        }
+      }
+      if (step == 1) {
+        list->items.erase(
+            list->items.begin() + static_cast<std::ptrdiff_t>(start),
+            list->items.begin() + static_cast<std::ptrdiff_t>(stop));
+        list->items.insert(
+            list->items.begin() + static_cast<std::ptrdiff_t>(start),
+            replacement.begin(),
+            replacement.end());
+        return true;
+      }
+      std::vector<size_t> indexes;
+      if (step > 0) {
+        for (int64_t i = start; i < stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      } else {
+        for (int64_t i = start; i > stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      }
+      if (indexes.size() != replacement.size()) {
+        error = "attempt to assign sequence of size " + std::to_string(replacement.size()) +
+                " to extended slice of size " + std::to_string(indexes.size());
+        return false;
+      }
+      for (size_t i = 0; i < indexes.size(); ++i) {
+        value_assign_fast(list->items[indexes[i]], replacement[i]);
+      }
+      return true;
+    }
     if (index.tag != ValueTag::Int64) {
       error = "sequence index must be int";
       return false;
@@ -599,6 +663,11 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
   }
   if (value_as_dict(object) != nullptr) {
     return mapping_set_item(object, index, item, error);
+  }
+  if (auto* instance = value_as_instance(object)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_set_item(instance->mapping_storage, index, item, error);
+    }
   }
   if (auto* bytearray = value_as_bytearray(object)) {
     if (index.tag != ValueTag::Int64) {
@@ -649,6 +718,36 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
 
 bool sequence_delete_item(Value& object, const Value& index, std::string& error) {
   if (auto* list = value_as_list(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(list->items.size()), start, stop, step, error)) {
+        return false;
+      }
+      if (step == 1) {
+        if (start < stop) {
+          list->items.erase(
+              list->items.begin() + static_cast<std::ptrdiff_t>(start),
+              list->items.begin() + static_cast<std::ptrdiff_t>(stop));
+        }
+        return true;
+      }
+      std::vector<size_t> indexes;
+      if (step > 0) {
+        for (int64_t i = start; i < stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      } else {
+        for (int64_t i = start; i > stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      }
+      for (auto it = indexes.rbegin(); it != indexes.rend(); ++it) {
+        list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(*it));
+      }
+      return true;
+    }
     if (index.tag != ValueTag::Int64) {
       error = "sequence index must be int";
       return false;
@@ -663,6 +762,11 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
   }
   if (value_as_dict(object) != nullptr) {
     return mapping_delete_item(object, index, error);
+  }
+  if (auto* instance = value_as_instance(object)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_delete_item(instance->mapping_storage, index, error);
+    }
   }
   error = "object does not support item deletion";
   return false;
@@ -698,6 +802,11 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
   }
   if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr) {
     return mapping_len(value, out, error);
+  }
+  if (auto* instance = value_as_instance(value)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_len(instance->mapping_storage, out, error);
+    }
   }
   if (value_as_set(value) != nullptr) {
     return set_len(value, out, error);

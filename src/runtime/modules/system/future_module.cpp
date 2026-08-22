@@ -21,6 +21,21 @@ namespace xlang3 {
 
 namespace {
 
+Value make_feature_names() {
+  return Value::list({
+      Value::string("nested_scopes"),
+      Value::string("generators"),
+      Value::string("division"),
+      Value::string("absolute_import"),
+      Value::string("with_statement"),
+      Value::string("print_function"),
+      Value::string("unicode_literals"),
+      Value::string("barry_as_FLUFL"),
+      Value::string("generator_stop"),
+      Value::string("annotations"),
+  });
+}
+
 Value make_feature(const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("__future__")});
@@ -35,7 +50,8 @@ Value make_feature(const char* name) {
 
 void register_future_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "__future__");
-  builder.value("nested_scopes", make_feature("nested_scopes"))
+  builder.value("all_feature_names", make_feature_names())
+      .value("nested_scopes", make_feature("nested_scopes"))
       .value("generators", make_feature("generators"))
       .value("division", make_feature("division"))
       .value("absolute_import", make_feature("absolute_import"))

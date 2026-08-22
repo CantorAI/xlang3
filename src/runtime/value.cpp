@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/generator.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/ir.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -628,6 +629,9 @@ void release(const Value& value) {
     case ObjectKind::Class:
     case ObjectKind::Instance:
     case ObjectKind::BoundMethod:
+    case ObjectKind::StaticMethod:
+    case ObjectKind::ClassMethod:
+    case ObjectKind::Super:
       object_model_release_object(value.as.obj);
       break;
     case ObjectKind::Property:
@@ -748,7 +752,10 @@ std::string value_to_string(const Value& value) {
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Class ||
            value.as.obj->kind == ObjectKind::Instance ||
-           value.as.obj->kind == ObjectKind::BoundMethod)) {
+           value.as.obj->kind == ObjectKind::BoundMethod ||
+           value.as.obj->kind == ObjectKind::StaticMethod ||
+           value.as.obj->kind == ObjectKind::ClassMethod ||
+           value.as.obj->kind == ObjectKind::Super)) {
         return object_model_to_string(value);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::File) {
@@ -903,6 +910,34 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
   return true;
 }
 
+bool const_bool_method_value(const Value& method, bool& out) {
+  auto* function_object = value_as_function(method);
+  if (function_object == nullptr || function_object->module == nullptr) {
+    return false;
+  }
+  const auto& module = *function_object->module;
+  if (function_object->function_id >= module.functions.size()) {
+    return false;
+  }
+  const auto& function = module.functions[function_object->function_id];
+  if (function.params.size() != 1 || !function.free_vars.empty() || !function.cell_slots.empty() ||
+      function.code.size() < 2) {
+    return false;
+  }
+  const auto& load_const = function.code[0];
+  const auto& ret = function.code[1];
+  if (load_const.op != ir::Op::LoadConst || load_const.a >= function.constants.size() ||
+      ret.op != ir::Op::Return || ret.a != load_const.dst) {
+    return false;
+  }
+  const auto& value = function.constants[load_const.a];
+  if (value.tag != ValueTag::Bool) {
+    return false;
+  }
+  out = value.as.b;
+  return true;
+}
+
 bool value_truthy(const Value& value) {
   switch (value.tag) {
     case ValueTag::Invalid:
@@ -955,6 +990,16 @@ bool value_truthy(const Value& value) {
           (value.as.obj->kind == ObjectKind::Set ||
            value.as.obj->kind == ObjectKind::SetIterator)) {
         return set_truthy(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Instance) {
+        Value bool_method;
+        std::string ignored;
+        if (object_get_class_attr_for_instance(value, "__bool__", bool_method, ignored)) {
+          bool out = true;
+          if (const_bool_method_value(bool_method, out)) {
+            return out;
+          }
+        }
       }
       return true;
   }
@@ -1051,6 +1096,30 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     value_set_int64(out, lhs.as.i64 * rhs.as.i64);
     return true;
+  }
+  auto repeat_string = [&](const StringObject* text, int64_t count) {
+    if (count <= 0) {
+      out = Value::string("");
+      return true;
+    }
+    const auto view = string_object_view(*text);
+    std::string repeated;
+    repeated.reserve(view.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.append(view.data(), view.size());
+    }
+    out = Value::string(std::move(repeated));
+    return true;
+  };
+  if (auto* text = value_as_string(lhs)) {
+    if (rhs.tag == ValueTag::Int64) {
+      return repeat_string(text, rhs.as.i64);
+    }
+  }
+  if (auto* text = value_as_string(rhs)) {
+    if (lhs.tag == ValueTag::Int64) {
+      return repeat_string(text, lhs.as.i64);
+    }
   }
   if (is_number(lhs) && is_number(rhs)) {
     value_set_number(out, as_double(lhs) * as_double(rhs));
@@ -1198,11 +1267,19 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
 }
 
 bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) {
     error = "unsupported operands for ^";
     return false;
   }
-  value_set_int64(out, lhs.as.i64 ^ rhs.as.i64);
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value ^ rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value ^ rhs_value);
+  }
   return true;
 }
 
@@ -1396,6 +1473,17 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
       }
     }
     return true;
+  }
+  if (auto* instance = value_as_instance(container)) {
+    if (auto* dict = value_as_dict(instance->mapping_storage)) {
+      for (const auto& entry : dict->entries) {
+        if (value_key_equal(entry.first, item)) {
+          out = true;
+          return true;
+        }
+      }
+      return true;
+    }
   }
   if (value_as_dict_view(container) != nullptr) {
     return mapping_contains(container, item, out, error);

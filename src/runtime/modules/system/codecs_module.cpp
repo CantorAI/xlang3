@@ -39,6 +39,30 @@ bool codecs_encode_decode(Runtime&, const Value* args, uint32_t argc, Value& out
     error = "codecs encode/decode expected object and optional encoding/errors";
     return false;
   }
+  std::string encoding;
+  if (argc >= 2) {
+    auto* enc = value_as_string(args[1]);
+    if (enc != nullptr) {
+      encoding = string_object_to_string(*enc);
+    }
+  }
+  if (encoding == "hex" || encoding == "hex_codec") {
+    auto* bytes = value_as_bytes(args[0]);
+    if (bytes == nullptr) {
+      error = "codecs.encode(..., 'hex') expected bytes";
+      return false;
+    }
+    static constexpr char digits[] = "0123456789abcdef";
+    const auto view = bytes_object_view(*bytes);
+    std::string hex;
+    hex.reserve(view.size() * 2);
+    for (unsigned char ch : view) {
+      hex.push_back(digits[(ch >> 4) & 0x0f]);
+      hex.push_back(digits[ch & 0x0f]);
+    }
+    out = Value::bytes(std::move(hex));
+    return true;
+  }
   value_assign_fast(out, args[0]);
   return true;
 }

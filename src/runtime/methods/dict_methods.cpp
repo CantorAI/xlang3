@@ -116,6 +116,33 @@ bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool dict_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 && argc != 2) {
+    error = "dict.update expected 1 or 2 arguments, got " + std::to_string(argc);
+    return false;
+  }
+  auto* dict = value_as_dict(args[0]);
+  if (dict == nullptr) {
+    error = "dict.update target is not a dict";
+    return false;
+  }
+  if (argc == 2) {
+    auto* source = value_as_dict(args[1]);
+    if (source == nullptr) {
+      error = "dict.update source must be a dict";
+      return false;
+    }
+    Value target = args[0];
+    for (const auto& entry : source->entries) {
+      if (!mapping_set_item(target, entry.first, entry.second, error)) {
+        return false;
+      }
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
 } // namespace
 
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
@@ -128,6 +155,7 @@ bool dict_get_method(const Value& object, const std::string& name, Value& out) {
       {"items", "dict.items", dict_items_method},
       {"keys", "dict.keys", dict_keys_method},
       {"pop", "dict.pop", dict_pop_method},
+      {"update", "dict.update", dict_update_method},
       {"values", "dict.values", dict_values_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);

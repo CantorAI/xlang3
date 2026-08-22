@@ -62,6 +62,9 @@ bool get_write_bytes_arg(const Value& value, bool binary, const char* name, std:
 }
 
 bool flush_file(FileObject& file, std::string& error) {
+  if (file.devnull) {
+    return true;
+  }
   if (!file.writable) {
     return true;
   }
@@ -124,6 +127,14 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!file->writable) {
     error = "file is not writable";
     return false;
+  }
+  if (file->devnull) {
+    std::string text;
+    if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
+      return false;
+    }
+    value_set_int64(out, static_cast<int64_t>(text.size()));
+    return true;
   }
   std::string text;
   if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
@@ -251,6 +262,10 @@ bool file_writelines_method(Runtime&, const Value* args, uint32_t argc, Value& o
   if (!file->writable) {
     error = "file is not writable";
     return false;
+  }
+  if (file->devnull) {
+    value_set_none(out);
+    return true;
   }
   Value iterator;
   if (!sequence_get_iter(args[1], iterator, error)) {

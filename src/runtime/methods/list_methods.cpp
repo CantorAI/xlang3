@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
 
 namespace xlang3 {
 
@@ -51,6 +53,25 @@ bool normalize_existing_index(const Value& value, size_t size, size_t& out, std:
   if (index < 0 || index >= static_cast<int64_t>(size)) {
     error = "pop index out of range";
     return false;
+  }
+  out = static_cast<size_t>(index);
+  return true;
+}
+
+bool normalize_bound(const Value& value, size_t size, size_t& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = "list index bounds must be int";
+    return false;
+  }
+  int64_t index = value.as.i64;
+  if (index < 0) {
+    index += static_cast<int64_t>(size);
+  }
+  if (index < 0) {
+    index = 0;
+  }
+  if (index > static_cast<int64_t>(size)) {
+    index = static_cast<int64_t>(size);
   }
   out = static_cast<size_t>(index);
   return true;
@@ -175,12 +196,73 @@ bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool list_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "list.index expected 2 to 4 arguments, got " + std::to_string(argc);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* list = value_as_list(args[0]);
+  if (list == nullptr) {
+    error = "list.index target is not a list";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  size_t start = 0;
+  size_t stop = list->items.size();
+  if (argc >= 3 && !normalize_bound(args[2], list->items.size(), start, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc >= 4 && !normalize_bound(args[3], list->items.size(), stop, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (start > stop) {
+    start = stop;
+  }
+  for (size_t i = start; i < stop; ++i) {
+    if (value_key_equal(list->items[i], args[1])) {
+      value_set_int64(out, static_cast<int64_t>(i));
+      return true;
+    }
+  }
+  error = "list.index(x): x not in list";
+  runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
+bool list_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "list.remove", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* list = value_as_list(args[0]);
+  if (list == nullptr) {
+    error = "list.remove target is not a list";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (auto it = list->items.begin(); it != list->items.end(); ++it) {
+    if (value_key_equal(*it, args[1])) {
+      list->items.erase(it);
+      value_set_none(out);
+      return true;
+    }
+  }
+  error = "list.remove(x): x not in list";
+  runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
 static constexpr BuiltinMethodSpec kListMethods[] = {
       {"append", "list.append", list_append_method, list_append_fast_method},
       {"clear", "list.clear", list_clear_method},
       {"extend", "list.extend", list_extend_method},
+      {"index", "list.index", list_index_method},
       {"insert", "list.insert", list_insert_method},
       {"pop", "list.pop", list_pop_method},
+      {"remove", "list.remove", list_remove_method},
 };
 
 } // namespace

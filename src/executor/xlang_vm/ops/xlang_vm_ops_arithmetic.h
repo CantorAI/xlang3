@@ -196,11 +196,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow shr(const ir::Instr& in, XlangVMSmallRegisterBuf
 }
 
 XLANG3_HOT_INLINE void bool_and(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_set_bool(regs[in.dst], value_truthy(regs[in.a]) && value_truthy(regs[in.b]));
+  value_assign_fast(regs[in.dst], value_truthy(regs[in.a]) ? regs[in.b] : regs[in.a]);
 }
 
 XLANG3_HOT_INLINE void bool_or(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_set_bool(regs[in.dst], value_truthy(regs[in.a]) || value_truthy(regs[in.b]));
+  value_assign_fast(regs[in.dst], value_truthy(regs[in.a]) ? regs[in.a] : regs[in.b]);
 }
 
 template <typename RaiseRuntimeError>
@@ -232,8 +232,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains(const ir::Instr& in, XlangVMSmallRegist
   return XlangVMOpFlow::Next;
 }
 
-XLANG3_HOT_INLINE void not_op(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_set_bool(regs[in.dst], !value_truthy(regs[in.a]));
+XLANG3_HOT_INLINE void not_op(
+    const ir::Instr& in,
+    const ir::Module& module,
+    XlangVMSmallRegisterBuffer& regs) {
+  value_set_bool(regs[in.dst], !xlang_vm_truthy(module, regs[in.a]));
 }
 
 template <typename RaiseRuntimeError>

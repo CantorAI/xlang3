@@ -147,6 +147,14 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
   return true;
 }
 
+bool is_devnull_path(const std::string& path) {
+#if defined(_WIN32)
+  return path == "NUL" || path == "nul";
+#else
+  return path == "/dev/null";
+#endif
+}
+
 bool builtin_print(
     Runtime& runtime,
     const Value* args,
@@ -232,6 +240,17 @@ bool builtin_open(
   OpenMode parsed;
   if (!parse_open_mode(mode, parsed, error)) {
     return false;
+  }
+
+  if (is_devnull_path(path)) {
+    out = Value::file(nullptr, path, mode, {}, parsed.writable);
+    auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+    file->readable = parsed.readable;
+    file->writable = parsed.writable;
+    file->append = parsed.append;
+    file->binary = parsed.binary;
+    file->devnull = true;
+    return true;
   }
 
   ResolvedPath resolved;

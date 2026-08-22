@@ -19,7 +19,10 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include <cstdint>
+#include <iostream>
 #include <limits>
+#include <sstream>
+#include <string>
 
 namespace xlang3 {
 
@@ -30,6 +33,148 @@ void copy_builtin(Runtime& runtime, Value& module, const char* name) {
   if (const auto* value = runtime.find_builtin(name)) {
     module_set_attr(module, name, *value, error);
   }
+}
+
+bool bytes_or_string_text(const Value& value, std::string& out) {
+  if (auto* text = value_as_string(value)) {
+    out = string_object_to_string(*text);
+    return true;
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    out.assign(view.data(), view.size());
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    out = bytearray->value;
+    return true;
+  }
+  return false;
+}
+
+bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 2) {
+    error = "stdio.write() expected data";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string data;
+  for (uint32_t i = 1; i < argc; ++i) {
+    std::string part;
+    if (!bytes_or_string_text(args[i], part)) {
+      error = "stdio.write() data must be str or bytes";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    data += part;
+  }
+  const char* kind = static_cast<const char*>(user_data);
+  if (std::string(kind) == "stderr") {
+    std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
+  } else {
+    std::cout.write(data.data(), static_cast<std::streamsize>(data.size()));
+  }
+  out = Value::int64(static_cast<int64_t>(data.size()));
+  return true;
+}
+
+bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "stdio.read() expected optional size";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t size = 1;
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "stdio.read() size must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    size = args[1].as.i64;
+  }
+  if (size < 0) {
+    std::ostringstream buffer;
+    buffer << std::cin.rdbuf();
+    out = Value::bytes(buffer.str());
+    return true;
+  }
+  std::string data(static_cast<size_t>(size), '\0');
+  std::cin.read(data.data(), static_cast<std::streamsize>(size));
+  data.resize(static_cast<size_t>(std::cin.gcount()));
+  out = Value::bytes(std::move(data));
+  return true;
+}
+
+bool sys_stdio_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "stdio.readline() expected optional size";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t limit = -1;
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "stdio.readline() size must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    limit = args[1].as.i64;
+  }
+  std::string data;
+  while (limit < 0 || static_cast<int64_t>(data.size()) < limit) {
+    char ch = '\0';
+    if (!std::cin.get(ch)) {
+      break;
+    }
+    data.push_back(ch);
+    if (ch == '\n') {
+      break;
+    }
+  }
+  out = Value::bytes(std::move(data));
+  return true;
+}
+
+bool sys_stdio_flush(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "stdio.flush() expected no arguments";
+    return false;
+  }
+  const char* kind = static_cast<const char*>(user_data);
+  if (std::string(kind) == "stderr") {
+    std::cerr.flush();
+  } else {
+    std::cout.flush();
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_stdio_close(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "stdio.close() expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"write", runtime.make_native_function(std::string("sys.") + kind + ".write", sys_stdio_write, const_cast<char*>(kind))});
+  attrs.push_back({"read", runtime.make_native_function(std::string("sys.") + kind + ".read", sys_stdio_read, const_cast<char*>(kind))});
+  attrs.push_back({"readline", runtime.make_native_function(std::string("sys.") + kind + ".readline", sys_stdio_readline, const_cast<char*>(kind))});
+  attrs.push_back({"flush", runtime.make_native_function(std::string("sys.") + kind + ".flush", sys_stdio_flush, const_cast<char*>(kind))});
+  attrs.push_back({"close", runtime.make_native_function(std::string("sys.") + kind + ".close", sys_stdio_close, const_cast<char*>(kind))});
+  Value klass = Value::class_object(class_name, std::move(attrs));
+  Value stream = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(stream, "encoding", Value::string("utf-8"), ignored);
+  object_set_attr(stream, "errors", Value::string("strict"), ignored);
+  object_set_attr(stream, "buffer", stream, ignored);
+  object_set_attr(stream, "_line_buffering", Value::boolean(true), ignored);
+  return stream;
 }
 
 bool sys_exc_info(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -233,10 +378,14 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "_identity");
   copy_builtin(runtime, builtins, "classmethod");
   copy_builtin(runtime, builtins, "staticmethod");
+  copy_builtin(runtime, builtins, "super");
   copy_builtin(runtime, builtins, "len");
   copy_builtin(runtime, builtins, "next");
   copy_builtin(runtime, builtins, "ord");
   copy_builtin(runtime, builtins, "str");
+  copy_builtin(runtime, builtins, "repr");
+  copy_builtin(runtime, builtins, "all");
+  copy_builtin(runtime, builtins, "any");
   copy_builtin(runtime, builtins, "range");
   copy_builtin(runtime, builtins, "object");
   copy_builtin(runtime, builtins, "type");
@@ -254,20 +403,27 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "list");
   copy_builtin(runtime, builtins, "dict");
   copy_builtin(runtime, builtins, "set");
+  copy_builtin(runtime, builtins, "frozenset");
   copy_builtin(runtime, builtins, "BaseException");
   copy_builtin(runtime, builtins, "Exception");
   copy_builtin(runtime, builtins, "RuntimeError");
+  copy_builtin(runtime, builtins, "NotImplementedError");
   copy_builtin(runtime, builtins, "TypeError");
   copy_builtin(runtime, builtins, "ValueError");
+  copy_builtin(runtime, builtins, "AssertionError");
   copy_builtin(runtime, builtins, "SyntaxError");
   copy_builtin(runtime, builtins, "ImportError");
   copy_builtin(runtime, builtins, "AttributeError");
   copy_builtin(runtime, builtins, "NameError");
+  copy_builtin(runtime, builtins, "LookupError");
   copy_builtin(runtime, builtins, "IndexError");
   copy_builtin(runtime, builtins, "KeyError");
   copy_builtin(runtime, builtins, "ZeroDivisionError");
   copy_builtin(runtime, builtins, "StopIteration");
+  copy_builtin(runtime, builtins, "StopAsyncIteration");
+  copy_builtin(runtime, builtins, "EOFError");
   copy_builtin(runtime, builtins, "OSError");
+  copy_builtin(runtime, builtins, "IOError");
   copy_builtin(runtime, builtins, "FileNotFoundError");
   copy_builtin(runtime, builtins, "PermissionError");
   copy_builtin(runtime, builtins, "IsADirectoryError");
@@ -284,7 +440,8 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "eval");
   copy_builtin(runtime, builtins, "exec");
   copy_builtin(runtime, builtins, "open");
-  runtime.register_module("_builtins", std::move(builtins));
+  runtime.register_module("_builtins", builtins);
+  runtime.register_module("builtins", std::move(builtins));
 
   NativeModuleBuilder sys_builder(runtime, "sys");
   auto sys = sys_builder.finish();
@@ -312,6 +469,15 @@ void register_builtin_modules(Runtime& runtime) {
   module_set_attr(sys, "dont_write_bytecode", Value::boolean(true), error);
   module_set_attr(sys, "flags", Value::tuple({}), error);
   module_set_attr(sys, "builtin_module_names", Value::tuple({}), error);
+  Value stdin_stream = make_sys_stdio(runtime, "_XLang3Stdin", "stdin");
+  Value stdout_stream = make_sys_stdio(runtime, "_XLang3Stdout", "stdout");
+  Value stderr_stream = make_sys_stdio(runtime, "_XLang3Stderr", "stderr");
+  module_set_attr(sys, "stdin", stdin_stream, error);
+  module_set_attr(sys, "stdout", stdout_stream, error);
+  module_set_attr(sys, "stderr", stderr_stream, error);
+  module_set_attr(sys, "__stdin__", stdin_stream, error);
+  module_set_attr(sys, "__stdout__", stdout_stream, error);
+  module_set_attr(sys, "__stderr__", stderr_stream, error);
   module_set_attr(sys, "implementation", Value::instance(Value::class_object("SimpleNamespace", {})), error);
   Value implementation;
   module_get_attr(sys, "implementation", implementation, error);

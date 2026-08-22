@@ -56,6 +56,12 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
     add_module_slot(slots, import->bind_name);
     return;
   }
+  if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(&stmt)) {
+    for (const auto& binding : import->names) {
+      add_module_slot(slots, binding.as_name);
+    }
+    return;
+  }
   if (auto* import = dynamic_cast<const ast::FromImportStmt*>(&stmt)) {
     for (const auto& binding : import->names) {
       if (binding.as_name != "*") {
