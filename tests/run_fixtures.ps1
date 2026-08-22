@@ -80,6 +80,7 @@ $cases = @(
     "inspect_currentframe",
     "debug_frame_metadata",
     "debug_breakpoint_step",
+    "debugpy_bootstrap_compat",
     "logging_pathlib_modules",
     "socket_select_modules",
     "file_import",

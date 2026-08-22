@@ -597,13 +597,6 @@ ast::StmtPtr Parser::parse_simple_statement() {
     consume_simple_statement_end();
     return std::make_unique<ast::RaiseStmt>(std::move(value), std::move(cause));
   }
-  if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
-    const std::string name(advance().text);
-    advance();
-    auto value = parse_expression();
-    consume_simple_statement_end();
-    return std::make_unique<ast::AssignStmt>(name, std::move(value));
-  }
   auto expr = parse_expression();
   auto match_aug_assign = [&]() -> std::string {
     if (match(TokenKind::PlusAssign)) return "+";
@@ -650,8 +643,40 @@ ast::StmtPtr Parser::parse_simple_statement() {
     return nullptr;
   }
   if (match(TokenKind::Assign)) {
-    auto value = parse_expression();
+    std::vector<ast::ExprPtr> targets;
+    targets.push_back(std::move(expr));
+    ast::ExprPtr value;
+    for (;;) {
+      auto next = parse_expression();
+      if (match(TokenKind::Assign)) {
+        targets.push_back(std::move(next));
+        continue;
+      }
+      value = std::move(next);
+      break;
+    }
     consume_simple_statement_end();
+    auto is_assignable = [](const ast::ExprPtr& target) {
+      return dynamic_cast<ast::NameExpr*>(target.get()) != nullptr ||
+             dynamic_cast<ast::SubscriptExpr*>(target.get()) != nullptr ||
+             dynamic_cast<ast::AttrExpr*>(target.get()) != nullptr ||
+             dynamic_cast<ast::TupleExpr*>(target.get()) != nullptr ||
+             dynamic_cast<ast::ListExpr*>(target.get()) != nullptr ||
+             dynamic_cast<ast::StarredExpr*>(target.get()) != nullptr;
+    };
+    for (const auto& target : targets) {
+      if (!is_assignable(target)) {
+        error_here("expected assignable target");
+        return nullptr;
+      }
+    }
+    if (targets.size() > 1) {
+      return std::make_unique<ast::MultiAssignStmt>(std::move(targets), std::move(value));
+    }
+    expr = std::move(targets.front());
+    if (auto* name = dynamic_cast<ast::NameExpr*>(expr.get())) {
+      return std::make_unique<ast::AssignStmt>(name->name, std::move(value));
+    }
     if (auto* subscript = dynamic_cast<ast::SubscriptExpr*>(expr.get())) {
       return std::make_unique<ast::SubscriptAssignStmt>(
           std::move(subscript->object),
@@ -1047,6 +1072,11 @@ ast::ExprPtr Parser::parse_call() {
             simple_positional = false;
           } else {
             arg.value = parse_conditional();
+            if (simple_positional && args.empty() && match(TokenKind::KwFor)) {
+              arg.value = finish_generator_expression(std::move(arg.value));
+              args.push_back(std::move(arg));
+              break;
+            }
           }
           args.push_back(std::move(arg));
         } while (match(TokenKind::Comma) && !check(TokenKind::RParen));
@@ -1107,24 +1137,68 @@ ast::ExprPtr Parser::parse_call() {
   return expr;
 }
 
-ast::ExprPtr Parser::parse_primary() {
-  auto parse_extra_comp_clauses = [&]() {
-    std::vector<ast::CompClause> clauses;
-    while (match(TokenKind::KwFor)) {
-      ast::CompClause clause;
-      const Token target = peek();
-      consume(TokenKind::Identifier, "expected comprehension target after for");
-      clause.target = std::string(target.text);
-      consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-      clause.iterable = parse_expression();
-      if (match(TokenKind::KwIf)) {
-        clause.filter = parse_expression();
-      }
-      clauses.push_back(std::move(clause));
-    }
-    return clauses;
-  };
+ast::ExprPtr Parser::finish_generator_expression(ast::ExprPtr first) {
+  std::string target;
+  auto target_expr = parse_comprehension_target(target);
+  consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+  auto iterable = parse_expression();
+  ast::ExprPtr filter;
+  if (match(TokenKind::KwIf)) {
+    filter = parse_expression();
+  }
+  auto extra_clauses = parse_extra_comp_clauses();
+  auto gen = std::make_unique<ast::GeneratorExpr>(
+      std::move(first), std::move(target), std::move(target_expr), std::move(iterable), std::move(filter));
+  gen->extra_clauses = std::move(extra_clauses);
+  return gen;
+}
 
+ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
+  std::vector<ast::ExprPtr> items;
+  bool parenthesized = false;
+  if (match(TokenKind::LParen)) {
+    parenthesized = true;
+  }
+
+  const Token first = peek();
+  if (!consume(TokenKind::Identifier, "expected comprehension target after for")) {
+    first_name.clear();
+    return std::make_unique<ast::NameExpr>("");
+  }
+  first_name = std::string(first.text);
+  items.push_back(std::make_unique<ast::NameExpr>(first_name));
+
+  while (match(TokenKind::Comma) && !(parenthesized && check(TokenKind::RParen)) && !check(TokenKind::KwIn)) {
+    const Token item = peek();
+    consume(TokenKind::Identifier, "expected comprehension target after ','");
+    items.push_back(std::make_unique<ast::NameExpr>(std::string(item.text)));
+  }
+
+  if (parenthesized) {
+    consume(TokenKind::RParen, "expected ')' after comprehension target");
+  }
+  if (items.size() == 1 && !parenthesized) {
+    return std::move(items.front());
+  }
+  return std::make_unique<ast::TupleExpr>(std::move(items));
+}
+
+std::vector<ast::CompClause> Parser::parse_extra_comp_clauses() {
+  std::vector<ast::CompClause> clauses;
+  while (match(TokenKind::KwFor)) {
+    ast::CompClause clause;
+    clause.target_expr = parse_comprehension_target(clause.target);
+    consume(TokenKind::KwIn, "expected 'in' after comprehension target");
+    clause.iterable = parse_expression();
+    if (match(TokenKind::KwIf)) {
+      clause.filter = parse_expression();
+    }
+    clauses.push_back(std::move(clause));
+  }
+  return clauses;
+}
+
+ast::ExprPtr Parser::parse_primary() {
   if (match(TokenKind::Integer)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, std::string(previous().text));
   if (match(TokenKind::Double)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Double, std::string(previous().text));
   if (match(TokenKind::String)) {
@@ -1159,19 +1233,8 @@ ast::ExprPtr Parser::parse_primary() {
     }
     auto expr = parse_expression();
     if (match(TokenKind::KwFor)) {
-      const Token target = peek();
-      consume(TokenKind::Identifier, "expected comprehension target after for");
-      consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-      auto iterable = parse_expression();
-      ast::ExprPtr filter;
-      if (match(TokenKind::KwIf)) {
-        filter = parse_expression();
-      }
-      auto extra_clauses = parse_extra_comp_clauses();
+      auto gen = finish_generator_expression(std::move(expr));
       consume(TokenKind::RParen, "expected ')' after generator expression");
-      auto gen = std::make_unique<ast::GeneratorExpr>(
-          std::move(expr), std::string(target.text), std::move(iterable), std::move(filter));
-      gen->extra_clauses = std::move(extra_clauses);
       return gen;
     }
     consume(TokenKind::RParen, "expected ')' after expression");
@@ -1183,8 +1246,8 @@ ast::ExprPtr Parser::parse_primary() {
     }
     auto first = parse_conditional();
     if (match(TokenKind::KwFor)) {
-      const Token target = peek();
-      consume(TokenKind::Identifier, "expected comprehension target after for");
+      std::string target;
+      auto target_expr = parse_comprehension_target(target);
       consume(TokenKind::KwIn, "expected 'in' after comprehension target");
       auto iterable = parse_expression();
       ast::ExprPtr filter;
@@ -1193,7 +1256,8 @@ ast::ExprPtr Parser::parse_primary() {
       }
       auto extra_clauses = parse_extra_comp_clauses();
       consume(TokenKind::RBracket, "expected ']' after list comprehension");
-      auto comp = std::make_unique<ast::ListCompExpr>(std::move(first), std::string(target.text), std::move(iterable), std::move(filter));
+      auto comp = std::make_unique<ast::ListCompExpr>(
+          std::move(first), std::move(target), std::move(target_expr), std::move(iterable), std::move(filter));
       comp->extra_clauses = std::move(extra_clauses);
       return comp;
     }
@@ -1213,8 +1277,8 @@ ast::ExprPtr Parser::parse_primary() {
     if (match(TokenKind::Colon)) {
       auto value = parse_conditional();
       if (match(TokenKind::KwFor)) {
-        const Token target = peek();
-        consume(TokenKind::Identifier, "expected comprehension target after for");
+        std::string target;
+        auto target_expr = parse_comprehension_target(target);
         consume(TokenKind::KwIn, "expected 'in' after comprehension target");
         auto iterable = parse_expression();
         ast::ExprPtr filter;
@@ -1224,7 +1288,7 @@ ast::ExprPtr Parser::parse_primary() {
         auto extra_clauses = parse_extra_comp_clauses();
         consume(TokenKind::RBrace, "expected '}' after dict comprehension");
         auto comp = std::make_unique<ast::DictCompExpr>(
-            std::move(first), std::move(value), std::string(target.text), std::move(iterable), std::move(filter));
+            std::move(first), std::move(value), std::move(target), std::move(target_expr), std::move(iterable), std::move(filter));
         comp->extra_clauses = std::move(extra_clauses);
         return comp;
       }
@@ -1239,8 +1303,8 @@ ast::ExprPtr Parser::parse_primary() {
       return std::make_unique<ast::DictExpr>(std::move(entries));
     }
     if (match(TokenKind::KwFor)) {
-      const Token target = peek();
-      consume(TokenKind::Identifier, "expected comprehension target after for");
+      std::string target;
+      auto target_expr = parse_comprehension_target(target);
       consume(TokenKind::KwIn, "expected 'in' after comprehension target");
       auto iterable = parse_expression();
       ast::ExprPtr filter;
@@ -1250,7 +1314,7 @@ ast::ExprPtr Parser::parse_primary() {
       auto extra_clauses = parse_extra_comp_clauses();
       consume(TokenKind::RBrace, "expected '}' after set comprehension");
       auto comp = std::make_unique<ast::SetCompExpr>(
-          std::move(first), std::string(target.text), std::move(iterable), std::move(filter));
+          std::move(first), std::move(target), std::move(target_expr), std::move(iterable), std::move(filter));
       comp->extra_clauses = std::move(extra_clauses);
       return comp;
     }

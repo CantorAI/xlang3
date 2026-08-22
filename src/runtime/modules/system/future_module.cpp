@@ -35,12 +35,16 @@ Value make_feature(const char* name) {
 
 void register_future_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "__future__");
-  builder.value("annotations", make_feature("annotations"))
+  builder.value("nested_scopes", make_feature("nested_scopes"))
+      .value("generators", make_feature("generators"))
       .value("division", make_feature("division"))
       .value("absolute_import", make_feature("absolute_import"))
+      .value("with_statement", make_feature("with_statement"))
       .value("print_function", make_feature("print_function"))
       .value("unicode_literals", make_feature("unicode_literals"))
-      .value("generator_stop", make_feature("generator_stop"));
+      .value("barry_as_FLUFL", make_feature("barry_as_FLUFL"))
+      .value("generator_stop", make_feature("generator_stop"))
+      .value("annotations", make_feature("annotations"));
   runtime.register_module("__future__", builder.finish());
 }
 

@@ -113,6 +113,7 @@ bool thread_exit(
 Value register_low_level_thread_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_thread");
   builder.function("start_new_thread", thread_start_new_thread)
+      .function("start_new", thread_start_new_thread)
       .function("allocate_lock", thread_allocate_lock)
       .function("get_ident", thread_get_ident)
       .function("exit", thread_exit)

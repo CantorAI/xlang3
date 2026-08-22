@@ -28,6 +28,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -758,6 +759,150 @@ std::string value_to_string(const Value& value) {
   return "<unknown>";
 }
 
+bool string_percent_arg(
+    const Value& args,
+    size_t& tuple_index,
+    const std::string& mapping_key,
+    Value& out,
+    std::string& error) {
+  if (!mapping_key.empty()) {
+    if (!mapping_get_item(args, Value::string(mapping_key), out, error)) {
+      error = "format mapping key '" + mapping_key + "' not found";
+      return false;
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(args)) {
+    if (tuple_index >= tuple->items.size()) {
+      error = "not enough arguments for format string";
+      return false;
+    }
+    value_assign_fast(out, tuple->items[tuple_index++]);
+    return true;
+  }
+  if (tuple_index != 0) {
+    error = "not enough arguments for format string";
+    return false;
+  }
+  value_assign_fast(out, args);
+  ++tuple_index;
+  return true;
+}
+
+bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* format_object = value_as_string(lhs);
+  if (format_object == nullptr) {
+    return false;
+  }
+
+  const auto format = string_object_view(*format_object);
+  std::string result;
+  result.reserve(format.size());
+  size_t tuple_index = 0;
+
+  for (size_t i = 0; i < format.size(); ++i) {
+    const char ch = format[i];
+    if (ch != '%') {
+      result.push_back(ch);
+      continue;
+    }
+    if (i + 1 >= format.size()) {
+      error = "incomplete format";
+      return false;
+    }
+    if (format[i + 1] == '%') {
+      result.push_back('%');
+      ++i;
+      continue;
+    }
+
+    std::string mapping_key;
+    ++i;
+    if (format[i] == '(') {
+      const size_t key_start = i + 1;
+      const auto key_end = format.find(')', key_start);
+      if (key_end == std::string_view::npos) {
+        error = "incomplete format key";
+        return false;
+      }
+      mapping_key.assign(format.substr(key_start, key_end - key_start));
+      i = key_end + 1;
+      if (i >= format.size()) {
+        error = "incomplete format";
+        return false;
+      }
+    }
+
+    while (i < format.size() && std::strchr("#0- +", format[i]) != nullptr) {
+      ++i;
+    }
+    while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+      ++i;
+    }
+    if (i < format.size() && format[i] == '.') {
+      ++i;
+      while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+        ++i;
+      }
+    }
+    if (i < format.size() && (format[i] == 'h' || format[i] == 'l' || format[i] == 'L')) {
+      ++i;
+    }
+    if (i >= format.size()) {
+      error = "incomplete format";
+      return false;
+    }
+
+    Value arg;
+    if (!string_percent_arg(rhs, tuple_index, mapping_key, arg, error)) {
+      return false;
+    }
+
+    switch (format[i]) {
+      case 's':
+      case 'r':
+      case 'a':
+        result += value_to_string(arg);
+        break;
+      case 'd':
+      case 'i':
+      case 'u':
+        if (arg.tag != ValueTag::Int64) {
+          error = "%d format requires an integer";
+          return false;
+        }
+        result += std::to_string(arg.as.i64);
+        break;
+      case 'f':
+      case 'F':
+      case 'g':
+      case 'G':
+      case 'e':
+      case 'E':
+        if (!is_number(arg)) {
+          error = "%f format requires a number";
+          return false;
+        }
+#if defined(XLANG3_EMBEDDED)
+        result += format_f64(as_double(arg));
+#else
+        result += std::to_string(as_double(arg));
+#endif
+        break;
+      default:
+        error = "unsupported format character";
+        return false;
+    }
+  }
+
+  if (auto* tuple = value_as_tuple(rhs); tuple != nullptr && tuple_index < tuple->items.size()) {
+    error = "not all arguments converted during string formatting";
+    return false;
+  }
+  out = Value::string(std::move(result));
+  return true;
+}
+
 bool value_truthy(const Value& value) {
   switch (value.tag) {
     case ValueTag::Invalid:
@@ -857,6 +1002,34 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     out = Value::bytes(std::move(bytes));
     return true;
   }
+  if (auto* left = value_as_list(lhs)) {
+    if (auto* right = value_as_list(rhs)) {
+      std::vector<Value> items;
+      items.reserve(left->items.size() + right->items.size());
+      for (const auto& item : left->items) {
+        items.push_back(item);
+      }
+      for (const auto& item : right->items) {
+        items.push_back(item);
+      }
+      out = Value::list(std::move(items));
+      return true;
+    }
+  }
+  if (auto* left = value_as_tuple(lhs)) {
+    if (auto* right = value_as_tuple(rhs)) {
+      std::vector<Value> items;
+      items.reserve(left->items.size() + right->items.size());
+      for (const auto& item : left->items) {
+        items.push_back(item);
+      }
+      for (const auto& item : right->items) {
+        items.push_back(item);
+      }
+      out = Value::tuple(std::move(items));
+      return true;
+    }
+  }
   error = "unsupported operands for +";
   return false;
 }
@@ -929,6 +1102,9 @@ bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string
 }
 
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_string(lhs) != nullptr) {
+    return string_percent_format(lhs, rhs, out, error);
+  }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     if (rhs.as.i64 == 0) {
       error = "integer modulo by zero";

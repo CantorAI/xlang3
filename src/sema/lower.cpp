@@ -38,10 +38,85 @@ enum class KnownValueType : uint8_t {
   String,
 };
 
+int64_t parse_integer_literal(std::string_view text) {
+  std::string normalized;
+  normalized.reserve(text.size());
+  for (char ch : text) {
+    if (ch != '_') {
+      normalized.push_back(ch);
+    }
+  }
+
+  int base = 10;
+  size_t start = 0;
+  if (normalized.size() >= 2 && normalized[0] == '0') {
+    const char marker = normalized[1];
+    if (marker == 'x' || marker == 'X') {
+      base = 16;
+      start = 2;
+    } else if (marker == 'b' || marker == 'B') {
+      base = 2;
+      start = 2;
+    } else if (marker == 'o' || marker == 'O') {
+      base = 8;
+      start = 2;
+    }
+  }
+
+  int64_t value = 0;
+  for (size_t i = start; i < normalized.size(); ++i) {
+    const char ch = normalized[i];
+    int digit = -1;
+    if (ch >= '0' && ch <= '9') {
+      digit = ch - '0';
+    } else if (ch >= 'a' && ch <= 'f') {
+      digit = ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'F') {
+      digit = ch - 'A' + 10;
+    }
+    if (digit < 0 || digit >= base) {
+      break;
+    }
+    value = value * base + digit;
+  }
+  return value;
+}
+
 void add_slot_name(const std::string& name, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
   if (seen.insert(name).second) {
     slots.push_back(name);
   }
+}
+
+void collect_assignment_names(const ast::Expr& target, std::vector<std::string>& names, std::unordered_set<std::string>& seen) {
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+    if (seen.insert(name->name).second) {
+      names.push_back(name->name);
+    }
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+    for (const auto& item : tuple->items) {
+      collect_assignment_names(*item, names, seen);
+    }
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+    for (const auto& item : list->items) {
+      collect_assignment_names(*item, names, seen);
+    }
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+    collect_assignment_names(*starred->expr, names, seen);
+  }
+}
+
+std::vector<std::string> assignment_names(const ast::Expr& target) {
+  std::vector<std::string> names;
+  std::unordered_set<std::string> seen;
+  collect_assignment_names(target, names, seen);
+  return names;
 }
 
 ir::ParamKind lower_param_kind(ast::FunctionDef::Param::Kind kind) {
@@ -164,11 +239,13 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     auto out = std::make_unique<ast::ListCompExpr>(
         clone_expr(*comp->result),
         comp->target,
+        clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
       out->extra_clauses.push_back(std::move(cloned));
@@ -180,11 +257,13 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
         clone_expr(*comp->key),
         clone_expr(*comp->value),
         comp->target,
+        clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
       out->extra_clauses.push_back(std::move(cloned));
@@ -195,11 +274,13 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     auto out = std::make_unique<ast::SetCompExpr>(
         clone_expr(*comp->result),
         comp->target,
+        clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
       out->extra_clauses.push_back(std::move(cloned));
@@ -210,11 +291,13 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     auto out = std::make_unique<ast::GeneratorExpr>(
         clone_expr(*comp->result),
         comp->target,
+        clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
       out->extra_clauses.push_back(std::move(cloned));
@@ -368,6 +451,13 @@ bool stmt_contains_yield(const ast::Stmt& stmt) {
   if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
     if (assign->value == nullptr) return false;
     return expr_contains_yield(*assign->target) || expr_contains_yield(*assign->value);
+  }
+  if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+    if (expr_contains_yield(*assign->value)) return true;
+    for (const auto& target : assign->targets) {
+      if (expr_contains_yield(*target)) return true;
+    }
+    return false;
   }
   if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
     return expr_contains_yield(*assign->object) || expr_contains_yield(*assign->index) ||
@@ -904,6 +994,143 @@ private:
     return names;
   }
 
+  void add_expression_capture(
+      const std::string& name,
+      const std::unordered_set<std::string>& local_targets,
+      std::vector<std::string>& names,
+      std::unordered_set<std::string>& seen) const {
+    const auto resolved = resolve_name(name);
+    if (local_targets.find(resolved) != local_targets.end()) {
+      return;
+    }
+    if ((sema::contains(local_name_set_, resolved) || free_indices_.find(resolved) != free_indices_.end()) &&
+        seen.insert(resolved).second) {
+      names.push_back(resolved);
+    }
+  }
+
+  void collect_expression_captures(
+      const ast::Expr& expr,
+      const std::unordered_set<std::string>& local_targets,
+      std::vector<std::string>& names,
+      std::unordered_set<std::string>& seen) const {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      add_expression_capture(name->name, local_targets, names, seen);
+      return;
+    }
+    if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+      collect_expression_captures(*unary->expr, local_targets, names, seen);
+      return;
+    }
+    if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+      collect_expression_captures(*await->expr, local_targets, names, seen);
+      return;
+    }
+    if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+      collect_expression_captures(*yield->expr, local_targets, names, seen);
+      return;
+    }
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+      collect_expression_captures(*binary->lhs, local_targets, names, seen);
+      collect_expression_captures(*binary->rhs, local_targets, names, seen);
+      return;
+    }
+    if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+      collect_expression_captures(*chain->first, local_targets, names, seen);
+      for (const auto& comparison : chain->comparisons) {
+        collect_expression_captures(*comparison.second, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+      collect_expression_captures(*conditional->then_expr, local_targets, names, seen);
+      collect_expression_captures(*conditional->condition, local_targets, names, seen);
+      collect_expression_captures(*conditional->else_expr, local_targets, names, seen);
+      return;
+    }
+    if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+      collect_expression_captures(*named->value, local_targets, names, seen);
+      return;
+    }
+    if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+      collect_expression_captures(*starred->expr, local_targets, names, seen);
+      return;
+    }
+    if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+      collect_expression_captures(*call->callee, local_targets, names, seen);
+      for (const auto& arg : call->args) {
+        collect_expression_captures(*arg, local_targets, names, seen);
+      }
+      for (const auto& arg : call->call_args) {
+        collect_expression_captures(*arg.value, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+      collect_expression_captures(*subscript->object, local_targets, names, seen);
+      collect_expression_captures(*subscript->index, local_targets, names, seen);
+      return;
+    }
+    if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+      collect_expression_captures(*slice->start, local_targets, names, seen);
+      collect_expression_captures(*slice->stop, local_targets, names, seen);
+      collect_expression_captures(*slice->step, local_targets, names, seen);
+      return;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      collect_expression_captures(*attr->object, local_targets, names, seen);
+      return;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+      for (const auto& item : tuple->items) {
+        collect_expression_captures(*item, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+      for (const auto& item : list->items) {
+        collect_expression_captures(*item, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+      for (const auto& entry : dict->entries) {
+        collect_expression_captures(*entry.first, local_targets, names, seen);
+        collect_expression_captures(*entry.second, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+      for (const auto& item : set->items) {
+        collect_expression_captures(*item, local_targets, names, seen);
+      }
+    }
+  }
+
+  std::vector<std::string> closure_names_for_generator(const ast::GeneratorExpr& comp) const {
+    std::vector<std::string> names;
+    std::unordered_set<std::string> seen;
+    std::unordered_set<std::string> targets;
+    for (const auto& name : assignment_names(*comp.target_expr)) {
+      targets.insert(resolve_name(name));
+    }
+    collect_expression_captures(*comp.iterable, targets, names, seen);
+    if (comp.filter != nullptr) {
+      collect_expression_captures(*comp.filter, targets, names, seen);
+    }
+    for (const auto& clause : comp.extra_clauses) {
+      collect_expression_captures(*clause.iterable, targets, names, seen);
+      for (const auto& name : assignment_names(*clause.target_expr)) {
+        targets.insert(resolve_name(name));
+      }
+      if (clause.filter != nullptr) {
+        collect_expression_captures(*clause.filter, targets, names, seen);
+      }
+    }
+    collect_expression_captures(*comp.result, targets, names, seen);
+    return names;
+  }
+
   bool is_cell_local(const std::string& name) const {
     return cell_indices_.find(name) != cell_indices_.end();
   }
@@ -1109,7 +1336,7 @@ private:
     if (lit == nullptr || lit->kind != ast::LiteralExpr::Kind::Int) {
       return false;
     }
-    value = std::strtoll(lit->text.c_str(), nullptr, 10);
+    value = parse_integer_literal(lit->text);
     return true;
   }
 
@@ -1727,6 +1954,13 @@ private:
       lower_assign_target(*assign->target, value);
       return;
     }
+    if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+      const auto value = lower_expr(*assign->value);
+      for (auto it = assign->targets.rbegin(); it != assign->targets.rend(); ++it) {
+        lower_assign_target(**it, value);
+      }
+      return;
+    }
     if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
       lower_aug_assign(*assign);
       return;
@@ -1980,18 +2214,36 @@ private:
 
   template <typename Body>
   uint32_t lower_comprehension_loop(
-      const std::string& target,
+      const ast::Expr& target_expr,
       const ast::Expr& iterable,
       const ast::Expr* filter,
       uint32_t dst,
       Body body) {
-    const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + target;
-    hidden_locals_.insert(hidden_name);
-    const auto hidden_slot = ensure_local(hidden_name);
-    const auto old_alias = name_aliases_.find(target);
-    const bool had_alias = old_alias != name_aliases_.end();
-    const std::string old_value = had_alias ? old_alias->second : std::string{};
-    name_aliases_[target] = hidden_name;
+    struct SavedAlias {
+      std::string name;
+      bool had_alias = false;
+      std::string value;
+    };
+
+    std::vector<SavedAlias> saved_aliases;
+    for (const auto& name : assignment_names(target_expr)) {
+      const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + name;
+      hidden_locals_.insert(hidden_name);
+      ensure_local(hidden_name);
+      const auto old_alias = name_aliases_.find(name);
+      saved_aliases.push_back(SavedAlias{
+          name,
+          old_alias != name_aliases_.end(),
+          old_alias == name_aliases_.end() ? std::string{} : old_alias->second});
+      name_aliases_[name] = hidden_name;
+    }
+
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(&target_expr);
+    uint32_t single_hidden_slot = 0;
+    const bool has_single_name_target = target_name != nullptr;
+    if (has_single_name_target) {
+      single_hidden_slot = ensure_local(name_aliases_[target_name->name]);
+    }
 
     int64_t range_start = 0;
     int64_t range_stop = 0;
@@ -1999,16 +2251,16 @@ private:
     size_t loop_exit = 0;
     uint32_t start = 0;
     bool fused_range = false;
-    if (try_parse_const_range_call(iterable, range_start, range_stop, range_step)) {
+    if (has_single_name_target && try_parse_const_range_call(iterable, range_start, range_stop, range_step)) {
       fused_range = true;
-      const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target;
+      const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target_name->name;
       hidden_locals_.insert(state_name);
       const auto state_slot = ensure_local(state_name);
       const auto start_reg = new_reg();
       emit(ir::Op::LoadConst, start_reg, add_const(Value::int64(range_start)));
       emit(ir::Op::StoreLocal, state_slot, start_reg);
       start = static_cast<uint32_t>(fn_.code.size());
-      emit(ir::Op::ForRangeConstLocalNext, 0, hidden_slot, state_slot,
+      emit(ir::Op::ForRangeConstLocalNext, 0, single_hidden_slot, state_slot,
            add_range_spec(add_const(Value::int64(range_stop)), add_const(Value::int64(range_step))));
       loop_exit = fn_.code.size() - 1;
     } else {
@@ -2019,7 +2271,7 @@ private:
       const auto item_reg = new_reg();
       emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
       loop_exit = fn_.code.size() - 1;
-      store_named_value(target, item_reg);
+      lower_unpack_assign(target_expr, item_reg);
     }
     size_t skip_append = 0;
     const bool has_filter = filter != nullptr;
@@ -2038,16 +2290,19 @@ private:
       patch_iter_done(loop_exit, static_cast<uint32_t>(fn_.code.size()));
     }
 
-    if (had_alias) {
-      name_aliases_[target] = old_value;
-    } else {
-      name_aliases_.erase(target);
+    for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+      if (it->had_alias) {
+        name_aliases_[it->name] = it->value;
+      } else {
+        name_aliases_.erase(it->name);
+      }
     }
     return dst;
   }
 
   struct LowerCompClause {
     std::string target;
+    const ast::Expr* target_expr = nullptr;
     const ast::Expr* iterable = nullptr;
     const ast::Expr* filter = nullptr;
   };
@@ -2064,7 +2319,7 @@ private:
     }
     const auto& clause = clauses[index];
     return lower_comprehension_loop(
-        clause.target,
+        *clause.target_expr,
         *clause.iterable,
         clause.filter,
         dst,
@@ -2073,43 +2328,49 @@ private:
 
   std::vector<LowerCompClause> list_comp_clauses(const ast::ListCompExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
     }
     return clauses;
   }
 
   std::vector<LowerCompClause> dict_comp_clauses(const ast::DictCompExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
     }
     return clauses;
   }
 
   std::vector<LowerCompClause> set_comp_clauses(const ast::SetCompExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
     }
     return clauses;
   }
 
   std::vector<LowerCompClause> generator_comp_clauses(const ast::GeneratorExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
     }
     return clauses;
   }
 
   uint32_t lower_generator_expr(const ast::GeneratorExpr& comp) {
+    const auto free_vars = closure_names_for_generator(comp);
+    for (const auto& name : free_vars) {
+      if (sema::contains(local_name_set_, name)) {
+        ensure_cell_for_local(name);
+      }
+    }
     FunctionLowerer child_lowerer(
-        module_, "#genexpr", {}, {}, {}, std::vector<ast::StmtPtr>{}, true, 0, false,
+        module_, "#genexpr", {}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, 0, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
     const auto clauses = child_lowerer.generator_comp_clauses(comp);
     child_lowerer.lower_comprehension_clauses(
@@ -2120,7 +2381,18 @@ private:
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
     const auto callee = new_reg();
-    emit(ir::Op::MakeFunction, callee, function_id, add_function_closure({}), UINT32_MAX);
+    std::vector<uint32_t> closure_regs;
+    for (const auto& name : free_vars) {
+      const auto reg = new_reg();
+      auto cell = cell_indices_.find(name);
+      if (cell != cell_indices_.end()) {
+        emit(ir::Op::LoadCellObject, reg, cell->second);
+      } else {
+        emit(ir::Op::LoadFreeObject, reg, free_indices_[name]);
+      }
+      closure_regs.push_back(reg);
+    }
+    emit(ir::Op::MakeFunction, callee, function_id, add_function_closure(std::move(closure_regs)), UINT32_MAX);
     const auto dst = new_reg();
     emit(ir::Op::Call, dst, callee, add_call_args({}));
     return dst;
@@ -2137,7 +2409,7 @@ private:
           emit(ir::Op::LoadConst, reg, add_const(Value::boolean(lit->bool_value)));
           break;
         case ast::LiteralExpr::Kind::Int:
-          emit(ir::Op::LoadConst, reg, add_const(Value::int64(std::strtoll(lit->text.c_str(), nullptr, 10))));
+          emit(ir::Op::LoadConst, reg, add_const(Value::int64(parse_integer_literal(lit->text))));
           break;
         case ast::LiteralExpr::Kind::Double:
           emit(ir::Op::LoadConst, reg, add_const(Value::number(std::strtod(lit->text.c_str(), nullptr))));
@@ -2455,7 +2727,7 @@ private:
       case ast::LiteralExpr::Kind::Bool:
         return Value::boolean(lit.bool_value);
       case ast::LiteralExpr::Kind::Int:
-        return Value::int64(std::strtoll(lit.text.c_str(), nullptr, 10));
+        return Value::int64(parse_integer_literal(lit.text));
       case ast::LiteralExpr::Kind::Double:
         return Value::number(std::strtod(lit.text.c_str(), nullptr));
       case ast::LiteralExpr::Kind::String:

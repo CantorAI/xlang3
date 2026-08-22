@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <utility>
 
@@ -78,6 +79,40 @@ void add_default_import_layout(Runtime& runtime, const std::filesystem::path& ba
   runtime.add_import_root(base);
 }
 
+void add_import_root_if_dir(Runtime& runtime, const std::filesystem::path& root) {
+  if (root.empty()) {
+    return;
+  }
+  std::error_code ec;
+  if (std::filesystem::is_directory(root, ec)) {
+    runtime.add_import_root(root);
+  }
+}
+
+void add_default_python_lib_roots(Runtime& runtime) {
+  if (const char* explicit_lib = std::getenv("XLANG3_PYTHON_LIB")) {
+    add_import_root_if_dir(runtime, explicit_lib);
+  }
+  if (const char* explicit_debugpy = std::getenv("XLANG3_DEBUGPY_ROOT")) {
+    add_import_root_if_dir(runtime, explicit_debugpy);
+    add_import_root_if_dir(runtime, std::filesystem::path(explicit_debugpy) / "_vendored" / "pydevd");
+  }
+#if defined(_WIN32)
+  add_import_root_if_dir(runtime, "C:/Python/Python314/Lib");
+  add_import_root_if_dir(runtime, "C:/Python/Python313/Lib");
+  add_import_root_if_dir(runtime, "C:/Python/Python312/Lib");
+  add_import_root_if_dir(
+      runtime,
+      "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/Extensions/Microsoft/Python/Core");
+  add_import_root_if_dir(
+      runtime,
+      "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/Extensions/Microsoft/Python/Core/debugpy/_vendored/pydevd");
+#else
+  add_import_root_if_dir(runtime, "/usr/local/lib/python3.14");
+  add_import_root_if_dir(runtime, "/usr/lib/python3.14");
+#endif
+}
+
 std::filesystem::path normalize_import_root(std::filesystem::path root) {
   if (root.empty()) {
     root = std::filesystem::current_path();
@@ -103,6 +138,7 @@ void Runtime::initialize() {
   register_core_builtins(*this);
 #if !defined(XLANG3_EMBEDDED)
   add_default_import_layout(*this, runtime_library_dir());
+  add_default_python_lib_roots(*this);
 #endif
 }
 
@@ -551,12 +587,12 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   auto it = modules_.find(name);
   if (it == modules_.end()) {
 #if !defined(XLANG3_EMBEDDED)
-    std::string python_error;
-    if (import_python_module(*this, name, out, python_error)) {
-      return true;
-    }
     std::string native_error;
     if (import_native_package(*this, name, out, native_error)) {
+      return true;
+    }
+    std::string python_error;
+    if (import_python_module(*this, name, out, python_error)) {
       return true;
     }
     if (!python_error.empty() && !native_error.empty()) {
@@ -593,6 +629,9 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   std::string submodule_error;
   if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name, out, submodule_error)) {
     return true;
+  }
+  if (!submodule_error.empty()) {
+    error = submodule_error;
   }
   return false;
 }

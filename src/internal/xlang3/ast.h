@@ -167,6 +167,7 @@ struct SetExpr final : Expr {
 
 struct CompClause {
   std::string target;
+  ExprPtr target_expr;
   ExprPtr iterable;
   ExprPtr filter;
 };
@@ -174,17 +175,29 @@ struct CompClause {
 struct ListCompExpr final : Expr {
   ExprPtr result;
   std::string target;
+  ExprPtr target_expr;
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
   ListCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
-      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
+      : result(std::move(result)),
+        target(std::move(target)),
+        target_expr(std::make_unique<NameExpr>(this->target)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
+  ListCompExpr(ExprPtr result, std::string target, ExprPtr target_expr, ExprPtr iterable, ExprPtr filter = {})
+      : result(std::move(result)),
+        target(std::move(target)),
+        target_expr(std::move(target_expr)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
 };
 
 struct DictCompExpr final : Expr {
   ExprPtr key;
   ExprPtr value;
   std::string target;
+  ExprPtr target_expr;
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
@@ -192,6 +205,14 @@ struct DictCompExpr final : Expr {
       : key(std::move(key)),
         value(std::move(value)),
         target(std::move(target)),
+        target_expr(std::make_unique<NameExpr>(this->target)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
+  DictCompExpr(ExprPtr key, ExprPtr value, std::string target, ExprPtr target_expr, ExprPtr iterable, ExprPtr filter = {})
+      : key(std::move(key)),
+        value(std::move(value)),
+        target(std::move(target)),
+        target_expr(std::move(target_expr)),
         iterable(std::move(iterable)),
         filter(std::move(filter)) {}
 };
@@ -199,21 +220,43 @@ struct DictCompExpr final : Expr {
 struct SetCompExpr final : Expr {
   ExprPtr result;
   std::string target;
+  ExprPtr target_expr;
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
   SetCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
-      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
+      : result(std::move(result)),
+        target(std::move(target)),
+        target_expr(std::make_unique<NameExpr>(this->target)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
+  SetCompExpr(ExprPtr result, std::string target, ExprPtr target_expr, ExprPtr iterable, ExprPtr filter = {})
+      : result(std::move(result)),
+        target(std::move(target)),
+        target_expr(std::move(target_expr)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
 };
 
 struct GeneratorExpr final : Expr {
   ExprPtr result;
   std::string target;
+  ExprPtr target_expr;
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
   GeneratorExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
-      : result(std::move(result)), target(std::move(target)), iterable(std::move(iterable)), filter(std::move(filter)) {}
+      : result(std::move(result)),
+        target(std::move(target)),
+        target_expr(std::make_unique<NameExpr>(this->target)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
+  GeneratorExpr(ExprPtr result, std::string target, ExprPtr target_expr, ExprPtr iterable, ExprPtr filter = {})
+      : result(std::move(result)),
+        target(std::move(target)),
+        target_expr(std::move(target_expr)),
+        iterable(std::move(iterable)),
+        filter(std::move(filter)) {}
 };
 
 struct LambdaExpr final : Expr {
@@ -288,6 +331,13 @@ struct UnpackAssignStmt final : Stmt {
   ExprPtr target;
   ExprPtr value;
   UnpackAssignStmt(ExprPtr target, ExprPtr value) : target(std::move(target)), value(std::move(value)) {}
+};
+
+struct MultiAssignStmt final : Stmt {
+  std::vector<ExprPtr> targets;
+  ExprPtr value;
+  MultiAssignStmt(std::vector<ExprPtr> targets, ExprPtr value)
+      : targets(std::move(targets)), value(std::move(value)) {}
 };
 
 struct AugAssignStmt final : Stmt {

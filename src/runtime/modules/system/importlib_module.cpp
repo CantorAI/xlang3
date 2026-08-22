@@ -54,6 +54,21 @@ Value make_module_spec(const std::string& name, const Value& module) {
   return spec;
 }
 
+Value make_module_spec_for_file(const std::string& name, const std::string& path, const Value& loader) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("importlib")});
+  Value klass = Value::class_object("ModuleSpec", std::move(attrs));
+  Value spec = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(spec, "name", Value::string(name), ignored);
+  object_set_attr(spec, "loader", loader, ignored);
+  object_set_attr(spec, "origin", Value::string(path), ignored);
+  object_set_attr(spec, "cached", Value::none(), ignored);
+  const auto dot = name.rfind('.');
+  object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  return spec;
+}
+
 bool importlib_import_module(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "importlib.import_module() expected name and optional package";
@@ -97,11 +112,54 @@ bool importlib_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Val
   return true;
 }
 
+bool importlib_spec_from_file_location(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "importlib.util.spec_from_file_location() expected name, location and optional loader";
+    return false;
+  }
+  std::string name;
+  std::string path;
+  if (!get_string_arg(args[0], "spec name", name, error) || !get_string_arg(args[1], "spec location", path, error)) {
+    return false;
+  }
+  out = make_module_spec_for_file(name, path, argc == 3 ? args[2] : Value::none());
+  return true;
+}
+
+bool importlib_module_from_spec(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "importlib.util.module_from_spec() expected spec";
+    return false;
+  }
+  Value name_value;
+  std::string ignored;
+  std::string name = "";
+  if (object_get_attr(args[0], "name", name_value, ignored)) {
+    if (auto* str = value_as_string(name_value)) {
+      name = string_object_to_string(*str);
+    }
+  }
+  out = Value::module(name);
+  module_set_attr(out, "__name__", Value::string(name), ignored);
+  module_set_attr(out, "__spec__", args[0], ignored);
+  Value origin;
+  if (object_get_attr(args[0], "origin", origin, ignored)) {
+    module_set_attr(out, "__file__", origin, ignored);
+  }
+  Value parent;
+  if (object_get_attr(args[0], "parent", parent, ignored)) {
+    module_set_attr(out, "__package__", parent, ignored);
+  }
+  return true;
+}
+
 } // namespace
 
 void register_importlib_module(Runtime& runtime) {
   NativeModuleBuilder util_builder(runtime, "importlib.util");
-  util_builder.function("find_spec", importlib_find_spec);
+  util_builder.function("find_spec", importlib_find_spec)
+      .function("spec_from_file_location", importlib_spec_from_file_location)
+      .function("module_from_spec", importlib_module_from_spec);
   Value util = util_builder.finish();
   runtime.register_module("importlib.util", util);
 

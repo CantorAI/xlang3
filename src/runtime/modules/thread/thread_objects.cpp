@@ -54,6 +54,11 @@ bool parse_thread_init_args(
     Value& target,
     std::vector<Value>& thread_args,
     std::string& error) {
+  if (argc == 1) {
+    value_set_none(target);
+    return true;
+  }
+
   if (argc == 2 || argc == 3) {
     value_assign_fast(target, args[1]);
     if (argc == 3 && !xlang_thread_tuple_to_args(args[2], thread_args, error)) {
@@ -101,7 +106,7 @@ bool thread_init(
   if (!parse_thread_init_args(args, argc, target, thread_args, error)) {
     return false;
   }
-  if (value_as_function(target) == nullptr && value_as_native_function(target) == nullptr) {
+  if (target.tag != ValueTag::None && value_as_function(target) == nullptr && value_as_native_function(target) == nullptr) {
     error = "Thread target must be callable";
     return false;
   }
@@ -114,6 +119,8 @@ bool thread_init(
     delete state;
     return false;
   }
+  std::string ignored;
+  object_set_attr(const_cast<Value&>(args[0]), "_is_stopped", Value::boolean(true), ignored);
   value_set_none(out);
   return true;
 }
@@ -208,6 +215,14 @@ bool lock_init(
   return true;
 }
 
+bool lock_release(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data);
+
 bool lock_acquire(
     Runtime& runtime,
     const Value* args,
@@ -217,8 +232,8 @@ bool lock_acquire(
     void* user_data) {
   (void)runtime;
   (void)user_data;
-  if (argc != 1) {
-    error = "lock.acquire() expected no arguments";
+  if (argc < 1 || argc > 3) {
+    error = "lock.acquire() expected optional blocking/timeout";
     return false;
   }
   auto* state = lock_state_from_self(args[0], error);
@@ -231,6 +246,39 @@ bool lock_acquire(
     state->locked = true;
   }
   value_set_bool(out, true);
+  return true;
+}
+
+bool lock_enter(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  Value acquired;
+  if (!lock_acquire(runtime, args, argc, acquired, error, user_data)) {
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool lock_exit(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 4) {
+    error = "lock.__exit__() expected exc_type, exc_val, exc_tb";
+    return false;
+  }
+  if (!lock_release(runtime, args, 1, out, error, user_data)) {
+    return false;
+  }
+  value_set_bool(out, false);
   return true;
 }
 
@@ -456,6 +504,8 @@ Value xlang_thread_make_lock_class(Runtime& runtime) {
   attrs.push_back({"acquire", runtime.make_native_function("_thread.LockType.acquire", lock_acquire)});
   attrs.push_back({"release", runtime.make_native_function("_thread.LockType.release", lock_release)});
   attrs.push_back({"locked", runtime.make_native_function("_thread.LockType.locked", lock_locked)});
+  attrs.push_back({"__enter__", runtime.make_native_function("_thread.LockType.__enter__", lock_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("_thread.LockType.__exit__", lock_exit)});
   return Value::class_object("LockType", std::move(attrs));
 }
 

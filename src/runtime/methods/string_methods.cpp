@@ -235,6 +235,24 @@ bool join_string_values(
   return publish_string_result(out, result_value);
 }
 
+bool collect_join_iterable(const Value& iterable, std::vector<Value>& items, std::string& error) {
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    items.push_back(std::move(item));
+  }
+}
+
 bool transform_ascii_case(
     const Value& value,
     const char* target_name,
@@ -618,8 +636,12 @@ bool string_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     auto* tuple = reinterpret_cast<TupleObject*>(args[1].as.obj);
     return join_string_values(sep, tuple->items, out, error);
   }
-  error = "str.join argument must be a list or tuple";
-  return false;
+  std::vector<Value> items;
+  if (!collect_join_iterable(args[1], items, error)) {
+    error = "str.join argument must be iterable";
+    return false;
+  }
+  return join_string_values(sep, items, out, error);
 }
 
 bool string_join_fast_method(
@@ -647,8 +669,12 @@ bool string_join_fast_method(
   if (auto* tuple = value_as_tuple(sequence)) {
     return join_string_values(sep, tuple->items, out, error);
   }
-  error = "str.join argument must be a list or tuple";
-  return false;
+  std::vector<Value> items;
+  if (!collect_join_iterable(sequence, items, error)) {
+    error = "str.join argument must be iterable";
+    return false;
+  }
+  return join_string_values(sep, items, out, error);
 }
 
 bool string_format_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

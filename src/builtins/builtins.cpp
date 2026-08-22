@@ -30,6 +30,8 @@ void register_core_builtins(Runtime& runtime) {
   register_atexit_module(runtime);
   register_io_module(runtime);
   register_os_module(runtime);
+  register_platform_module(runtime);
+  register_pkgutil_module(runtime);
   register_stat_module(runtime);
   register_imp_module(runtime);
   register_dataclasses_module(runtime);
@@ -39,6 +41,18 @@ void register_core_builtins(Runtime& runtime) {
   register_contextlib_module(runtime);
   register_warnings_module(runtime);
   register_re_module(runtime);
+  register_fnmatch_glob_modules(runtime);
+  register_ctypes_module(runtime);
+  register_dis_module(runtime);
+  register_getpass_module(runtime);
+  register_itertools_module(runtime);
+  register_sysconfig_module(runtime);
+  register_urllib_module(runtime);
+  register_codecs_module(runtime);
+  register_struct_module(runtime);
+  register_signal_module(runtime);
+  register_code_module(runtime);
+  register_xmlrpc_http_modules(runtime);
   register_collections_module(runtime);
   register_queue_module(runtime);
   register_types_module(runtime);
@@ -49,6 +63,7 @@ void register_core_builtins(Runtime& runtime) {
   register_inspect_module(runtime);
   register_logging_module(runtime);
   register_pathlib_module(runtime);
+  register_pydevd_compat_modules(runtime);
   register_socket_modules(runtime);
 #endif
   register_thread_modules(runtime);

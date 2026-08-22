@@ -764,6 +764,8 @@ bool builtin_exec(
 
 void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("_identity", builtin_identity);
+  runtime.register_native_builtin("classmethod", builtin_identity);
+  runtime.register_native_builtin("staticmethod", builtin_identity);
   runtime.register_native_builtin("callable", builtin_callable);
   runtime.register_native_builtin("enumerate", builtin_enumerate);
   runtime.register_native_builtin("zip", builtin_zip);

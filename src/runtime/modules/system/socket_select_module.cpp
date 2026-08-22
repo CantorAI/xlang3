@@ -134,6 +134,24 @@ bool socket_unsupported(Runtime&, const Value*, uint32_t, Value&, std::string& e
   return false;
 }
 
+bool socket_gethostname(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "socket.gethostname() expected no arguments";
+    return false;
+  }
+  out = Value::string("localhost");
+  return true;
+}
+
+bool socket_getaddrinfo(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2) {
+    error = "socket.getaddrinfo() expected host and port";
+    return false;
+  }
+  out = Value::list({});
+  return true;
+}
+
 Value make_socket_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("_socket.socket.__init__", socket_init)});
@@ -163,7 +181,9 @@ void add_socket_exports(NativeModuleBuilder& builder, const Value& socket_class)
       .value("SHUT_RDWR", Value::int64(2))
       .value("timeout", Value::string("socket.timeout"))
       .value("error", Value::string("socket.error"))
-      .value("socket", socket_class);
+      .value("socket", socket_class)
+      .function("gethostname", socket_gethostname)
+      .function("getaddrinfo", socket_getaddrinfo);
 }
 
 bool select_select(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

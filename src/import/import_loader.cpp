@@ -65,6 +65,10 @@ std::string module_leaf_name(const std::string& name) {
   return name.substr(dot + 1);
 }
 
+std::string python_path_string(const std::filesystem::path& path) {
+  return path.lexically_normal().generic_string();
+}
+
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
   const auto parts = split_module_name(name);
   const auto parent_name = parent_module_name(name);
@@ -91,15 +95,15 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
           VfsStat stat;
           std::string error;
           if (runtime.vfs().stat(candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-            out.path = candidate.string();
+            out.path = python_path_string(candidate);
             out.is_package = false;
             out.package_dir.clear();
             return true;
           }
           auto package_init = candidate_base / "__init__.py";
           if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-            out.path = package_init.string();
-            out.package_dir = candidate_base.string();
+            out.path = python_path_string(package_init);
+            out.package_dir = python_path_string(candidate_base);
             out.is_package = true;
             return true;
           }
@@ -140,7 +144,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
     VfsStat stat;
     std::string error;
     if (runtime.vfs().stat(candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-      out.path = candidate.string();
+      out.path = python_path_string(candidate);
       out.is_package = false;
       out.package_dir.clear();
       return true;
@@ -148,8 +152,8 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
 
     auto package_init = candidate_base / "__init__.py";
     if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-      out.path = package_init.string();
-      out.package_dir = candidate_base.string();
+      out.path = python_path_string(package_init);
+      out.package_dir = python_path_string(candidate_base);
       out.is_package = true;
       return true;
     }

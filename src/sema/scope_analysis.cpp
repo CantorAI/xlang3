@@ -79,6 +79,18 @@ void collect_assigned_target(const ast::Expr& expr, std::vector<std::string>& na
   }
 }
 
+std::vector<std::string> comp_target_names(const ast::Expr& target) {
+  std::vector<std::string> names;
+  NameSet seen;
+  collect_assigned_target(target, names, seen);
+  return names;
+}
+
+void append_comp_target_names(std::vector<std::string>& targets, const ast::Expr& target) {
+  auto names = comp_target_names(target);
+  targets.insert(targets.end(), names.begin(), names.end());
+}
+
 void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names, NameSet& seen) {
   for (const auto& stmt : body) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
@@ -87,6 +99,10 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
       collect_assigned_target(*assign->target, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(stmt.get())) {
       collect_assigned_target(*assign->target, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(stmt.get())) {
+      for (const auto& target : assign->targets) {
+        collect_assigned_target(*target, names, seen);
+      }
     } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(stmt.get())) {
       collect_assigned_target(*assign->target, names, seen);
     } else if (auto* del = dynamic_cast<const ast::DelStmt*>(stmt.get())) {
@@ -267,14 +283,14 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
       collect_reads_expr(*item, names, seen);
     }
   } else if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
-    std::vector<std::string> targets{comp->target};
+    std::vector<std::string> targets = comp_target_names(*comp->target_expr);
     collect_reads_expr(*comp->iterable, names, seen);
     for (const auto& clause : comp->extra_clauses) {
       std::vector<std::string> iterable_reads;
       NameSet iterable_seen;
       collect_reads_expr(*clause.iterable, iterable_reads, iterable_seen);
       add_comp_body_reads(iterable_reads, targets, names, seen);
-      targets.push_back(clause.target);
+      append_comp_target_names(targets, *clause.target_expr);
       if (clause.filter != nullptr) {
         std::vector<std::string> filter_reads;
         NameSet filter_seen;
@@ -293,14 +309,14 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
       add_comp_body_reads(filter_reads, targets, names, seen);
     }
   } else if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
-    std::vector<std::string> targets{comp->target};
+    std::vector<std::string> targets = comp_target_names(*comp->target_expr);
     collect_reads_expr(*comp->iterable, names, seen);
     for (const auto& clause : comp->extra_clauses) {
       std::vector<std::string> iterable_reads;
       NameSet iterable_seen;
       collect_reads_expr(*clause.iterable, iterable_reads, iterable_seen);
       add_comp_body_reads(iterable_reads, targets, names, seen);
-      targets.push_back(clause.target);
+      append_comp_target_names(targets, *clause.target_expr);
       if (clause.filter != nullptr) {
         std::vector<std::string> filter_reads;
         NameSet filter_seen;
@@ -317,14 +333,14 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     }
     add_comp_body_reads(body_reads, targets, names, seen);
   } else if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
-    std::vector<std::string> targets{comp->target};
+    std::vector<std::string> targets = comp_target_names(*comp->target_expr);
     collect_reads_expr(*comp->iterable, names, seen);
     for (const auto& clause : comp->extra_clauses) {
       std::vector<std::string> iterable_reads;
       NameSet iterable_seen;
       collect_reads_expr(*clause.iterable, iterable_reads, iterable_seen);
       add_comp_body_reads(iterable_reads, targets, names, seen);
-      targets.push_back(clause.target);
+      append_comp_target_names(targets, *clause.target_expr);
       if (clause.filter != nullptr) {
         std::vector<std::string> filter_reads;
         NameSet filter_seen;
@@ -340,14 +356,14 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     }
     add_comp_body_reads(body_reads, targets, names, seen);
   } else if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
-    std::vector<std::string> targets{comp->target};
+    std::vector<std::string> targets = comp_target_names(*comp->target_expr);
     collect_reads_expr(*comp->iterable, names, seen);
     for (const auto& clause : comp->extra_clauses) {
       std::vector<std::string> iterable_reads;
       NameSet iterable_seen;
       collect_reads_expr(*clause.iterable, iterable_reads, iterable_seen);
       add_comp_body_reads(iterable_reads, targets, names, seen);
-      targets.push_back(clause.target);
+      append_comp_target_names(targets, *clause.target_expr);
       if (clause.filter != nullptr) {
         std::vector<std::string> filter_reads;
         NameSet filter_seen;
@@ -389,6 +405,16 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
         collect_reads_expr(*assign->value, names, seen);
       }
     } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(stmt.get())) {
+      collect_reads_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(stmt.get())) {
+      for (const auto& target : assign->targets) {
+        if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(target.get())) {
+          collect_reads_expr(*subscript->object, names, seen);
+          collect_reads_expr(*subscript->index, names, seen);
+        } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(target.get())) {
+          collect_reads_expr(*attr->object, names, seen);
+        }
+      }
       collect_reads_expr(*assign->value, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(stmt.get())) {
       collect_reads_expr(*assign->target, names, seen);

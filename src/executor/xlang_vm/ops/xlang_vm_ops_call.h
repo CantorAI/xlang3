@@ -813,7 +813,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     }
   } else if (auto* klass = value_as_class(callee)) {
     std::string constructor_error;
-    if (call_builtin_type_constructor_fn(runtime, *klass, call_args, regs[in.dst], constructor_error)) {
+    if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
       return XlangVMOpFlow::Next;
     }
     if (!constructor_error.empty()) {
@@ -1021,7 +1021,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(callee)) {
     std::string constructor_error;
-    if (call_builtin_type_constructor_fn(runtime, *klass, call_args, regs[in.dst], constructor_error)) {
+    if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
       return XlangVMOpFlow::Next;
     }
     if (!constructor_error.empty()) {

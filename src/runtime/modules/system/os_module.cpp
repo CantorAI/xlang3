@@ -18,6 +18,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <filesystem>
 
@@ -190,6 +192,19 @@ bool path_unary(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   std::error_code ec;
   if (std::string(op) == "abspath") {
     out = Value::string(std::filesystem::absolute(fs_path, ec).lexically_normal().string());
+  } else if (std::string(op) == "realpath") {
+    out = Value::string(std::filesystem::absolute(fs_path, ec).lexically_normal().string());
+  } else if (std::string(op) == "normpath") {
+    out = Value::string(fs_path.lexically_normal().string());
+  } else if (std::string(op) == "normcase") {
+    auto normalized = fs_path.lexically_normal().string();
+#if defined(_WIN32)
+    std::replace(normalized.begin(), normalized.end(), '/', '\\');
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char ch) {
+      return static_cast<char>(std::tolower(ch));
+    });
+#endif
+    out = Value::string(std::move(normalized));
   } else if (std::string(op) == "dirname") {
     out = Value::string(fs_path.parent_path().string());
   } else if (std::string(op) == "basename") {
@@ -200,9 +215,99 @@ bool path_unary(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
     out = Value::boolean(std::filesystem::is_directory(fs_path, ec));
   } else if (std::string(op) == "isfile") {
     out = Value::boolean(std::filesystem::is_regular_file(fs_path, ec));
+  } else if (std::string(op) == "isabs") {
+    out = Value::boolean(fs_path.is_absolute());
   } else {
     value_assign_fast(out, args[0]);
   }
+  return true;
+}
+
+size_t last_path_separator(const std::string& path) {
+  const size_t slash = path.find_last_of('/');
+  const size_t backslash = path.find_last_of('\\');
+  if (slash == std::string::npos) {
+    return backslash;
+  }
+  if (backslash == std::string::npos) {
+    return slash;
+  }
+  return std::max(slash, backslash);
+}
+
+bool path_splitext(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "splitext() expected one path";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+
+  const size_t sep = last_path_separator(path);
+  const size_t filename_start = sep == std::string::npos ? 0 : sep + 1;
+  const size_t dot = path.find_last_of('.');
+  if (dot == std::string::npos || dot < filename_start || dot == filename_start) {
+    out = Value::tuple({Value::string(path), Value::string("")});
+    return true;
+  }
+  out = Value::tuple({Value::string(path.substr(0, dot)), Value::string(path.substr(dot))});
+  return true;
+}
+
+bool path_splitdrive(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "splitdrive() expected one path";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+
+#if defined(_WIN32)
+  if (path.size() >= 2 && path[1] == ':' && std::isalpha(static_cast<unsigned char>(path[0]))) {
+    out = Value::tuple({Value::string(path.substr(0, 2)), Value::string(path.substr(2))});
+    return true;
+  }
+  if (path.size() >= 2 && path[0] == '\\' && path[1] == '\\') {
+    size_t server_end = path.find('\\', 2);
+    if (server_end != std::string::npos) {
+      size_t share_end = path.find('\\', server_end + 1);
+      if (share_end != std::string::npos) {
+        out = Value::tuple({Value::string(path.substr(0, share_end)), Value::string(path.substr(share_end))});
+        return true;
+      }
+    }
+  }
+#endif
+  out = Value::tuple({Value::string(""), Value::string(path)});
+  return true;
+}
+
+bool path_expanduser(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "expanduser() expected one path";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+  if (path.empty() || path[0] != '~') {
+    out = Value::string(std::move(path));
+    return true;
+  }
+  const char* home = std::getenv("USERPROFILE");
+  if (home == nullptr) {
+    home = std::getenv("HOME");
+  }
+  if (home == nullptr) {
+    out = Value::string(std::move(path));
+    return true;
+  }
+  out = Value::string(std::string(home) + path.substr(1));
   return true;
 }
 
@@ -230,17 +335,29 @@ bool path_join(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
 Value make_os_path_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "os.path");
   builder.value("abspath", runtime.make_native_function("os.path.abspath", path_unary, const_cast<char*>("abspath")))
+      .value("realpath", runtime.make_native_function("os.path.realpath", path_unary, const_cast<char*>("realpath")))
+      .value("normpath", runtime.make_native_function("os.path.normpath", path_unary, const_cast<char*>("normpath")))
+      .value("normcase", runtime.make_native_function("os.path.normcase", path_unary, const_cast<char*>("normcase")))
       .value("dirname", runtime.make_native_function("os.path.dirname", path_unary, const_cast<char*>("dirname")))
       .value("basename", runtime.make_native_function("os.path.basename", path_unary, const_cast<char*>("basename")))
       .value("exists", runtime.make_native_function("os.path.exists", path_unary, const_cast<char*>("exists")))
       .value("isdir", runtime.make_native_function("os.path.isdir", path_unary, const_cast<char*>("isdir")))
       .value("isfile", runtime.make_native_function("os.path.isfile", path_unary, const_cast<char*>("isfile")))
+      .value("isabs", runtime.make_native_function("os.path.isabs", path_unary, const_cast<char*>("isabs")))
       .function("join", path_join)
+      .function("splitext", path_splitext)
+      .function("splitdrive", path_splitdrive)
+      .function("expanduser", path_expanduser)
 #if defined(_WIN32)
       .value("sep", Value::string("\\"))
+      .value("altsep", Value::string("/"))
+      .value("pathsep", Value::string(";"))
 #else
       .value("sep", Value::string("/"))
+      .value("altsep", Value())
+      .value("pathsep", Value::string(":"))
 #endif
+      .value("extsep", Value::string("."))
       .value("curdir", Value::string("."))
       .value("pardir", Value::string(".."));
   return builder.finish();
@@ -265,12 +382,14 @@ void register_os_module(Runtime& runtime) {
 #if defined(_WIN32)
       .value("name", Value::string("nt"))
       .value("sep", Value::string("\\"))
+      .value("altsep", Value::string("/"))
       .value("pathsep", Value::string(";"))
       .value("curdir", Value::string("."))
       .value("pardir", Value::string(".."));
 #else
       .value("name", Value::string("posix"))
       .value("sep", Value::string("/"))
+      .value("altsep", Value())
       .value("pathsep", Value::string(":"))
       .value("curdir", Value::string("."))
       .value("pardir", Value::string(".."));

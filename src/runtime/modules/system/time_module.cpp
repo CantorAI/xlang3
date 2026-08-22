@@ -94,6 +94,15 @@ bool time_sleep(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   return true;
 }
 
+bool time_mktime(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "time.mktime() expected one time tuple";
+    return false;
+  }
+  out = Value::number(0.0);
+  return true;
+}
+
 } // namespace
 
 void register_time_module(Runtime& runtime) {
@@ -104,7 +113,8 @@ void register_time_module(Runtime& runtime) {
       .function("monotonic_ns", time_monotonic_ns)
       .function("perf_counter", time_monotonic)
       .function("perf_counter_ns", time_monotonic_ns)
-      .function("sleep", time_sleep);
+      .function("sleep", time_sleep)
+      .function("mktime", time_mktime);
   runtime.register_module("time", builder.finish());
 }
 

@@ -70,6 +70,17 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "ZeroDivisionError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "OSError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "FileNotFoundError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "PermissionError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "IsADirectoryError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "NotADirectoryError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "BlockingIOError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "ConnectionError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "BrokenPipeError", *runtime.find_builtin("ConnectionError"));
+  register_exception_class(runtime, "ConnectionAbortedError", *runtime.find_builtin("ConnectionError"));
+  register_exception_class(runtime, "ConnectionRefusedError", *runtime.find_builtin("ConnectionError"));
+  register_exception_class(runtime, "ConnectionResetError", *runtime.find_builtin("ConnectionError"));
+  register_exception_class(runtime, "TimeoutError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "Warning", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "UserWarning", *runtime.find_builtin("Warning"));

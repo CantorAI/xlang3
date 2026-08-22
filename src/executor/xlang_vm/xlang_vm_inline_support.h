@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang_vm_inline_call.h"
 #include "xlang_vm_names.h"
 #include "xlang_vm_property_inline.h"
+#include "runtime_lock.h"
 
 #include "xlang3/compiler.h"
 #include "xlang3/builtins.h"
@@ -486,6 +487,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Runtime& runtime,
     const ClassObject& klass,
     CallArgsView args,
+    XlangRuntimeExecutionGuard& execution_lock,
     Value& out,
     std::string& error) {
   const auto constructor = xlang_vm_find_builtin_constructor(klass.name);
@@ -701,15 +703,18 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       if (!sequence_get_iter(args.get(0), iterator, error)) {
         return false;
       }
+      execution_lock.unlock();
       for (;;) {
         bool done = false;
         Value item;
         if (!sequence_iter_next(iterator, done, item, error)) {
+          execution_lock.lock();
           return false;
         }
         if (done) break;
         items.push_back(std::move(item));
       }
+      execution_lock.lock();
     }
     if (constructor == XlangVMBuiltinConstructor::List) {
       out = Value::list(std::move(items));

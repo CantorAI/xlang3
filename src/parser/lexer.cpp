@@ -379,9 +379,29 @@ LexResult Lexer::tokenize() {
       const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
       emit_owned(kind, std::move(value), start_line_no, static_cast<uint32_t>(prefix_start + 1), true);
       if (suffix.find_first_not_of(" \t") != std::string::npos) {
-        tokenize_line(std::string(indent, ' ') + suffix, line_no, indent);
+        std::string logical_line(std::string(indent, ' ') + suffix);
+        uint32_t logical_end_line = line_no;
+        int bracket_depth = 0;
+        bool explicit_continue = false;
+        bool should_join = update_line_join_state(logical_line, bracket_depth, explicit_continue);
+        while (should_join && line_index + 1 < lines.size()) {
+          if (explicit_continue) {
+            remove_trailing_backslash(logical_line);
+          }
+          const auto next_line = lines[++line_index];
+          logical_end_line = next_line.line;
+          logical_line.push_back(' ');
+          logical_line += std::string(trim_left_ascii(trim_inline_comment_for_join(next_line.text)));
+          should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
+        }
+        auto owned = std::make_unique<std::string>(std::move(logical_line));
+        const std::string_view logical_view(*owned);
+        owned_text_.push_back(std::move(owned));
+        tokenize_line(logical_view, line_no, indent);
+        emit(TokenKind::Newline, "", logical_end_line, static_cast<uint32_t>(logical_view.size() + 1));
+      } else {
+        emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
       }
-      emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
       continue;
     }
 
@@ -516,13 +536,37 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
     if (std::isdigit(static_cast<unsigned char>(ch))) {
       size_t start = i++;
       bool is_double = false;
-      while (i < line_text.size() && std::isdigit(static_cast<unsigned char>(line_text[i]))) {
+      if (ch == '0' && i < line_text.size() &&
+          (line_text[i] == 'x' || line_text[i] == 'X' || line_text[i] == 'b' || line_text[i] == 'B' ||
+           line_text[i] == 'o' || line_text[i] == 'O')) {
+        ++i;
+        while (i < line_text.size() &&
+               (std::isalnum(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
+          ++i;
+        }
+        emit(TokenKind::Integer, line_text.substr(start, i - start), line_no, col);
+        continue;
+      }
+      while (i < line_text.size() &&
+             (std::isdigit(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
         ++i;
       }
       if (i < line_text.size() && line_text[i] == '.') {
         is_double = true;
         ++i;
-        while (i < line_text.size() && std::isdigit(static_cast<unsigned char>(line_text[i]))) {
+        while (i < line_text.size() &&
+               (std::isdigit(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
+          ++i;
+        }
+      }
+      if (i < line_text.size() && (line_text[i] == 'e' || line_text[i] == 'E')) {
+        is_double = true;
+        ++i;
+        if (i < line_text.size() && (line_text[i] == '+' || line_text[i] == '-')) {
+          ++i;
+        }
+        while (i < line_text.size() &&
+               (std::isdigit(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
           ++i;
         }
       }

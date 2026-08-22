@@ -144,7 +144,12 @@ void register_queue_module(Runtime& runtime) {
 
   NativeModuleBuilder facade(runtime, "queue");
   facade.value("SimpleQueue", simple_queue_class)
-      .value("Queue", std::move(simple_queue_class));
+      .value("Queue", simple_queue_class)
+      .value("LifoQueue", simple_queue_class)
+      .value("PriorityQueue", simple_queue_class)
+      .value("Empty", Value::class_object("Empty", {}))
+      .value("Full", Value::class_object("Full", {}))
+      .value("deque", Value::class_object("deque", {}));
   runtime.register_module("queue", facade.finish());
 }
 
