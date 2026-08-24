@@ -259,7 +259,7 @@ Section-level fixture coverage:
 - [x] subclass matching
 - [x] catchable interpreter/native runtime errors
 - [x] `finally` unwind basics
-- [~] exception hierarchy completeness: common built-in exception classes registered; full CPython tree pending
+- [~] exception hierarchy completeness: common built-in exception classes registered, including `KeyboardInterrupt` and `SystemExit`; full CPython tree pending
 - [~] traceback capture: VM exception path builds frame chain; exact line table pending
 - [~] exception chaining: explicit cause and implicit context metadata basics; display formatting pending
 - [~] `raise from` runtime cause/context metadata
@@ -379,7 +379,7 @@ Native or runtime-backed foundation:
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
 - [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
-- [~] `_signal`: signal constants and `signal`/`getsignal` facade; real signal delivery semantics pending
+- [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
 - [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
@@ -415,7 +415,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `platform`: platform/python version helpers foundation
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`, and loader placeholder foundations; full finder/loader semantics pending
 - [~] `re`: regex compile/match/search/fullmatch/escape facade; full CPython regex semantics pending
-- [ ] `signal`: public signal facade over `_signal`; real delivery semantics pending
+- [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
 - [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`, and `Full` foundations with ordering/maxsize/task helpers; blocking/wakeup semantics pending

@@ -78,6 +78,8 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "StopAsyncIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "GeneratorExit", *runtime.find_builtin("BaseException"));
+  register_exception_class(runtime, "KeyboardInterrupt", *runtime.find_builtin("BaseException"));
+  register_exception_class(runtime, "SystemExit", *runtime.find_builtin("BaseException"));
   register_exception_class(runtime, "EOFError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "OSError", *runtime.find_builtin("Exception"));
   runtime.register_builtin("IOError", *runtime.find_builtin("OSError"));

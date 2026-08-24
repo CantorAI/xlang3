@@ -164,6 +164,7 @@ import getpass
 import locale
 import opcode
 import pkgutil
+import signal
 import site
 import subprocess
 import sys
@@ -175,6 +176,20 @@ print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths()
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
+
+signal_seen = []
+
+def signal_handler(signum, frame):
+    signal_seen.append(signum)
+
+previous_handler = signal.signal(signal.SIGINT, signal_handler)
+print(previous_handler == signal.SIG_DFL, signal.getsignal(signal.SIGINT) is signal_handler, signal.SIGINT in signal.valid_signals())
+signal.raise_signal(signal.SIGINT)
+print(signal_seen, signal.strsignal(signal.SIGTERM))
+try:
+    signal.default_int_handler(signal.SIGINT, None)
+except KeyboardInterrupt:
+    print("keyboard")
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])
