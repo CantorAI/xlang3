@@ -17,7 +17,9 @@ limitations under the License.
 #include "../xlang_frame.h"
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
@@ -611,6 +613,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   std::string error;
   if (!sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
     xlang_vm_cache_note_miss(cache);
+    if (value_as_instance(regs[in.a]) != nullptr) {
+      Value getitem;
+      std::string attr_error;
+      if (object_get_attr(regs[in.a], "__getitem__", getitem, attr_error)) {
+        const Value call_arg = regs[in.b];
+        if (runtime_call_callable(runtime, getitem, &call_arg, 1, regs[in.dst], error)) {
+          xlang_vm_cache_note_hit(cache);
+          return XlangVMOpFlow::Next;
+        }
+      }
+    }
     bool is_mapping_miss = error == "key not found" && value_as_dict(regs[in.a]) != nullptr;
     if (!is_mapping_miss) {
       if (auto* instance = value_as_instance(regs[in.a])) {

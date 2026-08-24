@@ -231,6 +231,7 @@ Section-level fixture coverage:
 - [x] `__getattribute__` instance hook foundation
 - [x] `__setattr__` instance hook foundation plus `object.__setattr__`
 - [x] `__delattr__` instance hook foundation plus `object.__delattr__`
+- [x] user-defined `__getitem__` fallback for instance subscript dispatch after native sequence/mapping fast paths
 - [~] `__slots__`: explicit string/list/tuple/set declarations, inherited slot layout for known bases, dynamic attribute restriction, member descriptors, descriptor get/set/delete, deletion, and `__dict__` opt-in basics; weakref behavior and conflict edge cases pending
 
 ### Functions And Calls
@@ -428,7 +429,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
 - [~] `importlib`: `import_module`, `invalidate_caches`, and `importlib.util.find_spec` basics
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
-- [~] `collections`: facade exposing native `deque`; Counter/defaultdict/namedtuple/etc. pending
+- [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple`, and dict-backed `Counter` foundations; full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`suffix`/`parent` properties, and basic path transforms; full operator/glob semantics pending

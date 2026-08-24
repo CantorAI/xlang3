@@ -184,3 +184,13 @@ print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.filterfalse(is_even, [1, 2, 3, 4])))
 print(list(itertools.compress(["a", "b", "c"], [1, 0, 1])), list(itertools.repeat("x", 3)))
 print(list(itertools.chain([1, 2], (3, 4))), list(itertools.batched([1, 2, 3, 4, 5], 2)))
+
+# collections: Counter dict-backed counting helpers.
+from collections import Counter
+
+counts = Counter("abbccc")
+counts.update(["a", "d"])
+counts.subtract({"c": 1, "d": 2})
+print(counts["a"], counts["b"], counts["c"], counts["d"], counts["z"])
+print(counts.total(), counts.most_common(2))
+print(list(counts.elements()))

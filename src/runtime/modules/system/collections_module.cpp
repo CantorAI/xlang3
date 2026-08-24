@@ -21,7 +21,9 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
+#include <algorithm>
 #include <deque>
+#include <limits>
 #include <sstream>
 
 namespace xlang3 {
@@ -30,6 +32,7 @@ namespace {
 
 constexpr const char* kDequeNativeType = "_collections.deque";
 constexpr const char* kDefaultDictNativeType = "collections.defaultdict";
+constexpr const char* kCounterNativeType = "collections.Counter";
 constexpr const char* kNamedTupleFieldsType = "collections.namedtuple.fields";
 
 struct DequeState {
@@ -39,6 +42,10 @@ struct DequeState {
 struct DefaultDictState {
   Value default_factory;
   std::vector<std::pair<Value, Value>> items;
+};
+
+struct CounterState {
+  Value storage;
 };
 
 DequeState* deque_state(const Value& self, std::string& error) {
@@ -63,6 +70,10 @@ DefaultDictState* defaultdict_state(const Value& self, std::string& error) {
 
 void defaultdict_cleanup(void* data) {
   delete static_cast<DefaultDictState*>(data);
+}
+
+void counter_cleanup(void* data) {
+  delete static_cast<CounterState*>(data);
 }
 
 void namedtuple_fields_cleanup(void* data) {
@@ -416,6 +427,262 @@ Value make_defaultdict_class(Runtime& runtime) {
   return Value::class_object("defaultdict", std::move(attrs));
 }
 
+Value* counter_storage(const Value& self, std::string& error) {
+  auto* state = static_cast<CounterState*>(instance_get_native_data(self, kCounterNativeType));
+  if (state == nullptr || value_as_dict(state->storage) == nullptr) {
+    error = "invalid Counter object";
+    return nullptr;
+  }
+  return &state->storage;
+}
+
+bool counter_add_count(Value& storage, const Value& key, int64_t delta, std::string& error) {
+  Value current;
+  std::string ignored;
+  int64_t value = 0;
+  if (mapping_get_item(storage, key, current, ignored)) {
+    if (current.tag != ValueTag::Int64) {
+      error = "Counter count is not an int";
+      return false;
+    }
+    value = current.as.i64;
+  }
+  return mapping_set_item(storage, key, Value::int64(value + delta), error);
+}
+
+bool counter_update_from_iterable(Value& storage, const Value& iterable, int64_t delta, std::string& error) {
+  if (auto* counter = static_cast<CounterState*>(instance_get_native_data(iterable, kCounterNativeType))) {
+    return counter_update_from_iterable(storage, counter->storage, delta, error);
+  }
+  if (auto* instance = value_as_instance(iterable)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return counter_update_from_iterable(storage, instance->mapping_storage, delta, error);
+    }
+  }
+  if (auto* dict = value_as_dict(iterable)) {
+    for (const auto& entry : dict->entries) {
+      if (entry.second.tag != ValueTag::Int64) {
+        error = "Counter mapping counts must be int";
+        return false;
+      }
+      if (!counter_add_count(storage, entry.first, entry.second.as.i64 * delta, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (!counter_add_count(storage, item, delta, error)) {
+      return false;
+    }
+  }
+}
+
+bool counter_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "Counter.__init__() expected optional iterable or mapping";
+    return false;
+  }
+  auto* state = new CounterState();
+  state->storage = Value::dict({});
+  if (argc == 2 && !counter_update_from_iterable(state->storage, args[1], 1, error)) {
+    delete state;
+    return false;
+  }
+  if (!instance_set_native_data(args[0], kCounterNativeType, state, counter_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool counter_getitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Counter.__getitem__() expected key";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  std::string ignored;
+  if (!mapping_get_item(*storage, args[1], out, ignored)) {
+    value_set_int64(out, 0);
+  }
+  return true;
+}
+
+bool counter_setitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "Counter.__setitem__() expected key and value";
+    return false;
+  }
+  if (args[2].tag != ValueTag::Int64) {
+    error = "Counter count must be int";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr || !mapping_set_item(*storage, args[1], args[2], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool counter_update(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "Counter.update() expected optional iterable or mapping";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  if (argc == 2 && !counter_update_from_iterable(*storage, args[1], 1, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool counter_subtract(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "Counter.subtract() expected optional iterable or mapping";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  if (argc == 2 && !counter_update_from_iterable(*storage, args[1], -1, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool counter_elements(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Counter.elements() expected no arguments";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (const auto& entry : value_as_dict(*storage)->entries) {
+    if (entry.second.tag != ValueTag::Int64 || entry.second.as.i64 <= 0) {
+      continue;
+    }
+    for (int64_t i = 0; i < entry.second.as.i64; ++i) {
+      values.push_back(entry.first);
+    }
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool counter_most_common(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "Counter.most_common() expected optional n";
+    return false;
+  }
+  int64_t limit = std::numeric_limits<int64_t>::max();
+  if (argc == 2) {
+    if (args[1].tag == ValueTag::None) {
+      limit = std::numeric_limits<int64_t>::max();
+    } else if (args[1].tag == ValueTag::Int64) {
+      limit = args[1].as.i64;
+    } else {
+      error = "Counter.most_common() n must be int or None";
+      return false;
+    }
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  std::vector<std::pair<Value, int64_t>> pairs;
+  for (const auto& entry : value_as_dict(*storage)->entries) {
+    if (entry.second.tag == ValueTag::Int64) {
+      pairs.push_back({entry.first, entry.second.as.i64});
+    }
+  }
+  std::stable_sort(pairs.begin(), pairs.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs.second > rhs.second;
+  });
+  std::vector<Value> values;
+  for (const auto& item : pairs) {
+    if (limit-- <= 0) {
+      break;
+    }
+    values.push_back(Value::tuple({item.first, Value::int64(item.second)}));
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool counter_total(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Counter.total() expected no arguments";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  int64_t total = 0;
+  for (const auto& entry : value_as_dict(*storage)->entries) {
+    if (entry.second.tag == ValueTag::Int64) {
+      total += entry.second.as.i64;
+    }
+  }
+  value_set_int64(out, total);
+  return true;
+}
+
+bool counter_items(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Counter.items() expected no arguments";
+    return false;
+  }
+  auto* storage = counter_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  out = mapping_items_view(*storage);
+  return true;
+}
+
+Value make_counter_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("collections")});
+  attrs.push_back({"__init__", runtime.make_native_function("collections.Counter.__init__", counter_init)});
+  attrs.push_back({"__getitem__", runtime.make_native_function("collections.Counter.__getitem__", counter_getitem)});
+  attrs.push_back({"__setitem__", runtime.make_native_function("collections.Counter.__setitem__", counter_setitem)});
+  attrs.push_back({"update", runtime.make_native_function("collections.Counter.update", counter_update)});
+  attrs.push_back({"subtract", runtime.make_native_function("collections.Counter.subtract", counter_subtract)});
+  attrs.push_back({"elements", runtime.make_native_function("collections.Counter.elements", counter_elements)});
+  attrs.push_back({"most_common", runtime.make_native_function("collections.Counter.most_common", counter_most_common)});
+  attrs.push_back({"total", runtime.make_native_function("collections.Counter.total", counter_total)});
+  attrs.push_back({"items", runtime.make_native_function("collections.Counter.items", counter_items)});
+  return Value::class_object("Counter", std::move(attrs));
+}
+
 bool namedtuple_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   auto* fields = static_cast<std::vector<std::string>*>(user_data);
   if (fields == nullptr || argc != fields->size() + 1) {
@@ -667,6 +934,7 @@ void register_collections_module(Runtime& runtime) {
   Value deque_class = make_deque_class(runtime);
   Value defaultdict_class = make_defaultdict_class(runtime);
   Value ordered_dict_class = make_ordered_dict_class(runtime);
+  Value counter_class = make_counter_class(runtime);
 
   NativeModuleBuilder builder(runtime, "_collections");
   builder.value("deque", deque_class);
@@ -676,6 +944,7 @@ void register_collections_module(Runtime& runtime) {
   facade.value("deque", std::move(deque_class))
       .value("defaultdict", std::move(defaultdict_class))
       .value("OrderedDict", std::move(ordered_dict_class))
+      .value("Counter", std::move(counter_class))
       .function("namedtuple", namedtuple_factory);
   runtime.register_module("collections", facade.finish());
 }
