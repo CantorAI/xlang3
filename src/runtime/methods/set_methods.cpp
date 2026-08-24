@@ -55,6 +55,37 @@ bool add_iterable_items(Value& set, const Value& iterable, std::string& error) {
   }
 }
 
+bool set_contains_value(const SetObject& set, const Value& value) {
+  for (const auto& item : set.items) {
+    if (value_key_equal(item, value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool iterable_all_in_set(const Value& iterable, const SetObject& set, bool& out, std::string& error) {
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  out = true;
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (!set_contains_value(set, item)) {
+      out = false;
+      return true;
+    }
+  }
+}
+
 bool remove_set_item(Value& set_value, const Value& item, bool require_present, std::string& error) {
   auto* set = value_as_set(set_value);
   if (set == nullptr) {
@@ -184,6 +215,145 @@ bool set_union_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool set_intersection_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.intersection target is not a set";
+    return false;
+  }
+  out = Value::set(set->items);
+  auto* result = value_as_set(out);
+  for (uint32_t i = 1; i < argc; ++i) {
+    Value iterator;
+    if (!sequence_get_iter(args[i], iterator, error)) {
+      return false;
+    }
+    std::vector<Value> keep;
+    while (true) {
+      bool done = false;
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+      if (set_contains_value(*result, item)) {
+        keep.push_back(item);
+      }
+    }
+    result->items.clear();
+    for (const auto& item : keep) {
+      if (!set_add(out, item, error)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool set_difference_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.difference target is not a set";
+    return false;
+  }
+  out = Value::set(set->items);
+  auto* result = value_as_set(out);
+  for (uint32_t i = 1; i < argc; ++i) {
+    Value iterator;
+    if (!sequence_get_iter(args[i], iterator, error)) {
+      return false;
+    }
+    while (true) {
+      bool done = false;
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+      for (auto it = result->items.begin(); it != result->items.end(); ++it) {
+        if (value_key_equal(*it, item)) {
+          result->items.erase(it);
+          break;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool set_isdisjoint_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "set.isdisjoint", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.isdisjoint target is not a set";
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      value_set_bool(out, true);
+      return true;
+    }
+    if (set_contains_value(*set, item)) {
+      value_set_bool(out, false);
+      return true;
+    }
+  }
+}
+
+bool set_issubset_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "set.issubset", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.issubset target is not a set";
+    return false;
+  }
+  Value other_value = Value::set({});
+  if (!add_iterable_items(other_value, args[1], error)) {
+    return false;
+  }
+  auto* other = value_as_set(other_value);
+  bool ok = false;
+  if (!iterable_all_in_set(args[0], *other, ok, error)) {
+    return false;
+  }
+  value_set_bool(out, ok);
+  return true;
+}
+
+bool set_issuperset_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "set.issuperset", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.issuperset target is not a set";
+    return false;
+  }
+  bool ok = false;
+  if (!iterable_all_in_set(args[1], *set, ok, error)) {
+    return false;
+  }
+  value_set_bool(out, ok);
+  return true;
+}
+
 } // namespace
 
 bool set_get_method(const Value& object, const std::string& name, Value& out) {
@@ -194,7 +364,12 @@ bool set_get_method(const Value& object, const std::string& name, Value& out) {
       {"add", "set.add", set_add_method},
       {"clear", "set.clear", set_clear_method},
       {"copy", "set.copy", set_copy_method},
+      {"difference", "set.difference", set_difference_method},
       {"discard", "set.discard", set_discard_method},
+      {"intersection", "set.intersection", set_intersection_method},
+      {"isdisjoint", "set.isdisjoint", set_isdisjoint_method},
+      {"issubset", "set.issubset", set_issubset_method},
+      {"issuperset", "set.issuperset", set_issuperset_method},
       {"pop", "set.pop", set_pop_method},
       {"remove", "set.remove", set_remove_method},
       {"union", "set.union", set_union_method},

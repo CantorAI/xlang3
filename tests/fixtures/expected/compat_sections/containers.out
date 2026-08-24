@@ -6,7 +6,10 @@ True True True
 1 False
 2 True
 26 3
+1 2 3
 5 True 7 True
+{2, 4} {2, 3, 4}
+True True True
 True True
 0
 tuple-key 9

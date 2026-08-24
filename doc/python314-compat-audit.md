@@ -271,8 +271,8 @@ Section-level fixture coverage:
 - [x] set basics
 - [x] range basics
 - [~] list methods: append, extend, insert, pop, clear, copy, count, index, remove, reverse, and default sort basics; key/reverse sort arguments and CPython edge cases pending
-- [~] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, copy, and clear basics; iterable-pair update, keyword update, fromkeys, merge operators, and CPython edge cases pending
-- [~] set methods: add, clear, copy, discard, pop, remove, update, and union basics; full set algebra/comparison methods and CPython edge cases pending
+- [~] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, update-from-iterable-pairs, keyword update, copy, and clear basics; fromkeys, merge operators, and CPython edge cases pending
+- [~] set methods: add, clear, copy, discard, pop, remove, update, union, intersection, difference, isdisjoint, issubset, and issuperset basics; symmetric difference, in-place algebra, operators, and CPython edge cases pending
 - [~] string methods
 - [~] tuple methods: `count` and `index`; full CPython edge cases pending
 - [x] slicing semantics for list/tuple/string/bytes/bytearray reads plus list/bytearray slice assignment and deletion basics

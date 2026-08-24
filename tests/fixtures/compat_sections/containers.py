@@ -39,6 +39,9 @@ popped = clone.popitem()
 print(len(popped), popped[0] in ("b", "c", "d"))
 clone.update({"z": 26})
 print(clone["z"], len(clone))
+pairs = [("p", 1), ["q", 2]]
+clone.update(pairs, r=3)
+print(clone["p"], clone["q"], clone["r"])
 
 # Set uniqueness, update/union/copy/pop/clear, and mutation methods.
 s = {1, 2, 2}
@@ -47,6 +50,8 @@ s.discard(9)
 s.update([3, 4], (5,))
 u = s.union({5, 6}, [7])
 print(len(s), 4 in s, len(u), 7 in u)
+print(s.intersection({2, 4, 9}), s.difference({1, 5}))
+print(s.issubset(u), u.issuperset(s), s.isdisjoint({8, 9}))
 s2 = s.copy()
 removed = s2.pop()
 print(removed in s, len(s2) + 1 == len(s))
