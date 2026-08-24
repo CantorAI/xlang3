@@ -403,7 +403,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `functools`: `update_wrapper`, `wraps`, and `partial` foundation with common function metadata propagation; full descriptor/cache/singledispatch/cmp helpers pending
 - [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
-- [~] `itertools`: selected iterator helpers foundation; full iterator algebra pending
+- [~] `itertools`: `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, `chain`, and `batched` foundations; lazy object identity and full iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`save` foundation; full CPython `json` package behavior pending
 - [~] `locale`: category constants, set/get locale, encoding helpers, normalize, and localeconv shape; real platform locale semantics pending
 - [ ] `marshal`: placeholder module; serialization semantics pending

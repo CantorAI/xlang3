@@ -168,3 +168,19 @@ box = OperatorBox()
 print(operator.attrgetter("inner.name")(box), operator.methodcaller("label", "box:")(box))
 operator.delitem(values, 0)
 print(values, operator.truth(values), operator.not_([]), operator.is_(box, box), operator.is_not(box, values))
+
+# itertools: finite iterator helpers consume generic iterables correctly.
+import itertools
+
+def less_than_four(x):
+    return x < 4
+
+def is_even(x):
+    return x % 2 == 0
+
+print(list(itertools.islice([0, 1, 2, 3, 4, 5], 1, 5, 2)))
+print(list(itertools.takewhile(less_than_four, [1, 2, 5, 3])))
+print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
+print(list(itertools.filterfalse(is_even, [1, 2, 3, 4])))
+print(list(itertools.compress(["a", "b", "c"], [1, 0, 1])), list(itertools.repeat("x", 3)))
+print(list(itertools.chain([1, 2], (3, 4))), list(itertools.batched([1, 2, 3, 4, 5], 2)))

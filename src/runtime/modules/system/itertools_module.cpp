@@ -14,10 +14,12 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/sequence.h"
 
 #include <limits>
+#include <vector>
 
 namespace xlang3 {
 
@@ -29,6 +31,24 @@ bool int_arg(const Value& value, int64_t& out) {
     return true;
   }
   return false;
+}
+
+bool collect_iterable(const Value& iterable, std::vector<Value>& values, std::string& error) {
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    values.push_back(std::move(item));
+  }
 }
 
 bool itertools_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -55,16 +75,207 @@ bool itertools_islice(Runtime&, const Value* args, uint32_t argc, Value& out, st
     error = "itertools.islice() expected iterable and slice bounds";
     return false;
   }
-  value_assign_fast(out, args[0]);
+  int64_t start = 0;
+  int64_t stop = 0;
+  int64_t step = 1;
+  if (argc == 2) {
+    if (!int_arg(args[1], stop)) {
+      error = "islice stop must be int";
+      return false;
+    }
+  } else {
+    if (!int_arg(args[1], start) || !int_arg(args[2], stop)) {
+      error = "islice start/stop must be int";
+      return false;
+    }
+    if (argc == 4 && (!int_arg(args[3], step) || step < 1)) {
+      error = "islice step must be a positive int";
+      return false;
+    }
+  }
+  if (start < 0 || stop < 0) {
+    error = "islice indices must be non-negative";
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (int64_t index = 0; index < stop;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    if (index >= start && ((index - start) % step) == 0) {
+      values.push_back(std::move(item));
+    }
+    ++index;
+  }
+  out = Value::list(std::move(values));
   return true;
 }
 
-bool itertools_takewhile(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_takewhile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "itertools.takewhile() expected predicate and iterable";
     return false;
   }
-  value_assign_fast(out, args[1]);
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    Value predicate_result;
+    if (!runtime_call_callable(runtime, args[0], &item, 1, predicate_result, error)) {
+      return false;
+    }
+    if (!value_truthy(predicate_result)) {
+      break;
+    }
+    values.push_back(std::move(item));
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool itertools_dropwhile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "itertools.dropwhile() expected predicate and iterable";
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  bool dropping = true;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    if (dropping) {
+      Value predicate_result;
+      if (!runtime_call_callable(runtime, args[0], &item, 1, predicate_result, error)) {
+        return false;
+      }
+      dropping = value_truthy(predicate_result);
+      if (dropping) {
+        continue;
+      }
+    }
+    values.push_back(std::move(item));
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool itertools_filterfalse(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "itertools.filterfalse() expected predicate and iterable";
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    bool keep = !value_truthy(item);
+    if (args[0].tag != ValueTag::None) {
+      Value predicate_result;
+      if (!runtime_call_callable(runtime, args[0], &item, 1, predicate_result, error)) {
+        return false;
+      }
+      keep = !value_truthy(predicate_result);
+    }
+    if (keep) {
+      values.push_back(std::move(item));
+    }
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool itertools_compress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "itertools.compress() expected data and selectors";
+    return false;
+  }
+  std::vector<Value> data;
+  std::vector<Value> selectors;
+  if (!collect_iterable(args[0], data, error) || !collect_iterable(args[1], selectors, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  const size_t count = data.size() < selectors.size() ? data.size() : selectors.size();
+  values.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    if (value_truthy(selectors[i])) {
+      values.push_back(data[i]);
+    }
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool itertools_repeat(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "itertools.repeat() expected object and optional times";
+    return false;
+  }
+  if (argc == 1) {
+    error = "infinite itertools.repeat() is not materialized by this foundation";
+    return false;
+  }
+  int64_t times = 0;
+  if (!int_arg(args[1], times) || times < 0) {
+    error = "repeat times must be non-negative int";
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(static_cast<size_t>(times));
+  for (int64_t i = 0; i < times; ++i) {
+    values.push_back(args[0]);
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool itertools_chain(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  std::vector<Value> values;
+  for (uint32_t i = 0; i < argc; ++i) {
+    if (!collect_iterable(args[i], values, error)) {
+      return false;
+    }
+  }
+  out = Value::list(std::move(values));
   return true;
 }
 
@@ -115,6 +326,11 @@ void register_itertools_module(Runtime& runtime) {
   builder.function("count", itertools_count)
       .function("islice", itertools_islice)
       .function("takewhile", itertools_takewhile)
+      .function("dropwhile", itertools_dropwhile)
+      .function("filterfalse", itertools_filterfalse)
+      .function("compress", itertools_compress)
+      .function("repeat", itertools_repeat)
+      .function("chain", itertools_chain)
       .function("batched", itertools_batched);
   runtime.register_module("itertools", builder.finish());
 }
