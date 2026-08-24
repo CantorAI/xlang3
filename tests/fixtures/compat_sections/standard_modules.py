@@ -177,6 +177,7 @@ import io
 import locale
 import marshal
 import opcode
+import pickle
 import pkgutil
 import signal
 import site
@@ -212,6 +213,14 @@ marshal_stream = io.BytesIO()
 marshal.dump([4, "stream"], marshal_stream)
 marshal_stream.seek(0)
 print(marshal.load(marshal_stream)[1], marshal.version)
+
+pickle_payload = {"items": [1, "two"], "flag": False}
+pickle_copy = pickle.loads(pickle.dumps(pickle_payload))
+print(pickle_copy["items"][1], pickle_copy["flag"], pickle.HIGHEST_PROTOCOL)
+pickle_stream = io.BytesIO()
+pickle.dump(("p", 3), pickle_stream)
+pickle_stream.seek(0)
+print(pickle.load(pickle_stream)[0])
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])

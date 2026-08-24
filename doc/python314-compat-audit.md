@@ -411,7 +411,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
 - [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
-- [ ] `pickle`: exception/classes facade; serialization semantics pending
+- [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes, and `dumps`/`loads`/file `dump`/`load` foundations for common XLang3 values through an XLang3-native envelope; CPython pickle opcode protocol, reducers, persistent IDs, custom object state, and extension compatibility pending
 - [~] `platform`: platform/python version helpers foundation
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`, and loader placeholder foundations; full finder/loader semantics pending
 - [~] `re`: regex compile/match/search/fullmatch/escape facade; full CPython regex semantics pending
