@@ -144,6 +144,8 @@ struct ParseExpressionResult {
   std::vector<std::string> errors;
 };
 
+std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text);
+
 class Lexer {
 public:
   explicit Lexer(std::string_view source);

@@ -70,11 +70,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_list(
   return XlangVMOpFlow::Next;
 }
 
+template <typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
     const ir::Instr& in,
     const ir::Function& fn,
     XlangVMSmallRegisterBuffer& regs,
-    RuntimeResult& result) {
+    RuntimeResult& result,
+    Runtime& runtime,
+    RaiseExceptionValue&& raise_exception_value) {
   if (in.a >= fn.dict_items.size()) {
     result.errors.push_back("invalid dict item list");
     return XlangVMOpFlow::ReturnResult;
@@ -89,8 +92,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
     size_t ignored_hash = 0;
     std::string error;
     if (!value_hash_key(regs[pair.first], ignored_hash, error)) {
-      result.errors.push_back(error);
-      return XlangVMOpFlow::ReturnResult;
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
     }
     bool replaced = false;
     for (auto& entry : dict->entries) {
@@ -107,25 +111,35 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
   return XlangVMOpFlow::Next;
 }
 
+template <typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow make_set(
     const ir::Instr& in,
     const ir::Function& fn,
     XlangVMSmallRegisterBuffer& regs,
-    RuntimeResult& result) {
+    RuntimeResult& result,
+    Runtime& runtime,
+    RaiseExceptionValue&& raise_exception_value) {
   if (in.a >= fn.set_items.size()) {
     result.errors.push_back("invalid set item list");
     return XlangVMOpFlow::ReturnResult;
   }
-  std::vector<Value> items;
-  items.reserve(fn.set_items[in.a].size());
+  regs[in.dst] = Value::set({});
   for (const auto reg : fn.set_items[in.a]) {
     if (reg >= regs.size()) {
       result.errors.push_back("invalid set item register");
       return XlangVMOpFlow::ReturnResult;
     }
-    items.push_back(regs[reg]);
+    std::string error;
+    if (!::xlang3::set_add(regs[in.dst], regs[reg], error)) {
+      if (error.find("not hashable") != std::string::npos) {
+        return raise_exception_value(runtime.make_exception("TypeError", error))
+                   ? XlangVMOpFlow::ContinueLoop
+                   : XlangVMOpFlow::ReturnResult;
+      }
+      result.errors.push_back(error);
+      return XlangVMOpFlow::ReturnResult;
+    }
   }
-  regs[in.dst] = Value::set(std::move(items));
   return XlangVMOpFlow::Next;
 }
 
@@ -186,11 +200,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow list_extend(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   if (auto* dict = value_as_dict(regs[in.dst])) {
     const auto& key = regs[in.a];
     if (key.tag == ValueTag::Int64) {
@@ -213,16 +229,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
   }
   std::string error;
   if (!mapping_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+    if (error.find("not hashable") != std::string::npos) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow set_add_op(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   if (auto* set = value_as_set(regs[in.dst])) {
     const auto& item = regs[in.a];
     if (item.tag == ValueTag::Int64) {
@@ -244,6 +267,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_add_op(
   }
   std::string error;
   if (!::xlang3::set_add(regs[in.dst], regs[in.a], error)) {
+    if (error.find("not hashable") != std::string::npos) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

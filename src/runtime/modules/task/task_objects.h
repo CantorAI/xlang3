@@ -50,7 +50,7 @@ void xlang_task_state_cleanup(void* data);
 
 bool xlang_task_spawn(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool xlang_task_completed(Runtime& runtime, const Value& result, Value& out, std::string& error);
-bool xlang_task_await_value(const Value& value, Value& out, std::string& error);
+bool xlang_task_await_value(Runtime& runtime, const Value& value, Value& out, std::string& error);
 bool xlang_task_join_value(const Value& task, Value& out, std::string& error);
 bool xlang_task_done_value(const Value& task, bool& done, std::string& error);
 bool xlang_task_await_all(Runtime& runtime, const Value& tasks, Value& out, std::string& error);

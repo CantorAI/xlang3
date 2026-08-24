@@ -18,6 +18,8 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
+#include <algorithm>
+
 namespace xlang3 {
 
 namespace {
@@ -196,6 +198,38 @@ bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool list_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "list.copy", error)) {
+    return false;
+  }
+  auto* list = value_as_list(args[0]);
+  if (list == nullptr) {
+    error = "list.copy target is not a list";
+    return false;
+  }
+  out = Value::list(list->items);
+  return true;
+}
+
+bool list_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "list.count", error)) {
+    return false;
+  }
+  auto* list = value_as_list(args[0]);
+  if (list == nullptr) {
+    error = "list.count target is not a list";
+    return false;
+  }
+  int64_t count = 0;
+  for (const auto& item : list->items) {
+    if (value_key_equal(item, args[1])) {
+      ++count;
+    }
+  }
+  value_set_int64(out, count);
+  return true;
+}
+
 bool list_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "list.index expected 2 to 4 arguments, got " + std::to_string(argc);
@@ -255,14 +289,56 @@ bool list_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return false;
 }
 
+bool list_reverse_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "list.reverse", error)) {
+    return false;
+  }
+  auto* list = value_as_list(args[0]);
+  if (list == nullptr) {
+    error = "list.reverse target is not a list";
+    return false;
+  }
+  std::reverse(list->items.begin(), list->items.end());
+  value_set_none(out);
+  return true;
+}
+
+bool list_sort_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "list.sort expected no positional arguments in this XLang3 compatibility subset";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* list = value_as_list(args[0]);
+  if (list == nullptr) {
+    error = "list.sort target is not a list";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::sort(list->items.begin(), list->items.end(), [&](const Value& lhs, const Value& rhs) {
+    Value result;
+    std::string compare_error;
+    if (!value_compare("<", lhs, rhs, result, compare_error) || result.tag != ValueTag::Bool) {
+      return false;
+    }
+    return result.as.b;
+  });
+  value_set_none(out);
+  return true;
+}
+
 static constexpr BuiltinMethodSpec kListMethods[] = {
       {"append", "list.append", list_append_method, list_append_fast_method},
       {"clear", "list.clear", list_clear_method},
+      {"copy", "list.copy", list_copy_method},
+      {"count", "list.count", list_count_method},
       {"extend", "list.extend", list_extend_method},
       {"index", "list.index", list_index_method},
       {"insert", "list.insert", list_insert_method},
       {"pop", "list.pop", list_pop_method},
       {"remove", "list.remove", list_remove_method},
+      {"reverse", "list.reverse", list_reverse_method},
+      {"sort", "list.sort", list_sort_method},
 };
 
 } // namespace

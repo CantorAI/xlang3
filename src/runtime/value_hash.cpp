@@ -19,6 +19,12 @@ limitations under the License.
 namespace xlang3 {
 
 bool value_key_equal(const Value& lhs, const Value& rhs) {
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Int64) {
+    return (lhs.as.b ? 1 : 0) == rhs.as.i64;
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Bool) {
+    return lhs.as.i64 == (rhs.as.b ? 1 : 0);
+  }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     return lhs.as.i64 == rhs.as.i64;
   }
@@ -55,6 +61,20 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
         return bytes_object_view(*reinterpret_cast<BytesObject*>(lhs.as.obj)) ==
                bytes_object_view(*reinterpret_cast<BytesObject*>(rhs.as.obj));
       }
+      if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+          lhs.as.obj->kind == ObjectKind::Tuple && rhs.as.obj->kind == ObjectKind::Tuple) {
+        const auto* left = reinterpret_cast<TupleObject*>(lhs.as.obj);
+        const auto* right = reinterpret_cast<TupleObject*>(rhs.as.obj);
+        if (left->items.size() != right->items.size()) {
+          return false;
+        }
+        for (size_t i = 0; i < left->items.size(); ++i) {
+          if (!value_key_equal(left->items[i], right->items[i])) {
+            return false;
+          }
+        }
+        return true;
+      }
       return false;
   }
   return false;
@@ -69,7 +89,7 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       out = 0x9e3779b97f4a7c15ull;
       return true;
     case ValueTag::Bool:
-      out = std::hash<bool>{}(value.as.b);
+      out = std::hash<int64_t>{}(value.as.b ? 1 : 0);
       return true;
     case ValueTag::Int64:
       out = std::hash<int64_t>{}(value.as.i64);
@@ -84,6 +104,20 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
+        return true;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+        const auto* tuple = reinterpret_cast<TupleObject*>(value.as.obj);
+        size_t hash = 0x345678ul;
+        for (const auto& item : tuple->items) {
+          size_t item_hash = 0;
+          if (!value_hash_key(item, item_hash, error)) {
+            return false;
+          }
+          hash = (hash ^ item_hash) * 1000003ul;
+          hash ^= tuple->items.size();
+        }
+        out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
         return true;
       }
       if (value.as.obj != nullptr) {

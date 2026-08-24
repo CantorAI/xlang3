@@ -52,6 +52,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
   if (auto* range = value_as_range_iterator(regs[in.a])) {
     done = range->step > 0 ? range->current >= range->stop : range->current <= range->stop;
     if (done) {
+      value_set_none(regs[in.dst]);
       ip = in.b;
       return XlangVMOpFlow::ContinueLoop;
     }
@@ -62,6 +63,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
   if (auto* iterator = value_as_sequence_iterator(regs[in.a])) {
     if (auto* list = value_as_list(iterator->source)) {
       if (iterator->index >= list->items.size()) {
+        value_set_none(regs[in.dst]);
         ip = in.b;
         return XlangVMOpFlow::ContinueLoop;
       }

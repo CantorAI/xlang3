@@ -15,6 +15,7 @@ limitations under the License.
 #include "task_objects.h"
 
 #include "runtime_lock.h"
+#include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -324,7 +325,13 @@ bool xlang_task_completed(Runtime& runtime, const Value& result, Value& out, std
   return true;
 }
 
-bool xlang_task_await_value(const Value& value, Value& out, std::string& error) {
+bool xlang_task_await_value(Runtime& runtime, const Value& value, Value& out, std::string& error) {
+  if (async_generator_awaitable_await(runtime, value, out, error)) {
+    return true;
+  }
+  if (!error.empty()) {
+    return false;
+  }
   std::string task_error;
   if (task_state_from_value(value, task_error) == nullptr) {
     value_assign_fast(out, value);
@@ -362,7 +369,7 @@ bool xlang_task_await_all(Runtime& runtime, const Value& tasks, Value& out, std:
   results.reserve(list->items.size());
   for (const auto& item : list->items) {
     Value result;
-    if (!xlang_task_await_value(item, result, error)) {
+    if (!xlang_task_await_value(runtime, item, result, error)) {
       return false;
     }
     results.push_back(result);

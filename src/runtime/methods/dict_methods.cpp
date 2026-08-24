@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 
 #include "xlang3/mapping.h"
+#include "xlang3/runtime.h"
 #include "xlang3/value_hash.h"
 
 namespace xlang3 {
@@ -116,6 +117,64 @@ bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool dict_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.copy", error)) {
+    return false;
+  }
+  auto* dict = value_as_dict(args[0]);
+  if (dict == nullptr) {
+    error = "dict.copy target is not a dict";
+    return false;
+  }
+  out = Value::dict(dict->entries);
+  return true;
+}
+
+bool dict_popitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.popitem", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* dict = value_as_dict(args[0]);
+  if (dict == nullptr) {
+    error = "dict.popitem target is not a dict";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (dict->entries.empty()) {
+    error = "popitem(): dictionary is empty";
+    runtime.raise_class_error("KeyError", error);
+    return false;
+  }
+  auto entry = dict->entries.back();
+  dict->entries.pop_back();
+  out = Value::tuple({entry.first, entry.second});
+  return true;
+}
+
+bool dict_setdefault_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 && argc != 3) {
+    error = "dict.setdefault expected 2 or 3 arguments, got " + std::to_string(argc);
+    return false;
+  }
+  auto* dict = value_as_dict(args[0]);
+  if (dict == nullptr) {
+    error = "dict.setdefault target is not a dict";
+    return false;
+  }
+  Value target = args[0];
+  if (mapping_get_item(target, args[1], out, error)) {
+    return true;
+  }
+  error.clear();
+  const Value& default_value = argc == 3 ? args[2] : Value::none();
+  if (!mapping_set_item(target, args[1], default_value, error)) {
+    return false;
+  }
+  value_assign_fast(out, default_value);
+  return true;
+}
+
 bool dict_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 && argc != 2) {
     error = "dict.update expected 1 or 2 arguments, got " + std::to_string(argc);
@@ -151,10 +210,13 @@ bool dict_get_method(const Value& object, const std::string& name, Value& out) {
   }
   static constexpr BuiltinMethodSpec methods[] = {
       {"clear", "dict.clear", dict_clear_method},
+      {"copy", "dict.copy", dict_copy_method},
       {"get", "dict.get", dict_get_method_impl},
       {"items", "dict.items", dict_items_method},
       {"keys", "dict.keys", dict_keys_method},
       {"pop", "dict.pop", dict_pop_method},
+      {"popitem", "dict.popitem", dict_popitem_method},
+      {"setdefault", "dict.setdefault", dict_setdefault_method},
       {"update", "dict.update", dict_update_method},
       {"values", "dict.values", dict_values_method},
   };

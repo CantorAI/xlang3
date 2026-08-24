@@ -492,6 +492,9 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
 }
 
 XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_inherited_builtin_constructor(const ClassObject& klass) {
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_type)) {
+    return XlangVMBuiltinConstructor::Type;
+  }
   if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_int)) {
     return XlangVMBuiltinConstructor::Int;
   }
@@ -629,7 +632,11 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
       value_assign_fast(base, bases->items[0]);
     }
-    out = Value::class_object(string_object_to_string(*name), std::move(attrs), base);
+    Value metaclass;
+    metaclass.tag = ValueTag::Object;
+    metaclass.as.obj = const_cast<Object*>(&klass.header);
+    retain(metaclass);
+    out = Value::class_object(string_object_to_string(*name), std::move(attrs), base, {}, std::move(metaclass));
     if (bases->items.size() > 1) {
       for (size_t i = 1; i < bases->items.size(); ++i) {
         if (!class_set_base(out, bases->items[i], error)) {

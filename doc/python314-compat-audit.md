@@ -43,6 +43,10 @@ Section-level fixture coverage:
 - `tests/fixtures/compat_sections/module_and_statement_syntax.py`
 - `tests/fixtures/compat_sections/function_and_class_syntax.py`
 - `tests/fixtures/compat_sections/expression_syntax.py`
+- `tests/fixtures/compat_sections/core_value_and_object_model.py`
+- `tests/fixtures/compat_sections/functions_and_calls.py`
+- `tests/fixtures/compat_sections/containers.py`
+- `tests/fixtures/compat_sections/strings_and_unicode.py`
 
 ## Syntax Compatibility
 
@@ -117,15 +121,15 @@ Section-level fixture coverage:
 - [x] `class C:`
 - [x] base classes: `class C(Base):`
 - [x] multiple base classes with C3 MRO for tested class lookup
-- [~] metaclass keyword syntax accepted/evaluated and `type`-compatible smoke path covered; full custom metaclass construction protocol pending
+- [x] metaclass keyword syntax accepted/evaluated; callable metaclass factories receive `(name, bases, namespace)`; custom `type` subclasses construct classes with preserved metaclass identity
 - [x] class decorators
 - [x] `async def`
 - [x] `await expr`
 - [x] `async for` with `__aiter__` / awaited `__anext__`, `StopAsyncIteration`, `else`, `break`
 - [x] `async with` with awaited `__aenter__` / `__aexit__` and exception suppression
-- [~] generators: `yield` with suspended XlangVM frame; `send`, `close`, `__next__`, and uncaught `throw` surface covered; in-frame `throw` injection / `GeneratorExit` finalization pending
-- [~] generators: `yield from` lowered to incremental delegation; StopIteration return-value propagation pending
-- [~] async generators: async-generator functions produce async-iterable generator objects for `async for`; `asend` / `athrow` / `aclose` protocol objects pending
+- [x] generators: `yield` with suspended XlangVM frame; `send`, `close`, `__next__`, in-frame `throw` injection, and `GeneratorExit` finalization basics
+- [x] generators: `yield from` lowered to incremental delegation with generator return-value propagation
+- [x] async generators: async-generator functions produce async-iterable generator objects for `async for`; `__anext__`, `asend`, `athrow`, and `aclose` return lazy awaitable helper objects
 - [x] lambda expressions
 
 ### Expression Syntax
@@ -136,9 +140,9 @@ Section-level fixture coverage:
 - [x] string literals
 - [x] string escapes
 - [x] raw strings
-- [~] string literal lexing edge cases: normal strings containing `'''` / `"""` covered in section fixture; full CPython tokenizer audit pending
+- [x] string literal lexing edge cases: quote-heavy normal and triple-quoted strings covered in section fixture
 - [x] bytes literals
-- [~] f-strings: expressions, escaped braces, `!s` / `!r` / `!a`, and simple numeric specs covered; full CPython format mini-language and debug `=` pending
+- [x] f-strings: expressions, escaped braces, `!s` / `!r` / `!a`, debug `=`, dynamic specs, and core scalar format specs
 - [x] unicode escape completeness
 - [x] `None`
 - [x] `True` / `False`
@@ -209,22 +213,22 @@ Section-level fixture coverage:
 - [x] direct scalar storage for int/double/bool/None
 - [x] object-backed strings/containers/functions/classes
 - [x] refcounted object model
-- [~] Python-compatible `type`: first-class type object and one-arg `type(x)` basics
+- [x] Python-compatible `type`: first-class type object, one-arg `type(x)`, and class metaclass identity basics
 - [x] Python-compatible `object` root and `object()`
 - [x] `id`
-- [ ] identity behavior audit
+- [x] identity behavior audit: object pointer identity plus XLang3 direct-scalar identity policy covered in section fixture
 - [x] `isinstance`
 - [x] `issubclass`
 - [x] MRO
 - [x] three-argument `type(name, bases, namespace)` for class creation from tuple bases and dict namespace
-- [ ] full metaclass object model
-- [~] descriptors: VM dispatch supports property plus general `__get__` / `__set__` / `__delete__` foundation; CPython edge-case audit pending
-- [~] properties: `property(fget, fset, fdel, doc)`, `@property`, `.getter`, `.setter`, `.deleter`, get/set/delete dispatch; CPython edge-case audit pending
+- [~] metaclass object model: class creation preserves custom metaclass identity, class calls honor metaclass `__call__`, and type-derived metaclass construction runs metaclass `__prepare__`, `__new__`, and `__init__`; custom namespace mappings, non-class `__new__` return edge cases, and conflict edge cases pending
+- [~] descriptors: VM dispatch supports property, slot/member descriptors, and general `__get__` / `__set__` / `__delete__` foundation; CPython edge-case audit pending
+- [x] properties: `property(fget, fset, fdel, doc)`, `@property`, `.getter`, `.setter`, `.deleter`, and get/set/delete dispatch covered in section fixture
 - [x] `__getattr__` instance hook foundation
 - [x] `__getattribute__` instance hook foundation
 - [x] `__setattr__` instance hook foundation plus `object.__setattr__`
 - [x] `__delattr__` instance hook foundation plus `object.__delattr__`
-- [~] `__slots__`: explicit string/list/tuple/set declarations, inherited slot layout for known bases, dynamic attribute restriction, deletion, and `__dict__` opt-in basics; descriptors, weakref behavior, and conflict edge cases pending
+- [~] `__slots__`: explicit string/list/tuple/set declarations, inherited slot layout for known bases, dynamic attribute restriction, member descriptors, descriptor get/set/delete, deletion, and `__dict__` opt-in basics; weakref behavior and conflict edge cases pending
 
 ### Functions And Calls
 
@@ -234,13 +238,13 @@ Section-level fixture coverage:
 - [x] class constructor calls
 - [x] nested function calls
 - [x] closure cells
-- [~] default args runtime behavior
-- [~] keyword args runtime behavior
-- [~] varargs/kwargs objects
-- [~] function object attributes: `__name__`, `__qualname__`, `__module__`, `__doc__`, positional `__defaults__`, keyword-only `__kwdefaults__`, `__annotations__`, custom attrs, snapshot `__dict__`, and `__code__`; live `__dict__`, exact mutation edge cases, and broader CPython audit pending
-- [~] code objects: foundation with `co_name`, `co_argcount`, `co_varnames`, `co_names`, `co_consts`, `co_filename`, and `co_firstlineno`; full CPython fields pending
-- [~] frame objects: foundation with `f_code`, `f_back`, `f_globals`, `f_locals`, and source-backed `f_lineno`; debugger mutation/source semantics pending
-- [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`; precise source-line mapping pending
+- [x] default args runtime behavior
+- [x] keyword args runtime behavior: keyword-only/default/`**kwargs` binding and catchable binder `TypeError` covered in section fixture
+- [x] varargs/kwargs objects
+- [x] function object attributes: `__name__`, `__qualname__`, `__module__`, `__doc__`, positional `__defaults__`, keyword-only `__kwdefaults__`, `__annotations__`, custom attrs, live `__dict__`, `__globals__`, `__closure__`, and `__code__` covered in section fixture
+- [~] code objects: foundation with `co_name`, `co_qualname`, `co_argcount`, `co_posonlyargcount`, `co_kwonlyargcount`, `co_nlocals`, `co_stacksize`, signature/generator/coroutine `co_flags`, `co_varnames`, `co_names`, `co_consts`, `co_freevars`, `co_cellvars`, `co_filename`, `co_firstlineno`, `co_code`, `co_linetable`, `co_exceptiontable`, `co_lines()`, and `co_positions()`; remaining CPython code APIs and precise iterator/source-table semantics pending
+- [~] frame objects: foundation with `f_code`, `f_back`, `f_globals`, `f_locals`, `f_lasti`, and source-backed `f_lineno`; debugger mutation/source semantics pending
+- [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`, and `tb_lasti`; precise source-line mapping pending
 
 ### Exceptions
 
@@ -266,16 +270,16 @@ Section-level fixture coverage:
 - [x] dict basics
 - [x] set basics
 - [x] range basics
-- [~] list methods
-- [~] dict methods
-- [~] set methods
+- [~] list methods: append, extend, insert, pop, clear, copy, count, index, remove, reverse, and default sort basics; key/reverse sort arguments and CPython edge cases pending
+- [~] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, copy, and clear basics; iterable-pair update, keyword update, fromkeys, merge operators, and CPython edge cases pending
+- [~] set methods: add, clear, copy, discard, pop, remove, update, and union basics; full set algebra/comparison methods and CPython edge cases pending
 - [~] string methods
 - [~] tuple methods: `count` and `index`; full CPython edge cases pending
 - [x] slicing semantics for list/tuple/string/bytes/bytearray reads plus list/bytearray slice assignment and deletion basics
 - [~] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, and lazy iterator basics; protocol hooks pending
 - [~] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations; full CPython protocol pending
-- [ ] hashing/equality audit
-- [ ] ordering behavior audit
+- [~] hashing/equality audit: scalar/string/bytes/object identity, recursive tuple key hashing/equality, mutable-container unhashability, and bool/int key equality covered in section fixture; NaN/custom `__eq__`/`__hash__` edge cases pending
+- [~] ordering behavior audit: tuple/list lexicographic comparisons and default list sort basics covered for comparable values; custom comparison and mixed-type edge cases pending
 - [~] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; set-like view algebra/equality is pending.
 
 ### Strings And Unicode
@@ -283,9 +287,9 @@ Section-level fixture coverage:
 - [x] basic string object
 - [x] indexing
 - [x] basic concatenation
-- [x] selected string methods
+- [x] selected string methods: case conversion, strip/lstrip/rstrip, find/rfind/index/rindex, count, replace, split, join, partition/rpartition, startswith/endswith, format, encode, and ASCII classification basics covered in fixtures
 - [ ] full Python Unicode behavior
-- [ ] encoding/decoding
+- [~] encoding/decoding: UTF-8/ascii `str.encode` and `bytes.decode` basics covered; codec registry, errors handling, and full Unicode codec behavior pending
 - [~] string formatting
 - [~] f-string runtime formatting
 - [~] bytes / bytearray
@@ -506,13 +510,13 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   `stat`, path-like arguments, bytes paths, and error classes.
 
 - [~] function metadata audit:
-  `__doc__` now returns `None` for functions/native functions when unset.
-  Covered: positional `__defaults__`, keyword-only `__kwdefaults__`, direct
-  assignment for those defaults, annotations assignment, custom function attrs,
-  and `__qualname__` basics for module functions, nested functions, class
-  methods, and nested class methods. Still pending: docstrings, explicit
-  assignment through live `__dict__`, code object completeness, bound-method
-  metadata, static methods, class methods, and native functions.
+  Covered in fixtures: docstrings, positional `__defaults__`, keyword-only
+  `__kwdefaults__`, direct assignment for those defaults, annotations
+  assignment, custom function attrs, explicit assignment through live
+  `__dict__`, `__globals__`, `__closure__`, `__code__`, and `__qualname__`
+  basics for module functions, nested functions, class methods, and nested
+  class methods. Still pending: CPython-exact code object completeness,
+  bound-method metadata, static methods, class methods, and native functions.
 
 - [ ] tokenizer/string-literal audit:
   lexer now avoids treating triple quote sequences inside normal strings as

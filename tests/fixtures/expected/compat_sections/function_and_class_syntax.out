@@ -5,12 +5,21 @@ T
 11 15
 23 left child yes T
 99 [eval]
+8 42 [MetaMade] type
+18 CustomMeta CustomMeta
 41
 1
 7
 None
-[7, 8, 9]
+[7, 8, 9, 12]
 1
-throw
+2
+3
+1
+None
+[closed]
 16
 10
+asend lazy
+11
+6

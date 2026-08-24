@@ -444,6 +444,9 @@ Value Value::function(
   if (module != nullptr && function_id < module->functions.size()) {
     const auto& fn = module->functions[function_id];
     obj->type_params = fn.type_params;
+    if (!fn.doc.empty()) {
+      obj->doc = Value::string(fn.doc);
+    }
     for (const auto& param : fn.signature) {
       if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
           param.default_reg != UINT32_MAX &&
@@ -455,6 +458,7 @@ Value Value::function(
     obj->positional_defaults = obj->defaults;
   }
   obj->globals_module = std::move(globals_module);
+  obj->attrs_dict = Value::dict({});
   if (qualname.empty() && module != nullptr && function_id < module->functions.size()) {
     qualname = module->functions[function_id].qualname.empty() ? module->functions[function_id].name
                                                                : module->functions[function_id].qualname;
@@ -635,6 +639,7 @@ void release(const Value& value) {
       functional_iterator_release_object(value.as.obj);
       break;
     case ObjectKind::Generator:
+    case ObjectKind::AsyncGeneratorAwaitable:
       generator_release_object(value.as.obj);
       break;
     case ObjectKind::Cell:
@@ -664,6 +669,7 @@ void release(const Value& value) {
     case ObjectKind::StaticMethod:
     case ObjectKind::ClassMethod:
     case ObjectKind::Super:
+    case ObjectKind::SlotDescriptor:
       object_model_release_object(value.as.obj);
       break;
     case ObjectKind::Property:
@@ -744,7 +750,9 @@ std::string value_to_string(const Value& value) {
       if (value_is_functional_iterator(value)) {
         return functional_iterator_to_string(value);
       }
-      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Generator) {
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Generator ||
+           value.as.obj->kind == ObjectKind::AsyncGeneratorAwaitable)) {
         return generator_to_string(value);
       }
       if (value.as.obj != nullptr &&
@@ -783,6 +791,9 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Property) {
         return "<property object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::SlotDescriptor) {
+        return object_model_to_string(value);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::TypeParam) {
         return "<type parameter " + value_as_type_param(value)->name + ">";
@@ -1013,7 +1024,9 @@ bool value_truthy(const Value& value) {
       if (value_is_functional_iterator(value)) {
         return true;
       }
-      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Generator) {
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Generator ||
+           value.as.obj->kind == ObjectKind::AsyncGeneratorAwaitable)) {
         return generator_truthy(value);
       }
       if (value.as.obj != nullptr &&

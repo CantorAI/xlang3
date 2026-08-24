@@ -29,10 +29,28 @@ struct GeneratorObject {
   void* vm_state = nullptr;
   void (*vm_state_cleanup)(void*) = nullptr;
   Value pending_send;
+  Value pending_throw;
+  Value return_value;
   bool has_pending_send = false;
+  bool has_pending_throw = false;
   bool started = false;
   bool is_async = false;
   bool done = false;
+};
+
+enum class AsyncGenAwaitableKind : uint8_t {
+  ANext,
+  ASend,
+  AThrow,
+  AClose,
+};
+
+struct AsyncGenAwaitableObject {
+  Object header;
+  AsyncGenAwaitableKind kind = AsyncGenAwaitableKind::ANext;
+  Value generator;
+  std::vector<Value> args;
+  bool consumed = false;
 };
 
 XLANG3_HOT_INLINE GeneratorObject* value_as_generator(const Value& value) {
@@ -40,6 +58,15 @@ XLANG3_HOT_INLINE GeneratorObject* value_as_generator(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<GeneratorObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE AsyncGenAwaitableObject* value_as_async_generator_awaitable(const Value& value) {
+  if (value.tag != ValueTag::Object ||
+      value.as.obj == nullptr ||
+      value.as.obj->kind != ObjectKind::AsyncGeneratorAwaitable) {
+    return nullptr;
+  }
+  return reinterpret_cast<AsyncGenAwaitableObject*>(value.as.obj);
 }
 
 void generator_release_object(Object* object);
@@ -51,5 +78,6 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
 bool generator_close(Value& generator, Value& out, std::string& error);
 bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool generator_get_method(const Value& object, const std::string& name, Value& out);
+bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value& out, std::string& error);
 
 } // namespace xlang3

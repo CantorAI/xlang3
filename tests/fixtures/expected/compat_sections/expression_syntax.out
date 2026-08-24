@@ -2,9 +2,13 @@ XLang3 7 2.5 None True False
 A ABC
 a\nb c\td
 ''' """
+a'''b c"""d
+a"b c'd
 66 True True
 XLang3:6
 {XLang3} 'abc' 007 3.14
+value=5 +7 0xf [   5] [5   ] [  5  ]
+350.0% XLa   7
 7 -7 True
 10 4 21 3.5 1 2
 32 512

@@ -27,6 +27,7 @@ struct ClassObject {
   Object header;
   std::string name;
   Value base;
+  Value metaclass;
   std::vector<Value> bases;
   std::unordered_map<std::string, Value> attrs;
   std::vector<std::string> instance_slot_names;
@@ -79,6 +80,13 @@ struct SuperObject {
   Value self;
 };
 
+struct SlotDescriptorObject {
+  Object header;
+  std::string owner_name;
+  std::string name;
+  uint32_t index = 0;
+};
+
 XLANG3_HOT_INLINE ClassObject* value_as_class(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Class) {
     return nullptr;
@@ -119,6 +127,13 @@ XLANG3_HOT_INLINE SuperObject* value_as_super(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<SuperObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE SlotDescriptorObject* value_as_slot_descriptor(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::SlotDescriptor) {
+    return nullptr;
+  }
+  return reinterpret_cast<SlotDescriptorObject*>(value.as.obj);
 }
 
 XLANG3_HOT_INLINE uint32_t instance_slot_count(const InstanceObject* instance) {

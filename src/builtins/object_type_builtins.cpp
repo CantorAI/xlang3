@@ -95,6 +95,8 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "classmethod";
     case ObjectKind::Super:
       return "super";
+    case ObjectKind::SlotDescriptor:
+      return "member_descriptor";
     case ObjectKind::Property:
       return "property";
     case ObjectKind::Cell:
@@ -306,7 +308,7 @@ bool builtin_type_new(
     value_assign_fast(base, bases->items[0]);
   }
 
-  out = Value::class_object(string_object_to_string(*name), std::move(attrs), base);
+  out = Value::class_object(string_object_to_string(*name), std::move(attrs), base, {}, args[0]);
   for (size_t i = 1; i < bases->items.size(); ++i) {
     if (!class_set_base(out, bases->items[i], error)) {
       runtime.raise_class_error("TypeError", error);
@@ -316,8 +318,27 @@ bool builtin_type_new(
   return true;
 }
 
+bool builtin_type_prepare(
+    Runtime&,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 3) {
+    error = "type.__prepare__ expected name and bases";
+    return false;
+  }
+  out = Value::dict({});
+  return true;
+}
+
 void register_builtin_type(Runtime& runtime, const char* name, const Value& object_base) {
-  runtime.register_builtin(name, Value::class_object(name, {}, object_base));
+  Value metaclass = Value::invalid();
+  if (const auto* type_type = runtime.find_builtin("type")) {
+    value_assign_fast(metaclass, *type_type);
+  }
+  runtime.register_builtin(name, Value::class_object(name, {}, object_base, {}, std::move(metaclass)));
 }
 
 bool builtin_object_init(
@@ -452,6 +473,12 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
         value_assign_fast(out, instance->klass);
         return true;
       }
+      if (auto* klass = value_as_class(value)) {
+        if (klass->metaclass.tag != ValueTag::Invalid) {
+          value_assign_fast(out, klass->metaclass);
+          return true;
+        }
+      }
       if (const auto* type = find_builtin_type(runtime, builtin_type_name_for_kind(value.as.obj->kind))) {
         value_assign_fast(out, *type);
         return true;
@@ -479,8 +506,17 @@ void register_object_type_builtins(Runtime& runtime) {
 
   Value type_type = Value::class_object(
       "type",
-      {{"__new__", Value::native_function(0, "type.__new__", builtin_type_new)}},
+      {
+          {"__new__", Value::native_function(0, "type.__new__", builtin_type_new)},
+          {"__prepare__", Value::native_function(0, "type.__prepare__", builtin_type_prepare)},
+      },
       object_type);
+  if (auto* object_class = value_as_class(object_type)) {
+    value_assign_fast(object_class->metaclass, type_type);
+  }
+  if (auto* type_class = value_as_class(type_type)) {
+    value_assign_fast(type_class->metaclass, type_type);
+  }
   runtime.register_builtin("type", type_type);
 
   register_builtin_type(runtime, "NoneType", object_type);
@@ -511,6 +547,7 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "module", object_type);
   register_builtin_type(runtime, "function", object_type);
   register_builtin_type(runtime, "method", object_type);
+  register_builtin_type(runtime, "member_descriptor", object_type);
   register_builtin_type(runtime, "property", object_type);
   register_builtin_type(runtime, "classmethod", object_type);
   register_builtin_type(runtime, "staticmethod", object_type);

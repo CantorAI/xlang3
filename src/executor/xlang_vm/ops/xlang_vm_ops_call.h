@@ -782,6 +782,139 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
 template <
     typename MakeGeneratorIfNeeded,
     typename PushFrame,
+    typename RaiseRuntimeError,
+    typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool try_call_metaclass_new(
+    const Value& metaclass_value,
+    CallArgsView original_args,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    Runtime& runtime,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
+    uint32_t return_dst,
+    Value& out,
+    bool& pushed_frame,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  auto* metaclass = value_as_class(metaclass_value);
+  if (metaclass == nullptr || metaclass->name == XlangVMNames::builtin_type ||
+      !class_has_builtin_base_name(metaclass, XlangVMNames::builtin_type) ||
+      original_args.size() != 3 || original_args.has_keywords() || original_args.has_expansion()) {
+    return false;
+  }
+
+  Value new_value;
+  std::string new_error;
+  if (!object_get_attr(metaclass_value, "__new__", new_value, new_error)) {
+    return false;
+  }
+  if (auto* native = value_as_native_function(new_value)) {
+    if (native->name == "type.__new__" || native->name == "object.__new__") {
+      return false;
+    }
+    Value leading[1];
+    value_assign_fast(leading[0], metaclass_value);
+    CallArgsView new_args = original_args;
+    new_args.leading = leading;
+    new_args.leading_count = 1;
+    return call_native_function(runtime, native, new_args, native_call_args, execution_lock, out,
+                                raise_runtime_error, raise_exception_value);
+  }
+  if (auto* fn_obj = value_as_function(new_value)) {
+    Value leading[1];
+    value_assign_fast(leading[0], metaclass_value);
+    CallArgsView new_args = original_args;
+    new_args.leading = leading;
+    new_args.leading_count = 1;
+    return call_user_function(fn_obj, new_args, module, module_owner, return_dst, ip, out, pushed_frame,
+                              make_generator_if_needed, push_frame);
+  }
+  return false;
+}
+
+template <
+    typename MakeGeneratorIfNeeded,
+    typename PushFrame,
+    typename RaiseRuntimeError,
+    typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow call_metaclass_init_after_type_new(
+    const Value& metaclass_value,
+    const Value& constructed_class,
+    CallArgsView original_args,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    Runtime& runtime,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
+    uint32_t return_dst,
+    RuntimeResult& result,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  auto* metaclass = value_as_class(metaclass_value);
+  if (metaclass == nullptr || metaclass->name == XlangVMNames::builtin_type ||
+      !class_has_builtin_base_name(metaclass, XlangVMNames::builtin_type) ||
+      original_args.size() != 3 || original_args.has_keywords() || original_args.has_expansion()) {
+    return XlangVMOpFlow::Next;
+  }
+
+  Value init_value;
+  std::string init_error;
+  if (!xlang_vm_get_init_attr(metaclass_value, init_value, init_error)) {
+    return XlangVMOpFlow::Next;
+  }
+  if (auto* native = value_as_native_function(init_value)) {
+    if (native->name == "object.__init__") {
+      return XlangVMOpFlow::Next;
+    }
+    Value leading[1];
+    value_assign_fast(leading[0], constructed_class);
+    CallArgsView init_args = original_args;
+    init_args.leading = leading;
+    init_args.leading_count = 1;
+    Value ignored;
+    if (!xlang3::xlang_vm::ops::call_native_function(
+            runtime, native, init_args, native_call_args, execution_lock, ignored,
+            raise_runtime_error, raise_exception_value)) {
+      if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+      return XlangVMOpFlow::ContinueLoop;
+    }
+    return XlangVMOpFlow::Next;
+  }
+  if (auto* fn_obj = value_as_function(init_value)) {
+    Value leading[1];
+    value_assign_fast(leading[0], constructed_class);
+    CallArgsView init_args = original_args;
+    init_args.leading = leading;
+    init_args.leading_count = 1;
+    const ir::Module* call_module = &module;
+    auto call_module_owner = module_owner;
+    if (fn_obj->module != nullptr) {
+      call_module = fn_obj->module.get();
+      call_module_owner = fn_obj->module;
+    }
+    Value continuation;
+    value_assign_fast(continuation, constructed_class);
+    ++ip;
+    if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults,
+                    fn_obj->globals_module, std::move(call_module_owner), return_dst,
+                    FrameReturnMode::StoreConstructedInstance, std::move(continuation))) {
+      return XlangVMOpFlow::ReturnResult;
+    }
+    return XlangVMOpFlow::SwitchFrame;
+  }
+  return raise_runtime_error("__init__ is not callable") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+}
+
+template <
+    typename MakeGeneratorIfNeeded,
+    typename PushFrame,
     typename CallBuiltinTypeConstructor,
     typename RaiseRuntimeError,
     typename RaiseExceptionValue>
@@ -842,9 +975,91 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
       return XlangVMOpFlow::ContinueLoop;
     }
   } else if (auto* klass = value_as_class(callee)) {
+    if (auto* metaclass = value_as_class(klass->metaclass)) {
+      Value meta_call;
+      std::string meta_call_error;
+      (void)metaclass;
+      if (object_get_attr(klass->metaclass, "__call__", meta_call, meta_call_error)) {
+        CallArgsView meta_call_args = call_args;
+        meta_call_args.leading = &callee;
+        meta_call_args.leading_count = 1;
+        if (!xlang3::xlang_vm::ops::call_callable_value_ex(
+                runtime,
+                meta_call,
+                meta_call_args,
+                module,
+                module_owner,
+                in.dst,
+                ip,
+                native_call_args,
+                native_keyword_args,
+                execution_lock,
+                regs[in.dst],
+                pushed_frame,
+                make_generator_if_needed,
+                push_frame,
+                raise_runtime_error,
+                raise_exception_value)) {
+          if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+          return XlangVMOpFlow::ContinueLoop;
+        }
+        if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+        return XlangVMOpFlow::Next;
+      }
+    }
     std::string constructor_error;
+    if (try_call_metaclass_new(
+            callee,
+            call_args,
+            module,
+            module_owner,
+            runtime,
+            native_call_args,
+            ip,
+            in.dst,
+            regs[in.dst],
+            pushed_frame,
+            execution_lock,
+            make_generator_if_needed,
+            push_frame,
+            raise_runtime_error,
+            raise_exception_value)) {
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+      if (value_as_class(regs[in.dst]) == nullptr) return XlangVMOpFlow::Next;
+      return call_metaclass_init_after_type_new(
+          callee,
+          regs[in.dst],
+          call_args,
+          module,
+          module_owner,
+          runtime,
+          native_call_args,
+          ip,
+          in.dst,
+          result,
+          execution_lock,
+          make_generator_if_needed,
+          push_frame,
+          raise_runtime_error,
+          raise_exception_value);
+    }
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
-      return XlangVMOpFlow::Next;
+      return call_metaclass_init_after_type_new(
+          callee,
+          regs[in.dst],
+          call_args,
+          module,
+          module_owner,
+          runtime,
+          native_call_args,
+          ip,
+          in.dst,
+          result,
+          execution_lock,
+          make_generator_if_needed,
+          push_frame,
+          raise_runtime_error,
+          raise_exception_value);
     }
     if (!constructor_error.empty()) {
       if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
@@ -1080,9 +1295,90 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(callee)) {
+    if (auto* metaclass = value_as_class(klass->metaclass)) {
+      Value meta_call;
+      std::string meta_call_error;
+      (void)metaclass;
+      if (object_get_attr(klass->metaclass, "__call__", meta_call, meta_call_error)) {
+        CallArgsView meta_call_args = call_args;
+        meta_call_args.leading = &callee;
+        meta_call_args.leading_count = 1;
+        if (!xlang3::xlang_vm::ops::call_callable_value(
+                runtime,
+                meta_call,
+                meta_call_args,
+                module,
+                module_owner,
+                in.dst,
+                ip,
+                native_call_args,
+                execution_lock,
+                regs[in.dst],
+                pushed_frame,
+                make_generator_if_needed,
+                push_frame,
+                raise_runtime_error,
+                raise_exception_value)) {
+          if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+          return XlangVMOpFlow::ContinueLoop;
+        }
+        if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+        return XlangVMOpFlow::Next;
+      }
+    }
     std::string constructor_error;
+    if (try_call_metaclass_new(
+            callee,
+            call_args,
+            module,
+            module_owner,
+            runtime,
+            native_call_args,
+            ip,
+            in.dst,
+            regs[in.dst],
+            pushed_frame,
+            execution_lock,
+            make_generator_if_needed,
+            push_frame,
+            raise_runtime_error,
+            raise_exception_value)) {
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+      if (value_as_class(regs[in.dst]) == nullptr) return XlangVMOpFlow::Next;
+      return call_metaclass_init_after_type_new(
+          callee,
+          regs[in.dst],
+          call_args,
+          module,
+          module_owner,
+          runtime,
+          native_call_args,
+          ip,
+          in.dst,
+          result,
+          execution_lock,
+          make_generator_if_needed,
+          push_frame,
+          raise_runtime_error,
+          raise_exception_value);
+    }
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
-      return XlangVMOpFlow::Next;
+      return call_metaclass_init_after_type_new(
+          callee,
+          regs[in.dst],
+          call_args,
+          module,
+          module_owner,
+          runtime,
+          native_call_args,
+          ip,
+          in.dst,
+          result,
+          execution_lock,
+          make_generator_if_needed,
+          push_frame,
+          raise_runtime_error,
+          raise_exception_value);
     }
     if (!constructor_error.empty()) {
       if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;

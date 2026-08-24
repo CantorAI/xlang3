@@ -396,8 +396,8 @@ private:
         break;
       case ir::Op::SetFunctionKwDefaults:
         one(instr.dst);
-        if (instr.b < this->fn->function_kwdefaults.size()) {
-          for (const auto& item : this->fn->function_kwdefaults[instr.b]) {
+        if (instr.a < this->fn->function_kwdefaults.size()) {
+          for (const auto& item : this->fn->function_kwdefaults[instr.a]) {
             one(item.second);
           }
         }

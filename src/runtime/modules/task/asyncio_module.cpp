@@ -51,7 +51,7 @@ bool asyncio_run(
   bool done = false;
   std::string task_error;
   if (xlang_task_done_value(args[0], done, task_error)) {
-    return xlang_task_await_value(args[0], out, error);
+    return xlang_task_await_value(runtime, args[0], out, error);
   }
 
   if (argc == 1 && value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr) {

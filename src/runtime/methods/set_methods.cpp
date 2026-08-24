@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
 
@@ -31,6 +33,26 @@ bool set_add_method(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   }
   value_set_none(out);
   return true;
+}
+
+bool add_iterable_items(Value& set, const Value& iterable, std::string& error) {
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (!set_add(set, item, error)) {
+      return false;
+    }
+  }
 }
 
 bool remove_set_item(Value& set_value, const Value& item, bool require_present, std::string& error) {
@@ -56,6 +78,33 @@ bool remove_set_item(Value& set_value, const Value& item, bool require_present, 
   return true;
 }
 
+bool set_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "set.clear", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.clear target is not a set";
+    return false;
+  }
+  set->items.clear();
+  value_set_none(out);
+  return true;
+}
+
+bool set_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "set.copy", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.copy target is not a set";
+    return false;
+  }
+  out = Value::set(set->items);
+  return true;
+}
+
 bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.discard", error)) {
     return false;
@@ -65,6 +114,27 @@ bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     return false;
   }
   value_set_none(out);
+  return true;
+}
+
+bool set_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "set.pop", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.pop target is not a set";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (set->items.empty()) {
+    error = "pop from an empty set";
+    runtime.raise_class_error("KeyError", error);
+    return false;
+  }
+  value_assign_fast(out, set->items.back());
+  set->items.pop_back();
   return true;
 }
 
@@ -80,6 +150,40 @@ bool set_remove_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool set_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "set.update expected at least set self";
+    return false;
+  }
+  Value set = args[0];
+  if (value_as_set(set) == nullptr) {
+    error = "set.update target is not a set";
+    return false;
+  }
+  for (uint32_t i = 1; i < argc; ++i) {
+    if (!add_iterable_items(set, args[i], error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool set_union_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.union target is not a set";
+    return false;
+  }
+  out = Value::set(set->items);
+  for (uint32_t i = 1; i < argc; ++i) {
+    if (!add_iterable_items(out, args[i], error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace
 
 bool set_get_method(const Value& object, const std::string& name, Value& out) {
@@ -88,8 +192,13 @@ bool set_get_method(const Value& object, const std::string& name, Value& out) {
   }
   static constexpr BuiltinMethodSpec methods[] = {
       {"add", "set.add", set_add_method},
+      {"clear", "set.clear", set_clear_method},
+      {"copy", "set.copy", set_copy_method},
       {"discard", "set.discard", set_discard_method},
+      {"pop", "set.pop", set_pop_method},
       {"remove", "set.remove", set_remove_method},
+      {"union", "set.union", set_union_method},
+      {"update", "set.update", set_update_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }

@@ -133,7 +133,11 @@ foreach ($case in $cases) {
 $sectionCases = @(
     "module_and_statement_syntax",
     "function_and_class_syntax",
-    "expression_syntax"
+    "expression_syntax",
+    "core_value_and_object_model",
+    "functions_and_calls",
+    "containers",
+    "strings_and_unicode"
 )
 
 foreach ($case in $sectionCases) {

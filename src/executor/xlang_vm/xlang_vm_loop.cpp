@@ -49,6 +49,7 @@ limitations under the License.
 #include <array>
 #include <cstddef>
 #include <cstdlib>
+#include <functional>
 #include <mutex>
 #include <new>
 #include <sstream>
@@ -95,6 +96,11 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  std::function<bool(const std::string&)> bind_error = [&](const std::string& message) -> bool {
+    result.errors.push_back(message);
+    return false;
+  };
+
   auto bind_args = [&](const ir::Function& target_fn,
                        CallArgsView values,
                        const std::vector<Value>& defaults,
@@ -111,9 +117,8 @@ RuntimeResult Interpreter::run_function(
     const auto& signature = *signature_ptr;
     if (target_fn.signature.empty() && !values.has_keywords() && !values.has_expansion()) {
       if (values.size() != target_fn.params.size()) {
-        result.errors.push_back("function '" + target_fn.name + "' expected " + std::to_string(target_fn.params.size()) +
-                                " arguments, got " + std::to_string(values.size()));
-        return false;
+        return bind_error("function '" + target_fn.name + "' expected " + std::to_string(target_fn.params.size()) +
+                          " arguments, got " + std::to_string(values.size()));
       }
       return true;
     }
@@ -131,8 +136,7 @@ RuntimeResult Interpreter::run_function(
       } else if (auto* list = value_as_list(star)) {
         for (const auto& item : list->items) positional.push_back(item);
       } else {
-        result.errors.push_back("function '" + target_fn.name + "' * argument must be tuple or list");
-        return false;
+        return bind_error("function '" + target_fn.name + "' * argument must be tuple or list");
       }
     }
 
@@ -162,8 +166,7 @@ RuntimeResult Interpreter::run_function(
       } else if (varargs_index >= 0) {
         extra_positional.push_back(positional[positional_index++]);
       } else {
-        result.errors.push_back("function '" + target_fn.name + "' got too many positional arguments");
-        return false;
+        return bind_error("function '" + target_fn.name + "' got too many positional arguments");
       }
     }
     if (varargs_index >= 0) {
@@ -174,12 +177,10 @@ RuntimeResult Interpreter::run_function(
       for (size_t i = 0; i < signature.size(); ++i) {
         if (signature[i].name != name) continue;
         if (signature[i].kind == ir::ParamKind::PosOnly) {
-          result.errors.push_back("function '" + target_fn.name + "' got positional-only argument as keyword");
-          return false;
+          return bind_error("function '" + target_fn.name + "' got positional-only argument as keyword");
         }
         if (bound[i].tag != ValueTag::Invalid) {
-          result.errors.push_back("function '" + target_fn.name + "' got multiple values for argument '" + name + "'");
-          return false;
+          return bind_error("function '" + target_fn.name + "' got multiple values for argument '" + name + "'");
         }
         value_assign_fast(bound[i], value);
         return true;
@@ -188,8 +189,7 @@ RuntimeResult Interpreter::run_function(
         extra_keywords.push_back(std::make_pair(Value::string(name), value));
         return true;
       }
-      result.errors.push_back("function '" + target_fn.name + "' got unexpected keyword argument '" + name + "'");
-      return false;
+      return bind_error("function '" + target_fn.name + "' got unexpected keyword argument '" + name + "'");
     };
     if (values.keyword_args != nullptr) {
       for (const auto& keyword : *values.keyword_args) {
@@ -201,14 +201,12 @@ RuntimeResult Interpreter::run_function(
     if (values.kw_star_arg != UINT32_MAX) {
       auto* dict = value_as_dict(values.registers[values.kw_star_arg]);
       if (dict == nullptr) {
-        result.errors.push_back("function '" + target_fn.name + "' ** argument must be dict");
-        return false;
+        return bind_error("function '" + target_fn.name + "' ** argument must be dict");
       }
       for (const auto& entry : dict->entries) {
         auto* key = value_as_string(entry.first);
         if (key == nullptr) {
-          result.errors.push_back("function '" + target_fn.name + "' ** argument keys must be strings");
-          return false;
+          return bind_error("function '" + target_fn.name + "' ** argument keys must be strings");
         }
         if (!bind_keyword(string_object_to_string(*key), entry.second)) {
           return false;
@@ -222,7 +220,9 @@ RuntimeResult Interpreter::run_function(
       if (bound[i].tag != ValueTag::Invalid) {
         continue;
       }
-      if (signature[i].default_reg != UINT32_MAX && signature[i].default_reg < defaults.size()) {
+      if (signature[i].default_reg != UINT32_MAX &&
+          signature[i].default_reg < defaults.size() &&
+          defaults[signature[i].default_reg].tag != ValueTag::Invalid) {
         value_assign_fast(bound[i], defaults[signature[i].default_reg]);
         continue;
       }
@@ -234,8 +234,7 @@ RuntimeResult Interpreter::run_function(
         bound[i] = Value::dict({});
         continue;
       }
-      result.errors.push_back("function '" + target_fn.name + "' missing required argument '" + signature[i].name + "'");
-      return false;
+      return bind_error("function '" + target_fn.name + "' missing required argument '" + signature[i].name + "'");
     }
     return true;
   };
@@ -256,8 +255,8 @@ RuntimeResult Interpreter::run_function(
     entry_args.star_arg = UINT32_MAX;
     entry_args.kw_star_arg = UINT32_MAX;
   } else if (args.size() != fn.params.size()) {
-    result.errors.push_back("function '" + fn.name + "' expected " + std::to_string(fn.params.size()) +
-                            " arguments, got " + std::to_string(args.size()));
+    bind_error("function '" + fn.name + "' expected " + std::to_string(fn.params.size()) +
+               " arguments, got " + std::to_string(args.size()));
     return result;
   }
 
@@ -265,6 +264,8 @@ RuntimeResult Interpreter::run_function(
   std::vector<RuntimeFrameView> runtime_frame_views;
   size_t frame_count = 0;
   bool resumed_generator = false;
+  Value generator_resume_exception;
+  bool has_generator_resume_exception = false;
   if (pause_state != nullptr) {
     frames = std::move(pause_state->frames);
     frame_count = pause_state->frame_count;
@@ -284,6 +285,12 @@ RuntimeResult Interpreter::run_function(
       }
       value_set_invalid(generator->pending_send);
       generator->has_pending_send = false;
+    }
+    if (generator->has_pending_throw) {
+      value_assign_fast(generator_resume_exception, generator->pending_throw);
+      value_set_invalid(generator->pending_throw);
+      generator->has_pending_throw = false;
+      has_generator_resume_exception = true;
     }
   } else {
     frames.reserve(64);
@@ -317,9 +324,8 @@ RuntimeResult Interpreter::run_function(
       }
     } else {
       if (call_args.size() != call_fn.params.size()) {
-        result.errors.push_back("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
-                                " arguments, got " + std::to_string(call_args.size()));
-        return false;
+        return bind_error("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
+                          " arguments, got " + std::to_string(call_args.size()));
       }
       args_for_generator.reserve(call_args.size());
       for (size_t i = 0; i < call_args.size(); ++i) {
@@ -367,9 +373,8 @@ RuntimeResult Interpreter::run_function(
       frame_args.star_arg = UINT32_MAX;
       frame_args.kw_star_arg = UINT32_MAX;
     } else if (call_args.size() != call_fn.params.size()) {
-      result.errors.push_back("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
-                              " arguments, got " + std::to_string(call_args.size()));
-      return false;
+      return bind_error("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
+                        " arguments, got " + std::to_string(call_args.size()));
     }
     if (frame_count < frames.size()) {
       frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
@@ -652,6 +657,20 @@ RuntimeResult Interpreter::run_function(
     auto* raised_class = value_as_class(exception_type);
     return raised_class != nullptr && class_is_subclass(raised_class, handler_class);
   };
+
+  bind_error = [&](const std::string& message) -> bool {
+    (void)dispatch_exception(runtime_.make_exception("TypeError", message));
+    return false;
+  };
+
+  if (has_generator_resume_exception) {
+    if (!dispatch_exception(std::move(generator_resume_exception))) {
+      if (generator != nullptr) {
+        generator->done = true;
+      }
+      return result;
+    }
+  }
 
   if (!resumed_generator) {
     for (size_t i = 0; i < frames[frame_count - 1].fn->cell_slots.size(); ++i) {

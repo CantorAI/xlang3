@@ -166,6 +166,8 @@ bool is_statement_recovery_boundary(TokenKind kind) {
          kind == TokenKind::Semicolon;
 }
 
+} // namespace
+
 std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
   std::vector<ast::FStringExpr::Part> parts;
   std::string literal;
@@ -216,7 +218,30 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
       const size_t expr_end = std::min(
           conversion_pos == std::string_view::npos ? field.size() : conversion_pos,
           spec_pos == std::string_view::npos ? field.size() : spec_pos);
-      part.text = std::string(trim_ascii(field.substr(0, expr_end)));
+      auto expr_text = field.substr(0, expr_end);
+      size_t debug_pos = std::string_view::npos;
+      nested_depth = 0;
+      for (size_t j = 0; j < expr_text.size(); ++j) {
+        const char field_ch = expr_text[j];
+        if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
+          ++nested_depth;
+        } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
+          --nested_depth;
+        } else if (nested_depth == 0 && field_ch == '=' &&
+                   (j == 0 || (expr_text[j - 1] != '=' && expr_text[j - 1] != '!' &&
+                               expr_text[j - 1] != '<' && expr_text[j - 1] != '>' &&
+                               expr_text[j - 1] != ':')) &&
+                   (j + 1 >= expr_text.size() || expr_text[j + 1] != '=')) {
+          debug_pos = j;
+          break;
+        }
+      }
+      if (debug_pos != std::string_view::npos) {
+        part.debug_equal = true;
+        part.debug_text = std::string(field.substr(0, debug_pos + 1));
+        expr_text = expr_text.substr(0, debug_pos);
+      }
+      part.text = std::string(trim_ascii(expr_text));
       if (conversion_pos != std::string_view::npos) {
         const size_t conversion_value_pos = conversion_pos + 1;
         if (conversion_value_pos < field.size()) {
@@ -247,6 +272,8 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
   }
   return parts;
 }
+
+namespace {
 
 bool parse_timings_enabled() {
   return std::getenv("XLANG3_PARSE_TIMINGS") != nullptr;

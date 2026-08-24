@@ -164,6 +164,9 @@ std::string dump_module(const Module& module) {
     if (!fn.qualname.empty() && fn.qualname != fn.name) {
       os << "  qualname: " << fn.qualname << "\n";
     }
+    if (!fn.doc.empty()) {
+      os << "  doc: " << fn.doc << "\n";
+    }
     os << "  first_line: " << fn.first_line << "\n";
     os << "  generator: " << (fn.is_generator ? "true" : "false") << "\n";
     os << "  async: " << (fn.is_async ? "true" : "false") << "\n";

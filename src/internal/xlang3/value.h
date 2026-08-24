@@ -67,6 +67,7 @@ enum class ObjectKind : uint32_t {
   MapIterator,
   FilterIterator,
   Generator,
+  AsyncGeneratorAwaitable,
   Module,
   Cell,
   Function,
@@ -77,6 +78,7 @@ enum class ObjectKind : uint32_t {
   StaticMethod,
   ClassMethod,
   Super,
+  SlotDescriptor,
   Property,
   Code,
   Frame,
@@ -232,7 +234,8 @@ struct Value {
       std::string name,
       std::vector<std::pair<std::string, Value>> attrs,
       Value base = Value::invalid(),
-      std::vector<std::string> instance_slots = {});
+      std::vector<std::string> instance_slots = {},
+      Value metaclass = Value::invalid());
   static Value instance(Value klass);
   static Value bound_method(Value self, Value function);
   static Value static_method(Value function);
@@ -387,10 +390,11 @@ struct FunctionObject {
   std::vector<std::pair<std::string, Value>> kwdefaults;
   std::vector<std::string> type_params;
   Value annotations;
+  Value doc;
   Value globals_module;
+  Value attrs_dict;
   std::shared_ptr<const ir::Module> module;
   std::string qualname;
-  std::vector<std::pair<std::string, Value>> attrs;
 };
 
 struct TypeParamObject {

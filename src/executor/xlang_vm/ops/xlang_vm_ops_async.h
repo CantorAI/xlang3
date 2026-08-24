@@ -28,14 +28,20 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
 #ifndef XLANG3_EMBEDDED
   std::string await_error;
-  if (!xlang_task_await_value(regs[in.a], regs[in.dst], await_error)) {
+  if (!xlang_task_await_value(runtime, regs[in.a], regs[in.dst], await_error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(await_error.empty() ? "await failed" : await_error)
                ? XlangVMOpFlow::ContinueLoop
                : XlangVMOpFlow::ReturnResult;

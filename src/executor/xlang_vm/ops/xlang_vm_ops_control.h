@@ -233,7 +233,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow return_op(
   if (!finish_frame(return_value)) {
     if (generator != nullptr) {
       generator->done = true;
-      value_set_none(result.value);
+      value_assign_fast(generator->return_value, return_value);
+      value_assign_fast(result.value, return_value);
     }
     return XlangVMOpFlow::ReturnResult;
   }

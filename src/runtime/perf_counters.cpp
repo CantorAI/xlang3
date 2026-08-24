@@ -76,6 +76,7 @@ const char* xlang_perf_object_kind_name(ObjectKind kind) {
     case ObjectKind::RangeIterator: return "RangeIterator";
     case ObjectKind::SequenceIterator: return "SequenceIterator";
     case ObjectKind::Generator: return "Generator";
+    case ObjectKind::AsyncGeneratorAwaitable: return "AsyncGeneratorAwaitable";
     case ObjectKind::Module: return "Module";
     case ObjectKind::Cell: return "Cell";
     case ObjectKind::Function: return "Function";
@@ -86,6 +87,7 @@ const char* xlang_perf_object_kind_name(ObjectKind kind) {
     case ObjectKind::StaticMethod: return "StaticMethod";
     case ObjectKind::ClassMethod: return "ClassMethod";
     case ObjectKind::Super: return "Super";
+    case ObjectKind::SlotDescriptor: return "SlotDescriptor";
     case ObjectKind::Property: return "Property";
     case ObjectKind::File: return "File";
     case ObjectKind::TypeParam: return "TypeParam";

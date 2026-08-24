@@ -50,7 +50,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
   if (const auto* object_base = runtime.find_builtin(XlangVMNames::object_type)) {
     value_assign_fast(base, *object_base);
   }
-  regs[in.dst] = Value::class_object(fn.names[in.a], std::move(attrs), std::move(base), fn.class_instance_slots[in.c]);
+  Value metaclass = Value::invalid();
+  if (const auto* type_type = runtime.find_builtin(XlangVMNames::builtin_type)) {
+    value_assign_fast(metaclass, *type_type);
+  }
+  regs[in.dst] = Value::class_object(
+      fn.names[in.a],
+      std::move(attrs),
+      std::move(base),
+      fn.class_instance_slots[in.c],
+      std::move(metaclass));
   return XlangVMOpFlow::Next;
 }
 
@@ -125,7 +134,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_function_kwdefaults(
     const ir::Function& fn,
     XlangVMSmallRegisterBuffer& regs,
     RuntimeResult& result) {
-  if (in.b >= fn.function_kwdefaults.size()) {
+  if (in.a >= fn.function_kwdefaults.size()) {
     result.errors.push_back("invalid function keyword defaults list");
     return XlangVMOpFlow::ReturnResult;
   }
@@ -135,8 +144,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_function_kwdefaults(
     return XlangVMOpFlow::ReturnResult;
   }
   function->kwdefaults.clear();
-  function->kwdefaults.reserve(fn.function_kwdefaults[in.b].size());
-  for (const auto& item : fn.function_kwdefaults[in.b]) {
+  function->kwdefaults.reserve(fn.function_kwdefaults[in.a].size());
+  for (const auto& item : fn.function_kwdefaults[in.a]) {
     if (item.second >= regs.size()) {
       result.errors.push_back("invalid keyword default register");
       return XlangVMOpFlow::ReturnResult;

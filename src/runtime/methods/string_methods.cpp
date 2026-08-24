@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
 #include "runtime/memory/x3_string_ref.h"
@@ -359,6 +360,35 @@ bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out
   return true;
 }
 
+bool string_lstrip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  memory::X3StringView text;
+  if (!get_string_view_checked(value, "str.lstrip target", text, error)) {
+    return false;
+  }
+
+  uint32_t start = 0;
+  if (chars_value == nullptr) {
+    while (start < text.size && memory::x3_is_ascii_space(text.data[start])) {
+      ++start;
+    }
+  } else {
+    memory::X3StringView chars;
+    if (!get_string_view_checked(*chars_value, "str.lstrip chars", chars, error)) {
+      return false;
+    }
+    while (start < text.size && trim_char_set_contains(chars, text.data[start])) {
+      ++start;
+    }
+  }
+
+  if (start == 0) {
+    value_assign_fast(out, value);
+    return true;
+  }
+  out = make_string_from_view(memory::X3StringView{text.data + start, text.size - start});
+  return true;
+}
+
 bool string_startswith_body(const Value& value, const Value& prefix_value, Value& out, std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.startswith target", text, error)) {
@@ -438,6 +468,20 @@ bool string_find_body(const Value& value, const Value& needle_value, Value& out,
   return true;
 }
 
+bool string_rfind_body(const Value& value, const Value& needle_value, Value& out, std::string& error) {
+  memory::X3StringView text;
+  if (!get_string_view_checked(value, "str.rfind target", text, error)) {
+    return false;
+  }
+  memory::X3StringView needle;
+  if (!get_string_view_checked(needle_value, "str.rfind substring", needle, error)) {
+    return false;
+  }
+  const auto pos = as_view(text).rfind(as_view(needle));
+  value_set_int64(out, pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
+  return true;
+}
+
 bool string_count_body(const Value& value, const Value& needle_value, Value& out, std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.count target", text, error)) {
@@ -508,6 +552,14 @@ bool string_rstrip_method(Runtime&, const Value* args, uint32_t argc, Value& out
   return string_rstrip_body(args[0], argc == 2 ? &args[1] : nullptr, out, error);
 }
 
+bool string_lstrip_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 && argc != 2) {
+    error = "str.lstrip expected 0 or 1 arguments";
+    return false;
+  }
+  return string_lstrip_body(args[0], argc == 2 ? &args[1] : nullptr, out, error);
+}
+
 bool string_upper_fast_method(
     Runtime&,
     const Value* leading,
@@ -576,6 +628,24 @@ bool string_rstrip_fast_method(
   }
   const Value* chars_value = register_arg_count == 0 ? nullptr : &registers[register_args[0]];
   return string_rstrip_body(leading[0], chars_value, out, error);
+}
+
+bool string_lstrip_fast_method(
+    Runtime&,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (leading_count != 1 || register_arg_count > 1 || leading == nullptr) {
+    error = "str.lstrip expected 0 or 1 arguments";
+    return false;
+  }
+  const Value* chars_value = register_arg_count == 0 ? nullptr : &registers[register_args[0]];
+  return string_lstrip_body(leading[0], chars_value, out, error);
 }
 
 bool string_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -655,6 +725,47 @@ bool string_count_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   return string_count_body(args[0], args[1], out, error);
+}
+
+bool string_rfind_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "str.rfind", error)) {
+    return false;
+  }
+  return string_rfind_body(args[0], args[1], out, error);
+}
+
+bool string_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "str.index", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!string_find_body(args[0], args[1], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (out.tag == ValueTag::Int64 && out.as.i64 < 0) {
+    error = "substring not found";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  return true;
+}
+
+bool string_rindex_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "str.rindex", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!string_rfind_body(args[0], args[1], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (out.tag == ValueTag::Int64 && out.as.i64 < 0) {
+    error = "substring not found";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_count_fast_method(
@@ -1116,6 +1227,36 @@ bool string_split_fast_method(
   return true;
 }
 
+bool string_partition_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "str.partition expected separator";
+    return false;
+  }
+  memory::X3StringView text;
+  memory::X3StringView sep;
+  if (!get_string_view_checked(args[0], "str.partition target", text, error) ||
+      !get_string_view_checked(args[1], "str.partition separator", sep, error)) {
+    return false;
+  }
+  if (sep.size == 0) {
+    error = "empty separator";
+    return false;
+  }
+  const std::string_view text_view = as_view(text);
+  const std::string_view sep_view = as_view(sep);
+  const size_t pos = text_view.find(sep_view);
+  if (pos == std::string_view::npos) {
+    out = Value::tuple({make_string_from_view(text), Value::string(""), Value::string("")});
+    return true;
+  }
+  out = Value::tuple({
+      make_string_range_unchecked(text, 0, pos),
+      make_string_from_view(sep),
+      make_string_range_unchecked(text, pos + sep.size, text.size - pos - sep.size),
+  });
+  return true;
+}
+
 bool string_rpartition_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "str.rpartition expected separator";
@@ -1249,6 +1390,7 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"endswith", "str.endswith", string_endswith_method, string_endswith_fast_method},
     {"find", "str.find", string_find_method, string_find_fast_method},
     {"format", "str.format", string_format_method, nullptr, false, string_format_method_kw},
+    {"index", "str.index", string_index_method},
     {"isalnum", "str.isalnum", string_isalnum_method},
     {"isalpha", "str.isalpha", string_isalpha_method},
     {"isdigit", "str.isdigit", string_isdigit_method},
@@ -1257,7 +1399,11 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"isupper", "str.isupper", string_isupper_method},
     {"join", "str.join", string_join_method, string_join_fast_method},
     {"lower", "str.lower", string_lower_method, string_lower_fast_method},
+    {"lstrip", "str.lstrip", string_lstrip_method, string_lstrip_fast_method},
+    {"partition", "str.partition", string_partition_method},
     {"replace", "str.replace", string_replace_method, string_replace_fast_method},
+    {"rfind", "str.rfind", string_rfind_method},
+    {"rindex", "str.rindex", string_rindex_method},
     {"rpartition", "str.rpartition", string_rpartition_method},
     {"rstrip", "str.rstrip", string_rstrip_method, string_rstrip_fast_method},
     {"split", "str.split", string_split_method, string_split_fast_method},

@@ -190,6 +190,21 @@ bool collect_literal_string_sequence(const ast::Expr& expr, std::vector<std::str
   return false;
 }
 
+std::string docstring_from_body(const std::vector<ast::StmtPtr>& body) {
+  if (body.empty()) {
+    return {};
+  }
+  auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(body.front().get());
+  if (expr_stmt == nullptr) {
+    return {};
+  }
+  auto* literal = dynamic_cast<const ast::LiteralExpr*>(expr_stmt->expr.get());
+  if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+    return {};
+  }
+  return literal->text;
+}
+
 ir::ParamKind lower_param_kind(ast::FunctionDef::Param::Kind kind) {
   switch (kind) {
     case ast::FunctionDef::Param::Kind::PosOnly:
@@ -901,6 +916,7 @@ public:
     fn_.is_generator = is_generator;
     fn_.is_async = is_async;
     fn_.first_line = first_line;
+    fn_.doc = docstring_from_body(body);
     fn_.params = std::move(params);
     fn_.signature = std::move(signature);
     fn_.free_vars = std::move(free_vars);
@@ -924,8 +940,12 @@ public:
   }
 
   void lower_body(const std::vector<ast::StmtPtr>& body) {
-    for (const auto& stmt : body) {
-      lower_stmt(*stmt);
+    const bool skip_docstring = !docstring_from_body(body).empty();
+    for (size_t i = 0; i < body.size(); ++i) {
+      if (i == 0 && skip_docstring) {
+        continue;
+      }
+      lower_stmt(*body[i]);
     }
   }
 
@@ -2202,11 +2222,30 @@ private:
 
   uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true, std::string qualname_parent = {}) {
     std::vector<std::pair<std::string, uint32_t>> attrs;
+    uint32_t metaclass_reg = UINT32_MAX;
+    bool metaclass_supports_prepare = false;
+    for (const auto& keyword : klass.keywords) {
+      const auto value = lower_expr(*keyword.second);
+      if (keyword.first == "metaclass") {
+        metaclass_reg = value;
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(keyword.second.get())) {
+          metaclass_supports_prepare = name->name == "type" || class_infos_.find(name->name) != class_infos_.end();
+        }
+      } else {
+        emit(ir::Op::Pop, 0, value);
+      }
+    }
     const std::string& parent_qualname = qualname_parent.empty() ? qualname_prefix_ : qualname_parent;
     const std::string class_qualname = parent_qualname.empty() ? klass.name : parent_qualname + "." + klass.name;
     std::vector<std::string> own_instance_slots;
     std::unordered_set<std::string> seen_own_instance_slots;
     std::vector<std::string> match_args;
+    const std::string class_doc = docstring_from_body(klass.body);
+    if (!class_doc.empty()) {
+      const auto doc_reg = new_reg();
+      emit(ir::Op::LoadConst, doc_reg, add_const(Value::string(class_doc)));
+      attrs.push_back(std::make_pair("__doc__", doc_reg));
+    }
     bool has_explicit_slots = false;
     for (const auto& stmt : klass.body) {
       auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get());
@@ -2272,9 +2311,37 @@ private:
     }
     class_infos_[klass.name] = class_info;
 
+    std::vector<uint32_t> base_regs;
+    base_regs.reserve(klass.bases.size());
+    for (const auto& base_expr : klass.bases) {
+      base_regs.push_back(lower_expr(*base_expr));
+    }
+
+    uint32_t name_reg = UINT32_MAX;
+    uint32_t bases_reg = UINT32_MAX;
+    uint32_t namespace_reg = UINT32_MAX;
+    if (metaclass_reg != UINT32_MAX && metaclass_supports_prepare) {
+      name_reg = new_reg();
+      emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
+      bases_reg = new_reg();
+      emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      const auto prepare_reg = new_reg();
+      emit(ir::Op::LoadAttr, prepare_reg, metaclass_reg, add_name("__prepare__"));
+      namespace_reg = new_reg();
+      emit(ir::Op::Call, namespace_reg, prepare_reg, add_call_args({name_reg, bases_reg}));
+    }
+
     std::unordered_map<std::string, std::string> saved_aliases;
     std::unordered_set<std::string> erased_aliases;
     std::unordered_set<std::string> class_aliases;
+    auto add_to_prepared_namespace = [&](const std::string& name, uint32_t reg) {
+      if (namespace_reg == UINT32_MAX) {
+        return;
+      }
+      const auto key = new_reg();
+      emit(ir::Op::LoadConst, key, add_const(Value::string(name)));
+      emit(ir::Op::DictSet, namespace_reg, key, reg);
+    };
     auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
       const std::string hidden_name = "#class." + klass.name + "." + name;
       if (class_aliases.insert(name).second) {
@@ -2287,7 +2354,11 @@ private:
       hidden_locals_.insert(hidden_name);
       name_aliases_[name] = hidden_name;
       store_named_value(name, reg);
+      add_to_prepared_namespace(name, reg);
     };
+    for (const auto& attr : attrs) {
+      add_to_prepared_namespace(attr.first, attr.second);
+    }
 
     if (!klass.type_params.empty()) {
       const auto attr_reg = emit_type_params_tuple(klass.type_params);
@@ -2337,15 +2408,29 @@ private:
     }
 
     const auto reg = new_reg();
-    emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)),
-         add_class_instance_slots(std::move(own_instance_slots)));
-    for (const auto& base_expr : klass.bases) {
-      const auto base = lower_expr(*base_expr);
-      emit(ir::Op::SetClassBase, reg, base);
-    }
-    for (const auto& keyword : klass.keywords) {
-      const auto ignored = lower_expr(*keyword.second);
-      emit(ir::Op::Pop, 0, ignored);
+    if (metaclass_reg == UINT32_MAX) {
+      emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)),
+           add_class_instance_slots(std::move(own_instance_slots)));
+      for (const auto base : base_regs) {
+        emit(ir::Op::SetClassBase, reg, base);
+      }
+    } else {
+      if (namespace_reg == UINT32_MAX) {
+        std::vector<std::pair<uint32_t, uint32_t>> namespace_items;
+        namespace_items.reserve(attrs.size());
+        for (const auto& attr : attrs) {
+          const auto key = new_reg();
+          emit(ir::Op::LoadConst, key, add_const(Value::string(attr.first)));
+          namespace_items.push_back(std::make_pair(key, attr.second));
+        }
+        name_reg = new_reg();
+        emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+        namespace_reg = new_reg();
+        emit(ir::Op::MakeDict, namespace_reg, add_dict_items(std::move(namespace_items)));
+      }
+      emit(ir::Op::Call, reg, metaclass_reg, add_call_args({name_reg, bases_reg, namespace_reg}));
     }
     const auto decorated_reg = apply_decorators(reg, klass.decorators);
     if (store_name) {
@@ -2772,7 +2857,13 @@ private:
         }
         if (!part.format_spec.empty()) {
           const auto spec = new_reg();
-          emit(ir::Op::LoadConst, spec, add_const(Value::string(part.format_spec)));
+          if (part.format_spec.find('{') != std::string::npos) {
+            ast::FStringExpr spec_expr(parse_fstring_parts(part.format_spec));
+            const auto lowered_spec = lower_fstring(spec_expr);
+            emit(ir::Op::Move, spec, lowered_spec);
+          } else {
+            emit(ir::Op::LoadConst, spec, add_const(Value::string(part.format_spec)));
+          }
           const auto callee = lower_expr(ast::NameExpr("format"));
           const auto formatted = new_reg();
           emit(ir::Op::Call, formatted, callee, add_call_args({value, spec}));
@@ -2782,6 +2873,13 @@ private:
           const auto converted = new_reg();
           emit(ir::Op::Call, converted, callee, add_call_args({value}));
           value = converted;
+        }
+        if (part.debug_equal) {
+          const auto prefix = new_reg();
+          emit(ir::Op::LoadConst, prefix, add_const(Value::string(part.debug_text)));
+          const auto debug_joined = new_reg();
+          emit(ir::Op::Add, debug_joined, prefix, value);
+          value = debug_joined;
         }
       } else {
         value = new_reg();
@@ -3111,6 +3209,7 @@ private:
         emit(ir::Op::Yield, reg, item);
         emit(ir::Op::Jump, start);
         patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+        emit(ir::Op::Move, reg, item);
       } else {
         emit(ir::Op::Yield, reg, src);
       }

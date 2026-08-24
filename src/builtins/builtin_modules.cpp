@@ -421,6 +421,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "ZeroDivisionError");
   copy_builtin(runtime, builtins, "StopIteration");
   copy_builtin(runtime, builtins, "StopAsyncIteration");
+  copy_builtin(runtime, builtins, "GeneratorExit");
   copy_builtin(runtime, builtins, "EOFError");
   copy_builtin(runtime, builtins, "OSError");
   copy_builtin(runtime, builtins, "IOError");

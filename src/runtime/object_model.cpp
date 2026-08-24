@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/perf_counters.h"
+#include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value.h"
@@ -373,7 +374,157 @@ int64_t frame_source_line(const FrameObject& frame) {
   return static_cast<int64_t>(frame.instruction_index);
 }
 
+bool slot_descriptor_get_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 3) {
+    error = "member_descriptor.__get__ expected object and optional owner";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* slot = value_as_slot_descriptor(args[0]);
+  if (slot == nullptr) {
+    error = "member_descriptor.__get__ expected descriptor self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag == ValueTag::None) {
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  auto* instance = value_as_instance(args[1]);
+  if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
+    error = "descriptor does not apply to this object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto& slot_value = instance_slot_at(instance, slot->index);
+  if (slot_value.tag == ValueTag::Invalid) {
+    error = "object has no attribute '" + slot->name + "'";
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  value_assign_fast(out, slot_value);
+  return true;
+}
+
+bool slot_descriptor_set_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 3) {
+    error = "member_descriptor.__set__ expected object and value";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* slot = value_as_slot_descriptor(args[0]);
+  auto* instance = value_as_instance(args[1]);
+  if (slot == nullptr || instance == nullptr || slot->index >= instance_slot_count(instance)) {
+    error = "descriptor does not apply to this object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(instance_slot_at(instance, slot->index), args[2]);
+  value_set_none(out);
+  return true;
+}
+
+bool slot_descriptor_delete_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "member_descriptor.__delete__ expected object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* slot = value_as_slot_descriptor(args[0]);
+  auto* instance = value_as_instance(args[1]);
+  if (slot == nullptr || instance == nullptr || slot->index >= instance_slot_count(instance)) {
+    error = "descriptor does not apply to this object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_invalid(instance_slot_at(instance, slot->index));
+  value_set_none(out);
+  return true;
+}
+
+bool code_lines_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "code.co_lines expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* code = value_as_code(args[0]);
+  if (code == nullptr || code->module == nullptr || code->function_id >= code->module->functions.size()) {
+    error = "invalid code object";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  const auto& fn = code->module->functions[code->function_id];
+  std::vector<Value> ranges;
+  ranges.reserve(fn.source_lines.size());
+  for (size_t i = 0; i < fn.source_lines.size(); ++i) {
+    const int64_t line = fn.source_lines[i] == 0 ? -1 : static_cast<int64_t>(fn.source_lines[i]);
+    ranges.push_back(Value::tuple({
+        Value::int64(static_cast<int64_t>(i)),
+        Value::int64(static_cast<int64_t>(i + 1)),
+        line < 0 ? Value::none() : Value::int64(line),
+    }));
+  }
+  out = Value::tuple(std::move(ranges));
+  return true;
+}
+
+bool code_positions_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "code.co_positions expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* code = value_as_code(args[0]);
+  if (code == nullptr || code->module == nullptr || code->function_id >= code->module->functions.size()) {
+    error = "invalid code object";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  const auto& fn = code->module->functions[code->function_id];
+  std::vector<Value> positions;
+  positions.reserve(fn.source_lines.size());
+  for (const auto line_value : fn.source_lines) {
+    Value line = line_value == 0 ? Value::none() : Value::int64(static_cast<int64_t>(line_value));
+    positions.push_back(Value::tuple({line, line, Value::none(), Value::none()}));
+  }
+  out = Value::tuple(std::move(positions));
+  return true;
+}
+
 } // namespace
+
+Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
 
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name) {
   return class_has_builtin_base_name_impl(klass, name);
@@ -383,12 +534,14 @@ Value Value::class_object(
     std::string name,
     std::vector<std::pair<std::string, Value>> attrs,
     Value base,
-    std::vector<std::string> instance_slots) {
+    std::vector<std::string> instance_slots,
+    Value metaclass) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object_model<ClassObject>(ObjectKind::Class);
   obj->name = std::move(name);
   obj->base = std::move(base);
+  obj->metaclass = std::move(metaclass);
   if (obj->base.tag != ValueTag::Invalid) {
     obj->bases.push_back(obj->base);
     if (auto* base_class = value_as_class(obj->base)) {
@@ -397,6 +550,7 @@ Value Value::class_object(
       obj->instance_slot_names = base_class->instance_slot_names;
     }
   }
+  const size_t inherited_slot_count = obj->instance_slot_names.size();
   for (auto& attr : attrs) {
     if (object_value_is_descriptor(attr.second)) {
       obj->has_descriptors = true;
@@ -418,6 +572,14 @@ Value Value::class_object(
   }
   for (size_t i = 0; i < obj->instance_slot_names.size(); ++i) {
     obj->instance_slot_indices[obj->instance_slot_names[i]] = static_cast<uint32_t>(i);
+  }
+  for (size_t i = inherited_slot_count; i < obj->instance_slot_names.size(); ++i) {
+    const auto& slot_name = obj->instance_slot_names[i];
+    if (slot_name == "__dict__" || slot_name == "__weakref__" || obj->attrs.find(slot_name) != obj->attrs.end()) {
+      continue;
+    }
+    obj->attrs.emplace(slot_name, slot_descriptor(obj->name, slot_name, static_cast<uint32_t>(i)));
+    obj->has_descriptors = true;
   }
   v.as.obj = &obj->header;
   return v;
@@ -484,6 +646,17 @@ Value Value::super_object(Value klass, Value self) {
   return v;
 }
 
+Value slot_descriptor(std::string owner_name, std::string name, uint32_t index) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object_model<SlotDescriptorObject>(ObjectKind::SlotDescriptor);
+  obj->owner_name = std::move(owner_name);
+  obj->name = std::move(name);
+  obj->index = index;
+  v.as.obj = &obj->header;
+  return v;
+}
+
 void object_model_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Class:
@@ -503,6 +676,9 @@ void object_model_release_object(Object* object) {
       break;
     case ObjectKind::Super:
       delete reinterpret_cast<SuperObject*>(object);
+      break;
+    case ObjectKind::SlotDescriptor:
+      delete reinterpret_cast<SlotDescriptorObject*>(object);
       break;
     default:
       break;
@@ -543,10 +719,42 @@ std::string object_model_to_string(const Value& value) {
   if (value_as_super(value) != nullptr) {
     return "<super object>";
   }
+  if (auto* slot = value_as_slot_descriptor(value)) {
+    return "<member '" + slot->name + "' of '" + slot->owner_name + "' objects>";
+  }
   return "<object>";
 }
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
+  if (auto* slot = value_as_slot_descriptor(object)) {
+    if (name == "__name__") {
+      out = Value::string(slot->name);
+      return true;
+    }
+    if (name == "__objclass__") {
+      out = Value::string(slot->owner_name);
+      return true;
+    }
+    if (name == "__doc__") {
+      value_set_none(out);
+      return true;
+    }
+    if (name == "__get__") {
+      out = Value::bound_method(object, Value::native_function(0, "member_descriptor.__get__", slot_descriptor_get_method));
+      return true;
+    }
+    if (name == "__set__") {
+      out = Value::bound_method(object, Value::native_function(0, "member_descriptor.__set__", slot_descriptor_set_method));
+      return true;
+    }
+    if (name == "__delete__") {
+      out = Value::bound_method(object, Value::native_function(0, "member_descriptor.__delete__", slot_descriptor_delete_method));
+      return true;
+    }
+    error = "member descriptor has no attribute '" + name + "'";
+    return false;
+  }
+
   if (auto* type_param = value_as_type_param(object)) {
     if (name == "__name__") {
       out = Value::string(type_param->name);
@@ -565,9 +773,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* function = value_as_function(object)) {
-    for (const auto& attr : function->attrs) {
-      if (attr.first == name) {
-        value_assign_fast(out, attr.second);
+    if (function->attrs_dict.tag != ValueTag::Invalid) {
+      std::string ignored;
+      if (mapping_get_item(function->attrs_dict, Value::string(name), out, ignored)) {
         return true;
       }
     }
@@ -599,7 +807,11 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__doc__") {
-      value_set_none(out);
+      if (function->doc.tag == ValueTag::Invalid) {
+        value_set_none(out);
+      } else {
+        value_assign_fast(out, function->doc);
+      }
       return true;
     }
     if (name == "__defaults__") {
@@ -648,13 +860,23 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
-    if (name == "__dict__") {
-      std::vector<std::pair<Value, Value>> entries;
-      entries.reserve(function->attrs.size());
-      for (const auto& attr : function->attrs) {
-        entries.push_back({Value::string(attr.first), attr.second});
+    if (name == "__globals__") {
+      out = module_globals_snapshot(function->globals_module);
+      return true;
+    }
+    if (name == "__closure__") {
+      if (function->closure.empty()) {
+        value_set_none(out);
+      } else {
+        out = Value::tuple(function->closure);
       }
-      out = Value::dict(std::move(entries));
+      return true;
+    }
+    if (name == "__dict__") {
+      if (function->attrs_dict.tag == ValueTag::Invalid) {
+        function->attrs_dict = Value::dict({});
+      }
+      value_assign_fast(out, function->attrs_dict);
       return true;
     }
     error = "function has no attribute '" + name + "'";
@@ -669,6 +891,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     const auto& fn = code->module->functions[code->function_id];
     if (name == "co_name") {
       out = Value::string(fn.name);
+      return true;
+    }
+    if (name == "co_qualname") {
+      out = Value::string(fn.qualname.empty() ? fn.name : fn.qualname);
       return true;
     }
     if (name == "co_filename") {
@@ -693,11 +919,80 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       out = Value::int64(count);
       return true;
     }
+    if (name == "co_posonlyargcount") {
+      uint32_t count = 0;
+      for (const auto& param : fn.signature) {
+        if (param.kind == ir::ParamKind::PosOnly) {
+          ++count;
+        }
+      }
+      out = Value::int64(count);
+      return true;
+    }
+    if (name == "co_kwonlyargcount") {
+      uint32_t count = 0;
+      for (const auto& param : fn.signature) {
+        if (param.kind == ir::ParamKind::KeywordOnly) {
+          ++count;
+        }
+      }
+      out = Value::int64(count);
+      return true;
+    }
+    if (name == "co_nlocals") {
+      out = Value::int64(static_cast<int64_t>(fn.locals.size()));
+      return true;
+    }
+    if (name == "co_stacksize") {
+      out = Value::int64(static_cast<int64_t>(fn.register_count));
+      return true;
+    }
+    if (name == "co_flags") {
+      int64_t flags = 0x01 | 0x02;
+      for (const auto& param : fn.signature) {
+        if (param.kind == ir::ParamKind::VarArgs) {
+          flags |= 0x04;
+        } else if (param.kind == ir::ParamKind::KwArgs) {
+          flags |= 0x08;
+        }
+      }
+      if (fn.is_generator) {
+        flags |= 0x20;
+      }
+      if (fn.is_async && !fn.is_generator) {
+        flags |= 0x80;
+      }
+      if (fn.is_async && fn.is_generator) {
+        flags |= 0x200;
+      }
+      out = Value::int64(flags);
+      return true;
+    }
     if (name == "co_varnames") {
       std::vector<Value> values;
       values.reserve(fn.locals.size());
       for (const auto& local : fn.locals) {
         values.push_back(Value::string(local));
+      }
+      out = Value::tuple(std::move(values));
+      return true;
+    }
+    if (name == "co_freevars") {
+      std::vector<Value> values;
+      values.reserve(fn.free_vars.size());
+      for (const auto& item : fn.free_vars) {
+        values.push_back(Value::string(item));
+      }
+      out = Value::tuple(std::move(values));
+      return true;
+    }
+    if (name == "co_cellvars") {
+      std::vector<Value> values;
+      values.reserve(fn.cell_slots.size());
+      for (const auto slot : fn.cell_slots) {
+        if (slot < fn.locals.size()) {
+          values.push_back(Value::string(fn.locals[slot]));
+        }
       }
       out = Value::tuple(std::move(values));
       return true;
@@ -713,6 +1008,18 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "co_consts") {
       out = Value::tuple(fn.constants);
+      return true;
+    }
+    if (name == "co_code" || name == "co_linetable" || name == "co_exceptiontable") {
+      out = Value::bytes({});
+      return true;
+    }
+    if (name == "co_lines") {
+      out = Value::bound_method(object, Value::native_function(0, "code.co_lines", code_lines_method));
+      return true;
+    }
+    if (name == "co_positions") {
+      out = Value::bound_method(object, Value::native_function(0, "code.co_positions", code_positions_method));
       return true;
     }
     error = "code has no attribute '" + name + "'";
@@ -744,6 +1051,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       out = Value::int64(frame_source_line(*frame));
       return true;
     }
+    if (name == "f_lasti") {
+      out = Value::int64(static_cast<int64_t>(frame->instruction_index));
+      return true;
+    }
     if (name == "f_locals") {
       if (frame->locals.tag == ValueTag::Invalid) {
         out = Value::dict({});
@@ -767,6 +1078,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "tb_lineno") {
       out = Value::int64(traceback->line);
+      return true;
+    }
+    if (name == "tb_lasti") {
+      if (auto* frame = value_as_frame(traceback->frame)) {
+        out = Value::int64(static_cast<int64_t>(frame->instruction_index));
+      } else {
+        out = Value::int64(-1);
+      }
       return true;
     }
     error = "traceback has no attribute '" + name + "'";
@@ -879,6 +1198,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* klass = value_as_class(object)) {
+    if (name == "__class__") {
+      if (klass->metaclass.tag == ValueTag::Invalid) {
+        error = "class has no metaclass";
+        return false;
+      }
+      value_assign_fast(out, klass->metaclass);
+      return true;
+    }
     if (name == "__name__") {
       out = Value::string(klass->name);
       return true;
@@ -954,6 +1281,19 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       error = "object has no attribute '" + name + "'";
       return false;
     }
+    if (auto* slot = value_as_slot_descriptor(class_attr)) {
+      if (slot->index >= instance_slot_count(instance)) {
+        error = "descriptor does not apply to this object";
+        return false;
+      }
+      const auto& slot_value = instance_slot_at(instance, slot->index);
+      if (slot_value.tag == ValueTag::Invalid) {
+        error = "object has no attribute '" + slot->name + "'";
+        return false;
+      }
+      value_assign_fast(out, slot_value);
+      return true;
+    }
     if (auto* method = value_as_static_method(class_attr)) {
       value_assign_fast(out, method->function);
     } else if (auto* method = value_as_class_method(class_attr)) {
@@ -986,6 +1326,16 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     if (name == "__defaults__") {
       if (value.tag == ValueTag::None) {
         function->positional_defaults.clear();
+        if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+          const auto& fn = function->module->functions[function->function_id];
+          for (const auto& param : fn.signature) {
+            if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
+                param.default_reg != UINT32_MAX &&
+                param.default_reg < function->defaults.size()) {
+              value_set_invalid(function->defaults[param.default_reg]);
+            }
+          }
+        }
         return true;
       }
       auto* tuple = value_as_tuple(value);
@@ -1000,16 +1350,21 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       }
       if (function->module != nullptr && function->function_id < function->module->functions.size()) {
         const auto& fn = function->module->functions[function->function_id];
-        size_t pos_default_index = 0;
+        std::vector<uint32_t> default_param_regs;
         for (const auto& param : fn.signature) {
           if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
               param.default_reg != UINT32_MAX &&
               param.default_reg < function->defaults.size()) {
-            if (pos_default_index < function->positional_defaults.size()) {
-              value_assign_fast(function->defaults[param.default_reg], function->positional_defaults[pos_default_index]);
-            }
-            ++pos_default_index;
+            default_param_regs.push_back(param.default_reg);
+            value_set_invalid(function->defaults[param.default_reg]);
           }
+        }
+        const size_t copy_count = std::min(default_param_regs.size(), function->positional_defaults.size());
+        const size_t param_start = default_param_regs.size() - copy_count;
+        const size_t value_start = function->positional_defaults.size() - copy_count;
+        for (size_t i = 0; i < copy_count; ++i) {
+          value_assign_fast(function->defaults[default_param_regs[param_start + i]],
+                            function->positional_defaults[value_start + i]);
         }
       }
       return true;
@@ -1017,6 +1372,16 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     if (name == "__kwdefaults__") {
       if (value.tag == ValueTag::None) {
         function->kwdefaults.clear();
+        if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+          const auto& fn = function->module->functions[function->function_id];
+          for (const auto& param : fn.signature) {
+            if (param.kind == ir::ParamKind::KeywordOnly &&
+                param.default_reg != UINT32_MAX &&
+                param.default_reg < function->defaults.size()) {
+              value_set_invalid(function->defaults[param.default_reg]);
+            }
+          }
+        }
         return true;
       }
       auto* dict = value_as_dict(value);
@@ -1042,6 +1407,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
               param.default_reg >= function->defaults.size()) {
             continue;
           }
+          value_set_invalid(function->defaults[param.default_reg]);
           for (const auto& item : function->kwdefaults) {
             if (item.first == param.name) {
               value_assign_fast(function->defaults[param.default_reg], item.second);
@@ -1056,14 +1422,14 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       value_assign_fast(function->annotations, value);
       return true;
     }
-    for (auto& attr : function->attrs) {
-      if (attr.first == name) {
-        value_assign_fast(attr.second, value);
-        return true;
-      }
+    if (name == "__doc__") {
+      value_assign_fast(function->doc, value);
+      return true;
     }
-    function->attrs.push_back(std::make_pair(name, value));
-    return true;
+    if (function->attrs_dict.tag == ValueTag::Invalid) {
+      function->attrs_dict = Value::dict({});
+    }
+    return mapping_set_item(function->attrs_dict, Value::string(name), value, error);
   }
   if (auto* instance = value_as_instance(object)) {
     auto* klass = value_as_class(instance->klass);
@@ -1101,6 +1467,14 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
 }
 
 bool object_delete_attr(Value& object, const std::string& name, std::string& error) {
+  if (auto* function = value_as_function(object)) {
+    if (function->attrs_dict.tag != ValueTag::Invalid &&
+        mapping_delete_item(function->attrs_dict, Value::string(name), error)) {
+      return true;
+    }
+    error = "function has no attribute '" + name + "'";
+    return false;
+  }
   if (auto* instance = value_as_instance(object)) {
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr) {
@@ -1178,11 +1552,22 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   for (auto& slot : own_slots) {
     if (std::find(klass_obj->instance_slot_names.begin(), klass_obj->instance_slot_names.end(), slot) ==
         klass_obj->instance_slot_names.end()) {
-      klass_obj->instance_slot_names.push_back(std::move(slot));
+      klass_obj->instance_slot_names.push_back(slot);
     }
   }
   for (size_t i = 0; i < klass_obj->instance_slot_names.size(); ++i) {
     klass_obj->instance_slot_indices[klass_obj->instance_slot_names[i]] = static_cast<uint32_t>(i);
+  }
+  for (const auto& slot : own_slots) {
+    auto index_it = klass_obj->instance_slot_indices.find(slot);
+    if (index_it == klass_obj->instance_slot_indices.end()) {
+      continue;
+    }
+    auto attr_it = klass_obj->attrs.find(slot);
+    if (attr_it == klass_obj->attrs.end() || value_as_slot_descriptor(attr_it->second) != nullptr) {
+      klass_obj->attrs[slot] = slot_descriptor(klass_obj->name, slot, index_it->second);
+      klass_obj->has_descriptors = true;
+    }
   }
   if (klass_obj->bases.size() == 1) {
     klass_obj->base = std::move(base);
@@ -1223,14 +1608,23 @@ bool object_lookup_class_attr(const Value& klass, const std::string& name, Value
 }
 
 bool object_value_has_descriptor_get(const Value& value) {
+  if (value_as_slot_descriptor(value) != nullptr) {
+    return true;
+  }
   return descriptor_lookup_method(value, "__get__");
 }
 
 bool object_value_has_descriptor_set(const Value& value) {
+  if (value_as_slot_descriptor(value) != nullptr) {
+    return true;
+  }
   return descriptor_lookup_method(value, "__set__");
 }
 
 bool object_value_has_descriptor_delete(const Value& value) {
+  if (value_as_slot_descriptor(value) != nullptr) {
+    return true;
+  }
   return descriptor_lookup_method(value, "__delete__");
 }
 

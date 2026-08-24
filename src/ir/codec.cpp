@@ -629,7 +629,8 @@ bool read_values(Reader& r, std::vector<Value>& values, std::string& error) {
 
 bool write_function(Writer& w, const Function& fn, std::string& error) {
   if (!w.string(fn.name, error) ||
-      !w.string(fn.qualname, error)) {
+      !w.string(fn.qualname, error) ||
+      !w.string(fn.doc, error)) {
     return false;
   }
   w.u8(fn.is_generator ? 1 : 0);
@@ -695,6 +696,7 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
   uint8_t is_async = 0;
   if (!r.string(fn.name) ||
       !r.string(fn.qualname) ||
+      !r.string(fn.doc) ||
       !r.u8(is_generator) ||
       !r.u8(is_async) ||
       !r.u32(fn.first_line) ||

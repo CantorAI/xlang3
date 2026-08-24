@@ -97,11 +97,31 @@ class WithMeta(metaclass=choose_meta()):
 
 print(WithMeta.value, meta_seen)
 
+# Metaclass call receives name, bases, and namespace.
+meta_calls = []
+
+def meta_factory(name, bases, namespace):
+    meta_calls.append(name)
+    namespace["from_meta"] = 42
+    return type(name, bases, namespace)
+
+class MetaMade(metaclass=meta_factory):
+    value = 8
+
+class CustomMeta(type):
+    pass
+
+class CustomMade(metaclass=CustomMeta):
+    value = 18
+
+print(MetaMade.value, MetaMade.from_meta, meta_calls, type(MetaMade).__name__)
+print(CustomMade.value, type(CustomMade).__name__, CustomMade.__class__.__name__)
+
 # Lambda expressions.
 inc = lambda x: x + 1
 print(inc(40))
 
-# Generators: yield, send, close, and yield from.
+# Generators: yield, send, close/finally, throw, and yield from.
 def responder():
     received = yield 1
     yield received + 2
@@ -113,20 +133,42 @@ print(g.close())
 
 def delegated():
     yield 7
-    yield from [8, 9]
+    value = yield from subgen()
+    yield value
+
+def subgen():
+    yield 8
+    yield 9
+    return 12
 
 print(list(delegated()))
 
-# Generator throw method surface.
-def one():
-    yield 1
+# Generator throw can be handled inside the suspended frame.
+def throwable():
+    try:
+        yield 1
+    except ValueError:
+        yield 2
+    yield 3
 
-thrown = one()
+thrown = throwable()
 print(next(thrown))
-try:
-    thrown.throw(ValueError, "boom")
-except ValueError:
-    print("throw")
+print(thrown.throw(ValueError, "boom"))
+print(next(thrown))
+
+# Generator close injects GeneratorExit and runs finally.
+close_seen = []
+
+def closable():
+    try:
+        yield 1
+    finally:
+        close_seen.append("closed")
+
+closed = closable()
+print(next(closed))
+print(closed.close())
+print(close_seen)
 
 # async def, await, async for, async with.
 import asyncio
@@ -174,3 +216,34 @@ async def async_gen_main():
     return total
 
 print(asyncio.run(async_gen_main()))
+
+# Async generator method paths.
+async def agen_methods():
+    received = yield 1
+    yield received + 4
+
+async def async_gen_method_main():
+    gen = agen_methods()
+    first = await gen.__anext__()
+    pending = gen.asend(6)
+    print("asend lazy")
+    second = await pending
+    await gen.aclose()
+    return first + second
+
+print(asyncio.run(async_gen_method_main()))
+
+async def agen_throw():
+    try:
+        yield 1
+    except ValueError:
+        yield 5
+
+async def async_gen_throw_main():
+    gen = agen_throw()
+    first = await gen.__anext__()
+    second = await gen.athrow(ValueError, "async boom")
+    await gen.aclose()
+    return first + second
+
+print(asyncio.run(async_gen_throw_main()))

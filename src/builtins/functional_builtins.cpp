@@ -956,6 +956,12 @@ bool builtin_vars(
     out = Value::dict(std::move(entries));
     return true;
   }
+  Value dict;
+  std::string attr_error;
+  if (object_get_attr(args[0], "__dict__", dict, attr_error) && value_as_dict(dict) != nullptr) {
+    value_assign_fast(out, dict);
+    return true;
+  }
   error = "vars() argument must have __dict__ attribute";
   runtime.raise_class_error("TypeError", error);
   return false;
@@ -1144,6 +1150,184 @@ bool builtin_repr(
   return true;
 }
 
+struct ParsedFormatSpec {
+  char fill = ' ';
+  char align = '\0';
+  char sign = '-';
+  bool alternate = false;
+  bool zero = false;
+  int width = 0;
+  int precision = -1;
+  char type = '\0';
+};
+
+bool is_format_align(char ch) {
+  return ch == '<' || ch == '>' || ch == '^';
+}
+
+bool parse_format_spec(std::string_view spec, ParsedFormatSpec& parsed, std::string& error) {
+  size_t i = 0;
+  if (i + 1 < spec.size() && is_format_align(spec[i + 1])) {
+    parsed.fill = spec[i];
+    parsed.align = spec[i + 1];
+    i += 2;
+  } else if (i < spec.size() && is_format_align(spec[i])) {
+    parsed.align = spec[i++];
+  }
+  if (i < spec.size() && (spec[i] == '+' || spec[i] == '-' || spec[i] == ' ')) {
+    parsed.sign = spec[i++];
+  }
+  if (i < spec.size() && spec[i] == '#') {
+    parsed.alternate = true;
+    ++i;
+  }
+  if (i < spec.size() && spec[i] == '0') {
+    parsed.zero = true;
+    parsed.fill = '0';
+    if (parsed.align == '\0') {
+      parsed.align = '>';
+    }
+    ++i;
+  }
+  while (i < spec.size() && std::isdigit(static_cast<unsigned char>(spec[i]))) {
+    parsed.width = parsed.width * 10 + (spec[i++] - '0');
+  }
+  if (i < spec.size() && spec[i] == '.') {
+    ++i;
+    parsed.precision = 0;
+    if (i >= spec.size() || !std::isdigit(static_cast<unsigned char>(spec[i]))) {
+      error = "format precision requires digits";
+      return false;
+    }
+    while (i < spec.size() && std::isdigit(static_cast<unsigned char>(spec[i]))) {
+      parsed.precision = parsed.precision * 10 + (spec[i++] - '0');
+    }
+  }
+  if (i < spec.size()) {
+    parsed.type = spec[i++];
+  }
+  if (i != spec.size()) {
+    error = "unsupported format specifier";
+    return false;
+  }
+  return true;
+}
+
+std::string apply_format_width(std::string text, const ParsedFormatSpec& spec) {
+  if (spec.width <= static_cast<int>(text.size())) {
+    return text;
+  }
+  const size_t pad = static_cast<size_t>(spec.width) - text.size();
+  const char align = spec.align == '\0' ? '>' : spec.align;
+  if (align == '<') {
+    text.append(pad, spec.fill);
+    return text;
+  }
+  if (align == '^') {
+    const size_t left = pad / 2;
+    const size_t right = pad - left;
+    return std::string(left, spec.fill) + text + std::string(right, spec.fill);
+  }
+  return std::string(pad, spec.fill) + text;
+}
+
+std::string unsigned_to_base(uint64_t value, uint32_t base, bool uppercase) {
+  char buffer[65];
+  size_t pos = sizeof(buffer);
+  const char* digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef";
+  do {
+    buffer[--pos] = digits[value % base];
+    value /= base;
+  } while (value != 0);
+  return std::string(buffer + pos, buffer + sizeof(buffer));
+}
+
+bool format_int_value(int64_t value, const ParsedFormatSpec& spec, Value& out, std::string& error) {
+  const char type = spec.type == '\0' ? 'd' : spec.type;
+  uint32_t base = 10;
+  bool uppercase = false;
+  std::string prefix;
+  if (type == 'b') {
+    base = 2;
+    if (spec.alternate) prefix = "0b";
+  } else if (type == 'o') {
+    base = 8;
+    if (spec.alternate) prefix = "0o";
+  } else if (type == 'x' || type == 'X') {
+    base = 16;
+    uppercase = type == 'X';
+    if (spec.alternate) prefix = uppercase ? "0X" : "0x";
+  } else if (type != 'd') {
+    error = "unsupported integer format specifier";
+    return false;
+  }
+  const bool negative = value < 0;
+  const uint64_t magnitude = negative ? static_cast<uint64_t>(-(value + 1)) + 1u : static_cast<uint64_t>(value);
+  std::string sign;
+  if (negative) {
+    sign = "-";
+  } else if (spec.sign == '+') {
+    sign = "+";
+  } else if (spec.sign == ' ') {
+    sign = " ";
+  }
+  std::string digits = unsigned_to_base(magnitude, base, uppercase);
+  std::string text;
+  if (spec.zero && (spec.align == '>' || spec.align == '\0') && spec.width > 0) {
+    const size_t reserved = sign.size() + prefix.size() + digits.size();
+    text = sign + prefix;
+    if (spec.width > static_cast<int>(reserved)) {
+      text.append(static_cast<size_t>(spec.width) - reserved, '0');
+    }
+    text += digits;
+  } else {
+    text = sign + prefix + digits;
+    text = apply_format_width(std::move(text), spec);
+  }
+  out = Value::string(std::move(text));
+  return true;
+}
+
+bool format_double_value(double value, const ParsedFormatSpec& spec, Value& out, std::string& error) {
+  char type = spec.type == '\0' ? 'g' : spec.type;
+  if (type == 'F') {
+    type = 'f';
+  }
+  if (type != 'f' && type != 'g' && type != 'e' && type != 'E' && type != '%') {
+    error = "unsupported float format specifier";
+    return false;
+  }
+  const bool percent = type == '%';
+  const double printed_value = percent ? value * 100.0 : value;
+  const int precision = spec.precision >= 0 ? spec.precision : 6;
+  char buffer[256];
+  const char printf_type = percent ? 'f' : type;
+  std::string control = "%." + std::to_string(precision) + std::string(1, printf_type);
+  std::snprintf(buffer, sizeof(buffer), control.c_str(), printed_value);
+  std::string text(buffer);
+  if (!text.empty() && text[0] != '-' && (spec.sign == '+' || spec.sign == ' ')) {
+    text.insert(text.begin(), spec.sign == '+' ? '+' : ' ');
+  }
+  if (percent) {
+    text.push_back('%');
+  }
+  out = Value::string(apply_format_width(std::move(text), spec));
+  return true;
+}
+
+bool format_string_value(const Value& value, const ParsedFormatSpec& spec, Value& out, std::string& error) {
+  if (spec.type != '\0' && spec.type != 's') {
+    error = "unsupported string format specifier";
+    return false;
+  }
+  std::string text = value_to_string(value);
+  if (spec.precision >= 0 && spec.precision < static_cast<int>(text.size())) {
+    text.resize(static_cast<size_t>(spec.precision));
+  }
+  out = Value::string(apply_format_width(std::move(text), spec));
+  return true;
+}
+
 bool builtin_format(
     Runtime&,
     const Value* args,
@@ -1169,57 +1353,17 @@ bool builtin_format(
     return true;
   }
 
+  ParsedFormatSpec parsed;
+  if (!parse_format_spec(spec, parsed, error)) {
+    return false;
+  }
   if (args[0].tag == ValueTag::Int64) {
-    bool zero_pad = false;
-    size_t i = 0;
-    if (i < spec.size() && spec[i] == '0') {
-      zero_pad = true;
-      ++i;
-    }
-    int width = 0;
-    while (i < spec.size() && std::isdigit(static_cast<unsigned char>(spec[i]))) {
-      width = width * 10 + (spec[i++] - '0');
-    }
-    if (i < spec.size() && spec[i] == 'd') {
-      ++i;
-    }
-    if (i == spec.size()) {
-      std::string text = value_to_string(args[0]);
-      const bool negative = !text.empty() && text[0] == '-';
-      const size_t sign = negative ? 1 : 0;
-      if (width > static_cast<int>(text.size())) {
-        const auto pad_count = static_cast<size_t>(width) - text.size();
-        if (zero_pad && negative) {
-          text = "-" + std::string(pad_count, '0') + text.substr(sign);
-        } else {
-          text = std::string(pad_count, zero_pad ? '0' : ' ') + text;
-        }
-      }
-      out = Value::string(std::move(text));
-      return true;
-    }
+    return format_int_value(args[0].as.i64, parsed, out, error);
   }
-
-  if (args[0].tag == ValueTag::Double && spec.size() >= 3 && spec[0] == '.' && spec.back() == 'f') {
-    int precision = 0;
-    bool valid = true;
-    for (size_t i = 1; i + 1 < spec.size(); ++i) {
-      if (!std::isdigit(static_cast<unsigned char>(spec[i]))) {
-        valid = false;
-        break;
-      }
-      precision = precision * 10 + (spec[i] - '0');
-    }
-    if (valid && precision >= 0 && precision <= 32) {
-      char buffer[128];
-      std::snprintf(buffer, sizeof(buffer), "%.*f", precision, args[0].as.f64);
-      out = Value::string(buffer);
-      return true;
-    }
+  if (args[0].tag == ValueTag::Double) {
+    return format_double_value(args[0].as.f64, parsed, out, error);
   }
-
-  error = "unsupported format specifier";
-  return false;
+  return format_string_value(args[0], parsed, out, error);
 }
 
 bool builtin_all(

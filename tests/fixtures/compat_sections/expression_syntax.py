@@ -21,12 +21,16 @@ print(name, i, f, None, True, False)
 print("A\nB".split("\n")[0], "\x41\u0042\U00000043")
 print(r"a\nb", R"c\td")
 print("'''", '"""')
+print("""a'''b""", '''c"""d''')
+print("a\"b", 'c\'d')
 print(b"ABC"[1], b"BC" in b"ABC", 66 in b"ABC")
 
-# F-strings: expressions, escaped braces, conversion, and simple format specs.
+# F-strings: expressions, escaped braces, conversion, debug fields, and format specs.
 value = 5
 print(f"{name}:{value + 1}")
 print(f"{{{name!s}}}", f"{'abc'!r}", f"{7:03d}", f"{3.14159:.2f}")
+print(f"{value=}", f"{7:+d}", f"{15:#x}", "[" + f"{5:>4d}" + "]", "[" + f"{5:<4d}" + "]", "[" + f"{5:^5d}" + "]")
+print(f"{3.5:.1%}", f"{name:.3s}", f"{7:{3}d}")
 
 # Unary, binary, power, bitwise, shifts, and invert.
 print(+i, -i, not False)

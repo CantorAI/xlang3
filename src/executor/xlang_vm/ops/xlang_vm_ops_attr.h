@@ -42,6 +42,67 @@ XLANG3_HOT_INLINE bool xlang_vm_descriptor_method(const Value& descriptor, const
   return object_get_attr(descriptor, name, out, error);
 }
 
+template <typename RaiseRuntimeError>
+XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
+    const SlotDescriptorObject& descriptor,
+    const Value& receiver,
+    Value& out,
+    RaiseRuntimeError&& raise_runtime_error) {
+  if (receiver.tag == ValueTag::None) {
+    Value descriptor_value;
+    descriptor_value.tag = ValueTag::Object;
+    descriptor_value.flags = kXlangValueBorrowedRefFlag;
+    descriptor_value.as.obj = const_cast<Object*>(&descriptor.header);
+    value_assign_fast(out, descriptor_value);
+    return XlangVMOpFlow::Next;
+  }
+  auto* instance = value_as_instance(receiver);
+  if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
+    return raise_runtime_error("descriptor does not apply to this object")
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
+  }
+  const auto& slot_value = instance_slot_at(instance, descriptor.index);
+  if (slot_value.tag == ValueTag::Invalid) {
+    return raise_runtime_error("object has no attribute '" + descriptor.name + "'")
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
+  }
+  value_assign_fast(out, slot_value);
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseRuntimeError>
+XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
+    const SlotDescriptorObject& descriptor,
+    const Value& receiver,
+    const Value& value,
+    RaiseRuntimeError&& raise_runtime_error) {
+  auto* instance = value_as_instance(receiver);
+  if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
+    return raise_runtime_error("descriptor does not apply to this object")
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
+  }
+  value_assign_fast(instance_slot_at(instance, descriptor.index), value);
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseRuntimeError>
+XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_delete(
+    const SlotDescriptorObject& descriptor,
+    const Value& receiver,
+    RaiseRuntimeError&& raise_runtime_error) {
+  auto* instance = value_as_instance(receiver);
+  if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
+    return raise_runtime_error("descriptor does not apply to this object")
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
+  }
+  value_set_invalid(instance_slot_at(instance, descriptor.index));
+  return XlangVMOpFlow::Next;
+}
+
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow call_attr_hook(
     const Value& hook,
@@ -248,6 +309,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
+  if (auto* slot = value_as_slot_descriptor(attr)) {
+    if (auto* instance = value_as_instance(regs[in.a])) {
+      return slot_descriptor_get(*slot, regs[in.a], regs[in.dst], raise_runtime_error);
+    }
+    if (value_as_class(regs[in.a]) != nullptr) {
+      Value none = Value::none();
+      return slot_descriptor_get(*slot, none, regs[in.dst], raise_runtime_error);
+    }
+  }
   if (auto* property = value_as_instance(regs[in.a]) != nullptr ? value_as_property(attr) : nullptr) {
     if (property->fget.tag == ValueTag::None || property->fget.tag == ValueTag::Invalid) {
       return raise_runtime_error("unreadable attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -421,6 +491,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
   }
   if (has_descriptor) {
+    if (auto* slot = value_as_slot_descriptor(descriptor)) {
+      return slot_descriptor_set(*slot, regs[in.dst], regs[in.b], raise_runtime_error);
+    }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fset.tag == ValueTag::None || property->fset.tag == ValueTag::Invalid) {
         return raise_runtime_error("can't set attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -583,6 +656,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
     }
   }
   if (has_descriptor) {
+    if (auto* slot = value_as_slot_descriptor(descriptor)) {
+      return slot_descriptor_delete(*slot, regs[in.dst], raise_runtime_error);
+    }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fdel.tag == ValueTag::None || property->fdel.tag == ValueTag::Invalid) {
         return raise_runtime_error("can't delete attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;

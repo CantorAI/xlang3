@@ -1,0 +1,27 @@
+True True True
+child-doc
+True True True
+True True
+True False True True True
+True False
+Dynamic Child Dynamic object
+dynamic True True
+Made-meta type
+CustomMeta CustomMeta
+5
+InitMade:ok
+NewMade:new NewMeta
+PrepareMade:prepared PrepareMade:prepared body
+4 class:Box
+10 11
+0
+4
+10 10
+0
+3
+x True
+1
+7 7
+slot-deleted
+slot-blocked
+5 6
