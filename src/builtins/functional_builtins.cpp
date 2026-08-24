@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/parser.h"
 #include "xlang3/sequence.h"
 #include "xlang3/sema.h"
+#include "xlang3/value_hash.h"
 
 #include <cctype>
 #include <cmath>
@@ -1366,6 +1367,140 @@ bool builtin_format(
   return format_string_value(args[0], parsed, out, error);
 }
 
+bool builtin_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "hash() expected 1 argument", error);
+  }
+  size_t hash = 0;
+  if (!value_hash_key(args[0], hash, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(hash));
+  return true;
+}
+
+bool append_utf8_codepoint(int64_t codepoint, std::string& out) {
+  if (codepoint < 0 || codepoint > 0x10ffff || (codepoint >= 0xd800 && codepoint <= 0xdfff)) {
+    return false;
+  }
+  if (codepoint <= 0x7f) {
+    out.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7ff) {
+    out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else if (codepoint <= 0xffff) {
+    out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else {
+    out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  }
+  return true;
+}
+
+bool builtin_chr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "chr() expected 1 argument", error);
+  }
+  if (args[0].tag != ValueTag::Int64) {
+    return raise_type_error(runtime, "chr() argument must be int", error);
+  }
+  std::string text;
+  if (!append_utf8_codepoint(args[0].as.i64, text)) {
+    error = "chr() arg not in range(0x110000)";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = Value::string(std::move(text));
+  return true;
+}
+
+std::string format_integer_base(int64_t value, uint32_t base, const char* prefix) {
+  const bool negative = value < 0;
+  uint64_t magnitude = negative ? static_cast<uint64_t>(-(value + 1)) + 1 : static_cast<uint64_t>(value);
+  std::string digits = unsigned_to_base(magnitude, base, false);
+  return std::string(negative ? "-" : "") + prefix + digits;
+}
+
+bool builtin_bin(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    return raise_type_error(runtime, "bin() expected int argument", error);
+  }
+  out = Value::string(format_integer_base(args[0].as.i64, 2, "0b"));
+  return true;
+}
+
+bool builtin_oct(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    return raise_type_error(runtime, "oct() expected int argument", error);
+  }
+  out = Value::string(format_integer_base(args[0].as.i64, 8, "0o"));
+  return true;
+}
+
+bool builtin_hex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    return raise_type_error(runtime, "hex() expected int argument", error);
+  }
+  out = Value::string(format_integer_base(args[0].as.i64, 16, "0x"));
+  return true;
+}
+
+bool builtin_pow(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 && argc != 3) {
+    return raise_type_error(runtime, "pow() expected 2 or 3 arguments", error);
+  }
+  if (argc == 3) {
+    if (args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64 || args[2].tag != ValueTag::Int64) {
+      return raise_type_error(runtime, "pow() 3-argument form requires ints in this XLang3 compatibility subset", error);
+    }
+    if (args[2].as.i64 == 0) {
+      error = "pow() 3rd argument cannot be 0";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    int64_t base = args[0].as.i64 % args[2].as.i64;
+    int64_t exp = args[1].as.i64;
+    int64_t result_value = 1 % args[2].as.i64;
+    if (exp < 0) {
+      return raise_type_error(runtime, "pow() 2nd argument cannot be negative when 3rd argument specified", error);
+    }
+    while (exp > 0) {
+      if ((exp & 1) != 0) {
+        result_value = (result_value * base) % args[2].as.i64;
+      }
+      base = (base * base) % args[2].as.i64;
+      exp >>= 1;
+    }
+    out = Value::int64(result_value);
+    return true;
+  }
+  if (!value_pow(args[0], args[1], out, error)) {
+    const std::string message = error;
+    return raise_type_error(runtime, message, error);
+  }
+  return true;
+}
+
+bool builtin_divmod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    return raise_type_error(runtime, "divmod() expected 2 arguments", error);
+  }
+  Value quotient;
+  Value remainder;
+  if (!value_floor_div(args[0], args[1], quotient, error) ||
+      !value_mod(args[0], args[1], remainder, error)) {
+    const std::string message = error;
+    return raise_type_error(runtime, message, error);
+  }
+  out = Value::tuple({quotient, remainder});
+  return true;
+}
+
 bool builtin_all(
     Runtime& runtime,
     const Value* args,
@@ -1450,6 +1585,13 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("round", builtin_round);
   runtime.register_native_builtin("repr", builtin_repr);
   runtime.register_native_builtin("format", builtin_format);
+  runtime.register_native_builtin("hash", builtin_hash);
+  runtime.register_native_builtin("chr", builtin_chr);
+  runtime.register_native_builtin("bin", builtin_bin);
+  runtime.register_native_builtin("oct", builtin_oct);
+  runtime.register_native_builtin("hex", builtin_hex);
+  runtime.register_native_builtin("pow", builtin_pow);
+  runtime.register_native_builtin("divmod", builtin_divmod);
   runtime.register_native_builtin("all", builtin_all);
   runtime.register_native_builtin("any", builtin_any);
   runtime.register_native_builtin("__import__", builtin_import, nullptr, false, builtin_import_kw);

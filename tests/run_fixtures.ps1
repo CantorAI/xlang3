@@ -137,7 +137,8 @@ $sectionCases = @(
     "core_value_and_object_model",
     "functions_and_calls",
     "containers",
-    "strings_and_unicode"
+    "strings_and_unicode",
+    "builtins"
 )
 
 foreach ($case in $sectionCases) {

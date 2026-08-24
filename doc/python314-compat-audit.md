@@ -47,6 +47,7 @@ Section-level fixture coverage:
 - `tests/fixtures/compat_sections/functions_and_calls.py`
 - `tests/fixtures/compat_sections/containers.py`
 - `tests/fixtures/compat_sections/strings_and_unicode.py`
+- `tests/fixtures/compat_sections/builtins.py`
 
 ## Syntax Compatibility
 
@@ -339,7 +340,15 @@ Section-level fixture coverage:
 - [x] `min`
 - [x] `max`
 - [x] `abs`
+- [x] `pow`: two-argument numeric form plus int-only modular form basics
+- [x] `divmod`: numeric helper backed by floor-div/mod operations
 - [~] `round`: numeric basics; CPython edge cases pending
+- [x] `hash`: shared hashability/equality policy for scalar/string/bytes/object identity and tuples; mutable containers raise `TypeError`
+- [x] `chr`: valid Unicode code point to UTF-8 string, invalid range raises `ValueError`
+- [x] `ord`
+- [x] `bin`
+- [x] `oct`
+- [x] `hex`
 - [~] `open`: VFS-backed text file basics and context-manager methods; encoding/binary/buffering semantics pending
 - [x] `getattr`
 - [x] `setattr`

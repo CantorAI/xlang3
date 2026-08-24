@@ -1,0 +1,9 @@
+True False True
+True False
+0b1010 0o12 0xff -0b11
+32 4 (3, 2)
+65 A True
+chr-range
+True True
+hash-unhashable
+'x' 0xff   hi
