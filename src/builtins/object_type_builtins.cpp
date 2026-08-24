@@ -27,6 +27,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+Value make_dict_fromkeys_classmethod();
+
 namespace {
 
 const char* builtin_type_name_for_kind(ObjectKind kind) {
@@ -533,6 +535,12 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "tuple", object_type);
   register_builtin_type(runtime, "list", object_type);
   register_builtin_type(runtime, "dict", object_type);
+  if (const auto* dict_value = runtime.find_builtin("dict")) {
+    if (auto* dict_class = value_as_class(*dict_value)) {
+      dict_class->attrs["fromkeys"] = make_dict_fromkeys_classmethod();
+      ++dict_class->version;
+    }
+  }
   register_builtin_type(runtime, "dict_keys", object_type);
   register_builtin_type(runtime, "dict_values", object_type);
   register_builtin_type(runtime, "dict_items", object_type);

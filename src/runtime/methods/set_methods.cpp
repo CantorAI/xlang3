@@ -285,6 +285,92 @@ bool set_difference_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool set_symmetric_difference_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "set.symmetric_difference", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.symmetric_difference target is not a set";
+    return false;
+  }
+  out = Value::set(set->items);
+  auto* result = value_as_set(out);
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    bool removed = false;
+    for (auto it = result->items.begin(); it != result->items.end(); ++it) {
+      if (value_key_equal(*it, item)) {
+        result->items.erase(it);
+        removed = true;
+        break;
+      }
+    }
+    if (!removed && !set_add(out, item, error)) {
+      return false;
+    }
+  }
+}
+
+bool set_intersection_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  Value updated;
+  if (!set_intersection_method(runtime, args, argc, updated, error, user_data)) {
+    return false;
+  }
+  auto* target = value_as_set(args[0]);
+  auto* source = value_as_set(updated);
+  if (target == nullptr || source == nullptr) {
+    error = "set.intersection_update target is not a set";
+    return false;
+  }
+  target->items = source->items;
+  value_set_none(out);
+  return true;
+}
+
+bool set_difference_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  Value updated;
+  if (!set_difference_method(runtime, args, argc, updated, error, user_data)) {
+    return false;
+  }
+  auto* target = value_as_set(args[0]);
+  auto* source = value_as_set(updated);
+  if (target == nullptr || source == nullptr) {
+    error = "set.difference_update target is not a set";
+    return false;
+  }
+  target->items = source->items;
+  value_set_none(out);
+  return true;
+}
+
+bool set_symmetric_difference_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  Value updated;
+  if (!set_symmetric_difference_method(runtime, args, argc, updated, error, user_data)) {
+    return false;
+  }
+  auto* target = value_as_set(args[0]);
+  auto* source = value_as_set(updated);
+  if (target == nullptr || source == nullptr) {
+    error = "set.symmetric_difference_update target is not a set";
+    return false;
+  }
+  target->items = source->items;
+  value_set_none(out);
+  return true;
+}
+
 bool set_isdisjoint_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.isdisjoint", error)) {
     return false;
@@ -365,13 +451,17 @@ bool set_get_method(const Value& object, const std::string& name, Value& out) {
       {"clear", "set.clear", set_clear_method},
       {"copy", "set.copy", set_copy_method},
       {"difference", "set.difference", set_difference_method},
+      {"difference_update", "set.difference_update", set_difference_update_method},
       {"discard", "set.discard", set_discard_method},
       {"intersection", "set.intersection", set_intersection_method},
+      {"intersection_update", "set.intersection_update", set_intersection_update_method},
       {"isdisjoint", "set.isdisjoint", set_isdisjoint_method},
       {"issubset", "set.issubset", set_issubset_method},
       {"issuperset", "set.issuperset", set_issuperset_method},
       {"pop", "set.pop", set_pop_method},
       {"remove", "set.remove", set_remove_method},
+      {"symmetric_difference", "set.symmetric_difference", set_symmetric_difference_method},
+      {"symmetric_difference_update", "set.symmetric_difference_update", set_symmetric_difference_update_method},
       {"union", "set.union", set_union_method},
       {"update", "set.update", set_update_method},
   };

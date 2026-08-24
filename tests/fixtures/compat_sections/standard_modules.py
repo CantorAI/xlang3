@@ -23,3 +23,30 @@ with warnings.catch_warnings(record=True) as seen:
 print(len(seen), seen[0].message, seen[0].category.__name__)
 print(seen[1].message)
 warnings.resetwarnings()
+
+# functools facade: wraps/update_wrapper propagate common metadata and partial binds prefix args.
+import functools
+
+def original(a, b):
+    "doc text"
+    return a + b
+
+@functools.wraps(original)
+def wrapper(a, b):
+    return original(a, b)
+
+print(wrapper.__name__, wrapper.__doc__, wrapper.__wrapped__ is original, wrapper(2, 3))
+
+def plain():
+    pass
+
+functools.update_wrapper(plain, original)
+print(plain.__name__, plain.__doc__, plain.__wrapped__ is original)
+add_two = functools.partial(original, 2)
+print(add_two(5))
+
+# string public constants are available for libraries that avoid importing _string directly.
+import string
+
+print(string.ascii_lowercase[:3], string.ascii_uppercase[-3:], string.digits, "A" in string.hexdigits)
+print(len(string.octdigits), "\n" in string.whitespace, callable(string.Formatter))

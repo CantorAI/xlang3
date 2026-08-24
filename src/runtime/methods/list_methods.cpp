@@ -327,6 +327,49 @@ bool list_sort_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool list_sort_method_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  bool reverse = false;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      error = "list.sort received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (name == "reverse") {
+      reverse = value_truthy(*kwargs[i].value);
+    } else if (name == "key") {
+      if (kwargs[i].value->tag != ValueTag::None) {
+        error = "list.sort key callable is not implemented yet";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    } else {
+      error = "list.sort got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (!list_sort_method(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  if (reverse) {
+    auto* list = value_as_list(args[0]);
+    if (list != nullptr) {
+      std::reverse(list->items.begin(), list->items.end());
+    }
+  }
+  return true;
+}
+
 static constexpr BuiltinMethodSpec kListMethods[] = {
       {"append", "list.append", list_append_method, list_append_fast_method},
       {"clear", "list.clear", list_clear_method},
@@ -338,7 +381,7 @@ static constexpr BuiltinMethodSpec kListMethods[] = {
       {"pop", "list.pop", list_pop_method},
       {"remove", "list.remove", list_remove_method},
       {"reverse", "list.reverse", list_reverse_method},
-      {"sort", "list.sort", list_sort_method},
+      {"sort", "list.sort", list_sort_method, nullptr, false, list_sort_method_kw},
 };
 
 } // namespace

@@ -272,9 +272,9 @@ Section-level fixture coverage:
 - [x] dict basics
 - [x] set basics
 - [x] range basics
-- [~] list methods: append, extend, insert, pop, clear, copy, count, index, remove, reverse, and default sort basics; key/reverse sort arguments and CPython edge cases pending
-- [~] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, update-from-iterable-pairs, keyword update, copy, and clear basics; fromkeys, merge operators, and CPython edge cases pending
-- [~] set methods: add, clear, copy, discard, pop, remove, update, union, intersection, difference, isdisjoint, issubset, and issuperset basics; symmetric difference, in-place algebra, operators, and CPython edge cases pending
+- [~] list methods: append, extend, insert, pop, clear, copy, count, index, remove, reverse, sort, and `sort(reverse=...)`; key-callable sorting and CPython edge cases pending
+- [~] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, update-from-iterable-pairs, keyword update, copy, clear, `fromkeys`, and `|`/`|=` merge basics; CPython edge cases pending
+- [~] set methods: add, clear, copy, discard, pop, remove, update, union, intersection, difference, symmetric difference, in-place update methods, subset/superset/disjoint checks, and `|`/`&`/`-`/`^` operators; CPython edge cases pending
 - [~] string methods
 - [~] tuple methods: `count` and `index`; full CPython edge cases pending
 - [x] slicing semantics for list/tuple/string/bytes/bytearray reads plus list/bytearray slice assignment and deletion basics
@@ -320,19 +320,19 @@ Section-level fixture coverage:
 - [x] `iter`
 - [~] `next`: default value and `StopIteration` class basics; exact exception payload semantics pending
 - [x] `range`
-- [~] `type`: object plus one-arg call; three-arg dynamic class creation pending
+- [x] `type`
 - [x] `object`
 - [~] `bool`: scalar value with CPython-compatible `type(True) is bool`, `isinstance(True, int)`, and `issubclass(bool, int)` basics; full numeric edge cases pending
-- [~] `int`
-- [~] `float`
-- [~] `str`
-- [~] `bytes`
-- [~] `bytearray`
-- [~] `memoryview`
-- [~] `list`
-- [~] `dict`
-- [~] `set`
-- [~] `tuple`
+- [~] `int`: scalar conversion plus string/bytes/bytearray parsing with explicit base and common prefixes; overflow, `__int__`/`__index__`, and exact CPython error semantics pending
+- [~] `float`: scalar and string parsing basics; special values, bytes-like input, and exact CPython edge cases pending
+- [~] `str`: object stringification basics; encoding constructor forms and full `__str__` dispatch pending
+- [~] `bytes`: bytes-like, iterable-of-int, and zero-filled integer count basics; encoding constructor forms and CPython edge cases pending
+- [~] `bytearray`: bytes-like, iterable-of-int, and zero-filled integer count basics; encoding constructor forms and CPython edge cases pending
+- [~] `memoryview`: bytes/bytearray/memoryview construction and length basics; full buffer protocol pending
+- [~] `list`: iterable constructor basics; subclass/iterator edge cases pending
+- [~] `dict`: mapping/pair iterable constructor basics; keyword constructor form and CPython edge cases pending
+- [~] `set`: iterable constructor basics; subclass/iterator edge cases pending
+- [~] `tuple`: iterable constructor basics; subclass/iterator edge cases pending
 - [~] `enumerate`: lazy iterator object foundation; CPython edge cases pending
 - [~] `zip`: lazy iterator object foundation; CPython edge cases pending
 - [~] `map`: lazy iterator object foundation; CPython edge cases pending
@@ -399,7 +399,7 @@ High-level modules currently backed by native/runtime code:
 - [ ] `dis`: code-object inspection facade exists; real bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
-- [ ] `functools`: `update_wrapper`/`partial` foundation plus identity cache decorators; full descriptor/cache semantics pending
+- [~] `functools`: `update_wrapper`, `wraps`, and `partial` foundation with common function metadata propagation; full descriptor/cache/singledispatch/cmp helpers pending
 - [ ] `__future__`: feature-name constants facade only
 - [ ] `getpass`: `getpass`/`getuser` facade only
 - [~] `itertools`: selected iterator helpers foundation; full iterator algebra pending
@@ -417,7 +417,7 @@ High-level modules currently backed by native/runtime code:
 - [ ] `site`: site-package path helper facade; startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
 - [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
-- [ ] `string`: formatter helper facade; full `Formatter`/constants behavior pending
+- [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending
 - [ ] `sysconfig`: path/config helper facade; full install scheme compatibility pending

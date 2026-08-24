@@ -270,7 +270,38 @@ bool dict_update_method_kw(
   return true;
 }
 
+bool dict_fromkeys_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "dict.fromkeys expected iterable and optional value";
+    return false;
+  }
+  Value result = Value::dict({});
+  const Value fill = argc == 3 ? args[2] : Value::none();
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value key;
+    if (!sequence_iter_next(iterator, done, key, error)) {
+      return false;
+    }
+    if (done) {
+      out = std::move(result);
+      return true;
+    }
+    if (!mapping_set_item(result, key, fill, error)) {
+      return false;
+    }
+  }
+}
+
 } // namespace
+
+Value make_dict_fromkeys_classmethod() {
+  return Value::class_method(Value::native_function(0, "dict.fromkeys", dict_fromkeys_method));
+}
 
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_dict(object) == nullptr) {

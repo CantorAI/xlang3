@@ -60,6 +60,20 @@ void register_string_module(Runtime& runtime) {
   builder.function("formatter_parser", formatter_parser)
       .function("formatter_field_name_split", formatter_field_name_split);
   runtime.register_module("_string", builder.finish());
+
+  NativeModuleBuilder public_builder(runtime, "string");
+  Value formatter_type = Value::class_object("Formatter", {});
+  public_builder.value("ascii_lowercase", Value::string("abcdefghijklmnopqrstuvwxyz"))
+      .value("ascii_uppercase", Value::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+      .value("ascii_letters", Value::string("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+      .value("digits", Value::string("0123456789"))
+      .value("hexdigits", Value::string("0123456789abcdefABCDEF"))
+      .value("octdigits", Value::string("01234567"))
+      .value("punctuation", Value::string("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"))
+      .value("whitespace", Value::string(" \t\n\r\v\f"))
+      .value("printable", Value::string("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f"))
+      .value("Formatter", formatter_type);
+  runtime.register_module("string", public_builder.finish());
 }
 
 } // namespace xlang3

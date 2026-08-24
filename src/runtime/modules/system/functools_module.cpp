@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 
 namespace xlang3 {
 
@@ -26,8 +27,12 @@ struct PartialState {
   std::vector<Value> bound_args;
 };
 
-void value_cleanup(void* data) {
-  delete static_cast<Value*>(data);
+struct WrapsState {
+  Value wrapped;
+};
+
+void wraps_cleanup(void* data) {
+  delete static_cast<WrapsState*>(data);
 }
 
 void partial_cleanup(void* data) {
@@ -91,22 +96,49 @@ bool partial_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool copy_attr_if_present(Value& wrapper, const Value& wrapped, const char* name, std::string& error) {
+  Value attr;
+  std::string ignored;
+  if (!object_get_attr(wrapped, name, attr, ignored)) {
+    return true;
+  }
+  return object_set_attr(wrapper, name, attr, error);
+}
+
+bool update_wrapper_common(Value wrapper, const Value& wrapped, Value& out, std::string& error) {
+  if (!copy_attr_if_present(wrapper, wrapped, "__module__", error) ||
+      !copy_attr_if_present(wrapper, wrapped, "__name__", error) ||
+      !copy_attr_if_present(wrapper, wrapped, "__qualname__", error) ||
+      !copy_attr_if_present(wrapper, wrapped, "__doc__", error) ||
+      !copy_attr_if_present(wrapper, wrapped, "__annotations__", error)) {
+    return false;
+  }
+  if (!object_set_attr(wrapper, "__wrapped__", wrapped, error)) {
+    return false;
+  }
+  value_assign_fast(out, wrapper);
+  return true;
+}
+
 bool update_wrapper_entry(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "update_wrapper() expected wrapper and wrapped";
     return false;
   }
-  value_assign_fast(out, args[0]);
-  return true;
+  return update_wrapper_common(args[0], args[1], out, error);
 }
 
-bool wraps_apply(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool wraps_apply(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "wraps decorator expected one function";
     return false;
   }
-  value_assign_fast(out, args[0]);
-  return true;
+  auto* state = static_cast<WrapsState*>(user_data);
+  if (state == nullptr) {
+    error = "invalid functools.wraps decorator";
+    return false;
+  }
+  return update_wrapper_common(args[0], state->wrapped, out, error);
 }
 
 bool wraps_entry(
@@ -122,8 +154,9 @@ bool wraps_entry(
     error = "wraps() expected wrapped function";
     return false;
   }
-  auto* wrapped = new Value(args[0]);
-  out = runtime.make_native_function("functools.wraps.<decorator>", wraps_apply, wrapped, value_cleanup);
+  auto* state = new WrapsState();
+  state->wrapped = args[0];
+  out = runtime.make_native_function("functools.wraps.<decorator>", wraps_apply, state, wraps_cleanup);
   return true;
 }
 

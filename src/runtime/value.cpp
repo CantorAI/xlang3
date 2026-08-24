@@ -195,6 +195,126 @@ bool is_number(const Value& value) {
   return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
 }
 
+bool set_contains_value(const SetObject& set, const Value& value) {
+  for (const auto& item : set.items) {
+    if (value_key_equal(item, value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool add_iterable_to_set(Value& target, const Value& iterable, std::string& error) {
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (!set_add(target, item, error)) {
+      return false;
+    }
+  }
+}
+
+bool set_intersection_value(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* left = value_as_set(lhs);
+  if (left == nullptr) {
+    error = "unsupported operands for set intersection";
+    return false;
+  }
+  out = Value::set({});
+  Value iterator;
+  if (!sequence_get_iter(rhs, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (set_contains_value(*left, item) && !set_add(out, item, error)) {
+      return false;
+    }
+  }
+}
+
+bool set_difference_value(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* left = value_as_set(lhs);
+  if (left == nullptr) {
+    error = "unsupported operands for set difference";
+    return false;
+  }
+  out = Value::set(left->items);
+  auto* result = value_as_set(out);
+  Value iterator;
+  if (!sequence_get_iter(rhs, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    for (auto it = result->items.begin(); it != result->items.end(); ++it) {
+      if (value_key_equal(*it, item)) {
+        result->items.erase(it);
+        break;
+      }
+    }
+  }
+}
+
+bool set_symmetric_difference_value(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* left = value_as_set(lhs);
+  if (left == nullptr) {
+    error = "unsupported operands for set symmetric difference";
+    return false;
+  }
+  out = Value::set(left->items);
+  auto* result = value_as_set(out);
+  Value iterator;
+  if (!sequence_get_iter(rhs, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    bool removed = false;
+    for (auto it = result->items.begin(); it != result->items.end(); ++it) {
+      if (value_key_equal(*it, item)) {
+        result->items.erase(it);
+        removed = true;
+        break;
+      }
+    }
+    if (!removed && !set_add(out, item, error)) {
+      return false;
+    }
+  }
+}
+
 double as_double(const Value& value) {
   return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
 }
@@ -1131,6 +1251,9 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_set(lhs) != nullptr) {
+    return set_difference_value(lhs, rhs, out, error);
+  }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     value_set_int64(out, lhs.as.i64 - rhs.as.i64);
     return true;
@@ -1280,6 +1403,9 @@ bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_set(lhs) != nullptr) {
+    return set_intersection_value(lhs, rhs, out, error);
+  }
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
     error = "unsupported operands for &";
     return false;
@@ -1289,6 +1415,26 @@ bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& 
 }
 
 bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_dict(lhs) != nullptr && value_as_dict(rhs) != nullptr) {
+    auto* left = value_as_dict(lhs);
+    auto* right = value_as_dict(rhs);
+    std::vector<std::pair<Value, Value>> entries;
+    entries.reserve(left->entries.size() + right->entries.size());
+    for (const auto& entry : left->entries) {
+      entries.push_back(entry);
+    }
+    out = Value::dict(std::move(entries));
+    for (const auto& entry : right->entries) {
+      if (!mapping_set_item(out, entry.first, entry.second, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (value_as_set(lhs) != nullptr) {
+    out = Value::set(value_as_set(lhs)->items);
+    return add_iterable_to_set(out, rhs, error);
+  }
   const auto type_like = [](const Value& value) {
     if (value.tag == ValueTag::None) {
       return true;
@@ -1318,6 +1464,9 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
 }
 
 bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_set(lhs) != nullptr) {
+    return set_symmetric_difference_value(lhs, rhs, out, error);
+  }
   const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
   const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
   if (!lhs_int || !rhs_int) {

@@ -29,8 +29,10 @@ limitations under the License.
 #include "xlang3/set_object.h"
 
 #include <array>
+#include <cctype>
 #include <cstdlib>
 #include <string>
+#include <string_view>
 #include <vector>
 
 /*
@@ -565,6 +567,81 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
   return true;
 }
 
+XLANG3_HOT_INLINE bool xlang_vm_parse_int_text(std::string_view text, int base, int64_t& out) {
+  size_t begin = 0;
+  size_t end = text.size();
+  while (begin < end && std::isspace(static_cast<unsigned char>(text[begin]))) {
+    ++begin;
+  }
+  while (end > begin && std::isspace(static_cast<unsigned char>(text[end - 1]))) {
+    --end;
+  }
+  if (begin == end) {
+    return false;
+  }
+  bool negative = false;
+  if (text[begin] == '+' || text[begin] == '-') {
+    negative = text[begin] == '-';
+    ++begin;
+  }
+  if (begin == end || (base != 0 && (base < 2 || base > 36))) {
+    return false;
+  }
+  if (base == 0) {
+    base = 10;
+    if (end - begin >= 2 && text[begin] == '0') {
+      const char marker = static_cast<char>(std::tolower(static_cast<unsigned char>(text[begin + 1])));
+      if (marker == 'x') {
+        base = 16;
+        begin += 2;
+      } else if (marker == 'o') {
+        base = 8;
+        begin += 2;
+      } else if (marker == 'b') {
+        base = 2;
+        begin += 2;
+      }
+    }
+  } else if (end - begin >= 2 && text[begin] == '0') {
+    const char marker = static_cast<char>(std::tolower(static_cast<unsigned char>(text[begin + 1])));
+    if ((base == 16 && marker == 'x') || (base == 8 && marker == 'o') || (base == 2 && marker == 'b')) {
+      begin += 2;
+    }
+  }
+  if (begin == end) {
+    return false;
+  }
+  int64_t result = 0;
+  bool saw_digit = false;
+  bool previous_separator = false;
+  for (size_t i = begin; i < end; ++i) {
+    const unsigned char ch = static_cast<unsigned char>(text[i]);
+    if (ch == '_') {
+      if (!saw_digit || previous_separator || i + 1 == end) {
+        return false;
+      }
+      previous_separator = true;
+      continue;
+    }
+    int digit = -1;
+    if (ch >= '0' && ch <= '9') {
+      digit = ch - '0';
+    } else if (ch >= 'a' && ch <= 'z') {
+      digit = ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'Z') {
+      digit = ch - 'A' + 10;
+    }
+    if (digit < 0 || digit >= base) {
+      return false;
+    }
+    result = result * base + digit;
+    saw_digit = true;
+    previous_separator = false;
+  }
+  out = negative ? -result : result;
+  return saw_digit;
+}
+
 XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Runtime& runtime,
     const ClassObject& klass,
@@ -679,8 +756,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Int) {
-    if (args.size() > 1) {
-      error = "int() expected at most 1 argument";
+    if (args.size() > 2) {
+      error = "int() expected at most 2 arguments";
       return false;
     }
     if (args.size() == 0) {
@@ -700,22 +777,37 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       out = Value::int64(static_cast<int64_t>(value.as.f64));
       return true;
     }
+    int base = 10;
+    if (args.size() == 2) {
+      if (args.get(1).tag != ValueTag::Int64) {
+        error = "int() base must be an integer";
+        return false;
+      }
+      base = static_cast<int>(args.get(1).as.i64);
+      if (value_as_string(value) == nullptr && value_as_bytes(value) == nullptr && value_as_bytearray(value) == nullptr) {
+        error = "int() can't convert non-string with explicit base";
+        return false;
+      }
+    }
     if (auto* text = value_as_string(value)) {
       const std::string owned_text = string_object_to_string(*text);
-      char* end = nullptr;
-      const char* start = owned_text.c_str();
-      const int64_t parsed = std::strtoll(start, &end, 10);
-      if (end != start && *end == '\0') {
+      int64_t parsed = 0;
+      if (xlang_vm_parse_int_text(owned_text, base, parsed)) {
         out = Value::int64(parsed);
         return true;
       }
     }
     if (auto* bytes = value_as_bytes(value)) {
       const std::string owned_text = bytes_object_to_string(*bytes);
-      char* end = nullptr;
-      const char* start = owned_text.c_str();
-      const int64_t parsed = std::strtoll(start, &end, 10);
-      if (end != start && *end == '\0') {
+      int64_t parsed = 0;
+      if (xlang_vm_parse_int_text(owned_text, base, parsed)) {
+        out = Value::int64(parsed);
+        return true;
+      }
+    }
+    if (auto* bytes = value_as_bytearray(value)) {
+      int64_t parsed = 0;
+      if (xlang_vm_parse_int_text(bytes->value, base, parsed)) {
         out = Value::int64(parsed);
         return true;
       }
@@ -826,6 +918,14 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   auto make_bytes_from_arg = [&](const Value& arg, std::string& bytes, std::string& local_error) -> bool {
+    if (arg.tag == ValueTag::Int64) {
+      if (arg.as.i64 < 0) {
+        local_error = "negative count";
+        return false;
+      }
+      bytes.assign(static_cast<size_t>(arg.as.i64), '\0');
+      return true;
+    }
     if (auto* source = value_as_bytes(arg)) {
       bytes = bytes_object_to_string(*source);
       return true;
