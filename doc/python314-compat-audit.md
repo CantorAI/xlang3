@@ -398,7 +398,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [ ] `ctypes`: small facade exists; real FFI semantics pending
 - [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, and `__dataclass_fields__` basics; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
-- [ ] `dis`: code-object inspection facade exists; real bytecode/disassembly compatibility pending
+- [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
 - [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, and `total_ordering` foundations; real cache wrappers, singledispatch, descriptor edge cases, and full CPython semantics pending

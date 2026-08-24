@@ -158,7 +158,8 @@ import __future__
 feature = __future__.annotations
 print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
 
-# getpass/locale/sysconfig/opcode/winreg: common inspection helpers and constants.
+# getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
+import dis
 import getpass
 import locale
 import opcode
@@ -172,6 +173,7 @@ print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeco
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
+print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])
