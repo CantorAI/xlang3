@@ -384,6 +384,13 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "ord");
   copy_builtin(runtime, builtins, "str");
   copy_builtin(runtime, builtins, "repr");
+  copy_builtin(runtime, builtins, "hash");
+  copy_builtin(runtime, builtins, "chr");
+  copy_builtin(runtime, builtins, "bin");
+  copy_builtin(runtime, builtins, "oct");
+  copy_builtin(runtime, builtins, "hex");
+  copy_builtin(runtime, builtins, "pow");
+  copy_builtin(runtime, builtins, "divmod");
   copy_builtin(runtime, builtins, "all");
   copy_builtin(runtime, builtins, "any");
   copy_builtin(runtime, builtins, "range");

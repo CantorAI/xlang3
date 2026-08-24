@@ -48,6 +48,7 @@ Section-level fixture coverage:
 - `tests/fixtures/compat_sections/containers.py`
 - `tests/fixtures/compat_sections/strings_and_unicode.py`
 - `tests/fixtures/compat_sections/builtins.py`
+- `tests/fixtures/compat_sections/standard_modules.py`
 
 ## Syntax Compatibility
 
@@ -431,7 +432,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`suffix`/`parent` properties, and basic path transforms; full operator/glob semantics pending
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
-- [ ] `warnings` / `_warnings`: warning facade; filter/category/showwarning semantics pending
+- [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
 - [ ] `winreg`: Windows constant facade; real registry operations pending
 - [ ] `xmlrpc` / `http` package placeholders: module/package import foundation only
 
