@@ -17,6 +17,7 @@ class Base:
 
 class Child(Base):
     "child-doc"
+    label: "str"
     pass
 
 obj = Child()
@@ -24,6 +25,7 @@ same = obj
 other = Child()
 print(type(obj) is Child, type(Child) is type, type(type) is type)
 print(Child.__doc__)
+print(Child.__annotations__["label"])
 print(isinstance(obj, Child), isinstance(obj, Base), isinstance(obj, object))
 print(issubclass(Child, Base), issubclass(Child, object))
 print(obj is same, obj is other, None is None, True is True, 1000 is 1000)

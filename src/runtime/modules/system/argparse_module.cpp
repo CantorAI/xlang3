@@ -29,11 +29,12 @@ namespace {
 constexpr const char* kArgumentParserNativeType = "argparse.ArgumentParser";
 
 struct ArgSpec {
-  std::string option;
+  std::vector<std::string> options;
   std::string dest;
   Value default_value = Value::none();
   Value type_value = Value::none();
   bool store_true = false;
+  bool positional = false;
 };
 
 struct ArgumentParserState {
@@ -64,6 +65,10 @@ std::string option_to_dest(const std::string& option) {
     }
   }
   return dest;
+}
+
+bool looks_like_option(const std::string& value) {
+  return value.size() > 1 && value[0] == '-';
 }
 
 ArgumentParserState* parser_state(const Value& self, std::string& error) {
@@ -106,11 +111,20 @@ bool parser_add_argument_kw(
     return false;
   }
   ArgSpec spec;
-  if (!string_value(args[1], spec.option)) {
-    error = "ArgumentParser.add_argument() option must be str";
+  for (uint32_t i = 1; i < argc; ++i) {
+    std::string option;
+    if (!string_value(args[i], option)) {
+      error = "ArgumentParser.add_argument() option must be str";
+      return false;
+    }
+    spec.options.push_back(std::move(option));
+  }
+  if (spec.options.empty()) {
+    error = "ArgumentParser.add_argument() expected option";
     return false;
   }
-  spec.dest = option_to_dest(spec.option);
+  spec.positional = !looks_like_option(spec.options.front());
+  spec.dest = option_to_dest(spec.options.back());
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
     if (kwargs[i].value == nullptr) {
@@ -180,13 +194,33 @@ bool parser_parse_args(Runtime&, const Value* args, uint32_t argc, Value& out, s
   for (const auto& spec : state->args) {
     object_set_attr(out, spec.dest, spec.default_value, error);
   }
+  size_t positional_index = 0;
   for (size_t i = 0; i < argv.size(); ++i) {
     std::string option;
     if (!string_value(argv[i], option)) {
       continue;
     }
+    if (!looks_like_option(option)) {
+      while (positional_index < state->args.size() && !state->args[positional_index].positional) {
+        ++positional_index;
+      }
+      if (positional_index < state->args.size()) {
+        const auto& spec = state->args[positional_index++];
+        Value converted;
+        convert_arg_value(spec, option, converted);
+        object_set_attr(out, spec.dest, converted, error);
+      }
+      continue;
+    }
     for (const auto& spec : state->args) {
-      if (option != spec.option) {
+      bool matched = false;
+      for (const auto& candidate : spec.options) {
+        if (option == candidate) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
         continue;
       }
       if (spec.store_true) {

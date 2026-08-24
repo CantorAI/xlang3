@@ -2360,6 +2360,8 @@ private:
       add_to_prepared_namespace(attr.first, attr.second);
     }
 
+    std::vector<std::pair<uint32_t, uint32_t>> class_annotations;
+
     if (!klass.type_params.empty()) {
       const auto attr_reg = emit_type_params_tuple(klass.type_params);
       attrs.push_back(std::make_pair("__type_params__", attr_reg));
@@ -2386,6 +2388,11 @@ private:
           }
         }
       } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(stmt.get())) {
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+          const auto key_reg = new_reg();
+          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(name->name)));
+          class_annotations.push_back(std::make_pair(key_reg, lower_expr(*assign->annotation)));
+        }
         if (assign->value != nullptr) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
             const auto attr_reg = lower_expr(*assign->value);
@@ -2398,6 +2405,13 @@ private:
         attrs.push_back(std::make_pair(nested->name, attr_reg));
         bind_class_attr_alias(nested->name, attr_reg);
       }
+    }
+
+    if (!class_annotations.empty()) {
+      const auto annotations_reg = new_reg();
+      emit(ir::Op::MakeDict, annotations_reg, add_dict_items(std::move(class_annotations)));
+      attrs.push_back(std::make_pair("__annotations__", annotations_reg));
+      bind_class_attr_alias("__annotations__", annotations_reg);
     }
 
     for (const auto& name : erased_aliases) {

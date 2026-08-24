@@ -116,6 +116,7 @@ Section-level fixture coverage:
 - [x] kwargs `**kwargs`
 - [x] parameter annotations with function `__annotations__` metadata
 - [x] return annotations with function `__annotations__` metadata
+- [x] class variable annotations populate class `__annotations__`
 - [x] decorators on functions, including native callable decorators
 - [x] decorators on classes
 - [x] nested functions
@@ -389,13 +390,13 @@ High-level modules currently backed by native/runtime code:
 - [~] `os`: VFS-backed `listdir`, `scandir`/`DirEntry` foundation, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
 - [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation; full path normalization/platform semantics pending
 - [~] `stat`: stat tuple indexes and common constants
-- [ ] `argparse`: simple `ArgumentParser` facade exists; CPython parser behavior not audited
+- [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
 - [ ] `ast`: AST class-name facade exists; real parser-to-AST compatibility pending
 - [ ] `code`: `compile_command` facade exists; interactive compiler semantics pending
 - [~] `codecs`: `lookup`, `encode`, and `decode` foundation; full codec registry/error handling pending
-- [ ] `contextlib`: contextmanager/closing/suppress facade exists; generator context-manager behavior pending
+- [~] `contextlib`: generator `contextmanager` and `nullcontext` work with with-statements; real `closing`, `suppress`, async helpers, and full exception propagation semantics pending
 - [ ] `ctypes`: small facade exists; real FFI semantics pending
-- [ ] `dataclasses`: decorator/field facade exists; real dataclass transformation pending
+- [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, and `__dataclass_fields__` basics; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
 - [ ] `dis`: code-object inspection facade exists; real bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending

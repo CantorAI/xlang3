@@ -5,3 +5,9 @@ original doc text True
 7
 abc XYZ 0123456789 True
 8 True True
+2 5 5 2 x
+Point(x=2, y=5)
+True
+ctx
+null
+7 True bob

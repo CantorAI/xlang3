@@ -50,3 +50,40 @@ import string
 
 print(string.ascii_lowercase[:3], string.ascii_uppercase[-3:], string.digits, "A" in string.hexdigits)
 print(len(string.octdigits), "\n" in string.whitespace, callable(string.Formatter))
+
+# dataclasses: annotated fields generate init/repr/eq metadata foundations.
+import dataclasses
+
+@dataclasses.dataclass
+class Point:
+    x: int
+    y: int = 5
+
+p = Point(2)
+q = Point(2, y=5)
+print(p.x, p.y, q.y, len(Point.__dataclass_fields__), Point.__dataclass_fields__["x"].name)
+print(p.__repr__())
+print(p.__eq__(q))
+
+# contextlib: generator context managers and nullcontext work with with-statements.
+import contextlib
+
+@contextlib.contextmanager
+def cm():
+    yield "ctx"
+
+with cm() as value:
+    print(value)
+
+with contextlib.nullcontext("null") as value:
+    print(value)
+
+# argparse: common parser shape with option aliases, typed values, flags, and positional args.
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-n", "--num", type=int, default=1)
+parser.add_argument("--verbose", action="store_true")
+parser.add_argument("name")
+parsed = parser.parse_args(["--num", "7", "--verbose", "bob"])
+print(parsed.num, parsed.verbose, parsed.name)
