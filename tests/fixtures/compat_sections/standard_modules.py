@@ -210,6 +210,11 @@ print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.filterfalse(is_even, [1, 2, 3, 4])))
 print(list(itertools.compress(["a", "b", "c"], [1, 0, 1])), list(itertools.repeat("x", 3)))
 print(list(itertools.chain([1, 2], (3, 4))), list(itertools.batched([1, 2, 3, 4, 5], 2)))
+print(list(itertools.product([1, 2], ["a", "b"])))
+print(list(itertools.combinations([1, 2, 3], 2)), list(itertools.combinations_with_replacement(["x", "y"], 2)))
+print(list(itertools.permutations([1, 2, 3], 2)))
+print(list(itertools.accumulate([1, 2, 3, 4])), list(itertools.starmap(original, [(1, 2), (3, 4)])))
+print(list(itertools.zip_longest([1, 2], ["a"])))
 
 # collections: Counter dict-backed counting helpers.
 from collections import Counter
