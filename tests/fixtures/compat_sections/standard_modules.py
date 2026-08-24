@@ -161,7 +161,9 @@ print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRel
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
 import dis
 import getpass
+import io
 import locale
+import marshal
 import opcode
 import pkgutil
 import signal
@@ -190,6 +192,14 @@ try:
     signal.default_int_handler(signal.SIGINT, None)
 except KeyboardInterrupt:
     print("keyboard")
+
+marshal_payload = {"n": [1, 2, (3, "x")], "b": b"hi", "none": None, "truth": True}
+marshal_copy = marshal.loads(marshal.dumps(marshal_payload))
+print(marshal_copy["n"][2][1], marshal_copy["b"] == b"hi", marshal_copy["none"] is None, marshal_copy["truth"])
+marshal_stream = io.BytesIO()
+marshal.dump([4, "stream"], marshal_stream)
+marshal_stream.seek(0)
+print(marshal.load(marshal_stream)[1], marshal.version)
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])

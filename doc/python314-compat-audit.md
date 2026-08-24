@@ -407,7 +407,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, `chain`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; lazy object identity, keyword-only options, and full iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`save` foundation; full CPython `json` package behavior pending
 - [~] `locale`: category constants, set/get locale, encoding helpers, normalize, and localeconv shape; real platform locale semantics pending
-- [ ] `marshal`: placeholder module; serialization semantics pending
+- [~] `marshal`: XLang3-native `dumps`/`loads` and file `dump`/`load` round-trip foundations for scalars, strings/bytes, and common containers; CPython marshal wire format/code-object semantics pending
 - [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
 - [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
