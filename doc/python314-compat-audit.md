@@ -409,7 +409,7 @@ High-level modules currently backed by native/runtime code:
 - [ ] `marshal`: placeholder module; serialization semantics pending
 - [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
 - [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
-- [~] `operator`: selected helpers such as `index` and `getitem`; full operator module pending
+- [~] `operator`: arithmetic, bitwise, comparison, truth/identity/contains, item mutation, and attr/item/method getter foundations; in-place helpers and full CPython edge cases pending
 - [ ] `pickle`: exception/classes facade; serialization semantics pending
 - [~] `platform`: platform/python version helpers foundation
 - [ ] `pkgutil`: package utility facade; loader/resource semantics pending

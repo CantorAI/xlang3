@@ -143,3 +143,28 @@ print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeco
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
+
+# operator: generic runtime dispatch helpers and getter/caller factories.
+import operator
+
+values = [3, 4, 5]
+operator.setitem(values, 1, 8)
+print(operator.add(2, 5), operator.mul("ha", 2), operator.floordiv(17, 5), operator.mod(17, 5))
+print(operator.eq(values[1], 8), operator.lt(2, 3), operator.contains(values, 5), operator.getitem(values, 1))
+print(operator.itemgetter(0, 2)(values))
+
+class OperatorInner:
+    def __init__(self):
+        self.name = "inner"
+
+class OperatorBox:
+    def __init__(self):
+        self.inner = OperatorInner()
+
+    def label(self, prefix):
+        return prefix + self.inner.name
+
+box = OperatorBox()
+print(operator.attrgetter("inner.name")(box), operator.methodcaller("label", "box:")(box))
+operator.delitem(values, 0)
+print(values, operator.truth(values), operator.not_([]), operator.is_(box, box), operator.is_not(box, values))
