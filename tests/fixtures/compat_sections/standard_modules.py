@@ -194,6 +194,8 @@ box = OperatorBox()
 print(operator.attrgetter("inner.name")(box), operator.methodcaller("label", "box:")(box))
 operator.delitem(values, 0)
 print(values, operator.truth(values), operator.not_([]), operator.is_(box, box), operator.is_not(box, values))
+print(operator.length_hint(values), operator.countOf([1, 2, 1], 1), operator.indexOf(["a", "b"], "b"))
+print(operator.iadd([1], [2]), operator.iconcat("x", "y"), operator.iand(6, 3), operator.ior(4, 1), operator.ixor(6, 3))
 
 # itertools: finite iterator helpers consume generic iterables correctly.
 import itertools
@@ -234,6 +236,8 @@ chain["c"] = 3
 child = chain.new_child({"a": 99})
 print(chain["a"], chain["b"], chain["c"], chain.get("z", 7), "b" in chain, len(chain))
 print(list(chain.keys()), list(chain.items()), child["a"], child["b"])
+operator.setitem(chain, "d", 4)
+print(operator.getitem(chain, "d"), operator.length_hint(chain), operator.contains(chain, "d"))
 
 # queue: Queue variants keep distinct ordering, maxsize, and catchable exceptions.
 import queue

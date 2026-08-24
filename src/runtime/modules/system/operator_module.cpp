@@ -76,6 +76,15 @@ bool operator_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   if (!sequence_get_item(args[0], args[1], out, error)) {
+    if (value_as_instance(args[0]) != nullptr) {
+      Value getitem;
+      std::string attr_error;
+      if (object_get_attr(args[0], "__getitem__", getitem, attr_error)) {
+        if (runtime_call_callable(runtime, getitem, &args[1], 1, out, error)) {
+          return true;
+        }
+      }
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -90,6 +99,18 @@ bool operator_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   Value target = args[0];
   if (!sequence_set_item(target, args[1], args[2], error)) {
+    if (value_as_instance(args[0]) != nullptr) {
+      Value setitem;
+      std::string attr_error;
+      if (object_get_attr(args[0], "__setitem__", setitem, attr_error)) {
+        Value call_args[2] = {args[1], args[2]};
+        Value ignored;
+        if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
+          value_set_none(out);
+          return true;
+        }
+      }
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -105,6 +126,17 @@ bool operator_delitem(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   Value target = args[0];
   if (!sequence_delete_item(target, args[1], error)) {
+    if (value_as_instance(args[0]) != nullptr) {
+      Value delitem;
+      std::string attr_error;
+      if (object_get_attr(args[0], "__delitem__", delitem, attr_error)) {
+        Value ignored;
+        if (runtime_call_callable(runtime, delitem, &args[1], 1, ignored, error)) {
+          value_set_none(out);
+          return true;
+        }
+      }
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -156,11 +188,119 @@ bool operator_contains(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   bool contains = false;
   if (!value_contains(args[0], args[1], contains, error)) {
+    if (value_as_instance(args[0]) != nullptr) {
+      Value contains_method;
+      std::string attr_error;
+      if (object_get_attr(args[0], "__contains__", contains_method, attr_error)) {
+        Value result;
+        if (runtime_call_callable(runtime, contains_method, &args[1], 1, result, error)) {
+          value_set_bool(out, value_truthy(result));
+          return true;
+        }
+      }
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   value_set_bool(out, contains);
   return true;
+}
+
+bool operator_length_hint(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "operator.length_hint() expected object and optional default";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (sequence_len(args[0], out, error)) {
+    return true;
+  }
+  if (value_as_instance(args[0]) != nullptr) {
+    Value len_method;
+    std::string attr_error;
+    if (object_get_attr(args[0], "__len__", len_method, attr_error) &&
+        runtime_call_callable(runtime, len_method, nullptr, 0, out, error)) {
+      return true;
+    }
+  }
+  if (argc == 2) {
+    value_assign_fast(out, args[1]);
+    return true;
+  }
+  value_set_int64(out, 0);
+  return true;
+}
+
+bool operator_count_of(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "operator.countOf() expected sequence and item";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t count = 0;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    Value equal;
+    if (!value_compare("==", item, args[1], equal, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (value_truthy(equal)) {
+      ++count;
+    }
+  }
+  value_set_int64(out, count);
+  return true;
+}
+
+bool operator_index_of(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "operator.indexOf() expected sequence and item";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[0], iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t index = 0;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      error = "sequence.index(x): x not in sequence";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    Value equal;
+    if (!value_compare("==", item, args[1], equal, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (value_truthy(equal)) {
+      value_set_int64(out, index);
+      return true;
+    }
+    ++index;
+  }
 }
 
 bool binary_value_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -383,19 +523,36 @@ void register_operator_module(Runtime& runtime) {
       .function("is_", operator_is)
       .function("is_not", operator_is_not)
       .function("contains", operator_contains)
+      .function("length_hint", operator_length_hint)
+      .function("countOf", operator_count_of)
+      .function("indexOf", operator_index_of)
       .value("add", runtime.make_native_function("operator.add", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("__add__", runtime.make_native_function("operator.__add__", binary_value_entry, binary_tag(BinaryKind::Add)))
+      .value("concat", runtime.make_native_function("operator.concat", binary_value_entry, binary_tag(BinaryKind::Add)))
+      .value("iadd", runtime.make_native_function("operator.iadd", binary_value_entry, binary_tag(BinaryKind::Add)))
+      .value("iconcat", runtime.make_native_function("operator.iconcat", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("sub", runtime.make_native_function("operator.sub", binary_value_entry, binary_tag(BinaryKind::Sub)))
+      .value("isub", runtime.make_native_function("operator.isub", binary_value_entry, binary_tag(BinaryKind::Sub)))
       .value("mul", runtime.make_native_function("operator.mul", binary_value_entry, binary_tag(BinaryKind::Mul)))
+      .value("imul", runtime.make_native_function("operator.imul", binary_value_entry, binary_tag(BinaryKind::Mul)))
       .value("truediv", runtime.make_native_function("operator.truediv", binary_value_entry, binary_tag(BinaryKind::Div)))
+      .value("itruediv", runtime.make_native_function("operator.itruediv", binary_value_entry, binary_tag(BinaryKind::Div)))
       .value("floordiv", runtime.make_native_function("operator.floordiv", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
+      .value("ifloordiv", runtime.make_native_function("operator.ifloordiv", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
       .value("mod", runtime.make_native_function("operator.mod", binary_value_entry, binary_tag(BinaryKind::Mod)))
+      .value("imod", runtime.make_native_function("operator.imod", binary_value_entry, binary_tag(BinaryKind::Mod)))
       .value("pow", runtime.make_native_function("operator.pow", binary_value_entry, binary_tag(BinaryKind::Pow)))
+      .value("ipow", runtime.make_native_function("operator.ipow", binary_value_entry, binary_tag(BinaryKind::Pow)))
       .value("and_", runtime.make_native_function("operator.and_", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
+      .value("iand", runtime.make_native_function("operator.iand", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
       .value("or_", runtime.make_native_function("operator.or_", binary_value_entry, binary_tag(BinaryKind::BitOr)))
+      .value("ior", runtime.make_native_function("operator.ior", binary_value_entry, binary_tag(BinaryKind::BitOr)))
       .value("xor", runtime.make_native_function("operator.xor", binary_value_entry, binary_tag(BinaryKind::BitXor)))
+      .value("ixor", runtime.make_native_function("operator.ixor", binary_value_entry, binary_tag(BinaryKind::BitXor)))
       .value("lshift", runtime.make_native_function("operator.lshift", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
+      .value("ilshift", runtime.make_native_function("operator.ilshift", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
       .value("rshift", runtime.make_native_function("operator.rshift", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
+      .value("irshift", runtime.make_native_function("operator.irshift", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
       .function("neg", operator_neg)
       .function("pos", operator_pos)
       .function("invert", operator_invert_entry)
