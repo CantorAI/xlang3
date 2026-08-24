@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 
+#include <cstdlib>
+
 namespace xlang3 {
 
 namespace {
@@ -33,6 +35,15 @@ bool getpass_getuser(Runtime&, const Value*, uint32_t argc, Value& out, std::str
   if (argc != 0) {
     error = "getpass.getuser() expected no arguments";
     return false;
+  }
+  const char* names[] = {"LOGNAME", "USER", "LNAME", "USERNAME"};
+  for (const char* name : names) {
+    if (const char* value = std::getenv(name)) {
+      if (value[0] != '\0') {
+        out = Value::string(value);
+        return true;
+      }
+    }
   }
   out = Value::string("");
   return true;

@@ -401,14 +401,14 @@ High-level modules currently backed by native/runtime code:
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
 - [~] `functools`: `update_wrapper`, `wraps`, and `partial` foundation with common function metadata propagation; full descriptor/cache/singledispatch/cmp helpers pending
-- [ ] `__future__`: feature-name constants facade only
-- [ ] `getpass`: `getpass`/`getuser` facade only
+- [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
+- [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
 - [~] `itertools`: selected iterator helpers foundation; full iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`save` foundation; full CPython `json` package behavior pending
-- [ ] `locale`: constants and encoding helper facade; real locale behavior pending
+- [~] `locale`: category constants, set/get locale, encoding helpers, normalize, and localeconv shape; real platform locale semantics pending
 - [ ] `marshal`: placeholder module; serialization semantics pending
 - [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
-- [ ] `opcode`: opcode metadata facade; CPython opcode compatibility pending
+- [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: selected helpers such as `index` and `getitem`; full operator module pending
 - [ ] `pickle`: exception/classes facade; serialization semantics pending
 - [~] `platform`: platform/python version helpers foundation
@@ -421,7 +421,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending
-- [ ] `sysconfig`: path/config helper facade; full install scheme compatibility pending
+- [~] `sysconfig`: path names/dicts, platform/version, and common config-var helpers; full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`, and basic `getmembers`; full frame/source/signature semantics pending
@@ -434,7 +434,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`suffix`/`parent` properties, and basic path transforms; full operator/glob semantics pending
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
-- [ ] `winreg`: Windows constant facade; real registry operations pending
+- [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending
 - [ ] `xmlrpc` / `http` package placeholders: module/package import foundation only
 
 ### Async, Tasks, And Threads

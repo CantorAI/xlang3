@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <clocale>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace xlang3 {
 
@@ -64,6 +66,61 @@ bool locale_getencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool locale_getlocale(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 1) {
+    error = "locale.getlocale() expected optional category";
+    return false;
+  }
+  int category = LC_CTYPE;
+  if (argc == 1) {
+    if (args[0].tag != ValueTag::Int64) {
+      error = "locale category must be int";
+      return false;
+    }
+    category = static_cast<int>(args[0].as.i64);
+  }
+  const char* current = std::setlocale(category, nullptr);
+  if (current == nullptr || current[0] == 'C') {
+    out = Value::tuple({Value::none(), Value::none()});
+    return true;
+  }
+  out = Value::tuple({Value::string(current), Value::string("UTF-8")});
+  return true;
+}
+
+bool locale_getdefaultlocale(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return locale_getlocale(runtime, args, argc, out, error, nullptr);
+}
+
+bool locale_normalize(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "locale.normalize() expected one locale name";
+    return false;
+  }
+  auto* text = value_as_string(args[0]);
+  if (text == nullptr) {
+    error = "locale name must be str";
+    return false;
+  }
+  out = Value::string(string_object_to_string(*text));
+  return true;
+}
+
+bool locale_localeconv(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "locale.localeconv() expected no arguments";
+    return false;
+  }
+  std::vector<std::pair<Value, Value>> entries;
+  entries.push_back({Value::string("decimal_point"), Value::string(".")});
+  entries.push_back({Value::string("thousands_sep"), Value::string("")});
+  entries.push_back({Value::string("currency_symbol"), Value::string("")});
+  entries.push_back({Value::string("int_curr_symbol"), Value::string("")});
+  entries.push_back({Value::string("frac_digits"), Value::int64(127)});
+  out = Value::dict(std::move(entries));
+  return true;
+}
+
 } // namespace
 
 void register_locale_module(Runtime& runtime) {
@@ -76,7 +133,11 @@ void register_locale_module(Runtime& runtime) {
       .value("LC_MONETARY", Value::int64(LC_MONETARY))
       .function("setlocale", locale_setlocale)
       .function("getpreferredencoding", locale_getpreferredencoding)
-      .function("getencoding", locale_getencoding);
+      .function("getencoding", locale_getencoding)
+      .function("getlocale", locale_getlocale)
+      .function("getdefaultlocale", locale_getdefaultlocale)
+      .function("normalize", locale_normalize)
+      .function("localeconv", locale_localeconv);
   runtime.register_module("locale", builder.finish());
 }
 

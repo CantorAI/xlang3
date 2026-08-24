@@ -18,3 +18,8 @@ T 2 object True
 5 UserId int
 x List Optional
 FinalClass True True False
+annotations 3 None 16777216
+True True .
+True True 3.14
+82 RESUME 43
+2147483649 131097 1 None

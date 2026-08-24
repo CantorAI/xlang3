@@ -17,6 +17,8 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
+#include <cstdint>
+
 namespace xlang3 {
 
 namespace {
@@ -36,13 +38,51 @@ Value make_feature_names() {
   });
 }
 
-Value make_feature(const char* name) {
+bool feature_get_attr(const Value& self, const char* name, Value& out, std::string& error) {
+  return object_get_attr(self, name, out, error);
+}
+
+bool feature_get_optional(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_Feature.getOptionalRelease() expected no arguments";
+    return false;
+  }
+  return feature_get_attr(args[0], "optional", out, error);
+}
+
+bool feature_get_mandatory(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_Feature.getMandatoryRelease() expected no arguments";
+    return false;
+  }
+  return feature_get_attr(args[0], "mandatory", out, error);
+}
+
+Value release_tuple(int64_t major, int64_t minor, int64_t micro, const char* level, int64_t serial) {
+  return Value::tuple({
+      Value::int64(major),
+      Value::int64(minor),
+      Value::int64(micro),
+      Value::string(level),
+      Value::int64(serial),
+  });
+}
+
+Value make_feature_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("__future__")});
-  Value klass = Value::class_object("_Feature", std::move(attrs));
+  attrs.push_back({"getOptionalRelease", runtime.make_native_function("__future__._Feature.getOptionalRelease", feature_get_optional)});
+  attrs.push_back({"getMandatoryRelease", runtime.make_native_function("__future__._Feature.getMandatoryRelease", feature_get_mandatory)});
+  return Value::class_object("_Feature", std::move(attrs));
+}
+
+Value make_feature(Value klass, const char* name, Value optional, Value mandatory, int64_t compiler_flag) {
   Value instance = Value::instance(klass);
   std::string error;
   object_set_attr(instance, "__name__", Value::string(name), error);
+  object_set_attr(instance, "optional", optional, error);
+  object_set_attr(instance, "mandatory", mandatory, error);
+  object_set_attr(instance, "compiler_flag", Value::int64(compiler_flag), error);
   return instance;
 }
 
@@ -50,17 +90,20 @@ Value make_feature(const char* name) {
 
 void register_future_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "__future__");
+  Value feature_class = make_feature_class(runtime);
+  Value never = Value::none();
   builder.value("all_feature_names", make_feature_names())
-      .value("nested_scopes", make_feature("nested_scopes"))
-      .value("generators", make_feature("generators"))
-      .value("division", make_feature("division"))
-      .value("absolute_import", make_feature("absolute_import"))
-      .value("with_statement", make_feature("with_statement"))
-      .value("print_function", make_feature("print_function"))
-      .value("unicode_literals", make_feature("unicode_literals"))
-      .value("barry_as_FLUFL", make_feature("barry_as_FLUFL"))
-      .value("generator_stop", make_feature("generator_stop"))
-      .value("annotations", make_feature("annotations"));
+      .value("_Feature", feature_class)
+      .value("nested_scopes", make_feature(feature_class, "nested_scopes", release_tuple(2, 1, 0, "beta", 1), release_tuple(2, 2, 0, "final", 0), 16))
+      .value("generators", make_feature(feature_class, "generators", release_tuple(2, 2, 0, "alpha", 1), release_tuple(2, 3, 0, "final", 0), 0))
+      .value("division", make_feature(feature_class, "division", release_tuple(2, 2, 0, "alpha", 2), release_tuple(3, 0, 0, "alpha", 0), 131072))
+      .value("absolute_import", make_feature(feature_class, "absolute_import", release_tuple(2, 5, 0, "alpha", 1), release_tuple(3, 0, 0, "alpha", 0), 262144))
+      .value("with_statement", make_feature(feature_class, "with_statement", release_tuple(2, 5, 0, "alpha", 1), release_tuple(2, 6, 0, "alpha", 0), 524288))
+      .value("print_function", make_feature(feature_class, "print_function", release_tuple(2, 6, 0, "alpha", 2), release_tuple(3, 0, 0, "alpha", 0), 1048576))
+      .value("unicode_literals", make_feature(feature_class, "unicode_literals", release_tuple(2, 6, 0, "alpha", 2), release_tuple(3, 0, 0, "alpha", 0), 2097152))
+      .value("barry_as_FLUFL", make_feature(feature_class, "barry_as_FLUFL", release_tuple(3, 1, 0, "alpha", 2), release_tuple(4, 0, 0, "alpha", 0), 4194304))
+      .value("generator_stop", make_feature(feature_class, "generator_stop", release_tuple(3, 5, 0, "beta", 1), release_tuple(3, 7, 0, "alpha", 0), 8388608))
+      .value("annotations", make_feature(feature_class, "annotations", release_tuple(3, 7, 0, "beta", 1), never, 16777216));
   runtime.register_module("__future__", builder.finish());
 }
 
