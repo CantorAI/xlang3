@@ -165,6 +165,7 @@ import locale
 import opcode
 import pkgutil
 import site
+import subprocess
 import sys
 import sysconfig
 import winreg
@@ -287,3 +288,15 @@ limited.get()
 limited.task_done()
 limited.join()
 print(limited.empty())
+
+# subprocess: run/Popen foundations with captured text and catchable check failures.
+completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)
+print(isinstance(completed, subprocess.CompletedProcess), completed.returncode, completed.stdout.strip())
+raw_completed = subprocess.run(["cmd", "/c", "echo raw"], stdout=subprocess.PIPE)
+print(raw_completed.returncode, len(raw_completed.stdout) > 0)
+proc = subprocess.Popen(["cmd", "/c", "exit 0"])
+print(proc.wait(), proc.poll())
+try:
+    subprocess.run(["cmd", "/c", "exit 7"], check=True, capture_output=True, text=True)
+except subprocess.CalledProcessError as err:
+    print(err.returncode, err.cmd[2], err.stdout == "")

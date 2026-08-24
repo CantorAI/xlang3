@@ -421,7 +421,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`, and `Full` foundations with ordering/maxsize/task helpers; blocking/wakeup semantics pending
 - [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
-- [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending
+- [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
 - [~] `sysconfig`: path names/dicts, platform/version, and common config-var helpers; full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending

@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
@@ -38,6 +39,11 @@ struct PopenState {
 #endif
   int return_code = -1;
   bool has_return_code = false;
+};
+
+struct SubprocessClasses {
+  Value completed_process;
+  Value called_process_error;
 };
 
 void popen_cleanup(void* data) {
@@ -62,6 +68,37 @@ bool get_string_value(const Value& value, std::string& out) {
     return true;
   }
   return false;
+}
+
+bool truthy_option(const Value& value) {
+  if (value.tag == ValueTag::Bool) {
+    return value.as.b;
+  }
+  if (value.tag == ValueTag::None || value.tag == ValueTag::Invalid) {
+    return false;
+  }
+  if (value.tag == ValueTag::Int64) {
+    return value.as.i64 != 0;
+  }
+  return true;
+}
+
+bool kw_bool(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name, bool fallback) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string(kwargs[i].name) == name && kwargs[i].value != nullptr) {
+      return truthy_option(*kwargs[i].value);
+    }
+  }
+  return fallback;
+}
+
+Value kw_value(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name, Value fallback = Value::none()) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string(kwargs[i].name) == name && kwargs[i].value != nullptr) {
+      return *kwargs[i].value;
+    }
+  }
+  return fallback;
 }
 
 std::string quote_arg(const std::string& arg) {
@@ -150,6 +187,189 @@ bool build_environment_block(const Value& value, std::vector<wchar_t>& out, std:
   return true;
 }
 #endif
+
+Value output_value(const std::string& output, bool text_mode) {
+  return text_mode ? Value::string(output) : Value::bytes(output);
+}
+
+Value make_completed_process(const Value& klass, Value args, int return_code, Value stdout_value, Value stderr_value) {
+  Value instance = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(instance, "args", args, ignored);
+  object_set_attr(instance, "returncode", Value::int64(return_code), ignored);
+  object_set_attr(instance, "stdout", stdout_value, ignored);
+  object_set_attr(instance, "stderr", stderr_value, ignored);
+  return instance;
+}
+
+Value make_called_process_error(const Value& klass, Value args, int return_code, Value stdout_value, Value stderr_value) {
+  Value instance = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(instance, "returncode", Value::int64(return_code), ignored);
+  object_set_attr(instance, "cmd", args, ignored);
+  object_set_attr(instance, "output", stdout_value, ignored);
+  object_set_attr(instance, "stdout", stdout_value, ignored);
+  object_set_attr(instance, "stderr", stderr_value, ignored);
+  object_set_attr(instance, "args", Value::tuple({Value::int64(return_code), args}), ignored);
+  object_set_attr(
+      instance,
+      "message",
+      Value::string("Command returned non-zero exit status " + std::to_string(return_code)),
+      ignored);
+  object_set_attr(instance, "__traceback__", Value::none(), ignored);
+  object_set_attr(instance, "__cause__", Value::none(), ignored);
+  object_set_attr(instance, "__context__", Value::none(), ignored);
+  object_set_attr(instance, "__suppress_context__", Value::boolean(false), ignored);
+  return instance;
+}
+
+#if defined(_WIN32)
+struct WinPipe {
+  HANDLE read = nullptr;
+  HANDLE write = nullptr;
+};
+
+void close_handle(HANDLE& handle) {
+  if (handle != nullptr) {
+    CloseHandle(handle);
+    handle = nullptr;
+  }
+}
+
+bool create_capture_pipe(WinPipe& pipe, std::string& error) {
+  SECURITY_ATTRIBUTES attrs{};
+  attrs.nLength = sizeof(attrs);
+  attrs.bInheritHandle = TRUE;
+  if (!CreatePipe(&pipe.read, &pipe.write, &attrs, 0)) {
+    error = "subprocess pipe creation failed with Win32 error " + std::to_string(GetLastError());
+    return false;
+  }
+  if (!SetHandleInformation(pipe.read, HANDLE_FLAG_INHERIT, 0)) {
+    close_handle(pipe.read);
+    close_handle(pipe.write);
+    error = "subprocess pipe setup failed with Win32 error " + std::to_string(GetLastError());
+    return false;
+  }
+  return true;
+}
+
+std::string read_all_from_pipe(HANDLE pipe) {
+  std::string output;
+  char buffer[4096];
+  DWORD read = 0;
+  while (ReadFile(pipe, buffer, static_cast<DWORD>(sizeof(buffer)), &read, nullptr) && read > 0) {
+    output.append(buffer, buffer + read);
+  }
+  return output;
+}
+#endif
+
+bool run_process(
+    const std::string& command,
+    const Value& cwd_value,
+    const Value& env_value,
+    bool capture_stdout,
+    bool capture_stderr,
+    int& return_code,
+    std::string& stdout_data,
+    std::string& stderr_data,
+    std::string& error) {
+#if defined(_WIN32)
+  STARTUPINFOW startup{};
+  startup.cb = sizeof(startup);
+  WinPipe stdout_pipe;
+  WinPipe stderr_pipe;
+  if (capture_stdout && !create_capture_pipe(stdout_pipe, error)) {
+    return false;
+  }
+  if (capture_stderr && !create_capture_pipe(stderr_pipe, error)) {
+    close_handle(stdout_pipe.read);
+    close_handle(stdout_pipe.write);
+    return false;
+  }
+  if (capture_stdout || capture_stderr) {
+    startup.dwFlags |= STARTF_USESTDHANDLES;
+    startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    startup.hStdOutput = capture_stdout ? stdout_pipe.write : GetStdHandle(STD_OUTPUT_HANDLE);
+    startup.hStdError = capture_stderr ? stderr_pipe.write : GetStdHandle(STD_ERROR_HANDLE);
+  }
+
+  std::wstring command_w = widen(command);
+  std::wstring cwd_w;
+  const wchar_t* cwd_ptr = nullptr;
+  if (cwd_value.tag != ValueTag::None) {
+    std::string cwd;
+    if (!get_string_value(cwd_value, cwd)) {
+      close_handle(stdout_pipe.read);
+      close_handle(stdout_pipe.write);
+      close_handle(stderr_pipe.read);
+      close_handle(stderr_pipe.write);
+      error = "subprocess.run cwd must be str";
+      return false;
+    }
+    cwd_w = widen(cwd);
+    cwd_ptr = cwd_w.c_str();
+  }
+
+  std::vector<wchar_t> env_block;
+  if (!build_environment_block(env_value, env_block, error)) {
+    close_handle(stdout_pipe.read);
+    close_handle(stdout_pipe.write);
+    close_handle(stderr_pipe.read);
+    close_handle(stderr_pipe.write);
+    return false;
+  }
+  wchar_t* env_ptr = env_block.empty() ? nullptr : env_block.data();
+
+  PROCESS_INFORMATION process{};
+  const BOOL created = CreateProcessW(
+      nullptr,
+      command_w.data(),
+      nullptr,
+      nullptr,
+      TRUE,
+      CREATE_UNICODE_ENVIRONMENT,
+      env_ptr,
+      cwd_ptr,
+      &startup,
+      &process);
+  close_handle(stdout_pipe.write);
+  close_handle(stderr_pipe.write);
+  if (!created) {
+    close_handle(stdout_pipe.read);
+    close_handle(stderr_pipe.read);
+    error = "subprocess.run failed with Win32 error " + std::to_string(GetLastError());
+    return false;
+  }
+
+  WaitForSingleObject(process.hProcess, INFINITE);
+  DWORD code = 0;
+  GetExitCodeProcess(process.hProcess, &code);
+  return_code = static_cast<int>(code);
+  if (capture_stdout) {
+    stdout_data = read_all_from_pipe(stdout_pipe.read);
+  }
+  if (capture_stderr) {
+    stderr_data = read_all_from_pipe(stderr_pipe.read);
+  }
+  close_handle(stdout_pipe.read);
+  close_handle(stderr_pipe.read);
+  CloseHandle(process.hThread);
+  CloseHandle(process.hProcess);
+  return true;
+#else
+  (void)command;
+  (void)cwd_value;
+  (void)env_value;
+  (void)capture_stdout;
+  (void)capture_stderr;
+  (void)return_code;
+  (void)stdout_data;
+  (void)stderr_data;
+  error = "subprocess.run is not implemented on this platform yet";
+  return false;
+#endif
+}
 
 PopenState* popen_state(const Value& self, std::string& error) {
   auto* state = static_cast<PopenState*>(instance_get_native_data(self, kPopenNativeType));
@@ -301,6 +521,135 @@ bool popen_terminate(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
+bool completed_process_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 3 || argc > 5) {
+    error = "CompletedProcess() expected args, returncode, optional stdout, stderr";
+    return false;
+  }
+  Value& self = const_cast<Value&>(args[0]);
+  object_set_attr(self, "args", args[1], error);
+  object_set_attr(self, "returncode", args[2], error);
+  object_set_attr(self, "stdout", argc >= 4 ? args[3] : Value::none(), error);
+  object_set_attr(self, "stderr", argc >= 5 ? args[4] : Value::none(), error);
+  value_set_none(out);
+  return true;
+}
+
+bool completed_process_check_returncode(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1) {
+    error = "CompletedProcess.check_returncode() expected no arguments";
+    return false;
+  }
+  Value return_code;
+  if (!object_get_attr(args[0], "returncode", return_code, error)) {
+    return false;
+  }
+  if (return_code.tag == ValueTag::Int64 && return_code.as.i64 != 0) {
+    auto* classes = static_cast<SubprocessClasses*>(user_data);
+    Value cmd;
+    Value stdout_value;
+    Value stderr_value;
+    std::string ignored;
+    object_get_attr(args[0], "args", cmd, ignored);
+    object_get_attr(args[0], "stdout", stdout_value, ignored);
+    object_get_attr(args[0], "stderr", stderr_value, ignored);
+    runtime.set_pending_exception(make_called_process_error(
+        classes->called_process_error,
+        cmd,
+        static_cast<int>(return_code.as.i64),
+        stdout_value,
+        stderr_value));
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool called_process_error_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 3 || argc > 5) {
+    error = "CalledProcessError() expected returncode, cmd, optional output, stderr";
+    return false;
+  }
+  Value& self = const_cast<Value&>(args[0]);
+  Value output = argc >= 4 ? args[3] : Value::none();
+  Value stderr_value = argc >= 5 ? args[4] : Value::none();
+  object_set_attr(self, "returncode", args[1], error);
+  object_set_attr(self, "cmd", args[2], error);
+  object_set_attr(self, "output", output, error);
+  object_set_attr(self, "stdout", output, error);
+  object_set_attr(self, "stderr", stderr_value, error);
+  value_set_none(out);
+  return true;
+}
+
+bool subprocess_run_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1) {
+    error = "subprocess.run() expected args";
+    return false;
+  }
+  std::string command;
+  if (!build_command_line(args[0], command, error)) {
+    return false;
+  }
+
+  const bool capture_output = kw_bool(kwargs, kwargc, "capture_output", false);
+  const bool text_mode = kw_bool(kwargs, kwargc, "text", kw_bool(kwargs, kwargc, "universal_newlines", false));
+  const bool check = kw_bool(kwargs, kwargc, "check", false);
+  const Value stdout_kw = kw_value(kwargs, kwargc, "stdout");
+  const Value stderr_kw = kw_value(kwargs, kwargc, "stderr");
+  const bool capture_stdout = capture_output || (stdout_kw.tag == ValueTag::Int64 && stdout_kw.as.i64 == -1);
+  const bool capture_stderr = capture_output || (stderr_kw.tag == ValueTag::Int64 && stderr_kw.as.i64 == -1);
+
+  int return_code = 0;
+  std::string stdout_data;
+  std::string stderr_data;
+  if (!run_process(
+          command,
+          kw_value(kwargs, kwargc, "cwd"),
+          kw_value(kwargs, kwargc, "env"),
+          capture_stdout,
+          capture_stderr,
+          return_code,
+          stdout_data,
+          stderr_data,
+          error)) {
+    return false;
+  }
+
+  Value stdout_value = capture_stdout ? output_value(stdout_data, text_mode) : Value::none();
+  Value stderr_value = capture_stderr ? output_value(stderr_data, text_mode) : Value::none();
+  auto* classes = static_cast<SubprocessClasses*>(user_data);
+  if (check && return_code != 0) {
+    runtime.set_pending_exception(make_called_process_error(
+        classes->called_process_error,
+        args[0],
+        return_code,
+        stdout_value,
+        stderr_value));
+    return false;
+  }
+  out = make_completed_process(classes->completed_process, args[0], return_code, stdout_value, stderr_value);
+  return true;
+}
+
+bool subprocess_run(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return subprocess_run_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
 Value make_popen_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("subprocess.Popen.__init__", popen_init, nullptr, nullptr, nullptr, false, popen_init_kw)});
@@ -311,14 +660,50 @@ Value make_popen_class(Runtime& runtime) {
   return Value::class_object("Popen", std::move(attrs));
 }
 
+Value make_completed_process_class(Runtime& runtime, SubprocessClasses* classes) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function("subprocess.CompletedProcess.__init__", completed_process_init)});
+  attrs.push_back(
+      {"check_returncode",
+       runtime.make_native_function(
+           "subprocess.CompletedProcess.check_returncode",
+           completed_process_check_returncode,
+           classes)});
+  return Value::class_object("CompletedProcess", std::move(attrs));
+}
+
+Value make_called_process_error_class(Runtime& runtime) {
+  const Value* exception_base = runtime.find_builtin("Exception");
+  Value base = exception_base == nullptr ? Value::none() : *exception_base;
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function("subprocess.CalledProcessError.__init__", called_process_error_init)});
+  return Value::class_object("CalledProcessError", std::move(attrs), std::move(base));
+}
+
 } // namespace
 
 void register_subprocess_module(Runtime& runtime) {
+  auto* classes = new SubprocessClasses();
+  classes->called_process_error = make_called_process_error_class(runtime);
+  classes->completed_process = make_completed_process_class(runtime, classes);
+
   NativeModuleBuilder builder(runtime, "subprocess");
   builder.value("PIPE", Value::int64(-1))
       .value("STDOUT", Value::int64(-2))
       .value("DEVNULL", Value::int64(-3))
-      .value("Popen", make_popen_class(runtime));
+      .value("Popen", make_popen_class(runtime))
+      .value("CompletedProcess", classes->completed_process)
+      .value("CalledProcessError", classes->called_process_error)
+      .value(
+          "run",
+          runtime.make_native_function(
+              "subprocess.run",
+              subprocess_run,
+              classes,
+              [](void* data) { delete static_cast<SubprocessClasses*>(data); },
+              nullptr,
+              false,
+              subprocess_run_kw));
   runtime.register_module("subprocess", builder.finish());
 }
 

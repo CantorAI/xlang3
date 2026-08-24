@@ -59,3 +59,7 @@ empty
 (1, a) (2, b)
 full
 True
+True 0 xlang3-subprocess
+0 True
+0 0
+7 exit 7 True
