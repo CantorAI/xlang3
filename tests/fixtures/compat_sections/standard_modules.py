@@ -162,6 +162,9 @@ print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRel
 import getpass
 import locale
 import opcode
+import pkgutil
+import site
+import sys
 import sysconfig
 import winreg
 
@@ -169,6 +172,17 @@ print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeco
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
+
+file_parts = __file__.replace("\\", "/").split("/")
+core_fixture_dir = "/".join(file_parts[:-2] + ["core"])
+found_functions = False
+for module_info in pkgutil.iter_modules([core_fixture_dir]):
+    if module_info[1] == "functions":
+        found_functions = module_info[2] == False
+
+resource = pkgutil.get_data("", core_fixture_dir + "/functions.py")
+site.addsitedir(core_fixture_dir)
+print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
 
 # operator: generic runtime dispatch helpers and getter/caller factories.
 import operator

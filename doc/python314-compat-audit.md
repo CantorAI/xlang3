@@ -413,10 +413,10 @@ High-level modules currently backed by native/runtime code:
 - [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
 - [ ] `pickle`: exception/classes facade; serialization semantics pending
 - [~] `platform`: platform/python version helpers foundation
-- [ ] `pkgutil`: package utility facade; loader/resource semantics pending
+- [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`, and loader placeholder foundations; full finder/loader semantics pending
 - [~] `re`: regex compile/match/search/fullmatch/escape facade; full CPython regex semantics pending
 - [ ] `signal`: public signal facade over `_signal`; real delivery semantics pending
-- [ ] `site`: site-package path helper facade; startup-site behavior pending
+- [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
 - [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`, and `Full` foundations with ordering/maxsize/task helpers; blocking/wakeup semantics pending
 - [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
