@@ -393,7 +393,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `stat`: stat tuple indexes and common constants
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
 - [ ] `ast`: AST class-name facade exists; real parser-to-AST compatibility pending
-- [ ] `code`: `compile_command` facade exists; interactive compiler semantics pending
+- [~] `code`: `compile_command` uses the XLang3 compiler for complete source and returns `None` for common incomplete REPL blocks; full interactive compiler/console semantics pending
 - [~] `codecs`: `lookup`, `encode`, and `decode` foundation; full codec registry/error handling pending
 - [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [ ] `ctypes`: small facade exists; real FFI semantics pending

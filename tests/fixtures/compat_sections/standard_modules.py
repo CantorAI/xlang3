@@ -26,6 +26,7 @@ warnings.resetwarnings()
 
 # functools facade: wraps/update_wrapper propagate common metadata and partial binds prefix args.
 import functools
+import code
 
 def original(a, b):
     "doc text"
@@ -54,6 +55,8 @@ def cmp_num(a, b):
 Key = functools.cmp_to_key(cmp_num)
 print(functools.reduce(combine, [1, 2, 3]), functools.reduce(combine, [2, 3], 1))
 print(Key(1) < Key(2), Key(2) > Key(1), Key(2) == Key(2), Key(3) != Key(2))
+compiled_command = code.compile_command("answer = 42")
+print(compiled_command.co_filename, compiled_command.co_name, code.compile_command("if True:") is None)
 
 @functools.total_ordering
 class OrderedValue:
