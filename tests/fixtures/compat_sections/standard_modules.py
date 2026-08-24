@@ -216,8 +216,8 @@ print(list(itertools.permutations([1, 2, 3], 2)))
 print(list(itertools.accumulate([1, 2, 3, 4])), list(itertools.starmap(original, [(1, 2), (3, 4)])))
 print(list(itertools.zip_longest([1, 2], ["a"])))
 
-# collections: Counter dict-backed counting helpers.
-from collections import Counter
+# collections: Counter, OrderedDict, and ChainMap foundations.
+from collections import ChainMap, Counter, OrderedDict
 
 counts = Counter("abbccc")
 counts.update(["a", "d"])
@@ -225,6 +225,15 @@ counts.subtract({"c": 1, "d": 2})
 print(counts["a"], counts["b"], counts["c"], counts["d"], counts["z"])
 print(counts.total(), counts.most_common(2))
 print(list(counts.elements()))
+
+ordered = OrderedDict({"a": 1, "b": 2})
+print(list(ordered.keys()), list(ordered.values()), list(ordered.items()))
+
+chain = ChainMap({"a": 1}, {"a": 10, "b": 2})
+chain["c"] = 3
+child = chain.new_child({"a": 99})
+print(chain["a"], chain["b"], chain["c"], chain.get("z", 7), "b" in chain, len(chain))
+print(list(chain.keys()), list(chain.items()), child["a"], child["b"])
 
 # queue: Queue variants keep distinct ordering, maxsize, and catchable exceptions.
 import queue

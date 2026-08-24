@@ -33,6 +33,7 @@ namespace {
 constexpr const char* kDequeNativeType = "_collections.deque";
 constexpr const char* kDefaultDictNativeType = "collections.defaultdict";
 constexpr const char* kCounterNativeType = "collections.Counter";
+constexpr const char* kChainMapNativeType = "collections.ChainMap";
 constexpr const char* kNamedTupleFieldsType = "collections.namedtuple.fields";
 
 struct DequeState {
@@ -46,6 +47,10 @@ struct DefaultDictState {
 
 struct CounterState {
   Value storage;
+};
+
+struct ChainMapState {
+  std::vector<Value> maps;
 };
 
 DequeState* deque_state(const Value& self, std::string& error) {
@@ -74,6 +79,10 @@ void defaultdict_cleanup(void* data) {
 
 void counter_cleanup(void* data) {
   delete static_cast<CounterState*>(data);
+}
+
+void chain_map_cleanup(void* data) {
+  delete static_cast<ChainMapState*>(data);
 }
 
 void namedtuple_fields_cleanup(void* data) {
@@ -910,6 +919,331 @@ bool ordered_dict_items(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool ordered_dict_keys(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "OrderedDict.keys() expected no arguments";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  auto* dict = value_as_dict(*storage);
+  std::vector<Value> values;
+  values.reserve(dict->entries.size());
+  for (const auto& entry : dict->entries) {
+    values.push_back(entry.first);
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool ordered_dict_values(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "OrderedDict.values() expected no arguments";
+    return false;
+  }
+  auto* storage = ordered_dict_storage(args[0], error);
+  if (storage == nullptr) {
+    return false;
+  }
+  auto* dict = value_as_dict(*storage);
+  std::vector<Value> values;
+  values.reserve(dict->entries.size());
+  for (const auto& entry : dict->entries) {
+    values.push_back(entry.second);
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+ChainMapState* chain_map_state(const Value& self, std::string& error) {
+  auto* state = static_cast<ChainMapState*>(instance_get_native_data(self, kChainMapNativeType));
+  if (state == nullptr) {
+    error = "invalid ChainMap object";
+  }
+  return state;
+}
+
+bool chain_map_accept_map(const Value& value, Value& out) {
+  if (value_as_dict(value) != nullptr) {
+    value_assign_fast(out, value);
+    return true;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      value_assign_fast(out, instance->mapping_storage);
+      return true;
+    }
+  }
+  return false;
+}
+
+Value chain_map_maps_list(const ChainMapState& state) {
+  std::vector<Value> maps;
+  maps.reserve(state.maps.size());
+  for (const auto& map : state.maps) {
+    maps.push_back(map);
+  }
+  return Value::list(std::move(maps));
+}
+
+bool chain_map_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  auto* state = new ChainMapState();
+  if (argc == 1) {
+    state->maps.push_back(Value::dict({}));
+  } else {
+    state->maps.reserve(argc - 1);
+    for (uint32_t i = 1; i < argc; ++i) {
+      Value map;
+      if (!chain_map_accept_map(args[i], map)) {
+        delete state;
+        error = "ChainMap arguments must be mappings";
+        return false;
+      }
+      state->maps.push_back(std::move(map));
+    }
+  }
+  if (!instance_set_native_data(args[0], kChainMapNativeType, state, chain_map_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  if (!object_set_attr(const_cast<Value&>(args[0]), "maps", chain_map_maps_list(*state), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool chain_map_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ChainMap.__getitem__() expected key";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  for (const auto& map : state->maps) {
+    std::string ignored;
+    if (mapping_get_item(map, args[1], out, ignored)) {
+      return true;
+    }
+  }
+  runtime.raise_class_error("KeyError", value_to_string(args[1]));
+  return false;
+}
+
+bool chain_map_setitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "ChainMap.__setitem__() expected key and value";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  if (state->maps.empty()) {
+    state->maps.push_back(Value::dict({}));
+  }
+  if (!mapping_set_item(state->maps.front(), args[1], args[2], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool chain_map_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ChainMap.__contains__() expected key";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  for (const auto& map : state->maps) {
+    bool contains = false;
+    std::string ignored;
+    if (mapping_contains(map, args[1], contains, ignored) && contains) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+bool chain_map_get(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "ChainMap.get() expected key and optional default";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  for (const auto& map : state->maps) {
+    std::string ignored;
+    if (mapping_get_item(map, args[1], out, ignored)) {
+      return true;
+    }
+  }
+  if (argc == 3) {
+    value_assign_fast(out, args[2]);
+  } else {
+    value_set_none(out);
+  }
+  return true;
+}
+
+void chain_map_add_unique_key(std::vector<Value>& keys, const Value& key) {
+  for (const auto& existing : keys) {
+    if (value_key_equal(existing, key)) {
+      return;
+    }
+  }
+  keys.push_back(key);
+}
+
+std::vector<Value> chain_map_unique_keys(const ChainMapState& state) {
+  std::vector<Value> keys;
+  for (const auto& map : state.maps) {
+    auto* dict = value_as_dict(map);
+    if (dict == nullptr) {
+      continue;
+    }
+    for (const auto& entry : dict->entries) {
+      chain_map_add_unique_key(keys, entry.first);
+    }
+  }
+  return keys;
+}
+
+bool chain_map_len(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ChainMap.__len__() expected no arguments";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(chain_map_unique_keys(*state).size()));
+  return true;
+}
+
+bool chain_map_keys(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ChainMap.keys() expected no arguments";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  out = Value::list(chain_map_unique_keys(*state));
+  return true;
+}
+
+bool chain_map_items(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ChainMap.items() expected no arguments";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (const auto& key : chain_map_unique_keys(*state)) {
+    Value item;
+    std::string ignored;
+    for (const auto& map : state->maps) {
+      if (mapping_get_item(map, key, item, ignored)) {
+        values.push_back(Value::tuple({key, item}));
+        break;
+      }
+    }
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool chain_map_values(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ChainMap.values() expected no arguments";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (const auto& key : chain_map_unique_keys(*state)) {
+    Value item;
+    std::string ignored;
+    for (const auto& map : state->maps) {
+      if (mapping_get_item(map, key, item, ignored)) {
+        values.push_back(item);
+        break;
+      }
+    }
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool chain_map_new_child(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "ChainMap.new_child() expected optional mapping";
+    return false;
+  }
+  auto* state = chain_map_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::vector<Value> child_maps;
+  Value first;
+  if (argc == 2) {
+    if (!chain_map_accept_map(args[1], first)) {
+      error = "ChainMap.new_child() argument must be a mapping";
+      return false;
+    }
+  } else {
+    first = Value::dict({});
+  }
+  child_maps.push_back(std::move(first));
+  for (const auto& map : state->maps) {
+    child_maps.push_back(map);
+  }
+  Value klass = value_as_instance(args[0])->klass;
+  out = Value::instance(std::move(klass));
+  auto* child_state = new ChainMapState();
+  child_state->maps = std::move(child_maps);
+  if (!instance_set_native_data(out, kChainMapNativeType, child_state, chain_map_cleanup, error)) {
+    delete child_state;
+    return false;
+  }
+  return object_set_attr(out, "maps", chain_map_maps_list(*child_state), error);
+}
+
+Value make_chain_map_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("collections")});
+  attrs.push_back({"__init__", runtime.make_native_function("collections.ChainMap.__init__", chain_map_init)});
+  attrs.push_back({"__getitem__", runtime.make_native_function("collections.ChainMap.__getitem__", chain_map_getitem)});
+  attrs.push_back({"__setitem__", runtime.make_native_function("collections.ChainMap.__setitem__", chain_map_setitem)});
+  attrs.push_back({"__contains__", runtime.make_native_function("collections.ChainMap.__contains__", chain_map_contains)});
+  attrs.push_back({"__len__", runtime.make_native_function("collections.ChainMap.__len__", chain_map_len)});
+  attrs.push_back({"get", runtime.make_native_function("collections.ChainMap.get", chain_map_get)});
+  attrs.push_back({"keys", runtime.make_native_function("collections.ChainMap.keys", chain_map_keys)});
+  attrs.push_back({"items", runtime.make_native_function("collections.ChainMap.items", chain_map_items)});
+  attrs.push_back({"values", runtime.make_native_function("collections.ChainMap.values", chain_map_values)});
+  attrs.push_back({"new_child", runtime.make_native_function("collections.ChainMap.new_child", chain_map_new_child)});
+  return Value::class_object("ChainMap", std::move(attrs));
+}
+
 Value make_ordered_dict_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("collections")});
@@ -917,14 +1251,14 @@ Value make_ordered_dict_class(Runtime& runtime) {
   attrs.push_back({"__getitem__", runtime.make_native_function("collections.OrderedDict.__getitem__", ordered_dict_getitem)});
   attrs.push_back({"__setitem__", runtime.make_native_function("collections.OrderedDict.__setitem__", ordered_dict_setitem)});
   attrs.push_back({"__delitem__", runtime.make_native_function("collections.OrderedDict.__delitem__", ordered_dict_delitem)});
-  attrs.push_back({"__iter__", runtime.make_native_function("collections.OrderedDict.__iter__", ordered_dict_items)});
+  attrs.push_back({"__iter__", runtime.make_native_function("collections.OrderedDict.__iter__", ordered_dict_keys)});
   attrs.push_back({"__len__", runtime.make_native_function("collections.OrderedDict.__len__", ordered_dict_len)});
   attrs.push_back({"__contains__", runtime.make_native_function("collections.OrderedDict.__contains__", ordered_dict_contains)});
   attrs.push_back({"get", runtime.make_native_function("collections.OrderedDict.get", ordered_dict_get)});
   attrs.push_back({"pop", runtime.make_native_function("collections.OrderedDict.pop", ordered_dict_pop)});
   attrs.push_back({"items", runtime.make_native_function("collections.OrderedDict.items", ordered_dict_items)});
-  attrs.push_back({"keys", runtime.make_native_function("collections.OrderedDict.keys", ordered_dict_items)});
-  attrs.push_back({"values", runtime.make_native_function("collections.OrderedDict.values", ordered_dict_items)});
+  attrs.push_back({"keys", runtime.make_native_function("collections.OrderedDict.keys", ordered_dict_keys)});
+  attrs.push_back({"values", runtime.make_native_function("collections.OrderedDict.values", ordered_dict_values)});
   return Value::class_object("OrderedDict", std::move(attrs));
 }
 
@@ -935,6 +1269,7 @@ void register_collections_module(Runtime& runtime) {
   Value defaultdict_class = make_defaultdict_class(runtime);
   Value ordered_dict_class = make_ordered_dict_class(runtime);
   Value counter_class = make_counter_class(runtime);
+  Value chain_map_class = make_chain_map_class(runtime);
 
   NativeModuleBuilder builder(runtime, "_collections");
   builder.value("deque", deque_class);
@@ -945,6 +1280,7 @@ void register_collections_module(Runtime& runtime) {
       .value("defaultdict", std::move(defaultdict_class))
       .value("OrderedDict", std::move(ordered_dict_class))
       .value("Counter", std::move(counter_class))
+      .value("ChainMap", std::move(chain_map_class))
       .function("namedtuple", namedtuple_factory);
   runtime.register_module("collections", facade.finish());
 }

@@ -323,12 +323,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow tuple_from_list(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow len(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMInstrCache& cache,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   xlang_vm_cache_touch(cache, XlangVMCacheDomain::Len);
   if (regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
     const ObjectKind kind = regs[in.a].as.obj->kind;
@@ -438,6 +440,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
   }
   std::string error;
   if (!sequence_len(regs[in.a], regs[in.dst], error)) {
+    if (value_as_instance(regs[in.a]) != nullptr) {
+      Value len_method;
+      std::string attr_error;
+      if (object_get_attr(regs[in.a], "__len__", len_method, attr_error)) {
+        if (runtime_call_callable(runtime, len_method, nullptr, 0, regs[in.dst], error)) {
+          xlang_vm_cache_note_hit(cache);
+          return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
+      }
+    }
     xlang_vm_cache_note_miss(cache);
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
@@ -641,11 +658,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   if (regs[in.a].tag == ValueTag::Int64 && regs[in.b].tag == ValueTag::Int64 &&
       regs[in.b].as.i64 >= 0 && regs[in.b].as.i64 <= 255 &&
       regs[in.dst].tag == ValueTag::Object && regs[in.dst].as.obj != nullptr) {
@@ -674,18 +693,51 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
   }
   std::string error;
   if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+    if (value_as_instance(regs[in.dst]) != nullptr) {
+      Value setitem;
+      std::string attr_error;
+      if (object_get_attr(regs[in.dst], "__setitem__", setitem, attr_error)) {
+        Value call_args[2] = {regs[in.a], regs[in.b]};
+        Value ignored;
+        if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
+          return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
+      }
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   if (!sequence_delete_item(regs[in.dst], regs[in.a], error)) {
+    if (value_as_instance(regs[in.dst]) != nullptr) {
+      Value delitem;
+      std::string attr_error;
+      if (object_get_attr(regs[in.dst], "__delitem__", delitem, attr_error)) {
+        Value ignored;
+        if (runtime_call_callable(runtime, delitem, &regs[in.a], 1, ignored, error)) {
+          return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
+      }
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
