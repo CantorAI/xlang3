@@ -14,95 +14,533 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
+
+#include <deque>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace xlang3 {
 
 namespace {
 
-Value ast_class(const char* name, const Value& base) {
-  return Value::class_object(name, {}, base);
+struct AstState {
+  Value ast_base;
+  std::unordered_map<std::string, Value> classes;
+};
+
+std::vector<Value> field_tuple(std::initializer_list<const char*> names) {
+  std::vector<Value> fields;
+  fields.reserve(names.size());
+  for (const char* name : names) {
+    fields.push_back(Value::string(name));
+  }
+  return fields;
+}
+
+std::vector<std::string> fields_for(const Value& node) {
+  Value fields_value;
+  std::string ignored;
+  if (!object_get_attr(node, "_fields", fields_value, ignored)) {
+    return {};
+  }
+  auto* tuple = value_as_tuple(fields_value);
+  if (tuple == nullptr) {
+    return {};
+  }
+  std::vector<std::string> fields;
+  fields.reserve(tuple->items.size());
+  for (const auto& item : tuple->items) {
+    if (auto* string = value_as_string(item)) {
+      fields.push_back(string_object_to_string(*string));
+    }
+  }
+  return fields;
+}
+
+bool ast_node_init_kw(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1) {
+    error = "AST.__init__() missing self";
+    return false;
+  }
+  Value& self = const_cast<Value&>(args[0]);
+  auto fields = fields_for(self);
+  if (argc - 1 > fields.size()) {
+    error = "AST constructor got too many positional arguments";
+    return false;
+  }
+  for (uint32_t i = 1; i < argc; ++i) {
+    if (!object_set_attr(self, fields[i - 1], args[i], error)) {
+      return false;
+    }
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (!object_set_attr(self, kwargs[i].name, *kwargs[i].value, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool ast_node_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return ast_node_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+Value ast_class(Runtime& runtime, const char* name, const Value& base, std::initializer_list<const char*> fields = {}) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"_fields", Value::tuple(field_tuple(fields))});
+  if (std::string(name) == "AST") {
+    attrs.push_back({"__init__", runtime.make_native_function("_ast.AST.__init__", ast_node_init, nullptr, nullptr, nullptr, false, ast_node_init_kw)});
+  }
+  return Value::class_object(name, std::move(attrs), base);
+}
+
+Value node_class(AstState* state, const char* name) {
+  auto it = state->classes.find(name);
+  return it == state->classes.end() ? Value::invalid() : it->second;
+}
+
+bool ast_parse_kw(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 3) {
+    error = "ast.parse() expected source and optional filename/mode";
+    return false;
+  }
+  auto* source = value_as_string(args[0]);
+  if (source == nullptr) {
+    error = "ast.parse() source must be str";
+    return false;
+  }
+  std::string mode = "exec";
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string(kwargs[i].name) == "mode" && kwargs[i].value != nullptr) {
+      auto* mode_string = value_as_string(*kwargs[i].value);
+      if (mode_string == nullptr) {
+        error = "ast.parse() mode must be str";
+        return false;
+      }
+      mode = string_object_to_string(*mode_string);
+    }
+  }
+  if (argc >= 3) {
+    auto* mode_string = value_as_string(args[2]);
+    if (mode_string == nullptr) {
+      error = "ast.parse() mode must be str";
+      return false;
+    }
+    mode = string_object_to_string(*mode_string);
+  }
+  auto* state = static_cast<AstState*>(user_data);
+  Value klass = mode == "eval" ? node_class(state, "Expression") : node_class(state, "Module");
+  out = Value::instance(klass);
+  object_set_attr(out, "source", args[0], error);
+  if (mode == "eval") {
+    object_set_attr(out, "body", Value::none(), error);
+  } else {
+    object_set_attr(out, "body", Value::list({}), error);
+    object_set_attr(out, "type_ignores", Value::list({}), error);
+  }
+  return true;
+}
+
+bool ast_parse(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return ast_parse_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+std::string ast_dump_value(const Value& value);
+
+std::string ast_dump_node(const Value& node) {
+  auto* instance = value_as_instance(node);
+  if (instance == nullptr) {
+    return value_to_string(node);
+  }
+  std::string class_name = "AST";
+  if (auto* klass = value_as_class(instance->klass)) {
+    class_name = klass->name;
+  }
+  std::string text = class_name + "(";
+  bool first = true;
+  auto fields = fields_for(node);
+  for (const auto& field : fields) {
+    Value field_value;
+    std::string ignored;
+    if (!object_get_attr(node, field, field_value, ignored)) {
+      continue;
+    }
+    if (!first) {
+      text += ", ";
+    }
+    first = false;
+    text += field;
+    text += "=";
+    text += ast_dump_value(field_value);
+  }
+  text += ")";
+  return text;
+}
+
+std::string ast_dump_value(const Value& value) {
+  if (value_as_instance(value) != nullptr) {
+    return ast_dump_node(value);
+  }
+  if (auto* list = value_as_list(value)) {
+    std::string text = "[";
+    for (size_t i = 0; i < list->items.size(); ++i) {
+      if (i != 0) {
+        text += ", ";
+      }
+      text += ast_dump_value(list->items[i]);
+    }
+    text += "]";
+    return text;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    std::string text = "(";
+    for (size_t i = 0; i < tuple->items.size(); ++i) {
+      if (i != 0) {
+        text += ", ";
+      }
+      text += ast_dump_value(tuple->items[i]);
+    }
+    if (tuple->items.size() == 1) {
+      text += ",";
+    }
+    text += ")";
+    return text;
+  }
+  return value_to_string(value);
+}
+
+bool ast_dump(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) {
+    error = "ast.dump() expected node";
+    return false;
+  }
+  out = Value::string(ast_dump_value(args[0]));
+  return true;
+}
+
+bool ast_iter_fields(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ast.iter_fields() expected node";
+    return false;
+  }
+  std::vector<Value> items;
+  for (const auto& field : fields_for(args[0])) {
+    Value field_value;
+    std::string ignored;
+    if (object_get_attr(args[0], field, field_value, ignored)) {
+      items.push_back(Value::tuple({Value::string(field), field_value}));
+    }
+  }
+  out = Value::list(std::move(items));
+  return true;
+}
+
+void enqueue_child_nodes(const Value& value, std::deque<Value>& queue) {
+  if (value_as_instance(value) != nullptr) {
+    queue.push_back(value);
+    return;
+  }
+  if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      enqueue_child_nodes(item, queue);
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      enqueue_child_nodes(item, queue);
+    }
+  }
+}
+
+bool ast_walk(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ast.walk() expected node";
+    return false;
+  }
+  std::vector<Value> result;
+  std::deque<Value> queue;
+  queue.push_back(args[0]);
+  while (!queue.empty()) {
+    Value node = queue.front();
+    queue.pop_front();
+    result.push_back(node);
+    for (const auto& field : fields_for(node)) {
+      Value field_value;
+      std::string ignored;
+      if (object_get_attr(node, field, field_value, ignored)) {
+        enqueue_child_nodes(field_value, queue);
+      }
+    }
+  }
+  out = Value::list(std::move(result));
+  return true;
+}
+
+bool literal_from_node(const Value& node, Value& out, std::string& error) {
+  auto* instance = value_as_instance(node);
+  if (instance == nullptr) {
+    out = node;
+    return true;
+  }
+  auto* klass = value_as_class(instance->klass);
+  const std::string name = klass == nullptr ? "" : klass->name;
+  if (name == "Constant") {
+    return object_get_attr(node, "value", out, error);
+  }
+  if (name == "List" || name == "Tuple" || name == "Set") {
+    Value elts;
+    if (!object_get_attr(node, "elts", elts, error)) {
+      return false;
+    }
+    auto* list = value_as_list(elts);
+    if (list == nullptr) {
+      error = "literal container elts must be list";
+      return false;
+    }
+    std::vector<Value> values;
+    values.reserve(list->items.size());
+    for (const auto& item : list->items) {
+      Value literal;
+      if (!literal_from_node(item, literal, error)) {
+        return false;
+      }
+      values.push_back(std::move(literal));
+    }
+    if (name == "List") {
+      out = Value::list(std::move(values));
+    } else if (name == "Tuple") {
+      out = Value::tuple(std::move(values));
+    } else {
+      out = Value::set(std::move(values));
+    }
+    return true;
+  }
+  if (name == "Dict") {
+    Value keys;
+    Value values_value;
+    if (!object_get_attr(node, "keys", keys, error) || !object_get_attr(node, "values", values_value, error)) {
+      return false;
+    }
+    auto* key_list = value_as_list(keys);
+    auto* value_list = value_as_list(values_value);
+    if (key_list == nullptr || value_list == nullptr || key_list->items.size() != value_list->items.size()) {
+      error = "literal dict keys/values must be equal-size lists";
+      return false;
+    }
+    std::vector<std::pair<Value, Value>> entries;
+    entries.reserve(key_list->items.size());
+    for (size_t i = 0; i < key_list->items.size(); ++i) {
+      Value key;
+      Value value;
+      if (!literal_from_node(key_list->items[i], key, error) || !literal_from_node(value_list->items[i], value, error)) {
+        return false;
+      }
+      entries.push_back({std::move(key), std::move(value)});
+    }
+    out = Value::dict(std::move(entries));
+    return true;
+  }
+  error = "malformed node or string";
+  return false;
+}
+
+bool ast_literal_eval(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ast.literal_eval() expected node";
+    return false;
+  }
+  return literal_from_node(args[0], out, error);
+}
+
+void add_class(NativeModuleBuilder& builder, AstState* state, const char* name, Value klass) {
+  state->classes[name] = klass;
+  builder.value(name, std::move(klass));
+}
+
+void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* state) {
+  Value object_base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
+  state->ast_base = ast_class(runtime, "AST", object_base);
+  Value mod = ast_class(runtime, "mod", state->ast_base);
+  Value stmt = ast_class(runtime, "stmt", state->ast_base);
+  Value expr = ast_class(runtime, "expr", state->ast_base);
+  Value expr_context = ast_class(runtime, "expr_context", state->ast_base);
+  Value operator_type = ast_class(runtime, "operator", state->ast_base);
+  Value unaryop = ast_class(runtime, "unaryop", state->ast_base);
+  Value cmpop = ast_class(runtime, "cmpop", state->ast_base);
+  Value boolop = ast_class(runtime, "boolop", state->ast_base);
+  Value pattern = ast_class(runtime, "pattern", state->ast_base);
+  Value type_ignore = ast_class(runtime, "type_ignore", state->ast_base);
+  Value excepthandler = ast_class(runtime, "excepthandler", state->ast_base);
+
+  add_class(builder, state, "AST", state->ast_base);
+  add_class(builder, state, "mod", mod);
+  add_class(builder, state, "stmt", stmt);
+  add_class(builder, state, "expr", expr);
+  add_class(builder, state, "expr_context", expr_context);
+  add_class(builder, state, "operator", operator_type);
+  add_class(builder, state, "unaryop", unaryop);
+  add_class(builder, state, "cmpop", cmpop);
+  add_class(builder, state, "boolop", boolop);
+  add_class(builder, state, "pattern", pattern);
+  add_class(builder, state, "type_ignore", type_ignore);
+  add_class(builder, state, "excepthandler", excepthandler);
+
+  add_class(builder, state, "Module", ast_class(runtime, "Module", mod, {"body", "type_ignores"}));
+  add_class(builder, state, "Interactive", ast_class(runtime, "Interactive", mod, {"body"}));
+  add_class(builder, state, "Expression", ast_class(runtime, "Expression", mod, {"body"}));
+  add_class(builder, state, "FunctionType", ast_class(runtime, "FunctionType", mod, {"argtypes", "returns"}));
+  add_class(builder, state, "FunctionDef", ast_class(runtime, "FunctionDef", stmt, {"name", "args", "body", "decorator_list", "returns", "type_comment"}));
+  add_class(builder, state, "AsyncFunctionDef", ast_class(runtime, "AsyncFunctionDef", stmt, {"name", "args", "body", "decorator_list", "returns", "type_comment"}));
+  add_class(builder, state, "ClassDef", ast_class(runtime, "ClassDef", stmt, {"name", "bases", "keywords", "body", "decorator_list"}));
+  add_class(builder, state, "Return", ast_class(runtime, "Return", stmt, {"value"}));
+  add_class(builder, state, "Delete", ast_class(runtime, "Delete", stmt, {"targets"}));
+  add_class(builder, state, "Assign", ast_class(runtime, "Assign", stmt, {"targets", "value", "type_comment"}));
+  add_class(builder, state, "TypeAlias", ast_class(runtime, "TypeAlias", stmt, {"name", "type_params", "value"}));
+  add_class(builder, state, "AugAssign", ast_class(runtime, "AugAssign", stmt, {"target", "op", "value"}));
+  add_class(builder, state, "AnnAssign", ast_class(runtime, "AnnAssign", stmt, {"target", "annotation", "value", "simple"}));
+  add_class(builder, state, "For", ast_class(runtime, "For", stmt, {"target", "iter", "body", "orelse", "type_comment"}));
+  add_class(builder, state, "AsyncFor", ast_class(runtime, "AsyncFor", stmt, {"target", "iter", "body", "orelse", "type_comment"}));
+  add_class(builder, state, "While", ast_class(runtime, "While", stmt, {"test", "body", "orelse"}));
+  add_class(builder, state, "If", ast_class(runtime, "If", stmt, {"test", "body", "orelse"}));
+  add_class(builder, state, "With", ast_class(runtime, "With", stmt, {"items", "body", "type_comment"}));
+  add_class(builder, state, "AsyncWith", ast_class(runtime, "AsyncWith", stmt, {"items", "body", "type_comment"}));
+  add_class(builder, state, "Match", ast_class(runtime, "Match", stmt, {"subject", "cases"}));
+  add_class(builder, state, "Raise", ast_class(runtime, "Raise", stmt, {"exc", "cause"}));
+  add_class(builder, state, "Try", ast_class(runtime, "Try", stmt, {"body", "handlers", "orelse", "finalbody"}));
+  add_class(builder, state, "TryStar", ast_class(runtime, "TryStar", stmt, {"body", "handlers", "orelse", "finalbody"}));
+  add_class(builder, state, "Assert", ast_class(runtime, "Assert", stmt, {"test", "msg"}));
+  add_class(builder, state, "Import", ast_class(runtime, "Import", stmt, {"names"}));
+  add_class(builder, state, "ImportFrom", ast_class(runtime, "ImportFrom", stmt, {"module", "names", "level"}));
+  add_class(builder, state, "Global", ast_class(runtime, "Global", stmt, {"names"}));
+  add_class(builder, state, "Nonlocal", ast_class(runtime, "Nonlocal", stmt, {"names"}));
+  add_class(builder, state, "Expr", ast_class(runtime, "Expr", stmt, {"value"}));
+  add_class(builder, state, "Pass", ast_class(runtime, "Pass", stmt));
+  add_class(builder, state, "Break", ast_class(runtime, "Break", stmt));
+  add_class(builder, state, "Continue", ast_class(runtime, "Continue", stmt));
+  add_class(builder, state, "BoolOp", ast_class(runtime, "BoolOp", expr, {"op", "values"}));
+  add_class(builder, state, "NamedExpr", ast_class(runtime, "NamedExpr", expr, {"target", "value"}));
+  add_class(builder, state, "Constant", ast_class(runtime, "Constant", expr, {"value", "kind"}));
+  add_class(builder, state, "Name", ast_class(runtime, "Name", expr, {"id", "ctx"}));
+  add_class(builder, state, "List", ast_class(runtime, "List", expr, {"elts", "ctx"}));
+  add_class(builder, state, "Tuple", ast_class(runtime, "Tuple", expr, {"elts", "ctx"}));
+  add_class(builder, state, "Dict", ast_class(runtime, "Dict", expr, {"keys", "values"}));
+  add_class(builder, state, "Set", ast_class(runtime, "Set", expr, {"elts"}));
+  add_class(builder, state, "ListComp", ast_class(runtime, "ListComp", expr, {"elt", "generators"}));
+  add_class(builder, state, "SetComp", ast_class(runtime, "SetComp", expr, {"elt", "generators"}));
+  add_class(builder, state, "DictComp", ast_class(runtime, "DictComp", expr, {"key", "value", "generators"}));
+  add_class(builder, state, "GeneratorExp", ast_class(runtime, "GeneratorExp", expr, {"elt", "generators"}));
+  add_class(builder, state, "Await", ast_class(runtime, "Await", expr, {"value"}));
+  add_class(builder, state, "Yield", ast_class(runtime, "Yield", expr, {"value"}));
+  add_class(builder, state, "YieldFrom", ast_class(runtime, "YieldFrom", expr, {"value"}));
+  add_class(builder, state, "Compare", ast_class(runtime, "Compare", expr, {"left", "ops", "comparators"}));
+  add_class(builder, state, "BinOp", ast_class(runtime, "BinOp", expr, {"left", "op", "right"}));
+  add_class(builder, state, "UnaryOp", ast_class(runtime, "UnaryOp", expr, {"op", "operand"}));
+  add_class(builder, state, "Call", ast_class(runtime, "Call", expr, {"func", "args", "keywords"}));
+  add_class(builder, state, "FormattedValue", ast_class(runtime, "FormattedValue", expr, {"value", "conversion", "format_spec"}));
+  add_class(builder, state, "JoinedStr", ast_class(runtime, "JoinedStr", expr, {"values"}));
+  add_class(builder, state, "Attribute", ast_class(runtime, "Attribute", expr, {"value", "attr", "ctx"}));
+  add_class(builder, state, "Subscript", ast_class(runtime, "Subscript", expr, {"value", "slice", "ctx"}));
+  add_class(builder, state, "Starred", ast_class(runtime, "Starred", expr, {"value", "ctx"}));
+  add_class(builder, state, "Slice", ast_class(runtime, "Slice", expr, {"lower", "upper", "step"}));
+  add_class(builder, state, "comprehension", ast_class(runtime, "comprehension", state->ast_base, {"target", "iter", "ifs", "is_async"}));
+  add_class(builder, state, "arguments", ast_class(runtime, "arguments", state->ast_base, {"posonlyargs", "args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"}));
+  add_class(builder, state, "arg", ast_class(runtime, "arg", state->ast_base, {"arg", "annotation", "type_comment"}));
+  add_class(builder, state, "keyword", ast_class(runtime, "keyword", state->ast_base, {"arg", "value"}));
+  add_class(builder, state, "alias", ast_class(runtime, "alias", state->ast_base, {"name", "asname"}));
+  add_class(builder, state, "withitem", ast_class(runtime, "withitem", state->ast_base, {"context_expr", "optional_vars"}));
+  add_class(builder, state, "ExceptHandler", ast_class(runtime, "ExceptHandler", excepthandler, {"type", "name", "body"}));
+  add_class(builder, state, "Load", ast_class(runtime, "Load", expr_context));
+  add_class(builder, state, "Store", ast_class(runtime, "Store", expr_context));
+  add_class(builder, state, "Del", ast_class(runtime, "Del", expr_context));
+  add_class(builder, state, "And", ast_class(runtime, "And", boolop));
+  add_class(builder, state, "Or", ast_class(runtime, "Or", boolop));
+  add_class(builder, state, "Add", ast_class(runtime, "Add", operator_type));
+  add_class(builder, state, "Sub", ast_class(runtime, "Sub", operator_type));
+  add_class(builder, state, "Mult", ast_class(runtime, "Mult", operator_type));
+  add_class(builder, state, "MatMult", ast_class(runtime, "MatMult", operator_type));
+  add_class(builder, state, "Div", ast_class(runtime, "Div", operator_type));
+  add_class(builder, state, "Mod", ast_class(runtime, "Mod", operator_type));
+  add_class(builder, state, "Pow", ast_class(runtime, "Pow", operator_type));
+  add_class(builder, state, "LShift", ast_class(runtime, "LShift", operator_type));
+  add_class(builder, state, "RShift", ast_class(runtime, "RShift", operator_type));
+  add_class(builder, state, "BitOr", ast_class(runtime, "BitOr", operator_type));
+  add_class(builder, state, "BitXor", ast_class(runtime, "BitXor", operator_type));
+  add_class(builder, state, "BitAnd", ast_class(runtime, "BitAnd", operator_type));
+  add_class(builder, state, "FloorDiv", ast_class(runtime, "FloorDiv", operator_type));
+  add_class(builder, state, "Invert", ast_class(runtime, "Invert", unaryop));
+  add_class(builder, state, "Not", ast_class(runtime, "Not", unaryop));
+  add_class(builder, state, "UAdd", ast_class(runtime, "UAdd", unaryop));
+  add_class(builder, state, "USub", ast_class(runtime, "USub", unaryop));
+  add_class(builder, state, "Eq", ast_class(runtime, "Eq", cmpop));
+  add_class(builder, state, "NotEq", ast_class(runtime, "NotEq", cmpop));
+  add_class(builder, state, "Lt", ast_class(runtime, "Lt", cmpop));
+  add_class(builder, state, "LtE", ast_class(runtime, "LtE", cmpop));
+  add_class(builder, state, "Gt", ast_class(runtime, "Gt", cmpop));
+  add_class(builder, state, "GtE", ast_class(runtime, "GtE", cmpop));
+  add_class(builder, state, "Is", ast_class(runtime, "Is", cmpop));
+  add_class(builder, state, "IsNot", ast_class(runtime, "IsNot", cmpop));
+  add_class(builder, state, "In", ast_class(runtime, "In", cmpop));
+  add_class(builder, state, "NotIn", ast_class(runtime, "NotIn", cmpop));
+  add_class(builder, state, "MatchValue", ast_class(runtime, "MatchValue", pattern, {"value"}));
+  add_class(builder, state, "MatchSingleton", ast_class(runtime, "MatchSingleton", pattern, {"value"}));
+  add_class(builder, state, "MatchSequence", ast_class(runtime, "MatchSequence", pattern, {"patterns"}));
+  add_class(builder, state, "MatchMapping", ast_class(runtime, "MatchMapping", pattern, {"keys", "patterns", "rest"}));
+  add_class(builder, state, "MatchClass", ast_class(runtime, "MatchClass", pattern, {"cls", "patterns", "kwd_attrs", "kwd_patterns"}));
+  add_class(builder, state, "MatchStar", ast_class(runtime, "MatchStar", pattern, {"name"}));
+  add_class(builder, state, "MatchAs", ast_class(runtime, "MatchAs", pattern, {"pattern", "name"}));
+  add_class(builder, state, "MatchOr", ast_class(runtime, "MatchOr", pattern, {"patterns"}));
+  add_class(builder, state, "TypeIgnore", ast_class(runtime, "TypeIgnore", type_ignore, {"lineno", "tag"}));
+
+  builder.value("PyCF_ONLY_AST", Value::int64(0x0400))
+      .value("PyCF_TYPE_COMMENTS", Value::int64(0x1000))
+      .value("PyCF_ALLOW_TOP_LEVEL_AWAIT", Value::int64(0x2000))
+      .value("PyCF_OPTIMIZED_AST", Value::int64(0x4000))
+      .value("parse", runtime.make_native_function("ast.parse", ast_parse, state, nullptr, nullptr, false, ast_parse_kw))
+      .function("dump", ast_dump)
+      .function("iter_fields", ast_iter_fields)
+      .function("walk", ast_walk)
+      .function("literal_eval", ast_literal_eval);
 }
 
 } // namespace
 
 void register_ast_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "_ast");
+  auto* private_state = new AstState();
+  runtime.register_native_package_cleanup(private_state, [](void* data) { delete static_cast<AstState*>(data); });
+  NativeModuleBuilder private_builder(runtime, "_ast");
+  fill_ast_module(runtime, private_builder, private_state);
+  runtime.register_module("_ast", private_builder.finish());
 
-  Value object_base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
-  Value ast = ast_class("AST", object_base);
-  Value mod = ast_class("mod", ast);
-  Value stmt = ast_class("stmt", ast);
-  Value expr = ast_class("expr", ast);
-  Value expr_context = ast_class("expr_context", ast);
-  Value operator_type = ast_class("operator", ast);
-  Value unaryop = ast_class("unaryop", ast);
-  Value cmpop = ast_class("cmpop", ast);
-  Value boolop = ast_class("boolop", ast);
-  Value comprehension = ast_class("comprehension", ast);
-  Value arguments = ast_class("arguments", ast);
-  Value arg = ast_class("arg", ast);
-  Value keyword = ast_class("keyword", ast);
-  Value alias = ast_class("alias", ast);
-  Value withitem = ast_class("withitem", ast);
-  Value excepthandler = ast_class("excepthandler", ast);
-  Value pattern = ast_class("pattern", ast);
-  Value type_ignore = ast_class("type_ignore", ast);
-
-  builder.value("AST", ast)
-      .value("mod", mod)
-      .value("stmt", stmt)
-      .value("expr", expr)
-      .value("expr_context", expr_context)
-      .value("operator", operator_type)
-      .value("unaryop", unaryop)
-      .value("cmpop", cmpop)
-      .value("boolop", boolop)
-      .value("comprehension", comprehension)
-      .value("arguments", arguments)
-      .value("arg", arg)
-      .value("keyword", keyword)
-      .value("alias", alias)
-      .value("withitem", withitem)
-      .value("excepthandler", excepthandler)
-      .value("pattern", pattern)
-      .value("type_ignore", type_ignore)
-      .value("PyCF_ONLY_AST", Value::int64(0x0400))
-      .value("PyCF_TYPE_COMMENTS", Value::int64(0x1000))
-      .value("PyCF_ALLOW_TOP_LEVEL_AWAIT", Value::int64(0x2000))
-      .value("PyCF_OPTIMIZED_AST", Value::int64(0x4000));
-
-  const std::pair<const char*, const Value*> classes[] = {
-      {"Module", &mod}, {"Interactive", &mod}, {"Expression", &mod}, {"FunctionType", &mod},
-      {"FunctionDef", &stmt}, {"AsyncFunctionDef", &stmt}, {"ClassDef", &stmt}, {"Return", &stmt},
-      {"Delete", &stmt}, {"Assign", &stmt}, {"TypeAlias", &stmt}, {"AugAssign", &stmt}, {"AnnAssign", &stmt},
-      {"For", &stmt}, {"AsyncFor", &stmt}, {"While", &stmt}, {"If", &stmt}, {"With", &stmt},
-      {"AsyncWith", &stmt}, {"Match", &stmt}, {"Raise", &stmt}, {"Try", &stmt}, {"TryStar", &stmt},
-      {"Assert", &stmt}, {"Import", &stmt}, {"ImportFrom", &stmt}, {"Global", &stmt},
-      {"Nonlocal", &stmt}, {"Expr", &stmt}, {"Pass", &stmt}, {"Break", &stmt}, {"Continue", &stmt},
-      {"BoolOp", &expr}, {"NamedExpr", &expr}, {"BinOp", &expr}, {"UnaryOp", &expr}, {"Lambda", &expr},
-      {"IfExp", &expr}, {"Dict", &expr}, {"Set", &expr}, {"ListComp", &expr}, {"SetComp", &expr},
-      {"DictComp", &expr}, {"GeneratorExp", &expr}, {"Await", &expr}, {"Yield", &expr},
-      {"YieldFrom", &expr}, {"Compare", &expr}, {"Call", &expr}, {"FormattedValue", &expr},
-      {"JoinedStr", &expr}, {"Constant", &expr}, {"Attribute", &expr}, {"Subscript", &expr},
-      {"Starred", &expr}, {"Name", &expr}, {"List", &expr}, {"Tuple", &expr}, {"Slice", &expr},
-      {"Load", &expr_context}, {"Store", &expr_context}, {"Del", &expr_context},
-      {"And", &boolop}, {"Or", &boolop}, {"Add", &operator_type}, {"Sub", &operator_type},
-      {"Mult", &operator_type}, {"MatMult", &operator_type}, {"Div", &operator_type}, {"Mod", &operator_type},
-      {"Pow", &operator_type}, {"LShift", &operator_type}, {"RShift", &operator_type}, {"BitOr", &operator_type},
-      {"BitXor", &operator_type}, {"BitAnd", &operator_type}, {"FloorDiv", &operator_type},
-      {"Invert", &unaryop}, {"Not", &unaryop}, {"UAdd", &unaryop}, {"USub", &unaryop},
-      {"Eq", &cmpop}, {"NotEq", &cmpop}, {"Lt", &cmpop}, {"LtE", &cmpop}, {"Gt", &cmpop},
-      {"GtE", &cmpop}, {"Is", &cmpop}, {"IsNot", &cmpop}, {"In", &cmpop}, {"NotIn", &cmpop},
-      {"ExceptHandler", &excepthandler}, {"MatchValue", &pattern}, {"MatchSingleton", &pattern},
-      {"MatchSequence", &pattern}, {"MatchMapping", &pattern}, {"MatchClass", &pattern},
-      {"MatchStar", &pattern}, {"MatchAs", &pattern}, {"MatchOr", &pattern}, {"TypeIgnore", &type_ignore},
-  };
-  for (const auto& entry : classes) {
-    builder.value(entry.first, ast_class(entry.first, *entry.second));
-  }
-
-  runtime.register_module("_ast", builder.finish());
+  auto* public_state = new AstState();
+  runtime.register_native_package_cleanup(public_state, [](void* data) { delete static_cast<AstState*>(data); });
+  NativeModuleBuilder public_builder(runtime, "ast");
+  fill_ast_module(runtime, public_builder, public_state);
+  runtime.register_module("ast", public_builder.finish());
 }
 
 } // namespace xlang3

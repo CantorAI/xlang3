@@ -126,6 +126,7 @@ print("suppressed")
 
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.
 import argparse
+import ast
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--num", type=int, default=1)
@@ -133,6 +134,14 @@ parser.add_argument("--verbose", action="store_true")
 parser.add_argument("name")
 parsed = parser.parse_args(["--num", "7", "--verbose", "bob"])
 print(parsed.num, parsed.verbose, parsed.name)
+
+# ast: constructible nodes, field iteration, dumping, walking, and literal_eval foundations.
+const_node = ast.Constant(9)
+bin_node = ast.BinOp(left=const_node, op=ast.Add(), right=ast.Constant(value=4))
+module_node = ast.Module(body=[ast.Expr(value=bin_node)], type_ignores=[])
+print(ast.literal_eval(const_node), list(ast.iter_fields(bin_node))[0][0], len(list(ast.walk(module_node))))
+print(ast.dump(bin_node))
+print(isinstance(ast.parse("x = 1"), ast.Module), ast.parse("1", mode="eval").__class__.__name__)
 
 # typing: aliases, decorators, TypeVar, NewType, Generic, and Protocol foundations.
 import typing
