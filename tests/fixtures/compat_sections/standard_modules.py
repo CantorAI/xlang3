@@ -78,6 +78,23 @@ with cm() as value:
 with contextlib.nullcontext("null") as value:
     print(value)
 
+# contextlib: closing calls close() on exit and suppress swallows selected exceptions.
+class CloseTarget:
+    def __init__(self):
+        self.closed = False
+
+    def close(self):
+        self.closed = True
+
+target = CloseTarget()
+with contextlib.closing(target) as item:
+    print(item is target, target.closed)
+print(target.closed)
+
+with contextlib.suppress(ValueError):
+    raise ValueError("hidden")
+print("suppressed")
+
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.
 import argparse
 
@@ -87,3 +104,24 @@ parser.add_argument("--verbose", action="store_true")
 parser.add_argument("name")
 parsed = parser.parse_args(["--num", "7", "--verbose", "bob"])
 print(parsed.num, parsed.verbose, parsed.name)
+
+# typing: aliases, decorators, TypeVar, NewType, Generic, and Protocol foundations.
+import typing
+
+T = typing.TypeVar("T", int, str, bound=object, covariant=True)
+UserId = typing.NewType("UserId", int)
+print(T.__name__, len(T.__constraints__), T.__bound__.__name__, T.__covariant__)
+print(UserId(5), UserId.__name__, UserId.__supertype__.__name__)
+print(typing.cast(str, "x"), typing.List[int].__name__, typing.Optional[int].__name__)
+
+@typing.final
+class FinalClass:
+    pass
+
+class Proto(typing.Protocol):
+    pass
+
+class Box(typing.Generic[T]):
+    pass
+
+print(FinalClass.__name__, issubclass(Proto, typing.Protocol), issubclass(Box, typing.Generic), typing.TYPE_CHECKING)

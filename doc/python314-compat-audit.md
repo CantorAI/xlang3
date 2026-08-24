@@ -394,7 +394,7 @@ High-level modules currently backed by native/runtime code:
 - [ ] `ast`: AST class-name facade exists; real parser-to-AST compatibility pending
 - [ ] `code`: `compile_command` facade exists; interactive compiler semantics pending
 - [~] `codecs`: `lookup`, `encode`, and `decode` foundation; full codec registry/error handling pending
-- [~] `contextlib`: generator `contextmanager` and `nullcontext` work with with-statements; real `closing`, `suppress`, async helpers, and full exception propagation semantics pending
+- [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [ ] `ctypes`: small facade exists; real FFI semantics pending
 - [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, and `__dataclass_fields__` basics; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
 - [ ] `dis`: code-object inspection facade exists; real bytecode/disassembly compatibility pending
@@ -422,7 +422,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending
 - [ ] `sysconfig`: path/config helper facade; full install scheme compatibility pending
-- [ ] `typing`: selected aliases/decorators facade; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
+- [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`, and basic `getmembers`; full frame/source/signature semantics pending
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots

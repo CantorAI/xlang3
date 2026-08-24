@@ -22,6 +22,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <string>
+#include <vector>
 
 namespace xlang3 {
 
@@ -29,6 +30,8 @@ namespace {
 
 constexpr const char* kGeneratorContextType = "contextlib._GeneratorContextManager";
 constexpr const char* kNullContextType = "contextlib.nullcontext";
+constexpr const char* kClosingType = "contextlib.closing";
+constexpr const char* kSuppressType = "contextlib.suppress";
 
 struct GeneratorContextState {
   Value generator;
@@ -44,6 +47,14 @@ struct NullContextState {
   Value enter_result;
 };
 
+struct ClosingState {
+  Value target;
+};
+
+struct SuppressState {
+  std::vector<Value> exceptions;
+};
+
 void generator_context_cleanup(void* data) {
   delete static_cast<GeneratorContextState*>(data);
 }
@@ -56,13 +67,12 @@ void null_context_cleanup(void* data) {
   delete static_cast<NullContextState*>(data);
 }
 
-bool return_self(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1) {
-    error = "context manager method expected self";
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
+void closing_cleanup(void* data) {
+  delete static_cast<ClosingState*>(data);
+}
+
+void suppress_cleanup(void* data) {
+  delete static_cast<SuppressState*>(data);
 }
 
 bool generator_context_enter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -213,6 +223,118 @@ bool nullcontext_exit(Runtime&, const Value*, uint32_t, Value& out, std::string&
   return true;
 }
 
+bool closing_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "closing() expected one object";
+    return false;
+  }
+  auto* state = new ClosingState();
+  state->target = args[1];
+  if (!instance_set_native_data(args[0], kClosingType, state, closing_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool closing_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "closing.__enter__() expected no arguments";
+    return false;
+  }
+  auto* state = static_cast<ClosingState*>(instance_get_native_data(args[0], kClosingType));
+  if (state == nullptr) {
+    error = "invalid closing context manager";
+    return false;
+  }
+  value_assign_fast(out, state->target);
+  return true;
+}
+
+bool closing_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 4) {
+    error = "closing.__exit__() expected exc_type, exc_val, exc_tb";
+    return false;
+  }
+  auto* state = static_cast<ClosingState*>(instance_get_native_data(args[0], kClosingType));
+  if (state == nullptr) {
+    error = "invalid closing context manager";
+    return false;
+  }
+  Value close_method;
+  if (!object_get_attr(state->target, "close", close_method, error)) {
+    return false;
+  }
+  Value ignored;
+  if (!runtime_call_callable(runtime, close_method, nullptr, 0, ignored, error)) {
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+bool suppress_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "suppress() expected self";
+    return false;
+  }
+  auto* state = new SuppressState();
+  state->exceptions.reserve(argc > 0 ? argc - 1 : 0);
+  for (uint32_t i = 1; i < argc; ++i) {
+    state->exceptions.push_back(args[i]);
+  }
+  if (!instance_set_native_data(args[0], kSuppressType, state, suppress_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool suppress_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "suppress.__enter__() expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool exception_type_matches(const Value& actual, const Value& expected) {
+  if (value_is(actual, expected)) {
+    return true;
+  }
+  auto* actual_class = value_as_class(actual);
+  auto* expected_class = value_as_class(expected);
+  return actual_class != nullptr && expected_class != nullptr &&
+         class_is_subclass(actual_class, expected_class);
+}
+
+bool suppress_exit(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 4) {
+    error = "suppress.__exit__() expected exc_type, exc_val, exc_tb";
+    return false;
+  }
+  auto* state = static_cast<SuppressState*>(instance_get_native_data(args[0], kSuppressType));
+  if (state == nullptr) {
+    error = "invalid suppress context manager";
+    return false;
+  }
+  if (args[1].tag == ValueTag::None) {
+    value_set_bool(out, false);
+    return true;
+  }
+  for (const auto& exception_type : state->exceptions) {
+    if (exception_type_matches(args[1], exception_type)) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
 Value make_generator_context_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__enter__", runtime.make_native_function("contextlib._GeneratorContextManager.__enter__", generator_context_enter)});
@@ -226,6 +348,22 @@ Value make_nullcontext_class(Runtime& runtime) {
   attrs.push_back({"__enter__", runtime.make_native_function("contextlib.nullcontext.__enter__", nullcontext_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("contextlib.nullcontext.__exit__", nullcontext_exit)});
   return Value::class_object("nullcontext", std::move(attrs));
+}
+
+Value make_closing_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function("contextlib.closing.__init__", closing_init)});
+  attrs.push_back({"__enter__", runtime.make_native_function("contextlib.closing.__enter__", closing_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("contextlib.closing.__exit__", closing_exit)});
+  return Value::class_object("closing", std::move(attrs));
+}
+
+Value make_suppress_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function("contextlib.suppress.__init__", suppress_init)});
+  attrs.push_back({"__enter__", runtime.make_native_function("contextlib.suppress.__enter__", suppress_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("contextlib.suppress.__exit__", suppress_exit)});
+  return Value::class_object("suppress", std::move(attrs));
 }
 
 } // namespace
@@ -243,8 +381,8 @@ void register_contextlib_module(Runtime& runtime) {
               context_class_data,
               [](void* data) { delete static_cast<Value*>(data); }))
       .value("nullcontext", make_nullcontext_class(runtime))
-      .function("closing", return_self)
-      .function("suppress", return_self);
+      .value("closing", make_closing_class(runtime))
+      .value("suppress", make_suppress_class(runtime));
   runtime.register_module("contextlib", builder.finish());
 }
 

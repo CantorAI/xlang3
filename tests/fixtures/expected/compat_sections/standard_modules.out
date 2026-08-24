@@ -10,4 +10,11 @@ Point(x=2, y=5)
 True
 ctx
 null
+True False
+True
+suppressed
 7 True bob
+T 2 object True
+5 UserId int
+x List Optional
+FinalClass True True False
