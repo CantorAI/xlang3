@@ -383,7 +383,7 @@ Native or runtime-backed foundation:
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
 - [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
-- [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty; blocking semantics pending
+- [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty and catchable empty errors; blocking semantics pending
 
 High-level modules currently backed by native/runtime code:
 
@@ -418,7 +418,7 @@ High-level modules currently backed by native/runtime code:
 - [ ] `signal`: public signal facade over `_signal`; real delivery semantics pending
 - [ ] `site`: site-package path helper facade; startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
-- [~] `queue`: facade over native `SimpleQueue`; full Queue/Empty/Full/blocking semantics pending
+- [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`, and `Full` foundations with ordering/maxsize/task helpers; blocking/wakeup semantics pending
 - [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [ ] `subprocess`: constants and `Popen`/run facade; real process piping and lifecycle semantics pending

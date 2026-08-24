@@ -37,3 +37,9 @@ inner box:inner
 2 2 2 -1 0
 5 [(a, 2), (b, 2)]
 [a, a, b, b, c, c]
+True 2 first second True
+empty
+2 1
+(1, a) (2, b)
+full
+True

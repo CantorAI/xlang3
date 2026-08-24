@@ -194,3 +194,36 @@ counts.subtract({"c": 1, "d": 2})
 print(counts["a"], counts["b"], counts["c"], counts["d"], counts["z"])
 print(counts.total(), counts.most_common(2))
 print(list(counts.elements()))
+
+# queue: Queue variants keep distinct ordering, maxsize, and catchable exceptions.
+import queue
+
+fifo = queue.Queue(maxsize=2)
+fifo.put("first")
+fifo.put("second")
+print(fifo.full(), fifo.qsize(), fifo.get(), fifo.get(), fifo.empty())
+try:
+    fifo.get_nowait()
+except queue.Empty:
+    print("empty")
+
+lifo = queue.LifoQueue()
+lifo.put(1)
+lifo.put(2)
+print(lifo.get(), lifo.get())
+
+prio = queue.PriorityQueue()
+prio.put((2, "b"))
+prio.put((1, "a"))
+print(prio.get(), prio.get())
+
+limited = queue.Queue(1)
+limited.put("x")
+try:
+    limited.put_nowait("y")
+except queue.Full:
+    print("full")
+limited.get()
+limited.task_done()
+limited.join()
+print(limited.empty())
