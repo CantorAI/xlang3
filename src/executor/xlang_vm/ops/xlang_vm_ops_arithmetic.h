@@ -17,6 +17,8 @@ limitations under the License.
 #include "../xlang_vm_arithmetic.h"
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 
 #include <string>
@@ -203,11 +205,70 @@ XLANG3_HOT_INLINE void bool_or(const ir::Instr& in, XlangVMSmallRegisterBuffer& 
   value_assign_fast(regs[in.dst], value_truthy(regs[in.a]) ? regs[in.a] : regs[in.b]);
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow compare(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
+XLANG3_HOT_INLINE const char* rich_compare_method(ir::CompareOp op) {
+  switch (op) {
+    case ir::CompareOp::Eq: return "__eq__";
+    case ir::CompareOp::Ne: return "__ne__";
+    case ir::CompareOp::Lt: return "__lt__";
+    case ir::CompareOp::Le: return "__le__";
+    case ir::CompareOp::Gt: return "__gt__";
+    case ir::CompareOp::Ge: return "__ge__";
+  }
+  return nullptr;
+}
+
+template <typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool try_rich_compare(
+    Runtime& runtime,
+    ir::CompareOp op,
+    const Value& lhs,
+    const Value& rhs,
+    Value& out,
+    XlangVMOpFlow& flow,
+    RaiseExceptionValue&& raise_exception_value) {
+  flow = XlangVMOpFlow::Next;
+  if (value_as_instance(lhs) == nullptr) {
+    return false;
+  }
+  const char* method_name = rich_compare_method(op);
+  if (method_name == nullptr) {
+    return false;
+  }
+  Value method;
+  std::string ignored;
+  if (!object_get_attr(lhs, method_name, method, ignored)) {
+    return false;
+  }
+  std::string error;
+  if (runtime_call_callable(runtime, method, &rhs, 1, out, error)) {
+    return true;
+  }
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    flow = raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return true;
+  }
+  flow = raise_exception_value(runtime.make_exception("RuntimeError", error))
+             ? XlangVMOpFlow::ContinueLoop
+             : XlangVMOpFlow::ReturnResult;
+  return true;
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow compare(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   const auto& lhs = regs[in.a];
   const auto& rhs = regs[in.b];
   const auto op = static_cast<ir::CompareOp>(in.c);
+  XlangVMOpFlow rich_flow = XlangVMOpFlow::Next;
+  if (value_as_instance(lhs) != nullptr &&
+      try_rich_compare(runtime, op, lhs, rhs, regs[in.dst], rich_flow, raise_exception_value)) {
+    return rich_flow;
+  }
   if (!fast_compare(op, lhs, rhs, regs[in.dst])) {
     std::string error;
     if (!value_compare(compare_name(op), lhs, rhs, regs[in.dst], error)) {

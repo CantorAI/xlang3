@@ -45,6 +45,32 @@ print(plain.__name__, plain.__doc__, plain.__wrapped__ is original)
 add_two = functools.partial(original, 2)
 print(add_two(5))
 
+def combine(a, b):
+    return a * 10 + b
+
+def cmp_num(a, b):
+    return a - b
+
+Key = functools.cmp_to_key(cmp_num)
+print(functools.reduce(combine, [1, 2, 3]), functools.reduce(combine, [2, 3], 1))
+print(Key(1) < Key(2), Key(2) > Key(1), Key(2) == Key(2), Key(3) != Key(2))
+
+@functools.total_ordering
+class OrderedValue:
+    def __init__(self, value):
+        self.value = value
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+left_ordered = OrderedValue(2)
+right_ordered = OrderedValue(3)
+same_ordered = OrderedValue(2)
+print(left_ordered <= right_ordered, right_ordered > left_ordered, left_ordered >= same_ordered)
+
 # string public constants are available for libraries that avoid importing _string directly.
 import string
 

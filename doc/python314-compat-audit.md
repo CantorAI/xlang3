@@ -401,7 +401,7 @@ High-level modules currently backed by native/runtime code:
 - [ ] `dis`: code-object inspection facade exists; real bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
-- [~] `functools`: `update_wrapper`, `wraps`, and `partial` foundation with common function metadata propagation; full descriptor/cache/singledispatch/cmp helpers pending
+- [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, and `total_ordering` foundations; real cache wrappers, singledispatch, descriptor edge cases, and full CPython semantics pending
 - [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
 - [~] `itertools`: `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, `chain`, and `batched` foundations; lazy object identity and full iterator algebra pending
