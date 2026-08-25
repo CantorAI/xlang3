@@ -467,6 +467,42 @@ inline std::string string_object_to_string(const StringObject& value) {
   return std::string(string_object_view(value));
 }
 
+XLANG3_HOT_INLINE size_t utf8_codepoint_width(unsigned char ch) {
+  if ((ch & 0x80u) == 0) return 1;
+  if ((ch & 0xE0u) == 0xC0u) return 2;
+  if ((ch & 0xF0u) == 0xE0u) return 3;
+  if ((ch & 0xF8u) == 0xF0u) return 4;
+  return 1;
+}
+
+XLANG3_HOT_INLINE size_t utf8_codepoint_count(std::string_view text) {
+  size_t count = 0;
+  for (size_t i = 0; i < text.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[i]));
+    i += (width <= text.size() - i) ? width : 1;
+    ++count;
+  }
+  return count;
+}
+
+XLANG3_HOT_INLINE size_t utf8_byte_offset(std::string_view text, size_t codepoint_index) {
+  size_t offset = 0;
+  for (size_t i = 0; i < codepoint_index && offset < text.size(); ++i) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+    offset += (width <= text.size() - offset) ? width : 1;
+  }
+  return offset;
+}
+
+XLANG3_HOT_INLINE std::string_view utf8_codepoint_at(std::string_view text, size_t codepoint_index) {
+  const size_t offset = utf8_byte_offset(text, codepoint_index);
+  if (offset >= text.size()) {
+    return {};
+  }
+  const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+  return text.substr(offset, (width <= text.size() - offset) ? width : 1);
+}
+
 XLANG3_HOT_INLINE BytesObject* value_as_bytes(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Bytes) {
     return nullptr;

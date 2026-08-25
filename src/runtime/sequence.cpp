@@ -197,6 +197,22 @@ std::string binary_slice_text(std::string_view storage, int64_t start, int64_t s
   return text;
 }
 
+std::string utf8_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
+  std::string text;
+  if (step > 0) {
+    for (int64_t i = start; i < stop; i += step) {
+      const auto ch = utf8_codepoint_at(storage, static_cast<size_t>(i));
+      text.append(ch.data(), ch.size());
+    }
+  } else {
+    for (int64_t i = start; i > stop; i += step) {
+      const auto ch = utf8_codepoint_at(storage, static_cast<size_t>(i));
+      text.append(ch.data(), ch.size());
+    }
+  }
+  return text;
+}
+
 bool int_to_byte(const Value& value, unsigned char& out, std::string& error) {
   if (value.tag != ValueTag::Int64 || value.as.i64 < 0 || value.as.i64 > 255) {
     error = "byte must be in range(0, 256)";
@@ -513,24 +529,15 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(object.as.obj);
     const auto view = string_object_view(*string);
+    const auto codepoint_count = utf8_codepoint_count(view);
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
       int64_t stop = 0;
       int64_t step = 1;
-      if (!normalize_slice(*slice, static_cast<int64_t>(view.size()), start, stop, step, error)) {
+      if (!normalize_slice(*slice, static_cast<int64_t>(codepoint_count), start, stop, step, error)) {
         return false;
       }
-      std::string text;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          text.push_back(view[static_cast<size_t>(i)]);
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          text.push_back(view[static_cast<size_t>(i)]);
-        }
-      }
-      out = Value::string(std::move(text));
+      out = Value::string(utf8_slice_text(view, start, stop, step));
       return true;
     }
     if (index.tag != ValueTag::Int64) {
@@ -538,12 +545,12 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(view.size()), resolved)) {
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(codepoint_count), resolved)) {
       error = "index out of range";
       return false;
     }
-    const char ch = view[static_cast<size_t>(resolved)];
-    out = Value::string_view(std::string_view(&ch, 1));
+    const auto ch = utf8_codepoint_at(view, static_cast<size_t>(resolved));
+    out = Value::string_view(ch);
     return true;
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Bytes) {
@@ -907,7 +914,7 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(value.as.obj);
-    value_set_int64(out, static_cast<int64_t>(string->size));
+    value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(string_object_view(*string))));
     return true;
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {

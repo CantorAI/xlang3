@@ -13,6 +13,8 @@ C:\temp\next 12
 prefix:line1 line2
 he said "'''" and left leftright\raw b'A\nB'
 'XL':7:name=XL
+3 233 20013 128578
+2 2 128578
 index-miss
 rindex-miss
 True True (b'a', b',', b'b,c') b'a,b,c'

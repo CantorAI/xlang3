@@ -45,6 +45,11 @@ print(triple_after_expr.split("\n")[0], triple_after_expr.split("\n")[1])
 print(quote_heavy, adjacent, byte_escapes)
 print(f"{name!r}:{3 + 4}:{name=}")
 
+# Unicode audit: UTF-8 strings use code point length/index/slice for scalar access.
+unicode_text = "é中🙂"
+print(len(unicode_text), ord(unicode_text[0]), ord(unicode_text[1]), ord(unicode_text[2]))
+print(len(unicode_text[:2]), len(unicode_text[1:]), ord(unicode_text[-1]))
+
 # Index methods raise catchable ValueError on misses.
 try:
     "abc".index("z")

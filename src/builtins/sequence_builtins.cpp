@@ -185,12 +185,29 @@ bool builtin_ord(
   }
   auto* string = reinterpret_cast<StringObject*>(args[0].as.obj);
   auto text = string_object_view(*string);
-  if (text.size() != 1) {
+  if (utf8_codepoint_count(text) != 1) {
     error = "ord() expected a character";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::int64(static_cast<unsigned char>(text[0]));
+  const auto width = utf8_codepoint_width(static_cast<unsigned char>(text[0]));
+  uint32_t codepoint = 0;
+  if (width == 1) {
+    codepoint = static_cast<unsigned char>(text[0]);
+  } else if (width == 2 && text.size() >= 2) {
+    codepoint = ((static_cast<unsigned char>(text[0]) & 0x1Fu) << 6) |
+                (static_cast<unsigned char>(text[1]) & 0x3Fu);
+  } else if (width == 3 && text.size() >= 3) {
+    codepoint = ((static_cast<unsigned char>(text[0]) & 0x0Fu) << 12) |
+                ((static_cast<unsigned char>(text[1]) & 0x3Fu) << 6) |
+                (static_cast<unsigned char>(text[2]) & 0x3Fu);
+  } else if (width == 4 && text.size() >= 4) {
+    codepoint = ((static_cast<unsigned char>(text[0]) & 0x07u) << 18) |
+                ((static_cast<unsigned char>(text[1]) & 0x3Fu) << 12) |
+                ((static_cast<unsigned char>(text[2]) & 0x3Fu) << 6) |
+                (static_cast<unsigned char>(text[3]) & 0x3Fu);
+  }
+  out = Value::int64(static_cast<int64_t>(codepoint));
   return true;
 }
 

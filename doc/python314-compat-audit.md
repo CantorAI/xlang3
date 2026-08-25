@@ -292,7 +292,11 @@ Section-level fixture coverage:
 - [x] indexing
 - [x] basic concatenation
 - [x] selected string methods: case conversion, strip/lstrip/rstrip, find/rfind/index/rindex, count, replace, split, join, partition/rpartition, startswith/endswith, format, encode, and ASCII classification basics covered in fixtures
-- [ ] full Python Unicode behavior
+- [~] full Python Unicode behavior:
+  UTF-8 `str` length, integer indexing, negative indexing, and slicing now use
+  code point positions and have fixture coverage. Full CPython Unicode remains
+  pending: normalization, categories, locale/case folding, grapheme clusters,
+  identifier edge cases, and complete codec/error behavior.
 - [~] encoding/decoding: UTF-8/ascii `str.encode` and `bytes.decode` basics covered; codec registry, errors handling, and full Unicode codec behavior pending
 - [~] string formatting
 - [~] f-string runtime formatting

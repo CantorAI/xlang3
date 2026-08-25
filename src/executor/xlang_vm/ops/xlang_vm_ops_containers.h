@@ -347,7 +347,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::String:
-          value_set_int64(regs[in.dst], static_cast<int64_t>(reinterpret_cast<StringObject*>(regs[in.a].as.obj)->size));
+          value_set_int64(
+              regs[in.dst],
+              static_cast<int64_t>(utf8_codepoint_count(string_object_view(*reinterpret_cast<StringObject*>(regs[in.a].as.obj)))));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::Bytes:
@@ -393,7 +395,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
         }
         return XlangVMOpFlow::Next;
       case ObjectKind::String:
-        value_set_int64(regs[in.dst], static_cast<int64_t>(value_as_string(regs[in.a])->size));
+        value_set_int64(regs[in.dst], static_cast<int64_t>(utf8_codepoint_count(string_object_view(*value_as_string(regs[in.a])))));
         xlang_vm_cache_note_hit(cache);
         if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
           xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
@@ -529,10 +531,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         case XlangVMSpecializationId::GetItemStringInt: {
           auto* string = reinterpret_cast<StringObject*>(object);
           const auto view = string_object_view(*string);
-          int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(view.size()) : raw_index;
-          if (index >= 0 && index < static_cast<int64_t>(view.size())) {
-            const char ch = view[static_cast<size_t>(index)];
-            regs[in.dst] = Value::string_view(std::string_view(&ch, 1));
+          const auto codepoint_count = utf8_codepoint_count(view);
+          int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(codepoint_count) : raw_index;
+          if (index >= 0 && index < static_cast<int64_t>(codepoint_count)) {
+            regs[in.dst] = Value::string_view(utf8_codepoint_at(view, static_cast<size_t>(index)));
             xlang_vm_cache_note_hit(cache);
             return XlangVMOpFlow::Next;
           }
@@ -586,10 +588,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     } else if (object->kind == ObjectKind::String) {
       auto* string = value_as_string(regs[in.a]);
       const auto view = string_object_view(*string);
-      int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(view.size()) : raw_index;
-      if (index >= 0 && index < static_cast<int64_t>(view.size())) {
-        const char ch = view[static_cast<size_t>(index)];
-        regs[in.dst] = Value::string_view(std::string_view(&ch, 1));
+      const auto codepoint_count = utf8_codepoint_count(view);
+      int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(codepoint_count) : raw_index;
+      if (index >= 0 && index < static_cast<int64_t>(codepoint_count)) {
+        regs[in.dst] = Value::string_view(utf8_codepoint_at(view, static_cast<size_t>(index)));
         xlang_vm_cache_note_hit(cache);
         maybe_specialize_get_item_int(cache, object->kind);
         return XlangVMOpFlow::Next;
