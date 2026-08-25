@@ -315,6 +315,97 @@ bool set_symmetric_difference_value(const Value& lhs, const Value& rhs, Value& o
   }
 }
 
+bool value_is_set_like_operand(const Value& value) {
+  if (value_as_set(value) != nullptr) {
+    return true;
+  }
+  if (auto* view = value_as_dict_view(value)) {
+    return view->kind == DictIterationKind::Keys || view->kind == DictIterationKind::Items;
+  }
+  return false;
+}
+
+bool value_materialize_set_like(const Value& value, Value& out, std::string& error) {
+  if (auto* set = value_as_set(value)) {
+    out = Value::set(set->items);
+    return true;
+  }
+  if (auto* view = value_as_dict_view(value)) {
+    if (view->kind != DictIterationKind::Keys && view->kind != DictIterationKind::Items) {
+      error = "dict_values view is not set-like";
+      return false;
+    }
+    out = Value::set({});
+    return add_iterable_to_set(out, value, error);
+  }
+  error = "object is not set-like";
+  return false;
+}
+
+bool set_like_all_in(const Value& left_set_value, const Value& rhs, bool& out, std::string& error) {
+  auto* left_set = value_as_set(left_set_value);
+  if (left_set == nullptr) {
+    error = "object is not a set";
+    return false;
+  }
+  Value right_set_value;
+  if (!value_materialize_set_like(rhs, right_set_value, error)) {
+    return false;
+  }
+  auto* right_set = value_as_set(right_set_value);
+  out = true;
+  for (const auto& item : left_set->items) {
+    if (!set_contains_value(*right_set, item)) {
+      out = false;
+      return true;
+    }
+  }
+  return true;
+}
+
+bool set_like_compare_value(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  Value left_set_value;
+  Value right_set_value;
+  if (!value_materialize_set_like(lhs, left_set_value, error) ||
+      !value_materialize_set_like(rhs, right_set_value, error)) {
+    return false;
+  }
+  auto* left_set = value_as_set(left_set_value);
+  auto* right_set = value_as_set(right_set_value);
+
+  bool left_in_right = false;
+  if (!set_like_all_in(left_set_value, right_set_value, left_in_right, error)) {
+    return false;
+  }
+  bool result = false;
+  if (op == "==") {
+    result = left_set->items.size() == right_set->items.size() && left_in_right;
+  } else if (op == "!=") {
+    result = left_set->items.size() != right_set->items.size() || !left_in_right;
+  } else if (op == "<=") {
+    result = left_in_right;
+  } else if (op == "<") {
+    result = left_set->items.size() < right_set->items.size() && left_in_right;
+  } else if (op == ">=") {
+    bool right_in_left = false;
+    if (!set_like_all_in(right_set_value, left_set_value, right_in_left, error)) {
+      return false;
+    }
+    result = right_in_left;
+  } else if (op == ">") {
+    bool right_in_left = false;
+    if (!set_like_all_in(right_set_value, left_set_value, right_in_left, error)) {
+      return false;
+    }
+    result = left_set->items.size() > right_set->items.size() && right_in_left;
+  } else {
+    error = "unknown comparison operator";
+    return false;
+  }
+  value_set_bool(out, result);
+  return true;
+}
+
 double as_double(const Value& value) {
   return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
 }
@@ -1251,6 +1342,13 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_is_set_like_operand(lhs)) {
+    Value left_set;
+    if (!value_materialize_set_like(lhs, left_set, error)) {
+      return false;
+    }
+    return set_difference_value(left_set, rhs, out, error);
+  }
   if (value_as_set(lhs) != nullptr) {
     return set_difference_value(lhs, rhs, out, error);
   }
@@ -1403,6 +1501,13 @@ bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_is_set_like_operand(lhs)) {
+    Value left_set;
+    if (!value_materialize_set_like(lhs, left_set, error)) {
+      return false;
+    }
+    return set_intersection_value(left_set, rhs, out, error);
+  }
   if (value_as_set(lhs) != nullptr) {
     return set_intersection_value(lhs, rhs, out, error);
   }
@@ -1435,6 +1540,14 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
     out = Value::set(value_as_set(lhs)->items);
     return add_iterable_to_set(out, rhs, error);
   }
+  if (auto* view = value_as_dict_view(lhs)) {
+    if (view->kind == DictIterationKind::Keys || view->kind == DictIterationKind::Items) {
+      if (!value_materialize_set_like(lhs, out, error)) {
+        return false;
+      }
+      return add_iterable_to_set(out, rhs, error);
+    }
+  }
   const auto type_like = [](const Value& value) {
     if (value.tag == ValueTag::None) {
       return true;
@@ -1464,6 +1577,13 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
 }
 
 bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_is_set_like_operand(lhs)) {
+    Value left_set;
+    if (!value_materialize_set_like(lhs, left_set, error)) {
+      return false;
+    }
+    return set_symmetric_difference_value(left_set, rhs, out, error);
+  }
   if (value_as_set(lhs) != nullptr) {
     return set_symmetric_difference_value(lhs, rhs, out, error);
   }
@@ -1528,6 +1648,9 @@ bool value_invert(const Value& value, Value& out, std::string& error) {
 
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
+  if (value_is_set_like_operand(lhs) && value_is_set_like_operand(rhs)) {
+    return set_like_compare_value(op, lhs, rhs, out, error);
+  }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
       lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
       lhs.as.obj->kind == ObjectKind::Tuple && rhs.as.obj->kind == ObjectKind::Tuple) {

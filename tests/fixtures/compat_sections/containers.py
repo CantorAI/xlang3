@@ -50,6 +50,10 @@ merged = {"a": 1} | {"a": 2, "b": 3}
 print(merged["a"], merged["b"])
 merged |= {"c": 4}
 print(merged["a"], merged["c"])
+other_keys = {"b", "c", "d"}
+print(keys == {"a", "b", "c"}, keys != {"a", "b"}, keys <= {"a", "b", "c", "d"}, keys < {"a", "b", "c", "d"})
+print(keys | {"d"}, keys & other_keys, keys - {"b"}, keys ^ {"a", "d"})
+print(items_view == {("a", 1), ("b", 2), ("c", 3)}, items_view & {("a", 1), ("z", 9)})
 
 # Set uniqueness, update/union/copy/pop/clear, and mutation methods.
 s = {1, 2, 2}

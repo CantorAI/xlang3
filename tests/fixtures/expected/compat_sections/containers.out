@@ -11,6 +11,9 @@ True True True
 5 5
 2 3
 2 4
+True True True True
+{a, b, c, d} {b, c} {a, c} {b, c, d}
+True {(a, 1)}
 5 True 7 True
 {2, 4} {2, 3, 4}
 {1, 2, 3, 4, 5, 9} {2} {3, 4, 5} {1, 3, 4, 5, 8}

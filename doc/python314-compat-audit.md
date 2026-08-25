@@ -284,7 +284,7 @@ Section-level fixture coverage:
 - [~] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations; full CPython protocol pending
 - [~] hashing/equality audit: scalar/string/bytes/object identity, recursive tuple key hashing/equality, mutable-container unhashability, and bool/int key equality covered in section fixture; NaN/custom `__eq__`/`__hash__` edge cases pending
 - [~] ordering behavior audit: tuple/list lexicographic comparisons and default list sort basics covered for comparable values; custom comparison and mixed-type edge cases pending
-- [~] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; set-like view algebra/equality is pending.
+- [~] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; keys/items support set-like equality and `|`/`&`/`-`/`^` algebra; CPython edge cases and values-view non-set operations audit pending.
 
 ### Strings And Unicode
 
