@@ -404,7 +404,7 @@ High-level modules currently backed by native/runtime code:
   defaults, selected `wintypes`, `windll.kernel32` facade, and catchable
   `WinError` foundation covered. Real ABI/FFI calls, layout/alignment, arrays,
   callbacks, pointer arithmetic, and platform library loading remain pending.
-- [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, and `__dataclass_fields__` basics; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
+- [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, `__dataclass_fields__`, `fields`, `is_dataclass`, `asdict`, and simple `field(default=...)` handling; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
 - [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
@@ -421,7 +421,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes, and `dumps`/`loads`/file `dump`/`load` foundations for common XLang3 values through an XLang3-native envelope; CPython pickle opcode protocol, reducers, persistent IDs, custom object state, and extension compatibility pending
 - [~] `platform`: platform/python version helpers foundation
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`, and loader placeholder foundations; full finder/loader semantics pending
-- [~] `re`: regex compile/match/search/fullmatch/escape facade; full CPython regex semantics pending
+- [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, `findall`, `split`, `sub`, and `escape` facade; full CPython regex semantics pending
 - [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
@@ -440,7 +440,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
-- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`suffix`/`parent` properties, and basic path transforms; full operator/glob semantics pending
+- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, and basic path transforms; full operator/glob semantics pending
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
 - [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending

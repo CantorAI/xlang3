@@ -93,6 +93,7 @@ q = Point(2, y=5)
 print(p.x, p.y, q.y, len(Point.__dataclass_fields__), Point.__dataclass_fields__["x"].name)
 print(p.__repr__())
 print(p.__eq__(q))
+print(dataclasses.is_dataclass(Point), dataclasses.is_dataclass(p), dataclasses.fields(Point)[0].name, dataclasses.asdict(p)["y"])
 
 # contextlib: generator context managers and nullcontext work with with-statements.
 import contextlib
@@ -226,8 +227,10 @@ import locale
 import marshal
 import opcode
 import os
+import pathlib
 import pickle
 import pkgutil
+import re
 import signal
 import site
 import stat
@@ -242,6 +245,13 @@ print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths()
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
+
+# re: compiled patterns, match data, and common helpers.
+m = re.search("([a-z]+)([0-9]+)", "id42")
+compiled = re.compile("[a-z]+")
+print(m.group(0), m.group(1), m.groups(), m.span(2))
+print(compiled.match("abc").group(0), compiled.search("123abc").group(0), re.fullmatch("[0-9]+", "123") is not None)
+print(re.findall("[0-9]+", "a1b22"), re.split(",", "a,b,c"), re.sub("[0-9]+", "#", "a12b3"))
 
 # codecs: normalized lookup plus UTF-8 and hex encode/decode foundations.
 codec_info = codecs.lookup("UTF-8")
@@ -300,6 +310,11 @@ print(os.path.relpath(__file__, core_fixture_dir).endswith("standard_modules.py"
 print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLANG3_MISSING_VAR") == "$XLANG3_MISSING_VAR")
 mode = os.stat(__file__)[stat.ST_MODE]
 print(stat.S_ISREG(mode), stat.S_ISDIR(mode), (mode & stat.S_IFMT) == stat.S_IFREG)
+path_obj = pathlib.Path("xlang3_pathlib_section.txt")
+print(path_obj.name, path_obj.stem, path_obj.suffix, path_obj.suffixes)
+print(path_obj.with_suffix(".bin").name, path_obj.with_name("renamed.txt").name, path_obj.parts[-1])
+print(path_obj.write_text("path text"), path_obj.read_text())
+print(path_obj.write_bytes(b"xy"), path_obj.read_bytes(), path_obj.exists(), path_obj.is_file(), path_obj.is_absolute())
 
 found_functions = False
 for module_info in pkgutil.iter_modules([core_fixture_dir]):

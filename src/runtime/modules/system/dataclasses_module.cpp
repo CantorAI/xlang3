@@ -90,8 +90,15 @@ std::shared_ptr<DataclassState> collect_dataclass_state(Value klass) {
     Value default_value;
     std::string default_error;
     if (object_get_attr(state->klass, name, default_value, default_error)) {
-      field.default_value = std::move(default_value);
-      field.has_default = true;
+      Value field_default;
+      std::string field_error;
+      if (object_get_attr(default_value, "default", field_default, field_error)) {
+        field.default_value = std::move(field_default);
+        field.has_default = true;
+      } else {
+        field.default_value = std::move(default_value);
+        field.has_default = true;
+      }
     }
     state->fields.push_back(std::move(field));
   }
@@ -383,6 +390,84 @@ bool field_entry_positional(Runtime&, const Value*, uint32_t argc, Value&, std::
   return false;
 }
 
+bool dataclasses_fields(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "fields() expected dataclass or instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value fields_value;
+  std::string ignored;
+  if (!object_get_attr(args[0], "__dataclass_fields__", fields_value, ignored)) {
+    auto* instance = value_as_instance(args[0]);
+    if (instance != nullptr) {
+      object_get_attr(instance->klass, "__dataclass_fields__", fields_value, ignored);
+    }
+  }
+  auto* dict = value_as_dict(fields_value);
+  if (dict == nullptr) {
+    error = "must be called with a dataclass type or instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(dict->entries.size());
+  for (const auto& entry : dict->entries) {
+    values.push_back(entry.second);
+  }
+  out = Value::tuple(std::move(values));
+  return true;
+}
+
+bool dataclasses_is_dataclass(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "is_dataclass() expected object";
+    return false;
+  }
+  Value fields_value;
+  std::string ignored;
+  bool ok = object_get_attr(args[0], "__dataclass_fields__", fields_value, ignored);
+  if (!ok) {
+    auto* instance = value_as_instance(args[0]);
+    ok = instance != nullptr && object_get_attr(instance->klass, "__dataclass_fields__", fields_value, ignored);
+  }
+  value_set_bool(out, ok && value_as_dict(fields_value) != nullptr);
+  return true;
+}
+
+bool dataclasses_asdict(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "asdict() expected dataclass instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value fields_tuple;
+  if (!dataclasses_fields(runtime, args, argc, fields_tuple, error, nullptr)) {
+    return false;
+  }
+  auto* fields = value_as_tuple(fields_tuple);
+  if (fields == nullptr) {
+    error = "invalid dataclass fields";
+    return false;
+  }
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(fields->items.size());
+  for (const auto& field_value : fields->items) {
+    Value name_value;
+    std::string ignored;
+    if (!object_get_attr(field_value, "name", name_value, ignored) || value_as_string(name_value) == nullptr) {
+      continue;
+    }
+    const std::string name = string_object_to_string(*value_as_string(name_value));
+    Value attr;
+    if (object_get_attr(args[0], name, attr, ignored)) {
+      entries.push_back({Value::string(name), attr});
+    }
+  }
+  out = Value::dict(std::move(entries));
+  return true;
+}
+
 } // namespace
 
 void register_dataclasses_module(Runtime& runtime) {
@@ -410,6 +495,9 @@ void register_dataclasses_module(Runtime& runtime) {
           nullptr,
           false,
           field_entry));
+  builder.function("fields", dataclasses_fields)
+      .function("is_dataclass", dataclasses_is_dataclass)
+      .function("asdict", dataclasses_asdict);
   runtime.register_module("dataclasses", builder.finish());
 }
 

@@ -12,6 +12,7 @@ abc XYZ 0123456789 True
 2 5 5 2 x
 Point(x=2, y=5)
 True
+True True x 5
 ctx
 null
 True False
@@ -42,6 +43,9 @@ True True 3.14
 82 RESUME 43
 2147483649 131097 1 None
 True True True
+id42 id (id, 42) (2, 4)
+abc abc True
+[1, 22] [a, b, c] a#b#
 utf_8 codec b'hi'
 a 1 True False
 b'abc' True True
@@ -59,6 +63,10 @@ True True True
 True True
 alpha_ True
 True False True
+xlang3_pathlib_section.txt xlang3_pathlib_section .txt [.txt]
+xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
+9 path text
+2 b'xy' True True False
 True True True True
 7 haha 3 2
 True True True 8

@@ -82,6 +82,28 @@ std::string path_suffix(const std::string& path) {
   return name.substr(pos);
 }
 
+std::string path_stem(const std::string& path) {
+  const std::string name = path_name(path);
+  const auto pos = name.find_last_of('.');
+  if (pos == std::string::npos || pos == 0) {
+    return name;
+  }
+  return name.substr(0, pos);
+}
+
+std::vector<std::string> path_suffixes(const std::string& path) {
+  std::vector<std::string> suffixes;
+  const std::string name = path_name(path);
+  size_t pos = 0;
+  while ((pos = name.find('.', pos)) != std::string::npos) {
+    if (pos != 0 && pos + 1 < name.size()) {
+      suffixes.push_back(name.substr(pos));
+    }
+    ++pos;
+  }
+  return suffixes;
+}
+
 bool set_path_attrs(Value& instance, const std::string& path, std::string& error) {
   const std::string display = normalize_slashes(path);
   return object_set_attr(instance, "_path", Value::string(path), error) &&
@@ -160,6 +182,30 @@ bool path_property_value(const Value* args, uint32_t argc, Value& out, std::stri
     out = Value::string(path_name(path));
   } else if (std::string(name) == "suffix") {
     out = Value::string(path_suffix(path));
+  } else if (std::string(name) == "stem") {
+    out = Value::string(path_stem(path));
+  } else if (std::string(name) == "suffixes") {
+    std::vector<Value> values;
+    for (auto& suffix : path_suffixes(path)) {
+      values.push_back(Value::string(std::move(suffix)));
+    }
+    out = Value::list(std::move(values));
+  } else if (std::string(name) == "parts") {
+    std::vector<Value> values;
+    std::string normalized = normalize_slashes(path);
+    size_t start = 0;
+    while (start < normalized.size()) {
+      const size_t slash = normalized.find('/', start);
+      std::string part = slash == std::string::npos ? normalized.substr(start) : normalized.substr(start, slash - start);
+      if (!part.empty()) {
+        values.push_back(Value::string(std::move(part)));
+      }
+      if (slash == std::string::npos) {
+        break;
+      }
+      start = slash + 1;
+    }
+    out = Value::tuple(std::move(values));
   } else {
     auto* instance = value_as_instance(args[0]);
     if (instance == nullptr) {
@@ -182,6 +228,18 @@ bool path_suffix_getter(Runtime&, const Value* args, uint32_t argc, Value& out, 
 
 bool path_parent_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return path_property_value(args, argc, out, error, "parent");
+}
+
+bool path_stem_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return path_property_value(args, argc, out, error, "stem");
+}
+
+bool path_suffixes_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return path_property_value(args, argc, out, error, "suffixes");
+}
+
+bool path_parts_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return path_property_value(args, argc, out, error, "parts");
 }
 
 bool path_exists(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -233,6 +291,19 @@ bool path_read_text(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
+bool path_read_bytes(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.read_bytes() expected no arguments";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(to_path_text(args[0]), bytes, error)) {
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return true;
+}
+
 bool path_write_text(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "Path.write_text() expected text";
@@ -246,12 +317,78 @@ bool path_write_text(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+bool path_write_bytes(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.write_bytes() expected bytes";
+    return false;
+  }
+  std::string data;
+  if (auto* bytes = value_as_bytes(args[1])) {
+    const auto view = bytes_object_view(*bytes);
+    data.assign(view.data(), view.size());
+  } else if (auto* bytearray = value_as_bytearray(args[1])) {
+    data = bytearray->value;
+  } else {
+    error = "Path.write_bytes() argument must be bytes-like";
+    return false;
+  }
+  if (!runtime.vfs().write_file(to_path_text(args[0]), reinterpret_cast<const uint8_t*>(data.data()), data.size(), error)) {
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(data.size()));
+  return true;
+}
+
+bool path_with_name(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.with_name() expected name";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "Path.with_name() self is invalid";
+    return false;
+  }
+  const std::string path = join_paths(path_parent(to_path_text(args[0])), to_path_text(args[1]));
+  out = make_path_instance(instance->klass, path, error);
+  return error.empty();
+}
+
+bool path_with_suffix(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.with_suffix() expected suffix";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "Path.with_suffix() self is invalid";
+    return false;
+  }
+  const std::string suffix = to_path_text(args[1]);
+  std::string parent = path_parent(to_path_text(args[0]));
+  std::string name = path_stem(to_path_text(args[0])) + suffix;
+  out = make_path_instance(instance->klass, join_paths(parent, name), error);
+  return error.empty();
+}
+
+bool path_is_absolute(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.is_absolute() expected no arguments";
+    return false;
+  }
+  const std::string path = to_path_text(args[0]);
+  value_set_bool(out, (!path.empty() && (path[0] == '/' || path[0] == '\\')) || (path.size() >= 2 && path[1] == ':'));
+  return true;
+}
+
 Value make_path_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("pathlib.Path.__init__", path_init)});
   attrs.push_back({"__fspath__", runtime.make_native_function("pathlib.Path.__fspath__", path_fspath)});
   attrs.push_back({"as_posix", runtime.make_native_function("pathlib.Path.as_posix", path_as_posix)});
   attrs.push_back({"joinpath", runtime.make_native_function("pathlib.Path.joinpath", path_joinpath)});
+  attrs.push_back({"with_name", runtime.make_native_function("pathlib.Path.with_name", path_with_name)});
+  attrs.push_back({"with_suffix", runtime.make_native_function("pathlib.Path.with_suffix", path_with_suffix)});
   attrs.push_back({"name", Value::property(
                                runtime.make_native_function("pathlib.Path.name", path_name_getter),
                                Value::none(),
@@ -267,11 +404,29 @@ Value make_path_class(Runtime& runtime, const char* name) {
                                  Value::none(),
                                  Value::none(),
                                  Value::none())});
+  attrs.push_back({"stem", Value::property(
+                               runtime.make_native_function("pathlib.Path.stem", path_stem_getter),
+                               Value::none(),
+                               Value::none(),
+                               Value::none())});
+  attrs.push_back({"suffixes", Value::property(
+                                   runtime.make_native_function("pathlib.Path.suffixes", path_suffixes_getter),
+                                   Value::none(),
+                                   Value::none(),
+                                   Value::none())});
+  attrs.push_back({"parts", Value::property(
+                                runtime.make_native_function("pathlib.Path.parts", path_parts_getter),
+                                Value::none(),
+                                Value::none(),
+                                Value::none())});
   attrs.push_back({"exists", runtime.make_native_function("pathlib.Path.exists", path_exists)});
   attrs.push_back({"is_file", runtime.make_native_function("pathlib.Path.is_file", path_is_file)});
   attrs.push_back({"is_dir", runtime.make_native_function("pathlib.Path.is_dir", path_is_dir)});
+  attrs.push_back({"is_absolute", runtime.make_native_function("pathlib.Path.is_absolute", path_is_absolute)});
   attrs.push_back({"read_text", runtime.make_native_function("pathlib.Path.read_text", path_read_text)});
   attrs.push_back({"write_text", runtime.make_native_function("pathlib.Path.write_text", path_write_text)});
+  attrs.push_back({"read_bytes", runtime.make_native_function("pathlib.Path.read_bytes", path_read_bytes)});
+  attrs.push_back({"write_bytes", runtime.make_native_function("pathlib.Path.write_bytes", path_write_bytes)});
   return Value::class_object(name, std::move(attrs));
 }
 
