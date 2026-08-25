@@ -53,6 +53,7 @@ void register_core_builtins(Runtime& runtime) {
   register_itertools_module(runtime);
   register_json_module(runtime);
   register_sysconfig_module(runtime);
+  register_linecache_module(runtime);
   register_urllib_module(runtime);
   register_codecs_module(runtime);
   register_struct_module(runtime);

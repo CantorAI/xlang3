@@ -78,6 +78,7 @@ $cases = @(
     "collections_queue_facades",
     "types_module",
     "traceback_module",
+    "linecache_module",
     "runpy_module",
     "importlib_module",
     "weakref_module",

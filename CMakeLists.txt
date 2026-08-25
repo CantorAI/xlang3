@@ -124,6 +124,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
   src/runtime/modules/system/json_module.cpp
+  src/runtime/modules/system/linecache_module.cpp
   src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/logging_module.cpp
   src/runtime/modules/system/marshal_module.cpp
