@@ -617,6 +617,80 @@ bool builtin_sum(
   }
 }
 
+struct SortEntry {
+  Value key;
+  Value value;
+};
+
+bool collect_sorted_entries(
+    Runtime& runtime,
+    const Value& iterable,
+    const Value* key_callable,
+    std::vector<SortEntry>& entries,
+    std::string& error) {
+  std::vector<Value> values;
+  if (!collect_iterable(runtime, iterable, values, error)) {
+    return false;
+  }
+  entries.clear();
+  entries.reserve(values.size());
+  for (const auto& value : values) {
+    Value key;
+    if (key_callable != nullptr && key_callable->tag != ValueTag::None) {
+      if (!runtime_call_callable(runtime, *key_callable, &value, 1, key, error)) {
+        return false;
+      }
+    } else {
+      value_assign_fast(key, value);
+    }
+    entries.push_back({std::move(key), value});
+  }
+  return true;
+}
+
+bool sort_entries(Runtime& runtime, std::vector<SortEntry>& entries, bool reverse, std::string& error) {
+  bool compare_failed = false;
+  std::string compare_error;
+  std::stable_sort(entries.begin(), entries.end(), [&](const SortEntry& lhs, const SortEntry& rhs) {
+    if (compare_failed) {
+      return false;
+    }
+    Value less;
+    const Value& left = reverse ? rhs.key : lhs.key;
+    const Value& right = reverse ? lhs.key : rhs.key;
+    if (!value_compare("<", left, right, less, compare_error)) {
+      compare_failed = true;
+      return false;
+    }
+    return value_truthy(less);
+  });
+  if (compare_failed) {
+    return raise_type_error(runtime, compare_error.empty() ? "sorted() comparison failed" : compare_error, error);
+  }
+  return true;
+}
+
+bool sorted_impl(
+    Runtime& runtime,
+    const Value& iterable,
+    const Value* key_callable,
+    bool reverse,
+    Value& out,
+    std::string& error) {
+  std::vector<SortEntry> entries;
+  if (!collect_sorted_entries(runtime, iterable, key_callable, entries, error) ||
+      !sort_entries(runtime, entries, reverse, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(entries.size());
+  for (const auto& entry : entries) {
+    values.push_back(entry.value);
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
 bool builtin_sorted(
     Runtime& runtime,
     const Value* args,
@@ -627,20 +701,7 @@ bool builtin_sorted(
   if (argc != 1) {
     return raise_type_error(runtime, "sorted() expected 1 argument", error);
   }
-  std::vector<Value> values;
-  if (!collect_iterable(runtime, args[0], values, error)) {
-    return false;
-  }
-  std::sort(values.begin(), values.end(), [&](const Value& lhs, const Value& rhs) {
-    Value less;
-    std::string compare_error;
-    if (!value_compare("<", lhs, rhs, less, compare_error)) {
-      return false;
-    }
-    return value_truthy(less);
-  });
-  out = Value::list(std::move(values));
-  return true;
+  return sorted_impl(runtime, args[0], nullptr, false, out, error);
 }
 
 bool builtin_sorted_kw(
@@ -653,6 +714,7 @@ bool builtin_sorted_kw(
     std::string& error,
     void*) {
   bool reverse = false;
+  const Value* key_callable = nullptr;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
     if (kwargs[i].value == nullptr) {
@@ -661,21 +723,15 @@ bool builtin_sorted_kw(
     if (name == "reverse") {
       reverse = value_truthy(*kwargs[i].value);
     } else if (name == "key") {
-      // Accepted for CPython call shape. Generic native-to-Python callback keys
-      // are handled by the VM call path in a later compatibility pass.
+      key_callable = kwargs[i].value;
     } else {
       return raise_type_error(runtime, "sorted() got an unexpected keyword argument '" + name + "'", error);
     }
   }
-  if (!builtin_sorted(runtime, args, argc, out, error, nullptr)) {
-    return false;
+  if (argc != 1) {
+    return raise_type_error(runtime, "sorted() expected 1 argument", error);
   }
-  if (reverse) {
-    if (auto* list = value_as_list(out)) {
-      std::reverse(list->items.begin(), list->items.end());
-    }
-  }
-  return true;
+  return sorted_impl(runtime, args[0], key_callable, reverse, out, error);
 }
 
 bool minmax_common(

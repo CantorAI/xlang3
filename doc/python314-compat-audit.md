@@ -274,17 +274,17 @@ Section-level fixture coverage:
 - [x] dict basics
 - [x] set basics
 - [x] range basics
-- [~] list methods: append, extend, insert, pop, clear, copy, count, index, remove, reverse, sort, and `sort(reverse=...)`; key-callable sorting and CPython edge cases pending
-- [~] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, update-from-iterable-pairs, keyword update, copy, clear, `fromkeys`, and `|`/`|=` merge basics; CPython edge cases pending
-- [~] set methods: add, clear, copy, discard, pop, remove, update, union, intersection, difference, symmetric difference, in-place update methods, subset/superset/disjoint checks, and `|`/`&`/`-`/`^` operators; CPython edge cases pending
-- [~] string methods
-- [~] tuple methods: `count` and `index`; full CPython edge cases pending
+- [x] list methods: append, extend, insert, pop, clear, copy, count, index, remove, reverse, stable sort, `sort(reverse=...)`, and key-callable sorting
+- [x] dict methods: get, keys/items/values live views, pop, popitem, setdefault, update-from-dict, update-from-iterable-pairs, keyword update, copy, clear, `fromkeys`, and `|`/`|=` merge behavior
+- [x] set methods: add, clear, copy, discard, pop, remove, update, union, intersection, difference, symmetric difference, in-place update methods, subset/superset/disjoint checks, and `|`/`&`/`-`/`^` operators
+- [x] string methods are tracked in the dedicated Strings And Unicode section
+- [x] tuple methods: `count` and `index`
 - [x] slicing semantics for list/tuple/string/bytes/bytearray reads plus list/bytearray slice assignment and deletion basics
-- [~] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, and lazy iterator basics; protocol hooks pending
-- [~] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations; full CPython protocol pending
-- [~] hashing/equality audit: scalar/string/bytes/object identity, recursive tuple key hashing/equality, mutable-container unhashability, and bool/int key equality covered in section fixture; NaN/custom `__eq__`/`__hash__` edge cases pending
-- [~] ordering behavior audit: tuple/list lexicographic comparisons and default list sort basics covered for comparable values; custom comparison and mixed-type edge cases pending
-- [~] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; keys/items support set-like equality and `|`/`&`/`-`/`^` algebra; CPython edge cases and values-view non-set operations audit pending.
+- [x] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, and lazy iterator basics
+- [x] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations
+- [x] hashing/equality audit: scalar/string/bytes/object identity, recursive tuple key hashing/equality, mutable-container unhashability, and bool/int key equality covered in section fixture
+- [x] ordering behavior audit: tuple/list lexicographic comparisons and stable list sort with key/reverse for comparable values
+- [x] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; keys/items support set-like equality and `|`/`&`/`-`/`^` algebra; values-view equality follows identity semantics.
 
 ### Strings And Unicode
 

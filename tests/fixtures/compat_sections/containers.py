@@ -22,6 +22,10 @@ items.sort()
 print(items, copy, items.count(1), items.index(2))
 items.sort(reverse=True)
 print(items)
+stable = [("a", 2), ("b", 1), ("c", 2)]
+stable.sort(key=lambda item: item[1])
+print(stable)
+print(sorted(["aaa", "b", "cc"], key=len), sorted(["aaa", "b", "cc"], key=len, reverse=True))
 items.reverse()
 items.remove(1)
 items.insert(1, 9)
@@ -34,6 +38,8 @@ values = d.values()
 items_view = d.items()
 d["c"] = 3
 print("c" in keys, 3 in values, ("a", 1) in items_view)
+values_again = d.values()
+print(values == values, values == values_again, values != values_again)
 clone = d.copy()
 print(clone.get("missing", 7), clone.setdefault("d", 4), clone["d"])
 print(clone.pop("a"), "a" in clone)
@@ -68,6 +74,7 @@ print(s.issubset(u), u.issuperset(s), s.isdisjoint({8, 9}))
 s2 = s.copy()
 removed = s2.pop()
 print(removed in s, len(s2) + 1 == len(s))
+s2 = {1, 4, 5}
 s2.remove(1)
 s2.update([9])
 s2.intersection_update({4, 9})
@@ -85,3 +92,11 @@ try:
     bad = {[1]: "bad"}
 except Exception:
     print("list-unhashable")
+
+# Iterator protocol and lazy functional iterator objects.
+it = iter([1, 2])
+print(next(it), next(it), next(it, 9))
+print(list(enumerate(["x", "y"], 3)))
+print(list(zip([1, 2, 3], ["a", "b"])))
+print(list(map(lambda x: x + 1, [1, 2, 3])))
+print(list(filter(lambda x: x > 1, [0, 1, 2, 3])))

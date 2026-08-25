@@ -1648,6 +1648,18 @@ bool value_invert(const Value& value, Value& out, std::string& error) {
 
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
+  auto* left_view = value_as_dict_view(lhs);
+  auto* right_view = value_as_dict_view(rhs);
+  if ((left_view != nullptr && left_view->kind == DictIterationKind::Values) ||
+      (right_view != nullptr && right_view->kind == DictIterationKind::Values)) {
+    if (op == "==" || op == "!=") {
+      result = lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object && lhs.as.obj == rhs.as.obj;
+      value_set_bool(out, op == "==" ? result : !result);
+      return true;
+    }
+    error = "unsupported comparison";
+    return false;
+  }
   if (value_is_set_like_operand(lhs) && value_is_set_like_operand(rhs)) {
     return set_like_compare_value(op, lhs, rhs, out, error);
   }

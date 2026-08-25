@@ -14,11 +14,13 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace xlang3 {
 
@@ -303,28 +305,81 @@ bool list_reverse_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool list_sort_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "list.sort expected no positional arguments in this XLang3 compatibility subset";
+struct SortEntry {
+  Value key;
+  Value value;
+};
+
+bool sort_entries_by_key(Runtime& runtime, std::vector<SortEntry>& entries, bool reverse, std::string& error) {
+  bool compare_failed = false;
+  std::string compare_error;
+  std::stable_sort(entries.begin(), entries.end(), [&](const SortEntry& lhs, const SortEntry& rhs) {
+    if (compare_failed) {
+      return false;
+    }
+    Value result;
+    const Value& left = reverse ? rhs.key : lhs.key;
+    const Value& right = reverse ? lhs.key : rhs.key;
+    if (!value_compare("<", left, right, result, compare_error) || result.tag != ValueTag::Bool) {
+      compare_failed = true;
+      return false;
+    }
+    return result.as.b;
+  });
+  if (compare_failed) {
+    error = compare_error.empty() ? "list.sort comparison failed" : compare_error;
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  return true;
+}
+
+bool list_sort_impl(
+    Runtime& runtime,
+    Value& list_value,
+    const Value* key_callable,
+    bool reverse,
+    Value& out,
+    std::string& error) {
+  auto* list = value_as_list(list_value);
   if (list == nullptr) {
     error = "list.sort target is not a list";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  std::sort(list->items.begin(), list->items.end(), [&](const Value& lhs, const Value& rhs) {
-    Value result;
-    std::string compare_error;
-    if (!value_compare("<", lhs, rhs, result, compare_error) || result.tag != ValueTag::Bool) {
-      return false;
+
+  std::vector<SortEntry> entries;
+  entries.reserve(list->items.size());
+  for (const auto& item : list->items) {
+    Value key;
+    if (key_callable != nullptr && key_callable->tag != ValueTag::None) {
+      if (!runtime_call_callable(runtime, *key_callable, &item, 1, key, error)) {
+        return false;
+      }
+    } else {
+      value_assign_fast(key, item);
     }
-    return result.as.b;
-  });
+    entries.push_back({std::move(key), item});
+  }
+
+  if (!sort_entries_by_key(runtime, entries, reverse, error)) {
+    return false;
+  }
+  for (size_t i = 0; i < entries.size(); ++i) {
+    list->items[i] = entries[i].value;
+  }
   value_set_none(out);
   return true;
+}
+
+bool list_sort_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "list.sort expected no positional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value list_value = args[0];
+  return list_sort_impl(runtime, list_value, nullptr, false, out, error);
 }
 
 bool list_sort_method_kw(
@@ -335,8 +390,9 @@ bool list_sort_method_kw(
     uint32_t kwargc,
     Value& out,
     std::string& error,
-    void* user_data) {
+    void*) {
   bool reverse = false;
+  const Value* key_callable = nullptr;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
     if (kwargs[i].value == nullptr) {
@@ -347,27 +403,15 @@ bool list_sort_method_kw(
     if (name == "reverse") {
       reverse = value_truthy(*kwargs[i].value);
     } else if (name == "key") {
-      if (kwargs[i].value->tag != ValueTag::None) {
-        error = "list.sort key callable is not implemented yet";
-        runtime.raise_class_error("TypeError", error);
-        return false;
-      }
+      key_callable = kwargs[i].value;
     } else {
       error = "list.sort got an unexpected keyword argument '" + name + "'";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
   }
-  if (!list_sort_method(runtime, args, argc, out, error, user_data)) {
-    return false;
-  }
-  if (reverse) {
-    auto* list = value_as_list(args[0]);
-    if (list != nullptr) {
-      std::reverse(list->items.begin(), list->items.end());
-    }
-  }
-  return true;
+  Value list_value = args[0];
+  return list_sort_impl(runtime, list_value, key_callable, reverse, out, error);
 }
 
 static constexpr BuiltinMethodSpec kListMethods[] = {
