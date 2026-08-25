@@ -323,13 +323,39 @@ void register_importlib_module(Runtime& runtime) {
   runtime.register_module("importlib.metadata", metadata);
   runtime.register_module("importlib_metadata", metadata);
 
+  NativeModuleBuilder frozen_builder(runtime, "_frozen_importlib");
+  frozen_builder.value("__name__", Value::string("_frozen_importlib"))
+      .value("BuiltinImporter", builtin_importer)
+      .value("FrozenImporter", frozen_importer)
+      .value("ModuleSpec", make_simple_class("ModuleSpec"));
+  Value frozen = frozen_builder.finish();
+  runtime.register_module("_frozen_importlib", frozen);
+  runtime.register_module("importlib._bootstrap", frozen);
+
+  NativeModuleBuilder external_builder(runtime, "_frozen_importlib_external");
+  external_builder.value("__name__", Value::string("_frozen_importlib_external"))
+      .value("FileFinder", file_finder)
+      .value("PathFinder", path_finder)
+      .value("SourceFileLoader", source_file_loader)
+      .value("SourcelessFileLoader", sourceless_file_loader)
+      .value("ExtensionFileLoader", extension_file_loader)
+      .value("NamespaceLoader", namespace_loader)
+      .value("SOURCE_SUFFIXES", Value::list({Value::string(".py")}))
+      .value("BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
+      .value("EXTENSION_SUFFIXES", Value::list({}));
+  Value external = external_builder.finish();
+  runtime.register_module("_frozen_importlib_external", external);
+  runtime.register_module("importlib._bootstrap_external", external);
+
   NativeModuleBuilder builder(runtime, "importlib");
   builder.function("import_module", importlib_import_module)
       .function("invalidate_caches", importlib_invalidate_caches)
       .value("abc", abc)
       .value("machinery", machinery)
       .value("util", util)
-      .value("metadata", metadata);
+      .value("metadata", metadata)
+      .value("_bootstrap", frozen)
+      .value("_bootstrap_external", external);
   runtime.register_module("importlib", builder.finish());
 }
 

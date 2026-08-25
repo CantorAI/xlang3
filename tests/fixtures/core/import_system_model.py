@@ -16,6 +16,9 @@ import importlib.abc
 import importlib.machinery
 import importlib.util
 import sys
+import zipimport
+import _frozen_importlib
+import _frozen_importlib_external
 
 print(sys.__name__, sys.__spec__ is None)
 print("sys" in sys.modules, "_builtins" in sys.modules)
@@ -42,3 +45,11 @@ print(len(loader.get_data(__file__)) > 0, loader.exec_module(module_from_spec) i
 print(file_spec.loader is loader, file_spec.origin == __file__, module_from_spec.__name__)
 print(importlib.machinery.PathFinder.find_spec("missing") is None)
 print(importlib.machinery.SOURCE_SUFFIXES[0], importlib.machinery.BYTECODE_SUFFIXES[0])
+
+# zipimport/frozen bootstrap facade: protocol objects are importable for compatibility probes.
+zip_loader = zipimport.zipimporter(__file__)
+print(zip_loader.archive == __file__, zip_loader.prefix == "", zip_loader.find_spec("missing") is None, zip_loader.is_package("missing"))
+print(zip_loader.get_filename("pkg.mod").endswith("pkg.mod.py"), len(zip_loader.get_data(__file__)) > 0)
+print(zipimport.ZipImportError.__name__, isinstance(zipimport._zip_directory_cache, dict))
+print(_frozen_importlib.__name__, _frozen_importlib.FrozenImporter.__name__)
+print(_frozen_importlib_external.__name__, _frozen_importlib_external.SourceFileLoader.__name__)

@@ -156,6 +156,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/warnings_module.cpp
   src/runtime/modules/system/winreg_module.cpp
   src/runtime/modules/system/xmlrpc_http_module.cpp
+  src/runtime/modules/system/zipimport_module.cpp
 )
 
 if(NOT XLANG3_EMBEDDED)

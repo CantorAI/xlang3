@@ -78,6 +78,7 @@ void register_core_builtins(Runtime& runtime) {
   register_pickle_module(runtime);
   register_subprocess_module(runtime);
   register_winreg_module(runtime);
+  register_zipimport_module(runtime);
   register_socket_modules(runtime);
 #endif
   register_thread_modules(runtime);
