@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 
 #include <algorithm>
 
@@ -123,6 +124,66 @@ bool stream_read(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
+bool stream_readline(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "memory stream readline() expected optional size";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  if (state == nullptr) {
+    return false;
+  }
+  size_t limit = state->buffer.size();
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "memory stream readline size must be int";
+      return false;
+    }
+    if (args[1].as.i64 >= 0) {
+      limit = std::min(state->buffer.size(), state->cursor + static_cast<size_t>(args[1].as.i64));
+    }
+  }
+  const size_t start = std::min(state->cursor, state->buffer.size());
+  size_t end = start;
+  while (end < limit && end < state->buffer.size()) {
+    ++end;
+    if (state->buffer[end - 1] == '\n') {
+      break;
+    }
+  }
+  out = memory_stream_result(*state, state->buffer.substr(start, end - start));
+  state->cursor = end;
+  return true;
+}
+
+bool stream_readlines(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "memory stream readlines() expected optional hint";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::vector<Value> lines;
+  while (state->cursor < state->buffer.size()) {
+    const size_t start = std::min(state->cursor, state->buffer.size());
+    size_t end = start;
+    while (end < state->buffer.size()) {
+      ++end;
+      if (state->buffer[end - 1] == '\n') {
+        break;
+      }
+    }
+    lines.push_back(memory_stream_result(*state, state->buffer.substr(start, end - start)));
+    state->cursor = end;
+  }
+  out = Value::list(std::move(lines));
+  return true;
+}
+
 bool stream_write(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
     error = "memory stream write() expected data";
@@ -148,6 +209,34 @@ bool stream_write(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   std::copy(data.begin(), data.end(), state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
   state->cursor += data.size();
   value_set_int64(out, static_cast<int64_t>(data.size()));
+  return true;
+}
+
+bool stream_writelines(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 2) {
+    error = "memory stream writelines() expected iterable";
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    Value write_args[2] = {args[0], item};
+    Value ignored;
+    if (!stream_write(runtime, write_args, 2, ignored, error, user_data)) {
+      return false;
+    }
+  }
+  value_set_none(out);
   return true;
 }
 
@@ -223,6 +312,62 @@ bool stream_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
+bool stream_closed(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "memory stream closed() expected no arguments";
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], static_cast<const char*>(user_data)));
+  if (state == nullptr) {
+    error = "invalid memory stream object";
+    return false;
+  }
+  value_set_bool(out, state->closed);
+  return true;
+}
+
+bool stream_capability(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "memory stream capability method expected no arguments";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  if (state == nullptr) {
+    return false;
+  }
+  value_set_bool(out, true);
+  return true;
+}
+
+bool stream_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "memory stream __enter__() expected no arguments";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  if (memory_stream_state(args[0], type, error) == nullptr) {
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool stream_exit(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 4) {
+    error = "memory stream __exit__() expected exc details";
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], static_cast<const char*>(user_data)));
+  if (state == nullptr) {
+    error = "invalid memory stream object";
+    return false;
+  }
+  state->closed = true;
+  value_set_bool(out, false);
+  return true;
+}
+
 bool io_open_code(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "io.open_code() expected path";
@@ -241,12 +386,21 @@ bool io_open_code(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 Value make_memory_stream_class(Runtime& runtime, const char* name, const char* type, NativeFunctionCallback init) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});
+  attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
+  attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
+  attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
+  attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
+  attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
   attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});
+  attrs.push_back({"closed", runtime.make_native_function(std::string("_io.") + name + ".closed", stream_closed, const_cast<char*>(type))});
+  attrs.push_back({"readable", runtime.make_native_function(std::string("_io.") + name + ".readable", stream_capability, const_cast<char*>(type))});
+  attrs.push_back({"writable", runtime.make_native_function(std::string("_io.") + name + ".writable", stream_capability, const_cast<char*>(type))});
+  attrs.push_back({"seekable", runtime.make_native_function(std::string("_io.") + name + ".seekable", stream_capability, const_cast<char*>(type))});
   return Value::class_object(name, std::move(attrs));
 }
 

@@ -42,6 +42,10 @@ True True 3.14
 82 RESUME 43
 2147483649 131097 1 None
 True True True
+utf_8 codec b'hi'
+a 1 True False
+b'abc' True True
+True
 True True True
 [2] Terminated
 keyboard
@@ -52,6 +56,9 @@ p
 demo.echo 7 rpc
 200 Not Found 80
 True True True
+True True
+alpha_ True
+True False True
 True True True True
 7 haha 3 2
 True True True 8

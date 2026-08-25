@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
 #include <algorithm>
@@ -526,6 +527,63 @@ bool path_expanduser(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
+bool path_expandvars(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "expandvars() expected one path";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+  std::string expanded;
+  expanded.reserve(path.size());
+  for (size_t i = 0; i < path.size(); ++i) {
+    if (path[i] == '$') {
+      size_t start = i + 1;
+      size_t end = start;
+      if (start < path.size() && path[start] == '{') {
+        start += 1;
+        end = path.find('}', start);
+        if (end == std::string::npos) {
+          expanded.push_back(path[i]);
+          continue;
+        }
+      } else {
+        while (end < path.size() && (std::isalnum(static_cast<unsigned char>(path[end])) || path[end] == '_')) {
+          ++end;
+        }
+      }
+      if (end > start) {
+        const std::string name = path.substr(start, end - start);
+        const char* value = std::getenv(name.c_str());
+        if (value != nullptr) {
+          expanded += value;
+        } else {
+          expanded += path.substr(i, end - i + (start > i + 1 ? 1 : 0));
+        }
+        i = start > i + 1 ? end : end - 1;
+        continue;
+      }
+    }
+#if defined(_WIN32)
+    if (path[i] == '%') {
+      const size_t end = path.find('%', i + 1);
+      if (end != std::string::npos && end > i + 1) {
+        const std::string name = path.substr(i + 1, end - i - 1);
+        const char* value = std::getenv(name.c_str());
+        expanded += value != nullptr ? value : path.substr(i, end - i + 1);
+        i = end;
+        continue;
+      }
+    }
+#endif
+    expanded.push_back(path[i]);
+  }
+  out = Value::string(std::move(expanded));
+  return true;
+}
+
 bool path_join(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     error = "join() expected at least one path";
@@ -547,6 +605,94 @@ bool path_join(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
+bool path_relpath(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "relpath() expected path and optional start";
+    return false;
+  }
+  std::string path;
+  std::string start = ".";
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+  if (argc == 2 && !get_string_arg(args[1], "start", start, error)) {
+    return false;
+  }
+  ResolvedPath resolved_path;
+  ResolvedPath resolved_start;
+  if (!runtime.vfs().resolve(path, resolved_path, error) || !runtime.vfs().resolve(start, resolved_start, error)) {
+    return false;
+  }
+  std::error_code ec;
+  auto relative = std::filesystem::relative(resolved_path.path, resolved_start.path, ec);
+  out = Value::string(ec ? resolved_path.path : relative.string());
+  return true;
+}
+
+bool path_commonprefix(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "commonprefix() expected iterable";
+    return false;
+  }
+  std::vector<std::string> paths;
+  if (auto* list = value_as_list(args[0])) {
+    paths.reserve(list->items.size());
+    for (const auto& item : list->items) {
+      std::string path;
+      if (!get_string_arg(item, "path", path, error)) {
+        return false;
+      }
+      paths.push_back(std::move(path));
+    }
+  } else if (auto* tuple = value_as_tuple(args[0])) {
+    paths.reserve(tuple->items.size());
+    for (const auto& item : tuple->items) {
+      std::string path;
+      if (!get_string_arg(item, "path", path, error)) {
+        return false;
+      }
+      paths.push_back(std::move(path));
+    }
+  } else {
+    error = "commonprefix() expected sequence";
+    return false;
+  }
+  if (paths.empty()) {
+    out = Value::string("");
+    return true;
+  }
+  std::string prefix = paths[0];
+  for (size_t i = 1; i < paths.size(); ++i) {
+    size_t keep = 0;
+    const size_t limit = std::min(prefix.size(), paths[i].size());
+    while (keep < limit && prefix[keep] == paths[i][keep]) {
+      ++keep;
+    }
+    prefix.resize(keep);
+  }
+  out = Value::string(std::move(prefix));
+  return true;
+}
+
+bool path_samefile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "samefile() expected two paths";
+    return false;
+  }
+  std::string left;
+  std::string right;
+  if (!get_string_arg(args[0], "path", left, error) || !get_string_arg(args[1], "path", right, error)) {
+    return false;
+  }
+  ResolvedPath left_resolved;
+  ResolvedPath right_resolved;
+  if (!runtime.vfs().resolve(left, left_resolved, error) || !runtime.vfs().resolve(right, right_resolved, error)) {
+    return false;
+  }
+  value_set_bool(out, left_resolved.fs == right_resolved.fs && left_resolved.path == right_resolved.path);
+  return true;
+}
+
 Value make_os_path_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "os.path");
   builder.value("abspath", runtime.make_native_function("os.path.abspath", path_unary, const_cast<char*>("abspath")))
@@ -560,9 +706,13 @@ Value make_os_path_module(Runtime& runtime) {
       .value("isfile", runtime.make_native_function("os.path.isfile", path_unary, const_cast<char*>("isfile")))
       .value("isabs", runtime.make_native_function("os.path.isabs", path_unary, const_cast<char*>("isabs")))
       .function("join", path_join)
+      .function("relpath", path_relpath)
+      .function("commonprefix", path_commonprefix)
+      .function("samefile", path_samefile)
       .function("splitext", path_splitext)
       .function("splitdrive", path_splitdrive)
       .function("expanduser", path_expanduser)
+      .function("expandvars", path_expandvars)
 #if defined(_WIN32)
       .value("sep", Value::string("\\"))
       .value("altsep", Value::string("/"))

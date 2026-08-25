@@ -216,6 +216,7 @@ print(ct_point.x, ct_point.y, ctypes.sizeof(ct_point), ctypes.sizeof(ctypes.c_in
 print(wintypes.MAX_PATH, wintypes.DWORD is ctypes.c_uint, ctypes.windll.kernel32.OpenProcess(1, 0, 1))
 
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
+import codecs
 import dis
 import getpass
 import http
@@ -229,6 +230,7 @@ import pickle
 import pkgutil
 import signal
 import site
+import stat
 import subprocess
 import sys
 import sysconfig
@@ -240,6 +242,19 @@ print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths()
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
+
+# codecs: normalized lookup plus UTF-8 and hex encode/decode foundations.
+codec_info = codecs.lookup("UTF-8")
+print(codec_info.name, codecs.decode(codecs.encode("codec", "utf-8"), "utf_8"), codecs.decode(b"6869", "hex"))
+
+# io: memory streams support common file-like read/write/seek/context helpers.
+text_stream = io.StringIO("a\nb")
+print(text_stream.readline().strip(), len(text_stream.readlines()), text_stream.seekable(), text_stream.closed())
+with io.BytesIO(b"ab") as byte_stream:
+    byte_stream.seek(2)
+    byte_stream.write(b"c")
+    print(byte_stream.getvalue(), byte_stream.readable(), byte_stream.writable())
+print(byte_stream.closed())
 
 signal_seen = []
 
@@ -281,6 +296,10 @@ core_fixture_dir = "/".join(file_parts[:-2] + ["core"])
 
 # os/os.path filesystem queries are routed through XLang3 VFS.
 print(os.path.isfile(__file__), os.path.isdir(core_fixture_dir), os.path.exists(core_fixture_dir + "/missing.file") == False)
+print(os.path.relpath(__file__, core_fixture_dir).endswith("standard_modules.py"), os.path.samefile(__file__, os.path.abspath(__file__)))
+print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLANG3_MISSING_VAR") == "$XLANG3_MISSING_VAR")
+mode = os.stat(__file__)[stat.ST_MODE]
+print(stat.S_ISREG(mode), stat.S_ISDIR(mode), (mode & stat.S_IFMT) == stat.S_IFREG)
 
 found_functions = False
 for module_info in pkgutil.iter_modules([core_fixture_dir]):

@@ -377,9 +377,9 @@ Native or runtime-backed foundation:
 - [~] `abc` / `_abc`: ABC cache-token/register/check facade; real ABC registry/cache semantics pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
-- [~] `_stat`: stat tuple indexes and common file mode constants
+- [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, and `S_IS*` helpers
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
-- [~] `_io`: module exposes VFS-backed `open`; concrete CPython IO type hierarchy pending
+- [~] `_io`: module exposes VFS-backed `open`, `open_code`, `StringIO`, `BytesIO`, file-like context/read/write/seek helpers; concrete CPython IO type hierarchy pending
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
@@ -391,12 +391,12 @@ High-level modules currently backed by native/runtime code:
 
 - [~] `threading`
 - [~] `os`: VFS-backed `listdir`, exported/reused `scandir`/`DirEntry` foundation, `makedirs`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
-- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution; full path normalization/platform semantics pending
-- [~] `stat`: stat tuple indexes and common constants
+- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `relpath`, `samefile`, `commonprefix`, and `expandvars`; full path normalization/platform semantics pending
+- [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
 - [~] `ast`: public `_ast`/`ast` class surface, constructible keyword/positional AST nodes with `_fields`, `dump`, `iter_fields`, `walk`, `literal_eval` for literal nodes, and parse-result shell foundations; real parser-to-AST lowering and exact CPython node metadata pending
 - [~] `code`: `compile_command` uses the XLang3 compiler for complete source and returns `None` for common incomplete REPL blocks; full interactive compiler/console semantics pending
-- [~] `codecs`: `lookup`, `encode`, and `decode` foundation; full codec registry/error handling pending
+- [~] `codecs`: normalized `lookup`, UTF-8/ASCII encode/decode, and hex encode/decode foundation; full codec registry/error handling pending
 - [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [~] `ctypes`:
   Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,
