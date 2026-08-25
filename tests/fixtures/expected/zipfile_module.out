@@ -1,6 +1,13 @@
 [hello.txt, folder/source.txt]
 hello.txt 9 0
+hello.txt 9
 True
 True
+True
+True
+True False
+xlang3_zip_extract/hello.txt
+hello zip
+from file
 manual.txt
 0 8 True

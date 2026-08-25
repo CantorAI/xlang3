@@ -16,11 +16,29 @@ with zipfile.ZipFile(archive, "r") as zf:
     infos = zf.infolist()
     print(names)
     print(infos[0].filename, infos[0].file_size, infos[0].compress_type)
+    print(zf.getinfo("hello.txt").filename, zf.getinfo(infos[1]).file_size)
     print(zf.read("hello.txt") == b"hello zip")
+    print(zf.read(infos[1]) == b"from file")
     print(zf.read("folder/source.txt") == b"from file")
+    print(zf.testzip() is None)
+
+print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
+
+with zipfile.ZipFile(archive, "r") as zf:
+    extracted = zf.extract("hello.txt", "xlang3_zip_extract")
+    zf.extractall("xlang3_zip_extract_all", ["folder/source.txt"])
+    print(extracted)
+
+with open("xlang3_zip_extract/hello.txt", "r") as f:
+    print(f.read())
+
+with open("xlang3_zip_extract_all/folder/source.txt", "r") as f:
+    print(f.read())
 
 print(zipfile.ZipInfo("manual.txt").filename)
 print(zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED, zipfile.BadZipfile is zipfile.BadZipFile)
 
+os.remove("xlang3_zip_extract/hello.txt")
+os.remove("xlang3_zip_extract_all/folder/source.txt")
 os.remove(source)
 os.remove(archive)

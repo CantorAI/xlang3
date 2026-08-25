@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
 #include "zip_archive.h"
@@ -77,6 +78,20 @@ ZipFileState* zipfile_state(const Value& self, std::string& error) {
     return nullptr;
   }
   return state;
+}
+
+bool zipfile_member_name_arg(const Value& value, std::string& out, std::string& error) {
+  if (get_string_arg(value, "zip member name", out, error)) {
+    return true;
+  }
+  error.clear();
+  Value filename;
+  std::string ignored;
+  if (object_get_attr(value, "filename", filename, ignored)) {
+    return get_string_arg(filename, "zip member filename", out, error);
+  }
+  error = "zip member must be str or ZipInfo";
+  return false;
 }
 
 std::string normalized_member_name(std::string name) {
@@ -160,6 +175,26 @@ Value make_zipinfo(Runtime& runtime, const ZipArchiveMember& member) {
   return instance;
 }
 
+bool zipfile_is_zipfile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "zipfile.is_zipfile() expected filename";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "zipfile.is_zipfile filename", path, error)) {
+    return false;
+  }
+  std::vector<uint8_t> archive;
+  std::string ignored;
+  if (!runtime.vfs().read_file(path, archive, ignored)) {
+    out = Value::boolean(false);
+    return true;
+  }
+  std::vector<ZipArchiveEntry> entries;
+  out = Value::boolean(zip_archive_list_entries(archive, entries, ignored));
+  return true;
+}
+
 bool zipfile_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "ZipFile() expected file, optional mode, and optional compression";
@@ -195,6 +230,30 @@ bool zipfile_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   }
   value_set_none(out);
   return true;
+}
+
+bool zipfile_getinfo(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ZipFile.getinfo() expected name";
+    return false;
+  }
+  auto* state = zipfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string name;
+  if (!zipfile_member_name_arg(args[1], name, error)) {
+    return false;
+  }
+  name = normalized_member_name(std::move(name));
+  for (const auto& member : state->members) {
+    if (member.name == name) {
+      out = make_zipinfo(runtime, member);
+      return true;
+    }
+  }
+  error = "There is no item named '" + name + "' in the archive";
+  return false;
 }
 
 bool zipfile_namelist(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -243,7 +302,7 @@ bool zipfile_read(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
     return false;
   }
   std::string name;
-  if (!get_string_arg(args[1], "ZipFile.read name", name, error)) {
+  if (!zipfile_member_name_arg(args[1], name, error)) {
     return false;
   }
   name = normalized_member_name(std::move(name));
@@ -255,6 +314,113 @@ bool zipfile_read(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   }
   error = "There is no item named '" + name + "' in the archive";
   return false;
+}
+
+bool zipfile_extract_one(
+    Runtime& runtime,
+    ZipFileState& state,
+    const std::string& member_name,
+    const std::string& root,
+    Value& out,
+    std::string& error) {
+  const std::string name = normalized_member_name(member_name);
+  for (const auto& member : state.members) {
+    if (member.name != name) {
+      continue;
+    }
+    std::string target = root.empty() || root == "." ? member.name : root + "/" + member.name;
+    for (auto& ch : target) {
+      if (ch == '\\') {
+        ch = '/';
+      }
+    }
+    if (!runtime.vfs().write_file(
+            target,
+            reinterpret_cast<const uint8_t*>(member.data.data()),
+            member.data.size(),
+            error)) {
+      return false;
+    }
+    out = Value::string(target);
+    return true;
+  }
+  error = "There is no item named '" + name + "' in the archive";
+  return false;
+}
+
+bool zipfile_extract(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "ZipFile.extract() expected member, optional path, and optional pwd";
+    return false;
+  }
+  auto* state = zipfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string member;
+  if (!zipfile_member_name_arg(args[1], member, error)) {
+    return false;
+  }
+  std::string root = ".";
+  if (argc >= 3 && args[2].tag != ValueTag::None && !get_string_arg(args[2], "ZipFile.extract path", root, error)) {
+    return false;
+  }
+  return zipfile_extract_one(runtime, *state, member, root, out, error);
+}
+
+bool zipfile_extractall(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 4) {
+    error = "ZipFile.extractall() expected optional path, members, and pwd";
+    return false;
+  }
+  auto* state = zipfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string root = ".";
+  if (argc >= 2 && args[1].tag != ValueTag::None && !get_string_arg(args[1], "ZipFile.extractall path", root, error)) {
+    return false;
+  }
+  if (argc >= 3 && args[2].tag != ValueTag::None) {
+    auto* list = value_as_list(args[2]);
+    auto* tuple = value_as_tuple(args[2]);
+    if (list == nullptr && tuple == nullptr) {
+      error = "ZipFile.extractall members must be list or tuple in this foundation";
+      return false;
+    }
+    const auto& items = list != nullptr ? list->items : tuple->items;
+    for (const auto& item : items) {
+      std::string member;
+      if (!zipfile_member_name_arg(item, member, error)) {
+        return false;
+      }
+      Value ignored_out;
+      if (!zipfile_extract_one(runtime, *state, member, root, ignored_out, error)) {
+        return false;
+      }
+    }
+  } else {
+    for (const auto& member : state->members) {
+      Value ignored_out;
+      if (!zipfile_extract_one(runtime, *state, member.name, root, ignored_out, error)) {
+        return false;
+      }
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool zipfile_testzip(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ZipFile.testzip() expected no arguments";
+    return false;
+  }
+  if (zipfile_state(args[0], error) == nullptr) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool zipfile_writestr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -381,11 +547,15 @@ Value make_zipfile_class(Runtime& runtime) {
   attrs.push_back({"__enter__", runtime.make_native_function("zipfile.ZipFile.__enter__", zipfile_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("zipfile.ZipFile.__exit__", zipfile_exit)});
   attrs.push_back({"close", runtime.make_native_function("zipfile.ZipFile.close", zipfile_close)});
+  attrs.push_back({"getinfo", runtime.make_native_function("zipfile.ZipFile.getinfo", zipfile_getinfo)});
   attrs.push_back({"namelist", runtime.make_native_function("zipfile.ZipFile.namelist", zipfile_namelist)});
   attrs.push_back({"infolist", runtime.make_native_function("zipfile.ZipFile.infolist", zipfile_infolist)});
   attrs.push_back({"read", runtime.make_native_function("zipfile.ZipFile.read", zipfile_read)});
   attrs.push_back({"write", runtime.make_native_function("zipfile.ZipFile.write", zipfile_write)});
   attrs.push_back({"writestr", runtime.make_native_function("zipfile.ZipFile.writestr", zipfile_writestr)});
+  attrs.push_back({"extract", runtime.make_native_function("zipfile.ZipFile.extract", zipfile_extract)});
+  attrs.push_back({"extractall", runtime.make_native_function("zipfile.ZipFile.extractall", zipfile_extractall)});
+  attrs.push_back({"testzip", runtime.make_native_function("zipfile.ZipFile.testzip", zipfile_testzip)});
   return Value::class_object("ZipFile", std::move(attrs));
 }
 
@@ -401,7 +571,8 @@ Value make_zipinfo_class(Runtime& runtime) {
 void register_zipfile_module(Runtime& runtime) {
   Value bad_zip_file = Value::class_object("BadZipFile", {});
   NativeModuleBuilder builder(runtime, "zipfile");
-  builder.value("ZipFile", make_zipfile_class(runtime))
+  builder.function("is_zipfile", zipfile_is_zipfile)
+      .value("ZipFile", make_zipfile_class(runtime))
       .value("ZipInfo", make_zipinfo_class(runtime))
       .value("BadZipFile", bad_zip_file)
       .value("BadZipfile", bad_zip_file)
