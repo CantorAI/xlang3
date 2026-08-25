@@ -241,6 +241,7 @@ import signal
 import site
 import stat
 import subprocess
+import struct
 import sys
 import sysconfig
 import urllib.parse
@@ -271,6 +272,20 @@ print(urllib.parse.parse_qs("a=1&b=two+words&a=3")["a"])
 print(urllib.parse.urlencode({"a": "two words", "b": 3}))
 print(urllib.parse.quote("a b/c", "/"), urllib.parse.quote_plus("a b/c"))
 print(urllib.parse.unquote("a%20b"), urllib.parse.unquote_plus("a+b"))
+packed_struct = struct.pack("<hI2s?", -2, 513, b"xy", True)
+print(struct.calcsize("<hI2s?"), len(packed_struct), packed_struct.hex())
+print(struct.unpack("<hI2s?", packed_struct))
+print(struct.unpack(">h", struct.pack(">h", 258))[0], struct.unpack("5p", struct.pack("5p", b"abcdef"))[0])
+struct_buffer = bytearray(b"00000000")
+print(struct.pack_into("<I", struct_buffer, 2, 0x11223344))
+print(struct_buffer.hex(), struct.unpack_from("<I", struct_buffer, 2)[0])
+print(list(struct.iter_unpack("<h", struct.pack("<hhh", 1, 2, 3))))
+struct_obj = struct.Struct("<hI")
+print(struct_obj.format, struct_obj.calcsize(), struct_obj.unpack(struct_obj.pack(-1, 7)))
+try:
+    struct.unpack("<I", b"x")
+except struct.error as err:
+    print(err.__class__.__name__)
 
 # re: compiled patterns, match data, and common helpers.
 m = re.search("([a-z]+)([0-9]+)", "id42")

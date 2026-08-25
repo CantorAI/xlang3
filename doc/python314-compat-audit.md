@@ -440,7 +440,10 @@ High-level modules currently backed by native/runtime code:
 - [~] `string`: public constants, `_string.formatter_parser`/`formatter_field_name_split`, and native
   `Formatter` methods for `format`, `vformat`, `parse`, `get_value`, `format_field`, and `convert_field`;
   full nested-field parsing, keyword formatting, subclass override hooks, and exact CPython formatter behavior pending
-- [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
+- [~] `struct`: native `calcsize`, `pack`, `pack_into`, `unpack`, `unpack_from`, `iter_unpack`,
+  `Struct`, and catchable `struct.error` foundations for common endian prefixes plus integer,
+  bool, float/double, char, bytes, pascal-string, and pad format units; native alignment,
+  exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
 - [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
   `is_python_build`, and common config-var helpers; full install scheme compatibility pending

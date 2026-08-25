@@ -61,6 +61,14 @@ https://e.com/a/d?q=1
 a=two+words&b=3
 a%20b/c a+b%2Fc
 a b a b
+9 9 feff01020000787901
+(-2, 513, b'xy', True)
+258 b'abcd'
+None
+3030443322113030 287454020
+[(1,), (2,), (3,)]
+<hI 6 (-1, 7)
+error
 id42 id (id, 42) (2, 4)
 abc abc True
 [1, 22] [a, b, c] a#b#
