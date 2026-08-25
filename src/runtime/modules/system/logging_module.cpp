@@ -61,6 +61,30 @@ std::string level_name(int64_t level) {
   return "DEBUG";
 }
 
+bool level_from_name(const std::string& name, int64_t& level) {
+  if (name == "CRITICAL" || name == "FATAL") {
+    level = kCritical;
+    return true;
+  }
+  if (name == "ERROR") {
+    level = kError;
+    return true;
+  }
+  if (name == "WARNING" || name == "WARN") {
+    level = kWarning;
+    return true;
+  }
+  if (name == "INFO") {
+    level = kInfo;
+    return true;
+  }
+  if (name == "DEBUG") {
+    level = kDebug;
+    return true;
+  }
+  return false;
+}
+
 bool get_logger_name(const Value& logger, std::string& name) {
   std::string ignored;
   Value value;
@@ -163,6 +187,53 @@ bool logging_set_level(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool logging_get_effective_level(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Logger.getEffectiveLevel() expected no arguments";
+    return false;
+  }
+  int64_t level = kWarning;
+  get_logger_level(args[0], kWarning, level);
+  value_set_int64(out, level);
+  return true;
+}
+
+bool logging_is_enabled_for(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "Logger.isEnabledFor() expected level";
+    return false;
+  }
+  int64_t level = kWarning;
+  get_logger_level(args[0], kWarning, level);
+  value_set_bool(out, args[1].as.i64 >= level);
+  return true;
+}
+
+bool logging_noop_method(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_none(out);
+  return true;
+}
+
+bool logging_get_level_name(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "logging.getLevelName() expected level";
+    return false;
+  }
+  if (args[0].tag == ValueTag::Int64) {
+    out = Value::string(level_name(args[0].as.i64));
+    return true;
+  }
+  std::string name;
+  string_from_value(args[0], name);
+  int64_t level = 0;
+  if (level_from_name(name, level)) {
+    value_set_int64(out, level);
+  } else {
+    out = Value::string("Level " + name);
+  }
+  return true;
+}
+
 bool logging_log_root(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data,
     int64_t level) {
   auto* state = static_cast<LoggingState*>(user_data);
@@ -209,6 +280,10 @@ bool logging_error(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return logging_log_root(runtime, args, argc, out, error, user_data, kError);
 }
 
+bool logging_critical(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return logging_log_root(runtime, args, argc, out, error, user_data, kCritical);
+}
+
 bool logger_debug(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   return logging_log_method(runtime, args, argc, out, error, user_data, kDebug);
 }
@@ -225,14 +300,42 @@ bool logger_error(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   return logging_log_method(runtime, args, argc, out, error, user_data, kError);
 }
 
+bool logger_critical(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return logging_log_method(runtime, args, argc, out, error, user_data, kCritical);
+}
+
 Value make_logger_class(Runtime& runtime, LoggingState* state) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"setLevel", runtime.make_native_function("logging.Logger.setLevel", logging_set_level)});
+  attrs.push_back({"getEffectiveLevel", runtime.make_native_function("logging.Logger.getEffectiveLevel", logging_get_effective_level)});
+  attrs.push_back({"isEnabledFor", runtime.make_native_function("logging.Logger.isEnabledFor", logging_is_enabled_for)});
+  attrs.push_back({"addHandler", runtime.make_native_function("logging.Logger.addHandler", logging_noop_method)});
+  attrs.push_back({"removeHandler", runtime.make_native_function("logging.Logger.removeHandler", logging_noop_method)});
   attrs.push_back({"debug", runtime.make_native_function("logging.Logger.debug", logger_debug, state)});
   attrs.push_back({"info", runtime.make_native_function("logging.Logger.info", logger_info, state)});
   attrs.push_back({"warning", runtime.make_native_function("logging.Logger.warning", logger_warning, state)});
   attrs.push_back({"error", runtime.make_native_function("logging.Logger.error", logger_error, state)});
+  attrs.push_back({"critical", runtime.make_native_function("logging.Logger.critical", logger_critical, state)});
+  attrs.push_back({"exception", runtime.make_native_function("logging.Logger.exception", logger_error, state)});
   return Value::class_object("Logger", std::move(attrs));
+}
+
+Value make_noop_class(Runtime& runtime, const char* name) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function(std::string("logging.") + name + ".__init__", logging_noop_method)});
+  attrs.push_back({"setLevel", runtime.make_native_function(std::string("logging.") + name + ".setLevel", logging_noop_method)});
+  attrs.push_back({"setFormatter", runtime.make_native_function(std::string("logging.") + name + ".setFormatter", logging_noop_method)});
+  attrs.push_back({"emit", runtime.make_native_function(std::string("logging.") + name + ".emit", logging_noop_method)});
+  attrs.push_back({"close", runtime.make_native_function(std::string("logging.") + name + ".close", logging_noop_method)});
+  attrs.push_back({"format", runtime.make_native_function(std::string("logging.") + name + ".format", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+    if (argc < 1) {
+      error = "format() expected self";
+      return false;
+    }
+    out = argc >= 2 ? Value::string(value_to_string(args[1])) : Value::string("");
+    return true;
+  })});
+  return Value::class_object(name, std::move(attrs));
 }
 
 } // namespace
@@ -250,16 +353,24 @@ void register_logging_module(Runtime& runtime) {
       .value("ERROR", Value::int64(kError))
       .value("CRITICAL", Value::int64(kCritical))
       .value("Logger", state->logger_class)
+      .value("Handler", make_noop_class(runtime, "Handler"))
+      .value("StreamHandler", make_noop_class(runtime, "StreamHandler"))
+      .value("NullHandler", make_noop_class(runtime, "NullHandler"))
+      .value("Formatter", make_noop_class(runtime, "Formatter"))
       .value("root", Value::string("root"))
       .value("lastResort", Value::none())
       .value("raiseExceptions", Value::boolean(true))
       .value("basicConfig", runtime.make_native_function("logging.basicConfig", logging_basic_config, state))
       .value("getLogger", runtime.make_native_function("logging.getLogger", logging_get_logger, state))
+      .value("getLevelName", runtime.make_native_function("logging.getLevelName", logging_get_level_name))
       .value("debug", runtime.make_native_function("logging.debug", logging_debug, state))
       .value("info", runtime.make_native_function("logging.info", logging_info, state))
       .value("warning", runtime.make_native_function("logging.warning", logging_warning, state))
       .value("warn", runtime.make_native_function("logging.warn", logging_warning, state))
-      .value("error", runtime.make_native_function("logging.error", logging_error, state));
+      .value("error", runtime.make_native_function("logging.error", logging_error, state))
+      .value("critical", runtime.make_native_function("logging.critical", logging_critical, state))
+      .value("fatal", runtime.make_native_function("logging.fatal", logging_critical, state))
+      .value("exception", runtime.make_native_function("logging.exception", logging_error, state));
   runtime.register_module("logging", builder.finish());
 }
 

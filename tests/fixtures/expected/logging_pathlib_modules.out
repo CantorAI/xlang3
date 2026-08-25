@@ -1,6 +1,9 @@
 INFO:root:hello world
 WARNING:demo:careful
 ERROR:demo:boom
+WARNING 40
+40 True False
+True True
 xlang3_pathlib_test.txt
 xlang3_pathlib_test.txt
 .txt

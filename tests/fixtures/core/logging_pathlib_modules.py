@@ -12,6 +12,13 @@ log.warning("careful")
 log.setLevel(logging.ERROR)
 log.warning("hidden")
 log.error("boom")
+print(logging.getLevelName(logging.WARNING), logging.getLevelName("ERROR"))
+print(log.getEffectiveLevel(), log.isEnabledFor(logging.ERROR), log.isEnabledFor(logging.INFO))
+handler = logging.NullHandler()
+handler.setFormatter(logging.Formatter("%(message)s"))
+log.addHandler(handler)
+log.removeHandler(handler)
+print(isinstance(handler, logging.NullHandler), isinstance(logging.StreamHandler(), logging.StreamHandler))
 
 p = Path("xlang3_pathlib_test.txt")
 if p.exists():

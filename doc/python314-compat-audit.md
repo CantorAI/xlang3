@@ -439,7 +439,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
 - [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
-- [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, and Logger methods; handler/formatter hierarchy pending
+- [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, and basic path transforms; full operator/glob semantics pending
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
