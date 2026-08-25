@@ -217,13 +217,16 @@ bool dir_entry_stat(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
-Value make_dir_entry(Runtime& runtime, const std::filesystem::directory_entry& entry) {
+Value make_dir_entry_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("os")});
   attrs.push_back({"is_dir", runtime.make_native_function("os.DirEntry.is_dir", dir_entry_is_dir)});
   attrs.push_back({"is_file", runtime.make_native_function("os.DirEntry.is_file", dir_entry_is_file)});
   attrs.push_back({"stat", runtime.make_native_function("os.DirEntry.stat", dir_entry_stat)});
-  Value klass = Value::class_object("DirEntry", std::move(attrs));
+  return Value::class_object("DirEntry", std::move(attrs));
+}
+
+Value make_dir_entry(const Value& klass, const std::filesystem::directory_entry& entry) {
   Value instance = Value::instance(klass);
 
   const auto path = entry.path().string();
@@ -234,7 +237,7 @@ Value make_dir_entry(Runtime& runtime, const std::filesystem::directory_entry& e
   return instance;
 }
 
-bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_scandir(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc > 1) {
     error = "os.scandir() expected at most one argument";
     return false;
@@ -250,8 +253,9 @@ bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     return false;
   }
   std::vector<Value> entries;
+  const auto* dir_entry_class = static_cast<Value*>(user_data);
   for (const auto& entry : it) {
-    entries.push_back(make_dir_entry(runtime, entry));
+    entries.push_back(make_dir_entry(*dir_entry_class, entry));
   }
   out = Value::list(std::move(entries));
   return true;
@@ -562,6 +566,9 @@ Value make_os_path_module(Runtime& runtime) {
 void register_os_module(Runtime& runtime) {
   Value path_module = make_os_path_module(runtime);
   Value env_dict = Value::dict({});
+  auto* dir_entry_class = new Value(make_dir_entry_class(runtime));
+  runtime.register_native_package_cleanup(dir_entry_class, [](void* data) { delete static_cast<Value*>(data); });
+
   NativeModuleBuilder builder(runtime, "os");
   builder.function("getcwd", os_getcwd)
       .function("chdir", os_chdir)
@@ -570,7 +577,8 @@ void register_os_module(Runtime& runtime) {
       .function("getppid", os_getppid)
       .function("_exit", os_exit)
       .function("listdir", os_listdir)
-      .function("scandir", os_scandir)
+      .value("scandir", runtime.make_native_function("os.scandir", os_scandir, dir_entry_class))
+      .value("DirEntry", *dir_entry_class)
       .function("makedirs", os_makedirs)
       .function("remove", os_remove)
       .function("unlink", os_remove)

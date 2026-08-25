@@ -388,7 +388,7 @@ Native or runtime-backed foundation:
 High-level modules currently backed by native/runtime code:
 
 - [~] `threading`
-- [~] `os`: VFS-backed `listdir`, `scandir`/`DirEntry` foundation, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
+- [~] `os`: VFS-backed `listdir`, exported/reused `scandir`/`DirEntry` foundation, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
 - [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation; full path normalization/platform semantics pending
 - [~] `stat`: stat tuple indexes and common constants
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
@@ -514,7 +514,10 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   class-level constants, `isinstance`, arithmetic/string behavior, and whether
   the result should be base scalar or subclass instance in each Python case.
 
-- [ ] `os.scandir` / `DirEntry` audit:
+- [~] `os.scandir` / `DirEntry` audit:
+  exported `os.DirEntry`, reused DirEntry class, entry `name`/`path`,
+  `is_file`, `is_dir`, and `stat().st_size` fixture coverage added;
+  context-manager iterator behavior and symlink/follow semantics pending
   current implementation materializes a list-like result and minimal `DirEntry`
   objects. CPython returns a scandir iterator/context manager. Tests must cover
   iterator behavior, context manager cleanup, `name`, `path`, `inode`,

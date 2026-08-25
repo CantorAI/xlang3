@@ -25,6 +25,15 @@ with open(path, encoding="utf-8") as f:
 info = os.stat(path)
 print(info[6])
 print(path in os.listdir("."))
+scan_seen = False
+scan_size = -1
+scan_path = ""
+for entry in os.scandir("."):
+    if entry.name == path:
+        scan_seen = isinstance(entry, os.DirEntry) and entry.is_file() and not entry.is_dir()
+        scan_size = entry.stat().st_size
+        scan_path = entry.path
+print(scan_seen, scan_size, len(scan_path) > 0)
 print(os.fspath(path))
 print(os.getenv("__XLANG3_MISSING_ENV__", "fallback"))
 os.remove(path)
