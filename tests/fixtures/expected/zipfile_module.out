@@ -1,6 +1,8 @@
-[hello.txt, folder/source.txt]
+[hello.txt, folder/source.txt, deflated.txt]
 hello.txt 9 0
+8 True
 hello.txt 9
+True
 True
 True
 True

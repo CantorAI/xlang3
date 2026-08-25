@@ -320,7 +320,7 @@ Section-level fixture coverage:
 - [~] `importlib` compatibility: `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, and metadata distribution facade basics covered; loader/finder protocol pending
 - [~] namespace packages: no-`__init__.py` package import, child binding, `__path__`, and importlib spec basics covered; multi-root namespace merging pending
 - [~] relative import semantics: syntax and package-context resolution basics covered; full CPython package/import edge cases pending
-- [~] zip imports: `zipimport` facade, `zipimporter` protocol basics, and native stored-entry ZIP `get_data` extraction exposed; deflate support, sys.path zip roots, and code execution from zip members pending
+- [~] zip imports: `zipimport` facade, `zipimporter` protocol basics, and native stored/deflated-entry ZIP `get_data` extraction exposed; sys.path zip roots, encryption, and code execution from zip members pending
 - [~] frozen modules: `_frozen_importlib`, `_frozen_importlib_external`, and importlib bootstrap aliases exposed; real frozen-code table/bootstrap execution pending
 
 ### Builtins
@@ -450,7 +450,8 @@ High-level modules currently backed by native/runtime code:
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
 - [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending
-- [~] `zipfile`: native `ZipFile`/`ZipInfo` facade with stored archive `is_zipfile`, `namelist`, `infolist`, `getinfo`, `read`, `write`, `writestr`, `extract`, `extractall`, `testzip`, `close`, and context-manager basics; deflate/encryption/ZipExtFile/full metadata pending
+- [~] `zlib`: native zlib-backed `compress`, `decompress`, `crc32`, `adler32`, and common constants; streaming objects and exact CPython edge cases pending
+- [~] `zipfile`: native `ZipFile`/`ZipInfo` facade with stored/deflated archive `is_zipfile`, `namelist`, `infolist`, `getinfo`, `read`, `write`, `writestr`, `extract`, `extractall`, `testzip`, `close`, and context-manager basics; encryption/ZipExtFile/full metadata pending
 - [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, and `http.server` class names; real HTTP/XML-RPC networking and complete protocol behavior pending
 
 ### Async, Tasks, And Threads

@@ -79,6 +79,7 @@ void register_core_builtins(Runtime& runtime) {
   register_pickle_module(runtime);
   register_subprocess_module(runtime);
   register_winreg_module(runtime);
+  register_zlib_module(runtime);
   register_zipfile_module(runtime);
   register_zipimport_module(runtime);
   register_socket_modules(runtime);

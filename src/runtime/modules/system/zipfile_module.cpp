@@ -32,6 +32,7 @@ constexpr const char* kZipFileNativeType = "zipfile.ZipFile";
 struct ZipFileState {
   std::string path;
   std::string mode = "r";
+  uint16_t default_compression = 0;
   bool closed = false;
   bool dirty = false;
   std::vector<ZipArchiveMember> members;
@@ -116,10 +117,10 @@ bool load_existing_archive(Runtime& runtime, ZipFileState& state, std::string& e
   state.members.reserve(entries.size());
   for (const auto& entry : entries) {
     std::string data;
-    if (!zip_archive_extract_stored(archive, entry, data, error)) {
+    if (!zip_archive_extract_member(archive, entry, data, error)) {
       return false;
     }
-    state.members.push_back(ZipArchiveMember{entry.name, std::move(data)});
+    state.members.push_back(ZipArchiveMember{entry.name, std::move(data), entry.method, entry.compressed_size});
   }
   return true;
 }
@@ -129,7 +130,7 @@ bool flush_archive(Runtime& runtime, ZipFileState& state, std::string& error) {
     return true;
   }
   std::string archive;
-  if (!zip_archive_build_stored(state.members, archive, error)) {
+  if (!zip_archive_build(state.members, archive, error)) {
     return false;
   }
   if (!runtime.vfs().write_file(
@@ -143,16 +144,18 @@ bool flush_archive(Runtime& runtime, ZipFileState& state, std::string& error) {
   return true;
 }
 
-bool replace_or_append_member(ZipFileState& state, std::string name, std::string data) {
+bool replace_or_append_member(ZipFileState& state, std::string name, std::string data, uint16_t method) {
   name = normalized_member_name(std::move(name));
   for (auto& member : state.members) {
     if (member.name == name) {
       member.data = std::move(data);
+      member.method = method;
+      member.compressed_size = 0;
       state.dirty = true;
       return true;
     }
   }
-  state.members.push_back(ZipArchiveMember{std::move(name), std::move(data)});
+  state.members.push_back(ZipArchiveMember{std::move(name), std::move(data), method, 0});
   state.dirty = true;
   return true;
 }
@@ -170,8 +173,9 @@ Value make_zipinfo(Runtime& runtime, const ZipArchiveMember& member) {
   Value instance = Value::instance(zip_info_class);
   object_set_attr(instance, "filename", Value::string(member.name), ignored);
   object_set_attr(instance, "file_size", Value::int64(static_cast<int64_t>(member.data.size())), ignored);
-  object_set_attr(instance, "compress_size", Value::int64(static_cast<int64_t>(member.data.size())), ignored);
-  object_set_attr(instance, "compress_type", Value::int64(0), ignored);
+  const uint32_t compressed_size = member.compressed_size == 0 ? static_cast<uint32_t>(member.data.size()) : member.compressed_size;
+  object_set_attr(instance, "compress_size", Value::int64(static_cast<int64_t>(compressed_size)), ignored);
+  object_set_attr(instance, "compress_type", Value::int64(member.method), ignored);
   return instance;
 }
 
@@ -212,14 +216,19 @@ bool zipfile_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     error = "ZipFile mode must be 'r', 'w', 'a', or 'x'";
     return false;
   }
-  if (argc >= 4 && args[3].tag == ValueTag::Int64 && args[3].as.i64 != 0) {
-    error = "ZipFile currently supports ZIP_STORED only";
-    return false;
+  uint16_t compression = 0;
+  if (argc >= 4 && args[3].tag == ValueTag::Int64) {
+    if (args[3].as.i64 != 0 && args[3].as.i64 != 8) {
+      error = "ZipFile currently supports ZIP_STORED and ZIP_DEFLATED";
+      return false;
+    }
+    compression = static_cast<uint16_t>(args[3].as.i64);
   }
 
   auto* state = new ZipFileState();
   state->path = std::move(path);
   state->mode = std::move(mode);
+  state->default_compression = compression;
   if ((state->mode == "r" || state->mode == "a") && !load_existing_archive(runtime, *state, error)) {
     delete state;
     return false;
@@ -445,7 +454,15 @@ bool zipfile_writestr(Runtime&, const Value* args, uint32_t argc, Value& out, st
     error = "ZipFile.writestr data must be str or bytes-like";
     return false;
   }
-  replace_or_append_member(*state, std::move(name), std::move(data));
+  uint16_t method = state->default_compression;
+  if (argc >= 4 && args[3].tag == ValueTag::Int64) {
+    if (args[3].as.i64 != 0 && args[3].as.i64 != 8) {
+      error = "ZipFile.writestr currently supports ZIP_STORED and ZIP_DEFLATED";
+      return false;
+    }
+    method = static_cast<uint16_t>(args[3].as.i64);
+  }
+  replace_or_append_member(*state, std::move(name), std::move(data), method);
   value_set_none(out);
   return true;
 }
@@ -476,7 +493,15 @@ bool zipfile_write(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   std::string data(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-  replace_or_append_member(*state, std::move(arcname), std::move(data));
+  uint16_t method = state->default_compression;
+  if (argc >= 4 && args[3].tag == ValueTag::Int64) {
+    if (args[3].as.i64 != 0 && args[3].as.i64 != 8) {
+      error = "ZipFile.write currently supports ZIP_STORED and ZIP_DEFLATED";
+      return false;
+    }
+    method = static_cast<uint16_t>(args[3].as.i64);
+  }
+  replace_or_append_member(*state, std::move(arcname), std::move(data), method);
   value_set_none(out);
   return true;
 }

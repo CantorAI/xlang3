@@ -22,6 +22,7 @@ namespace xlang3 {
 
 struct ZipArchiveEntry {
   std::string name;
+  uint16_t flags = 0;
   uint16_t method = 0;
   uint32_t crc32 = 0;
   uint32_t compressed_size = 0;
@@ -32,6 +33,8 @@ struct ZipArchiveEntry {
 struct ZipArchiveMember {
   std::string name;
   std::string data;
+  uint16_t method = 0;
+  uint32_t compressed_size = 0;
 };
 
 bool zip_archive_list_entries(
@@ -51,7 +54,18 @@ bool zip_archive_extract_stored(
     std::string& out,
     std::string& error);
 
+bool zip_archive_extract_member(
+    const std::vector<uint8_t>& archive,
+    const ZipArchiveEntry& entry,
+    std::string& out,
+    std::string& error);
+
 bool zip_archive_build_stored(
+    const std::vector<ZipArchiveMember>& members,
+    std::string& out,
+    std::string& error);
+
+bool zip_archive_build(
     const std::vector<ZipArchiveMember>& members,
     std::string& out,
     std::string& error);

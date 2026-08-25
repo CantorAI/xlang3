@@ -109,7 +109,7 @@ bool zipimporter_get_data(Runtime& runtime, const Value* args, uint32_t argc, Va
       ZipArchiveEntry entry;
       std::string extracted;
       if (!zip_archive_find_entry(archive_bytes, member, entry, error) ||
-          !zip_archive_extract_stored(archive_bytes, entry, extracted, error)) {
+          !zip_archive_extract_member(archive_bytes, entry, extracted, error)) {
         return false;
       }
       out = Value::bytes(std::move(extracted));

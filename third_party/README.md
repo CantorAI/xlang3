@@ -30,6 +30,12 @@ XLang3 vendors selected third-party source dependencies directly so the project 
   - License: MIT
   - Intended use: native `xlang_yaml` package implementation only.
 
+- `zlib/`
+  - Version: `1.3.2`
+  - Source: `https://zlib.net/`
+  - License: zlib
+  - Intended use: native `zlib` module and ZIP deflate support.
+
 ## Boundary Rule
 
 Third-party C++ types must not cross the XLang3 public ABI. Public APIs continue to use `X3Value`, opaque handles, and C function tables.

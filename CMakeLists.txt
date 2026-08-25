@@ -26,7 +26,11 @@ set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
 set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/zlib EXCLUDE_FROM_ALL)
 add_subdirectory(modules/json)
 add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
@@ -157,6 +161,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/warnings_module.cpp
   src/runtime/modules/system/winreg_module.cpp
   src/runtime/modules/system/xmlrpc_http_module.cpp
+  src/runtime/modules/system/zlib_module.cpp
   src/runtime/modules/system/zip_archive.cpp
   src/runtime/modules/system/zipfile_module.cpp
   src/runtime/modules/system/zipimport_module.cpp
@@ -222,8 +227,9 @@ target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/th
 target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 
-target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
-target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
+target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC)
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC)
 
 if(WIN32)
   target_link_libraries(xlang3_runtime PRIVATE ws2_32)

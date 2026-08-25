@@ -10,16 +10,19 @@ with open(source, "w") as f:
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as zf:
     zf.writestr("hello.txt", "hello zip")
     zf.write(source, "folder/source.txt")
+    zf.writestr("deflated.txt", "abc abc abc abc", zipfile.ZIP_DEFLATED)
 
 with zipfile.ZipFile(archive, "r") as zf:
     names = zf.namelist()
     infos = zf.infolist()
     print(names)
     print(infos[0].filename, infos[0].file_size, infos[0].compress_type)
+    print(zf.getinfo("deflated.txt").compress_type, zf.getinfo("deflated.txt").compress_size < zf.getinfo("deflated.txt").file_size)
     print(zf.getinfo("hello.txt").filename, zf.getinfo(infos[1]).file_size)
     print(zf.read("hello.txt") == b"hello zip")
     print(zf.read(infos[1]) == b"from file")
     print(zf.read("folder/source.txt") == b"from file")
+    print(zf.read("deflated.txt") == b"abc abc abc abc")
     print(zf.testzip() is None)
 
 print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
