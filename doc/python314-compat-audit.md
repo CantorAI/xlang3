@@ -412,13 +412,22 @@ High-level modules currently backed by native/runtime code:
 - [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
 - [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, `chain`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; lazy object identity, keyword-only options, and full iterator algebra pending
-- [~] `json`: native `loads`/`load`/`dumps`/`save` foundation; full CPython `json` package behavior pending
+- [~] `json`: native `loads`/`load`/`dumps`/`dump`, file-like I/O, CPython-style default separators,
+  `indent`, `sort_keys`, `ensure_ascii`, `separators`, `skipkeys`, `default`, `object_hook`,
+  `object_pairs_hook`, `parse_int`, `parse_float`, `JSONEncoder.encode`/`iterencode`, and
+  `JSONDecoder.decode` foundations; exact `JSONDecodeError` payloads, `allow_nan`/`parse_constant`,
+  streaming encoder details, and full CPython package behavior pending
 - [~] `locale`: category constants, set/get locale, encoding helpers, normalize, and localeconv shape; real platform locale semantics pending
-- [~] `marshal`: XLang3-native `dumps`/`loads` and file `dump`/`load` round-trip foundations for scalars, strings/bytes, and common containers; CPython marshal wire format/code-object semantics pending
+- [~] `marshal`: XLang3-native `dumps`/`loads` and file `dump`/`load` round-trip foundations for scalars,
+  strings/bytes, and common containers; this is intentionally not CPython `.pyc`/code-object marshal exact yet
 - [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
 - [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
-- [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes, and `dumps`/`loads`/file `dump`/`load` foundations for common XLang3 values through an XLang3-native envelope; CPython pickle opcode protocol, reducers, persistent IDs, custom object state, and extension compatibility pending
+- [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes,
+  `Pickler`/`Unpickler`, and `dumps`/`loads`/file `dump`/`load`; new output uses a CPython-readable
+  pickle opcode subset for common scalars/bytes/strings/containers, and XLang3 reads the same protocol-4
+  subset from CPython; reducers, persistent IDs, shared-reference memo semantics, custom object state,
+  extension registry, and protocol-5 out-of-band buffers pending
 - [~] `platform`: platform/python version helpers foundation
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`, and loader placeholder foundations; full finder/loader semantics pending
 - [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, `findall`, `split`, `sub`, and `escape` facade; full CPython regex semantics pending

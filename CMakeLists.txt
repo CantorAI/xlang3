@@ -334,6 +334,14 @@ add_test(
 )
 
 add_test(
+  NAME xlang3_cli_pickle_interop
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+          -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop
+)
+
+add_test(
   NAME xlang3_cli_dap_stdio_smoke
   COMMAND powershell -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.ps1

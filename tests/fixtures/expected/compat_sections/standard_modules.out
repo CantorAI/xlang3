@@ -53,10 +53,17 @@ True
 True True True
 [2] Terminated
 keyboard
+{"a":[2,3],"b":1}
+True
+z3
+n:42
+True 9
+[1, 2] {"a": 1}
 x True True True
 stream 5
 two False 5
 p
+2
 demo.echo 7 rpc
 200 Not Found 80
 True True True

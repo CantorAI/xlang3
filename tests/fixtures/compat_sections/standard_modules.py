@@ -223,6 +223,7 @@ import getpass
 import http
 import http.client
 import io
+import json
 import locale
 import marshal
 import opcode
@@ -280,6 +281,28 @@ try:
 except KeyboardInterrupt:
     print("keyboard")
 
+# json: CPython API names, formatting kwargs, hooks, and file-like dump/load.
+json_compact = json.dumps({"b": 1, "a": [2, 3]}, sort_keys=True, separators=(",", ":"))
+print(json_compact)
+
+def json_hook(obj):
+    obj["hooked"] = True
+    return obj
+
+def json_pairs_hook(pairs):
+    return pairs[0][0] + str(pairs[0][1])
+
+def parse_num(text):
+    return "n:" + text
+
+print(json.loads('{"x":1}', object_hook=json_hook)["hooked"])
+print(json.loads('{"z":3}', object_pairs_hook=json_pairs_hook))
+print(json.loads('{"n":42}', parse_int=parse_num)["n"])
+json_stream = io.StringIO()
+json.dump({"a": 1}, json_stream, indent=2)
+print("\n" in json_stream.getvalue(), json.load(io.StringIO('{"k": 9}'))["k"])
+print(json.JSONEncoder().encode([1, 2]), list(json.JSONEncoder().iterencode({"a": 1}))[0])
+
 marshal_payload = {"n": [1, 2, (3, "x")], "b": b"hi", "none": None, "truth": True}
 marshal_copy = marshal.loads(marshal.dumps(marshal_payload))
 print(marshal_copy["n"][2][1], marshal_copy["b"] == b"hi", marshal_copy["none"] is None, marshal_copy["truth"])
@@ -289,12 +312,16 @@ marshal_stream.seek(0)
 print(marshal.load(marshal_stream)[1], marshal.version)
 
 pickle_payload = {"items": [1, "two"], "flag": False}
-pickle_copy = pickle.loads(pickle.dumps(pickle_payload))
+pickle_copy = pickle.loads(pickle.dumps(pickle_payload, 4))
 print(pickle_copy["items"][1], pickle_copy["flag"], pickle.HIGHEST_PROTOCOL)
 pickle_stream = io.BytesIO()
 pickle.dump(("p", 3), pickle_stream)
 pickle_stream.seek(0)
 print(pickle.load(pickle_stream)[0])
+pickle_stream2 = io.BytesIO()
+pickle.Pickler(pickle_stream2).dump({"p": [1, 2]})
+pickle_stream2.seek(0)
+print(pickle.Unpickler(pickle_stream2).load()["p"][1])
 
 xml = xmlrpc.client.dumps((7, "rpc"), methodname="demo.echo")
 xml_params, xml_method = xmlrpc.client.loads(xml)
