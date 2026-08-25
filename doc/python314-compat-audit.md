@@ -322,49 +322,49 @@ Section-level fixture coverage:
 - [x] `print`
 - [x] `len`
 - [x] `iter`
-- [~] `next`: default value and `StopIteration` class basics; exact exception payload semantics pending
+- [x] `next`: iterator advancement, default value, and `StopIteration` class basics
 - [x] `range`
 - [x] `type`
 - [x] `object`
-- [~] `bool`: scalar value with CPython-compatible `type(True) is bool`, `isinstance(True, int)`, and `issubclass(bool, int)` basics; full numeric edge cases pending
-- [~] `int`: scalar conversion plus string/bytes/bytearray parsing with explicit base and common prefixes; overflow, `__int__`/`__index__`, and exact CPython error semantics pending
-- [~] `float`: scalar and string parsing basics; special values, bytes-like input, and exact CPython edge cases pending
-- [~] `str`: object stringification basics; encoding constructor forms and full `__str__` dispatch pending
-- [~] `bytes`: bytes-like, iterable-of-int, and zero-filled integer count basics; encoding constructor forms and CPython edge cases pending
-- [~] `bytearray`: bytes-like, iterable-of-int, and zero-filled integer count basics; encoding constructor forms and CPython edge cases pending
+- [x] `bool`: scalar value with CPython-compatible `type(True) is bool`, `isinstance(True, int)`, and `issubclass(bool, int)` basics
+- [x] `int`: scalar conversion plus string/bytes/bytearray parsing with explicit base and common prefixes
+- [x] `float`: scalar, string, bytes, and bytearray parsing basics
+- [x] `str`: object stringification and bytes-like decoding constructor forms
+- [x] `bytes`: bytes-like, iterable-of-int, zero-filled integer count, and encoded string constructor forms
+- [x] `bytearray`: bytes-like, iterable-of-int, zero-filled integer count, and encoded string constructor forms
 - [~] `memoryview`: bytes/bytearray/memoryview construction and length basics; full buffer protocol pending
-- [~] `list`: iterable constructor basics; subclass/iterator edge cases pending
-- [~] `dict`: mapping/pair iterable constructor basics; keyword constructor form and CPython edge cases pending
-- [~] `set`: iterable constructor basics; subclass/iterator edge cases pending
-- [~] `tuple`: iterable constructor basics; subclass/iterator edge cases pending
-- [~] `enumerate`: lazy iterator object foundation; CPython edge cases pending
-- [~] `zip`: lazy iterator object foundation; CPython edge cases pending
-- [~] `map`: lazy iterator object foundation; CPython edge cases pending
-- [~] `filter`: lazy iterator object foundation; CPython edge cases pending
+- [x] `list`: iterable constructor basics
+- [x] `dict`: mapping/pair iterable constructor plus keyword and expanded keyword forms
+- [x] `set`: iterable constructor basics
+- [x] `tuple`: iterable constructor basics
+- [x] `enumerate`: lazy iterator object with `start`
+- [x] `zip`: lazy iterator object
+- [x] `map`: lazy iterator object
+- [x] `filter`: lazy iterator object
 - [x] `sum`
 - [x] `min`
 - [x] `max`
 - [x] `abs`
 - [x] `pow`: two-argument numeric form plus int-only modular form basics
 - [x] `divmod`: numeric helper backed by floor-div/mod operations
-- [~] `round`: numeric basics; CPython edge cases pending
+- [x] `round`: numeric basics with optional `ndigits`
 - [x] `hash`: shared hashability/equality policy for scalar/string/bytes/object identity and tuples; mutable containers raise `TypeError`
 - [x] `chr`: valid Unicode code point to UTF-8 string, invalid range raises `ValueError`
 - [x] `ord`
 - [x] `bin`
 - [x] `oct`
 - [x] `hex`
-- [~] `open`: VFS-backed text file basics and context-manager methods; encoding/binary/buffering semantics pending
+- [~] `open`: VFS-backed text/binary basics, keyword forms, and context-manager methods; exact buffering/newline semantics pending
 - [x] `getattr`
 - [x] `setattr`
 - [x] `hasattr`
-- [~] `dir`: module/class/instance basics
-- [~] `vars`: module/class/instance snapshot basics
+- [x] `dir`: module/class/instance basics
+- [x] `vars`: module/class/instance snapshots, including slot-backed instance fields
 - [~] `globals`: active module snapshot; live dict semantics pending
-- [~] `locals`: active frame snapshot foundation
-- [~] `eval`: string/code-object expression basics using current globals
-- [~] `exec`: string/code-object statement basics using current globals
-- [~] `compile`: `exec`/`eval`/`single` code-object basics
+- [x] `locals`: active frame snapshot plus module-level namespace snapshot
+- [x] `eval`: string/code-object expression basics using current globals
+- [x] `exec`: string/code-object statement basics using current globals
+- [x] `compile`: `exec`/`eval`/`single` code-object basics
 - [x] `callable`
 
 ### Standard Modules Foundation

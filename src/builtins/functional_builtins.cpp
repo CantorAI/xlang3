@@ -1006,9 +1006,25 @@ bool builtin_vars(
     return true;
   }
   if (auto* instance = value_as_instance(args[0])) {
-    entries.reserve(instance->attrs.size());
+    auto* klass = value_as_class(instance->klass);
+    const size_t slot_count = klass == nullptr ? 0 : klass->instance_slot_names.size();
+    entries.reserve(instance->attrs.size() + slot_count);
+    if (klass != nullptr) {
+      const uint32_t count = instance_slot_count(instance);
+      for (size_t i = 0; i < klass->instance_slot_names.size() && i < count; ++i) {
+        const auto& value = instance_slot_at(instance, static_cast<uint32_t>(i));
+        if (value.tag != ValueTag::Invalid) {
+          entries.push_back({Value::string(klass->instance_slot_names[i]), value});
+        }
+      }
+    }
     for (const auto& attr : instance->attrs) {
       entries.push_back({Value::string(attr.first), attr.second});
+    }
+    if (auto* storage = value_as_dict(instance->mapping_storage)) {
+      for (const auto& entry : storage->entries) {
+        entries.push_back({entry.first, entry.second});
+      }
     }
     out = Value::dict(std::move(entries));
     return true;

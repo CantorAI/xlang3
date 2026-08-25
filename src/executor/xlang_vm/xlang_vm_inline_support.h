@@ -704,22 +704,140 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     return false;
   }
 
-  if (args.has_keywords() || args.has_expansion()) {
-    error = klass.name + "() keyword and expanded arguments are not implemented yet";
+  std::vector<Value> constructor_positional;
+  std::vector<std::pair<std::string, Value>> constructor_keywords;
+  CallArgsView constructor_args = args;
+
+  auto materialize_constructor_args = [&]() -> bool {
+    constructor_positional.clear();
+    constructor_keywords.clear();
+    constructor_positional.reserve(args.size());
+    for (size_t i = 0; i < args.size(); ++i) {
+      constructor_positional.push_back(args.get(i));
+    }
+    if (args.star_arg != UINT32_MAX) {
+      Value iterator;
+      if (!sequence_get_iter(args.registers[args.star_arg], iterator, error)) {
+        error = "* argument must be iterable";
+        return false;
+      }
+      for (;;) {
+        bool done = false;
+        Value item;
+        if (!sequence_iter_next(iterator, done, item, error)) {
+          return false;
+        }
+        if (done) {
+          break;
+        }
+        constructor_positional.push_back(std::move(item));
+      }
+    }
+    auto add_keyword = [&](std::string name, const Value& value) -> bool {
+      for (const auto& existing : constructor_keywords) {
+        if (existing.first == name) {
+          error = "got multiple values for keyword argument '" + name + "'";
+          return false;
+        }
+      }
+      constructor_keywords.push_back({std::move(name), value});
+      return true;
+    };
+    if (args.keyword_args != nullptr) {
+      for (const auto& keyword : *args.keyword_args) {
+        if (!add_keyword(keyword.name, args.registers[keyword.value_reg])) {
+          return false;
+        }
+      }
+    }
+    if (args.kw_star_arg != UINT32_MAX) {
+      auto* kwargs = value_as_dict(args.registers[args.kw_star_arg]);
+      if (kwargs == nullptr) {
+        error = "** argument must be dict";
+        return false;
+      }
+      for (const auto& entry : kwargs->entries) {
+        auto* key = value_as_string(entry.first);
+        if (key == nullptr) {
+          error = "** argument keys must be strings";
+          return false;
+        }
+        if (!add_keyword(string_object_to_string(*key), entry.second)) {
+          return false;
+        }
+      }
+    }
+    constructor_args.leading = constructor_positional.data();
+    constructor_args.leading_count = static_cast<uint32_t>(constructor_positional.size());
+    constructor_args.registers = nullptr;
+    constructor_args.register_args = nullptr;
+    constructor_args.keyword_args = nullptr;
+    constructor_args.star_arg = UINT32_MAX;
+    constructor_args.kw_star_arg = UINT32_MAX;
+    return true;
+  };
+
+  if ((args.has_keywords() || args.has_expansion()) && !materialize_constructor_args()) {
     return false;
   }
 
-  if (constructor == XlangVMBuiltinConstructor::Type) {
-    if (args.size() == 1) {
-      return runtime_type_of_value(runtime, args.get(0), out);
+  auto reject_constructor_keywords = [&]() -> bool {
+    if (!constructor_keywords.empty()) {
+      error = klass.name + "() got an unexpected keyword argument '" + constructor_keywords.front().first + "'";
+      return false;
     }
-    if (args.size() != 3) {
+    return true;
+  };
+
+  auto find_constructor_keyword = [&](const char* name) -> const Value* {
+    for (const auto& keyword : constructor_keywords) {
+      if (keyword.first == name) {
+        return &keyword.second;
+      }
+    }
+    return nullptr;
+  };
+
+  auto reject_constructor_keywords_except = [&](std::initializer_list<const char*> allowed) -> bool {
+    for (const auto& keyword : constructor_keywords) {
+      bool ok = false;
+      for (const char* name : allowed) {
+        if (keyword.first == name) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) {
+        error = klass.name + "() got an unexpected keyword argument '" + keyword.first + "'";
+        return false;
+      }
+    }
+    return true;
+  };
+
+  auto require_constructor_string_keyword = [&](const Value* value, const char* name) -> bool {
+    if (value == nullptr || value->tag == ValueTag::None) {
+      return true;
+    }
+    if (value_as_string(*value) == nullptr) {
+      error = klass.name + "() " + std::string(name) + " must be str or None";
+      return false;
+    }
+    return true;
+  };
+
+  if (constructor == XlangVMBuiltinConstructor::Type) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() == 1) {
+      return runtime_type_of_value(runtime, constructor_args.get(0), out);
+    }
+    if (constructor_args.size() != 3) {
       error = "type() expected 1 or 3 arguments";
       return false;
     }
-    auto* name = value_as_string(args.get(0));
-    auto* bases = value_as_tuple(args.get(1));
-    auto* namespace_dict = xlang_vm_type_namespace_dict(args.get(2));
+    auto* name = value_as_string(constructor_args.get(0));
+    auto* bases = value_as_tuple(constructor_args.get(1));
+    auto* namespace_dict = xlang_vm_type_namespace_dict(constructor_args.get(2));
     if (name == nullptr) {
       error = "type() argument 1 must be str";
       return false;
@@ -792,7 +910,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Object) {
-    if (args.size() != 0) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 0) {
       error = "object() expected no arguments";
       return false;
     }
@@ -805,33 +924,79 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Str) {
-    if (args.size() > 1) {
-      error = "str() expected at most 1 argument";
+    if (!reject_constructor_keywords_except({"encoding", "errors"})) return false;
+    const Value* encoding = find_constructor_keyword("encoding");
+    const Value* errors_value = find_constructor_keyword("errors");
+    if (!require_constructor_string_keyword(encoding, "encoding") ||
+        !require_constructor_string_keyword(errors_value, "errors")) {
       return false;
     }
-    out = args.size() == 0 ? Value::string("") : Value::string(value_to_string(args.get(0)));
+    if (constructor_args.size() > 3) {
+      error = "str() expected at most 3 arguments";
+      return false;
+    }
+    if (constructor_args.size() >= 2) {
+      encoding = &constructor_args.get(1);
+      if (!require_constructor_string_keyword(encoding, "encoding")) return false;
+    }
+    if (constructor_args.size() >= 3) {
+      errors_value = &constructor_args.get(2);
+      if (!require_constructor_string_keyword(errors_value, "errors")) return false;
+    }
+    if (constructor_args.size() == 0) {
+      out = Value::string("");
+      return true;
+    }
+    const Value& source = constructor_args.get(0);
+    if (encoding != nullptr && encoding->tag != ValueTag::None) {
+      if (auto* bytes = value_as_bytes(source)) {
+        out = Value::string(bytes_object_to_string(*bytes));
+        return true;
+      }
+      if (auto* bytearray = value_as_bytearray(source)) {
+        out = Value::string(bytearray->value);
+        return true;
+      }
+      if (auto* view = value_as_memoryview(source)) {
+        std::string text;
+        for (size_t i = 0; i < view->size; ++i) {
+          Value item;
+          if (!sequence_get_item(source, Value::int64(static_cast<int64_t>(i)), item, error)) {
+            return false;
+          }
+          text.push_back(static_cast<char>(item.as.i64));
+        }
+        out = Value::string(std::move(text));
+        return true;
+      }
+      error = "decoding str is not supported";
+      return false;
+    }
+    out = Value::string(value_to_string(source));
     return true;
   }
 
   if (constructor == XlangVMBuiltinConstructor::Bool) {
-    if (args.size() > 1) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
       error = "bool() expected at most 1 argument";
       return false;
     }
-    out = Value::boolean(args.size() == 0 ? false : value_truthy(args.get(0)));
+    out = Value::boolean(constructor_args.size() == 0 ? false : value_truthy(constructor_args.get(0)));
     return true;
   }
 
   if (constructor == XlangVMBuiltinConstructor::Int) {
-    if (args.size() > 2) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 2) {
       error = "int() expected at most 2 arguments";
       return false;
     }
-    if (args.size() == 0) {
+    if (constructor_args.size() == 0) {
       out = Value::int64(0);
       return true;
     }
-    const Value& value = args.get(0);
+    const Value& value = constructor_args.get(0);
     if (value.tag == ValueTag::Int64) {
       value_assign_fast(out, value);
       return true;
@@ -845,12 +1010,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     int base = 10;
-    if (args.size() == 2) {
-      if (args.get(1).tag != ValueTag::Int64) {
+    if (constructor_args.size() == 2) {
+      if (constructor_args.get(1).tag != ValueTag::Int64) {
         error = "int() base must be an integer";
         return false;
       }
-      base = static_cast<int>(args.get(1).as.i64);
+      base = static_cast<int>(constructor_args.get(1).as.i64);
       if (value_as_string(value) == nullptr && value_as_bytes(value) == nullptr && value_as_bytearray(value) == nullptr) {
         error = "int() can't convert non-string with explicit base";
         return false;
@@ -884,15 +1049,16 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Float) {
-    if (args.size() > 1) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
       error = "float() expected at most 1 argument";
       return false;
     }
-    if (args.size() == 0) {
+    if (constructor_args.size() == 0) {
       out = Value::number(0.0);
       return true;
     }
-    const Value& value = args.get(0);
+    const Value& value = constructor_args.get(0);
     if (value.tag == ValueTag::Double) {
       value_assign_fast(out, value);
       return true;
@@ -915,12 +1081,32 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return true;
       }
     }
-    error = "float() argument must be a string, number, or bool";
+    if (auto* bytes = value_as_bytes(value)) {
+      const std::string owned_text = bytes_object_to_string(*bytes);
+      char* end = nullptr;
+      const char* start = owned_text.c_str();
+      const double parsed = std::strtod(start, &end);
+      if (end != start && *end == '\0') {
+        out = Value::number(parsed);
+        return true;
+      }
+    }
+    if (auto* bytes = value_as_bytearray(value)) {
+      char* end = nullptr;
+      const char* start = bytes->value.c_str();
+      const double parsed = std::strtod(start, &end);
+      if (end != start && *end == '\0') {
+        out = Value::number(parsed);
+        return true;
+      }
+    }
+    error = "float() argument must be a string, bytes-like object, number, or bool";
     return false;
   }
 
   if (constructor == XlangVMBuiltinConstructor::Range) {
-    if (args.size() < 1 || args.size() > 3) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() < 1 || constructor_args.size() > 3) {
       error = "range() expected 1 to 3 arguments";
       return false;
     }
@@ -928,7 +1114,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     int64_t stop = 0;
     int64_t step = 1;
     auto read_int = [&](size_t index, int64_t& target) -> bool {
-      const Value& value = args.get(index);
+      const Value& value = constructor_args.get(index);
       if (value.tag != ValueTag::Int64) {
         error = "range() arguments must be int";
         return false;
@@ -936,11 +1122,11 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       target = value.as.i64;
       return true;
     };
-    if (args.size() == 1) {
+    if (constructor_args.size() == 1) {
       if (!read_int(0, stop)) return false;
     } else {
       if (!read_int(0, start) || !read_int(1, stop)) return false;
-      if (args.size() == 3 && !read_int(2, step)) return false;
+      if (constructor_args.size() == 3 && !read_int(2, step)) return false;
     }
     if (step == 0) {
       error = "range() step must not be zero";
@@ -951,14 +1137,15 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::List || constructor == XlangVMBuiltinConstructor::Tuple || constructor == XlangVMBuiltinConstructor::Set) {
-    if (args.size() > 1) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
       error = klass.name + "() expected at most 1 argument";
       return false;
     }
     std::vector<Value> items;
-    if (args.size() == 1) {
+    if (constructor_args.size() == 1) {
       Value iterator;
-      if (!sequence_get_iter(args.get(0), iterator, error)) {
+      if (!sequence_get_iter(constructor_args.get(0), iterator, error)) {
         return false;
       }
       execution_lock.unlock();
@@ -1012,8 +1199,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     if (auto* string = value_as_string(arg)) {
-      bytes = string_object_to_string(*string);
-      return true;
+      local_error = "string argument without an encoding";
+      return false;
     }
     Value iterator;
     if (!sequence_get_iter(arg, iterator, local_error)) {
@@ -1036,22 +1223,30 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   };
 
   if (constructor == XlangVMBuiltinConstructor::Dict) {
-    if (args.size() > 1) {
+    if (constructor_args.size() > 1) {
       error = "dict() expected at most 1 argument";
       return false;
     }
     out = Value::dict({});
-    if (args.size() == 0) {
+    auto add_constructor_keywords_to_dict = [&]() -> bool {
+      for (const auto& keyword : constructor_keywords) {
+        if (!mapping_set_item(out, Value::string(keyword.first), keyword.second, error)) {
+          return false;
+        }
+      }
       return true;
+    };
+    if (constructor_args.size() == 0) {
+      return add_constructor_keywords_to_dict();
     }
-    const Value& source = args.get(0);
+    const Value& source = constructor_args.get(0);
     if (auto* dict = value_as_dict(source)) {
       for (const auto& entry : dict->entries) {
         if (!mapping_set_item(out, entry.first, entry.second, error)) {
           return false;
         }
       }
-      return true;
+      return add_constructor_keywords_to_dict();
     }
     if (auto* instance = value_as_instance(source)) {
       if (auto* storage = value_as_dict(instance->mapping_storage)) {
@@ -1060,7 +1255,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
             return false;
           }
         }
-        return true;
+        return add_constructor_keywords_to_dict();
       }
     }
     Value iterator;
@@ -1094,20 +1289,41 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return false;
       }
     }
-    return true;
+    return add_constructor_keywords_to_dict();
   }
 
   if (constructor == XlangVMBuiltinConstructor::Bytes) {
-    if (args.size() > 1) {
-      error = "bytes() expected at most 1 argument";
+    if (!reject_constructor_keywords_except({"encoding", "errors"})) return false;
+    const Value* encoding = find_constructor_keyword("encoding");
+    const Value* errors_value = find_constructor_keyword("errors");
+    if (!require_constructor_string_keyword(encoding, "encoding") ||
+        !require_constructor_string_keyword(errors_value, "errors")) {
       return false;
     }
-    if (args.size() == 0) {
+    if (constructor_args.size() > 3) {
+      error = "bytes() expected at most 3 arguments";
+      return false;
+    }
+    if (constructor_args.size() == 0) {
       out = Value::bytes("");
       return true;
     }
+    if (constructor_args.size() >= 2) {
+      encoding = &constructor_args.get(1);
+      if (!require_constructor_string_keyword(encoding, "encoding")) return false;
+    }
+    if (constructor_args.size() >= 3) {
+      errors_value = &constructor_args.get(2);
+      if (!require_constructor_string_keyword(errors_value, "errors")) return false;
+    }
     std::string bytes;
-    if (!make_bytes_from_arg(args.get(0), bytes, error)) {
+    if (auto* string = value_as_string(constructor_args.get(0))) {
+      if (encoding == nullptr || encoding->tag == ValueTag::None) {
+        error = "string argument without an encoding";
+        return false;
+      }
+      bytes = string_object_to_string(*string);
+    } else if (!make_bytes_from_arg(constructor_args.get(0), bytes, error)) {
       return false;
     }
     out = Value::bytes(std::move(bytes));
@@ -1115,16 +1331,37 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::ByteArray) {
-    if (args.size() > 1) {
-      error = "bytearray() expected at most 1 argument";
+    if (!reject_constructor_keywords_except({"encoding", "errors"})) return false;
+    const Value* encoding = find_constructor_keyword("encoding");
+    const Value* errors_value = find_constructor_keyword("errors");
+    if (!require_constructor_string_keyword(encoding, "encoding") ||
+        !require_constructor_string_keyword(errors_value, "errors")) {
       return false;
     }
-    if (args.size() == 0) {
+    if (constructor_args.size() > 3) {
+      error = "bytearray() expected at most 3 arguments";
+      return false;
+    }
+    if (constructor_args.size() == 0) {
       out = Value::bytearray("");
       return true;
     }
+    if (constructor_args.size() >= 2) {
+      encoding = &constructor_args.get(1);
+      if (!require_constructor_string_keyword(encoding, "encoding")) return false;
+    }
+    if (constructor_args.size() >= 3) {
+      errors_value = &constructor_args.get(2);
+      if (!require_constructor_string_keyword(errors_value, "errors")) return false;
+    }
     std::string bytes;
-    if (!make_bytes_from_arg(args.get(0), bytes, error)) {
+    if (auto* string = value_as_string(constructor_args.get(0))) {
+      if (encoding == nullptr || encoding->tag == ValueTag::None) {
+        error = "string argument without an encoding";
+        return false;
+      }
+      bytes = string_object_to_string(*string);
+    } else if (!make_bytes_from_arg(constructor_args.get(0), bytes, error)) {
       return false;
     }
     out = Value::bytearray(std::move(bytes));
@@ -1132,11 +1369,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::MemoryView) {
-    if (args.size() != 1) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 1) {
       error = "memoryview() expected 1 argument";
       return false;
     }
-    const Value& source = args.get(0);
+    const Value& source = constructor_args.get(0);
     if (auto* bytes = value_as_bytes(source)) {
       out = Value::memoryview(source, 0, bytes->size, true);
       return true;
@@ -1154,25 +1392,27 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Property) {
-    if (args.size() > 4) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 4) {
       error = "property() expected at most 4 arguments";
       return false;
     }
     out = Value::property(
-        args.size() > 0 ? args.get(0) : Value::none(),
-        args.size() > 1 ? args.get(1) : Value::none(),
-        args.size() > 2 ? args.get(2) : Value::none(),
-        args.size() > 3 ? args.get(3) : Value::none());
+        constructor_args.size() > 0 ? constructor_args.get(0) : Value::none(),
+        constructor_args.size() > 1 ? constructor_args.get(1) : Value::none(),
+        constructor_args.size() > 2 ? constructor_args.get(2) : Value::none(),
+        constructor_args.size() > 3 ? constructor_args.get(3) : Value::none());
     return true;
   }
 
   if (constructor == XlangVMBuiltinConstructor::ClassMethod ||
       constructor == XlangVMBuiltinConstructor::StaticMethod) {
-    if (args.size() != 1) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 1) {
       error = klass.name + "() expected 1 argument";
       return false;
     }
-    const Value& function = args.get(0);
+    const Value& function = constructor_args.get(0);
     if (value_as_function(function) == nullptr &&
         value_as_native_function(function) == nullptr &&
         value_as_bound_method(function) == nullptr) {
@@ -1186,19 +1426,20 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Super) {
-    if (args.size() != 0 && args.size() != 2) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 0 && constructor_args.size() != 2) {
       error = "super() expected 0 or 2 arguments";
       return false;
     }
     Value klass;
     Value self;
-    if (args.size() == 2) {
-      if (value_as_class(args.get(0)) == nullptr) {
+    if (constructor_args.size() == 2) {
+      if (value_as_class(constructor_args.get(0)) == nullptr) {
         error = "super() first argument must be type";
         return false;
       }
-      value_assign_fast(klass, args.get(0));
-      value_assign_fast(self, args.get(1));
+      value_assign_fast(klass, constructor_args.get(0));
+      value_assign_fast(self, constructor_args.get(1));
     } else {
       Value locals = runtime.current_locals_snapshot();
       if (!mapping_get_item(locals, Value::string("self"), self, error)) {

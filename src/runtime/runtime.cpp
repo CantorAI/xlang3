@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include "xlang3/builtins.h"
+#include "xlang3/ir.h"
 #if !defined(XLANG3_EMBEDDED)
 #include "xlang3/import_loader.h"
 #include "xlang3/native_package_loader.h"
@@ -537,6 +538,21 @@ Value locals_snapshot_from_view(const RuntimeFrameView& view) {
   return Value::dict(std::move(entries));
 }
 
+Value module_attrs_snapshot(const Value& module_value) {
+  const auto* module = value_as_module(module_value);
+  if (module == nullptr) {
+    return Value::dict({});
+  }
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(module->name_to_slot.size());
+  for (const auto& entry : module->name_to_slot) {
+    if (entry.second < module->slots.size() && module->slots[entry.second].tag != ValueTag::Invalid) {
+      entries.push_back({Value::string(entry.first), module->slots[entry.second]});
+    }
+  }
+  return Value::dict(std::move(entries));
+}
+
 Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index) {
   const auto& view = frames[index];
   if (view.module_owner == nullptr || view.module_owner->get() == nullptr || view.globals_module == nullptr ||
@@ -591,6 +607,11 @@ void Runtime::clear_current_frame_locals() {
 
 Value Runtime::current_locals_snapshot() const {
   const auto& state = current_frame_state(*this);
+  if (state.module_owner != nullptr && state.module_owner->get() != nullptr &&
+      state.globals_module != nullptr &&
+      state.function_id == state.module_owner->get()->entry) {
+    return module_attrs_snapshot(*state.globals_module);
+  }
   if (state.local_names == nullptr || state.local_values == nullptr) {
     return Value::dict({});
   }
