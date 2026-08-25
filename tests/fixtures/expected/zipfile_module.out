@@ -1,4 +1,4 @@
-[hello.txt, folder/source.txt, deflated.txt]
+[hello.txt, folder/source.txt, deflated.txt, meta.txt, emptydir/]
 hello.txt 9 0
 8 True
 hello.txt 9
@@ -7,9 +7,15 @@ True
 True
 True
 True
+(2024, 5, 6, 7, 8, 10) b'member comment' 8 True
+True
+b'hello' b' zip' False
+b'hello zip'
+True
 True False
 xlang3_zip_extract/hello.txt
 hello zip
 from file
-manual.txt
+manual.txt (2025, 1, 2, 3, 4, 6)
 0 8 True
+True

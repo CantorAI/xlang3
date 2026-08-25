@@ -1,4 +1,5 @@
 import os
+import io
 import zipfile
 
 archive = "xlang3_zipfile_sample.zip"
@@ -11,6 +12,12 @@ with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as zf:
     zf.writestr("hello.txt", "hello zip")
     zf.write(source, "folder/source.txt")
     zf.writestr("deflated.txt", "abc abc abc abc", zipfile.ZIP_DEFLATED)
+    zf.comment = b"xlang3 archive"
+    info = zipfile.ZipInfo("meta.txt", (2024, 5, 6, 7, 8, 10))
+    info.comment = b"member comment"
+    info.compress_type = zipfile.ZIP_DEFLATED
+    zf.writestr(info, "metadata")
+    zf.mkdir("emptydir")
 
 with zipfile.ZipFile(archive, "r") as zf:
     names = zf.namelist()
@@ -18,11 +25,19 @@ with zipfile.ZipFile(archive, "r") as zf:
     print(names)
     print(infos[0].filename, infos[0].file_size, infos[0].compress_type)
     print(zf.getinfo("deflated.txt").compress_type, zf.getinfo("deflated.txt").compress_size < zf.getinfo("deflated.txt").file_size)
-    print(zf.getinfo("hello.txt").filename, zf.getinfo(infos[1]).file_size)
+    print(zf.getinfo("hello.txt").filename, infos[1].file_size)
     print(zf.read("hello.txt") == b"hello zip")
     print(zf.read(infos[1]) == b"from file")
     print(zf.read("folder/source.txt") == b"from file")
     print(zf.read("deflated.txt") == b"abc abc abc abc")
+    print(zf.comment == b"xlang3 archive")
+    meta = zf.getinfo("meta.txt")
+    print(meta.date_time, meta.comment, meta.compress_type, zf.read(meta) == b"metadata")
+    print(zf.getinfo("emptydir/").is_dir())
+    with zf.open("hello.txt") as entry:
+        print(entry.read(5), entry.read(), entry.closed)
+    with zf.open("hello.txt") as entry:
+        print(entry.readline())
     print(zf.testzip() is None)
 
 print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
@@ -38,8 +53,17 @@ with open("xlang3_zip_extract/hello.txt", "r") as f:
 with open("xlang3_zip_extract_all/folder/source.txt", "r") as f:
     print(f.read())
 
-print(zipfile.ZipInfo("manual.txt").filename)
+manual = zipfile.ZipInfo("manual.txt", (2025, 1, 2, 3, 4, 6))
+print(manual.filename, manual.date_time)
 print(zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED, zipfile.BadZipfile is zipfile.BadZipFile)
+
+mem = io.BytesIO()
+with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
+    zf.writestr("mem.txt", b"in memory")
+
+mem.seek(0)
+with zipfile.ZipFile(mem, mode="r") as zf:
+    print(zf.read("mem.txt") == b"in memory")
 
 os.remove("xlang3_zip_extract/hello.txt")
 os.remove("xlang3_zip_extract_all/folder/source.txt")

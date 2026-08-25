@@ -159,25 +159,35 @@ bool zip_archive_list_entries(
     }
     const uint16_t flags = zip_u16(archive, pos + 8);
     const uint16_t method = zip_u16(archive, pos + 10);
+    const uint16_t mod_time = zip_u16(archive, pos + 12);
+    const uint16_t mod_date = zip_u16(archive, pos + 14);
     const uint32_t crc32 = zip_u32(archive, pos + 16);
     const uint32_t compressed_size = zip_u32(archive, pos + 20);
     const uint32_t uncompressed_size = zip_u32(archive, pos + 24);
     const uint16_t name_len = zip_u16(archive, pos + 28);
     const uint16_t extra_len = zip_u16(archive, pos + 30);
     const uint16_t comment_len = zip_u16(archive, pos + 32);
+    const uint32_t external_attr = zip_u32(archive, pos + 38);
     const uint32_t local_header_offset = zip_u32(archive, pos + 42);
     if (pos + 46u + name_len + extra_len + comment_len > archive.size()) {
       error = "zip central-directory entry exceeds archive size";
       return false;
     }
     std::string name(reinterpret_cast<const char*>(archive.data() + pos + 46), name_len);
+    std::string comment(
+        reinterpret_cast<const char*>(archive.data() + pos + 46u + name_len + extra_len),
+        comment_len);
     entries.push_back(ZipArchiveEntry{
         std::move(name),
+        std::move(comment),
         flags,
         method,
+        mod_time,
+        mod_date,
         crc32,
         compressed_size,
         uncompressed_size,
+        external_attr,
         local_header_offset});
     pos += 46u + name_len + extra_len + comment_len;
   }
@@ -271,24 +281,33 @@ bool zip_archive_build_stored(
   for (auto& member : stored_members) {
     member.method = 0;
   }
-  return zip_archive_build(stored_members, out, error);
+  return zip_archive_build(stored_members, "", out, error);
 }
 
 bool zip_archive_build(
     const std::vector<ZipArchiveMember>& members,
+    const std::string& archive_comment,
     std::string& out,
     std::string& error) {
   if (!fits_u16(members.size())) {
     error = "too many zip members";
     return false;
   }
+  if (!fits_u16(archive_comment.size())) {
+    error = "zip archive comment exceeds classic ZIP limits";
+    return false;
+  }
 
   struct CentralRecord {
     std::string name;
+    std::string comment;
     uint16_t method = 0;
+    uint16_t mod_time = 0;
+    uint16_t mod_date = 0;
     uint32_t crc32 = 0;
     uint32_t compressed_size = 0;
     uint32_t uncompressed_size = 0;
+    uint32_t external_attr = 0;
     uint32_t local_offset = 0;
   };
 
@@ -297,7 +316,7 @@ bool zip_archive_build(
   out.clear();
 
   for (const auto& member : members) {
-    if (!fits_u16(member.name.size()) || !fits_u32(member.data.size()) || !fits_u32(out.size())) {
+    if (!fits_u16(member.name.size()) || !fits_u16(member.comment.size()) || !fits_u32(member.data.size()) || !fits_u32(out.size())) {
       error = "zip member exceeds classic ZIP limits";
       return false;
     }
@@ -317,17 +336,19 @@ bool zip_archive_build(
       error = "zip compressed member exceeds classic ZIP limits";
       return false;
     }
-    const uint32_t crc = crc32_bytes(member.data);
+    const uint32_t crc = member.crc32 == 0 ? crc32_bytes(member.data) : member.crc32;
     const uint32_t compressed_size = static_cast<uint32_t>(payload.size());
     const uint32_t uncompressed_size = static_cast<uint32_t>(member.data.size());
     const uint32_t local_offset = static_cast<uint32_t>(out.size());
+    const uint16_t mod_time = member.mod_time == 0 && member.mod_date == 0 ? 0 : member.mod_time;
+    const uint16_t mod_date = member.mod_time == 0 && member.mod_date == 0 ? 0 : member.mod_date;
 
     append_u32(out, 0x04034b50u);
     append_u16(out, 20);
     append_u16(out, 0);
     append_u16(out, member.method);
-    append_u16(out, 0);
-    append_u16(out, 0);
+    append_u16(out, mod_time);
+    append_u16(out, mod_date);
     append_u32(out, crc);
     append_u32(out, compressed_size);
     append_u32(out, uncompressed_size);
@@ -336,7 +357,17 @@ bool zip_archive_build(
     out.append(member.name.data(), member.name.size());
     out.append(payload.data(), payload.size());
 
-    central.push_back(CentralRecord{member.name, member.method, crc, compressed_size, uncompressed_size, local_offset});
+    central.push_back(CentralRecord{
+        member.name,
+        member.comment,
+        member.method,
+        mod_time,
+        mod_date,
+        crc,
+        compressed_size,
+        uncompressed_size,
+        member.external_attr,
+        local_offset});
   }
 
   if (!fits_u32(out.size())) {
@@ -350,19 +381,20 @@ bool zip_archive_build(
     append_u16(out, 20);
     append_u16(out, 0);
     append_u16(out, record.method);
-    append_u16(out, 0);
-    append_u16(out, 0);
+    append_u16(out, record.mod_time);
+    append_u16(out, record.mod_date);
     append_u32(out, record.crc32);
     append_u32(out, record.compressed_size);
     append_u32(out, record.uncompressed_size);
     append_u16(out, static_cast<uint16_t>(record.name.size()));
     append_u16(out, 0);
+    append_u16(out, static_cast<uint16_t>(record.comment.size()));
     append_u16(out, 0);
     append_u16(out, 0);
-    append_u16(out, 0);
-    append_u32(out, 0);
+    append_u32(out, record.external_attr);
     append_u32(out, record.local_offset);
     out.append(record.name.data(), record.name.size());
+    out.append(record.comment.data(), record.comment.size());
   }
 
   if (!fits_u32(out.size() - central_offset)) {
@@ -377,7 +409,25 @@ bool zip_archive_build(
   append_u16(out, static_cast<uint16_t>(central.size()));
   append_u32(out, central_size);
   append_u32(out, central_offset);
-  append_u16(out, 0);
+  append_u16(out, static_cast<uint16_t>(archive_comment.size()));
+  out.append(archive_comment.data(), archive_comment.size());
+  return true;
+}
+
+bool zip_archive_read_comment(
+    const std::vector<uint8_t>& archive,
+    std::string& comment,
+    std::string& error) {
+  size_t eocd = 0;
+  if (!find_eocd(archive, eocd, error)) {
+    return false;
+  }
+  const uint16_t comment_len = zip_u16(archive, eocd + 20);
+  if (eocd + 22u + comment_len > archive.size()) {
+    error = "zip archive comment exceeds archive size";
+    return false;
+  }
+  comment.assign(reinterpret_cast<const char*>(archive.data() + eocd + 22), comment_len);
   return true;
 }
 
