@@ -300,7 +300,7 @@ Section-level fixture coverage:
 - [~] encoding/decoding: UTF-8/ascii `str.encode` and `bytes.decode` basics covered; codec registry, errors handling, and full Unicode codec behavior pending
 - [~] string formatting
 - [~] f-string runtime formatting
-- [~] bytes / bytearray
+- [~] bytes / bytearray: constructors, indexing/slicing, bytearray mutation, memoryview basics, and raw `\xNN` bytes-literal escapes covered; full CPython bytes/bytearray API and literal edge cases pending
 - [~] memoryview
 
 ### Imports And Modules

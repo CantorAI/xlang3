@@ -1,4 +1,5 @@
 b'A\x00B' 3 65 0 b'\x00B'
+b'\x00\x7f\x80\xff' 4 128 255
 bytearray(b'aZc!?') 5 b'aZc!?'
 5 97 b'Zc'
 bytearray(b'AZc!?') b'AZc!?'

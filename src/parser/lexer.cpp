@@ -154,7 +154,21 @@ bool append_hex_escape(std::string_view text, size_t& i, size_t digits, std::str
   return true;
 }
 
-std::string decode_string_content(std::string_view text, bool raw) {
+bool append_hex_byte_escape(std::string_view text, size_t& i, std::string& out) {
+  if (i + 2 > text.size()) {
+    return false;
+  }
+  const int hi = hex_digit(text[i]);
+  const int lo = hex_digit(text[i + 1]);
+  if (hi < 0 || lo < 0) {
+    return false;
+  }
+  out.push_back(static_cast<char>((hi << 4) | lo));
+  i += 2;
+  return true;
+}
+
+std::string decode_string_content(std::string_view text, bool raw, bool bytes) {
   if (raw) {
     return std::string(text);
   }
@@ -181,7 +195,7 @@ std::string decode_string_content(std::string_view text, bool raw) {
         out.push_back(esc);
         break;
       case 'x':
-        if (!append_hex_escape(text, i, 2, out)) {
+        if (bytes ? !append_hex_byte_escape(text, i, out) : !append_hex_escape(text, i, 2, out)) {
           out += "\\x";
         }
         break;
@@ -411,7 +425,7 @@ LexResult Lexer::tokenize() {
           break;
         }
       }
-      value = decode_string_content(value, prefix.raw);
+      value = decode_string_content(value, prefix.raw, prefix.bytes);
       const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
       emit_owned(kind, std::move(value), start_line_no, static_cast<uint32_t>(prefix_start + 1), true);
       if (suffix.find_first_not_of(" \t") != std::string::npos) {
@@ -516,7 +530,7 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
         return;
       }
       ++i;
-      value = decode_string_content(value, prefix.raw);
+      value = decode_string_content(value, prefix.raw, prefix.bytes);
       const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
       emit_owned(kind, std::move(value), line_no, col);
       continue;

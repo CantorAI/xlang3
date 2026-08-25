@@ -14,6 +14,9 @@
 b = bytes([65, 0, 66])
 print(b, len(b), b[0], b[1], b[1:])
 
+raw = b"\x00\x7f\x80\xff"
+print(raw, len(raw), raw[2], raw[3])
+
 ba = bytearray(b"abc")
 ba[1] = 90
 ba.append(33)
