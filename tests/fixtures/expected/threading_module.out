@@ -3,3 +3,8 @@
 22
 thread-ok
 trace_func
+worker-one True None
+False False True True
+True
+False True
+MainThread True

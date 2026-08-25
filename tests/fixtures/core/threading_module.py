@@ -65,3 +65,21 @@ trace_done.release()
 traced.join()
 threading.settrace(None)
 print(trace_seen[0])
+
+life_done = _thread.allocate_lock()
+life_done.acquire()
+
+def lifecycle_worker():
+    life_done.acquire()
+    life_done.release()
+
+life = threading.Thread(target=lifecycle_worker, name="worker-one", daemon=True)
+print(life.name, life.daemon, life.ident)
+life.start()
+print(life.ident is None, life.native_id is None, life.is_alive(), threading.active_count() >= 2)
+life.join(0)
+print(life.is_alive())
+life_done.release()
+life.join()
+print(life.is_alive(), life._is_stopped)
+print(threading.main_thread().name, len(threading.enumerate()) >= 1)

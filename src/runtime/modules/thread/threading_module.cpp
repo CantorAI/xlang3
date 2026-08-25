@@ -145,7 +145,7 @@ bool threading_active_count(
     error = "threading.active_count() expected no arguments";
     return false;
   }
-  value_set_int64(out, 1);
+  value_set_int64(out, static_cast<int64_t>(xlang_thread_active_count()));
   return true;
 }
 
@@ -190,6 +190,19 @@ bool threading_setprofile(Runtime&, const Value*, uint32_t argc, Value& out, std
     return false;
   }
   value_set_none(out);
+  return true;
+}
+
+bool threading_main_thread(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return threading_current_thread(runtime, args, argc, out, error, nullptr);
+}
+
+bool threading_enumerate(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  Value current;
+  if (!threading_current_thread(runtime, args, argc, current, error, nullptr)) {
+    return false;
+  }
+  out = Value::list({current});
   return true;
 }
 
@@ -518,6 +531,8 @@ void register_thread_modules(Runtime& runtime) {
       .value("local", make_local_class())
       .function("get_ident", threading_get_ident)
       .function("current_thread", threading_current_thread)
+      .function("main_thread", threading_main_thread)
+      .function("enumerate", threading_enumerate)
       .function("active_count", threading_active_count)
       .function("settrace", threading_settrace)
       .function("gettrace", threading_gettrace)

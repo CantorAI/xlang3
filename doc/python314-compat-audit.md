@@ -464,7 +464,7 @@ High-level modules currently backed by native/runtime code:
 - [x] `_thread` subset
 - [x] `threading.Thread` subset
 - [x] `threading.Lock` subset
-- [ ] Python-compatible thread lifecycle details
+- [~] Python-compatible thread lifecycle details: `Thread` exposes `name`, `daemon`, `ident`, `native_id`, `_is_stopped`, start-once checks, `join(timeout)`, `main_thread`, `enumerate`, and live-worker-aware `active_count`; full CPython shutdown/daemon/current-thread object identity semantics pending
 - [~] thread-local trace hooks: `sys.settrace()` is stored per runtime/native thread and `threading.settrace()` is copied into new `threading.Thread`/`_thread` workers; full profile-hook and edge-case parity pending
 - [ ] no-GIL data sharing policy finalized
 
