@@ -3,6 +3,11 @@ b'\x00\x7f\x80\xff' 4 128 255
 bytearray(b'aZc!?') 5 b'aZc!?'
 5 97 b'Zc'
 bytearray(b'AZc!?') b'AZc!?'
+False B 1 1 (5,) (1,) True True
+[65, 90, 99, 33, 63] 415a63213f True True
+bytearray(b'Axy!?') B [65, 120, 121, 33, 63]
 121 b'x' b'xy'
+b'ok' True
+released
 True True True
-b'AZc!?' bytearray(b'AZc!?')
+b'Axy!?' bytearray(b'Axy!?')

@@ -195,6 +195,32 @@ bool is_number(const Value& value) {
   return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
 }
 
+struct BinaryCompareView {
+  const char* data = nullptr;
+  size_t size = 0;
+};
+
+BinaryCompareView binary_compare_view(const Value& value) {
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    return {view.data(), view.size()};
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    return {bytearray->value.data(), bytearray->value.size()};
+  }
+  if (auto* memoryview = value_as_memoryview(value)) {
+    if (memoryview->released) {
+      return {};
+    }
+    const auto owner = binary_compare_view(memoryview->owner);
+    if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
+      return {};
+    }
+    return {owner.data + memoryview->offset, memoryview->size};
+  }
+  return {};
+}
+
 bool set_contains_value(const SetObject& set, const Value& value) {
   for (const auto& item : set.items) {
     if (value_key_equal(item, value)) {
@@ -585,7 +611,9 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
   obj->owner = std::move(owner);
   obj->offset = offset;
   obj->size = size;
+  obj->format = "B";
   obj->readonly = readonly;
+  obj->released = false;
   v.as.obj = &obj->header;
   return v;
 }
@@ -1718,10 +1746,11 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     return true;
   }
   if (op == "==" || op == "!=") {
-    if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
-        lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
-        lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
-      result = bytes_object_view(*as_bytes(lhs.as.obj)) == bytes_object_view(*as_bytes(rhs.as.obj));
+    const auto left_binary = binary_compare_view(lhs);
+    const auto right_binary = binary_compare_view(rhs);
+    if (left_binary.data != nullptr && right_binary.data != nullptr) {
+      result = left_binary.size == right_binary.size &&
+               (left_binary.size == 0 || std::memcmp(left_binary.data, right_binary.data, left_binary.size) == 0);
     } else {
       result = value_to_string(lhs) == value_to_string(rhs);
     }

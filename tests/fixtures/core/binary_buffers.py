@@ -27,8 +27,18 @@ mv = memoryview(ba)
 print(len(mv), mv[0], mv[1:3].tobytes())
 mv[0] = 65
 print(ba, mv.tobytes())
+print(mv.readonly, mv.format, mv.itemsize, mv.ndim, mv.shape, mv.strides, mv.c_contiguous, mv.contiguous)
+print(mv.tolist(), mv.hex(), mv == bytes(ba), mv[1:4] == b"Zc!")
+mv[1:3] = b"xy"
+print(ba, mv.cast("B").format, mv.cast("b", (5,)).tolist())
 
 ro = memoryview(b"xy")
 print(ro[1], ro[0:1].tobytes(), bytes(ro))
+with memoryview(b"ok") as ctx:
+    print(ctx.tobytes(), ctx.readonly)
+try:
+    ctx.tobytes()
+except RuntimeError:
+    print("released")
 print(type(b) is bytes, type(ba) is bytearray, type(mv) is memoryview)
 print(bytes(mv), bytearray(mv))

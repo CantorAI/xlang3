@@ -174,6 +174,9 @@ BinaryStorageView binary_storage(const Value& value) {
     return BinaryStorageView{bytearray->value.data(), bytearray->value.size(), false};
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      return {};
+    }
     const auto storage = binary_storage(view->owner);
     if (storage.data == nullptr || view->offset > storage.size) {
       return {};
@@ -776,10 +779,44 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       error = "cannot modify read-only memory";
       return false;
     }
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
     auto* bytearray = value_as_bytearray(view->owner);
     if (bytearray == nullptr) {
       error = "memoryview owner is not writable";
       return false;
+    }
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(view->size), start, stop, step, error)) {
+        return false;
+      }
+      std::string replacement;
+      if (!collect_byte_replacement(item, replacement, error)) {
+        return false;
+      }
+      std::vector<size_t> indexes;
+      if (step > 0) {
+        for (int64_t i = start; i < stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      } else {
+        for (int64_t i = start; i > stop; i += step) {
+          indexes.push_back(static_cast<size_t>(i));
+        }
+      }
+      if (indexes.size() != replacement.size()) {
+        error = "memoryview assignment requires same-sized bytes-like object";
+        return false;
+      }
+      for (size_t i = 0; i < indexes.size(); ++i) {
+        bytearray->value[view->offset + indexes[i]] = replacement[i];
+      }
+      return true;
     }
     if (index.tag != ValueTag::Int64) {
       error = "sequence index must be int";
@@ -927,6 +964,10 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
     value_set_int64(out, static_cast<int64_t>(view->size));
     return true;
   }

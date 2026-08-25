@@ -711,6 +711,10 @@ bool memoryview_tobytes_method(Runtime&, const Value* args, uint32_t argc, Value
     error = "memoryview.tobytes target is not memoryview";
     return false;
   }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
   std::string bytes;
   if (!append_bytes_from_value(bytes, args[0], error)) {
     return false;
@@ -728,6 +732,10 @@ bool memoryview_tolist_method(Runtime&, const Value* args, uint32_t argc, Value&
     error = "memoryview.tolist target is not memoryview";
     return false;
   }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
   std::vector<Value> items;
   items.reserve(view->size);
   for (size_t i = 0; i < view->size; ++i) {
@@ -738,6 +746,112 @@ bool memoryview_tolist_method(Runtime&, const Value* args, uint32_t argc, Value&
     items.push_back(item);
   }
   out = Value::list(std::move(items));
+  return true;
+}
+
+bool memoryview_hex_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "memoryview.hex", error)) {
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr) {
+    error = "memoryview.hex target is not memoryview";
+    return false;
+  }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
+  std::string bytes;
+  if (!append_bytes_from_value(bytes, args[0], error)) {
+    return false;
+  }
+  static constexpr char digits[] = "0123456789abcdef";
+  std::string result;
+  result.resize(bytes.size() * 2);
+  for (size_t i = 0; i < bytes.size(); ++i) {
+    const auto byte = static_cast<unsigned char>(bytes[i]);
+    result[i * 2] = digits[byte >> 4u];
+    result[i * 2 + 1] = digits[byte & 0x0fu];
+  }
+  out = Value::string(std::move(result));
+  return true;
+}
+
+bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "memoryview.cast expected format and optional shape";
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr) {
+    error = "memoryview.cast target is not memoryview";
+    return false;
+  }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
+  std::string format;
+  if (!get_string_arg(args[1], "memoryview.cast format", format, error)) {
+    return false;
+  }
+  if (format != "B" && format != "b" && format != "c") {
+    error = "memoryview.cast only supports byte-sized formats";
+    return false;
+  }
+  if (argc == 3 && args[2].tag != ValueTag::None) {
+    auto* shape = value_as_tuple(args[2]);
+    if (shape == nullptr || shape->items.size() != 1 || shape->items[0].tag != ValueTag::Int64 ||
+        shape->items[0].as.i64 != static_cast<int64_t>(view->size)) {
+      error = "memoryview.cast only supports one-dimensional byte shape";
+      return false;
+    }
+  }
+  out = Value::memoryview(view->owner, view->offset, view->size, view->readonly);
+  if (auto* cast_view = value_as_memoryview(out)) {
+    cast_view->format = std::move(format);
+  }
+  return true;
+}
+
+bool memoryview_release_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "memoryview.release", error)) {
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr) {
+    error = "memoryview.release target is not memoryview";
+    return false;
+  }
+  view->released = true;
+  value_set_none(out);
+  return true;
+}
+
+bool memoryview_enter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "memoryview.__enter__", error)) {
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr || view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool memoryview_exit_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 4) {
+    error = "memoryview.__exit__ expected exception details";
+    return false;
+  }
+  Value release_out;
+  if (!memoryview_release_method(runtime, args, 1, release_out, error, user_data)) {
+    return false;
+  }
+  value_set_bool(out, false);
   return true;
 }
 
@@ -807,6 +921,11 @@ bool memoryview_get_method(const Value& object, const std::string& name, Value& 
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {
+      {"__enter__", "memoryview.__enter__", memoryview_enter_method},
+      {"__exit__", "memoryview.__exit__", memoryview_exit_method},
+      {"cast", "memoryview.cast", memoryview_cast_method},
+      {"hex", "memoryview.hex", memoryview_hex_method},
+      {"release", "memoryview.release", memoryview_release_method},
       {"tobytes", "memoryview.tobytes", memoryview_tobytes_method},
       {"tolist", "memoryview.tolist", memoryview_tolist_method},
   };

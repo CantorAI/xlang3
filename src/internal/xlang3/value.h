@@ -428,7 +428,9 @@ struct MemoryViewObject {
   Value owner;
   size_t offset = 0;
   size_t size = 0;
+  std::string format = "B";
   bool readonly = true;
+  bool released = false;
 };
 
 struct PropertyObject {

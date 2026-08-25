@@ -1031,6 +1031,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* view = value_as_memoryview(object)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
     if (name == "readonly") {
       value_set_bool(out, view->readonly);
       return true;
@@ -1044,7 +1048,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "format") {
-      out = Value::string("B");
+      out = Value::string(view->format);
       return true;
     }
     if (name == "ndim") {
@@ -1065,6 +1069,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "obj") {
       value_assign_fast(out, view->owner);
+      return true;
+    }
+    if (name == "c_contiguous" || name == "f_contiguous" || name == "contiguous") {
+      value_set_bool(out, true);
       return true;
     }
     error = "memoryview has no attribute '" + name + "'";
