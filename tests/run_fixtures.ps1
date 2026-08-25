@@ -139,6 +139,7 @@ $sectionCases = @(
     "expression_syntax",
     "core_value_and_object_model",
     "functions_and_calls",
+    "exceptions",
     "containers",
     "strings_and_unicode",
     "builtins",

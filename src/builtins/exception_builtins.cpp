@@ -62,51 +62,86 @@ void register_exception_class(Runtime& runtime, const char* name, Value base = V
 void register_exception_builtins(Runtime& runtime) {
   Value object_base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
   register_exception_class(runtime, "BaseException", std::move(object_base));
-  register_exception_class(runtime, "Exception", *runtime.find_builtin("BaseException"));
-  register_exception_class(runtime, "RuntimeError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "NotImplementedError", *runtime.find_builtin("RuntimeError"));
-  register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "AssertionError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "SyntaxError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "NameError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "LookupError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "IndexError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "KeyError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "ZeroDivisionError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "StopAsyncIteration", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "BaseExceptionGroup", *runtime.find_builtin("BaseException"));
   register_exception_class(runtime, "GeneratorExit", *runtime.find_builtin("BaseException"));
   register_exception_class(runtime, "KeyboardInterrupt", *runtime.find_builtin("BaseException"));
   register_exception_class(runtime, "SystemExit", *runtime.find_builtin("BaseException"));
+
+  register_exception_class(runtime, "Exception", *runtime.find_builtin("BaseException"));
+  register_exception_class(runtime, "ArithmeticError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "FloatingPointError", *runtime.find_builtin("ArithmeticError"));
+  register_exception_class(runtime, "OverflowError", *runtime.find_builtin("ArithmeticError"));
+  register_exception_class(runtime, "ZeroDivisionError", *runtime.find_builtin("ArithmeticError"));
+  register_exception_class(runtime, "AssertionError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "BufferError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "EOFError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ExceptionGroup", *runtime.find_builtin("Exception"));
+  {
+    std::string ignored;
+    Value exception_group = *runtime.find_builtin("ExceptionGroup");
+    class_set_base(exception_group, *runtime.find_builtin("Exception"), ignored);
+    class_set_base(exception_group, *runtime.find_builtin("BaseExceptionGroup"), ignored);
+  }
+  register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ModuleNotFoundError", *runtime.find_builtin("ImportError"));
+  register_exception_class(runtime, "LookupError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "IndexError", *runtime.find_builtin("LookupError"));
+  register_exception_class(runtime, "KeyError", *runtime.find_builtin("LookupError"));
+  register_exception_class(runtime, "MemoryError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "NameError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "UnboundLocalError", *runtime.find_builtin("NameError"));
+
   register_exception_class(runtime, "OSError", *runtime.find_builtin("Exception"));
+  runtime.register_builtin("EnvironmentError", *runtime.find_builtin("OSError"));
   runtime.register_builtin("IOError", *runtime.find_builtin("OSError"));
   runtime.register_builtin("WindowsError", *runtime.find_builtin("OSError"));
-  register_exception_class(runtime, "FileNotFoundError", *runtime.find_builtin("OSError"));
-  register_exception_class(runtime, "PermissionError", *runtime.find_builtin("OSError"));
-  register_exception_class(runtime, "IsADirectoryError", *runtime.find_builtin("OSError"));
-  register_exception_class(runtime, "NotADirectoryError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "BlockingIOError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "ChildProcessError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "ConnectionError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "BrokenPipeError", *runtime.find_builtin("ConnectionError"));
   register_exception_class(runtime, "ConnectionAbortedError", *runtime.find_builtin("ConnectionError"));
   register_exception_class(runtime, "ConnectionRefusedError", *runtime.find_builtin("ConnectionError"));
   register_exception_class(runtime, "ConnectionResetError", *runtime.find_builtin("ConnectionError"));
+  register_exception_class(runtime, "FileExistsError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "FileNotFoundError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "InterruptedError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "IsADirectoryError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "NotADirectoryError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "PermissionError", *runtime.find_builtin("OSError"));
+  register_exception_class(runtime, "ProcessLookupError", *runtime.find_builtin("OSError"));
   register_exception_class(runtime, "TimeoutError", *runtime.find_builtin("OSError"));
-  register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
+
+  register_exception_class(runtime, "ReferenceError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "RuntimeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "NotImplementedError", *runtime.find_builtin("RuntimeError"));
+  register_exception_class(runtime, "PythonFinalizationError", *runtime.find_builtin("RuntimeError"));
+  register_exception_class(runtime, "RecursionError", *runtime.find_builtin("RuntimeError"));
+  register_exception_class(runtime, "StopAsyncIteration", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "SyntaxError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "IndentationError", *runtime.find_builtin("SyntaxError"));
+  register_exception_class(runtime, "TabError", *runtime.find_builtin("IndentationError"));
+  register_exception_class(runtime, "SystemError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "TypeError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ValueError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "UnicodeError", *runtime.find_builtin("ValueError"));
+  register_exception_class(runtime, "UnicodeDecodeError", *runtime.find_builtin("UnicodeError"));
+  register_exception_class(runtime, "UnicodeEncodeError", *runtime.find_builtin("UnicodeError"));
+  register_exception_class(runtime, "UnicodeTranslateError", *runtime.find_builtin("UnicodeError"));
+
   register_exception_class(runtime, "Warning", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "UserWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "BytesWarning", *runtime.find_builtin("Warning"));
   register_exception_class(runtime, "DeprecationWarning", *runtime.find_builtin("Warning"));
-  register_exception_class(runtime, "PendingDeprecationWarning", *runtime.find_builtin("Warning"));
-  register_exception_class(runtime, "RuntimeWarning", *runtime.find_builtin("Warning"));
-  register_exception_class(runtime, "SyntaxWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "EncodingWarning", *runtime.find_builtin("Warning"));
   register_exception_class(runtime, "FutureWarning", *runtime.find_builtin("Warning"));
   register_exception_class(runtime, "ImportWarning", *runtime.find_builtin("Warning"));
-  register_exception_class(runtime, "UnicodeWarning", *runtime.find_builtin("Warning"));
-  register_exception_class(runtime, "BytesWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "PendingDeprecationWarning", *runtime.find_builtin("Warning"));
   register_exception_class(runtime, "ResourceWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "RuntimeWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "SyntaxWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "UnicodeWarning", *runtime.find_builtin("Warning"));
+  register_exception_class(runtime, "UserWarning", *runtime.find_builtin("Warning"));
 }
 
 } // namespace xlang3

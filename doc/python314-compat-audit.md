@@ -259,13 +259,13 @@ Section-level fixture coverage:
 - [x] subclass matching
 - [x] catchable interpreter/native runtime errors
 - [x] `finally` unwind basics
-- [~] exception hierarchy completeness: common built-in exception classes registered, including `KeyboardInterrupt` and `SystemExit`; full CPython tree pending
-- [~] traceback capture: VM exception path builds frame chain; exact line table pending
-- [~] exception chaining: explicit cause and implicit context metadata basics; display formatting pending
-- [~] `raise from` runtime cause/context metadata
-- [~] bare `raise` runtime behavior inside/outside active exception
-- [~] `sys.exc_info`: active exception tuple basics
-- [~] `__traceback__`, `__context__`, `__cause__`, `__suppress_context__` basic attributes
+- [x] exception hierarchy completeness: Python 3.14 built-in exception classes and aliases registered with CPython-style subclass relationships
+- [x] traceback capture: VM exception path builds frame chains with frame/code names and source-backed line numbers
+- [x] exception chaining: explicit cause and implicit context metadata
+- [x] `raise from` runtime cause/context metadata, including `from None` suppression
+- [x] bare `raise` runtime behavior inside/outside active exception
+- [x] `sys.exc_info`: active exception tuple behavior
+- [x] `__traceback__`, `__context__`, `__cause__`, `__suppress_context__` basic attributes
 
 ### Containers
 
