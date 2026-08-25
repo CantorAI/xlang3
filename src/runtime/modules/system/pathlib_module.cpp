@@ -172,6 +172,10 @@ bool path_joinpath(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return error.empty();
 }
 
+bool path_truediv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return path_joinpath(runtime, args, argc, out, error, user_data);
+}
+
 bool path_property_value(const Value* args, uint32_t argc, Value& out, std::string& error, const char* name) {
   if (argc != 1) {
     error = std::string("Path.") + name + " expected no arguments";
@@ -387,6 +391,7 @@ Value make_path_class(Runtime& runtime, const char* name) {
   attrs.push_back({"__fspath__", runtime.make_native_function("pathlib.Path.__fspath__", path_fspath)});
   attrs.push_back({"as_posix", runtime.make_native_function("pathlib.Path.as_posix", path_as_posix)});
   attrs.push_back({"joinpath", runtime.make_native_function("pathlib.Path.joinpath", path_joinpath)});
+  attrs.push_back({"__truediv__", runtime.make_native_function("pathlib.Path.__truediv__", path_truediv)});
   attrs.push_back({"with_name", runtime.make_native_function("pathlib.Path.with_name", path_with_name)});
   attrs.push_back({"with_suffix", runtime.make_native_function("pathlib.Path.with_suffix", path_with_suffix)});
   attrs.push_back({"name", Value::property(

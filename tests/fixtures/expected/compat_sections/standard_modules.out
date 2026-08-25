@@ -6,6 +6,10 @@ original doc text True
 123 123
 True True True True
 <input> <module> True
+True True
+[a.py, c.py]
+[b.txt]
+True a[*][[]b][?]
 True True True
 abc XYZ 0123456789 True
 8 True True
@@ -100,6 +104,9 @@ xlang3_pathlib_section.txt xlang3_pathlib_section .txt [.txt]
 xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
 9 path text
 2 b'xy' True True False
+[xlang3_glob_case/a.py]
+[xlang3_glob_case/a.py, xlang3_glob_case/sub/c.py]
+[xlang3_glob_case/b.txt]
 True True True True
 True http.client
 True resource-data

@@ -286,7 +286,14 @@ bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool os_makedirs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_makedirs_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
   if (argc < 1 || argc > 2) {
     error = "os.makedirs() expected path and optional exist_ok";
     return false;
@@ -295,12 +302,41 @@ bool os_makedirs(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (!get_string_arg(args[0], "os.makedirs path", path, error)) {
     return false;
   }
-  const bool exist_ok = argc == 2 && value_truthy(args[1]);
+  bool exist_ok = argc == 2 && value_truthy(args[1]);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "os.makedirs() got invalid keyword argument";
+      return false;
+    }
+    const std::string name(kwargs[i].name);
+    if (name == "exist_ok") {
+      exist_ok = value_truthy(*kwargs[i].value);
+    } else if (name != "mode") {
+      error = "os.makedirs() got unexpected keyword argument '" + name + "'";
+      return false;
+    }
+  }
   if (!runtime.vfs().make_dirs(path, exist_ok, error)) {
     return false;
   }
   value_set_none(out);
   return true;
+}
+
+bool os_makedirs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return os_makedirs_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool os_makedirs_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return os_makedirs_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
 bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -746,7 +782,7 @@ void register_os_module(Runtime& runtime) {
       .function("listdir", os_listdir)
       .value("scandir", runtime.make_native_function("os.scandir", os_scandir, dir_entry_class))
       .value("DirEntry", *dir_entry_class)
-      .function("makedirs", os_makedirs)
+      .function("makedirs", os_makedirs, nullptr, false, os_makedirs_kw)
       .function("remove", os_remove)
       .function("unlink", os_remove)
       .function("stat", os_stat)

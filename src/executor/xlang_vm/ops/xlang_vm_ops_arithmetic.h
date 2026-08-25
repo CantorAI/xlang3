@@ -17,6 +17,9 @@ limitations under the License.
 #include "../xlang_vm_arithmetic.h"
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang_vm_ops_call.h"
+
+#include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
@@ -58,8 +61,57 @@ XLANG3_HOT_INLINE XlangVMOpFlow mul(const ir::Instr& in, XlangVMSmallRegisterBuf
   return binary_arithmetic(in, regs, fast_mul, value_mul, std::forward<RaiseRuntimeError>(raise_runtime_error));
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow div(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool call_native_binary_special_method(
+    Runtime& runtime,
+    const Value& lhs,
+    const Value& rhs,
+    const char* method_name,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    Value& out,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value,
+    bool& handled) {
+  handled = false;
+  Value method;
+  std::string attr_error;
+  if (!attribute_get(lhs, method_name, method, attr_error)) {
+    return true;
+  }
+  auto* bound = value_as_bound_method(method);
+  if (bound == nullptr) {
+    return true;
+  }
+  auto* native = value_as_native_function(bound->function);
+  if (native == nullptr) {
+    return true;
+  }
+  Value leading[2] = {bound->self, rhs};
+  CallArgsView args;
+  args.leading = leading;
+  args.leading_count = 2;
+  handled = true;
+  return call_native_function(
+      runtime,
+      native,
+      args,
+      native_call_args,
+      execution_lock,
+      out,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow div(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   const auto& lhs = regs[in.a];
   const auto& rhs = regs[in.b];
   bool divide_by_zero = false;
@@ -69,6 +121,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow div(const ir::Instr& in, XlangVMSmallRegisterBuf
     }
     std::string error;
     if (!value_div(lhs, rhs, regs[in.dst], error)) {
+      bool handled = false;
+      if (!call_native_binary_special_method(
+              runtime,
+              lhs,
+              rhs,
+              "__truediv__",
+              native_call_args,
+              execution_lock,
+              regs[in.dst],
+              raise_runtime_error,
+              raise_exception_value,
+              handled)) {
+        return XlangVMOpFlow::ReturnResult;
+      }
+      if (handled) {
+        return XlangVMOpFlow::Next;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }

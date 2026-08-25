@@ -26,6 +26,8 @@ warnings.resetwarnings()
 
 # functools facade: wraps/update_wrapper propagate common metadata and partial binds prefix args.
 import functools
+import fnmatch
+import glob
 import code
 
 def original(a, b):
@@ -57,6 +59,10 @@ print(functools.reduce(combine, [1, 2, 3]), functools.reduce(combine, [2, 3], 1)
 print(Key(1) < Key(2), Key(2) > Key(1), Key(2) == Key(2), Key(3) != Key(2))
 compiled_command = code.compile_command("answer = 42")
 print(compiled_command.co_filename, compiled_command.co_name, code.compile_command("if True:") is None)
+print(fnmatch.fnmatch("alpha.py", "*.py"), fnmatch.fnmatchcase("alpha.py", "a[!0-9]*.py"))
+print(fnmatch.filter(["a.py", "b.txt", "c.py"], "*.py"))
+print(fnmatch.filterfalse(["a.py", "b.txt", "c.py"], "*.py"))
+print(glob.has_magic("*.py"), glob.escape("a*[b]?"))
 
 @functools.total_ordering
 class OrderedValue:
@@ -383,6 +389,15 @@ print(path_obj.name, path_obj.stem, path_obj.suffix, path_obj.suffixes)
 print(path_obj.with_suffix(".bin").name, path_obj.with_name("renamed.txt").name, path_obj.parts[-1])
 print(path_obj.write_text("path text"), path_obj.read_text())
 print(path_obj.write_bytes(b"xy"), path_obj.read_bytes(), path_obj.exists(), path_obj.is_file(), path_obj.is_absolute())
+glob_root = pathlib.Path("xlang3_glob_case")
+os.makedirs("xlang3_glob_case/sub", exist_ok=True)
+(glob_root / "a.py").write_text("a")
+(glob_root / "b.txt").write_text("b")
+(glob_root / "sub" / "c.py").write_text("c")
+(glob_root / ".hidden.py").write_text("h")
+print(glob.glob("xlang3_glob_case/*.py"))
+print(glob.glob("xlang3_glob_case/**/*.py", True))
+print(list(glob.iglob("xlang3_glob_case/*.txt")))
 
 found_functions = False
 for module_info in pkgutil.iter_modules([core_fixture_dir]):

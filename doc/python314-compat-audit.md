@@ -407,7 +407,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, `__dataclass_fields__`, `fields`, `is_dataclass`, `asdict`, and simple `field(default=...)` handling; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
 - [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
-- [~] `fnmatch` / `glob`: filename matching helpers foundation; recursive glob/path edge cases pending
+- [~] `fnmatch` / `glob`: native `fnmatch`, `fnmatchcase`, `filter`, `filterfalse`, `translate`, `glob.has_magic`,
+  `glob.escape`, and VFS-backed `glob`/`iglob` with recursive `**` foundation; true lazy `iglob`,
+  `root_dir`/`dir_fd`/`include_hidden` keyword options, bytes paths, and exact CPython path edge cases pending
 - [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, and `total_ordering` foundations; real cache wrappers, singledispatch, descriptor edge cases, and full CPython semantics pending
 - [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
@@ -462,7 +464,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
-- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, and basic path transforms; full operator/glob semantics pending
+- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, `/` join via native `__truediv__`, and basic path transforms; full pathlib glob/match/resolve/operator edge semantics pending
 - [~] `urllib.parse`: quote/unquote helpers plus `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`,
   `urljoin`, `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options,
   strict parsing/errors, complete RFC edge cases, and exact CPython result tuple subclasses pending
