@@ -330,6 +330,27 @@ bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::s
   return true;
 }
 
+bool choose_compatible_metaclass(Value& current, const Value& candidate, std::string& error) {
+  auto* candidate_class = value_as_class(candidate);
+  if (candidate_class == nullptr) {
+    return true;
+  }
+  auto* current_class = value_as_class(current);
+  if (current_class == nullptr || current_class->name == "type") {
+    value_assign_fast(current, candidate);
+    return true;
+  }
+  if (class_is_subclass(candidate_class, current_class)) {
+    value_assign_fast(current, candidate);
+    return true;
+  }
+  if (class_is_subclass(current_class, candidate_class)) {
+    return true;
+  }
+  error = "metaclass conflict: the metaclass of a derived class must be a non-strict subclass of the metaclasses of all its bases";
+  return false;
+}
+
 bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name) {
   std::vector<const ClassObject*> mro;
   std::string ignored;
@@ -386,11 +407,17 @@ void add_unique_slot_name(std::vector<std::string>& slots, const std::string& na
   }
 }
 
-bool collect_slot_names_from_value(const Value& value, std::vector<std::string>& slots, bool& allow_instance_dict) {
+bool collect_slot_names_from_value(
+    const Value& value,
+    std::vector<std::string>& slots,
+    bool& allow_instance_dict,
+    bool& allow_weakref) {
   if (auto* string = value_as_string(value)) {
     const auto name = string_object_to_string(*string);
     if (name == "__dict__") {
       allow_instance_dict = true;
+    } else if (name == "__weakref__") {
+      allow_weakref = true;
     } else {
       add_unique_slot_name(slots, name);
     }
@@ -398,7 +425,7 @@ bool collect_slot_names_from_value(const Value& value, std::vector<std::string>&
   }
   if (auto* tuple = value_as_tuple(value)) {
     for (const auto& item : tuple->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref)) {
         return false;
       }
     }
@@ -406,7 +433,7 @@ bool collect_slot_names_from_value(const Value& value, std::vector<std::string>&
   }
   if (auto* list = value_as_list(value)) {
     for (const auto& item : list->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref)) {
         return false;
       }
     }
@@ -414,7 +441,7 @@ bool collect_slot_names_from_value(const Value& value, std::vector<std::string>&
   }
   if (auto* set = value_as_set(value)) {
     for (const auto& item : set->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref)) {
         return false;
       }
     }
@@ -692,9 +719,12 @@ Value Value::class_object(
   if (obj->base.tag != ValueTag::Invalid) {
     obj->bases.push_back(obj->base);
     if (auto* base_class = value_as_class(obj->base)) {
+      std::string ignored;
+      (void)choose_compatible_metaclass(obj->metaclass, base_class->metaclass, ignored);
       obj->has_descriptors = obj->has_descriptors || class_or_bases_have_descriptors(base_class);
       inherit_special_attr_flags(*obj, *base_class);
       obj->instance_slot_names = base_class->instance_slot_names;
+      obj->allow_weakref = base_class->allow_weakref;
     }
   }
   const size_t inherited_slot_count = obj->instance_slot_names.size();
@@ -705,7 +735,8 @@ Value Value::class_object(
     if (attr.first == "__slots__") {
       obj->restrict_instance_attrs = true;
       obj->allow_instance_dict = false;
-      collect_slot_names_from_value(attr.second, obj->instance_slot_names, obj->allow_instance_dict);
+      obj->allow_weakref = false;
+      collect_slot_names_from_value(attr.second, obj->instance_slot_names, obj->allow_instance_dict, obj->allow_weakref);
     }
     update_special_attr_flags(*obj, attr.first);
     obj->attrs[std::move(attr.first)] = std::move(attr.second);
@@ -1687,8 +1718,12 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   }
   klass_obj->bases.push_back(base);
   if (auto* base_class = value_as_class(base)) {
+    if (!choose_compatible_metaclass(klass_obj->metaclass, base_class->metaclass, error)) {
+      return false;
+    }
     klass_obj->has_descriptors = klass_obj->has_descriptors || class_or_bases_have_descriptors(base_class);
     inherit_special_attr_flags(*klass_obj, *base_class);
+    klass_obj->allow_weakref = klass_obj->allow_weakref || base_class->allow_weakref;
     for (const auto& slot : base_class->instance_slot_names) {
       if (std::find(klass_obj->instance_slot_names.begin(), klass_obj->instance_slot_names.end(), slot) ==
           klass_obj->instance_slot_names.end()) {

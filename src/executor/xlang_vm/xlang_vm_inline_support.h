@@ -28,6 +28,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdlib>
@@ -464,6 +465,52 @@ struct XlangVMBuiltinConstructorSpec {
   XlangVMBuiltinConstructor kind;
 };
 
+XLANG3_HOT_INLINE bool xlang_vm_collect_type_slots(const Value& value, std::vector<std::string>& slots) {
+  if (auto* string = value_as_string(value)) {
+    const auto name = string_object_to_string(*string);
+    if (name != "__dict__" && name != "__weakref__" &&
+        std::find(slots.begin(), slots.end(), name) == slots.end()) {
+      slots.push_back(name);
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE DictObject* xlang_vm_type_namespace_dict(const Value& value) {
+  if (auto* dict = value_as_dict(value)) {
+    return dict;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    return value_as_dict(instance->mapping_storage);
+  }
+  return nullptr;
+}
+
 XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(const std::string& name) {
   static constexpr XlangVMBuiltinConstructorSpec specs[] = {
       {XlangVMNames::builtin_type, XlangVMBuiltinConstructor::Type},
@@ -672,7 +719,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     auto* name = value_as_string(args.get(0));
     auto* bases = value_as_tuple(args.get(1));
-    auto* namespace_dict = value_as_dict(args.get(2));
+    auto* namespace_dict = xlang_vm_type_namespace_dict(args.get(2));
     if (name == nullptr) {
       error = "type() argument 1 must be str";
       return false;
@@ -687,13 +734,33 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     std::vector<std::pair<std::string, Value>> attrs;
     attrs.reserve(namespace_dict->entries.size());
+    std::vector<std::string> explicit_slots;
+    bool has_explicit_slots = false;
     for (const auto& entry : namespace_dict->entries) {
       auto* key = value_as_string(entry.first);
       if (key == nullptr) {
         error = "type() namespace keys must be strings";
         return false;
       }
-      attrs.push_back({string_object_to_string(*key), entry.second});
+      const auto key_name = string_object_to_string(*key);
+      if (key_name == "__slots__") {
+        has_explicit_slots = true;
+        if (!xlang_vm_collect_type_slots(entry.second, explicit_slots)) {
+          error = "type() __slots__ must be a string or iterable of strings";
+          return false;
+        }
+      }
+      attrs.push_back({key_name, entry.second});
+    }
+    if (has_explicit_slots) {
+      for (const auto& slot : explicit_slots) {
+        for (const auto& attr : attrs) {
+          if (attr.first == slot) {
+            error = "'" + slot + "' in __slots__ conflicts with class variable";
+            return false;
+          }
+        }
+      }
     }
     Value base = Value::invalid();
     if (bases->items.empty()) {

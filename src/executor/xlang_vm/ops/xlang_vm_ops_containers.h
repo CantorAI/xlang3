@@ -230,7 +230,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
     }
   }
   std::string error;
-  if (!mapping_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+  if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
     if (error.find("not hashable") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
                  ? XlangVMOpFlow::ContinueLoop

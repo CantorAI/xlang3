@@ -87,6 +87,55 @@ print(InitMade.ready)
 print(NewMade.from_new, type(NewMade).__name__)
 print(PrepareMade.prepared, PrepareMade.prepare_seen, PrepareMade.body_attr)
 
+class PreparedDict(dict):
+    pass
+
+class MappingPrepareMeta(type):
+    @classmethod
+    def __prepare__(mcls, name, bases):
+        ns = PreparedDict()
+        ns["seed"] = name + ":seed"
+        return ns
+
+class MappingPrepared(metaclass=MappingPrepareMeta):
+    body = "body"
+
+meta_new_log = []
+
+class NonClassNewMeta(type):
+    def __new__(mcls, name, bases, namespace):
+        return name + ":plain"
+
+    def __init__(cls, name, bases, namespace):
+        meta_new_log.append("init")
+
+class NonClassMade(metaclass=NonClassNewMeta):
+    pass
+
+class ParentMeta(type):
+    pass
+
+class ParentMade(metaclass=ParentMeta):
+    pass
+
+class ChildMade(ParentMade):
+    pass
+
+class OtherMeta(type):
+    pass
+
+class OtherMade(metaclass=OtherMeta):
+    pass
+
+print(MappingPrepared.seed, MappingPrepared.body)
+print(NonClassMade, len(meta_new_log))
+print(type(ChildMade).__name__)
+try:
+    class BadMetaMix(ParentMade, OtherMade):
+        pass
+except Exception:
+    print("metaclass-conflict-blocked")
+
 # Descriptor lookup, property get/set/delete, and instance fallback.
 class Descriptor:
     def __get__(self, obj, owner):
@@ -189,3 +238,50 @@ print(int_child, isinstance(int_child, IntChild), IntChild.KIND)
 print(str_child, isinstance(str_child, StrChild), StrChild.KIND)
 print(float_child, isinstance(float_child, FloatChild), FloatChild.KIND)
 print(len(bytes_child), isinstance(bytes_child, BytesChild), BytesChild.KIND)
+
+# Descriptor precedence: data descriptors win over instance attrs; non-data descriptors do not.
+class DataDescriptor:
+    def __get__(self, obj, owner):
+        return "data-get"
+
+    def __set__(self, obj, value):
+        obj.saved = "data-set:" + value
+
+class NonDataDescriptor:
+    def __get__(self, obj, owner):
+        return "non-data-get"
+
+class DescriptorOrder:
+    data = DataDescriptor()
+    non_data = NonDataDescriptor()
+
+descriptor_order = DescriptorOrder()
+descriptor_order.non_data = "instance-non-data"
+print(descriptor_order.data, descriptor_order.non_data)
+descriptor_order.data = "ok"
+print(descriptor_order.saved)
+
+# Slots conflict checks and weakref eligibility.
+import weakref
+
+class WeakSlot:
+    __slots__ = ("x", "__weakref__")
+
+class NoWeakSlot:
+    __slots__ = ("x",)
+
+weak_slot = WeakSlot()
+weak_slot.x = 9
+print(weakref.ref(weak_slot)().x)
+try:
+    weakref.ref(NoWeakSlot())
+except Exception:
+    print("slot-weakref-blocked")
+try:
+    weakref.ref(123)
+except Exception:
+    print("scalar-weakref-blocked")
+try:
+    type("SlotConflict", (), {"__slots__": ("x",), "x": 1})
+except Exception:
+    print("slot-conflict-blocked")

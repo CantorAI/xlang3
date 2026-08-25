@@ -13,6 +13,10 @@ CustomMeta CustomMeta
 InitMade:ok
 NewMade:new NewMeta
 PrepareMade:prepared PrepareMade:prepared body
+MappingPrepared:seed body
+NonClassMade:plain 0
+ParentMeta
+metaclass-conflict-blocked
 4 class:Box
 10 11
 0
@@ -30,3 +34,9 @@ slot-blocked
 34 False str-child
 1.5 False float-child
 2 False bytes-child
+data-get instance-non-data
+data-set:ok
+9
+slot-weakref-blocked
+scalar-weakref-blocked
+slot-conflict-blocked

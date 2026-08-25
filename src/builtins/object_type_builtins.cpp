@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/set_object.h"
 
 #include <cstdint>
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -30,6 +31,52 @@ namespace xlang3 {
 Value make_dict_fromkeys_classmethod();
 
 namespace {
+
+bool collect_type_new_slots(const Value& value, std::vector<std::string>& slots) {
+  if (auto* string = value_as_string(value)) {
+    const auto name = string_object_to_string(*string);
+    if (name != "__dict__" && name != "__weakref__" &&
+        std::find(slots.begin(), slots.end(), name) == slots.end()) {
+      slots.push_back(name);
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      if (!collect_type_new_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      if (!collect_type_new_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      if (!collect_type_new_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+DictObject* type_new_namespace_dict(const Value& value) {
+  if (auto* dict = value_as_dict(value)) {
+    return dict;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    return value_as_dict(instance->mapping_storage);
+  }
+  return nullptr;
+}
 
 const char* builtin_type_name_for_kind(ObjectKind kind) {
   switch (kind) {
@@ -275,7 +322,7 @@ bool builtin_type_new(
   }
   auto* name = value_as_string(args[1]);
   auto* bases = value_as_tuple(args[2]);
-  auto* namespace_dict = value_as_dict(args[3]);
+  auto* namespace_dict = type_new_namespace_dict(args[3]);
   if (name == nullptr || bases == nullptr || namespace_dict == nullptr) {
     error = "type.__new__ expected str, tuple, and dict";
     runtime.raise_class_error("TypeError", error);
@@ -284,6 +331,8 @@ bool builtin_type_new(
 
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.reserve(namespace_dict->entries.size());
+  std::vector<std::string> explicit_slots;
+  bool has_explicit_slots = false;
   for (const auto& entry : namespace_dict->entries) {
     auto* key = value_as_string(entry.first);
     if (key == nullptr) {
@@ -291,7 +340,27 @@ bool builtin_type_new(
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    attrs.push_back({string_object_to_string(*key), entry.second});
+    const auto key_name = string_object_to_string(*key);
+    if (key_name == "__slots__") {
+      has_explicit_slots = true;
+      if (!collect_type_new_slots(entry.second, explicit_slots)) {
+        error = "type.__new__ __slots__ must be a string or iterable of strings";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    }
+    attrs.push_back({key_name, entry.second});
+  }
+  if (has_explicit_slots) {
+    for (const auto& slot : explicit_slots) {
+      for (const auto& attr : attrs) {
+        if (attr.first == slot) {
+          error = "'" + slot + "' in __slots__ conflicts with class variable";
+          runtime.raise_class_error("ValueError", error);
+          return false;
+        }
+      }
+    }
   }
 
   Value base = Value::invalid();

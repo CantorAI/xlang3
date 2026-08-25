@@ -224,15 +224,15 @@ Section-level fixture coverage:
 - [x] `issubclass`
 - [x] MRO
 - [x] three-argument `type(name, bases, namespace)` for class creation from tuple bases and dict namespace
-- [~] metaclass object model: class creation preserves custom metaclass identity, class calls honor metaclass `__call__`, and type-derived metaclass construction runs metaclass `__prepare__`, `__new__`, and `__init__`; custom namespace mappings, non-class `__new__` return edge cases, and conflict edge cases pending
-- [~] descriptors: VM dispatch supports property, slot/member descriptors, and general `__get__` / `__set__` / `__delete__` foundation; CPython edge-case audit pending
+- [x] metaclass object model: class creation preserves custom metaclass identity, class calls honor metaclass `__call__`, type-derived metaclass construction runs metaclass `__prepare__`, `__new__`, and `__init__`, prepared dict-subclass namespaces are accepted, non-class `__new__` returns skip metaclass `__init__`, and base metaclass inheritance/conflict checks are covered in section fixture
+- [x] descriptors: VM dispatch supports property, slot/member descriptors, general `__get__` / `__set__` / `__delete__`, data-descriptor precedence over instance attributes, and non-data descriptor instance override behavior
 - [x] properties: `property(fget, fset, fdel, doc)`, `@property`, `.getter`, `.setter`, `.deleter`, and get/set/delete dispatch covered in section fixture
 - [x] `__getattr__` instance hook foundation
 - [x] `__getattribute__` instance hook foundation
 - [x] `__setattr__` instance hook foundation plus `object.__setattr__`
 - [x] `__delattr__` instance hook foundation plus `object.__delattr__`
 - [x] user-defined `__len__`, `__getitem__`, `__setitem__`, and `__delitem__` fallback dispatch after native sequence/mapping fast paths
-- [~] `__slots__`: explicit string/list/tuple/set declarations, inherited slot layout for known bases, dynamic attribute restriction, member descriptors, descriptor get/set/delete, deletion, and `__dict__` opt-in basics; weakref behavior and conflict edge cases pending
+- [x] `__slots__`: explicit string/list/tuple/set declarations, inherited slot layout for known bases, dynamic attribute restriction, member descriptors, descriptor get/set/delete, deletion, `__dict__` opt-in basics, slotted weakref eligibility, and slot/class-variable conflict validation
 
 ### Functions And Calls
 

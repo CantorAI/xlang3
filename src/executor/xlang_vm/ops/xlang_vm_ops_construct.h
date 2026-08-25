@@ -27,6 +27,34 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+XLANG3_HOT_INLINE bool xlang_vm_class_slot_conflicts(
+    const std::vector<std::pair<std::string, uint32_t>>& attrs,
+    const std::vector<std::string>& slots,
+    std::string& error) {
+  bool has_explicit_slots = false;
+  for (const auto& attr : attrs) {
+    if (attr.first == "__slots__") {
+      has_explicit_slots = true;
+      break;
+    }
+  }
+  if (!has_explicit_slots) {
+    return false;
+  }
+  for (const auto& slot : slots) {
+    if (slot == "__dict__" || slot == "__weakref__") {
+      continue;
+    }
+    for (const auto& attr : attrs) {
+      if (attr.first == slot) {
+        error = "'" + slot + "' in __slots__ conflicts with class variable";
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 XLANG3_HOT_INLINE XlangVMOpFlow make_class(
     const ir::Instr& in,
     const ir::Function& fn,
@@ -41,6 +69,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
   attrs.reserve(fn.class_attrs[in.b].size());
   std::vector<std::string> attr_order;
   attr_order.reserve(fn.class_attrs[in.b].size());
+  std::string slot_error;
+  if (xlang_vm_class_slot_conflicts(fn.class_attrs[in.b], fn.class_instance_slots[in.c], slot_error)) {
+    result.errors.push_back(slot_error);
+    return XlangVMOpFlow::ReturnResult;
+  }
   for (const auto& attr : fn.class_attrs[in.b]) {
     if (attr.second >= regs.size()) {
       result.errors.push_back("invalid class attr register");

@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 
 namespace xlang3 {
 
@@ -27,6 +28,17 @@ struct WeakRefState {
 
 void weakref_state_cleanup(void* data) {
   delete static_cast<WeakRefState*>(data);
+}
+
+bool weakrefable_target(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return false;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    auto* klass = value_as_class(instance->klass);
+    return klass == nullptr || klass->allow_weakref;
+  }
+  return true;
 }
 
 bool weakref_reference_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -48,6 +60,10 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     error = "weakref.ref() expected object and optional callback";
     return false;
   }
+  if (!weakrefable_target(args[0])) {
+    error = "cannot create weak reference to object";
+    return false;
+  }
   auto* state = new WeakRefState();
   value_assign_fast(state->target, args[0]);
   if (argc == 2) {
@@ -62,6 +78,10 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
 bool weakref_proxy(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "weakref.proxy() expected object and optional callback";
+    return false;
+  }
+  if (!weakrefable_target(args[0])) {
+    error = "cannot create weak reference to object";
     return false;
   }
   value_assign_fast(out, args[0]);
