@@ -437,7 +437,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
 - [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`, and `Full` foundations with ordering/maxsize/task helpers; blocking/wakeup semantics pending
-- [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
+- [~] `string`: public constants, `_string.formatter_parser`/`formatter_field_name_split`, and native
+  `Formatter` methods for `format`, `vformat`, `parse`, `get_value`, `format_field`, and `convert_field`;
+  full nested-field parsing, keyword formatting, subclass override hooks, and exact CPython formatter behavior pending
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
@@ -458,7 +460,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, and basic path transforms; full operator/glob semantics pending
-- [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
+- [~] `urllib.parse`: quote/unquote helpers plus `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`,
+  `urljoin`, `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options,
+  strict parsing/errors, complete RFC edge cases, and exact CPython result tuple subclasses pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
 - [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending
 - [~] `zlib`: native zlib-backed `compress`, `decompress`, `compressobj`, `decompressobj`, `crc32`, `adler32`, common constants, and stream object state basics; dictionaries, copy, checksums/compression edge cases, and exact CPython error semantics pending

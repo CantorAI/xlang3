@@ -79,6 +79,10 @@ import string
 
 print(string.ascii_lowercase[:3], string.ascii_uppercase[-3:], string.digits, "A" in string.hexdigits)
 print(len(string.octdigits), "\n" in string.whitespace, callable(string.Formatter))
+formatter = string.Formatter()
+print(formatter.format("{}-{}", "fmt", 7), formatter.format_field(9, "03d"))
+print(list(formatter.parse("a{name!r:>4}b"))[0])
+print(formatter.get_value(1, ("x", "y"), {}))
 
 # dataclasses: annotated fields generate init/repr/eq metadata foundations.
 import dataclasses
@@ -239,6 +243,7 @@ import stat
 import subprocess
 import sys
 import sysconfig
+import urllib.parse
 import winreg
 import xmlrpc.client
 
@@ -253,6 +258,19 @@ print(list(signature.parameters.keys()), signature.parameters["a"].name, inspect
 bound_signature = signature.bind(4, 5)
 print(bound_signature.arguments["a"], inspect.unwrap(wrapper) is original, inspect.getmodulename("sample.py"))
 print(inspect.getdoc(original), inspect.getmro(OrderedValue)[0] is OrderedValue)
+parsed_url = urllib.parse.urlparse("https://example.com/a/b;p?q=1#frag")
+split_url = urllib.parse.urlsplit("https://example.com/a/b?q=1#frag")
+print(parsed_url.scheme, parsed_url.netloc, parsed_url.path, parsed_url.params, parsed_url.query, parsed_url.fragment)
+print(len(parsed_url), parsed_url[1], parsed_url.geturl())
+print(split_url.scheme, split_url.path, len(split_url), split_url[2], split_url.geturl())
+print(urllib.parse.urlunparse(parsed_url))
+print(urllib.parse.urlunsplit(split_url))
+print(urllib.parse.urljoin("https://e.com/a/b/c", "../d?q=1"))
+print(urllib.parse.parse_qsl("a=1&b=two+words&a=3"))
+print(urllib.parse.parse_qs("a=1&b=two+words&a=3")["a"])
+print(urllib.parse.urlencode({"a": "two words", "b": 3}))
+print(urllib.parse.quote("a b/c", "/"), urllib.parse.quote_plus("a b/c"))
+print(urllib.parse.unquote("a%20b"), urllib.parse.unquote_plus("a+b"))
 
 # re: compiled patterns, match data, and common helpers.
 m = re.search("([a-z]+)([0-9]+)", "id42")

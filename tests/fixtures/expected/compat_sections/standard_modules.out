@@ -9,6 +9,9 @@ True True True True
 True True True
 abc XYZ 0123456789 True
 8 True True
+fmt-7 009
+(a, name, >4, r)
+y
 2 5 5 2 x
 Point(x=2, y=5)
 True
@@ -47,6 +50,17 @@ True True True
 [a, b] a True
 4 True sample
 doc text True
+https example.com /a/b p q=1 frag
+6 example.com https://example.com/a/b;p?q=1#frag
+https /a/b 5 /a/b https://example.com/a/b?q=1#frag
+https://example.com/a/b;p?q=1#frag
+https://example.com/a/b?q=1#frag
+https://e.com/a/d?q=1
+[(a, 1), (b, two words), (a, 3)]
+[1, 3]
+a=two+words&b=3
+a%20b/c a+b%2Fc
+a b a b
 id42 id (id, 42) (2, 4)
 abc abc True
 [1, 22] [a, b, c] a#b#
