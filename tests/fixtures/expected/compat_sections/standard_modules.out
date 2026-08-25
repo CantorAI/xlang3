@@ -38,6 +38,8 @@ x True True True
 stream 5
 two False 5
 p
+demo.echo 7 rpc
+200 Not Found 80
 True True True True
 7 haha 3 2
 True True True 8

@@ -173,6 +173,8 @@ print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRel
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
 import dis
 import getpass
+import http
+import http.client
 import io
 import locale
 import marshal
@@ -185,6 +187,7 @@ import subprocess
 import sys
 import sysconfig
 import winreg
+import xmlrpc.client
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
@@ -221,6 +224,11 @@ pickle_stream = io.BytesIO()
 pickle.dump(("p", 3), pickle_stream)
 pickle_stream.seek(0)
 print(pickle.load(pickle_stream)[0])
+
+xml = xmlrpc.client.dumps((7, "rpc"), methodname="demo.echo")
+xml_params, xml_method = xmlrpc.client.loads(xml)
+print(xml_method, xml_params[0], xml_params[1])
+print(http.HTTPStatus.OK, http.client.responses[404], http.client.HTTP_PORT)
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])

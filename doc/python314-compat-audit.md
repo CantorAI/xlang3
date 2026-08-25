@@ -436,7 +436,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
 - [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending
-- [ ] `xmlrpc` / `http` package placeholders: module/package import foundation only
+- [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, and `http.server` class names; real HTTP/XML-RPC networking and complete protocol behavior pending
 
 ### Async, Tasks, And Threads
 
