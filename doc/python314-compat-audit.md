@@ -502,10 +502,12 @@ High-level modules currently backed by native/runtime code:
 These items are useful Python 3.14 compatibility work, but they must not be
 considered complete until CPython-vs-XLang3 tests exist for the declared scope.
 
-- [ ] `enum` audit:
-  current native module is a foundation. It must be tested against CPython for
-  member creation, value lookup, aliases, `auto()`, `IntEnum`, `IntFlag`, `Flag`
-  operators, decorators such as `unique`, class attributes, `repr`, `str`, and
+- [~] `enum` audit:
+  Native module now turns enum subclass constants into member objects and tests
+  member creation, value lookup, aliases, `auto()`, `IntEnum` basics, class
+  attributes, iteration over canonical members, member string display, and
+  `unique` duplicate rejection. Remaining work: CPython-exact metaclass
+  behavior, `repr`, `Flag`/`IntFlag` operators, richer decorators, and
   pickling-facing helpers.
 
 - [~] inherited builtin constructor audit:

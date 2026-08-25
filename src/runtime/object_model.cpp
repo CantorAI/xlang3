@@ -24,6 +24,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value.h"
+#include "xlang3/value_hash.h"
 
 #include <algorithm>
 #include <string_view>
@@ -102,6 +103,130 @@ bool contains_class(const std::vector<const ClassObject*>& classes, const ClassO
 bool build_class_mro_classes(const ClassObject* klass, std::vector<const ClassObject*>& out, std::string& error);
 
 bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error);
+bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, std::string& error);
+
+bool attr_truthy_marker(ClassObject* klass, const std::string& name) {
+  Value marker;
+  std::string error;
+  return class_lookup_attr(klass, name, marker, error) && value_truthy(marker);
+}
+
+bool value_is_enum_auto_sentinel(const Value& value) {
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return false;
+  }
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_enum_auto__" && value_truthy(attr.second)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool enum_value_equal(const Value& left, const Value& right) {
+  return value_key_equal(left, right);
+}
+
+bool enum_member_candidate(const std::string& name, const Value& value) {
+  if (name.empty() || name[0] == '_' || name == "name" || name == "value") {
+    return false;
+  }
+  if (value_as_function(value) != nullptr || value_as_native_function(value) != nullptr ||
+      value_as_class(value) != nullptr || value_as_static_method(value) != nullptr ||
+      value_as_class_method(value) != nullptr || value_as_property(value) != nullptr) {
+    return false;
+  }
+  return true;
+}
+
+bool enum_value_map_lookup(const std::vector<std::pair<Value, Value>>& map, const Value& value, Value& out) {
+  for (const auto& entry : map) {
+    if (enum_value_equal(entry.first, value)) {
+      value_assign_fast(out, entry.second);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool finalize_enum_class(ClassObject& klass) {
+  if (klass.attrs.find("__xlang3_enum_finalized__") != klass.attrs.end()) {
+    return true;
+  }
+  if (klass.attrs.find("__xlang3_enum_marker__") != klass.attrs.end()) {
+    return true;
+  }
+  if (!attr_truthy_marker(&klass, "__xlang3_enum_marker__")) {
+    return true;
+  }
+
+  Value klass_value = class_value(&klass);
+  std::vector<std::pair<Value, Value>> members;
+  std::vector<std::pair<Value, Value>> value_members;
+  std::vector<Value> member_names;
+  std::vector<Value> member_values;
+  int64_t next_auto_value = 1;
+
+  std::vector<std::pair<std::string, Value>> candidates;
+  candidates.reserve(klass.attrs.size());
+  for (const auto& name : klass.definition_attr_order) {
+    auto attr_it = klass.attrs.find(name);
+    if (attr_it != klass.attrs.end() && enum_member_candidate(attr_it->first, attr_it->second)) {
+      candidates.push_back(*attr_it);
+    }
+  }
+  if (candidates.empty()) {
+    for (const auto& attr : klass.attrs) {
+      if (enum_member_candidate(attr.first, attr.second)) {
+        candidates.push_back(attr);
+      }
+    }
+    std::sort(candidates.begin(), candidates.end(), [](const auto& left, const auto& right) {
+      return left.first < right.first;
+    });
+  }
+
+  for (auto& candidate : candidates) {
+    Value raw_value = candidate.second;
+    if (value_is_enum_auto_sentinel(raw_value)) {
+      raw_value = Value::int64(next_auto_value);
+    }
+    if (raw_value.tag == ValueTag::Int64 && raw_value.as.i64 >= next_auto_value) {
+      next_auto_value = raw_value.as.i64 + 1;
+    }
+
+    Value existing;
+    if (enum_value_map_lookup(value_members, raw_value, existing)) {
+      klass.attrs[candidate.first] = existing;
+      members.push_back({Value::string(candidate.first), existing});
+      continue;
+    }
+
+    Value member = Value::instance(klass_value);
+    auto* instance = value_as_instance(member);
+    if (instance == nullptr) {
+      return false;
+    }
+    instance->attrs.push_back({"name", Value::string(candidate.first)});
+    instance->attrs.push_back({"value", raw_value});
+    instance->attrs.push_back({"__xlang3_string_value__", Value::string(klass.name + "." + candidate.first)});
+    klass.attrs[candidate.first] = member;
+    members.push_back({Value::string(candidate.first), member});
+    value_members.push_back({raw_value, member});
+    member_names.push_back(Value::string(candidate.first));
+    member_values.push_back(member);
+  }
+
+  klass.attrs["_member_map_"] = Value::dict(members);
+  klass.attrs["__members__"] = klass.attrs["_member_map_"];
+  klass.attrs["_value2member_map_"] = Value::dict(value_members);
+  klass.attrs["_member_names_"] = Value::list(member_names);
+  klass.attrs["_member_list_"] = Value::list(member_values);
+  klass.attrs["__xlang3_enum_finalized__"] = Value::boolean(true);
+  ++klass.version;
+  return true;
+}
 
 bool class_mro_classes(ClassObject* klass, std::vector<const ClassObject*>& out, std::string& error) {
   const std::vector<Value>* values = nullptr;
@@ -528,6 +653,28 @@ Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
 
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name) {
   return class_has_builtin_base_name_impl(klass, name);
+}
+
+bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out) {
+  auto* klass_obj = value_as_class(klass);
+  if (klass_obj == nullptr || !attr_truthy_marker(klass_obj, "__xlang3_enum_marker__")) {
+    return false;
+  }
+  auto it = klass_obj->attrs.find("_value2member_map_");
+  if (it == klass_obj->attrs.end()) {
+    return false;
+  }
+  auto* dict = value_as_dict(it->second);
+  if (dict == nullptr) {
+    return false;
+  }
+  for (const auto& entry : dict->entries) {
+    if (enum_value_equal(entry.first, value)) {
+      value_assign_fast(out, entry.second);
+      return true;
+    }
+  }
+  return false;
 }
 
 Value Value::class_object(
@@ -1571,6 +1718,10 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   }
   if (klass_obj->bases.size() == 1) {
     klass_obj->base = std::move(base);
+  }
+  if (!finalize_enum_class(*klass_obj)) {
+    error = "enum class finalization failed";
+    return false;
   }
   ++klass_obj->version;
   return true;

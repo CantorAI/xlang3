@@ -731,6 +731,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(method)) {
+    if (call_args.size() == 1 && !call_args.has_keywords() && !call_args.has_expansion()) {
+      Value enum_member;
+      if (class_try_enum_value_lookup(method, call_args.get(0), enum_member)) {
+        value_assign_fast(regs[in.dst], enum_member);
+        return XlangVMOpFlow::Next;
+      }
+    }
     Value instance = Value::instance(method);
     CallArgsView init_args = call_args;
     init_args.leading = &instance;
@@ -975,6 +982,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
       return XlangVMOpFlow::ContinueLoop;
     }
   } else if (auto* klass = value_as_class(callee)) {
+    if (call_args.size() == 1 && !call_args.has_keywords() && !call_args.has_expansion()) {
+      Value enum_member;
+      if (class_try_enum_value_lookup(callee, call_args.get(0), enum_member)) {
+        value_assign_fast(regs[in.dst], enum_member);
+        return XlangVMOpFlow::Next;
+      }
+    }
     if (auto* metaclass = value_as_class(klass->metaclass)) {
       Value meta_call;
       std::string meta_call_error;
@@ -1295,6 +1309,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(callee)) {
+    if (call_args.size() == 1 && !call_args.has_keywords() && !call_args.has_expansion()) {
+      Value enum_member;
+      if (class_try_enum_value_lookup(callee, call_args.get(0), enum_member)) {
+        value_assign_fast(regs[in.dst], enum_member);
+        return XlangVMOpFlow::Next;
+      }
+    }
     if (auto* metaclass = value_as_class(klass->metaclass)) {
       Value meta_call;
       std::string meta_call_error;
@@ -2142,6 +2163,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   auto* native = value_as_native_function(callee);
   if (native == nullptr) {
     if (value_as_class(callee) != nullptr) {
+      if (call_args.size() == 1 && !call_args.has_keywords() && !call_args.has_expansion()) {
+        Value enum_member;
+        if (class_try_enum_value_lookup(callee, call_args.get(0), enum_member)) {
+          value_assign_fast(regs[in.dst], enum_member);
+          return XlangVMOpFlow::Next;
+        }
+      }
       Value instance = Value::instance(callee);
       CallArgsView init_args = call_args;
       init_args.leading = &instance;

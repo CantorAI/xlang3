@@ -359,6 +359,15 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     value_assign_fast(out, iterable);
     return true;
   }
+  if (value_as_class(iterable) != nullptr) {
+    Value member_list;
+    std::string attr_error;
+    if (object_lookup_class_attr(iterable, "_member_list_", member_list, attr_error) &&
+        value_as_list(member_list) != nullptr) {
+      out = Value::sequence_iterator(member_list, 0);
+      return true;
+    }
+  }
   if (value_as_list(iterable) != nullptr ||
       (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
        (iterable.as.obj->kind == ObjectKind::Tuple ||

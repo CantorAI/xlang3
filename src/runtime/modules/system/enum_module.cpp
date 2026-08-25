@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
@@ -30,12 +31,46 @@ bool enum_identity(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool enum_unique(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "unique() expected an enum class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value members;
+  std::string attr_error;
+  if (object_lookup_class_attr(args[0], "__members__", members, attr_error)) {
+    if (auto* dict = value_as_dict(members)) {
+      for (const auto& entry : dict->entries) {
+        Value member_name;
+        std::string member_error;
+        if (!object_get_attr(entry.second, "name", member_name, member_error)) {
+          continue;
+        }
+        if (value_to_string(entry.first) != value_to_string(member_name)) {
+          error = "duplicate values found in enum";
+          runtime.raise_class_error("ValueError", error);
+          return false;
+        }
+      }
+    }
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 bool enum_auto(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "auto() expected no arguments";
     return false;
   }
-  value_set_int64(out, 0);
+  out = Value::instance(Value::class_object("_auto", {}));
+  auto* instance = value_as_instance(out);
+  if (instance == nullptr) {
+    error = "auto() failed";
+    return false;
+  }
+  instance->attrs.push_back({"__xlang3_enum_auto__", Value::boolean(true)});
   return true;
 }
 
@@ -53,7 +88,13 @@ Value enum_base_class(Runtime& runtime, const char* name, const char* builtin_ba
   if (const auto* builtin = runtime.find_builtin(builtin_base_name)) {
     value_assign_fast(base, *builtin);
   }
-  return Value::class_object(name, {{"__module__", Value::string("enum")}}, std::move(base));
+  return Value::class_object(
+      name,
+      {
+          {"__module__", Value::string("enum")},
+          {"__xlang3_enum_marker__", Value::boolean(true)},
+      },
+      std::move(base));
 }
 
 } // namespace
@@ -79,7 +120,7 @@ void register_enum_module(Runtime& runtime) {
       .value("Flag", flag_class)
       .value("StrEnum", str_enum_class)
       .value("ReprEnum", repr_enum_class)
-      .function("unique", enum_identity)
+      .function("unique", enum_unique)
       .function("member", enum_identity)
       .function("nonmember", enum_identity)
       .function("global_enum", enum_identity)

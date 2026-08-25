@@ -26,6 +26,11 @@ T 2 object True
 x List Optional
 FinalClass True True False
 annotations 3 None 16777216
+RED 1 BLUE 2
+True True True
+[Color.RED, Color.BLUE] True [RED, BLUE]
+THREE True True
+unique-error
 True True .
 True True 3.14
 82 RESUME 43

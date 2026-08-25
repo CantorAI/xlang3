@@ -170,6 +170,32 @@ import __future__
 feature = __future__.annotations
 print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
 
+# enum: class constants become members, aliases reuse members, auto increments, value lookup works, and unique rejects aliases.
+import enum
+
+class Color(enum.Enum):
+    RED = 1
+    CRIMSON = 1
+    BLUE = enum.auto()
+
+print(Color.RED.name, Color.RED.value, Color.BLUE.name, Color.BLUE.value)
+print(Color(1) is Color.RED, Color(2) is Color.BLUE, Color.CRIMSON is Color.RED)
+print(list(Color), Color.__members__["CRIMSON"] is Color.RED, Color._member_names_)
+
+class Number(enum.IntEnum):
+    ONE = 1
+    THREE = 3
+
+print(Number.THREE.name, Number(3) is Number.THREE, isinstance(Number.ONE, Number))
+
+try:
+    @enum.unique
+    class Bad(enum.Enum):
+        A = 1
+        B = 1
+except ValueError:
+    print("unique-error")
+
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
 import dis
 import getpass

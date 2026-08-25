@@ -30,6 +30,7 @@ struct ClassObject {
   Value metaclass;
   std::vector<Value> bases;
   std::unordered_map<std::string, Value> attrs;
+  std::vector<std::string> definition_attr_order;
   std::vector<std::string> instance_slot_names;
   std::unordered_map<std::string, uint32_t> instance_slot_indices;
   uint64_t version = 1;
@@ -165,6 +166,7 @@ bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out,
 bool class_set_base(Value klass, Value base, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name);
+bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out);
 bool instance_set_native_data(
     Value instance,
     std::string native_type,

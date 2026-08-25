@@ -39,11 +39,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
   }
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.reserve(fn.class_attrs[in.b].size());
+  std::vector<std::string> attr_order;
+  attr_order.reserve(fn.class_attrs[in.b].size());
   for (const auto& attr : fn.class_attrs[in.b]) {
     if (attr.second >= regs.size()) {
       result.errors.push_back("invalid class attr register");
       return XlangVMOpFlow::ReturnResult;
     }
+    attr_order.push_back(attr.first);
     attrs.push_back(std::make_pair(attr.first, regs[attr.second]));
   }
   Value base = Value::invalid();
@@ -60,6 +63,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
       std::move(base),
       fn.class_instance_slots[in.c],
       std::move(metaclass));
+  if (auto* klass = value_as_class(regs[in.dst])) {
+    klass->definition_attr_order = std::move(attr_order);
+  }
   return XlangVMOpFlow::Next;
 }
 
