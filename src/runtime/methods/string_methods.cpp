@@ -23,6 +23,7 @@ limitations under the License.
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include <sstream>
 #include <string_view>
 #include <vector>
 
@@ -1060,7 +1061,7 @@ bool string_format_method_kw(
   return true;
 }
 
-bool string_encode_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 && argc != 2) {
     error = "str.encode expected 1 or 2 arguments, got " + std::to_string(argc);
     return false;
@@ -1083,6 +1084,7 @@ bool string_encode_method(Runtime&, const Value* args, uint32_t argc, Value& out
       for (unsigned char ch : view) {
         if (ch >= 128) {
           error = "ascii codec can't encode character";
+          runtime.raise_class_error("UnicodeEncodeError", error);
           return false;
         }
       }
@@ -1382,34 +1384,412 @@ bool string_isspace_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   return string_char_class_method(args, argc, out, error, "str.isspace", StringCharClassKind::Space);
 }
 
+bool string_isascii_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.isascii", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.isascii target", text, error)) {
+    return false;
+  }
+  bool ok = true;
+  for (unsigned char ch : as_view(text)) {
+    if (ch >= 128) {
+      ok = false;
+      break;
+    }
+  }
+  value_set_bool(out, ok);
+  return true;
+}
+
+bool string_isdecimal_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return string_char_class_method(args, argc, out, error, "str.isdecimal", StringCharClassKind::Digit);
+}
+
+bool string_isnumeric_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return string_char_class_method(args, argc, out, error, "str.isnumeric", StringCharClassKind::Digit);
+}
+
+bool string_casefold_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.casefold", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return string_lower_body(args[0], out, error);
+}
+
+bool string_capitalize_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.capitalize", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.capitalize target", text, error)) {
+    return false;
+  }
+  auto view = as_view(text);
+  char* result = nullptr;
+  Value result_value = make_uninitialized_string_value(view.size(), result);
+  if (result == nullptr) {
+    return false;
+  }
+  for (size_t i = 0; i < view.size(); ++i) {
+    const auto ch = static_cast<unsigned char>(view[i]);
+    result[i] = static_cast<char>(i == 0 ? std::toupper(ch) : std::tolower(ch));
+  }
+  return publish_string_result(out, result_value);
+}
+
+bool string_swapcase_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.swapcase", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.swapcase target", text, error)) {
+    return false;
+  }
+  auto view = as_view(text);
+  char* result = nullptr;
+  Value result_value = make_uninitialized_string_value(view.size(), result);
+  if (result == nullptr) {
+    return false;
+  }
+  for (size_t i = 0; i < view.size(); ++i) {
+    const auto ch = static_cast<unsigned char>(view[i]);
+    result[i] = static_cast<char>(std::islower(ch) ? std::toupper(ch) : std::tolower(ch));
+  }
+  return publish_string_result(out, result_value);
+}
+
+bool string_title_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.title", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.title target", text, error)) {
+    return false;
+  }
+  auto view = as_view(text);
+  char* result = nullptr;
+  Value result_value = make_uninitialized_string_value(view.size(), result);
+  if (result == nullptr) {
+    return false;
+  }
+  bool new_word = true;
+  for (size_t i = 0; i < view.size(); ++i) {
+    const auto ch = static_cast<unsigned char>(view[i]);
+    result[i] = static_cast<char>(new_word ? std::toupper(ch) : std::tolower(ch));
+    new_word = std::isalnum(ch) == 0;
+  }
+  return publish_string_result(out, result_value);
+}
+
+bool string_istitle_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.istitle", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.istitle target", text, error)) {
+    return false;
+  }
+  bool new_word = true;
+  bool seen_cased = false;
+  bool ok = true;
+  for (unsigned char ch : as_view(text)) {
+    if (std::isalpha(ch)) {
+      seen_cased = true;
+      if (new_word) {
+        if (!std::isupper(ch)) {
+          ok = false;
+          break;
+        }
+      } else if (!std::islower(ch)) {
+        ok = false;
+        break;
+      }
+      new_word = false;
+    } else {
+      new_word = std::isalnum(ch) == 0;
+    }
+  }
+  value_set_bool(out, ok && seen_cased);
+  return true;
+}
+
+bool parse_fill_width_args(
+    const Value* args,
+    uint32_t argc,
+    const char* name,
+    memory::X3StringView& text,
+    int64_t& width,
+    char& fill,
+    std::string& error) {
+  if (argc < 2 || argc > 3) {
+    error = std::string(name) + " expected width and optional fillchar";
+    return false;
+  }
+  if (!get_string_view_checked(args[0], name, text, error)) {
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = std::string(name) + " width must be int";
+    return false;
+  }
+  width = args[1].as.i64;
+  fill = ' ';
+  if (argc == 3) {
+    memory::X3StringView fill_text;
+    if (!get_string_view_checked(args[2], "fillchar", fill_text, error)) {
+      return false;
+    }
+    if (fill_text.size != 1) {
+      error = "fill character must be exactly one character long";
+      return false;
+    }
+    fill = fill_text.data[0];
+  }
+  return true;
+}
+
+bool make_padded_string(std::string_view text, int64_t width, char fill, size_t left_pad, Value& out) {
+  if (width <= static_cast<int64_t>(text.size())) {
+    out = Value::string_view(text);
+    return true;
+  }
+  const size_t total = static_cast<size_t>(width);
+  std::string result(total, fill);
+  std::memcpy(result.data() + left_pad, text.data(), text.size());
+  out = Value::string(std::move(result));
+  return true;
+}
+
+bool string_center_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  memory::X3StringView text;
+  int64_t width = 0;
+  char fill = ' ';
+  if (!parse_fill_width_args(args, argc, "str.center", text, width, fill, error)) {
+    return false;
+  }
+  auto view = as_view(text);
+  const size_t pad = width > static_cast<int64_t>(view.size()) ? static_cast<size_t>(width - view.size()) : 0;
+  return make_padded_string(view, width, fill, pad / 2, out);
+}
+
+bool string_ljust_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  memory::X3StringView text;
+  int64_t width = 0;
+  char fill = ' ';
+  if (!parse_fill_width_args(args, argc, "str.ljust", text, width, fill, error)) {
+    return false;
+  }
+  return make_padded_string(as_view(text), width, fill, 0, out);
+}
+
+bool string_rjust_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  memory::X3StringView text;
+  int64_t width = 0;
+  char fill = ' ';
+  if (!parse_fill_width_args(args, argc, "str.rjust", text, width, fill, error)) {
+    return false;
+  }
+  auto view = as_view(text);
+  const size_t pad = width > static_cast<int64_t>(view.size()) ? static_cast<size_t>(width - view.size()) : 0;
+  return make_padded_string(view, width, fill, pad, out);
+}
+
+bool string_zfill_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "str.zfill", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.zfill target", text, error)) {
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = "str.zfill width must be int";
+    return false;
+  }
+  auto view = as_view(text);
+  const int64_t width = args[1].as.i64;
+  if (width <= static_cast<int64_t>(view.size())) {
+    out = Value::string_view(view);
+    return true;
+  }
+  const size_t total = static_cast<size_t>(width);
+  std::string result(total, '0');
+  size_t source = 0;
+  size_t dest = 0;
+  if (!view.empty() && (view[0] == '+' || view[0] == '-')) {
+    result[0] = view[0];
+    source = 1;
+    dest = 1;
+  }
+  std::memcpy(result.data() + (total - (view.size() - source)), view.data() + source, view.size() - source);
+  (void)dest;
+  out = Value::string(std::move(result));
+  return true;
+}
+
+bool string_removeprefix_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "str.removeprefix", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  memory::X3StringView prefix;
+  if (!get_string_view_checked(args[0], "str.removeprefix target", text, error) ||
+      !get_string_view_checked(args[1], "str.removeprefix prefix", prefix, error)) {
+    return false;
+  }
+  auto t = as_view(text);
+  auto p = as_view(prefix);
+  if (t.size() >= p.size() && t.substr(0, p.size()) == p) {
+    out = Value::string_view(t.substr(p.size()));
+  } else {
+    value_assign_fast(out, args[0]);
+  }
+  return true;
+}
+
+bool string_removesuffix_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "str.removesuffix", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  memory::X3StringView suffix;
+  if (!get_string_view_checked(args[0], "str.removesuffix target", text, error) ||
+      !get_string_view_checked(args[1], "str.removesuffix suffix", suffix, error)) {
+    return false;
+  }
+  auto t = as_view(text);
+  auto s = as_view(suffix);
+  if (!s.empty() && t.size() >= s.size() && t.substr(t.size() - s.size()) == s) {
+    out = Value::string_view(t.substr(0, t.size() - s.size()));
+  } else {
+    value_assign_fast(out, args[0]);
+  }
+  return true;
+}
+
+bool string_splitlines_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "str.splitlines expected optional keepends";
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.splitlines target", text, error)) {
+    return false;
+  }
+  const bool keepends = argc == 2 && value_truthy(args[1]);
+  std::vector<Value> lines;
+  auto view = as_view(text);
+  size_t start = 0;
+  for (size_t i = 0; i < view.size(); ++i) {
+    if (view[i] != '\n' && view[i] != '\r') {
+      continue;
+    }
+    size_t end = i;
+    size_t next = i + 1;
+    if (view[i] == '\r' && next < view.size() && view[next] == '\n') {
+      ++next;
+    }
+    if (keepends) {
+      end = next;
+    }
+    lines.push_back(Value::string_view(view.substr(start, end - start)));
+    i = next - 1;
+    start = next;
+  }
+  if (start < view.size()) {
+    lines.push_back(Value::string_view(view.substr(start)));
+  }
+  out = Value::list(std::move(lines));
+  return true;
+}
+
+bool string_rsplit_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  // The current split implementation has no maxsplit path yet. For the common
+  // one-argument/two-argument forms, right-split is equivalent to split.
+  return string_split_method(runtime, args, argc, out, error, user_data);
+}
+
+bool string_expandtabs_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "str.expandtabs expected optional tabsize";
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.expandtabs target", text, error)) {
+    return false;
+  }
+  int64_t tabsize = 8;
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "str.expandtabs tabsize must be int";
+      return false;
+    }
+    tabsize = args[1].as.i64;
+  }
+  std::string result;
+  size_t column = 0;
+  for (char ch : as_view(text)) {
+    if (ch == '\t') {
+      const size_t spaces = tabsize <= 0 ? 0 : static_cast<size_t>(tabsize) - (column % static_cast<size_t>(tabsize));
+      result.append(spaces, ' ');
+      column += spaces;
+    } else {
+      result.push_back(ch);
+      column = (ch == '\n' || ch == '\r') ? 0 : column + 1;
+    }
+  }
+  out = Value::string(std::move(result));
+  return true;
+}
+
 } // namespace
 
 static constexpr BuiltinMethodSpec kStringMethods[] = {
+    {"capitalize", "str.capitalize", string_capitalize_method},
+    {"casefold", "str.casefold", string_casefold_method},
+    {"center", "str.center", string_center_method},
     {"count", "str.count", string_count_method, string_count_fast_method},
     {"encode", "str.encode", string_encode_method, builtin_method_fast_adapter<string_encode_method, 2>},
     {"endswith", "str.endswith", string_endswith_method, string_endswith_fast_method},
+    {"expandtabs", "str.expandtabs", string_expandtabs_method},
     {"find", "str.find", string_find_method, string_find_fast_method},
     {"format", "str.format", string_format_method, nullptr, false, string_format_method_kw},
     {"index", "str.index", string_index_method},
     {"isalnum", "str.isalnum", string_isalnum_method},
     {"isalpha", "str.isalpha", string_isalpha_method},
+    {"isascii", "str.isascii", string_isascii_method},
+    {"isdecimal", "str.isdecimal", string_isdecimal_method},
     {"isdigit", "str.isdigit", string_isdigit_method},
     {"islower", "str.islower", string_islower_method},
+    {"isnumeric", "str.isnumeric", string_isnumeric_method},
     {"isspace", "str.isspace", string_isspace_method},
+    {"istitle", "str.istitle", string_istitle_method},
     {"isupper", "str.isupper", string_isupper_method},
     {"join", "str.join", string_join_method, string_join_fast_method},
+    {"ljust", "str.ljust", string_ljust_method},
     {"lower", "str.lower", string_lower_method, string_lower_fast_method},
     {"lstrip", "str.lstrip", string_lstrip_method, string_lstrip_fast_method},
     {"partition", "str.partition", string_partition_method},
+    {"removeprefix", "str.removeprefix", string_removeprefix_method},
+    {"removesuffix", "str.removesuffix", string_removesuffix_method},
     {"replace", "str.replace", string_replace_method, string_replace_fast_method},
     {"rfind", "str.rfind", string_rfind_method},
     {"rindex", "str.rindex", string_rindex_method},
+    {"rjust", "str.rjust", string_rjust_method},
     {"rpartition", "str.rpartition", string_rpartition_method},
+    {"rsplit", "str.rsplit", string_rsplit_method},
     {"rstrip", "str.rstrip", string_rstrip_method, string_rstrip_fast_method},
     {"split", "str.split", string_split_method, string_split_fast_method},
+    {"splitlines", "str.splitlines", string_splitlines_method},
     {"startswith", "str.startswith", string_startswith_method, string_startswith_fast_method},
     {"strip", "str.strip", string_strip_method, string_strip_fast_method},
+    {"swapcase", "str.swapcase", string_swapcase_method},
+    {"title", "str.title", string_title_method},
     {"upper", "str.upper", string_upper_method, string_upper_fast_method},
+    {"zfill", "str.zfill", string_zfill_method},
 };
 
 const BuiltinMethodSpec* find_string_method_spec(const std::string& name) {

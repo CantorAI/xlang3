@@ -63,6 +63,9 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
   if (get_builtin_method(object, name, out)) {
     return true;
   }
+  if (value_as_memoryview(object) != nullptr) {
+    return object_get_attr(object, name, out, error);
+  }
   error = "object has no attribute '" + name + "'";
   return false;
 }

@@ -1030,6 +1030,47 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     return false;
   }
 
+  if (auto* view = value_as_memoryview(object)) {
+    if (name == "readonly") {
+      value_set_bool(out, view->readonly);
+      return true;
+    }
+    if (name == "nbytes") {
+      value_set_int64(out, static_cast<int64_t>(view->size));
+      return true;
+    }
+    if (name == "itemsize") {
+      value_set_int64(out, 1);
+      return true;
+    }
+    if (name == "format") {
+      out = Value::string("B");
+      return true;
+    }
+    if (name == "ndim") {
+      value_set_int64(out, 1);
+      return true;
+    }
+    if (name == "shape") {
+      out = Value::tuple({Value::int64(static_cast<int64_t>(view->size))});
+      return true;
+    }
+    if (name == "strides") {
+      out = Value::tuple({Value::int64(1)});
+      return true;
+    }
+    if (name == "suboffsets") {
+      value_set_none(out);
+      return true;
+    }
+    if (name == "obj") {
+      value_assign_fast(out, view->owner);
+      return true;
+    }
+    error = "memoryview has no attribute '" + name + "'";
+    return false;
+  }
+
   if (auto* function = value_as_function(object)) {
     if (function->attrs_dict.tag != ValueTag::Invalid) {
       std::string ignored;

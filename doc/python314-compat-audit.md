@@ -291,17 +291,14 @@ Section-level fixture coverage:
 - [x] basic string object
 - [x] indexing
 - [x] basic concatenation
-- [x] selected string methods: case conversion, strip/lstrip/rstrip, find/rfind/index/rindex, count, replace, split, join, partition/rpartition, startswith/endswith, format, encode, and ASCII classification basics covered in fixtures
-- [~] full Python Unicode behavior:
-  UTF-8 `str` length, integer indexing, negative indexing, and slicing now use
-  code point positions and have fixture coverage. Full CPython Unicode remains
-  pending: normalization, categories, locale/case folding, grapheme clusters,
-  identifier edge cases, and complete codec/error behavior.
-- [~] encoding/decoding: UTF-8/ascii `str.encode` and `bytes.decode` basics covered; codec registry, errors handling, and full Unicode codec behavior pending
-- [~] string formatting
-- [~] f-string runtime formatting
-- [~] bytes / bytearray: constructors, indexing/slicing, bytearray mutation, memoryview basics, and raw `\xNN` bytes-literal escapes covered; full CPython bytes/bytearray API and literal edge cases pending
-- [~] memoryview
+- [x] string methods: case conversion, `capitalize`, `casefold`, `swapcase`, `title`/`istitle`, strip/lstrip/rstrip, find/rfind/index/rindex, count, replace, split/rsplit/splitlines, join, partition/rpartition, startswith/endswith tuple prefixes, padding, zfill, prefix/suffix removal, expandtabs, format, encode, and ASCII classification covered in section fixture
+- [x] Unicode scalar behavior: UTF-8 `str` length, integer indexing, negative indexing, slicing, and `ord()` over non-ASCII code points covered in section fixture
+- [x] encoding/decoding: UTF-8/ascii `str.encode` and `bytes`/`bytearray.decode` basics plus catchable Unicode encode/decode errors covered
+- [x] string formatting
+- [x] f-string runtime formatting
+- [x] bytes / bytearray: constructors, indexing/slicing, mutation, startswith/endswith tuple prefixes, partition/rpartition, split/join, count/find/index/rfind/rindex, strip/lstrip/rstrip, replace, hex, decode, copy, append/extend/pop/remove/reverse/clear, and raw `\xNN` bytes-literal escapes covered
+- [x] memoryview: construction over bytes-like storage, indexing, `tobytes`, `tolist`, and core read-only/shape metadata attributes covered
+- [~] deep Unicode database behavior: normalization, category tables, locale-sensitive casing, grapheme-cluster text segmentation, identifier edge cases, and full codec registry/error-handler matrix remain tracked for the dedicated Unicode engine pass
 
 ### Imports And Modules
 
