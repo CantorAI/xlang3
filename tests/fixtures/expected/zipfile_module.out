@@ -11,6 +11,9 @@ True
 True
 b'hello' b' zip' False
 b'hello zip'
+True True True
+True True b'hello zip'
+True True
 True
 True False
 xlang3_zip_extract/hello.txt
@@ -18,4 +21,7 @@ hello zip
 from file
 manual.txt (2025, 1, 2, 3, 4, 6)
 0 8 True
+8
+True
+True
 True

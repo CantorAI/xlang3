@@ -38,6 +38,15 @@ with zipfile.ZipFile(archive, "r") as zf:
         print(entry.read(5), entry.read(), entry.closed)
     with zf.open("hello.txt") as entry:
         print(entry.readline())
+    root = zipfile.Path(zf)
+    child_names = []
+    for child in root.iterdir():
+        child_names.append(child.at)
+    print("hello.txt" in child_names, "folder/" in child_names, "emptydir/" in child_names)
+    hello_path = root.joinpath("hello.txt")
+    folder_path = root.joinpath("folder")
+    print(hello_path.exists(), hello_path.is_file(), hello_path.read_bytes())
+    print(folder_path.exists(), folder_path.is_dir())
     print(zf.testzip() is None)
 
 print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
@@ -60,12 +69,22 @@ print(zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED, zipfile.BadZipfile is zipfile.Ba
 mem = io.BytesIO()
 with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
     zf.writestr("mem.txt", b"in memory")
+    with zf.open("opened.txt", "w") as entry:
+        print(entry.write(b"via open"))
 
 mem.seek(0)
 with zipfile.ZipFile(mem, mode="r") as zf:
     print(zf.read("mem.txt") == b"in memory")
+    print(zf.read("opened.txt") == b"via open")
+
+with zipfile.PyZipFile("xlang3_pyzip.zip", "w") as zf:
+    zf.writestr("py.txt", "pyzip")
+
+with zipfile.ZipFile("xlang3_pyzip.zip", "r") as zf:
+    print(zf.read("py.txt") == b"pyzip")
 
 os.remove("xlang3_zip_extract/hello.txt")
 os.remove("xlang3_zip_extract_all/folder/source.txt")
 os.remove(source)
 os.remove(archive)
+os.remove("xlang3_pyzip.zip")

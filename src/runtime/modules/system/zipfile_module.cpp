@@ -31,6 +31,7 @@ namespace {
 
 constexpr const char* kZipFileNativeType = "zipfile.ZipFile";
 constexpr const char* kZipExtFileNativeType = "zipfile.ZipExtFile";
+constexpr const char* kZipPathNativeType = "zipfile.Path";
 
 struct ZipFileState {
   std::string path;
@@ -49,6 +50,15 @@ struct ZipExtFileState {
   std::string data;
   size_t cursor = 0;
   bool closed = false;
+  bool writable = false;
+  Value owner;
+  std::string member_name;
+  uint16_t method = 0;
+};
+
+struct ZipPathState {
+  Value root;
+  std::string at;
 };
 
 void zipfile_cleanup(void* data) {
@@ -57,6 +67,10 @@ void zipfile_cleanup(void* data) {
 
 void zipextfile_cleanup(void* data) {
   delete static_cast<ZipExtFileState*>(data);
+}
+
+void zippath_cleanup(void* data) {
+  delete static_cast<ZipPathState*>(data);
 }
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
@@ -156,6 +170,15 @@ ZipExtFileState* zipextfile_state(const Value& self, std::string& error) {
   return state;
 }
 
+ZipPathState* zippath_state(const Value& self, std::string& error) {
+  auto* state = static_cast<ZipPathState*>(instance_get_native_data(self, kZipPathNativeType));
+  if (state == nullptr) {
+    error = "invalid zipfile.Path object";
+    return nullptr;
+  }
+  return state;
+}
+
 bool zipfile_member_name_arg(const Value& value, std::string& out, std::string& error) {
   if (get_string_arg(value, "zip member name", out, error)) {
     return true;
@@ -177,6 +200,23 @@ std::string normalized_member_name(std::string name) {
     }
   }
   return name;
+}
+
+std::string normalized_dir_prefix(std::string name) {
+  name = normalized_member_name(std::move(name));
+  if (!name.empty() && name.back() != '/') {
+    name.push_back('/');
+  }
+  return name;
+}
+
+std::string path_basename(const std::string& path) {
+  std::string text = path;
+  while (!text.empty() && text.back() == '/') {
+    text.pop_back();
+  }
+  const size_t pos = text.find_last_of('/');
+  return pos == std::string::npos ? text : text.substr(pos + 1);
 }
 
 uint16_t dos_time_from_tuple(const Value& value, uint16_t fallback) {
@@ -366,6 +406,39 @@ const ZipArchiveMember* find_member(const ZipFileState& state, std::string name)
     }
   }
   return nullptr;
+}
+
+bool has_dir_prefix(const ZipFileState& state, std::string prefix) {
+  prefix = normalized_dir_prefix(std::move(prefix));
+  if (prefix.empty()) {
+    return true;
+  }
+  for (const auto& member : state.members) {
+    if (member.name == prefix || member.name.compare(0, prefix.size(), prefix) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::vector<std::string> child_names(const ZipFileState& state, std::string prefix) {
+  prefix = normalized_dir_prefix(std::move(prefix));
+  std::vector<std::string> names;
+  for (const auto& member : state.members) {
+    if (!prefix.empty() && member.name.compare(0, prefix.size(), prefix) != 0) {
+      continue;
+    }
+    std::string rest = prefix.empty() ? member.name : member.name.substr(prefix.size());
+    if (rest.empty()) {
+      continue;
+    }
+    const size_t slash = rest.find('/');
+    std::string child = prefix + (slash == std::string::npos ? rest : rest.substr(0, slash + 1));
+    if (std::find(names.begin(), names.end(), child) == names.end()) {
+      names.push_back(std::move(child));
+    }
+  }
+  return names;
 }
 
 ZipArchiveMember member_from_name_data(
@@ -771,6 +844,29 @@ bool zipextfile_read(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
+bool zipextfile_write(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ZipExtFile.write() expected data";
+    return false;
+  }
+  auto* state = zipextfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  if (!state->writable) {
+    error = "ZipExtFile is not open for writing";
+    return false;
+  }
+  std::string data;
+  if (!get_bytes_like(args[1], data)) {
+    error = "ZipExtFile.write() argument must be bytes-like";
+    return false;
+  }
+  state->data += data;
+  value_set_int64(out, static_cast<int64_t>(data.size()));
+  return true;
+}
+
 bool zipextfile_readline(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "ZipExtFile.readline() expected optional size";
@@ -805,6 +901,18 @@ bool zipextfile_close(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (state == nullptr) {
     error = "invalid ZipExtFile object";
     return false;
+  }
+  if (!state->closed && state->writable) {
+    ZipFileState* owner_state = zipfile_state(state->owner, error);
+    if (owner_state == nullptr) {
+      return false;
+    }
+    if (!replace_or_append_member(
+            *owner_state,
+            member_from_name_data(state->member_name, std::move(state->data), state->method))) {
+      error = "ZipExtFile write target must not be empty";
+      return false;
+    }
   }
   state->closed = true;
   Value self = args[0];
@@ -858,17 +966,12 @@ bool zipfile_open_kw(
   if (mode_value.tag != ValueTag::None && !get_string_arg(mode_value, "ZipFile.open mode", mode, error)) {
     return false;
   }
-  if (mode != "r") {
-    error = "ZipFile.open() write mode is not implemented yet";
+  if (mode != "r" && mode != "w" && mode != "x") {
+    error = "ZipFile.open() mode must be 'r', 'w', or 'x'";
     return false;
   }
   std::string name;
   if (!zipfile_member_name_arg(args[1], name, error)) {
-    return false;
-  }
-  const auto* member = find_member(*state, name);
-  if (member == nullptr) {
-    error = "There is no item named '" + name + "' in the archive";
     return false;
   }
   Value module;
@@ -882,13 +985,29 @@ bool zipfile_open_kw(
   }
   out = Value::instance(klass);
   auto* ext_state = new ZipExtFileState();
-  ext_state->data = member->data;
+  ext_state->writable = mode != "r";
+  ext_state->owner = args[0];
+  ext_state->member_name = normalized_member_name(name);
+  ext_state->method = state->default_compression;
+  if (mode == "r") {
+    const auto* member = find_member(*state, name);
+    if (member == nullptr) {
+      delete ext_state;
+      error = "There is no item named '" + name + "' in the archive";
+      return false;
+    }
+    ext_state->data = member->data;
+  } else if (mode == "x" && find_member(*state, name) != nullptr) {
+    delete ext_state;
+    error = "File already exists: '" + name + "'";
+    return false;
+  }
   if (!instance_set_native_data(out, kZipExtFileNativeType, ext_state, zipextfile_cleanup, error)) {
     delete ext_state;
     return false;
   }
-  object_set_attr(out, "name", Value::string(member->name), ignored);
-  object_set_attr(out, "mode", Value::string("r"), ignored);
+  object_set_attr(out, "name", Value::string(ext_state->member_name), ignored);
+  object_set_attr(out, "mode", Value::string(mode), ignored);
   object_set_attr(out, "closed", Value::boolean(false), ignored);
   return true;
 }
@@ -1089,6 +1208,201 @@ bool zipinfo_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
+Value make_zippath_instance(Runtime& runtime, const Value& root, std::string at) {
+  Value module;
+  std::string ignored;
+  if (!runtime.import_module("zipfile", module, ignored)) {
+    return Value::none();
+  }
+  Value klass;
+  if (!module_get_attr(module, "Path", klass, ignored)) {
+    return Value::none();
+  }
+  Value instance = Value::instance(klass);
+  auto* state = new ZipPathState();
+  state->root = root;
+  state->at = normalized_member_name(std::move(at));
+  if (!instance_set_native_data(instance, kZipPathNativeType, state, zippath_cleanup, ignored)) {
+    delete state;
+    return Value::none();
+  }
+  object_set_attr(instance, "root", root, ignored);
+  object_set_attr(instance, "at", Value::string(state->at), ignored);
+  object_set_attr(instance, "name", Value::string(path_basename(state->at)), ignored);
+  return instance;
+}
+
+bool zippath_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "Path() expected root and optional at";
+    return false;
+  }
+  std::string at;
+  if (argc >= 3 && args[2].tag != ValueTag::None && !get_string_arg(args[2], "Path at", at, error)) {
+    return false;
+  }
+  auto* state = new ZipPathState();
+  state->root = args[1];
+  state->at = normalized_member_name(std::move(at));
+  if (!instance_set_native_data(args[0], kZipPathNativeType, state, zippath_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  Value self = args[0];
+  std::string ignored;
+  object_set_attr(self, "root", state->root, ignored);
+  object_set_attr(self, "at", Value::string(state->at), ignored);
+  object_set_attr(self, "name", Value::string(path_basename(state->at)), ignored);
+  value_set_none(out);
+  return true;
+}
+
+bool zippath_joinpath(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2) {
+    error = "Path.joinpath() expected child names";
+    return false;
+  }
+  auto* state = zippath_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string at = state->at;
+  for (uint32_t i = 1; i < argc; ++i) {
+    std::string part;
+    if (!get_string_arg(args[i], "Path child", part, error)) {
+      return false;
+    }
+    if (!at.empty() && at.back() != '/') {
+      at.push_back('/');
+    }
+    at += normalized_member_name(std::move(part));
+  }
+  out = make_zippath_instance(runtime, state->root, std::move(at));
+  return true;
+}
+
+bool zippath_exists(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.exists() expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  auto* zip = zipfile_state(path->root, error);
+  if (zip == nullptr) {
+    return false;
+  }
+  out = Value::boolean(find_member(*zip, path->at) != nullptr || has_dir_prefix(*zip, path->at));
+  return true;
+}
+
+bool zippath_is_file(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.is_file() expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  auto* zip = zipfile_state(path->root, error);
+  if (zip == nullptr) {
+    return false;
+  }
+  const auto* member = find_member(*zip, path->at);
+  out = Value::boolean(member != nullptr && !(member->name.empty() || member->name.back() == '/'));
+  return true;
+}
+
+bool zippath_is_dir(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.is_dir() expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  auto* zip = zipfile_state(path->root, error);
+  if (zip == nullptr) {
+    return false;
+  }
+  out = Value::boolean(has_dir_prefix(*zip, path->at));
+  return true;
+}
+
+bool zippath_iterdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.iterdir() expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  auto* zip = zipfile_state(path->root, error);
+  if (zip == nullptr) {
+    return false;
+  }
+  std::vector<Value> values;
+  for (auto& child : child_names(*zip, path->at)) {
+    values.push_back(make_zippath_instance(runtime, path->root, std::move(child)));
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool zippath_read_bytes(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.read_bytes() expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  auto* zip = zipfile_state(path->root, error);
+  if (zip == nullptr) {
+    return false;
+  }
+  const auto* member = find_member(*zip, path->at);
+  if (member == nullptr) {
+    error = "There is no item named '" + path->at + "' in the archive";
+    return false;
+  }
+  out = Value::bytes(member->data);
+  return true;
+}
+
+bool zippath_read_text(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  Value bytes;
+  if (!zippath_read_bytes(runtime, args, argc, bytes, error, user_data)) {
+    return false;
+  }
+  auto* bytes_object = value_as_bytes(bytes);
+  out = bytes_object == nullptr ? Value::string("") : Value::string(bytes_object_to_string(*bytes_object));
+  return true;
+}
+
+bool zippath_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "Path.open() expected optional mode";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  Value open_args[3] = {path->root, Value::string(path->at), argc == 2 ? args[1] : Value::string("r")};
+  return zipfile_open(runtime, open_args, 3, out, error, nullptr);
+}
+
+bool zippath_truediv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return zippath_joinpath(runtime, args, argc, out, error, nullptr);
+}
+
 Value make_zipfile_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("zipfile")});
@@ -1111,15 +1425,54 @@ Value make_zipfile_class(Runtime& runtime) {
   return Value::class_object("ZipFile", std::move(attrs));
 }
 
+Value make_pyzipfile_class(Runtime& runtime, const Value& zipfile_class) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("zipfile")});
+  attrs.push_back({"__init__", runtime.make_native_function("zipfile.PyZipFile.__init__", zipfile_init, nullptr, nullptr, nullptr, false, zipfile_init_kw)});
+  attrs.push_back({"__enter__", runtime.make_native_function("zipfile.PyZipFile.__enter__", zipfile_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("zipfile.PyZipFile.__exit__", zipfile_exit)});
+  attrs.push_back({"close", runtime.make_native_function("zipfile.PyZipFile.close", zipfile_close)});
+  attrs.push_back({"getinfo", runtime.make_native_function("zipfile.PyZipFile.getinfo", zipfile_getinfo)});
+  attrs.push_back({"namelist", runtime.make_native_function("zipfile.PyZipFile.namelist", zipfile_namelist)});
+  attrs.push_back({"infolist", runtime.make_native_function("zipfile.PyZipFile.infolist", zipfile_infolist)});
+  attrs.push_back({"read", runtime.make_native_function("zipfile.PyZipFile.read", zipfile_read)});
+  attrs.push_back({"open", runtime.make_native_function("zipfile.PyZipFile.open", zipfile_open, nullptr, nullptr, nullptr, false, zipfile_open_kw)});
+  attrs.push_back({"write", runtime.make_native_function("zipfile.PyZipFile.write", zipfile_write, nullptr, nullptr, nullptr, false, zipfile_write_kw)});
+  attrs.push_back({"writestr", runtime.make_native_function("zipfile.PyZipFile.writestr", zipfile_writestr, nullptr, nullptr, nullptr, false, zipfile_writestr_kw)});
+  attrs.push_back({"mkdir", runtime.make_native_function("zipfile.PyZipFile.mkdir", zipfile_mkdir)});
+  attrs.push_back({"extract", runtime.make_native_function("zipfile.PyZipFile.extract", zipfile_extract)});
+  attrs.push_back({"extractall", runtime.make_native_function("zipfile.PyZipFile.extractall", zipfile_extractall)});
+  attrs.push_back({"testzip", runtime.make_native_function("zipfile.PyZipFile.testzip", zipfile_testzip)});
+  attrs.push_back({"printdir", runtime.make_native_function("zipfile.PyZipFile.printdir", zipfile_printdir)});
+  return Value::class_object("PyZipFile", std::move(attrs), zipfile_class);
+}
+
 Value make_zipextfile_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("zipfile")});
   attrs.push_back({"read", runtime.make_native_function("zipfile.ZipExtFile.read", zipextfile_read)});
   attrs.push_back({"readline", runtime.make_native_function("zipfile.ZipExtFile.readline", zipextfile_readline)});
+  attrs.push_back({"write", runtime.make_native_function("zipfile.ZipExtFile.write", zipextfile_write)});
   attrs.push_back({"close", runtime.make_native_function("zipfile.ZipExtFile.close", zipextfile_close)});
   attrs.push_back({"__enter__", runtime.make_native_function("zipfile.ZipExtFile.__enter__", zipextfile_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("zipfile.ZipExtFile.__exit__", zipextfile_exit)});
   return Value::class_object("ZipExtFile", std::move(attrs));
+}
+
+Value make_zippath_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("zipfile")});
+  attrs.push_back({"__init__", runtime.make_native_function("zipfile.Path.__init__", zippath_init)});
+  attrs.push_back({"joinpath", runtime.make_native_function("zipfile.Path.joinpath", zippath_joinpath)});
+  attrs.push_back({"__truediv__", runtime.make_native_function("zipfile.Path.__truediv__", zippath_truediv)});
+  attrs.push_back({"exists", runtime.make_native_function("zipfile.Path.exists", zippath_exists)});
+  attrs.push_back({"is_file", runtime.make_native_function("zipfile.Path.is_file", zippath_is_file)});
+  attrs.push_back({"is_dir", runtime.make_native_function("zipfile.Path.is_dir", zippath_is_dir)});
+  attrs.push_back({"iterdir", runtime.make_native_function("zipfile.Path.iterdir", zippath_iterdir)});
+  attrs.push_back({"read_bytes", runtime.make_native_function("zipfile.Path.read_bytes", zippath_read_bytes)});
+  attrs.push_back({"read_text", runtime.make_native_function("zipfile.Path.read_text", zippath_read_text)});
+  attrs.push_back({"open", runtime.make_native_function("zipfile.Path.open", zippath_open)});
+  return Value::class_object("Path", std::move(attrs));
 }
 
 Value make_zipinfo_class(Runtime& runtime) {
@@ -1134,13 +1487,18 @@ Value make_zipinfo_class(Runtime& runtime) {
 
 void register_zipfile_module(Runtime& runtime) {
   Value bad_zip_file = Value::class_object("BadZipFile", {});
+  Value large_zip_file = Value::class_object("LargeZipFile", {});
+  Value zipfile_class = make_zipfile_class(runtime);
   NativeModuleBuilder builder(runtime, "zipfile");
   builder.function("is_zipfile", zipfile_is_zipfile)
-      .value("ZipFile", make_zipfile_class(runtime))
+      .value("ZipFile", zipfile_class)
+      .value("PyZipFile", make_pyzipfile_class(runtime, zipfile_class))
       .value("ZipExtFile", make_zipextfile_class(runtime))
+      .value("Path", make_zippath_class(runtime))
       .value("ZipInfo", make_zipinfo_class(runtime))
       .value("BadZipFile", bad_zip_file)
       .value("BadZipfile", bad_zip_file)
+      .value("LargeZipFile", large_zip_file)
       .value("ZIP_STORED", Value::int64(0))
       .value("ZIP_DEFLATED", Value::int64(8))
       .value("ZIP_BZIP2", Value::int64(12))
