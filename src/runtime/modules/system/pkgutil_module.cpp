@@ -228,6 +228,63 @@ bool pkgutil_get_data(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool pkgutil_resolve_name(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "pkgutil.resolve_name() expected name";
+    return false;
+  }
+  auto* name_text = value_as_string(args[0]);
+  if (name_text == nullptr) {
+    error = "pkgutil.resolve_name() name must be str";
+    return false;
+  }
+  std::string name = string_object_to_string(*name_text);
+  const size_t colon = name.find(':');
+  std::string module_name = colon == std::string::npos ? name : name.substr(0, colon);
+  std::string attr_path = colon == std::string::npos ? "" : name.substr(colon + 1);
+  if (colon == std::string::npos) {
+    size_t dot = name.size();
+    while (dot != std::string::npos) {
+      Value module;
+      std::string import_error;
+      if (runtime.import_module(name.substr(0, dot), module, import_error)) {
+        module_name = name.substr(0, dot);
+        attr_path = dot < name.size() ? name.substr(dot + 1) : "";
+        out = module;
+        break;
+      }
+      if (dot == 0) {
+        break;
+      }
+      dot = name.rfind('.', dot - 1);
+    }
+  } else if (!runtime.import_module(module_name, out, error)) {
+    return false;
+  }
+  if (out.tag == ValueTag::Invalid || out.tag == ValueTag::None) {
+    if (!runtime.import_module(module_name, out, error)) {
+      return false;
+    }
+  }
+  while (!attr_path.empty()) {
+    const size_t dot = attr_path.find('.');
+    const std::string attr = dot == std::string::npos ? attr_path : attr_path.substr(0, dot);
+    Value next;
+    if (value_as_module(out) != nullptr) {
+      if (!module_get_attr(out, attr, next, error)) {
+        return false;
+      }
+    } else {
+      if (!object_get_attr(out, attr, next, error)) {
+        return false;
+      }
+    }
+    out = next;
+    attr_path = dot == std::string::npos ? "" : attr_path.substr(dot + 1);
+  }
+  return true;
+}
+
 } // namespace
 
 void register_pkgutil_module(Runtime& runtime) {
@@ -238,7 +295,8 @@ void register_pkgutil_module(Runtime& runtime) {
       .function("get_loader", pkgutil_get_loader)
       .function("find_loader", pkgutil_find_loader)
       .function("read_code", pkgutil_read_code)
-      .function("get_data", pkgutil_get_data);
+      .function("get_data", pkgutil_get_data)
+      .function("resolve_name", pkgutil_resolve_name);
   runtime.register_module("pkgutil", builder.finish());
 }
 

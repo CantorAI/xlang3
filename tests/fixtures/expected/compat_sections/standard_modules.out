@@ -40,9 +40,11 @@ True True
 260 True 1
 True True .
 True True 3.14
+True True False
 82 RESUME 43
 2147483649 131097 1 None
 True True True
+[a, b] a True
 id42 id (id, 42) (2, 4)
 abc abc True
 [1, 22] [a, b, c] a#b#
@@ -75,6 +77,8 @@ xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
 9 path text
 2 b'xy' True True False
 True True True True
+True http.client
+True resource-data
 7 haha 3 2
 True True True 8
 (3, 5)

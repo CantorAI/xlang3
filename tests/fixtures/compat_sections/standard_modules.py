@@ -225,6 +225,7 @@ import http.client
 import io
 import json
 import locale
+import inspect
 import marshal
 import opcode
 import os
@@ -243,9 +244,12 @@ import xmlrpc.client
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
+print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("user") in sysconfig.get_scheme_names(), sysconfig.is_python_build())
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
+signature = inspect.signature(original)
+print(list(signature.parameters.keys()), signature.parameters["a"].name, inspect.getmembers(wrapper, inspect.isroutine) == [])
 
 # re: compiled patterns, match data, and common helpers.
 m = re.search("([a-z]+)([0-9]+)", "id42")
@@ -330,6 +334,7 @@ print(http.HTTPStatus.OK, http.client.responses[404], http.client.HTTP_PORT)
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])
+compat_fixture_dir = "/".join(file_parts[:-1])
 
 # os/os.path filesystem queries are routed through XLang3 VFS.
 print(os.path.isfile(__file__), os.path.isdir(core_fixture_dir), os.path.exists(core_fixture_dir + "/missing.file") == False)
@@ -351,6 +356,12 @@ for module_info in pkgutil.iter_modules([core_fixture_dir]):
 resource = pkgutil.get_data("", core_fixture_dir + "/functions.py")
 site.addsitedir(core_fixture_dir)
 print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
+import importlib.resources
+
+print(pkgutil.resolve_name("functools:reduce") is functools.reduce, importlib.util.resolve_name(".client", "http"))
+site.addsitedir(compat_fixture_dir)
+import resource_pkg
+print(importlib.resources.is_resource(resource_pkg, "data.txt"), importlib.resources.read_text(resource_pkg, "data.txt").strip())
 
 # operator: generic runtime dispatch helpers and getter/caller factories.
 import operator

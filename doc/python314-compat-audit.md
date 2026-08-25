@@ -429,7 +429,9 @@ High-level modules currently backed by native/runtime code:
   subset from CPython; reducers, persistent IDs, shared-reference memo semantics, custom object state,
   extension registry, and protocol-5 out-of-band buffers pending
 - [~] `platform`: platform/python version helpers foundation
-- [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`, and loader placeholder foundations; full finder/loader semantics pending
+- [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
+  `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
+  zip/resource edge cases, and exact import-package behavior pending
 - [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, `findall`, `split`, `sub`, and `escape` facade; full CPython regex semantics pending
 - [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
@@ -438,13 +440,17 @@ High-level modules currently backed by native/runtime code:
 - [~] `string`: public constants and importable `Formatter` type foundation; full `Formatter` behavior pending
 - [~] `struct`: `calcsize`, `pack`, `unpack` foundation; full format compatibility pending
 - [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
-- [~] `sysconfig`: path names/dicts, platform/version, and common config-var helpers; full install scheme compatibility pending
+- [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
+  `is_python_build`, and common config-var helpers; full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation; encoding-cookie handling and exact cache invalidation semantics pending
-- [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`, and basic `getmembers`; full frame/source/signature semantics pending
+- [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`,
+  Python-callable `getmembers` predicates, `getfullargspec`, and `signature`/`Signature`/`Parameter`
+  foundations for Python functions; full frame/source/signature semantics pending
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
-- [~] `importlib`: `import_module`, `invalidate_caches`, and `importlib.util.find_spec` basics
+- [~] `importlib`: `import_module`, `invalidate_caches`, `importlib.util.find_spec`/`resolve_name`,
+  loader/spec/module creation foundations, and VFS-backed `importlib.resources` read helpers
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
 - [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending

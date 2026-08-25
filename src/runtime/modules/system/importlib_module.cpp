@@ -19,7 +19,10 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
+#include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
+
+#include <filesystem>
 
 namespace xlang3 {
 
@@ -322,6 +325,40 @@ bool importlib_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Val
   return true;
 }
 
+bool importlib_resolve_name(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "importlib.util.resolve_name() expected name and package";
+    return false;
+  }
+  std::string name;
+  std::string package;
+  if (!get_string_arg(args[0], "resolve_name name", name, error) ||
+      !get_string_arg(args[1], "resolve_name package", package, error)) {
+    return false;
+  }
+  if (name.empty() || name.front() != '.') {
+    out = Value::string(name);
+    return true;
+  }
+  size_t dots = 0;
+  while (dots < name.size() && name[dots] == '.') {
+    ++dots;
+  }
+  for (size_t i = 1; i < dots && !package.empty(); ++i) {
+    const auto cut = package.rfind('.');
+    package = cut == std::string::npos ? std::string() : package.substr(0, cut);
+  }
+  const std::string tail = name.substr(dots);
+  if (!tail.empty()) {
+    if (!package.empty()) {
+      package += ".";
+    }
+    package += tail;
+  }
+  out = Value::string(package);
+  return true;
+}
+
 bool importlib_spec_from_file_location(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "importlib.util.spec_from_file_location() expected name, location and optional loader";
@@ -360,6 +397,122 @@ bool importlib_module_from_spec(Runtime&, const Value* args, uint32_t argc, Valu
   if (object_get_attr(args[0], "parent", parent, ignored)) {
     module_set_attr(out, "__package__", parent, ignored);
   }
+  return true;
+}
+
+bool package_base_path(Runtime& runtime, const Value& package_arg, std::string& out, std::string& error) {
+  Value module;
+  if (auto* package_text = value_as_string(package_arg)) {
+    if (!runtime.import_module(string_object_to_string(*package_text), module, error)) {
+      return false;
+    }
+  } else if (value_as_module(package_arg) != nullptr) {
+    module = package_arg;
+  } else {
+    error = "package must be module or str";
+    return false;
+  }
+
+  Value path_attr;
+  std::string ignored;
+  if (module_get_attr(module, "__path__", path_attr, ignored)) {
+    if (auto* path_text = value_as_string(path_attr)) {
+      out = string_object_to_string(*path_text);
+      return true;
+    }
+    if (auto* list = value_as_list(path_attr); list != nullptr && !list->items.empty()) {
+      if (auto* first = value_as_string(list->items[0])) {
+        out = string_object_to_string(*first);
+        return true;
+      }
+    }
+  }
+  if (module_get_attr(module, "__file__", path_attr, ignored)) {
+    if (auto* file_text = value_as_string(path_attr)) {
+      out = std::filesystem::path(string_object_to_string(*file_text)).parent_path().string();
+      return true;
+    }
+  }
+  error = "package has no filesystem location";
+  return false;
+}
+
+std::string join_resource_path(std::string base, const std::string& resource) {
+  if (base.empty()) {
+    return resource;
+  }
+  const char last = base.back();
+  if (last == '/' || last == '\\') {
+    return base + resource;
+  }
+  return base + "/" + resource;
+}
+
+bool importlib_resources_files(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "importlib.resources.files() expected package";
+    return false;
+  }
+  std::string base;
+  if (!package_base_path(runtime, args[0], base, error)) {
+    return false;
+  }
+  out = Value::string(base);
+  return true;
+}
+
+bool importlib_resources_read_binary(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "importlib.resources.read_binary() expected package and resource";
+    return false;
+  }
+  std::string base;
+  std::string resource;
+  if (!package_base_path(runtime, args[0], base, error) ||
+      !get_string_arg(args[1], "resource", resource, error)) {
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(join_resource_path(base, resource), bytes, error)) {
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return true;
+}
+
+bool importlib_resources_read_text(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "importlib.resources.read_text() expected package, resource, and optional encoding";
+    return false;
+  }
+  Value bytes;
+  if (!importlib_resources_read_binary(runtime, args, 2, bytes, error, nullptr)) {
+    return false;
+  }
+  auto* data = value_as_bytes(bytes);
+  if (data == nullptr) {
+    error = "resource read did not return bytes";
+    return false;
+  }
+  const auto view = bytes_object_view(*data);
+  out = Value::string(std::string(view.data(), view.size()));
+  return true;
+}
+
+bool importlib_resources_is_resource(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "importlib.resources.is_resource() expected package and name";
+    return false;
+  }
+  std::string base;
+  std::string resource;
+  if (!package_base_path(runtime, args[0], base, error) ||
+      !get_string_arg(args[1], "resource", resource, error)) {
+    return false;
+  }
+  VfsStat stat;
+  std::string stat_error;
+  out = Value::boolean(runtime.vfs().stat(join_resource_path(base, resource), stat, stat_error) && stat.kind == VfsNodeKind::File);
   return true;
 }
 
@@ -426,6 +579,7 @@ void register_importlib_module(Runtime& runtime) {
 
   NativeModuleBuilder util_builder(runtime, "importlib.util");
   util_builder.function("find_spec", importlib_find_spec)
+      .function("resolve_name", importlib_resolve_name)
       .function("spec_from_file_location", importlib_spec_from_file_location)
       .function("module_from_spec", importlib_module_from_spec);
   Value util = util_builder.finish();
@@ -436,6 +590,15 @@ void register_importlib_module(Runtime& runtime) {
   Value metadata = metadata_builder.finish();
   runtime.register_module("importlib.metadata", metadata);
   runtime.register_module("importlib_metadata", metadata);
+
+  NativeModuleBuilder resources_builder(runtime, "importlib.resources");
+  resources_builder.function("files", importlib_resources_files)
+      .function("read_binary", importlib_resources_read_binary)
+      .function("read_text", importlib_resources_read_text)
+      .function("is_resource", importlib_resources_is_resource);
+  Value resources = resources_builder.finish();
+  runtime.register_module("importlib.resources", resources);
+  runtime.register_module("importlib_resources", resources);
 
   NativeModuleBuilder frozen_builder(runtime, "_frozen_importlib");
   frozen_builder.value("__name__", Value::string("_frozen_importlib"))
@@ -468,6 +631,7 @@ void register_importlib_module(Runtime& runtime) {
       .value("machinery", machinery)
       .value("util", util)
       .value("metadata", metadata)
+      .value("resources", resources)
       .value("_bootstrap", frozen)
       .value("_bootstrap_external", external);
   runtime.register_module("importlib", builder.finish());

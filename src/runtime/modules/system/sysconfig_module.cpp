@@ -189,6 +189,67 @@ bool sysconfig_get_python_version(Runtime&, const Value*, uint32_t argc, Value& 
   return true;
 }
 
+bool sysconfig_get_default_scheme(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig.get_default_scheme() expected no arguments";
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::string("nt");
+#else
+  out = Value::string("posix_prefix");
+#endif
+  return true;
+}
+
+bool sysconfig_get_preferred_scheme(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 1) {
+    error = "sysconfig.get_preferred_scheme() expected optional key";
+    return false;
+  }
+  if (argc == 1) {
+    auto* key = value_as_string(args[0]);
+    if (key == nullptr) {
+      error = "sysconfig.get_preferred_scheme() key must be str";
+      return false;
+    }
+    const std::string key_text = string_object_to_string(*key);
+    if (key_text == "user") {
+#if defined(_WIN32)
+      out = Value::string("nt_user");
+#else
+      out = Value::string("posix_user");
+#endif
+      return true;
+    }
+  }
+  return sysconfig_get_default_scheme(runtime, nullptr, 0, out, error, nullptr);
+}
+
+bool sysconfig_get_scheme_names(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig.get_scheme_names() expected no arguments";
+    return false;
+  }
+  out = Value::tuple({
+      Value::string("nt"),
+      Value::string("nt_user"),
+      Value::string("posix_prefix"),
+      Value::string("posix_user"),
+      Value::string("venv"),
+  });
+  return true;
+}
+
+bool sysconfig_is_python_build(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig.is_python_build() expected no arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
 } // namespace
 
 void register_sysconfig_module(Runtime& runtime) {
@@ -199,7 +260,11 @@ void register_sysconfig_module(Runtime& runtime) {
       .function("get_config_var", sysconfig_get_config_var)
       .function("get_config_vars", sysconfig_get_config_vars)
       .function("get_platform", sysconfig_get_platform)
-      .function("get_python_version", sysconfig_get_python_version);
+      .function("get_python_version", sysconfig_get_python_version)
+      .function("get_default_scheme", sysconfig_get_default_scheme)
+      .function("get_preferred_scheme", sysconfig_get_preferred_scheme)
+      .function("get_scheme_names", sysconfig_get_scheme_names)
+      .function("is_python_build", sysconfig_is_python_build);
   runtime.register_module("sysconfig", builder.finish());
 }
 

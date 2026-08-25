@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/ir.h"
 #include "xlang3/module_object.h"
@@ -171,13 +172,8 @@ bool collect_members(const Value& object, std::vector<std::pair<std::string, Val
 }
 
 bool member_matches_predicate(Runtime& runtime, const Value& predicate, const Value& member, std::string& error) {
-  auto* native = value_as_native_function(predicate);
-  if (native == nullptr || native->callback == nullptr) {
-    error = "inspect.getmembers() predicate must be a native callable in this runtime foundation";
-    return false;
-  }
   Value predicate_result;
-  if (!native->callback(runtime, &member, 1, predicate_result, error, native->user_data)) {
+  if (!runtime_call_callable(runtime, predicate, &member, 1, predicate_result, error)) {
     return false;
   }
   return value_truthy(predicate_result);
@@ -265,9 +261,91 @@ bool inspect_getfullargspec(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
+Value make_parameter(Runtime& runtime, const std::string& name, int64_t kind, const Value& default_value) {
+  Value klass = Value::class_object("Parameter", {{"__module__", Value::string("inspect")}});
+  Value parameter = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(parameter, "name", Value::string(name), ignored);
+  object_set_attr(parameter, "kind", Value::int64(kind), ignored);
+  object_set_attr(parameter, "default", default_value, ignored);
+  object_set_attr(parameter, "annotation", Value::none(), ignored);
+  return parameter;
+}
+
+Value make_signature_object(Runtime& runtime, const Value& callable) {
+  std::vector<std::pair<Value, Value>> parameters;
+  if (auto* function = value_as_function(callable)) {
+    if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+      const auto& fn = function->module->functions[function->function_id];
+      const size_t default_start =
+          function->defaults.size() > fn.params.size() ? 0 : fn.params.size() - function->defaults.size();
+      for (size_t i = 0; i < fn.params.size(); ++i) {
+        Value default_value = Value::none();
+        if (i >= default_start && !function->defaults.empty()) {
+          default_value = function->defaults[i - default_start];
+        }
+        parameters.push_back({Value::string(fn.params[i]), make_parameter(runtime, fn.params[i], 1, default_value)});
+      }
+    }
+  } else if (auto* bound = value_as_bound_method(callable)) {
+    if (auto* function = value_as_function(bound->function)) {
+      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+        const auto& fn = function->module->functions[function->function_id];
+        const size_t default_start =
+            function->defaults.size() > fn.params.size() ? 0 : fn.params.size() - function->defaults.size();
+        for (size_t i = fn.params.empty() ? 0 : 1; i < fn.params.size(); ++i) {
+          Value default_value = Value::none();
+          if (i >= default_start && !function->defaults.empty()) {
+            default_value = function->defaults[i - default_start];
+          }
+          parameters.push_back({Value::string(fn.params[i]), make_parameter(runtime, fn.params[i], 1, default_value)});
+        }
+      }
+    }
+  }
+
+  Value klass = Value::class_object("Signature", {{"__module__", Value::string("inspect")}});
+  Value signature = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(signature, "parameters", Value::dict(std::move(parameters)), ignored);
+  object_set_attr(signature, "return_annotation", Value::none(), ignored);
+  return signature;
+}
+
+bool inspect_signature(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "inspect.signature() expected callable";
+    return false;
+  }
+  if (value_as_function(args[0]) == nullptr && value_as_bound_method(args[0]) == nullptr &&
+      value_as_native_function(args[0]) == nullptr) {
+    error = "inspect.signature() expected callable";
+    return false;
+  }
+  out = make_signature_object(runtime, args[0]);
+  return true;
+}
+
 } // namespace
 
 void register_inspect_module(Runtime& runtime) {
+  Value parameter_class = Value::class_object(
+      "Parameter",
+      {
+          {"__module__", Value::string("inspect")},
+          {"POSITIONAL_ONLY", Value::int64(0)},
+          {"POSITIONAL_OR_KEYWORD", Value::int64(1)},
+          {"VAR_POSITIONAL", Value::int64(2)},
+          {"KEYWORD_ONLY", Value::int64(3)},
+          {"VAR_KEYWORD", Value::int64(4)},
+          {"empty", Value::none()},
+      });
+  Value signature_class = Value::class_object(
+      "Signature",
+      {
+          {"__module__", Value::string("inspect")},
+          {"empty", Value::none()},
+      });
   NativeModuleBuilder builder(runtime, "inspect");
   builder.function("ismodule", inspect_ismodule)
       .function("isclass", inspect_isclass)
@@ -285,7 +363,11 @@ void register_inspect_module(Runtime& runtime) {
       .function("getfile", inspect_getfile)
       .function("getsourcefile", inspect_getfile)
       .function("getfullargspec", inspect_getfullargspec)
-      .function("getmembers", inspect_getmembers);
+      .function("getmembers", inspect_getmembers)
+      .function("signature", inspect_signature)
+      .value("Parameter", parameter_class)
+      .value("Signature", signature_class)
+      .value("_empty", Value::none());
   runtime.register_module("inspect", builder.finish());
 }
 
