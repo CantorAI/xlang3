@@ -533,11 +533,11 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   class methods. Still pending: CPython-exact code object completeness,
   bound-method metadata, static methods, class methods, and native functions.
 
-- [ ] tokenizer/string-literal audit:
-  lexer now avoids treating triple quote sequences inside normal strings as
-  triple-string openers. Tests must cover raw strings, bytes strings, f-strings,
-  adjacent literals, triple strings after expressions, comments, escaped quotes,
-  and CPython `Lib/tokenize.py`.
+- [~] tokenizer/string-literal audit:
+  Section fixture covers raw strings, bytes escapes, f-strings, adjacent
+  literals, triple strings after expressions, comments, escaped quotes, and
+  triple quote sequences inside normal strings. Remaining work: broader
+  tokenizer parity against CPython `Lib/tokenize.py`.
 
 ## Audit Method
 

@@ -32,6 +32,19 @@ print("{}:{name}".format("id", name=7))
 print("|".join(["a", "b", "c"]), "a,,b".split(","))
 print("Hi".encode("utf-8").decode("utf-8"), "ASCII".encode("ascii").decode("ascii"))
 
+# Tokenizer/literal audit: raw strings, bytes escapes, adjacent literals, comments, escaped quotes, and f-strings.
+raw_path = r"C:\temp\next"
+triple_after_expr = ("prefix:" + """line1
+line2""")
+quote_heavy = "he said \"'''\" and left"  # triple marker inside normal string
+adjacent = "left" "right" r"\raw"
+byte_escapes = b"A\n\x42"
+name = "XL"
+print(raw_path, len(raw_path))
+print(triple_after_expr.split("\n")[0], triple_after_expr.split("\n")[1])
+print(quote_heavy, adjacent, byte_escapes)
+print(f"{name!r}:{3 + 4}:{name=}")
+
 # Index methods raise catchable ValueError on misses.
 try:
     "abc".index("z")

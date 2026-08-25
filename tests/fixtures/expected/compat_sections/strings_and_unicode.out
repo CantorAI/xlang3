@@ -9,6 +9,10 @@ True True False
 id:7
 a|b|c [a, , b]
 Hi ASCII
+C:\temp\next 12
+prefix:line1 line2
+he said "'''" and left leftright\raw b'A\nB'
+'XL':7:name=XL
 index-miss
 rindex-miss
 True True (b'a', b',', b'b,c') b'a,b,c'
