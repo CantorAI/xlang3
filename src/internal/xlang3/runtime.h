@@ -153,9 +153,9 @@ public:
   const Value& current_globals_module() const { return current_globals_module_; }
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
   void set_trace_function(Value trace_function);
-  const Value& trace_function() const { return trace_function_; }
-  bool trace_dispatch_active() const { return trace_dispatch_active_; }
-  void set_trace_dispatch_active(bool active) { trace_dispatch_active_ = active; }
+  const Value& trace_function() const;
+  bool trace_dispatch_active() const;
+  void set_trace_dispatch_active(bool active);
   void set_thread_trace_function(Value trace_function);
   const Value& thread_trace_function() const { return thread_trace_function_; }
   void set_current_frame(
@@ -207,7 +207,6 @@ private:
   Value trace_function_;
   Value thread_trace_function_;
   Value debug_hook_;
-  bool trace_dispatch_active_ = false;
   bool debug_dispatch_active_ = false;
   bool debug_poll_needed_ = false;
   bool debug_enabled_ = false;

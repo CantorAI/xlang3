@@ -12,6 +12,7 @@
 # limitations under the License.
 import threading
 import _thread
+import sys
 
 values = []
 lock = threading.Lock()
@@ -44,3 +45,23 @@ _thread.start_new_thread(low_worker, (22,))
 low_done.acquire()
 low_done.release()
 print("thread-ok")
+
+trace_done = _thread.allocate_lock()
+trace_done.acquire()
+trace_seen = []
+
+def trace_func(frame, event, arg):
+    return trace_func
+
+def trace_worker():
+    trace_seen.append(sys.gettrace().__name__)
+    trace_done.release()
+
+threading.settrace(trace_func)
+traced = threading.Thread(target=trace_worker)
+traced.start()
+trace_done.acquire()
+trace_done.release()
+traced.join()
+threading.settrace(None)
+print(trace_seen[0])

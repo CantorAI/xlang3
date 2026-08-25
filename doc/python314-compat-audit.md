@@ -459,13 +459,13 @@ High-level modules currently backed by native/runtime code:
 - [x] `await` syntax accepted and lowered to IR
 - [~] `Await` IR operation
 - [ ] real resumable coroutine frames
-- [ ] event loop semantics
-- [ ] `asyncio` compatibility
+- [~] event loop semantics: thread-local event loop facade with `new_event_loop`, `get_event_loop`, `set_event_loop`, `get_running_loop`, `run_until_complete`, `create_task`, `close`, and `is_closed`; real selector/scheduler policy pending
+- [~] `asyncio` compatibility: `run`, `create_task`, `gather`, `sleep`, and loop facade basics covered; CPython task cancellation, futures, transports, and scheduler semantics pending
 - [x] `_thread` subset
 - [x] `threading.Thread` subset
 - [x] `threading.Lock` subset
 - [ ] Python-compatible thread lifecycle details
-- [ ] thread-local trace hooks
+- [~] thread-local trace hooks: `sys.settrace()` is stored per runtime/native thread and `threading.settrace()` is copied into new `threading.Thread`/`_thread` workers; full profile-hook and edge-case parity pending
 - [ ] no-GIL data sharing policy finalized
 
 ### Filesystem And IO

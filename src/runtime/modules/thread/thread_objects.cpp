@@ -762,6 +762,10 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
       std::lock_guard<std::mutex> lock(state->mutex);
       state->ident = xlang_thread_current_ident();
     }
+    if (state->runtime->thread_trace_function().tag != ValueTag::Invalid &&
+        state->runtime->thread_trace_function().tag != ValueTag::None) {
+      state->runtime->set_trace_function(state->runtime->thread_trace_function());
+    }
     Interpreter interpreter(*state->runtime);
     CallArgsView call_args;
     call_args.leading = state->args.empty() ? nullptr : state->args.data();
@@ -847,6 +851,10 @@ bool xlang_thread_start_detached(
     }
     state->done_cv.notify_all();
 
+    if (state->runtime->thread_trace_function().tag != ValueTag::Invalid &&
+        state->runtime->thread_trace_function().tag != ValueTag::None) {
+      state->runtime->set_trace_function(state->runtime->thread_trace_function());
+    }
     Interpreter interpreter(*state->runtime);
     CallArgsView call_args;
     call_args.leading = state->args.empty() ? nullptr : state->args.data();

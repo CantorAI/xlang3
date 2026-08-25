@@ -25,3 +25,12 @@ items = [asyncio.create_task(square, (2,)), asyncio.create_task(square, (5,))]
 print(asyncio.gather(items))
 
 print(asyncio.run(add, (1, 2)))
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+print(asyncio.get_event_loop() is loop, asyncio.get_running_loop() is loop)
+loop_task = loop.create_task(square(6))
+print(loop.run_until_complete(loop_task), loop.is_closed())
+print(asyncio.run(asyncio.sleep(0, "slept")))
+loop.close()
+print(loop.is_closed())

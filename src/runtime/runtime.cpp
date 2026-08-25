@@ -51,6 +51,8 @@ struct RuntimeCurrentFrameState {
   const std::vector<std::string>* local_names = nullptr;
   const Value* local_values = nullptr;
   size_t local_count = 0;
+  Value trace_function;
+  bool trace_dispatch_active = false;
 };
 
 thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
@@ -267,7 +269,20 @@ bool Runtime::publish_sys_path(std::string& error) {
 #endif
 
 void Runtime::set_trace_function(Value trace_function) {
-  trace_function_ = trace_function;
+  current_frame_state(*this).trace_function = std::move(trace_function);
+}
+
+const Value& Runtime::trace_function() const {
+  const auto& state = current_frame_state(*this);
+  return state.trace_function.tag == ValueTag::Invalid ? trace_function_ : state.trace_function;
+}
+
+bool Runtime::trace_dispatch_active() const {
+  return current_frame_state(*this).trace_dispatch_active;
+}
+
+void Runtime::set_trace_dispatch_active(bool active) {
+  current_frame_state(*this).trace_dispatch_active = active;
 }
 
 void Runtime::set_thread_trace_function(Value trace_function) {
