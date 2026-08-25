@@ -9,3 +9,15 @@ True
 cls
 m
 math
+hello
+world
+  a
+b
+abc False
+True True
+[a, b] 3 2
+{}
+True
+True True
+True True GEN_CREATED
+True True True CORO_CREATED

@@ -445,9 +445,11 @@ High-level modules currently backed by native/runtime code:
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation; encoding-cookie handling and exact cache invalidation semantics pending
-- [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`,
-  Python-callable `getmembers` predicates, `getfullargspec`, and `signature`/`Signature`/`Parameter`
-  foundations for Python functions; full frame/source/signature semantics pending
+- [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`/`getabsfile`,
+  `getmodule`/`getmodulename`, `getmro`, doc cleanup, unwrap, generator/coroutine state helpers,
+  Python-callable `getmembers` predicates, `getfullargspec`, and `signature`/`Signature`/`Parameter`/`BoundArguments`
+  foundations for Python functions; exact frame stack, source block slicing, keyword binding, annotations,
+  descriptor classification, and full CPython signature semantics pending
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
 - [~] `importlib`: `import_module`, `invalidate_caches`, `importlib.util.find_spec`/`resolve_name`,
   loader/spec/module creation foundations, and VFS-backed `importlib.resources` read helpers

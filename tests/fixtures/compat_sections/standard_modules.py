@@ -250,6 +250,9 @@ print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
 signature = inspect.signature(original)
 print(list(signature.parameters.keys()), signature.parameters["a"].name, inspect.getmembers(wrapper, inspect.isroutine) == [])
+bound_signature = signature.bind(4, 5)
+print(bound_signature.arguments["a"], inspect.unwrap(wrapper) is original, inspect.getmodulename("sample.py"))
+print(inspect.getdoc(original), inspect.getmro(OrderedValue)[0] is OrderedValue)
 
 # re: compiled patterns, match data, and common helpers.
 m = re.search("([a-z]+)([0-9]+)", "id42")
