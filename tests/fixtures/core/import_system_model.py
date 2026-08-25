@@ -12,6 +12,8 @@
 # limitations under the License.
 
 import importlib
+import importlib.abc
+import importlib.machinery
 import importlib.util
 import sys
 
@@ -29,3 +31,14 @@ mod_spec = importlib.util.find_spec("ns_pkg.module")
 print(ns_pkg.__name__, ns_pkg.__file__ is None, len(ns_pkg.__path__) > 0)
 print(ns_pkg.module.VALUE, ns_pkg.module.__package__, ns_spec.name, mod_spec.parent)
 print(importlib.import_module("ns_pkg.module") is ns_pkg.module)
+
+# importlib loader/finder facade: common classes and SourceFileLoader basics exist for libraries that inspect import protocols.
+loader = importlib.machinery.SourceFileLoader("demo_loader", __file__)
+file_spec = importlib.util.spec_from_file_location("demo_loader", __file__, loader)
+module_from_spec = importlib.util.module_from_spec(file_spec)
+print(importlib.abc.Loader.__name__, importlib.machinery.SourceFileLoader.__name__)
+print(loader.name, loader.get_filename("demo_loader") == __file__, loader.create_module(file_spec) is None)
+print(len(loader.get_data(__file__)) > 0, loader.exec_module(module_from_spec) is None)
+print(file_spec.loader is loader, file_spec.origin == __file__, module_from_spec.__name__)
+print(importlib.machinery.PathFinder.find_spec("missing") is None)
+print(importlib.machinery.SOURCE_SUFFIXES[0], importlib.machinery.BYTECODE_SUFFIXES[0])

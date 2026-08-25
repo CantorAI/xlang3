@@ -4,3 +4,9 @@ True math
 ns_pkg True True
 namespace-module ns_pkg ns_pkg ns_pkg
 True
+Loader SourceFileLoader
+demo_loader True True
+True True
+True True demo_loader
+True
+.py .pyc

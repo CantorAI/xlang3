@@ -308,7 +308,11 @@ Section-level fixture coverage:
 - [x] `xlang_` fallback native package naming
 - [x] `sys.modules` runtime-maintained module registry dict
 - [~] module specs: `__spec__` placeholder exposed as `None`; real specs/loaders pending
-- [ ] loaders/finders
+- [~] loaders/finders:
+  `importlib.abc` and `importlib.machinery` expose common loader/finder
+  classes, `SourceFileLoader`/file-loader basics, suffix constants, and finder
+  `find_spec` placeholders. Real meta-path/path-hook protocol execution and
+  custom loader import integration remain pending.
 - [~] `importlib` compatibility: `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, and metadata distribution facade basics covered; loader/finder protocol pending
 - [~] namespace packages: no-`__init__.py` package import, child binding, `__path__`, and importlib spec basics covered; multi-root namespace merging pending
 - [~] relative import semantics: syntax and package-context resolution basics covered; full CPython package/import edge cases pending
