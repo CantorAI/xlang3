@@ -332,6 +332,21 @@ bool xlang_task_await_value(Runtime& runtime, const Value& value, Value& out, st
   if (!error.empty()) {
     return false;
   }
+  if (auto* generator = value_as_generator(value); generator != nullptr && generator->is_coroutine) {
+    Value coroutine = value;
+    bool done = false;
+    if (!generator_send(coroutine, Value::none(), done, out, error)) {
+      if (runtime.active_exception().tag != ValueTag::Invalid) {
+        runtime.set_pending_exception(runtime.active_exception());
+      }
+      return false;
+    }
+    if (!done) {
+      error = "coroutine yielded without an event-loop scheduler";
+      return false;
+    }
+    return true;
+  }
   std::string task_error;
   if (task_state_from_value(value, task_error) == nullptr) {
     value_assign_fast(out, value);

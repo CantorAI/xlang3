@@ -33,7 +33,11 @@ bool asyncio_create_task(
     void* user_data) {
   (void)user_data;
   if (argc == 1 && value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr) {
-    return xlang_task_completed(runtime, args[0], out, error);
+    Value result;
+    if (!xlang_task_await_value(runtime, args[0], result, error)) {
+      return false;
+    }
+    return xlang_task_completed(runtime, result, out, error);
   }
   return xlang_task_spawn(runtime, args, argc, out, error);
 }
@@ -58,8 +62,7 @@ bool asyncio_run(
   }
 
   if (argc == 1 && value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr) {
-    value_assign_fast(out, args[0]);
-    return true;
+    return xlang_task_await_value(runtime, args[0], out, error);
   }
 
   Value task;
@@ -112,7 +115,11 @@ bool event_loop_create_task(
   if (value_as_function(args[1]) != nullptr || value_as_native_function(args[1]) != nullptr) {
     return xlang_task_spawn(runtime, args + 1, 1, out, error);
   }
-  return xlang_task_completed(runtime, args[1], out, error);
+  Value result;
+  if (!xlang_task_await_value(runtime, args[1], result, error)) {
+    return false;
+  }
+  return xlang_task_completed(runtime, result, out, error);
 }
 
 bool event_loop_close(

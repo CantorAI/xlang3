@@ -895,6 +895,7 @@ public:
       const std::vector<ast::StmtPtr>& body,
       bool is_generator,
       bool is_async,
+      bool is_coroutine,
       uint32_t first_line = 0,
       bool is_module = false,
       std::string instance_slot_self = {},
@@ -915,6 +916,7 @@ public:
     fn_.qualname = qualname_prefix_.empty() ? fn_.name : qualname_prefix_ + "." + fn_.name;
     fn_.is_generator = is_generator;
     fn_.is_async = is_async;
+    fn_.is_coroutine = is_coroutine;
     fn_.first_line = first_line;
     fn_.doc = docstring_from_body(body);
     fn_.params = std::move(params);
@@ -2185,8 +2187,10 @@ private:
     if (fn.return_annotation != nullptr) {
       annotation_regs.push_back(std::make_pair("return", lower_expr(*fn.return_annotation)));
     }
+    const bool has_yield = body_contains_yield(fn.body);
     FunctionLowerer child_lowerer(
-        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, body_contains_yield(fn.body), fn.is_async, fn.line, false,
+        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, has_yield || fn.is_async, fn.is_async,
+        fn.is_async && !has_yield, fn.line, false,
         std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
         imported_module_slots_,
         qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
@@ -3115,7 +3119,7 @@ private:
       }
     }
     FunctionLowerer child_lowerer(
-        module_, "#genexpr", {}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, false, 0, false,
+        module_, "#genexpr", {}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, false, false, 0, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
     const auto clauses = child_lowerer.generator_comp_clauses(comp);
     child_lowerer.lower_comprehension_clauses(
@@ -3565,7 +3569,7 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
   LowerResult result;
   auto global_slots = collect_module_global_slots(module_ast);
   result.module.global_slots = global_slots.names;
-  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, false, 1, true, {}, {}, {}, global_slots.slots);
+  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, false, false, 1, true, {}, {}, {}, global_slots.slots);
   lowerer.lower_body(module_ast.body);
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);

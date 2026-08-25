@@ -458,7 +458,7 @@ High-level modules currently backed by native/runtime code:
 - [x] `async def` syntax accepted
 - [x] `await` syntax accepted and lowered to IR
 - [~] `Await` IR operation
-- [ ] real resumable coroutine frames
+- [~] real resumable coroutine frames: `async def` now returns coroutine-marked generator-backed VM frames, direct calls are lazy, `await`/`asyncio.run` drive coroutine frames to completion, and coroutine `__await__` is exposed; full scheduler-yielding and CPython coroutine state APIs pending
 - [~] event loop semantics: thread-local event loop facade with `new_event_loop`, `get_event_loop`, `set_event_loop`, `get_running_loop`, `run_until_complete`, `create_task`, `close`, and `is_closed`; real selector/scheduler policy pending
 - [~] `asyncio` compatibility: `run`, `create_task`, `gather`, `sleep`, and loop facade basics covered; CPython task cancellation, futures, transports, and scheduler semantics pending
 - [x] `_thread` subset

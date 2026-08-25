@@ -30,3 +30,13 @@ async def from_task():
 
 print(asyncio.run(from_task()))
 print(asyncio.gather([add(2, 3), asyncio.create_task(add(4, 5))]))
+
+ran = []
+
+async def lazy_value():
+    ran.append("ran")
+    return 99
+
+coro = lazy_value()
+print(len(ran), str(coro))
+print(asyncio.run(coro), len(ran))

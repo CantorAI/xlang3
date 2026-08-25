@@ -339,7 +339,8 @@ RuntimeResult Interpreter::run_function(
         fn_obj->globals_module,
         fn_obj->module != nullptr ? fn_obj->module : module_owner,
         fn_obj->defaults);
-    out = Value::generator(&runtime_, std::move(function_value), std::move(args_for_generator), call_fn.is_async);
+    out = Value::generator(
+        &runtime_, std::move(function_value), std::move(args_for_generator), call_fn.is_async, call_fn.is_coroutine);
     made = true;
     return true;
   };

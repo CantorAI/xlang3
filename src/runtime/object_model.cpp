@@ -1103,13 +1103,13 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
           flags |= 0x08;
         }
       }
-      if (fn.is_generator) {
+      if (fn.is_generator && !fn.is_coroutine) {
         flags |= 0x20;
       }
-      if (fn.is_async && !fn.is_generator) {
+      if (fn.is_coroutine) {
         flags |= 0x80;
       }
-      if (fn.is_async && fn.is_generator) {
+      if (fn.is_async && fn.is_generator && !fn.is_coroutine) {
         flags |= 0x200;
       }
       out = Value::int64(flags);

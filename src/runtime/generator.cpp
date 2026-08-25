@@ -52,7 +52,7 @@ void make_async_generator_awaitable(
 
 } // namespace
 
-Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async) {
+Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async, bool is_coroutine) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_generator_object<GeneratorObject>(ObjectKind::Generator);
@@ -60,6 +60,7 @@ Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args
   obj->function = std::move(function);
   obj->args = std::move(args);
   obj->is_async = is_async;
+  obj->is_coroutine = is_coroutine;
   value_set_none(obj->return_value);
   v.as.obj = &obj->header;
   return v;
@@ -86,6 +87,9 @@ std::string generator_to_string(const Value& value) {
       return "<async_generator_aclose object>";
     }
     return "<async_generator_asend object>";
+  }
+  if (auto* generator = value_as_generator(value); generator != nullptr && generator->is_coroutine) {
+    return "<coroutine object>";
   }
   return "<generator object>";
 }
@@ -334,7 +338,7 @@ bool generator_aiter_method(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   auto* generator = value_as_generator(args[0]);
-  if (generator == nullptr || !generator->is_async) {
+  if (generator == nullptr || !generator->is_async || generator->is_coroutine) {
     error = "object is not an async generator";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -349,7 +353,7 @@ bool generator_anext_method(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   auto* generator = value_as_generator(args[0]);
-  if (generator == nullptr || !generator->is_async) {
+  if (generator == nullptr || !generator->is_async || generator->is_coroutine) {
     error = "object is not an async generator";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -364,7 +368,7 @@ bool generator_asend_method(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   auto* generator = value_as_generator(args[0]);
-  if (generator == nullptr || !generator->is_async) {
+  if (generator == nullptr || !generator->is_async || generator->is_coroutine) {
     error = "object is not an async generator";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -379,7 +383,7 @@ bool generator_aclose_method(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   }
   auto* generator = value_as_generator(args[0]);
-  if (generator == nullptr || !generator->is_async) {
+  if (generator == nullptr || !generator->is_async || generator->is_coroutine) {
     error = "object is not an async generator";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -395,7 +399,7 @@ bool generator_athrow_method(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   }
   auto* generator = value_as_generator(args[0]);
-  if (generator == nullptr || !generator->is_async) {
+  if (generator == nullptr || !generator->is_async || generator->is_coroutine) {
     error = "object is not an async generator";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -442,7 +446,23 @@ bool generator_throw_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool coroutine_await_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "coroutine.__await__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* generator = value_as_generator(args[0]);
+  if (generator == nullptr || !generator->is_coroutine) {
+    error = "object is not a coroutine";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 static constexpr BuiltinMethodSpec kGeneratorMethods[] = {
+      {"__await__", "coroutine.__await__", coroutine_await_method},
       {"__iter__", "generator.__iter__", generator_iter_method},
       {"__next__", "generator.__next__", generator_next_method},
       {"__aiter__", "async_generator.__aiter__", generator_aiter_method},
@@ -463,7 +483,10 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
     return false;
   }
   if ((name == "__aiter__" || name == "__anext__" || name == "asend" || name == "athrow" || name == "aclose") &&
-      !generator->is_async) {
+      (!generator->is_async || generator->is_coroutine)) {
+    return false;
+  }
+  if (name == "__await__" && !generator->is_coroutine) {
     return false;
   }
   return bind_builtin_method_from_table(object, name, kGeneratorMethods, std::size(kGeneratorMethods), out);

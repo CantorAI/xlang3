@@ -172,6 +172,7 @@ struct Function {
   std::vector<std::string> type_params;
   bool is_generator = false;
   bool is_async = false;
+  bool is_coroutine = false;
   uint32_t first_line = 0;
   std::vector<std::string> params;
   std::vector<Param> signature;

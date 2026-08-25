@@ -198,7 +198,7 @@ struct Value {
   static Value range(int64_t start, int64_t stop, int64_t step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
   static Value sequence_iterator(Value source, uint64_t index);
-  static Value generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async = false);
+  static Value generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async = false, bool is_coroutine = false);
   static Value module(std::string name);
   static Value cell(Value value);
   static Value function(uint32_t function_id, std::vector<Value> closure);

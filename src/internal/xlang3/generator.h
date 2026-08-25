@@ -35,6 +35,7 @@ struct GeneratorObject {
   bool has_pending_throw = false;
   bool started = false;
   bool is_async = false;
+  bool is_coroutine = false;
   bool done = false;
 };
 
