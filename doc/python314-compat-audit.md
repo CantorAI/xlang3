@@ -400,7 +400,12 @@ High-level modules currently backed by native/runtime code:
 - [~] `code`: `compile_command` uses the XLang3 compiler for complete source and returns `None` for common incomplete REPL blocks; full interactive compiler/console semantics pending
 - [~] `codecs`: `lookup`, `encode`, and `decode` foundation; full codec registry/error handling pending
 - [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
-- [ ] `ctypes`: small facade exists; real FFI semantics pending
+- [~] `ctypes`:
+  Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,
+  `memmove`/`memset` no-op shape, string buffers, simple `Structure` field
+  defaults, selected `wintypes`, `windll.kernel32` facade, and catchable
+  `WinError` foundation covered. Real ABI/FFI calls, layout/alignment, arrays,
+  callbacks, pointer arithmetic, and platform library loading remain pending.
 - [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, and `__dataclass_fields__` basics; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
 - [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending

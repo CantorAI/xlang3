@@ -158,21 +158,117 @@ bool ctypes_pointer_type(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool ctypes_pointer(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+void value_user_data_cleanup(void* data) {
+  delete static_cast<Value*>(data);
+}
+
+Value make_pointer_value(const Value& pointer_class, const Value& target, std::string& error) {
+  Value pointer = Value::instance(pointer_class);
+  if (!object_set_attr(pointer, "contents", target, error)) {
+    return Value::invalid();
+  }
+  return pointer;
+}
+
+bool ctypes_pointer(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "ctypes.pointer() expected object";
+    return false;
+  }
+  auto* pointer_class = static_cast<Value*>(user_data);
+  if (pointer_class == nullptr) {
+    error = "ctypes pointer class unavailable";
+    return false;
+  }
+  out = make_pointer_value(*pointer_class, args[0], error);
+  return out.tag != ValueTag::Invalid;
+}
+
+bool ctypes_byref(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "ctypes.byref() expected object";
+    return false;
+  }
+  auto* pointer_class = static_cast<Value*>(user_data);
+  if (pointer_class == nullptr) {
+    error = "ctypes pointer class unavailable";
+    return false;
+  }
+  out = make_pointer_value(*pointer_class, args[0], error);
+  return out.tag != ValueTag::Invalid;
+}
+
+bool ctypes_cast(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 2) {
+    error = "ctypes.cast() expected object and type";
+    return false;
+  }
+  Value contents;
+  std::string attr_error;
+  if (object_get_attr(args[0], "contents", contents, attr_error)) {
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  auto* pointer_class = static_cast<Value*>(user_data);
+  if (pointer_class == nullptr) {
+    error = "ctypes pointer class unavailable";
+    return false;
+  }
+  out = make_pointer_value(*pointer_class, args[0], error);
+  return out.tag != ValueTag::Invalid;
+}
+
+bool ctypes_addressof(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ctypes.addressof() expected object";
+    return false;
+  }
+  uintptr_t address = 0;
+  if (args[0].tag == ValueTag::Object) {
+    address = reinterpret_cast<uintptr_t>(args[0].as.obj);
+  } else {
+    address = reinterpret_cast<uintptr_t>(&args[0]);
+  }
+  out = Value::int64(static_cast<int64_t>(address == 0 ? 1 : address));
+  return true;
+}
+
+bool ctypes_memmove(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "ctypes.memmove() expected dst, src, count";
     return false;
   }
   value_assign_fast(out, args[0]);
   return true;
 }
 
-bool ctypes_byref(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "ctypes.byref() expected object";
+bool ctypes_memset(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "ctypes.memset() expected dst, value, count";
     return false;
   }
   value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool ctypes_create_string_buffer(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "ctypes.create_string_buffer() expected init or size";
+    return false;
+  }
+  if (auto* str = value_as_string(args[0])) {
+    out = Value::bytearray(string_object_to_string(*str));
+    return true;
+  }
+  if (auto* bytes = value_as_bytes(args[0])) {
+    out = Value::bytearray(bytes_object_to_string(*bytes));
+    return true;
+  }
+  if (args[0].tag == ValueTag::Int64) {
+    out = Value::bytearray(std::string(static_cast<size_t>(args[0].as.i64), '\0'));
+    return true;
+  }
+  out = Value::bytearray("");
   return true;
 }
 
@@ -230,6 +326,10 @@ Value make_cfunc_class(Runtime& runtime) {
   return Value::class_object("_CFuncPtr", std::move(attrs));
 }
 
+Value make_pointer_class() {
+  return Value::class_object("_Pointer", {});
+}
+
 Value make_cfunc(Runtime& runtime, const Value& cfunc_class, const std::string& name) {
   (void)runtime;
   Value function = Value::instance(cfunc_class);
@@ -270,6 +370,7 @@ void register_ctypes_module(Runtime& runtime) {
   Value c_char_p = make_primitive_class(runtime, "c_char_p");
   Value c_bool = make_primitive_class(runtime, "c_bool");
   Value cfunc_class = make_cfunc_class(runtime);
+  Value pointer_class = make_pointer_class();
 
   NativeModuleBuilder wintypes_builder(runtime, "ctypes.wintypes");
   wintypes_builder.value("MAX_PATH", Value::int64(260))
@@ -291,11 +392,13 @@ void register_ctypes_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "ctypes");
   builder.function("create_unicode_buffer", ctypes_create_unicode_buffer)
       .function("POINTER", ctypes_pointer_type)
-      .function("pointer", ctypes_pointer)
-      .function("byref", ctypes_byref)
       .function("sizeof", ctypes_sizeof)
       .function("WinError", ctypes_win_error)
+      .function("memmove", ctypes_memmove)
+      .function("memset", ctypes_memset)
+      .function("create_string_buffer", ctypes_create_string_buffer)
       .value("Structure", structure_class)
+      .value("_Pointer", pointer_class)
       .value("c_int", c_int)
       .value("c_void_p", c_void_p)
       .value("c_size_t", c_size_t)
@@ -306,6 +409,10 @@ void register_ctypes_module(Runtime& runtime) {
       .value("c_bool", c_bool)
       .value("windll", windll)
       .value("wintypes", wintypes);
+  builder.value("pointer", runtime.make_native_function("ctypes.pointer", ctypes_pointer, new Value(pointer_class), value_user_data_cleanup));
+  builder.value("byref", runtime.make_native_function("ctypes.byref", ctypes_byref, new Value(pointer_class), value_user_data_cleanup));
+  builder.value("cast", runtime.make_native_function("ctypes.cast", ctypes_cast, new Value(pointer_class), value_user_data_cleanup));
+  builder.value("addressof", runtime.make_native_function("ctypes.addressof", ctypes_addressof));
   runtime.register_module("ctypes", builder.finish());
 }
 

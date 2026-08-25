@@ -196,6 +196,25 @@ try:
 except ValueError:
     print("unique-error")
 
+# ctypes: scalar values, pointer/byref contents, buffers, simple Structure defaults, wintypes, and WinDLL facade.
+import ctypes
+from ctypes import wintypes
+
+ct_value = ctypes.c_int(5)
+ct_ptr = ctypes.pointer(ct_value)
+ct_ref = ctypes.byref(ct_value)
+print(ct_value.value, ct_ptr.contents is ct_value, ct_ref.contents is ct_value)
+print(ctypes.cast(ct_ptr, ctypes.POINTER(ctypes.c_int)).contents is ct_value, ctypes.addressof(ct_value) != 0)
+print(ctypes.memmove(ct_ptr, ct_ref, 1) is ct_ptr, ctypes.memset(ct_ptr, 0, 1) is ct_ptr)
+print(len(ctypes.create_string_buffer(3)), len(ctypes.create_string_buffer(b"abc")))
+
+class CPoint(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_int), ("y", ctypes.c_int)]
+
+ct_point = CPoint()
+print(ct_point.x, ct_point.y, ctypes.sizeof(ct_point), ctypes.sizeof(ctypes.c_int))
+print(wintypes.MAX_PATH, wintypes.DWORD is ctypes.c_uint, ctypes.windll.kernel32.OpenProcess(1, 0, 1))
+
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
 import dis
 import getpass

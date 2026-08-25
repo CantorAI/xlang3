@@ -31,6 +31,12 @@ True True True
 [Color.RED, Color.BLUE] True [RED, BLUE]
 THREE True True
 unique-error
+5 True True
+True True
+True True
+3 3
+0 0 64 64
+260 True 1
 True True .
 True True 3.14
 82 RESUME 43
