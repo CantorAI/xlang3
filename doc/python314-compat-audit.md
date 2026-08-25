@@ -309,9 +309,9 @@ Section-level fixture coverage:
 - [x] `sys.modules` runtime-maintained module registry dict
 - [~] module specs: `__spec__` placeholder exposed as `None`; real specs/loaders pending
 - [ ] loaders/finders
-- [ ] `importlib` compatibility
-- [ ] namespace packages
-- [ ] relative import semantics
+- [~] `importlib` compatibility: `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, and metadata distribution facade basics covered; loader/finder protocol pending
+- [~] namespace packages: no-`__init__.py` package import, child binding, `__path__`, and importlib spec basics covered; multi-root namespace merging pending
+- [~] relative import semantics: syntax and package-context resolution basics covered; full CPython package/import edge cases pending
 - [ ] zip imports
 - [ ] frozen modules
 

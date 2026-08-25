@@ -1,3 +1,6 @@
 sys True
 True True
 True math
+ns_pkg True True
+namespace-module ns_pkg ns_pkg ns_pkg
+True

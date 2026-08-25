@@ -11,21 +11,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import importlib
-import importlib.util
-import sys
-
-print(sys.__name__, sys.__spec__ is None)
-print("sys" in sys.modules, "_builtins" in sys.modules)
-
-import math
-
-print("math" in sys.modules, sys.modules["math"].__name__)
-
-import ns_pkg.module
-
-ns_spec = importlib.util.find_spec("ns_pkg")
-mod_spec = importlib.util.find_spec("ns_pkg.module")
-print(ns_pkg.__name__, ns_pkg.__file__ is None, len(ns_pkg.__path__) > 0)
-print(ns_pkg.module.VALUE, ns_pkg.module.__package__, ns_spec.name, mod_spec.parent)
-print(importlib.import_module("ns_pkg.module") is ns_pkg.module)
+VALUE = "namespace-module"
