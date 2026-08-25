@@ -167,3 +167,25 @@ open_slot = SlottedOpen()
 open_slot.x = 5
 open_slot.extra = 6
 print(open_slot.x, open_slot.extra)
+
+# Builtin subclass constructors currently route to the base scalar representation.
+class IntChild(int):
+    KIND = "int-child"
+
+class StrChild(str):
+    KIND = "str-child"
+
+class FloatChild(float):
+    KIND = "float-child"
+
+class BytesChild(bytes):
+    KIND = "bytes-child"
+
+int_child = IntChild("12")
+str_child = StrChild(34)
+float_child = FloatChild("1.5")
+bytes_child = BytesChild(2)
+print(int_child, isinstance(int_child, IntChild), IntChild.KIND)
+print(str_child, isinstance(str_child, StrChild), StrChild.KIND)
+print(float_child, isinstance(float_child, FloatChild), FloatChild.KIND)
+print(len(bytes_child), isinstance(bytes_child, BytesChild), BytesChild.KIND)

@@ -508,11 +508,11 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   operators, decorators such as `unique`, class attributes, `repr`, `str`, and
   pickling-facing helpers.
 
-- [ ] inherited builtin constructor audit:
-  subclasses of `int`, `str`, `float`, and `bytes` can route through builtin
-  constructors. This needs tests for normal subclass construction,
-  class-level constants, `isinstance`, arithmetic/string behavior, and whether
-  the result should be base scalar or subclass instance in each Python case.
+- [~] inherited builtin constructor audit:
+  subclasses of `int`, `str`, `float`, and `bytes` route through builtin
+  constructors and preserve class-level constants, but currently return base
+  scalar/bytes values rather than subclass instances; CPython-compatible boxed
+  scalar subclass identity/arithmetic/string behavior remains pending.
 
 - [~] `os.scandir` / `DirEntry` audit:
   exported `os.DirEntry`, reused DirEntry class, entry `name`/`path`,
