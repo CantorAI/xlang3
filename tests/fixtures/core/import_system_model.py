@@ -16,6 +16,7 @@ import importlib.abc
 import importlib.machinery
 import importlib.util
 import sys
+import os
 import zipimport
 import _frozen_importlib
 import _frozen_importlib_external
@@ -53,3 +54,11 @@ print(zip_loader.get_filename("pkg.mod").endswith("pkg.mod.py"), len(zip_loader.
 print(zipimport.ZipImportError.__name__, isinstance(zipimport._zip_directory_cache, dict))
 print(_frozen_importlib.__name__, _frozen_importlib.FrozenImporter.__name__)
 print(_frozen_importlib_external.__name__, _frozen_importlib_external.SourceFileLoader.__name__)
+
+stored_zip = bytes([80, 75, 3, 4, 20, 0, 0, 0, 0, 0, 173, 144, 24, 93, 12, 145, 88, 248, 8, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 104, 101, 108, 108, 111, 46, 116, 120, 116, 122, 105, 112, 45, 100, 97, 116, 97, 80, 75, 1, 2, 20, 0, 20, 0, 0, 0, 0, 0, 173, 144, 24, 93, 12, 145, 88, 248, 8, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 0, 0, 0, 0, 104, 101, 108, 108, 111, 46, 116, 120, 116, 80, 75, 5, 6, 0, 0, 0, 0, 1, 0, 1, 0, 55, 0, 0, 0, 47, 0, 0, 0, 0, 0])
+archive_path = "xlang3_zipimport_stored.zip"
+with open(archive_path, "wb") as archive_file:
+    archive_file.write(stored_zip)
+stored_loader = zipimport.zipimporter(archive_path)
+print(stored_loader.get_data(archive_path + "/hello.txt") == b"zip-data")
+os.remove(archive_path)

@@ -320,7 +320,7 @@ Section-level fixture coverage:
 - [~] `importlib` compatibility: `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, and metadata distribution facade basics covered; loader/finder protocol pending
 - [~] namespace packages: no-`__init__.py` package import, child binding, `__path__`, and importlib spec basics covered; multi-root namespace merging pending
 - [~] relative import semantics: syntax and package-context resolution basics covered; full CPython package/import edge cases pending
-- [~] zip imports: `zipimport` facade and `zipimporter` protocol basics exposed; real archive directory scanning, sys.path zip roots, and code execution from zip members pending
+- [~] zip imports: `zipimport` facade, `zipimporter` protocol basics, and native stored-entry ZIP `get_data` extraction exposed; deflate support, sys.path zip roots, and code execution from zip members pending
 - [~] frozen modules: `_frozen_importlib`, `_frozen_importlib_external`, and importlib bootstrap aliases exposed; real frozen-code table/bootstrap execution pending
 
 ### Builtins
