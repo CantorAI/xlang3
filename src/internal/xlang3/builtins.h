@@ -81,6 +81,7 @@ void register_pathlib_module(Runtime& runtime);
 void register_pickle_module(Runtime& runtime);
 void register_subprocess_module(Runtime& runtime);
 void register_winreg_module(Runtime& runtime);
+void register_zipfile_module(Runtime& runtime);
 void register_zipimport_module(Runtime& runtime);
 void register_pydevd_compat_modules(Runtime& runtime);
 void register_socket_modules(Runtime& runtime);

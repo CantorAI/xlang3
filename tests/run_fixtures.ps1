@@ -81,6 +81,7 @@ $cases = @(
     "linecache_module",
     "runpy_module",
     "importlib_module",
+    "zipfile_module",
     "weakref_module",
     "inspect_module",
     "inspect_currentframe",

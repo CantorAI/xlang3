@@ -157,6 +157,8 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/warnings_module.cpp
   src/runtime/modules/system/winreg_module.cpp
   src/runtime/modules/system/xmlrpc_http_module.cpp
+  src/runtime/modules/system/zip_archive.cpp
+  src/runtime/modules/system/zipfile_module.cpp
   src/runtime/modules/system/zipimport_module.cpp
 )
 
