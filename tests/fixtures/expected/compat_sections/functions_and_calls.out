@@ -22,4 +22,7 @@ meta 0 3
 15 True
 b'' b''
 True True
+custom.py 123 meta
 (inner, True)
+(True, None, True, False)
+(True, True)

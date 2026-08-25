@@ -110,7 +110,9 @@ print(meta.__code__.co_argcount, meta.__code__.co_kwonlyargcount, meta.__code__.
 print(meta.__code__.co_qualname, meta.__code__.co_posonlyargcount, meta.__code__.co_flags)
 print(binder.__code__.co_flags, isinstance(meta.__code__.co_code, bytes))
 print(frame_probe.__code__.co_linetable, frame_probe.__code__.co_exceptiontable)
-print(len(meta.__code__.co_lines()) > 0, len(meta.__code__.co_positions()) > 0)
+print(len(list(meta.__code__.co_lines())) > 0, len(list(meta.__code__.co_positions())) > 0)
+replaced_code = meta.__code__.replace(co_filename="custom.py", co_firstlineno=123)
+print(replaced_code.co_filename, replaced_code.co_firstlineno, replaced_code.co_name)
 
 def traceback_probe():
     def inner():
@@ -126,3 +128,20 @@ def traceback_probe():
         return last.tb_frame.f_code.co_name, last.tb_lasti >= 0
 
 print(traceback_probe())
+
+def frame_extra_probe():
+    import inspect
+    frame = inspect.currentframe()
+    return isinstance(frame.f_builtins, dict), frame.f_trace, frame.f_trace_lines, frame.f_trace_opcodes
+
+print(frame_extra_probe())
+
+def traceback_mutation_probe():
+    try:
+        raise ValueError("trace")
+    except Exception as exc:
+        tb = exc.__traceback__
+        tb.tb_next = None
+        return tb.tb_next is None, tb.tb_lineno > 0
+
+print(traceback_mutation_probe())

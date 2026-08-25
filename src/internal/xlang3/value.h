@@ -409,6 +409,8 @@ struct CodeObject {
   std::shared_ptr<const ir::Module> module;
   uint32_t function_id = 0;
   std::string mode;
+  std::string filename_override;
+  int64_t first_line_override = 0;
 };
 
 struct FrameObject {

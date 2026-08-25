@@ -674,6 +674,86 @@ bool code_positions_method(
   return true;
 }
 
+bool code_replace_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "code.replace expected keyword-only arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* code = value_as_code(args[0]);
+  if (code == nullptr) {
+    error = "code.replace expected code object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::code(code->module, code->function_id, code->mode);
+  auto* replaced = value_as_code(out);
+  if (replaced != nullptr) {
+    replaced->filename_override = code->filename_override;
+    replaced->first_line_override = code->first_line_override;
+  }
+  return true;
+}
+
+bool code_replace_method_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (!code_replace_method(runtime, args, argc, out, error, nullptr)) {
+    return false;
+  }
+  auto* replaced = value_as_code(out);
+  if (replaced == nullptr) {
+    error = "code.replace failed";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    const Value& value = *kwargs[i].value;
+    if (name == "co_filename") {
+      auto* filename = value_as_string(value);
+      if (filename == nullptr) {
+        error = "co_filename must be str";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      replaced->filename_override = string_object_to_string(*filename);
+    } else if (name == "co_firstlineno") {
+      if (value.tag != ValueTag::Int64) {
+        error = "co_firstlineno must be int";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      replaced->first_line_override = value.as.i64;
+    } else if (
+        name == "co_argcount" || name == "co_posonlyargcount" || name == "co_kwonlyargcount" ||
+        name == "co_nlocals" || name == "co_stacksize" || name == "co_flags" ||
+        name == "co_code" || name == "co_consts" || name == "co_names" ||
+        name == "co_varnames" || name == "co_freevars" || name == "co_cellvars" ||
+        name == "co_name" || name == "co_qualname" || name == "co_linetable" ||
+        name == "co_exceptiontable") {
+      continue;
+    } else {
+      error = "code.replace got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace
 
 Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
@@ -1076,11 +1156,13 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "co_filename") {
-      out = Value::string(code->module->source_file.empty() ? "<xlang3>" : code->module->source_file);
+      out = Value::string(!code->filename_override.empty()
+                              ? code->filename_override
+                              : (code->module->source_file.empty() ? "<xlang3>" : code->module->source_file));
       return true;
     }
     if (name == "co_firstlineno") {
-      out = Value::int64(fn.first_line);
+      out = Value::int64(code->first_line_override > 0 ? code->first_line_override : fn.first_line);
       return true;
     }
     if (name == "co_argcount") {
@@ -1200,6 +1282,13 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       out = Value::bound_method(object, Value::native_function(0, "code.co_positions", code_positions_method));
       return true;
     }
+    if (name == "replace") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(0, "code.replace", code_replace_method, nullptr, nullptr, nullptr, false,
+                                 code_replace_method_kw));
+      return true;
+    }
     error = "code has no attribute '" + name + "'";
     return false;
   }
@@ -1215,6 +1304,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "f_globals") {
       out = module_globals_snapshot(frame->globals_module);
+      return true;
+    }
+    if (name == "f_builtins") {
+      out = Value::dict({});
       return true;
     }
     if (name == "f_back") {
@@ -1239,6 +1332,18 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       } else {
         value_assign_fast(out, frame->locals);
       }
+      return true;
+    }
+    if (name == "f_trace") {
+      value_set_none(out);
+      return true;
+    }
+    if (name == "f_trace_lines") {
+      value_set_bool(out, true);
+      return true;
+    }
+    if (name == "f_trace_opcodes") {
+      value_set_bool(out, false);
       return true;
     }
     error = "frame has no attribute '" + name + "'";
@@ -1608,6 +1713,50 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       function->attrs_dict = Value::dict({});
     }
     return mapping_set_item(function->attrs_dict, Value::string(name), value, error);
+  }
+  if (auto* frame = value_as_frame(object)) {
+    if (name == "f_lineno") {
+      if (value.tag != ValueTag::Int64) {
+        error = "f_lineno must be an integer";
+        return false;
+      }
+      if (frame->module != nullptr && frame->function_id < frame->module->functions.size()) {
+        const auto& fn = frame->module->functions[frame->function_id];
+        for (size_t i = 0; i < fn.source_lines.size(); ++i) {
+          if (static_cast<int64_t>(fn.source_lines[i]) == value.as.i64) {
+            frame->instruction_index = static_cast<uint32_t>(i);
+            return true;
+          }
+        }
+      }
+      error = "line is not in current frame";
+      return false;
+    }
+    if (name == "f_trace" || name == "f_trace_lines" || name == "f_trace_opcodes") {
+      return true;
+    }
+    error = "frame attribute '" + name + "' is read-only";
+    return false;
+  }
+  if (auto* traceback = value_as_traceback(object)) {
+    if (name == "tb_next") {
+      if (value.tag != ValueTag::None && value_as_traceback(value) == nullptr) {
+        error = "tb_next must be a traceback or None";
+        return false;
+      }
+      value_assign_fast(traceback->next, value);
+      return true;
+    }
+    if (name == "tb_lineno") {
+      if (value.tag != ValueTag::Int64) {
+        error = "tb_lineno must be an integer";
+        return false;
+      }
+      traceback->line = value.as.i64;
+      return true;
+    }
+    error = "traceback attribute '" + name + "' is read-only";
+    return false;
   }
   if (auto* instance = value_as_instance(object)) {
     auto* klass = value_as_class(instance->klass);

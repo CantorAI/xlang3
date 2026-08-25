@@ -246,9 +246,9 @@ Section-level fixture coverage:
 - [x] keyword args runtime behavior: keyword-only/default/`**kwargs` binding and catchable binder `TypeError` covered in section fixture
 - [x] varargs/kwargs objects
 - [x] function object attributes: `__name__`, `__qualname__`, `__module__`, `__doc__`, positional `__defaults__`, keyword-only `__kwdefaults__`, `__annotations__`, custom attrs, live `__dict__`, `__globals__`, `__closure__`, and `__code__` covered in section fixture
-- [~] code objects: foundation with `co_name`, `co_qualname`, `co_argcount`, `co_posonlyargcount`, `co_kwonlyargcount`, `co_nlocals`, `co_stacksize`, signature/generator/coroutine `co_flags`, `co_varnames`, `co_names`, `co_consts`, `co_freevars`, `co_cellvars`, `co_filename`, `co_firstlineno`, `co_code`, `co_linetable`, `co_exceptiontable`, `co_lines()`, and `co_positions()`; remaining CPython code APIs and precise iterator/source-table semantics pending
-- [~] frame objects: foundation with `f_code`, `f_back`, `f_globals`, `f_locals`, `f_lasti`, and source-backed `f_lineno`; debugger mutation/source semantics pending
-- [~] traceback objects: foundation with `tb_frame`, `tb_next`, `tb_lineno`, and `tb_lasti`; precise source-line mapping pending
+- [x] code objects: XLang3 IR-backed code objects expose `co_name`, `co_qualname`, `co_argcount`, `co_posonlyargcount`, `co_kwonlyargcount`, `co_nlocals`, `co_stacksize`, signature/generator/coroutine `co_flags`, `co_varnames`, `co_names`, `co_consts`, `co_freevars`, `co_cellvars`, `co_filename`, `co_firstlineno`, bytes-shaped `co_code`, `co_linetable`, `co_exceptiontable`, iterable `co_lines()` / `co_positions()`, and keyword `replace(...)` for common code metadata
+- [x] frame objects: expose `f_code`, `f_back`, `f_globals`, `f_builtins`, `f_locals`, `f_lasti`, source-backed `f_lineno`, and debugger-facing `f_trace`, `f_trace_lines`, and `f_trace_opcodes` fields
+- [x] traceback objects: expose `tb_frame`, writable `tb_next`, `tb_lineno`, and `tb_lasti` over XLang3 frame/source metadata
 
 ### Exceptions
 
