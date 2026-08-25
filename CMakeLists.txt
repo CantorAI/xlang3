@@ -151,6 +151,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/stat_module.cpp
   src/runtime/modules/system/string_module.cpp
   src/runtime/modules/system/struct_module.cpp
+  src/runtime/modules/system/sys_module.cpp
   src/runtime/modules/system/sysconfig_module.cpp
   src/runtime/modules/system/time_module.cpp
   src/runtime/modules/system/traceback_module.cpp

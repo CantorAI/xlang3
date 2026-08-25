@@ -78,6 +78,22 @@ public:
     return true;
   }
 
+  bool make_dirs(const std::string& path, bool exist_ok, std::string& error) override {
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec)) {
+      if (exist_ok && std::filesystem::is_directory(path, ec)) {
+        return true;
+      }
+      error = "path exists: " + path;
+      return false;
+    }
+    if (!std::filesystem::create_directories(path, ec) && ec) {
+      error = "cannot create directory " + path + ": " + ec.message();
+      return false;
+    }
+    return true;
+  }
+
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) override {
     std::error_code ec;
     out.clear();
@@ -93,6 +109,15 @@ public:
 
   bool stat(const std::string& path, VfsStat& out, std::string& error) override {
     std::error_code ec;
+    if (!std::filesystem::exists(path, ec)) {
+      if (ec) {
+        error = "cannot stat path " + path + ": " + ec.message();
+        return false;
+      }
+      out.kind = VfsNodeKind::Missing;
+      out.size = 0;
+      return true;
+    }
     const auto status = std::filesystem::status(path, ec);
     if (ec) {
       error = "cannot stat path " + path + ": " + ec.message();
@@ -174,6 +199,11 @@ bool Vfs::write_file(const std::string& path, const uint8_t* data, std::size_t s
 bool Vfs::remove(const std::string& path, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->remove(resolved.path, error);
+}
+
+bool Vfs::make_dirs(const std::string& path, bool exist_ok, std::string& error) {
+  ResolvedPath resolved;
+  return resolve(path, resolved, error) && resolved.fs->make_dirs(resolved.path, exist_ok, error);
 }
 
 bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) {

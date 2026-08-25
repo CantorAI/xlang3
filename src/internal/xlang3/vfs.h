@@ -38,6 +38,7 @@ public:
   virtual bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) = 0;
   virtual bool write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error) = 0;
   virtual bool remove(const std::string& path, std::string& error) = 0;
+  virtual bool make_dirs(const std::string& path, bool exist_ok, std::string& error) = 0;
   virtual bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) = 0;
   virtual bool stat(const std::string& path, VfsStat& out, std::string& error) = 0;
 };
@@ -57,6 +58,7 @@ public:
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error);
   bool write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error);
   bool remove(const std::string& path, std::string& error);
+  bool make_dirs(const std::string& path, bool exist_ok, std::string& error);
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error);
   bool stat(const std::string& path, VfsStat& out, std::string& error);
   const std::string& cwd() const { return current_directory_; }

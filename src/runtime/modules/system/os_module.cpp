@@ -169,51 +169,51 @@ std::string dir_entry_path(const Value& self) {
   return {};
 }
 
-Value make_stat_result(const std::filesystem::directory_entry& entry) {
-  std::error_code ec;
-  const uintmax_t size = entry.is_regular_file(ec) ? entry.file_size(ec) : 0;
-  auto write_time = entry.last_write_time(ec);
-  int64_t mtime_ns = 0;
-  if (!ec) {
-    mtime_ns = static_cast<int64_t>(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(write_time.time_since_epoch()).count());
-  }
-
+Value make_stat_result(const VfsStat& stat) {
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"st_size", Value::int64(static_cast<int64_t>(size))});
-  attrs.push_back({"st_mtime_ns", Value::int64(mtime_ns)});
-  attrs.push_back({"st_mtime", Value::number(static_cast<double>(mtime_ns) / 1000000000.0)});
+  attrs.push_back({"st_size", Value::int64(static_cast<int64_t>(stat.size))});
+  attrs.push_back({"st_mtime_ns", Value::int64(0)});
+  attrs.push_back({"st_mtime", Value::number(0.0)});
   Value klass = Value::class_object("stat_result", std::move(attrs));
   return Value::instance(std::move(klass));
 }
 
-bool dir_entry_is_dir(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dir_entry_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "DirEntry.is_dir() expected optional follow_symlinks";
     return false;
   }
-  std::error_code ec;
-  out = Value::boolean(std::filesystem::is_directory(dir_entry_path(args[0]), ec));
+  VfsStat stat;
+  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
+    return false;
+  }
+  out = Value::boolean(stat.kind == VfsNodeKind::Directory);
   return true;
 }
 
-bool dir_entry_is_file(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "DirEntry.is_file() expected optional follow_symlinks";
     return false;
   }
-  std::error_code ec;
-  out = Value::boolean(std::filesystem::is_regular_file(dir_entry_path(args[0]), ec));
+  VfsStat stat;
+  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
+    return false;
+  }
+  out = Value::boolean(stat.kind == VfsNodeKind::File);
   return true;
 }
 
-bool dir_entry_stat(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "DirEntry.stat() expected optional follow_symlinks";
     return false;
   }
-  const std::filesystem::directory_entry entry(dir_entry_path(args[0]));
-  out = make_stat_result(entry);
+  VfsStat stat;
+  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
+    return false;
+  }
+  out = make_stat_result(stat);
   return true;
 }
 
@@ -226,18 +226,26 @@ Value make_dir_entry_class(Runtime& runtime) {
   return Value::class_object("DirEntry", std::move(attrs));
 }
 
-Value make_dir_entry(const Value& klass, const std::filesystem::directory_entry& entry) {
-  Value instance = Value::instance(klass);
+std::string join_vfs_path(const std::string& base, const std::string& name) {
+  if (base.empty() || base == ".") {
+    return name;
+  }
+  const char tail = base.back();
+  if (tail == '/' || tail == '\\') {
+    return base + name;
+  }
+  return base + "/" + name;
+}
 
-  const auto path = entry.path().string();
-  const auto name = entry.path().filename().string();
+Value make_dir_entry(const Value& klass, std::string path, std::string name) {
+  Value instance = Value::instance(klass);
   std::string ignored;
-  object_set_attr(instance, "path", Value::string(path), ignored);
-  object_set_attr(instance, "name", Value::string(name), ignored);
+  object_set_attr(instance, "path", Value::string(std::move(path)), ignored);
+  object_set_attr(instance, "name", Value::string(std::move(name)), ignored);
   return instance;
 }
 
-bool os_scandir(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc > 1) {
     error = "os.scandir() expected at most one argument";
     return false;
@@ -246,16 +254,16 @@ bool os_scandir(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   if (argc == 1 && !get_string_arg(args[0], "os.scandir path", path, error)) {
     return false;
   }
-  std::error_code ec;
-  std::filesystem::directory_iterator it(path, ec);
-  if (ec) {
-    error = ec.message();
+  std::vector<std::string> names;
+  if (!runtime.vfs().list_dir(path, names, error)) {
     return false;
   }
   std::vector<Value> entries;
   const auto* dir_entry_class = static_cast<Value*>(user_data);
-  for (const auto& entry : it) {
-    entries.push_back(make_dir_entry(*dir_entry_class, entry));
+  entries.reserve(names.size());
+  for (auto& name : names) {
+    const std::string full_path = join_vfs_path(path, name);
+    entries.push_back(make_dir_entry(*dir_entry_class, full_path, std::move(name)));
   }
   out = Value::list(std::move(entries));
   return true;
@@ -277,7 +285,7 @@ bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool os_makedirs(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_makedirs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "os.makedirs() expected path and optional exist_ok";
     return false;
@@ -287,17 +295,7 @@ bool os_makedirs(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
     return false;
   }
   const bool exist_ok = argc == 2 && value_truthy(args[1]);
-  std::error_code ec;
-  if (std::filesystem::exists(path, ec)) {
-    if (exist_ok || std::filesystem::is_directory(path, ec)) {
-      value_set_none(out);
-      return true;
-    }
-    error = "path exists and is not a directory";
-    return false;
-  }
-  if (!std::filesystem::create_directories(path, ec) && ec) {
-    error = ec.message();
+  if (!runtime.vfs().make_dirs(path, exist_ok, error)) {
     return false;
   }
   value_set_none(out);
@@ -376,7 +374,7 @@ bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return false;
 }
 
-bool path_unary(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool path_unary(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "os.path function expected one argument";
     return false;
@@ -387,11 +385,18 @@ bool path_unary(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   }
   const char* op = static_cast<const char*>(user_data);
   std::filesystem::path fs_path(path);
-  std::error_code ec;
   if (std::string(op) == "abspath") {
-    out = Value::string(std::filesystem::absolute(fs_path, ec).lexically_normal().string());
+    ResolvedPath resolved;
+    if (!runtime.vfs().resolve(path, resolved, error)) {
+      return false;
+    }
+    out = Value::string(std::move(resolved.path));
   } else if (std::string(op) == "realpath") {
-    out = Value::string(std::filesystem::absolute(fs_path, ec).lexically_normal().string());
+    ResolvedPath resolved;
+    if (!runtime.vfs().resolve(path, resolved, error)) {
+      return false;
+    }
+    out = Value::string(std::move(resolved.path));
   } else if (std::string(op) == "normpath") {
     out = Value::string(fs_path.lexically_normal().string());
   } else if (std::string(op) == "normcase") {
@@ -408,11 +413,23 @@ bool path_unary(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   } else if (std::string(op) == "basename") {
     out = Value::string(fs_path.filename().string());
   } else if (std::string(op) == "exists") {
-    out = Value::boolean(std::filesystem::exists(fs_path, ec));
+    VfsStat stat;
+    if (!runtime.vfs().stat(path, stat, error)) {
+      return false;
+    }
+    out = Value::boolean(stat.kind != VfsNodeKind::Missing);
   } else if (std::string(op) == "isdir") {
-    out = Value::boolean(std::filesystem::is_directory(fs_path, ec));
+    VfsStat stat;
+    if (!runtime.vfs().stat(path, stat, error)) {
+      return false;
+    }
+    out = Value::boolean(stat.kind == VfsNodeKind::Directory);
   } else if (std::string(op) == "isfile") {
-    out = Value::boolean(std::filesystem::is_regular_file(fs_path, ec));
+    VfsStat stat;
+    if (!runtime.vfs().stat(path, stat, error)) {
+      return false;
+    }
+    out = Value::boolean(stat.kind == VfsNodeKind::File);
   } else if (std::string(op) == "isabs") {
     out = Value::boolean(fs_path.is_absolute());
   } else {

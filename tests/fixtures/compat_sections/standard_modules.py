@@ -224,6 +224,7 @@ import io
 import locale
 import marshal
 import opcode
+import os
 import pickle
 import pkgutil
 import signal
@@ -277,6 +278,10 @@ print(http.HTTPStatus.OK, http.client.responses[404], http.client.HTTP_PORT)
 
 file_parts = __file__.replace("\\", "/").split("/")
 core_fixture_dir = "/".join(file_parts[:-2] + ["core"])
+
+# os/os.path filesystem queries are routed through XLang3 VFS.
+print(os.path.isfile(__file__), os.path.isdir(core_fixture_dir), os.path.exists(core_fixture_dir + "/missing.file") == False)
+
 found_functions = False
 for module_info in pkgutil.iter_modules([core_fixture_dir]):
     if module_info[1] == "functions":

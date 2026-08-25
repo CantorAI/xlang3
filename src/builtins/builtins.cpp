@@ -26,6 +26,7 @@ void register_core_builtins(Runtime& runtime) {
   register_builtin_modules(runtime);
   register_math_module(runtime);
 #ifndef XLANG3_EMBEDDED
+  register_sys_module(runtime);
   register_time_module(runtime);
   register_abc_module(runtime);
   register_argparse_module(runtime);

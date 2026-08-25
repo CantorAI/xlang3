@@ -28,6 +28,7 @@ void register_sequence_builtins(Runtime& runtime);
 void register_raw_block_builtins(Runtime& runtime);
 void register_builtin_modules(Runtime& runtime);
 void register_math_module(Runtime& runtime);
+void register_sys_module(Runtime& runtime);
 void register_time_module(Runtime& runtime);
 void register_abc_module(Runtime& runtime);
 void register_argparse_module(Runtime& runtime);
