@@ -20,6 +20,9 @@ limitations under the License.
 #include "xlang3/sema.h"
 #include "xlang3/sequence.h"
 
+#include "zip_archive.h"
+
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -34,8 +37,11 @@ namespace {
 struct ModuleFile {
   std::string path;
   std::string package_dir;
+  std::vector<std::string> namespace_dirs;
+  std::string source;
   bool is_package = false;
   bool is_namespace_package = false;
+  bool is_zip_source = false;
 };
 
 std::vector<std::string> split_module_name(const std::string& name) {
@@ -73,9 +79,63 @@ std::string python_path_string(const std::filesystem::path& path) {
   return path.lexically_normal().generic_string();
 }
 
+std::string module_member_base(const std::vector<std::string>& parts) {
+  std::string member;
+  for (const auto& part : parts) {
+    if (!member.empty()) {
+      member += "/";
+    }
+    member += part;
+  }
+  return member;
+}
+
+bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive_path, const std::vector<std::string>& parts, ModuleFile& out) {
+  VfsStat stat;
+  std::string error;
+  if (!runtime.vfs().stat(archive_path.string(), stat, error) || stat.kind != VfsNodeKind::File) {
+    return false;
+  }
+  const auto archive_string = python_path_string(archive_path);
+  const auto extension = archive_path.extension().string();
+  if (extension != ".zip") {
+    return false;
+  }
+  std::vector<uint8_t> archive;
+  if (!runtime.vfs().read_file(archive_string, archive, error)) {
+    return false;
+  }
+  const auto base = module_member_base(parts);
+  ZipArchiveEntry entry;
+  std::string source;
+  if (zip_archive_find_entry(archive, base + ".py", entry, error) &&
+      zip_archive_extract_member(archive, entry, source, error)) {
+    out.path = archive_string + "/" + base + ".py";
+    out.source = std::move(source);
+    out.is_package = false;
+    out.is_namespace_package = false;
+    out.is_zip_source = true;
+    return true;
+  }
+  error.clear();
+  const auto init_member = base + "/__init__.py";
+  if (zip_archive_find_entry(archive, init_member, entry, error) &&
+      zip_archive_extract_member(archive, entry, source, error)) {
+    out.path = archive_string + "/" + init_member;
+    out.package_dir = archive_string + "/" + base;
+    out.source = std::move(source);
+    out.is_package = true;
+    out.is_namespace_package = false;
+    out.is_zip_source = true;
+    return true;
+  }
+  return false;
+}
+
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
   const auto parts = split_module_name(name);
   const auto parent_name = parent_module_name(name);
+  std::vector<std::filesystem::path> namespace_dirs;
   if (!parent_name.empty()) {
     Value parent;
     std::string ignored;
@@ -113,11 +173,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             return true;
           }
           if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
-            out.path.clear();
-            out.package_dir = python_path_string(candidate_base);
-            out.is_package = true;
-            out.is_namespace_package = true;
-            return true;
+            namespace_dirs.push_back(candidate_base);
           }
         }
       }
@@ -146,6 +202,9 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
     if (root.empty()) {
       root = std::filesystem::current_path();
     }
+    if (find_zip_module_file(runtime, root, parts, out)) {
+      return true;
+    }
     auto candidate_base = root;
     for (const auto& part : parts) {
       candidate_base /= part;
@@ -172,12 +231,22 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
     }
 
     if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
-      out.path.clear();
-      out.package_dir = python_path_string(candidate_base);
-      out.is_package = true;
-      out.is_namespace_package = true;
-      return true;
+      namespace_dirs.push_back(candidate_base);
     }
+  }
+  if (!namespace_dirs.empty()) {
+    out.path.clear();
+    out.package_dir = python_path_string(namespace_dirs.front());
+    out.namespace_dirs.reserve(namespace_dirs.size());
+    for (const auto& dir : namespace_dirs) {
+      const auto normalized = python_path_string(dir);
+      if (std::find(out.namespace_dirs.begin(), out.namespace_dirs.end(), normalized) == out.namespace_dirs.end()) {
+        out.namespace_dirs.push_back(normalized);
+      }
+    }
+    out.is_package = true;
+    out.is_namespace_package = true;
+    return true;
   }
   return false;
 }
@@ -232,7 +301,16 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     module_set_attr(module_value, "__name__", Value::string(name), attr_error);
     module_set_attr(module_value, "__file__", Value::none(), attr_error);
     module_set_attr(module_value, "__package__", Value::string(name), attr_error);
-    module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
+    std::vector<Value> path_items;
+    path_items.reserve(module_file.namespace_dirs.empty() ? 1 : module_file.namespace_dirs.size());
+    if (module_file.namespace_dirs.empty()) {
+      path_items.push_back(Value::string(module_file.package_dir));
+    } else {
+      for (const auto& dir : module_file.namespace_dirs) {
+        path_items.push_back(Value::string(dir));
+      }
+    }
+    module_set_attr(module_value, "__path__", Value::list(std::move(path_items)), attr_error);
     runtime.register_module(name, module_value);
     out = std::move(module_value);
     if (!parent_name.empty()) {
@@ -242,8 +320,8 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     return true;
   }
 
-  std::string source;
-  if (!read_file(runtime, module_file.path, source, error)) {
+  std::string source = module_file.source;
+  if (!module_file.is_zip_source && !read_file(runtime, module_file.path, source, error)) {
     return false;
   }
   trace_import_timing(name, "read", import_start);

@@ -14,8 +14,11 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/interpreter.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/parser.h"
+#include "xlang3/sema.h"
 #include "xlang3/vfs.h"
 
 namespace xlang3 {
@@ -53,6 +56,30 @@ Value make_module_spec(const std::string& name, const Value& module) {
     }
   }
   return spec;
+}
+
+bool module_spec_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 3 || argc > 5) {
+    error = "ModuleSpec.__init__ expected name, loader, optional origin/is_package";
+    return false;
+  }
+  std::string name;
+  if (!get_string_arg(args[1], "ModuleSpec name", name, error)) {
+    return false;
+  }
+  Value self = args[0];
+  std::string ignored;
+  object_set_attr(self, "name", Value::string(name), ignored);
+  object_set_attr(self, "loader", args[2], ignored);
+  object_set_attr(self, "origin", argc >= 4 ? args[3] : Value::none(), ignored);
+  object_set_attr(self, "cached", Value::none(), ignored);
+  const auto dot = name.rfind('.');
+  object_set_attr(self, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  const bool is_package = argc >= 5 && value_truthy(args[4]);
+  object_set_attr(self, "submodule_search_locations", is_package ? Value::list({}) : Value::none(), ignored);
+  object_set_attr(self, "has_location", Value::boolean(argc >= 4 && args[3].tag != ValueTag::None), ignored);
+  value_set_none(out);
+  return true;
 }
 
 Value make_module_spec_for_file(const std::string& name, const std::string& path, const Value& loader) {
@@ -130,19 +157,71 @@ bool importlib_loader_get_data(Runtime& runtime, const Value* args, uint32_t arg
   return true;
 }
 
-bool importlib_loader_exec_module(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool importlib_loader_exec_module(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "loader.exec_module expected self and module";
+    return false;
+  }
+  Value path_value;
+  std::string ignored;
+  if (!object_get_attr(args[0], "path", path_value, ignored)) {
+    value_set_none(out);
+    return true;
+  }
+  std::string path;
+  if (!get_string_arg(path_value, "loader path", path, error)) {
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(path, bytes, error)) {
+    return false;
+  }
+  std::string source(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+  auto parsed = parse_source(source);
+  if (!parsed.errors.empty()) {
+    error = parsed.errors.front();
+    runtime.raise_class_error("SyntaxError", error);
+    return false;
+  }
+  auto lowered = lower_to_ir(parsed.module);
+  if (!lowered.errors.empty()) {
+    error = lowered.errors.front();
+    runtime.raise_class_error("SyntaxError", error);
+    return false;
+  }
+  auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
+  module_ir->source_file = path;
+  Value module_value = args[1];
+  module_set_attr(module_value, "__file__", Value::string(path), ignored);
+  Interpreter interpreter(runtime);
+  auto result = interpreter.run_module(*module_ir, module_value, module_ir);
+  if (!result.errors.empty()) {
+    error = result.errors.front();
     return false;
   }
   value_set_none(out);
   return true;
 }
 
-bool importlib_finder_find_spec(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool importlib_finder_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "finder.find_spec expected fullname";
     return false;
+  }
+  std::string name;
+  const Value& name_arg = argc == 1 ? args[0] : args[1];
+  if (!get_string_arg(name_arg, "finder fullname", name, error)) {
+    return false;
+  }
+  Value module;
+  std::string ignored;
+  if (runtime.has_registered_module(name) && runtime.import_module(name, module, ignored)) {
+    std::string ignored;
+    if (module_get_attr(module, "__spec__", out, ignored) && out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
+      return true;
+    }
+    out = make_module_spec(name, module);
+    return true;
   }
   value_set_none(out);
   return true;
@@ -178,6 +257,33 @@ bool importlib_import_module(Runtime& runtime, const Value* args, uint32_t argc,
   if (!get_string_arg(args[0], "importlib.import_module name", name, error)) {
     return false;
   }
+  if (!name.empty() && name.front() == '.') {
+    if (argc != 2 || args[1].tag == ValueTag::None) {
+      error = "the 'package' argument is required to perform a relative import";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    std::string package;
+    if (!get_string_arg(args[1], "importlib.import_module package", package, error)) {
+      return false;
+    }
+    size_t dots = 0;
+    while (dots < name.size() && name[dots] == '.') {
+      ++dots;
+    }
+    for (size_t i = 1; i < dots && !package.empty(); ++i) {
+      const auto cut = package.rfind('.');
+      package = cut == std::string::npos ? std::string() : package.substr(0, cut);
+    }
+    const auto tail = name.substr(dots);
+    name = package;
+    if (!tail.empty()) {
+      if (!name.empty()) {
+        name += ".";
+      }
+      name += tail;
+    }
+  }
   if (!runtime.import_module(name, out, error)) {
     return false;
   }
@@ -205,6 +311,10 @@ bool importlib_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Val
   Value module;
   std::string import_error;
   if (runtime.import_module(name, module, import_error)) {
+    std::string ignored;
+    if (module_get_attr(module, "__spec__", out, ignored) && out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
+      return true;
+    }
     out = make_module_spec(name, module);
     return true;
   }
@@ -282,8 +392,12 @@ void register_importlib_module(Runtime& runtime) {
   Value frozen_importer = make_finder_class(runtime, "FrozenImporter");
   Value namespace_loader = make_loader_class(runtime, "NamespaceLoader");
 
+  Value module_spec_class = make_simple_class(
+      "ModuleSpec",
+      {{"__init__", runtime.make_native_function("ModuleSpec.__init__", module_spec_init)}});
+
   NativeModuleBuilder machinery_builder(runtime, "importlib.machinery");
-  machinery_builder.value("ModuleSpec", make_simple_class("ModuleSpec"))
+  machinery_builder.value("ModuleSpec", module_spec_class)
       .value("BuiltinImporter", builtin_importer)
       .value("FrozenImporter", frozen_importer)
       .value("PathFinder", path_finder)
@@ -327,7 +441,7 @@ void register_importlib_module(Runtime& runtime) {
   frozen_builder.value("__name__", Value::string("_frozen_importlib"))
       .value("BuiltinImporter", builtin_importer)
       .value("FrozenImporter", frozen_importer)
-      .value("ModuleSpec", make_simple_class("ModuleSpec"));
+      .value("ModuleSpec", module_spec_class);
   Value frozen = frozen_builder.finish();
   runtime.register_module("_frozen_importlib", frozen);
   runtime.register_module("importlib._bootstrap", frozen);

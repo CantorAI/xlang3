@@ -21,6 +21,7 @@ limitations under the License.
 #endif
 #include "xlang3/module_object.h"
 #include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -150,6 +151,73 @@ bool has_import_root(const std::vector<std::filesystem::path>& roots, const std:
   return std::find(roots.begin(), roots.end(), root) != roots.end();
 }
 #endif
+
+bool module_has_real_attr(const Value& module, const std::string& name) {
+  uint32_t slot = 0;
+  std::string ignored;
+  return module_find_attr_slot(module, name, slot, ignored);
+}
+
+Value make_import_metadata_class(const std::string& class_name, const std::string& module_name) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string(module_name)});
+  attrs.push_back({"__name__", Value::string(class_name)});
+  return Value::class_object(class_name, std::move(attrs));
+}
+
+Value make_runtime_loader(const std::string& class_name, const std::string& module_name) {
+  auto loader = Value::instance(make_import_metadata_class(class_name, "_frozen_importlib"));
+  std::string ignored;
+  object_set_attr(loader, "name", Value::string(module_name), ignored);
+  return loader;
+}
+
+Value make_runtime_module_spec(
+    const std::string& name,
+    const Value& loader,
+    const Value& origin,
+    const Value& submodule_search_locations) {
+  auto spec = Value::instance(make_import_metadata_class("ModuleSpec", "_frozen_importlib"));
+  std::string ignored;
+  object_set_attr(spec, "name", Value::string(name), ignored);
+  object_set_attr(spec, "loader", loader, ignored);
+  object_set_attr(spec, "origin", origin, ignored);
+  object_set_attr(spec, "cached", Value::none(), ignored);
+  const auto dot = name.rfind('.');
+  object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  object_set_attr(spec, "has_location", Value::boolean(origin.tag != ValueTag::None && value_to_string(origin) != "built-in"), ignored);
+  object_set_attr(spec, "submodule_search_locations", submodule_search_locations, ignored);
+  return spec;
+}
+
+void ensure_module_import_metadata(Value& module, const std::string& name) {
+  if (value_as_module(module) == nullptr) {
+    return;
+  }
+
+  std::string ignored;
+  if (!module_has_real_attr(module, "__package__")) {
+    const auto dot = name.rfind('.');
+    module_set_attr(module, "__package__", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  }
+
+  Value path;
+  const bool has_path = module_get_attr(module, "__path__", path, ignored) && path.tag != ValueTag::Invalid;
+  Value file;
+  const bool has_file = module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::Invalid && file.tag != ValueTag::None;
+  Value loader = has_path && !has_file ? make_runtime_loader("NamespaceLoader", name)
+                                       : make_runtime_loader(has_file ? "SourceFileLoader" : "BuiltinImporter", name);
+  if (!module_has_real_attr(module, "__loader__")) {
+    module_set_attr(module, "__loader__", loader, ignored);
+  } else {
+    module_get_attr(module, "__loader__", loader, ignored);
+  }
+
+  if (!module_has_real_attr(module, "__spec__")) {
+    Value origin = has_file ? file : (has_path ? Value::none() : Value::string("built-in"));
+    module_set_attr(module, "__spec__", make_runtime_module_spec(name, loader, origin, has_path ? path : Value::none()), ignored);
+  }
+}
 
 } // namespace
 
@@ -597,6 +665,7 @@ Value Runtime::make_native_function(
 
 void Runtime::register_module(std::string name, Value module) {
   std::string key = name;
+  ensure_module_import_metadata(module, key);
   modules_[std::move(name)] = std::move(module);
   auto it = modules_.find(key);
   if (it != modules_.end() && modules_dict_.tag != ValueTag::Invalid) {

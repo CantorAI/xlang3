@@ -66,6 +66,11 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     return true;
   }
   if (name == "__spec__") {
+    auto spec_it = module->name_to_slot.find(name);
+    if (spec_it != module->name_to_slot.end() && spec_it->second < module->slots.size()) {
+      value_assign_fast(out, module->slots[spec_it->second]);
+      return true;
+    }
     value_set_none(out);
     return true;
   }

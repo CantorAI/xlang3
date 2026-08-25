@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/module_object.h"
 
+#include <unordered_set>
+
 namespace xlang3 {
 
 bool module_ensure_attr_slots(Value& object, const std::vector<std::string>& names, std::string& error) {
@@ -23,22 +25,55 @@ bool module_ensure_attr_slots(Value& object, const std::vector<std::string>& nam
     return false;
   }
 
+  bool needs_relayout = module->slots.size() < names.size();
   for (size_t slot = 0; slot < names.size(); ++slot) {
     const auto& name = names[slot];
     auto it = module->name_to_slot.find(name);
-    if (it != module->name_to_slot.end()) {
-      if (it->second != slot) {
-        error = "module slot order mismatch for '" + name + "'";
-        return false;
-      }
-      continue;
-    }
-
-    module->name_to_slot[name] = static_cast<uint32_t>(slot);
-    while (module->slots.size() <= slot) {
-      module->slots.push_back(Value::invalid());
+    if (it == module->name_to_slot.end() || it->second != slot) {
+      needs_relayout = true;
+      break;
     }
   }
+
+  if (!needs_relayout) {
+    return true;
+  }
+
+  std::unordered_set<std::string> ir_names;
+  ir_names.reserve(names.size());
+  for (const auto& name : names) {
+    ir_names.insert(name);
+  }
+
+  std::vector<std::pair<std::string, Value>> preserved;
+  preserved.reserve(module->name_to_slot.size());
+  for (const auto& entry : module->name_to_slot) {
+    if (ir_names.find(entry.first) != ir_names.end()) {
+      continue;
+    }
+    if (entry.second < module->slots.size()) {
+      preserved.push_back({entry.first, module->slots[entry.second]});
+    }
+  }
+
+  std::vector<Value> new_slots(names.size(), Value::invalid());
+  std::unordered_map<std::string, uint32_t> new_slot_map;
+  new_slot_map.reserve(names.size() + preserved.size());
+  for (size_t slot = 0; slot < names.size(); ++slot) {
+    const auto& name = names[slot];
+    auto old_it = module->name_to_slot.find(name);
+    if (old_it != module->name_to_slot.end() && old_it->second < module->slots.size()) {
+      new_slots[slot] = module->slots[old_it->second];
+    }
+    new_slot_map[name] = static_cast<uint32_t>(slot);
+  }
+  for (auto& entry : preserved) {
+    new_slot_map[entry.first] = static_cast<uint32_t>(new_slots.size());
+    new_slots.push_back(std::move(entry.second));
+  }
+  module->slots = std::move(new_slots);
+  module->name_to_slot = std::move(new_slot_map);
+  ++module->version;
   return true;
 }
 

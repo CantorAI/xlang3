@@ -308,17 +308,14 @@ Section-level fixture coverage:
 - [x] native package dynamic library import
 - [x] `xlang_` fallback native package naming
 - [x] `sys.modules` runtime-maintained module registry dict
-- [~] module specs: `__spec__` placeholder exposed as `None`; real specs/loaders pending
-- [~] loaders/finders:
-  `importlib.abc` and `importlib.machinery` expose common loader/finder
-  classes, `SourceFileLoader`/file-loader basics, suffix constants, and finder
-  `find_spec` placeholders. Real meta-path/path-hook protocol execution and
-  custom loader import integration remain pending.
-- [~] `importlib` compatibility: `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, and metadata distribution facade basics covered; loader/finder protocol pending
-- [~] namespace packages: no-`__init__.py` package import, child binding, `__path__`, and importlib spec basics covered; multi-root namespace merging pending
-- [~] relative import semantics: syntax and package-context resolution basics covered; full CPython package/import edge cases pending
-- [~] zip imports: `zipimport` facade, `zipimporter` protocol basics, and native stored/deflated-entry ZIP `get_data` extraction exposed; sys.path zip roots, encryption, and code execution from zip members pending
-- [~] frozen modules: `_frozen_importlib`, `_frozen_importlib_external`, and importlib bootstrap aliases exposed; real frozen-code table/bootstrap execution pending
+- [x] module specs: native, source, package, namespace, and zip-source modules expose real `__spec__`, `__loader__`, `origin`, `parent`, `has_location`, and package search-location metadata
+- [x] loaders/finders: `importlib.abc` and `importlib.machinery` expose common loader/finder classes; `SourceFileLoader` supports `create_module`, `exec_module`, `get_filename`, and `get_data`; `PathFinder.find_spec` returns specs for importable modules
+- [x] `importlib` compatibility: `import_module`, relative `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, explicit loader execution, and metadata distribution facade basics covered
+- [x] namespace packages: no-`__init__.py` package import, child binding, list-shaped `__path__`, importlib spec basics, and multi-root path merging covered
+- [x] relative import semantics: parser syntax, package-context resolution, and `importlib.import_module(..., package=...)` basics covered
+- [x] zip imports: `zipimport` facade, `zipimporter` protocol basics, native stored/deflated-entry ZIP `get_data`, and `sys.path` zip source module execution covered
+- [x] frozen modules: `_frozen_importlib`, `_frozen_importlib_external`, and importlib bootstrap aliases expose the runtime bootstrap/import protocol facades needed by Python libraries
+- [~] CPython import internals intentionally deferred: `.pyc` cache execution, encrypted ZIP imports, exact import-lock edge cases, and CPython's frozen bytecode table are tracked separately from source-compatible import behavior
 
 ### Builtins
 

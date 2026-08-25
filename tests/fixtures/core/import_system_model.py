@@ -37,13 +37,17 @@ print(ns_pkg.module.VALUE, ns_pkg.module.__package__, ns_spec.name, mod_spec.par
 print(importlib.import_module("ns_pkg.module") is ns_pkg.module)
 
 # importlib loader/finder facade: common classes and SourceFileLoader basics exist for libraries that inspect import protocols.
-loader = importlib.machinery.SourceFileLoader("demo_loader", __file__)
-file_spec = importlib.util.spec_from_file_location("demo_loader", __file__, loader)
+loader_path = "xlang3_import_system_loader_exec.py"
+with open(loader_path, "w") as loader_file:
+    loader_file.write("LOADER_VALUE = 5\n")
+loader = importlib.machinery.SourceFileLoader("demo_loader", loader_path)
+file_spec = importlib.util.spec_from_file_location("demo_loader", loader_path, loader)
 module_from_spec = importlib.util.module_from_spec(file_spec)
 print(importlib.abc.Loader.__name__, importlib.machinery.SourceFileLoader.__name__)
-print(loader.name, loader.get_filename("demo_loader") == __file__, loader.create_module(file_spec) is None)
-print(len(loader.get_data(__file__)) > 0, loader.exec_module(module_from_spec) is None)
-print(file_spec.loader is loader, file_spec.origin == __file__, module_from_spec.__name__)
+print(loader.name, loader.get_filename("demo_loader") == loader_path, loader.create_module(file_spec) is None)
+print(len(loader.get_data(loader_path)) > 0, loader.exec_module(module_from_spec) is None, module_from_spec.LOADER_VALUE)
+print(file_spec.loader is loader, file_spec.origin == loader_path, module_from_spec.__name__)
+os.remove(loader_path)
 print(importlib.machinery.PathFinder.find_spec("missing") is None)
 print(importlib.machinery.SOURCE_SUFFIXES[0], importlib.machinery.BYTECODE_SUFFIXES[0])
 

@@ -1,0 +1,15 @@
+sys sys built-in
+True True
+11 import_target 
+import_target True 
+import_target import_target
+pkg pkg True
+17 True pkg
+Loader SourceFileLoader
+loader_exec_mod xlang3_import_loader_exec.py True
+loader_exec_mod xlang3_import_loader_exec.py 42 loader_exec_mod
+pkg.module
+True True ns_pkg NamespaceLoader
+compat-namespace ns_pkg
+_frozen_importlib _frozen_importlib_external
+zip-source True

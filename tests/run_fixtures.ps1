@@ -142,6 +142,7 @@ $sectionCases = @(
     "exceptions",
     "containers",
     "strings_and_unicode",
+    "imports_and_modules",
     "builtins",
     "standard_modules"
 )
