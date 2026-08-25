@@ -450,7 +450,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `urllib.parse`: quote/unquote helper foundation; full URL parsing pending
 - [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
 - [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending
-- [~] `zlib`: native zlib-backed `compress`, `decompress`, `crc32`, `adler32`, and common constants; streaming objects and exact CPython edge cases pending
+- [~] `zlib`: native zlib-backed `compress`, `decompress`, `compressobj`, `decompressobj`, `crc32`, `adler32`, common constants, and stream object state basics; dictionaries, copy, checksums/compression edge cases, and exact CPython error semantics pending
 - [~] `zipfile`: native `ZipFile`/`ZipInfo` facade with stored/deflated archive `is_zipfile`, `namelist`, `infolist`, `getinfo`, `read`, `write`, `writestr`, `extract`, `extractall`, `testzip`, `close`, and context-manager basics; encryption/ZipExtFile/full metadata pending
 - [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, and `http.server` class names; real HTTP/XML-RPC networking and complete protocol behavior pending
 
