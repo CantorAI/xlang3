@@ -56,6 +56,10 @@ with zipfile.ZipFile(archive, "r") as zf:
     print(hello_path.name, hello_path.stem, hello_path.suffix, hello_path.suffixes)
     print(folder_path.is_symlink(), hello_path.match("hello.txt"), hello_path.relative_to(root))
     print(len(list(root.glob("*"))) >= 3)
+    print(hello_path.filename is not None)
+    print([item.at for item in root.glob("*.txt")])
+    print("folder/source.txt" in [item.at for item in root.rglob("*.txt")])
+    print(hello_path.parent.name is not None)
     print(zf.testzip() is None)
 
 print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
@@ -73,7 +77,29 @@ with open("xlang3_zip_extract_all/folder/source.txt", "r") as f:
 
 manual = zipfile.ZipInfo("manual.txt", (2025, 1, 2, 3, 4, 6))
 print(manual.filename, manual.date_time)
-print(zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED, zipfile.BadZipfile is zipfile.BadZipFile)
+from_file = zipfile.ZipInfo.from_file(source, "from_file.txt")
+print(from_file.filename, from_file.file_size, from_file.compress_type, from_file.compress_level is None)
+print(from_file.extra == b"", from_file.internal_attr, from_file.create_version, from_file.reserved, from_file.volume)
+with zipfile.ZipFile("xlang3_for_archive.zip", "w", compression=zipfile.ZIP_DEFLATED) as zf:
+    print(from_file._for_archive(zf) is from_file)
+from_file.CRC = 0
+print(from_file.FileHeader()[:4] == b"PK\x03\x04")
+print(zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED, zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA, zipfile.ZIP_ZSTANDARD)
+print(zipfile.ZIP_MAX_COMMENT, zipfile.ZIP_FILECOUNT_LIMIT, zipfile.BadZipfile is zipfile.BadZipFile)
+
+try:
+    with zipfile.ZipFile("xlang3_exclusive.zip", "x") as zf:
+        zf.writestr("x", "x")
+    with zipfile.ZipFile("xlang3_exclusive.zip", "x") as zf:
+        zf.writestr("x", "x")
+except Exception:
+    print(True)
+
+try:
+    with zipfile.ZipFile("xlang3_bad_compression.zip", "w", compression=999) as zf:
+        zf.writestr("x", "x")
+except Exception:
+    print(True)
 
 mem = io.BytesIO()
 with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
@@ -108,3 +134,7 @@ os.remove(source)
 os.remove("xlang3_zipfile_module_source.py")
 os.remove(archive)
 os.remove("xlang3_pyzip.zip")
+os.remove("xlang3_for_archive.zip")
+os.remove("xlang3_exclusive.zip")
+if os.path.exists("xlang3_bad_compression.zip"):
+    os.remove("xlang3_bad_compression.zip")

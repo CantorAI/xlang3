@@ -24,6 +24,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cstdio>
+#include <cctype>
 
 namespace xlang3 {
 
@@ -32,6 +33,12 @@ namespace {
 constexpr const char* kZipFileNativeType = "zipfile.ZipFile";
 constexpr const char* kZipExtFileNativeType = "zipfile.ZipExtFile";
 constexpr const char* kZipPathNativeType = "zipfile.Path";
+
+constexpr uint16_t kZipStored = 0;
+constexpr uint16_t kZipDeflated = 8;
+constexpr uint16_t kZipBzip2 = 12;
+constexpr uint16_t kZipLzma = 14;
+constexpr uint16_t kZipZstandard = 93;
 
 struct ZipFileState {
   std::string path;
@@ -97,6 +104,18 @@ Value kw_value(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name
     }
   }
   return fallback;
+}
+
+void append_le16(std::string& out, uint16_t value) {
+  out.push_back(static_cast<char>(value & 0xffu));
+  out.push_back(static_cast<char>((value >> 8u) & 0xffu));
+}
+
+void append_le32(std::string& out, uint32_t value) {
+  out.push_back(static_cast<char>(value & 0xffu));
+  out.push_back(static_cast<char>((value >> 8u) & 0xffu));
+  out.push_back(static_cast<char>((value >> 16u) & 0xffu));
+  out.push_back(static_cast<char>((value >> 24u) & 0xffu));
 }
 
 bool get_bytes_like(const Value& value, std::string& out) {
@@ -202,6 +221,40 @@ std::string normalized_member_name(std::string name) {
   return name;
 }
 
+std::string sanitized_extract_name(std::string name) {
+  name = normalized_member_name(std::move(name));
+  while (!name.empty() && name.front() == '/') {
+    name.erase(name.begin());
+  }
+  if (name.size() >= 3 && std::isalpha(static_cast<unsigned char>(name[0])) && name[1] == ':' && name[2] == '/') {
+    name = name.substr(3);
+  }
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= name.size()) {
+    const size_t slash = name.find('/', start);
+    std::string part = slash == std::string::npos ? name.substr(start) : name.substr(start, slash - start);
+    if (!part.empty() && part != "." && part != "..") {
+      parts.push_back(std::move(part));
+    }
+    if (slash == std::string::npos) {
+      break;
+    }
+    start = slash + 1;
+  }
+  std::string out;
+  for (size_t i = 0; i < parts.size(); ++i) {
+    if (i != 0) {
+      out.push_back('/');
+    }
+    out += parts[i];
+  }
+  if (!name.empty() && name.back() == '/' && !out.empty() && out.back() != '/') {
+    out.push_back('/');
+  }
+  return out;
+}
+
 std::string normalized_dir_prefix(std::string name) {
   name = normalized_member_name(std::move(name));
   if (!name.empty() && name.back() != '/') {
@@ -249,6 +302,31 @@ std::string path_parent(const std::string& path) {
   }
   const size_t pos = text.find_last_of('/');
   return pos == std::string::npos ? std::string{} : text.substr(0, pos + 1);
+}
+
+bool wildcard_match(std::string_view pattern, std::string_view text) {
+  size_t p = 0;
+  size_t t = 0;
+  size_t star = std::string_view::npos;
+  size_t match = 0;
+  while (t < text.size()) {
+    if (p < pattern.size() && (pattern[p] == '?' || pattern[p] == text[t])) {
+      ++p;
+      ++t;
+    } else if (p < pattern.size() && pattern[p] == '*') {
+      star = p++;
+      match = t;
+    } else if (star != std::string_view::npos) {
+      p = star + 1;
+      t = ++match;
+    } else {
+      return false;
+    }
+  }
+  while (p < pattern.size() && pattern[p] == '*') {
+    ++p;
+  }
+  return p == pattern.size();
 }
 
 uint16_t dos_time_from_tuple(const Value& value, uint16_t fallback) {
@@ -307,11 +385,19 @@ uint16_t compression_from_value(const Value& value, uint16_t fallback, std::stri
   if (value.tag == ValueTag::None) {
     return fallback;
   }
-  if (value.tag != ValueTag::Int64 || (value.as.i64 != 0 && value.as.i64 != 8)) {
-    error = "ZipFile supports ZIP_STORED and ZIP_DEFLATED";
+  if (value.tag != ValueTag::Int64) {
+    error = "compression method must be int";
     return UINT16_MAX;
   }
-  return static_cast<uint16_t>(value.as.i64);
+  if (value.as.i64 == kZipStored || value.as.i64 == kZipDeflated) {
+    return static_cast<uint16_t>(value.as.i64);
+  }
+  if (value.as.i64 == kZipBzip2 || value.as.i64 == kZipLzma || value.as.i64 == kZipZstandard) {
+    error = "compression method requires an optional codec that is not enabled in this build";
+    return UINT16_MAX;
+  }
+  error = "That compression method is not supported";
+  return UINT16_MAX;
 }
 
 bool load_existing_archive(Runtime& runtime, ZipFileState& state, std::string& error) {
@@ -422,10 +508,18 @@ Value make_zipinfo(Runtime& runtime, const ZipArchiveMember& member) {
   const uint32_t compressed_size = member.compressed_size == 0 ? static_cast<uint32_t>(member.data.size()) : member.compressed_size;
   object_set_attr(instance, "compress_size", Value::int64(static_cast<int64_t>(compressed_size)), ignored);
   object_set_attr(instance, "compress_type", Value::int64(member.method), ignored);
+  object_set_attr(instance, "compress_level", Value::none(), ignored);
+  object_set_attr(instance, "_compresslevel", Value::none(), ignored);
   object_set_attr(instance, "CRC", Value::int64(static_cast<int64_t>(member.crc32)), ignored);
+  object_set_attr(instance, "extra", Value::bytes(""), ignored);
   object_set_attr(instance, "external_attr", Value::int64(static_cast<int64_t>(member.external_attr)), ignored);
+  object_set_attr(instance, "internal_attr", Value::int64(0), ignored);
   object_set_attr(instance, "create_system", Value::int64(0), ignored);
+  object_set_attr(instance, "create_version", Value::int64(20), ignored);
   object_set_attr(instance, "extract_version", Value::int64(member.method == 8 ? 20 : 10), ignored);
+  object_set_attr(instance, "reserved", Value::int64(0), ignored);
+  object_set_attr(instance, "volume", Value::int64(0), ignored);
+  object_set_attr(instance, "header_offset", Value::int64(0), ignored);
   object_set_attr(instance, "flag_bits", Value::int64(0), ignored);
   return instance;
 }
@@ -590,6 +684,16 @@ bool zipfile_init_kw(
   state->mode = std::move(mode);
   state->default_compression = compression;
   state->compresslevel = compresslevel;
+  if (state->owns_path && state->mode == "x") {
+    VfsStat stat;
+    std::string stat_error;
+    if (runtime.vfs().stat(state->path, stat, stat_error) && stat.kind != VfsNodeKind::Missing) {
+      error = "File exists: '" + state->path + "'";
+      runtime.raise_class_error("FileExistsError", error);
+      delete state;
+      return false;
+    }
+  }
   if ((state->mode == "r" || state->mode == "a") && !load_existing_archive(runtime, *state, error)) {
     delete state;
     return false;
@@ -605,6 +709,8 @@ bool zipfile_init_kw(
   object_set_attr(self, "comment", Value::bytes(state->comment), ignored);
   object_set_attr(self, "compression", Value::int64(state->default_compression), ignored);
   object_set_attr(self, "compresslevel", state->compresslevel < 0 ? Value::none() : Value::int64(state->compresslevel), ignored);
+  object_set_attr(self, "debug", Value::int64(0), ignored);
+  object_set_attr(self, "fp", owns_path ? Value::string(state->path) : fileobj, ignored);
   value_set_none(out);
   return true;
 }
@@ -705,7 +811,12 @@ bool zipfile_extract_one(
     if (member.name != name) {
       continue;
     }
-    std::string target = root.empty() || root == "." ? member.name : root + "/" + member.name;
+    const std::string clean_name = sanitized_extract_name(member.name);
+    if (clean_name.empty()) {
+      out = Value::string(root.empty() ? "." : root);
+      return true;
+    }
+    std::string target = root.empty() || root == "." ? clean_name : root + "/" + clean_name;
     for (auto& ch : target) {
       if (ch == '\\') {
         ch = '/';
@@ -1129,7 +1240,7 @@ bool zipfile_open_kw(
     return false;
   }
   object_set_attr(out, "name", Value::string(ext_state->member_name), ignored);
-  object_set_attr(out, "mode", Value::string(mode), ignored);
+  object_set_attr(out, "mode", Value::string(mode == "r" ? "rb" : "wb"), ignored);
   object_set_attr(out, "closed", Value::boolean(false), ignored);
   return true;
 }
@@ -1330,6 +1441,9 @@ bool zipfile_close(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   state->closed = true;
+  Value self = args[0];
+  std::string ignored;
+  object_set_attr(self, "fp", Value::none(), ignored);
   value_set_none(out);
   return true;
 }
@@ -1396,12 +1510,142 @@ bool zipinfo_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   object_set_attr(self, "file_size", Value::int64(0), ignored);
   object_set_attr(self, "compress_size", Value::int64(0), ignored);
   object_set_attr(self, "compress_type", Value::int64(0), ignored);
+  object_set_attr(self, "compress_level", Value::none(), ignored);
+  object_set_attr(self, "_compresslevel", Value::none(), ignored);
   object_set_attr(self, "CRC", Value::int64(0), ignored);
+  object_set_attr(self, "extra", Value::bytes(""), ignored);
   object_set_attr(self, "external_attr", Value::int64(0), ignored);
+  object_set_attr(self, "internal_attr", Value::int64(0), ignored);
   object_set_attr(self, "create_system", Value::int64(0), ignored);
+  object_set_attr(self, "create_version", Value::int64(20), ignored);
   object_set_attr(self, "extract_version", Value::int64(10), ignored);
+  object_set_attr(self, "reserved", Value::int64(0), ignored);
+  object_set_attr(self, "volume", Value::int64(0), ignored);
+  object_set_attr(self, "header_offset", Value::int64(0), ignored);
   object_set_attr(self, "flag_bits", Value::int64(0), ignored);
   value_set_none(out);
+  return true;
+}
+
+bool zipinfo_for_archive(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ZipInfo._for_archive() expected archive";
+    return false;
+  }
+  auto* state = zipfile_state(args[1], error);
+  if (state == nullptr) {
+    return false;
+  }
+  Value self = args[0];
+  Value value;
+  std::string ignored;
+  if (!object_get_attr(self, "compress_type", value, ignored) || value.tag == ValueTag::None) {
+    object_set_attr(self, "compress_type", Value::int64(state->default_compression), ignored);
+  }
+  if (!object_get_attr(self, "date_time", value, ignored)) {
+    object_set_attr(self, "date_time", tuple_from_dos_datetime(0, 0), ignored);
+  }
+  value_assign_fast(out, self);
+  return true;
+}
+
+bool zipinfo_file_header(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "ZipInfo.FileHeader() expected optional zip64";
+    return false;
+  }
+  std::string filename;
+  if (!zipfile_member_name_arg(args[0], filename, error)) {
+    return false;
+  }
+  uint16_t method = 0;
+  uint16_t mod_time = 0;
+  uint16_t mod_date = 0;
+  uint32_t crc = 0;
+  uint32_t compressed_size = 0;
+  uint32_t file_size = 0;
+  Value value;
+  std::string ignored;
+  if (object_get_attr(args[0], "compress_type", value, ignored) && value.tag == ValueTag::Int64) {
+    method = static_cast<uint16_t>(value.as.i64);
+  }
+  if (object_get_attr(args[0], "date_time", value, ignored)) {
+    mod_time = dos_time_from_tuple(value, 0);
+    mod_date = dos_date_from_tuple(value, 0);
+  }
+  if (object_get_attr(args[0], "CRC", value, ignored) && value.tag == ValueTag::Int64) {
+    crc = static_cast<uint32_t>(value.as.i64);
+  }
+  if (object_get_attr(args[0], "compress_size", value, ignored) && value.tag == ValueTag::Int64) {
+    compressed_size = static_cast<uint32_t>(value.as.i64);
+  }
+  if (object_get_attr(args[0], "file_size", value, ignored) && value.tag == ValueTag::Int64) {
+    file_size = static_cast<uint32_t>(value.as.i64);
+  }
+  std::string header;
+  append_le32(header, 0x04034b50u);
+  append_le16(header, method == kZipDeflated ? 20 : 10);
+  append_le16(header, 0);
+  append_le16(header, method);
+  append_le16(header, mod_time);
+  append_le16(header, mod_date);
+  append_le32(header, crc);
+  append_le32(header, compressed_size);
+  append_le32(header, file_size);
+  append_le16(header, static_cast<uint16_t>(filename.size()));
+  append_le16(header, 0);
+  header += filename;
+  out = Value::bytes(std::move(header));
+  return true;
+}
+
+bool zipinfo_from_file(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "ZipInfo.from_file() expected filename, arcname, and strict_timestamps";
+    return false;
+  }
+  std::string filename;
+  if (!get_string_arg(args[1], "ZipInfo.from_file filename", filename, error)) {
+    return false;
+  }
+  std::string arcname = filename;
+  if (argc >= 3 && args[2].tag != ValueTag::None && !get_string_arg(args[2], "ZipInfo.from_file arcname", arcname, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(filename, stat, error)) {
+    return false;
+  }
+  arcname = normalized_member_name(std::move(arcname));
+  while (!arcname.empty() && arcname.front() == '/') {
+    arcname.erase(arcname.begin());
+  }
+  if (stat.kind == VfsNodeKind::Directory && !arcname.empty() && arcname.back() != '/') {
+    arcname.push_back('/');
+  }
+  Value klass = args[0];
+  out = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(out, "filename", Value::string(arcname), ignored);
+  object_set_attr(out, "orig_filename", Value::string(arcname), ignored);
+  object_set_attr(out, "date_time", Value::tuple({Value::int64(1980), Value::int64(1), Value::int64(1), Value::int64(0), Value::int64(0), Value::int64(0)}), ignored);
+  object_set_attr(out, "comment", Value::bytes(""), ignored);
+  object_set_attr(out, "file_size", Value::int64(static_cast<int64_t>(stat.size)), ignored);
+  object_set_attr(out, "compress_size", Value::int64(0), ignored);
+  object_set_attr(out, "compress_type", Value::int64(kZipStored), ignored);
+  object_set_attr(out, "compress_level", Value::none(), ignored);
+  object_set_attr(out, "_compresslevel", Value::none(), ignored);
+  object_set_attr(out, "CRC", Value::int64(0), ignored);
+  object_set_attr(out, "extra", Value::bytes(""), ignored);
+  object_set_attr(out, "external_attr", Value::int64(stat.kind == VfsNodeKind::Directory ? 0x10 : 0), ignored);
+  object_set_attr(out, "internal_attr", Value::int64(0), ignored);
+  object_set_attr(out, "create_system", Value::int64(0), ignored);
+  object_set_attr(out, "create_version", Value::int64(20), ignored);
+  object_set_attr(out, "extract_version", Value::int64(10), ignored);
+  object_set_attr(out, "reserved", Value::int64(0), ignored);
+  object_set_attr(out, "volume", Value::int64(0), ignored);
+  object_set_attr(out, "header_offset", Value::int64(0), ignored);
+  object_set_attr(out, "flag_bits", Value::int64(0), ignored);
   return true;
 }
 
@@ -1433,6 +1677,18 @@ Value make_zippath_instance(Runtime& runtime, const Value& root, std::string at)
   return instance;
 }
 
+std::string zippath_display_name(const ZipPathState& path) {
+  std::string ignored;
+  auto* zip = static_cast<ZipFileState*>(instance_get_native_data(path.root, kZipFileNativeType));
+  if (zip == nullptr || zip->path.empty()) {
+    return path.at;
+  }
+  if (path.at.empty()) {
+    return zip->path + "/";
+  }
+  return zip->path + "/" + path.at;
+}
+
 bool zippath_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "Path() expected root and optional at";
@@ -1459,6 +1715,97 @@ bool zippath_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   object_set_attr(self, "suffix", Value::string(path_suffix(state->at)), ignored);
   object_set_attr(self, "suffixes", path_suffixes(state->at), ignored);
   value_set_none(out);
+  return true;
+}
+
+bool zippath_string_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path string method expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = Value::string(zippath_display_name(*path));
+  return true;
+}
+
+bool zippath_name_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.name expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = Value::string(path_basename(path->at));
+  return true;
+}
+
+bool zippath_filename_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.filename expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = Value::string(zippath_display_name(*path));
+  return true;
+}
+
+bool zippath_stem_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.stem expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = Value::string(path_stem(path->at));
+  return true;
+}
+
+bool zippath_suffix_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.suffix expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = Value::string(path_suffix(path->at));
+  return true;
+}
+
+bool zippath_suffixes_getter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.suffixes expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = path_suffixes(path->at);
+  return true;
+}
+
+bool zippath_parent_getter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.parent expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = make_zippath_instance(runtime, path->root, path_parent(path->at));
   return true;
 }
 
@@ -1629,24 +1976,63 @@ bool zippath_match(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   if (!get_string_arg(args[1], "Path.match pattern", pattern, error)) {
     return false;
   }
-  out = Value::boolean(pattern == "*" || pattern == path->at || pattern == path_basename(path->at));
+  out = Value::boolean(pattern == path->at || wildcard_match(pattern, path_basename(path->at)) || wildcard_match(pattern, path->at));
   return true;
 }
 
-bool zippath_glob(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zippath_glob_common(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool recursive) {
   if (argc != 2) {
     error = "Path.glob() expected pattern";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  auto* zip = zipfile_state(path->root, error);
+  if (zip == nullptr) {
     return false;
   }
   std::string pattern;
   if (!get_string_arg(args[1], "Path.glob pattern", pattern, error)) {
     return false;
   }
-  if (pattern != "*") {
-    out = Value::list({});
-    return true;
+  const std::string prefix = normalized_dir_prefix(path->at);
+  std::vector<Value> values;
+  if (!recursive) {
+    for (auto child : child_names(*zip, path->at)) {
+      std::string leaf = child;
+      if (!prefix.empty() && leaf.compare(0, prefix.size(), prefix) == 0) {
+        leaf = leaf.substr(prefix.size());
+      }
+      while (!leaf.empty() && leaf.back() == '/') {
+        leaf.pop_back();
+      }
+      if (wildcard_match(pattern, leaf)) {
+        values.push_back(make_zippath_instance(runtime, path->root, std::move(child)));
+      }
+    }
+  } else {
+    for (const auto& member : zip->members) {
+      if (!prefix.empty() && member.name.compare(0, prefix.size(), prefix) != 0) {
+        continue;
+      }
+      std::string rel = prefix.empty() ? member.name : member.name.substr(prefix.size());
+      if (wildcard_match(pattern, rel) || wildcard_match(pattern, path_basename(rel))) {
+        values.push_back(make_zippath_instance(runtime, path->root, member.name));
+      }
+    }
   }
-  return zippath_iterdir(runtime, args, 1, out, error, nullptr);
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool zippath_glob(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return zippath_glob_common(runtime, args, argc, out, error, false);
+}
+
+bool zippath_rglob(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return zippath_glob_common(runtime, args, argc, out, error, true);
 }
 
 bool zippath_relative_to(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1762,8 +2148,41 @@ Value make_zippath_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("zipfile")});
   attrs.push_back({"__init__", runtime.make_native_function("zipfile.Path.__init__", zippath_init)});
+  attrs.push_back({"__str__", runtime.make_native_function("zipfile.Path.__str__", zippath_string_method)});
+  attrs.push_back({"__repr__", runtime.make_native_function("zipfile.Path.__repr__", zippath_string_method)});
+  attrs.push_back({"__fspath__", runtime.make_native_function("zipfile.Path.__fspath__", zippath_string_method)});
   attrs.push_back({"joinpath", runtime.make_native_function("zipfile.Path.joinpath", zippath_joinpath)});
   attrs.push_back({"__truediv__", runtime.make_native_function("zipfile.Path.__truediv__", zippath_truediv)});
+  attrs.push_back({"filename", Value::property(
+                                   runtime.make_native_function("zipfile.Path.filename", zippath_filename_getter),
+                                   Value::none(),
+                                   Value::none(),
+                                   Value::none())});
+  attrs.push_back({"name", Value::property(
+                               runtime.make_native_function("zipfile.Path.name", zippath_name_getter),
+                               Value::none(),
+                               Value::none(),
+                               Value::none())});
+  attrs.push_back({"stem", Value::property(
+                               runtime.make_native_function("zipfile.Path.stem", zippath_stem_getter),
+                               Value::none(),
+                               Value::none(),
+                               Value::none())});
+  attrs.push_back({"suffix", Value::property(
+                                 runtime.make_native_function("zipfile.Path.suffix", zippath_suffix_getter),
+                                 Value::none(),
+                                 Value::none(),
+                                 Value::none())});
+  attrs.push_back({"suffixes", Value::property(
+                                   runtime.make_native_function("zipfile.Path.suffixes", zippath_suffixes_getter),
+                                   Value::none(),
+                                   Value::none(),
+                                   Value::none())});
+  attrs.push_back({"parent", Value::property(
+                                 runtime.make_native_function("zipfile.Path.parent", zippath_parent_getter),
+                                 Value::none(),
+                                 Value::none(),
+                                 Value::none())});
   attrs.push_back({"exists", runtime.make_native_function("zipfile.Path.exists", zippath_exists)});
   attrs.push_back({"is_file", runtime.make_native_function("zipfile.Path.is_file", zippath_is_file)});
   attrs.push_back({"is_dir", runtime.make_native_function("zipfile.Path.is_dir", zippath_is_dir)});
@@ -1772,10 +2191,9 @@ Value make_zippath_class(Runtime& runtime) {
   attrs.push_back({"read_bytes", runtime.make_native_function("zipfile.Path.read_bytes", zippath_read_bytes)});
   attrs.push_back({"read_text", runtime.make_native_function("zipfile.Path.read_text", zippath_read_text)});
   attrs.push_back({"open", runtime.make_native_function("zipfile.Path.open", zippath_open)});
-  attrs.push_back({"parent", runtime.make_native_function("zipfile.Path.parent", zippath_parent)});
   attrs.push_back({"match", runtime.make_native_function("zipfile.Path.match", zippath_match)});
   attrs.push_back({"glob", runtime.make_native_function("zipfile.Path.glob", zippath_glob)});
-  attrs.push_back({"rglob", runtime.make_native_function("zipfile.Path.rglob", zippath_glob)});
+  attrs.push_back({"rglob", runtime.make_native_function("zipfile.Path.rglob", zippath_rglob)});
   attrs.push_back({"relative_to", runtime.make_native_function("zipfile.Path.relative_to", zippath_relative_to)});
   return Value::class_object("Path", std::move(attrs));
 }
@@ -1785,6 +2203,9 @@ Value make_zipinfo_class(Runtime& runtime) {
   attrs.push_back({"__module__", Value::string("zipfile")});
   attrs.push_back({"__init__", runtime.make_native_function("zipfile.ZipInfo.__init__", zipinfo_init)});
   attrs.push_back({"is_dir", runtime.make_native_function("zipfile.ZipInfo.is_dir", zipinfo_is_dir)});
+  attrs.push_back({"_for_archive", runtime.make_native_function("zipfile.ZipInfo._for_archive", zipinfo_for_archive)});
+  attrs.push_back({"FileHeader", runtime.make_native_function("zipfile.ZipInfo.FileHeader", zipinfo_file_header)});
+  attrs.push_back({"from_file", Value::class_method(runtime.make_native_function("zipfile.ZipInfo.from_file", zipinfo_from_file))});
   return Value::class_object("ZipInfo", std::move(attrs));
 }
 
@@ -1807,7 +2228,11 @@ void register_zipfile_module(Runtime& runtime) {
       .value("ZIP_STORED", Value::int64(0))
       .value("ZIP_DEFLATED", Value::int64(8))
       .value("ZIP_BZIP2", Value::int64(12))
-      .value("ZIP_LZMA", Value::int64(14));
+      .value("ZIP_LZMA", Value::int64(14))
+      .value("ZIP_ZSTANDARD", Value::int64(93))
+      .value("ZIP64_LIMIT", Value::int64(2147483647))
+      .value("ZIP_FILECOUNT_LIMIT", Value::int64(65535))
+      .value("ZIP_MAX_COMMENT", Value::int64(65535));
   runtime.register_module("zipfile", builder.finish());
 }
 
