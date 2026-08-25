@@ -219,6 +219,38 @@ std::string path_basename(const std::string& path) {
   return pos == std::string::npos ? text : text.substr(pos + 1);
 }
 
+std::string path_suffix(const std::string& path) {
+  const std::string name = path_basename(path);
+  const size_t dot = name.find_last_of('.');
+  return dot == std::string::npos || dot == 0 ? std::string{} : name.substr(dot);
+}
+
+std::string path_stem(const std::string& path) {
+  const std::string name = path_basename(path);
+  const size_t dot = name.find_last_of('.');
+  return dot == std::string::npos || dot == 0 ? name : name.substr(0, dot);
+}
+
+Value path_suffixes(const std::string& path) {
+  const std::string name = path_basename(path);
+  std::vector<Value> suffixes;
+  size_t pos = name.find('.');
+  while (pos != std::string::npos && pos + 1 < name.size()) {
+    suffixes.push_back(Value::string(name.substr(pos)));
+    pos = name.find('.', pos + 1);
+  }
+  return Value::list(std::move(suffixes));
+}
+
+std::string path_parent(const std::string& path) {
+  std::string text = path;
+  while (!text.empty() && text.back() == '/') {
+    text.pop_back();
+  }
+  const size_t pos = text.find_last_of('/');
+  return pos == std::string::npos ? std::string{} : text.substr(0, pos + 1);
+}
+
 uint16_t dos_time_from_tuple(const Value& value, uint16_t fallback) {
   auto* tuple = value_as_tuple(value);
   auto* list = value_as_list(value);
@@ -892,6 +924,91 @@ bool zipextfile_readline(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool zipextfile_readlines(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "ZipExtFile.readlines() expected optional hint";
+    return false;
+  }
+  std::vector<Value> lines;
+  while (true) {
+    Value line;
+    if (!zipextfile_readline(runtime, args, 1, line, error, nullptr)) {
+      return false;
+    }
+    auto* bytes = value_as_bytes(line);
+    if (bytes == nullptr || bytes_object_view(*bytes).empty()) {
+      break;
+    }
+    lines.push_back(std::move(line));
+  }
+  out = Value::list(std::move(lines));
+  return true;
+}
+
+bool zipextfile_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ZipExtFile.tell() expected no arguments";
+    return false;
+  }
+  auto* state = zipextfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(state->cursor));
+  return true;
+}
+
+bool zipextfile_seek(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64) {
+    error = "ZipExtFile.seek() expected offset and optional whence";
+    return false;
+  }
+  auto* state = zipextfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  const int64_t whence = argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0;
+  int64_t base = 0;
+  if (whence == 1) {
+    base = static_cast<int64_t>(state->cursor);
+  } else if (whence == 2) {
+    base = static_cast<int64_t>(state->data.size());
+  } else if (whence != 0) {
+    error = "invalid whence";
+    return false;
+  }
+  int64_t next = base + args[1].as.i64;
+  if (next < 0) {
+    next = 0;
+  }
+  if (static_cast<size_t>(next) > state->data.size()) {
+    next = static_cast<int64_t>(state->data.size());
+  }
+  state->cursor = static_cast<size_t>(next);
+  value_set_int64(out, next);
+  return true;
+}
+
+bool zipextfile_bool_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "ZipExtFile state method expected no arguments";
+    return false;
+  }
+  auto* state = zipextfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  const char* kind = static_cast<const char*>(user_data);
+  if (std::string(kind) == "readable") {
+    out = Value::boolean(!state->writable);
+  } else if (std::string(kind) == "writable") {
+    out = Value::boolean(state->writable);
+  } else {
+    out = Value::boolean(true);
+  }
+  return true;
+}
+
 bool zipextfile_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "ZipExtFile.close() expected no arguments";
@@ -972,6 +1089,11 @@ bool zipfile_open_kw(
   }
   std::string name;
   if (!zipfile_member_name_arg(args[1], name, error)) {
+    return false;
+  }
+  Value pwd = argc >= 4 ? args[3] : kw_value(kwargs, kwargc, "pwd");
+  if (pwd.tag != ValueTag::None) {
+    error = "encrypted ZIP members are not supported";
     return false;
   }
   Value module;
@@ -1119,6 +1241,81 @@ bool zipfile_write(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return zipfile_write_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
+bool zipfile_setpassword(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ZipFile.setpassword() expected pwd";
+    return false;
+  }
+  if (args[1].tag != ValueTag::None && value_as_bytes(args[1]) == nullptr) {
+    error = "pwd: expected bytes";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value self = args[0];
+  std::string ignored;
+  object_set_attr(self, "pwd", args[1], ignored);
+  value_set_none(out);
+  return true;
+}
+
+bool pyzipfile_writepy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "PyZipFile.writepy() expected pathname, basename, and filterfunc";
+    return false;
+  }
+  auto* state = zipfile_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string pathname;
+  if (!get_string_arg(args[1], "PyZipFile.writepy pathname", pathname, error)) {
+    return false;
+  }
+  std::string basename;
+  if (argc >= 3 && args[2].tag != ValueTag::None && !get_string_arg(args[2], "PyZipFile.writepy basename", basename, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(pathname, stat, error)) {
+    return false;
+  }
+  std::vector<std::string> files;
+  if (stat.kind == VfsNodeKind::File) {
+    files.push_back(pathname);
+  } else if (stat.kind == VfsNodeKind::Directory) {
+    std::vector<std::string> names;
+    if (!runtime.vfs().list_dir(pathname, names, error)) {
+      return false;
+    }
+    for (const auto& name : names) {
+      if (name.size() >= 3 && name.substr(name.size() - 3) == ".py") {
+        files.push_back(pathname + "/" + name);
+      }
+    }
+  } else {
+    error = "PyZipFile.writepy() pathname not found";
+    return false;
+  }
+  for (const auto& file : files) {
+    std::vector<uint8_t> bytes;
+    if (!runtime.vfs().read_file(file, bytes, error)) {
+      return false;
+    }
+    std::string member_name = path_basename(file);
+    if (member_name.size() >= 3 && member_name.substr(member_name.size() - 3) == ".py") {
+      member_name.replace(member_name.size() - 3, 3, ".pyc");
+    }
+    std::string arcname = basename.empty() ? member_name : basename + "/" + member_name;
+    std::string data(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    if (!replace_or_append_member(*state, member_from_name_data(std::move(arcname), std::move(data), state->default_compression))) {
+      error = "PyZipFile.writepy() archive name must not be empty";
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool zipfile_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "ZipFile.close() expected no arguments";
@@ -1229,6 +1426,10 @@ Value make_zippath_instance(Runtime& runtime, const Value& root, std::string at)
   object_set_attr(instance, "root", root, ignored);
   object_set_attr(instance, "at", Value::string(state->at), ignored);
   object_set_attr(instance, "name", Value::string(path_basename(state->at)), ignored);
+  object_set_attr(instance, "filename", Value::string(state->at), ignored);
+  object_set_attr(instance, "stem", Value::string(path_stem(state->at)), ignored);
+  object_set_attr(instance, "suffix", Value::string(path_suffix(state->at)), ignored);
+  object_set_attr(instance, "suffixes", path_suffixes(state->at), ignored);
   return instance;
 }
 
@@ -1253,6 +1454,10 @@ bool zippath_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   object_set_attr(self, "root", state->root, ignored);
   object_set_attr(self, "at", Value::string(state->at), ignored);
   object_set_attr(self, "name", Value::string(path_basename(state->at)), ignored);
+  object_set_attr(self, "filename", Value::string(state->at), ignored);
+  object_set_attr(self, "stem", Value::string(path_stem(state->at)), ignored);
+  object_set_attr(self, "suffix", Value::string(path_suffix(state->at)), ignored);
+  object_set_attr(self, "suffixes", path_suffixes(state->at), ignored);
   value_set_none(out);
   return true;
 }
@@ -1333,6 +1538,18 @@ bool zippath_is_dir(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool zippath_is_symlink(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.is_symlink() expected no arguments";
+    return false;
+  }
+  if (zippath_state(args[0], error) == nullptr) {
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
 bool zippath_iterdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "Path.iterdir() expected no arguments";
@@ -1386,6 +1603,79 @@ bool zippath_read_text(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
+bool zippath_parent(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.parent() expected no arguments";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  out = make_zippath_instance(runtime, path->root, path_parent(path->at));
+  return true;
+}
+
+bool zippath_match(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.match() expected pattern";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  std::string pattern;
+  if (!get_string_arg(args[1], "Path.match pattern", pattern, error)) {
+    return false;
+  }
+  out = Value::boolean(pattern == "*" || pattern == path->at || pattern == path_basename(path->at));
+  return true;
+}
+
+bool zippath_glob(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.glob() expected pattern";
+    return false;
+  }
+  std::string pattern;
+  if (!get_string_arg(args[1], "Path.glob pattern", pattern, error)) {
+    return false;
+  }
+  if (pattern != "*") {
+    out = Value::list({});
+    return true;
+  }
+  return zippath_iterdir(runtime, args, 1, out, error, nullptr);
+}
+
+bool zippath_relative_to(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.relative_to() expected other";
+    return false;
+  }
+  auto* path = zippath_state(args[0], error);
+  if (path == nullptr) {
+    return false;
+  }
+  std::string other;
+  if (auto* other_path = zippath_state(args[1], error)) {
+    other = other_path->at;
+  } else {
+    error.clear();
+    if (!get_string_arg(args[1], "Path.relative_to other", other, error)) {
+      return false;
+    }
+  }
+  other = normalized_dir_prefix(std::move(other));
+  if (!other.empty() && path->at.compare(0, other.size(), other) == 0) {
+    out = Value::string(path->at.substr(other.size()));
+    return true;
+  }
+  out = Value::string(path->at);
+  return true;
+}
+
 bool zippath_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "Path.open() expected optional mode";
@@ -1410,6 +1700,7 @@ Value make_zipfile_class(Runtime& runtime) {
   attrs.push_back({"__enter__", runtime.make_native_function("zipfile.ZipFile.__enter__", zipfile_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("zipfile.ZipFile.__exit__", zipfile_exit)});
   attrs.push_back({"close", runtime.make_native_function("zipfile.ZipFile.close", zipfile_close)});
+  attrs.push_back({"setpassword", runtime.make_native_function("zipfile.ZipFile.setpassword", zipfile_setpassword)});
   attrs.push_back({"getinfo", runtime.make_native_function("zipfile.ZipFile.getinfo", zipfile_getinfo)});
   attrs.push_back({"namelist", runtime.make_native_function("zipfile.ZipFile.namelist", zipfile_namelist)});
   attrs.push_back({"infolist", runtime.make_native_function("zipfile.ZipFile.infolist", zipfile_infolist)});
@@ -1432,6 +1723,7 @@ Value make_pyzipfile_class(Runtime& runtime, const Value& zipfile_class) {
   attrs.push_back({"__enter__", runtime.make_native_function("zipfile.PyZipFile.__enter__", zipfile_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("zipfile.PyZipFile.__exit__", zipfile_exit)});
   attrs.push_back({"close", runtime.make_native_function("zipfile.PyZipFile.close", zipfile_close)});
+  attrs.push_back({"setpassword", runtime.make_native_function("zipfile.PyZipFile.setpassword", zipfile_setpassword)});
   attrs.push_back({"getinfo", runtime.make_native_function("zipfile.PyZipFile.getinfo", zipfile_getinfo)});
   attrs.push_back({"namelist", runtime.make_native_function("zipfile.PyZipFile.namelist", zipfile_namelist)});
   attrs.push_back({"infolist", runtime.make_native_function("zipfile.PyZipFile.infolist", zipfile_infolist)});
@@ -1444,6 +1736,7 @@ Value make_pyzipfile_class(Runtime& runtime, const Value& zipfile_class) {
   attrs.push_back({"extractall", runtime.make_native_function("zipfile.PyZipFile.extractall", zipfile_extractall)});
   attrs.push_back({"testzip", runtime.make_native_function("zipfile.PyZipFile.testzip", zipfile_testzip)});
   attrs.push_back({"printdir", runtime.make_native_function("zipfile.PyZipFile.printdir", zipfile_printdir)});
+  attrs.push_back({"writepy", runtime.make_native_function("zipfile.PyZipFile.writepy", pyzipfile_writepy)});
   return Value::class_object("PyZipFile", std::move(attrs), zipfile_class);
 }
 
@@ -1452,7 +1745,13 @@ Value make_zipextfile_class(Runtime& runtime) {
   attrs.push_back({"__module__", Value::string("zipfile")});
   attrs.push_back({"read", runtime.make_native_function("zipfile.ZipExtFile.read", zipextfile_read)});
   attrs.push_back({"readline", runtime.make_native_function("zipfile.ZipExtFile.readline", zipextfile_readline)});
+  attrs.push_back({"readlines", runtime.make_native_function("zipfile.ZipExtFile.readlines", zipextfile_readlines)});
   attrs.push_back({"write", runtime.make_native_function("zipfile.ZipExtFile.write", zipextfile_write)});
+  attrs.push_back({"tell", runtime.make_native_function("zipfile.ZipExtFile.tell", zipextfile_tell)});
+  attrs.push_back({"seek", runtime.make_native_function("zipfile.ZipExtFile.seek", zipextfile_seek)});
+  attrs.push_back({"readable", runtime.make_native_function("zipfile.ZipExtFile.readable", zipextfile_bool_method, const_cast<char*>("readable"))});
+  attrs.push_back({"writable", runtime.make_native_function("zipfile.ZipExtFile.writable", zipextfile_bool_method, const_cast<char*>("writable"))});
+  attrs.push_back({"seekable", runtime.make_native_function("zipfile.ZipExtFile.seekable", zipextfile_bool_method, const_cast<char*>("seekable"))});
   attrs.push_back({"close", runtime.make_native_function("zipfile.ZipExtFile.close", zipextfile_close)});
   attrs.push_back({"__enter__", runtime.make_native_function("zipfile.ZipExtFile.__enter__", zipextfile_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("zipfile.ZipExtFile.__exit__", zipextfile_exit)});
@@ -1468,10 +1767,16 @@ Value make_zippath_class(Runtime& runtime) {
   attrs.push_back({"exists", runtime.make_native_function("zipfile.Path.exists", zippath_exists)});
   attrs.push_back({"is_file", runtime.make_native_function("zipfile.Path.is_file", zippath_is_file)});
   attrs.push_back({"is_dir", runtime.make_native_function("zipfile.Path.is_dir", zippath_is_dir)});
+  attrs.push_back({"is_symlink", runtime.make_native_function("zipfile.Path.is_symlink", zippath_is_symlink)});
   attrs.push_back({"iterdir", runtime.make_native_function("zipfile.Path.iterdir", zippath_iterdir)});
   attrs.push_back({"read_bytes", runtime.make_native_function("zipfile.Path.read_bytes", zippath_read_bytes)});
   attrs.push_back({"read_text", runtime.make_native_function("zipfile.Path.read_text", zippath_read_text)});
   attrs.push_back({"open", runtime.make_native_function("zipfile.Path.open", zippath_open)});
+  attrs.push_back({"parent", runtime.make_native_function("zipfile.Path.parent", zippath_parent)});
+  attrs.push_back({"match", runtime.make_native_function("zipfile.Path.match", zippath_match)});
+  attrs.push_back({"glob", runtime.make_native_function("zipfile.Path.glob", zippath_glob)});
+  attrs.push_back({"rglob", runtime.make_native_function("zipfile.Path.rglob", zippath_glob)});
+  attrs.push_back({"relative_to", runtime.make_native_function("zipfile.Path.relative_to", zippath_relative_to)});
   return Value::class_object("Path", std::move(attrs));
 }
 

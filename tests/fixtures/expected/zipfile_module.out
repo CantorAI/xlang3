@@ -10,10 +10,15 @@ True
 (2024, 5, 6, 7, 8, 10) b'member comment' 8 True
 True
 b'hello' b' zip' False
+True True False 0
+0 b'hello zip' []
 b'hello zip'
 True True True
 True True b'hello zip'
 True True
+hello.txt hello .txt [.txt]
+False True hello.txt
+True
 True
 True False
 xlang3_zip_extract/hello.txt
@@ -23,5 +28,7 @@ manual.txt (2025, 1, 2, 3, 4, 6)
 0 8 True
 8
 True
+True
+TypeError
 True
 True

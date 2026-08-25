@@ -8,6 +8,9 @@ source = "xlang3_zipfile_source.txt"
 with open(source, "w") as f:
     f.write("from file")
 
+with open("xlang3_zipfile_module_source.py", "w") as f:
+    f.write("VALUE = 7\n")
+
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as zf:
     zf.writestr("hello.txt", "hello zip")
     zf.write(source, "folder/source.txt")
@@ -37,6 +40,9 @@ with zipfile.ZipFile(archive, "r") as zf:
     with zf.open("hello.txt") as entry:
         print(entry.read(5), entry.read(), entry.closed)
     with zf.open("hello.txt") as entry:
+        print(entry.seekable(), entry.readable(), entry.writable(), entry.tell())
+        print(entry.seek(0), entry.readline(), entry.readlines())
+    with zf.open("hello.txt") as entry:
         print(entry.readline())
     root = zipfile.Path(zf)
     child_names = []
@@ -47,6 +53,9 @@ with zipfile.ZipFile(archive, "r") as zf:
     folder_path = root.joinpath("folder")
     print(hello_path.exists(), hello_path.is_file(), hello_path.read_bytes())
     print(folder_path.exists(), folder_path.is_dir())
+    print(hello_path.name, hello_path.stem, hello_path.suffix, hello_path.suffixes)
+    print(folder_path.is_symlink(), hello_path.match("hello.txt"), hello_path.relative_to(root))
+    print(len(list(root.glob("*"))) >= 3)
     print(zf.testzip() is None)
 
 print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
@@ -74,17 +83,28 @@ with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED, compressle
 
 mem.seek(0)
 with zipfile.ZipFile(mem, mode="r") as zf:
+    zf.setpassword(b"pw")
     print(zf.read("mem.txt") == b"in memory")
     print(zf.read("opened.txt") == b"via open")
 
+try:
+    mem.seek(0)
+    with zipfile.ZipFile(mem, mode="r") as zf:
+        zf.setpassword("bad")
+except Exception as e:
+    print(type(e).__name__)
+
 with zipfile.PyZipFile("xlang3_pyzip.zip", "w") as zf:
     zf.writestr("py.txt", "pyzip")
+    zf.writepy("xlang3_zipfile_module_source.py", "pkg")
 
 with zipfile.ZipFile("xlang3_pyzip.zip", "r") as zf:
     print(zf.read("py.txt") == b"pyzip")
+    print("pkg/xlang3_zipfile_module_source.pyc" in zf.namelist())
 
 os.remove("xlang3_zip_extract/hello.txt")
 os.remove("xlang3_zip_extract_all/folder/source.txt")
 os.remove(source)
+os.remove("xlang3_zipfile_module_source.py")
 os.remove(archive)
 os.remove("xlang3_pyzip.zip")
