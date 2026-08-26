@@ -16,6 +16,7 @@ limitations under the License.
 
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <sstream>
 #endif
@@ -109,19 +110,29 @@ public:
 
   bool stat(const std::string& path, VfsStat& out, std::string& error) override {
     std::error_code ec;
+    out = VfsStat{};
     if (!std::filesystem::exists(path, ec)) {
       if (ec) {
         error = "cannot stat path " + path + ": " + ec.message();
         return false;
       }
-      out.kind = VfsNodeKind::Missing;
-      out.size = 0;
       return true;
+    }
+    const auto symlink_status = std::filesystem::symlink_status(path, ec);
+    if (!ec) {
+      out.is_symlink = std::filesystem::is_symlink(symlink_status);
     }
     const auto status = std::filesystem::status(path, ec);
     if (ec) {
       error = "cannot stat path " + path + ": " + ec.message();
       return false;
+    }
+    std::error_code abs_ec;
+    const auto absolute_path = std::filesystem::absolute(path, abs_ec);
+    const std::string inode_key = abs_ec ? path : absolute_path.string();
+    out.inode = static_cast<uint64_t>(std::hash<std::string>{}(inode_key));
+    if (out.inode == 0) {
+      out.inode = 1;
     }
     if (std::filesystem::is_regular_file(status)) {
       out.kind = VfsNodeKind::File;
@@ -138,6 +149,7 @@ public:
     }
     out.kind = VfsNodeKind::Missing;
     out.size = 0;
+    out.inode = 0;
     return true;
   }
 };

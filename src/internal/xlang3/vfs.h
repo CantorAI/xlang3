@@ -30,6 +30,8 @@ enum class VfsNodeKind : uint8_t {
 struct VfsStat {
   VfsNodeKind kind = VfsNodeKind::Missing;
   uint64_t size = 0;
+  uint64_t inode = 0;
+  bool is_symlink = false;
 };
 
 class FileSystem {

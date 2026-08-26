@@ -407,7 +407,7 @@ Native or runtime-backed foundation:
 High-level modules currently backed by native/runtime code:
 
 - [~] `threading`
-- [~] `os`: VFS-backed `listdir`, exported/reused `scandir`/`DirEntry` foundation, `makedirs`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
+- [~] `os`: VFS-backed `listdir`, scandir iterator/context-manager foundation, exported/reused `DirEntry`, `makedirs`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/symlink/error semantics pending
 - [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `relpath`, `samefile`, `commonprefix`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; full path normalization/platform semantics pending
 - [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
@@ -580,14 +580,14 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   scalar subclass identity/arithmetic/string behavior remains pending.
 
 - [~] `os.scandir` / `DirEntry` audit:
-  exported `os.DirEntry`, reused DirEntry class, entry `name`/`path`,
-  `is_file`, `is_dir`, and `stat().st_size` fixture coverage added;
-  context-manager iterator behavior and symlink/follow semantics pending
-  current implementation materializes a list-like result and minimal `DirEntry`
-  objects. CPython returns a scandir iterator/context manager. Tests must cover
-  iterator behavior, context manager cleanup, `name`, `path`, `inode`,
-  `is_dir(follow_symlinks=...)`, `is_file(follow_symlinks=...)`, `is_symlink`,
-  `stat`, path-like arguments, bytes paths, and error classes.
+  `os.scandir()` now returns a native scandir iterator with `__iter__`,
+  `__next__`, `close`, and context-manager methods; `os.DirEntry` exposes
+  `name`, `path`, `inode`, `is_file(follow_symlinks=...)`,
+  `is_dir(follow_symlinks=...)`, `is_symlink`, and `stat`. Fixtures cover
+  iterator behavior, context manager cleanup, explicit `next()`, keyword
+  follow_symlinks forms, path-like arguments, and bytes paths. Remaining work:
+  true VFS symlink/follow semantics, platform-exact inode metadata, exact stat
+  payloads, and CPython-exact OSError subclasses/diagnostics.
 
 - [~] function metadata audit:
   Covered in fixtures: docstrings, positional `__defaults__`, keyword-only

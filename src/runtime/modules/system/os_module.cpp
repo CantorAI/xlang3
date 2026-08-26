@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -36,6 +37,32 @@ namespace xlang3 {
 
 namespace {
 
+constexpr const char* kScandirIteratorNativeType = "os.ScandirIterator";
+
+struct PathArg {
+  std::string text;
+  bool bytes = false;
+};
+
+struct ScandirState {
+  std::vector<Value> entries;
+  size_t index = 0;
+  bool closed = false;
+};
+
+struct OsModuleState {
+  Value dir_entry_class;
+  Value scandir_iterator_class;
+};
+
+void scandir_state_cleanup(void* data) {
+  delete static_cast<ScandirState*>(data);
+}
+
+void os_module_state_cleanup(void* data) {
+  delete static_cast<OsModuleState*>(data);
+}
+
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   if (auto* str = value_as_string(value)) {
     out = string_object_to_string(*str);
@@ -43,6 +70,52 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
   }
   error = std::string(name) + " must be str";
   return false;
+}
+
+bool get_path_arg(Runtime& runtime, const Value& value, const char* name, PathArg& out, std::string& error) {
+  if (auto* str = value_as_string(value)) {
+    out.text = string_object_to_string(*str);
+    out.bytes = false;
+    return true;
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    out.text = bytes_object_to_string(*bytes);
+    out.bytes = true;
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    out.text = bytearray->value;
+    out.bytes = true;
+    return true;
+  }
+
+  std::string ignored;
+  Value path_value;
+  if ((object_get_attr(value, "_path", path_value, ignored) ||
+       object_get_attr(value, "__xlang3_string_value__", path_value, ignored)) &&
+      get_path_arg(runtime, path_value, name, out, error)) {
+    return true;
+  }
+
+  Value fspath;
+  if (object_get_attr(value, "__fspath__", fspath, ignored)) {
+    Value result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, fspath, nullptr, 0, result, call_error)) {
+      error = call_error.empty() ? std::string(name) + " __fspath__ failed" : call_error;
+      return false;
+    }
+    if (get_path_arg(runtime, result, name, out, error)) {
+      return true;
+    }
+  }
+
+  error = std::string(name) + " must be str, bytes, or os.PathLike";
+  return false;
+}
+
+Value path_name_value(const std::string& text, bool bytes) {
+  return bytes ? Value::bytes(text) : Value::string(text);
 }
 
 bool no_args(uint32_t argc, const char* name, std::string& error) {
@@ -66,11 +139,11 @@ bool os_chdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     error = "os.chdir() expected one argument";
     return false;
   }
-  std::string path;
-  if (!get_string_arg(args[0], "os.chdir path", path, error)) {
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.chdir path", path, error)) {
     return false;
   }
-  if (!runtime.vfs().chdir(path, error)) {
+  if (!runtime.vfs().chdir(path.text, error)) {
     return false;
   }
   value_set_none(out);
@@ -142,18 +215,21 @@ bool os_listdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     error = "os.listdir() expected at most one argument";
     return false;
   }
-  std::string path = ".";
-  if (argc == 1 && !get_string_arg(args[0], "os.listdir path", path, error)) {
-    return false;
+  PathArg path;
+  path.text = ".";
+  if (argc == 1) {
+    if (!get_path_arg(runtime, args[0], "os.listdir path", path, error)) {
+      return false;
+    }
   }
   std::vector<std::string> names;
-  if (!runtime.vfs().list_dir(path, names, error)) {
+  if (!runtime.vfs().list_dir(path.text, names, error)) {
     return false;
   }
   std::vector<Value> values;
   values.reserve(names.size());
   for (auto& name : names) {
-    values.push_back(Value::string(std::move(name)));
+    values.push_back(path_name_value(name, path.bytes));
   }
   out = Value::list(std::move(values));
   return true;
@@ -166,12 +242,19 @@ std::string dir_entry_path(const Value& self) {
     if (auto* text = value_as_string(path)) {
       return string_object_to_string(*text);
     }
+    if (auto* bytes = value_as_bytes(path)) {
+      return bytes_object_to_string(*bytes);
+    }
+    if (auto* bytearray = value_as_bytearray(path)) {
+      return bytearray->value;
+    }
   }
   return {};
 }
 
 Value make_stat_result(const VfsStat& stat) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"st_ino", Value::int64(static_cast<int64_t>(stat.inode))});
   attrs.push_back({"st_size", Value::int64(static_cast<int64_t>(stat.size))});
   attrs.push_back({"st_mtime_ns", Value::int64(0)});
   attrs.push_back({"st_mtime", Value::number(0.0)});
@@ -192,6 +275,36 @@ bool dir_entry_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool accept_follow_symlinks_kw(
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    std::string& error) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "DirEntry method got invalid keyword argument";
+      return false;
+    }
+    if (std::string(kwargs[i].name) != "follow_symlinks") {
+      error = "DirEntry method got unexpected keyword argument '" + std::string(kwargs[i].name) + "'";
+      return false;
+    }
+  }
+  return true;
+}
+
+bool dir_entry_is_dir_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return accept_follow_symlinks_kw(kwargs, kwargc, error) &&
+         dir_entry_is_dir(runtime, args, argc, out, error, user_data);
+}
+
 bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "DirEntry.is_file() expected optional follow_symlinks";
@@ -202,6 +315,32 @@ bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value
     return false;
   }
   out = Value::boolean(stat.kind == VfsNodeKind::File);
+  return true;
+}
+
+bool dir_entry_is_file_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return accept_follow_symlinks_kw(kwargs, kwargc, error) &&
+         dir_entry_is_file(runtime, args, argc, out, error, user_data);
+}
+
+bool dir_entry_is_symlink(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "DirEntry.is_symlink() expected no arguments";
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
+    return false;
+  }
+  value_set_bool(out, stat.is_symlink);
   return true;
 }
 
@@ -218,12 +357,40 @@ bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
+bool dir_entry_stat_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return accept_follow_symlinks_kw(kwargs, kwargc, error) &&
+         dir_entry_stat(runtime, args, argc, out, error, user_data);
+}
+
+bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "DirEntry.inode() expected no arguments";
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(stat.inode));
+  return true;
+}
+
 Value make_dir_entry_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("os")});
-  attrs.push_back({"is_dir", runtime.make_native_function("os.DirEntry.is_dir", dir_entry_is_dir)});
-  attrs.push_back({"is_file", runtime.make_native_function("os.DirEntry.is_file", dir_entry_is_file)});
-  attrs.push_back({"stat", runtime.make_native_function("os.DirEntry.stat", dir_entry_stat)});
+  attrs.push_back({"inode", runtime.make_native_function("os.DirEntry.inode", dir_entry_inode)});
+  attrs.push_back({"is_dir", runtime.make_native_function("os.DirEntry.is_dir", dir_entry_is_dir, nullptr, nullptr, nullptr, false, dir_entry_is_dir_kw)});
+  attrs.push_back({"is_file", runtime.make_native_function("os.DirEntry.is_file", dir_entry_is_file, nullptr, nullptr, nullptr, false, dir_entry_is_file_kw)});
+  attrs.push_back({"is_symlink", runtime.make_native_function("os.DirEntry.is_symlink", dir_entry_is_symlink)});
+  attrs.push_back({"stat", runtime.make_native_function("os.DirEntry.stat", dir_entry_stat, nullptr, nullptr, nullptr, false, dir_entry_stat_kw)});
   return Value::class_object("DirEntry", std::move(attrs));
 }
 
@@ -238,12 +405,93 @@ std::string join_vfs_path(const std::string& base, const std::string& name) {
   return base + "/" + name;
 }
 
-Value make_dir_entry(const Value& klass, std::string path, std::string name) {
+Value make_dir_entry(const Value& klass, std::string path, std::string name, bool bytes) {
   Value instance = Value::instance(klass);
   std::string ignored;
-  object_set_attr(instance, "path", Value::string(std::move(path)), ignored);
-  object_set_attr(instance, "name", Value::string(std::move(name)), ignored);
+  object_set_attr(instance, "path", path_name_value(path, bytes), ignored);
+  object_set_attr(instance, "name", path_name_value(name, bytes), ignored);
   return instance;
+}
+
+ScandirState* scandir_state(const Value& self, std::string& error) {
+  auto* state = static_cast<ScandirState*>(instance_get_native_data(self, kScandirIteratorNativeType));
+  if (state == nullptr) {
+    error = "invalid scandir iterator";
+  }
+  return state;
+}
+
+bool scandir_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ScandirIterator.__iter__() expected no arguments";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool scandir_next(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ScandirIterator.__next__() expected no arguments";
+    return false;
+  }
+  auto* state = scandir_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  if (state->closed || state->index >= state->entries.size()) {
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
+  value_assign_fast(out, state->entries[state->index++]);
+  return true;
+}
+
+bool scandir_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ScandirIterator.close() expected no arguments";
+    return false;
+  }
+  auto* state = scandir_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  state->closed = true;
+  state->entries.clear();
+  value_set_none(out);
+  return true;
+}
+
+bool scandir_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ScandirIterator.__enter__() expected no arguments";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool scandir_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 4) {
+    error = "ScandirIterator.__exit__() expected exc_type, exc, traceback";
+    return false;
+  }
+  if (!scandir_close(runtime, args, 1, out, error, user_data)) {
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+Value make_scandir_iterator_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("os")});
+  attrs.push_back({"__iter__", runtime.make_native_function("os.ScandirIterator.__iter__", scandir_iter)});
+  attrs.push_back({"__next__", runtime.make_native_function("os.ScandirIterator.__next__", scandir_next)});
+  attrs.push_back({"close", runtime.make_native_function("os.ScandirIterator.close", scandir_close)});
+  attrs.push_back({"__enter__", runtime.make_native_function("os.ScandirIterator.__enter__", scandir_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("os.ScandirIterator.__exit__", scandir_exit)});
+  return Value::class_object("ScandirIterator", std::move(attrs));
 }
 
 bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -251,22 +499,33 @@ bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     error = "os.scandir() expected at most one argument";
     return false;
   }
-  std::string path = ".";
-  if (argc == 1 && !get_string_arg(args[0], "os.scandir path", path, error)) {
-    return false;
+  PathArg path;
+  path.text = ".";
+  if (argc == 1) {
+    if (!get_path_arg(runtime, args[0], "os.scandir path", path, error)) {
+      return false;
+    }
   }
   std::vector<std::string> names;
-  if (!runtime.vfs().list_dir(path, names, error)) {
+  if (!runtime.vfs().list_dir(path.text, names, error)) {
     return false;
   }
-  std::vector<Value> entries;
-  const auto* dir_entry_class = static_cast<Value*>(user_data);
-  entries.reserve(names.size());
-  for (auto& name : names) {
-    const std::string full_path = join_vfs_path(path, name);
-    entries.push_back(make_dir_entry(*dir_entry_class, full_path, std::move(name)));
+  const auto* module_state = static_cast<OsModuleState*>(user_data);
+  if (module_state == nullptr) {
+    error = "os.scandir module state is missing";
+    return false;
   }
-  out = Value::list(std::move(entries));
+  auto* state = new ScandirState();
+  state->entries.reserve(names.size());
+  for (auto& name : names) {
+    const std::string full_path = join_vfs_path(path.text, name);
+    state->entries.push_back(make_dir_entry(module_state->dir_entry_class, full_path, std::move(name), path.bytes));
+  }
+  out = Value::instance(module_state->scandir_iterator_class);
+  if (!instance_set_native_data(out, kScandirIteratorNativeType, state, scandir_state_cleanup, error)) {
+    delete state;
+    return false;
+  }
   return true;
 }
 
@@ -344,18 +603,18 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
     error = "os.stat() expected one argument";
     return false;
   }
-  std::string path;
-  if (!get_string_arg(args[0], "os.stat path", path, error)) {
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.stat path", path, error)) {
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(path, stat, error)) {
+  if (!runtime.vfs().stat(path.text, stat, error)) {
     return false;
   }
   const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
   out = Value::tuple({
       Value::int64(mode),
-      Value::int64(0),
+      Value::int64(static_cast<int64_t>(stat.inode)),
       Value::int64(0),
       Value::int64(0),
       Value::int64(0),
@@ -777,8 +1036,10 @@ Value make_os_path_module(Runtime& runtime) {
 void register_os_module(Runtime& runtime) {
   Value path_module = make_os_path_module(runtime);
   Value env_dict = Value::dict({});
-  auto* dir_entry_class = new Value(make_dir_entry_class(runtime));
-  runtime.register_native_package_cleanup(dir_entry_class, [](void* data) { delete static_cast<Value*>(data); });
+  auto* os_state = new OsModuleState();
+  os_state->dir_entry_class = make_dir_entry_class(runtime);
+  os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
+  runtime.register_native_package_cleanup(os_state, os_module_state_cleanup);
 
   NativeModuleBuilder builder(runtime, "os");
   builder.function("getcwd", os_getcwd)
@@ -788,8 +1049,8 @@ void register_os_module(Runtime& runtime) {
       .function("getppid", os_getppid)
       .function("_exit", os_exit)
       .function("listdir", os_listdir)
-      .value("scandir", runtime.make_native_function("os.scandir", os_scandir, dir_entry_class))
-      .value("DirEntry", *dir_entry_class)
+      .value("scandir", runtime.make_native_function("os.scandir", os_scandir, os_state))
+      .value("DirEntry", os_state->dir_entry_class)
       .function("makedirs", os_makedirs, nullptr, false, os_makedirs_kw)
       .function("remove", os_remove)
       .function("unlink", os_remove)

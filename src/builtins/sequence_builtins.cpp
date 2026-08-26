@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -43,6 +44,11 @@ bool value_is_callable_for_iter(const Value& value) {
     return object_get_class_attr_for_instance(value, "__call__", call_attr, ignored);
   }
   return false;
+}
+
+bool pending_exception_is(Runtime& runtime, const Value& exception, const char* class_name) {
+  auto* klass = value_as_class(runtime.exception_type(exception));
+  return klass != nullptr && klass->name == class_name;
 }
 
 bool builtin_range(
@@ -146,8 +152,28 @@ bool builtin_next(
   Value iterator = args[0];
   bool done = false;
   if (!sequence_iter_next(iterator, done, out, error)) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    Value next_method;
+    std::string attr_error;
+    if (!attribute_get(iterator, "__next__", next_method, attr_error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    std::string call_error;
+    if (!runtime_call_callable(runtime, next_method, nullptr, 0, out, call_error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        if (pending_exception_is(runtime, pending, "StopIteration") && argc == 2) {
+          value_assign_fast(out, args[1]);
+          return true;
+        }
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+      error = call_error;
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    return true;
   }
   if (done) {
     if (argc == 2) {

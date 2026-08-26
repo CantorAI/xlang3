@@ -479,6 +479,31 @@ print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLA
 print(os.path.realpath("") == os.getcwd(), os.path.abspath("") == os.getcwd())
 mode = os.stat(__file__)[stat.ST_MODE]
 print(stat.S_ISREG(mode), stat.S_ISDIR(mode), (mode & stat.S_IFMT) == stat.S_IFREG)
+
+# os.scandir behaves as an iterator and context manager.
+scan = os.scandir(compat_fixture_dir)
+first_entry = next(scan)
+print(isinstance(first_entry, os.DirEntry), first_entry.name in os.listdir(compat_fixture_dir), first_entry.path.endswith(first_entry.name))
+scan.close()
+try:
+    next(scan)
+except StopIteration:
+    print("scandir-closed")
+
+# DirEntry methods accept CPython keyword forms.
+with os.scandir(compat_fixture_dir) as entries:
+    found_standard = False
+    for entry in entries:
+        if entry.name == "standard_modules.py":
+            found_standard = True
+            print(entry.is_file(follow_symlinks=False), entry.is_dir(follow_symlinks=True), entry.is_symlink(), entry.inode() > 0, entry.stat(follow_symlinks=False).st_size > 0)
+    print(found_standard)
+
+# Path-like bytes inputs produce bytes names and paths.
+byte_entries = os.listdir(bytes(compat_fixture_dir, "utf-8"))
+byte_entry = next(os.scandir(bytes(compat_fixture_dir, "utf-8")))
+print(isinstance(byte_entries[0], bytes), isinstance(byte_entry.name, bytes), isinstance(byte_entry.path, bytes))
+
 path_obj = pathlib.Path("xlang3_pathlib_section.txt")
 print(path_obj.name, path_obj.stem, path_obj.suffix, path_obj.suffixes)
 print(path_obj.with_suffix(".bin").name, path_obj.with_name("renamed.txt").name, path_obj.parts[-1])

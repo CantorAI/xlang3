@@ -126,6 +126,11 @@ True True
 alpha_ True
 True True
 True False True
+True True True
+scandir-closed
+True False False True True
+True
+True True True
 xlang3_pathlib_section.txt xlang3_pathlib_section .txt [.txt]
 xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
 9 path text
