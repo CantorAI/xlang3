@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.struct_time` class metadata batch.
+Last updated after the native `sys` structseq type metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,12 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` structseq-like metadata: generated `version_info`,
+  `flags`, `float_info`, `hash_info`, `thread_info`, and Windows
+  `windows_version` type objects now expose CPython-style
+  `n_sequence_fields`/`n_fields`/`n_unnamed_fields` metadata plus named member
+  descriptors, so stdlib probes that inspect `type(sys.version_info)` and
+  related runtime config objects work without pure-Python facades.
 - Expanded native `time.struct_time`: the type object now exposes
   CPython-style structseq metadata (`n_sequence_fields`, `n_fields`, and
   `n_unnamed_fields`) plus non-null `tm_zone`/`tm_gmtoff` member descriptors,
@@ -558,7 +564,8 @@ Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
-  `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`,
+  `hash_info`/`thread_info` with instance/type field counts and type-level named member descriptors,
+  `implementation` metadata, `builtin_module_names`,
   `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling, `getrefcount`,

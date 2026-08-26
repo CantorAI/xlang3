@@ -117,11 +117,14 @@ True False True 2 False False True False
 False False False False False
 0 1 False True
 18 21 1 0 0 18
+5 major 21 gil
 2 53 64 nt
+11 width 3 name
 1114111 True True True
 True True True
 True True True True
 True 10 10 True
+10 platform_version
 True True True
 mbcs replace
 stack-trampoline True

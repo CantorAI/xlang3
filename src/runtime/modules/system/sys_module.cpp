@@ -70,6 +70,13 @@ bool is_callable_value(const Value& value) {
          }();
 }
 
+Value make_member_descriptor(const std::string& name) {
+  Value descriptor = Value::instance(Value::class_object("member_descriptor", {}));
+  std::string ignored;
+  object_set_attr(descriptor, "__name__", Value::string(name), ignored);
+  return descriptor;
+}
+
 Value make_structseq(
     const std::string& type_name,
     const std::vector<std::pair<std::string, Value>>& fields,
@@ -77,10 +84,16 @@ Value make_structseq(
     size_t sequence_fields = std::numeric_limits<size_t>::max()) {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
-  Value instance = Value::instance(Value::class_object(type_name, std::move(class_attrs)));
   if (sequence_fields == std::numeric_limits<size_t>::max() || sequence_fields > fields.size()) {
     sequence_fields = fields.size();
   }
+  class_attrs.push_back({"n_sequence_fields", Value::int64(static_cast<int64_t>(sequence_fields))});
+  class_attrs.push_back({"n_fields", Value::int64(static_cast<int64_t>(fields.size()))});
+  class_attrs.push_back({"n_unnamed_fields", Value::int64(0)});
+  for (const auto& field : fields) {
+    class_attrs.push_back({field.first, make_member_descriptor(field.first)});
+  }
+  Value instance = Value::instance(Value::class_object(type_name, std::move(class_attrs)));
   std::vector<Value> tuple_items;
   tuple_items.reserve(sequence_fields);
   std::string ignored;
