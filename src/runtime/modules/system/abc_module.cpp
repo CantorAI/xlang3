@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -63,13 +64,28 @@ bool registry_contains_registered_base(const Value& abc_class, const Value& subc
   return false;
 }
 
-bool abc_subclass_matches(const Value& abc_class, const Value& subclass) {
+bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value& subclass, bool& out, std::string& error) {
   auto* abc = value_as_class(abc_class);
   auto* sub = value_as_class(subclass);
   if (abc == nullptr || sub == nullptr) {
-    return false;
+    out = false;
+    return true;
   }
-  return class_is_subclass(sub, abc) || registry_contains_registered_base(abc_class, subclass);
+  Value hook;
+  std::string hook_error;
+  if (object_get_attr(abc_class, "__subclasshook__", hook, hook_error)) {
+    Value hook_result;
+    if (!runtime_call_callable(runtime, hook, &subclass, 1, hook_result, error)) {
+      return false;
+    }
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    if (not_implemented == nullptr || !value_is(hook_result, *not_implemented)) {
+      out = value_truthy(hook_result);
+      return true;
+    }
+  }
+  out = class_is_subclass(sub, abc) || registry_contains_registered_base(abc_class, subclass);
+  return true;
 }
 
 bool abc_return_none(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
@@ -125,7 +141,11 @@ bool abc_subclasscheck(Runtime& runtime, const Value* args, uint32_t argc, Value
       !ensure_class(runtime, args[1], "_abc._abc_subclasscheck() subclass", error)) {
     return false;
   }
-  value_set_bool(out, abc_subclass_matches(args[0], args[1]));
+  bool matches = false;
+  if (!abc_subclass_matches(runtime, args[0], args[1], matches, error)) {
+    return false;
+  }
+  value_set_bool(out, matches);
   return true;
 }
 
@@ -143,7 +163,12 @@ bool abc_instancecheck(Runtime& runtime, const Value* args, uint32_t argc, Value
   } else if (!runtime_type_of_value(runtime, args[1], instance_class)) {
     instance_class = Value::invalid();
   }
-  value_set_bool(out, instance_class.tag != ValueTag::Invalid && abc_subclass_matches(args[0], instance_class));
+  bool matches = false;
+  if (instance_class.tag != ValueTag::Invalid &&
+      !abc_subclass_matches(runtime, args[0], instance_class, matches, error)) {
+    return false;
+  }
+  value_set_bool(out, instance_class.tag != ValueTag::Invalid && matches);
   return true;
 }
 

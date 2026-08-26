@@ -251,6 +251,30 @@ print(issubclass(Concrete, NativeABC), isinstance(Concrete(), NativeABC))
 print(len(_abc._get_dump(NativeABC)[0]) >= 1, _abc._abc_subclasscheck(NativeABC, Concrete), _abc._abc_instancecheck(NativeABC, Concrete()))
 _abc._reset_registry(NativeABC)
 print(issubclass(Concrete, NativeABC), _abc._abc_subclasscheck(NativeABC, Concrete))
+print(NotImplemented is NotImplemented, type(NotImplemented).__name__)
+
+class HookedABC(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        if cls is HookedABC and hasattr(subclass, "hook_marker"):
+            return True
+        return NotImplemented
+
+class MarkedConcrete:
+    hook_marker = True
+
+class PlainConcrete:
+    pass
+
+print(issubclass(MarkedConcrete, HookedABC), isinstance(MarkedConcrete(), HookedABC), issubclass(PlainConcrete, HookedABC))
+
+class RejectingABC(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return False
+
+RejectingABC.register(Concrete)
+print(issubclass(Concrete, RejectingABC), isinstance(Concrete(), RejectingABC), _abc._abc_subclasscheck(RejectingABC, Concrete))
 
 @abc.abstractmethod
 def abstract_fn():

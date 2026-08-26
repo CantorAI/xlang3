@@ -46,6 +46,9 @@ True True
 True True
 True True True
 False False
+True NotImplementedType
+True True False
+False False False
 True
 True True True
 True True True

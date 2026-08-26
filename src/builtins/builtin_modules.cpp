@@ -56,6 +56,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "range");
   copy_builtin(runtime, builtins, "object");
   copy_builtin(runtime, builtins, "type");
+  copy_builtin(runtime, builtins, "NotImplemented");
   copy_builtin(runtime, builtins, "id");
   copy_builtin(runtime, builtins, "isinstance");
   copy_builtin(runtime, builtins, "issubclass");

@@ -484,8 +484,9 @@ Native or runtime-backed foundation:
   and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
-  virtual subclass checks, and `isinstance`/`issubclass` metaclass hook dispatch; negative caches,
-  `__subclasshook__`, and exact CPython invalidation internals pending
+  virtual subclass checks, `isinstance`/`issubclass` metaclass hook dispatch, and ABC
+  `__subclasshook__` True/False/`NotImplemented` fallback behavior; negative caches and exact CPython
+  invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

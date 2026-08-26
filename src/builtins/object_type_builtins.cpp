@@ -706,6 +706,13 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "cell", object_type);
   register_builtin_type(runtime, "file", object_type);
   register_builtin_type(runtime, "type_parameter", object_type);
+  register_builtin_type(runtime, "NotImplementedType", object_type);
+  if (const auto* not_implemented_type = runtime.find_builtin("NotImplementedType")) {
+    Value not_implemented = Value::instance(*not_implemented_type);
+    std::string ignored;
+    object_set_attr(not_implemented, "__xlang3_string_value__", Value::string("NotImplemented"), ignored);
+    runtime.register_builtin("NotImplemented", std::move(not_implemented));
+  }
 
   runtime.register_native_builtin("id", builtin_id);
   runtime.register_native_builtin("isinstance", builtin_isinstance);
