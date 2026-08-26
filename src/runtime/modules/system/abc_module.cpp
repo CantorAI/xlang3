@@ -277,6 +277,25 @@ bool abc_get_cache_token(Runtime&, const Value*, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool abc_update_abstractmethods(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "abc.update_abstractmethods() expected class";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  auto* klass = value_as_class(args[0]);
+  if (klass == nullptr) {
+    return true;
+  }
+  Value existing;
+  std::string ignored;
+  if (!object_get_attr(args[0], "__abstractmethods__", existing, ignored)) {
+    return true;
+  }
+  Value cls = args[0];
+  return object_set_attr(cls, "__abstractmethods__", abc_abstract_methods_for_class(*klass), error);
+}
+
 bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "_abc._abc_register() expected class and subclass";
@@ -506,6 +525,7 @@ void register_abc_module(Runtime& runtime) {
       .value("ABC", abc_class)
       .function("get_cache_token", abc_get_cache_token)
       .function("abstractmethod", abc_abstractmethod)
+      .function("update_abstractmethods", abc_update_abstractmethods)
       .function("abstractclassmethod", abc_abstractclassmethod)
       .function("abstractstaticmethod", abc_abstractstaticmethod)
       .function("abstractproperty", abc_abstractproperty);

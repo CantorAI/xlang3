@@ -358,6 +358,20 @@ class ConcreteABC(AbstractEnforcedABC):
         return "concrete"
 
 print("run" in StillAbstractABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__), ConcreteABC().run())
+print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, len(ConcreteABC.__abstractmethods__))
+ConcreteABC.run = abc.abstractmethod(ConcreteABC.run)
+print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, "run" in ConcreteABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__))
+try:
+    ConcreteABC()
+except TypeError as err:
+    print("abc-updated-abstract", "abstract class" in str(err), "run" in str(err))
+def concrete_run(self):
+    return "restored"
+ConcreteABC.run = concrete_run
+print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, len(ConcreteABC.__abstractmethods__), ConcreteABC().run())
+class PlainUpdateTarget:
+    pass
+print(abc.update_abstractmethods(PlainUpdateTarget) is PlainUpdateTarget, hasattr(PlainUpdateTarget, "__abstractmethods__"), abc.update_abstractmethods(42))
 
 class DirectInitABC:
     @abc.abstractmethod

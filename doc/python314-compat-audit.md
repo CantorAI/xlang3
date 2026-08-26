@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` display/exception hook batch.
+Last updated after the native `abc.update_abstractmethods` batch.
 
 Current checklist count:
 
@@ -122,6 +122,9 @@ Recent completed batches:
   `sys.stdout`, ignores `None`, and maintains `builtins._`; `excepthook()` now
   writes a useful exception summary through the active `sys.stderr` instead of
   acting as a silent placeholder.
+- Expanded native `abc`: `update_abstractmethods()` now recomputes
+  `__abstractmethods__` after post-creation class mutations, returns non-ABC
+  objects unchanged, and feeds the existing abstract-instantiation enforcement.
 - Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
   `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
@@ -549,7 +552,8 @@ Native or runtime-backed foundation:
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
-  through concrete overrides, `_abc_init` class initialization for the CPython `abc.py` path,
+  through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
+  `_abc_init` class initialization for the CPython `abc.py` path,
   abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers,
   virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
   `isinstance`/`issubclass` metaclass hook dispatch, and ABC `__subclasshook__`
