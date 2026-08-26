@@ -19,6 +19,7 @@ one-zero-n
 a|b|c [a, , b]
 Hi ASCII
 ascii-decode-error
+b'x' b'?x' 3 65533
 C:\temp\next 12
 prefix:line1 line2
 he said "'''" and left leftright\raw b'A\nB'
@@ -42,3 +43,12 @@ b'dca'
 b'abcde' 99
 False 5 1 B 1 (5,) (1,) None
 [97, 98, 99, 100, 101] True
+LATIN SMALL LETTER E WITH ACUTE True
+Lo ON W
+230 7 2 0.75
+233 True
+65 778
+2 51 8260 52
+unicode-lookup-error
+ascii b'x' ab
+(b'?x', 2) (Hi, 2)

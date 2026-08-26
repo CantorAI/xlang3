@@ -298,7 +298,12 @@ Section-level fixture coverage:
 - [x] f-string runtime formatting
 - [x] bytes / bytearray: constructors, indexing/slicing, mutation, startswith/endswith tuple prefixes, partition/rpartition, split/join, count/find/index/rfind/rindex, strip/lstrip/rstrip, replace, hex, decode, copy, append/extend/pop/remove/reverse/clear, and raw `\xNN` bytes-literal escapes covered
 - [x] memoryview: construction over bytes-like storage, indexing, `tobytes`, `tolist`, and core read-only/shape metadata attributes covered
-- [~] deep Unicode database behavior: normalization, category tables, locale-sensitive casing, grapheme-cluster text segmentation, identifier edge cases, and full codec registry/error-handler matrix remain tracked for the dedicated Unicode engine pass
+- [~] deep Unicode database behavior: native `unicodedata` foundation now covers lookup/name, category,
+  bidirectional, combining class, East Asian width, mirrored, decimal/digit/numeric, and NFC/NFD/NFKC/NFKD
+  normalization for the current table-driven core set; codec paths now cover normalized lookup, CodecInfo
+  encode/decode callables, and strict/ignore/replace/backslashreplace basics for UTF-8/ASCII; complete
+  generated Unicode tables, locale-sensitive casing, grapheme-cluster text segmentation, identifier edge
+  cases, and the full codec registry/error-handler matrix remain tracked for the dedicated Unicode engine pass
 
 ### Imports And Modules
 
@@ -398,7 +403,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
 - [~] `ast`: public `_ast`/`ast` class surface, constructible keyword/positional AST nodes with `_fields`, `dump`, `iter_fields`, `walk`, `literal_eval` for literal nodes, and parse-result shell foundations; real parser-to-AST lowering and exact CPython node metadata pending
 - [~] `code`: `compile_command` uses the XLang3 compiler for complete source and returns `None` for common incomplete REPL blocks; full interactive compiler/console semantics pending
-- [~] `codecs`: normalized `lookup`, UTF-8/ASCII encode/decode, and hex encode/decode foundation; full codec registry/error handling pending
+- [~] `codecs`: normalized `lookup`, CodecInfo encode/decode callables, UTF-8/ASCII encode/decode with
+  strict/ignore/replace/backslashreplace basics, and hex encode/decode foundation; full codec registry/error
+  handling pending
 - [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [~] `ctypes`:
   Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,

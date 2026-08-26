@@ -157,6 +157,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/traceback_module.cpp
   src/runtime/modules/system/typing_module.cpp
   src/runtime/modules/system/urllib_module.cpp
+  src/runtime/modules/system/unicodedata_module.cpp
   src/runtime/modules/system/types_module.cpp
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp

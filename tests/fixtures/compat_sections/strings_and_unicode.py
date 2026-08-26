@@ -44,6 +44,8 @@ try:
     b"\xff".decode("ascii")
 except UnicodeDecodeError:
     print("ascii-decode-error")
+decoded_replace = b"a\xffb".decode("ascii", "replace")
+print("éx".encode("ascii", "ignore"), "éx".encode("ascii", "replace"), len(decoded_replace), ord(decoded_replace[1]))
 
 # Tokenizer/literal audit: raw strings, bytes escapes, adjacent literals, comments, escaped quotes, and f-strings.
 raw_path = r"C:\temp\next"
@@ -105,3 +107,25 @@ mv = memoryview(mv_source)
 print(mv.tobytes(), mv[2])
 print(mv.readonly, mv.nbytes, mv.itemsize, mv.format, mv.ndim, mv.shape, mv.strides, mv.suboffsets)
 print(mv.tolist(), mv.obj is mv_source)
+
+# Unicode database module foundation: names, categories, numeric values, and normalization.
+import unicodedata
+acute = chr(0x0301)
+print(unicodedata.name("é"), unicodedata.lookup("latin small letter e with acute") == "é")
+print(unicodedata.category("中"), unicodedata.bidirectional("🙂"), unicodedata.east_asian_width("中"))
+print(unicodedata.combining(acute), unicodedata.decimal("7"), unicodedata.digit("²"), unicodedata.numeric("¾"))
+print(ord(unicodedata.normalize("NFC", "e" + acute)), unicodedata.is_normalized("NFD", "e" + acute))
+print(ord(unicodedata.normalize("NFD", "Å")[0]), ord(unicodedata.normalize("NFD", "Å")[1]))
+fraction = unicodedata.normalize("NFKD", "¾")
+print(unicodedata.normalize("NFKC", "²"), ord(fraction[0]), ord(fraction[1]), ord(fraction[2]))
+try:
+    unicodedata.lookup("NO SUCH")
+except KeyError:
+    print("unicode-lookup-error")
+
+# Codec registry foundation: normalized lookup and callable CodecInfo paths.
+import codecs
+ascii_info = codecs.lookup("ASCII")
+utf8_info = codecs.lookup("utf-8")
+print(ascii_info.name, codecs.encode("éx", "ascii", "ignore"), codecs.decode(b"a\xffb", "ascii", "ignore"))
+print(ascii_info.encode("éx", "replace"), utf8_info.decode("Hi".encode("utf-8")))

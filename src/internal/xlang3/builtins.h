@@ -59,6 +59,7 @@ void register_sysconfig_module(Runtime& runtime);
 void register_linecache_module(Runtime& runtime);
 void register_urllib_module(Runtime& runtime);
 void register_codecs_module(Runtime& runtime);
+void register_unicodedata_module(Runtime& runtime);
 void register_struct_module(Runtime& runtime);
 void register_signal_module(Runtime& runtime);
 void register_code_module(Runtime& runtime);

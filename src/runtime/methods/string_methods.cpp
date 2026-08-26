@@ -82,6 +82,36 @@ Value make_uninitialized_string_value(size_t size, char*& data) {
   return out;
 }
 
+uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
+  if (width == 1) {
+    return static_cast<unsigned char>(text[0]);
+  }
+  uint32_t codepoint = static_cast<unsigned char>(text[0]) & ((1u << (7 - width)) - 1u);
+  for (size_t i = 1; i < width; ++i) {
+    codepoint = (codepoint << 6) | (static_cast<unsigned char>(text[i]) & 0x3fu);
+  }
+  return codepoint;
+}
+
+void append_ascii_backslash_escape(uint32_t codepoint, std::string& out) {
+  static constexpr char digits[] = "0123456789abcdef";
+  if (codepoint <= 0xff) {
+    out += "\\x";
+    out.push_back(digits[(codepoint >> 4) & 0x0f]);
+    out.push_back(digits[codepoint & 0x0f]);
+  } else if (codepoint <= 0xffff) {
+    out += "\\u";
+    for (int shift = 12; shift >= 0; shift -= 4) {
+      out.push_back(digits[(codepoint >> shift) & 0x0f]);
+    }
+  } else {
+    out += "\\U";
+    for (int shift = 28; shift >= 0; shift -= 4) {
+      out.push_back(digits[(codepoint >> shift) & 0x0f]);
+    }
+  }
+}
+
 /*
 Native string methods must be alias-safe: the destination register can be the
 same VM register as the receiver or an argument. When a method keeps a
@@ -1062,36 +1092,70 @@ bool string_format_method_kw(
 }
 
 bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 && argc != 2) {
-    error = "str.encode expected 1 or 2 arguments, got " + std::to_string(argc);
+  if (argc < 1 || argc > 3) {
+    error = "str.encode expected 0 to 2 arguments, got " + std::to_string(argc - 1);
     return false;
   }
   memory::X3StringView text;
   if (!get_string_view_checked(args[0], "str.encode target", text, error)) {
     return false;
   }
-  if (argc == 2) {
+  std::string encoding = "utf-8";
+  if (argc >= 2) {
     memory::X3StringView encoding_ref;
     if (!get_string_view_checked(args[1], "str.encode encoding", encoding_ref, error)) {
       return false;
     }
-    std::string encoding(as_view(encoding_ref));
-    for (auto& ch : encoding) {
-      ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-    }
-    if (encoding == "ascii") {
-      auto view = as_view(text);
-      for (unsigned char ch : view) {
-        if (ch >= 128) {
-          error = "ascii codec can't encode character";
-          runtime.raise_class_error("UnicodeEncodeError", error);
-          return false;
-        }
-      }
-    } else if (encoding != "utf-8" && encoding != "utf8") {
-      error = "only utf-8/ascii encoding is supported";
+    encoding = std::string(as_view(encoding_ref));
+  }
+  std::string errors = "strict";
+  if (argc == 3) {
+    memory::X3StringView errors_ref;
+    if (!get_string_view_checked(args[2], "str.encode errors", errors_ref, error)) {
       return false;
     }
+    errors = std::string(as_view(errors_ref));
+  }
+  for (auto& ch : encoding) {
+    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  }
+  for (auto& ch : errors) {
+    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  }
+  if (encoding != "ascii" && encoding != "utf-8" && encoding != "utf8") {
+    error = "only utf-8/ascii encoding is supported";
+    return false;
+  }
+  if (encoding == "ascii") {
+    std::string encoded;
+    auto view = as_view(text);
+    encoded.reserve(view.size());
+    for (size_t i = 0; i < view.size();) {
+      const unsigned char ch = static_cast<unsigned char>(view[i]);
+      if (ch < 128) {
+        encoded.push_back(static_cast<char>(ch));
+        ++i;
+        continue;
+      }
+      const size_t width = utf8_codepoint_width(ch);
+      const uint32_t codepoint = width == 0 || i + width > view.size() ? ch : decode_utf8_codepoint(view.substr(i), width);
+      const size_t advance = width == 0 ? 1 : width;
+      if (errors == "ignore") {
+        i += advance;
+      } else if (errors == "replace") {
+        encoded.push_back('?');
+        i += advance;
+      } else if (errors == "backslashreplace") {
+        append_ascii_backslash_escape(codepoint, encoded);
+        i += advance;
+      } else {
+        error = "ascii codec can't encode character";
+        runtime.raise_class_error("UnicodeEncodeError", error);
+        return false;
+      }
+    }
+    out = Value::bytes(std::move(encoded));
+    return true;
   }
   out = Value::bytes(std::string(as_view(text)));
   return true;
@@ -1752,7 +1816,7 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"casefold", "str.casefold", string_casefold_method},
     {"center", "str.center", string_center_method},
     {"count", "str.count", string_count_method, string_count_fast_method},
-    {"encode", "str.encode", string_encode_method, builtin_method_fast_adapter<string_encode_method, 2>},
+    {"encode", "str.encode", string_encode_method},
     {"endswith", "str.endswith", string_endswith_method, string_endswith_fast_method},
     {"expandtabs", "str.expandtabs", string_expandtabs_method},
     {"find", "str.find", string_find_method, string_find_fast_method},

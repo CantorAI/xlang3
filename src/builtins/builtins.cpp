@@ -57,6 +57,7 @@ void register_core_builtins(Runtime& runtime) {
   register_linecache_module(runtime);
   register_urllib_module(runtime);
   register_codecs_module(runtime);
+  register_unicodedata_module(runtime);
   register_struct_module(runtime);
   register_signal_module(runtime);
   register_code_module(runtime);

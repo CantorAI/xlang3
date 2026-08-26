@@ -38,8 +38,8 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
 bool get_bytes_like_view(const Value& value, const char* name, std::string_view& out, std::string& error);
 
 bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 && argc != 2) {
-    error = "bytes.decode expected 1 or 2 arguments, got " + std::to_string(argc);
+  if (argc < 1 || argc > 3) {
+    error = "bytes.decode expected 0 to 2 arguments, got " + std::to_string(argc - 1);
     return false;
   }
   std::string_view text;
@@ -47,7 +47,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     return false;
   }
   std::string encoding = "utf-8";
-  if (argc == 2) {
+  if (argc >= 2) {
     if (!get_string_arg(args[1], "bytes.decode encoding", encoding, error)) {
       return false;
     }
@@ -59,14 +59,33 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       return false;
     }
   }
+  std::string errors = "strict";
+  if (argc == 3) {
+    if (!get_string_arg(args[2], "bytes.decode errors", errors, error)) {
+      return false;
+    }
+    for (auto& ch : errors) {
+      ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+  }
   if (encoding == "ascii") {
+    std::string decoded;
+    decoded.reserve(text.size());
     for (unsigned char ch : text) {
-      if (ch >= 128) {
+      if (ch < 128) {
+        decoded.push_back(static_cast<char>(ch));
+      } else if (errors == "ignore") {
+        continue;
+      } else if (errors == "replace") {
+        decoded += "\xef\xbf\xbd";
+      } else {
         error = "ascii codec can't decode byte";
         runtime.raise_class_error("UnicodeDecodeError", error);
         return false;
       }
     }
+    out = Value::string(std::move(decoded));
+    return true;
   }
   out = Value::string(std::string(text));
   return true;
