@@ -482,8 +482,8 @@ void register_sys_module(Runtime& runtime) {
   value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
   module_set_attr(sys, "modules", modules_ref, error);
   module_set_attr(sys, "argv", Value::list({}), error);
-  module_set_attr(sys, "version_info", Value::tuple({Value::int64(3), Value::int64(14), Value::int64(0), Value::string("final"), Value::int64(0)}), error);
-  module_set_attr(sys, "version", Value::string("3.14.0 (XLang3)"), error);
+  module_set_attr(sys, "version_info", Value::tuple({Value::int64(3), Value::int64(14), Value::int64(7), Value::string("final"), Value::int64(0)}), error);
+  module_set_attr(sys, "version", Value::string("3.14.7 (XLang3)"), error);
   module_set_attr(sys, "hexversion", Value::int64(0x030e00f0), error);
   module_set_attr(sys, "api_version", Value::int64(1013), error);
   module_set_attr(sys, "platform", Value::string(

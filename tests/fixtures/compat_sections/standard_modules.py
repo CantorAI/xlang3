@@ -392,9 +392,17 @@ print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_m
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("user") in sysconfig.get_scheme_names(), sysconfig.is_python_build())
+# sysconfig preferred-scheme and expansion helpers.
+preferred = sysconfig._get_preferred_schemes()
+expanded_paths = sysconfig._expand_vars("nt", {"base": "BASE", "platbase": "PLAT"})
+print(preferred["prefix"] in sysconfig.get_scheme_names(), preferred["home"] in sysconfig.get_scheme_names(), expanded_paths["purelib"].startswith("BASE"))
+print(sysconfig.get_preferred_scheme("prefix") in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("home"), sysconfig._get_sysconfigdata_name().startswith("_sysconfigdata"))
 uname = platform.uname()
 print(platform.python_implementation(), platform.python_version_tuple()[0], len(platform.python_compiler()) >= 0)
 print(platform.system() == uname.system, platform.machine() == uname.machine, isinstance(platform.architecture()[0], str), isinstance(platform.libc_ver(), tuple))
+# platform OS-version helper tuple shapes.
+print(len(platform.win32_ver()), len(platform.mac_ver()), len(platform.java_ver()), platform.system_alias("SunOS", "5.10", "x")[0])
+print(platform._sys_version()[0], isinstance(platform.freedesktop_os_release(), dict))
 config_vars = sysconfig.get_config_vars()
 print(sysconfig.get_makefile_filename().endswith("Makefile"), sysconfig.get_config_h_filename().endswith("pyconfig.h"))
 print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == sysconfig.get_config_var("py_version") + "-" + sysconfig.get_config_var("SOABI"))

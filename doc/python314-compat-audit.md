@@ -473,8 +473,9 @@ High-level modules currently backed by native/runtime code:
   subset from CPython; reducers, persistent IDs, shared-reference memo semantics, custom object state,
   extension registry, and protocol-5 out-of-band buffers pending
 - [~] `platform`: platform/python version helpers, build/compiler/branch/revision metadata,
-  node lookup, `uname()` object, `architecture()`, and `libc_ver()` foundations; exact OS-release
-  probing and CPython namedtuple identity pending
+  node lookup, `uname()` object, `architecture()`, `libc_ver()`, `win32_ver()`, `mac_ver()`,
+  `java_ver()`, `system_alias()`, `_sys_version()`, and `freedesktop_os_release()` foundations;
+  exact OS-release probing and CPython namedtuple identity pending
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
   `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
   zip/resource edge cases, and exact import-package behavior pending
@@ -494,8 +495,9 @@ High-level modules currently backed by native/runtime code:
   exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
 - [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
-  `is_python_build`, config filename helpers, common config-var helpers, and makefile-variable
-  expansion; full install scheme compatibility pending
+  `_get_preferred_schemes`, `_expand_vars`, `_get_sysconfigdata_name`, `is_python_build`,
+  config filename helpers, common config-var helpers, and makefile-variable expansion;
+  full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, and lazy `itertools.chain`; comments/NL, exact token text for string literals, encoding-cookie/BOM details, and full CPython tokenizer parity pending

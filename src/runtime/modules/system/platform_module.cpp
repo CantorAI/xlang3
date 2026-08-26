@@ -18,6 +18,9 @@ limitations under the License.
 #include "xlang3/object_model.h"
 
 #include <cstdlib>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace xlang3 {
 
@@ -37,7 +40,7 @@ bool platform_python_implementation(Runtime&, const Value* args, uint32_t argc, 
 }
 
 bool platform_python_version(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return return_string("3.14.0", args, argc, out, error, "platform.python_version");
+  return return_string("3.14.7", args, argc, out, error, "platform.python_version");
 }
 
 bool platform_python_build(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -79,7 +82,7 @@ bool platform_python_version_tuple(Runtime&, const Value*, uint32_t argc, Value&
     error = "platform.python_version_tuple() expected no arguments";
     return false;
   }
-  out = Value::tuple({Value::string("3"), Value::string("14"), Value::string("0")});
+  out = Value::tuple({Value::string("3"), Value::string("14"), Value::string("7")});
   return true;
 }
 
@@ -240,6 +243,115 @@ bool platform_libc_ver(Runtime&, const Value*, uint32_t argc, Value& out, std::s
   return true;
 }
 
+bool platform_win32_ver(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 4) {
+    error = "platform.win32_ver() expected optional release/version/csd/ptype";
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::tuple({
+      Value::string(""),
+      Value::string(""),
+      Value::string(""),
+      Value::string(""),
+  });
+#else
+  out = Value::tuple({
+      Value::string(""),
+      Value::string(""),
+      Value::string(""),
+      Value::string(""),
+  });
+#endif
+  return true;
+}
+
+bool platform_mac_ver(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 1) {
+    error = "platform.mac_ver() expected optional release";
+    return false;
+  }
+#if defined(__APPLE__)
+  out = Value::tuple({Value::string(""), Value::tuple({Value::string(""), Value::string(""), Value::string("")}), platform_machine_value()});
+#else
+  out = Value::tuple({Value::string(""), Value::tuple({Value::string(""), Value::string(""), Value::string("")}), Value::string("")});
+#endif
+  return true;
+}
+
+bool platform_java_ver(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 4) {
+    error = "platform.java_ver() expected optional release/vendor/vminfo/osinfo";
+    return false;
+  }
+  out = Value::tuple({
+      Value::string(""),
+      Value::string(""),
+      Value::tuple({Value::string(""), Value::string(""), Value::string("")}),
+      Value::tuple({Value::string(""), Value::string(""), Value::string("")}),
+  });
+  return true;
+}
+
+bool platform_system_alias(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "platform.system_alias() expected system, release, version";
+    return false;
+  }
+  auto* system = value_as_string(args[0]);
+  auto* release = value_as_string(args[1]);
+  auto* version = value_as_string(args[2]);
+  if (system == nullptr || release == nullptr || version == nullptr) {
+    error = "platform.system_alias() arguments must be str";
+    return false;
+  }
+  std::string system_text = string_object_to_string(*system);
+  std::string release_text = string_object_to_string(*release);
+  const std::string version_text = string_object_to_string(*version);
+  if (system_text == "SunOS") {
+    system_text = "Solaris";
+    if (release_text.rfind("5.", 0) == 0) {
+      release_text = "2." + release_text.substr(2);
+    }
+  }
+  out = Value::tuple({Value::string(std::move(system_text)), Value::string(std::move(release_text)), Value::string(version_text)});
+  return true;
+}
+
+bool platform_sys_version(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "platform._sys_version() expected no arguments";
+    return false;
+  }
+  out = Value::tuple({
+      Value::string("CPython"),
+      Value::string("3.14.7"),
+      Value::string("xlang3"),
+      Value::string(""),
+      Value::string(""),
+      Value::string(""),
+      Value::string(""),
+  });
+  return true;
+}
+
+bool platform_freedesktop_os_release(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "platform.freedesktop_os_release() expected no arguments";
+    return false;
+  }
+#if defined(__linux__)
+  out = Value::dict({
+      {Value::string("NAME"), Value::string("Linux")},
+      {Value::string("ID"), Value::string("linux")},
+      {Value::string("PRETTY_NAME"), Value::string("Linux")},
+  });
+#else
+  out = Value::dict({});
+#endif
+  return true;
+}
+
 } // namespace
 
 void register_platform_module(Runtime& runtime) {
@@ -260,7 +372,13 @@ void register_platform_module(Runtime& runtime) {
       .function("platform", platform_platform)
       .function("architecture", platform_architecture)
       .function("uname", platform_uname)
-      .function("libc_ver", platform_libc_ver);
+      .function("libc_ver", platform_libc_ver)
+      .function("win32_ver", platform_win32_ver)
+      .function("mac_ver", platform_mac_ver)
+      .function("java_ver", platform_java_ver)
+      .function("system_alias", platform_system_alias)
+      .function("_sys_version", platform_sys_version)
+      .function("freedesktop_os_release", platform_freedesktop_os_release);
   runtime.register_module("platform", builder.finish());
 }
 

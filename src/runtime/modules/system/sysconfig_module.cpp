@@ -33,24 +33,53 @@ std::string sysconfig_root(Runtime& runtime) {
   return ".";
 }
 
+Value sysconfig_path_value_from_root(const std::string& base, const std::string& platbase, const std::string& name);
+
 Value sysconfig_path_value(Runtime& runtime, const std::string& name) {
   const std::string root = sysconfig_root(runtime);
+  return sysconfig_path_value_from_root(root, root, name);
+}
+
+Value sysconfig_path_value_from_root(const std::string& base, const std::string& platbase, const std::string& name) {
   if (name == "stdlib" || name == "platstdlib") {
-    return Value::string(root);
+    return Value::string(name == "platstdlib" ? platbase : base);
   }
   if (name == "purelib" || name == "platlib") {
-    return Value::string(root + "/site-packages");
+    return Value::string((name == "platlib" ? platbase : base) + "/site-packages");
   }
   if (name == "include" || name == "platinclude") {
-    return Value::string(root + "/include");
+    return Value::string(base + "/include");
   }
   if (name == "scripts") {
-    return Value::string(root + "/Scripts");
+    return Value::string(base + "/Scripts");
   }
   if (name == "data") {
-    return Value::string(root);
+    return Value::string(base);
   }
-  return Value::string(root);
+  return Value::string(base);
+}
+
+Value dict_get_string_key(const Value& dict_value, const char* key, const Value& fallback) {
+  auto* dict = value_as_dict(dict_value);
+  if (dict == nullptr) {
+    return fallback;
+  }
+  for (const auto& entry : dict->entries) {
+    auto* entry_key = value_as_string(entry.first);
+    if (entry_key != nullptr && string_object_to_string(*entry_key) == key) {
+      return entry.second;
+    }
+  }
+  return fallback;
+}
+
+std::string dict_get_string_text(const Value& dict_value, const char* key, const std::string& fallback) {
+  Value value = dict_get_string_key(dict_value, key, Value::string(fallback));
+  auto* text = value_as_string(value);
+  if (text == nullptr) {
+    return fallback;
+  }
+  return string_object_to_string(*text);
 }
 
 Value config_var_value(const std::string& name) {
@@ -149,6 +178,34 @@ bool sysconfig_get_paths(Runtime& runtime, const Value*, uint32_t argc, Value& o
   const char* names[] = {"stdlib", "platstdlib", "purelib", "platlib", "include", "platinclude", "scripts", "data"};
   for (const char* name : names) {
     entries.push_back({Value::string(name), sysconfig_path_value(runtime, name)});
+  }
+  out = Value::dict(std::move(entries));
+  return true;
+}
+
+bool sysconfig_expand_vars(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "sysconfig._expand_vars() expected scheme and optional vars";
+    return false;
+  }
+  auto* scheme = value_as_string(args[0]);
+  if (scheme == nullptr) {
+    error = "sysconfig._expand_vars() scheme must be str";
+    return false;
+  }
+  const std::string root = sysconfig_root(runtime);
+  const Value empty_vars = Value::dict({});
+  const Value& vars = argc >= 2 ? args[1] : empty_vars;
+  if (argc >= 2 && value_as_dict(vars) == nullptr) {
+    error = "sysconfig._expand_vars() vars must be dict";
+    return false;
+  }
+  const std::string base = dict_get_string_text(vars, "base", root);
+  const std::string platbase = dict_get_string_text(vars, "platbase", base);
+  std::vector<std::pair<Value, Value>> entries;
+  const char* names[] = {"stdlib", "platstdlib", "purelib", "platlib", "include", "platinclude", "scripts", "data"};
+  for (const char* name : names) {
+    entries.push_back({Value::string(name), sysconfig_path_value_from_root(base, platbase, name)});
   }
   out = Value::dict(std::move(entries));
   return true;
@@ -300,6 +357,18 @@ bool sysconfig_get_preferred_scheme(Runtime& runtime, const Value* args, uint32_
       return false;
     }
     const std::string key_text = string_object_to_string(*key);
+    if (key_text == "prefix") {
+#if defined(_WIN32)
+      out = Value::string("nt");
+#else
+      out = Value::string("posix_prefix");
+#endif
+      return true;
+    }
+    if (key_text == "home") {
+      out = Value::string("posix_home");
+      return true;
+    }
     if (key_text == "user") {
 #if defined(_WIN32)
       out = Value::string("nt_user");
@@ -312,6 +381,27 @@ bool sysconfig_get_preferred_scheme(Runtime& runtime, const Value* args, uint32_
   return sysconfig_get_default_scheme(runtime, nullptr, 0, out, error, nullptr);
 }
 
+bool sysconfig_get_preferred_schemes(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig._get_preferred_schemes() expected no arguments";
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::dict({
+      {Value::string("prefix"), Value::string("nt")},
+      {Value::string("home"), Value::string("posix_home")},
+      {Value::string("user"), Value::string("nt_user")},
+  });
+#else
+  out = Value::dict({
+      {Value::string("prefix"), Value::string("posix_prefix")},
+      {Value::string("home"), Value::string("posix_home")},
+      {Value::string("user"), Value::string("posix_user")},
+  });
+#endif
+  return true;
+}
+
 bool sysconfig_get_scheme_names(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sysconfig.get_scheme_names() expected no arguments";
@@ -320,8 +410,12 @@ bool sysconfig_get_scheme_names(Runtime&, const Value*, uint32_t argc, Value& ou
   out = Value::tuple({
       Value::string("nt"),
       Value::string("nt_user"),
+      Value::string("nt_venv"),
+      Value::string("osx_framework_user"),
+      Value::string("posix_home"),
       Value::string("posix_prefix"),
       Value::string("posix_user"),
+      Value::string("posix_venv"),
       Value::string("venv"),
   });
   return true;
@@ -336,6 +430,21 @@ bool sysconfig_is_python_build(Runtime&, const Value*, uint32_t argc, Value& out
   return true;
 }
 
+bool sysconfig_get_sysconfigdata_name(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig._get_sysconfigdata_name() expected no arguments";
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::string("_sysconfigdata__win32_xlang3");
+#elif defined(__APPLE__)
+  out = Value::string("_sysconfigdata__darwin_xlang3");
+#else
+  out = Value::string("_sysconfigdata__linux_xlang3");
+#endif
+  return true;
+}
+
 } // namespace
 
 void register_sysconfig_module(Runtime& runtime) {
@@ -343,6 +452,7 @@ void register_sysconfig_module(Runtime& runtime) {
   builder.function("get_path", sysconfig_get_path)
       .function("get_path_names", sysconfig_get_path_names)
       .function("get_paths", sysconfig_get_paths)
+      .function("_expand_vars", sysconfig_expand_vars)
       .function("get_config_var", sysconfig_get_config_var)
       .function("get_config_vars", sysconfig_get_config_vars)
       .function("get_makefile_filename", sysconfig_get_makefile_filename)
@@ -352,8 +462,10 @@ void register_sysconfig_module(Runtime& runtime) {
       .function("get_python_version", sysconfig_get_python_version)
       .function("get_default_scheme", sysconfig_get_default_scheme)
       .function("get_preferred_scheme", sysconfig_get_preferred_scheme)
+      .function("_get_preferred_schemes", sysconfig_get_preferred_schemes)
       .function("get_scheme_names", sysconfig_get_scheme_names)
-      .function("is_python_build", sysconfig_is_python_build);
+      .function("is_python_build", sysconfig_is_python_build)
+      .function("_get_sysconfigdata_name", sysconfig_get_sysconfigdata_name);
   runtime.register_module("sysconfig", builder.finish());
 }
 

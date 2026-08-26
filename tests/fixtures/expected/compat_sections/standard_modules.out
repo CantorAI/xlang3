@@ -80,8 +80,12 @@ True 1970 1 1 1970
 True True True
 True True 3.14
 True True False
+True True True
+True posix_home True
 CPython 3 True
 True True True True
+4 3 4 Solaris
+CPython True
 True True
 True
 82 RESUME 43 69 ==
