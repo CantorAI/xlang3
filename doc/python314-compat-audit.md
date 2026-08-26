@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` string interning probe batch.
+Last updated after the native `sys` display/exception hook batch.
 
 Current checklist count:
 
@@ -118,6 +118,10 @@ Recent completed batches:
   input, computes `__abstractmethods__`, initializes registry/cache state, and
   enables abstract-instantiation enforcement for classes initialized through the
   CPython `abc.py` path.
+- Expanded native `sys`: `displayhook()` now writes through the active
+  `sys.stdout`, ignores `None`, and maintains `builtins._`; `excepthook()` now
+  writes a useful exception summary through the active `sys.stderr` instead of
+  acting as a silent placeholder.
 - Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
   `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
@@ -527,7 +531,8 @@ Native or runtime-backed foundation:
   `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`,
   `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof`, `getrefcount`,
-  `getallocatedblocks`, `exit`, display/exception hook placeholders, audit hook dispatch,
+  `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
+  audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,
   current-thread-id-keyed `_current_frames` snapshots,
   `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,

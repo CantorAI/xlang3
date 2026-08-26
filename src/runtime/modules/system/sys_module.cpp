@@ -925,21 +925,73 @@ bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   return false;
 }
 
-bool sys_displayhook(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_write_stream(Runtime& runtime, const char* stream_name, const std::string& text, std::string& error) {
+  Value sys;
+  if (runtime.import_module("sys", sys, error)) {
+    Value stream;
+    std::string attr_error;
+    if (module_get_attr(sys, stream_name, stream, attr_error)) {
+      Value write;
+      if (object_get_attr(stream, "write", write, attr_error)) {
+        Value write_arg = Value::string(text);
+        Value ignored;
+        return runtime_call_callable(runtime, write, &write_arg, 1, ignored, error);
+      }
+    }
+  }
+  if (std::string(stream_name) == "stderr") {
+    std::cerr << text;
+  } else {
+    runtime.write_output(text.c_str(), text.size());
+  }
+  return true;
+}
+
+std::string sys_exception_type_name(const Value& type) {
+  if (auto* klass = value_as_class(type)) {
+    return klass->name;
+  }
+  Value name;
+  std::string ignored;
+  if (object_get_attr(type, "__name__", name, ignored) && value_as_string(name) != nullptr) {
+    return string_object_to_string(*value_as_string(name));
+  }
+  return value_to_string(type);
+}
+
+bool sys_set_builtin_underscore(Runtime& runtime, const Value& value, std::string& error) {
+  Value builtins;
+  if (!runtime.import_module("builtins", builtins, error)) {
+    return false;
+  }
+  return module_set_attr(builtins, "_", value, error);
+}
+
+bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys.displayhook expected one argument";
     return false;
   }
   if (args[0].tag != ValueTag::None) {
-    std::cout << value_to_string(args[0]) << "\n";
+    if (!sys_set_builtin_underscore(runtime, Value::none(), error) ||
+        !sys_write_stream(runtime, "stdout", value_to_string(args[0]) + "\n", error) ||
+        !sys_set_builtin_underscore(runtime, args[0], error)) {
+      return false;
+    }
   }
   value_set_none(out);
   return true;
 }
 
-bool sys_excepthook(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
     error = "sys.excepthook expected type, value, traceback";
+    return false;
+  }
+  const std::string type_name = sys_exception_type_name(args[0]);
+  const std::string value_text = value_to_string(args[1]);
+  const std::string line = value_text.empty() ? type_name + "\n" : type_name + ": " + value_text + "\n";
+  if (!sys_write_stream(runtime, "stderr", line, error)) {
     return false;
   }
   value_set_none(out);

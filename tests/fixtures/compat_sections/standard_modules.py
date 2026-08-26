@@ -586,6 +586,40 @@ try:
     sys.exit(5)
 except SystemExit as err:
     print(err.code)
+import builtins
+class SysHookCapture:
+    def __init__(self):
+        self.items = []
+
+    def write(self, text):
+        self.items.append(text)
+        return len(text)
+
+    def flush(self):
+        return None
+
+saved_stdout = sys.stdout
+saved_stderr = sys.stderr
+saved_builtin_underscore = getattr(builtins, "_", None)
+sys_hook_stdout = SysHookCapture()
+sys_hook_stderr = SysHookCapture()
+try:
+    sys.stdout = sys_hook_stdout
+    sys.stderr = sys_hook_stderr
+    sys.displayhook(42)
+    sys.displayhook(None)
+    sys.excepthook(ValueError, ValueError("hooked"), None)
+finally:
+    sys.stdout = saved_stdout
+    sys.stderr = saved_stderr
+    builtins._ = saved_builtin_underscore
+print(
+    len(sys_hook_stdout.items),
+    sys_hook_stdout.items[0].strip(),
+    len(sys_hook_stderr.items),
+    "ValueError: hooked" in sys_hook_stderr.items[0],
+    builtins._ is saved_builtin_underscore,
+)
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
 print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() >= 0, time.thread_time_ns() >= 0)
