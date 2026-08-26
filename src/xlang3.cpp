@@ -173,12 +173,12 @@ void trace_frontend_timing(const char* phase, std::chrono::steady_clock::time_po
   std::cerr << "xlang3 frontend timing: " << phase << " " << seconds_since(start) << "s\n";
 }
 
-bool publish_process_sys_attrs(xlang3::Runtime& runtime, const char* argv0, std::string& error) {
+bool publish_process_sys_attrs(xlang3::Runtime& runtime, int argc, char** argv, std::string& error) {
   xlang3::Value sys;
   if (!runtime.import_module("sys", sys, error)) {
     return false;
   }
-  std::filesystem::path executable = argv0 == nullptr ? std::filesystem::path() : std::filesystem::path(argv0);
+  std::filesystem::path executable = argc > 0 && argv != nullptr && argv[0] != nullptr ? std::filesystem::path(argv[0]) : std::filesystem::path();
   std::error_code ec;
   auto absolute = std::filesystem::absolute(executable, ec);
   if (!ec) {
@@ -187,11 +187,31 @@ bool publish_process_sys_attrs(xlang3::Runtime& runtime, const char* argv0, std:
   if (!xlang3::module_set_attr(sys, "executable", xlang3::Value::string(executable.string()), error)) {
     return false;
   }
+  if (!xlang3::module_set_attr(sys, "_base_executable", xlang3::Value::string(executable.string()), error)) {
+    return false;
+  }
+  std::vector<xlang3::Value> original_argv;
+  if (argc > 0 && argv != nullptr) {
+    original_argv.reserve(static_cast<size_t>(argc));
+    original_argv.push_back(xlang3::Value::string(executable.string()));
+    for (int i = 1; i < argc; ++i) {
+      original_argv.push_back(xlang3::Value::string(argv[i] == nullptr ? "" : argv[i]));
+    }
+  }
+  if (!xlang3::module_set_attr(sys, "orig_argv", xlang3::Value::list(std::move(original_argv)), error)) {
+    return false;
+  }
   const auto prefix = executable.parent_path().string();
   if (!xlang3::module_set_attr(sys, "prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
   if (!xlang3::module_set_attr(sys, "base_prefix", xlang3::Value::string(prefix), error)) {
+    return false;
+  }
+  if (!xlang3::module_set_attr(sys, "exec_prefix", xlang3::Value::string(prefix), error)) {
+    return false;
+  }
+  if (!xlang3::module_set_attr(sys, "base_exec_prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
   return xlang3::module_set_attr(sys, "real_prefix", xlang3::Value::string(prefix), error);
@@ -394,7 +414,7 @@ int main(int argc, char** argv) {
     runtime.prepend_import_root(std::filesystem::current_path());
   }
   std::string argv_error;
-  if (!publish_process_sys_attrs(runtime, argc > 0 ? argv[0] : nullptr, argv_error)) {
+  if (!publish_process_sys_attrs(runtime, argc, argv, argv_error)) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }

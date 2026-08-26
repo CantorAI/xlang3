@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.call_tracing` batch.
+Last updated after the native `sys` startup metadata batch.
 
 Current checklist count:
 
@@ -70,6 +70,10 @@ What this means:
 Recent completed batches:
 
 - Expanded native `sys` trace/debug hook coverage with `sys.call_tracing`.
+- Expanded process-published `sys` startup metadata so `sys.executable`,
+  `sys._base_executable`, `sys.prefix`, `sys.base_prefix`,
+  `sys.exec_prefix`, `sys.base_exec_prefix`, `sys.real_prefix`, and
+  `sys.orig_argv` stay synchronized after launcher initialization.
   The function now validates the CPython-style `(func, args_tuple)` shape,
   calls through the runtime's normal callable dispatch with tuple unpacking,
   and restores the active trace hook after the call.
@@ -597,7 +601,8 @@ documented here.
 Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
-  version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
+  version/platform/prefix/executable fields including `_base_executable`,
+  `exec_prefix`, `base_exec_prefix`, and `real_prefix`, structseq-like `version_info`/`flags`/`float_info`/
   `hash_info`/`thread_info` with instance/type field counts and type-level named member descriptors,
   `implementation` metadata, `builtin_module_names`,
   CPython 3.14 top-level `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`

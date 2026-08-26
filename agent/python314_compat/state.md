@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.call_tracing forwards tuple args and preserves trace hook
+sys startup executable/prefix metadata is synchronized after launcher initialization
 ```
 
 Current next loop:
