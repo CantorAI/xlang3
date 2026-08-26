@@ -105,7 +105,36 @@ std::vector<Value> tm_tuple_items(const std::tm& tm) {
   };
 }
 
-Value make_struct_time(const Value& klass, const std::tm& tm) {
+std::string format_tm(const std::string& format, const std::tm& tm) {
+  std::ostringstream stream;
+  stream << std::put_time(&tm, format.c_str());
+  return stream.str();
+}
+
+void set_struct_time_metadata(Value& instance, std::vector<Value> tuple_items, const Value& zone, const Value& gmtoff) {
+  std::string ignored;
+  object_set_attr(instance, "n_sequence_fields", Value::int64(9), ignored);
+  object_set_attr(instance, "n_fields", Value::int64(11), ignored);
+  object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
+  object_set_attr(instance, "tm_zone", zone, ignored);
+  object_set_attr(instance, "tm_gmtoff", gmtoff, ignored);
+  object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
+}
+
+int64_t local_offset_seconds(std::time_t timestamp) {
+  std::tm local = tm_from_time_t(timestamp, false);
+  std::tm utc = tm_from_time_t(timestamp, true);
+  local.tm_isdst = -1;
+  utc.tm_isdst = -1;
+  const std::time_t local_stamp = std::mktime(&local);
+  const std::time_t utc_as_local_stamp = std::mktime(&utc);
+  if (local_stamp == static_cast<std::time_t>(-1) || utc_as_local_stamp == static_cast<std::time_t>(-1)) {
+    return 0;
+  }
+  return -static_cast<int64_t>(std::difftime(utc_as_local_stamp, local_stamp));
+}
+
+Value make_struct_time(const Value& klass, const std::tm& tm, const Value& zone = Value::none(), const Value& gmtoff = Value::none()) {
   static const char* names[] = {
       "tm_year",
       "tm_mon",
@@ -123,11 +152,20 @@ Value make_struct_time(const Value& klass, const std::tm& tm) {
   for (size_t i = 0; i < items.size(); ++i) {
     object_set_attr(instance, names[i], items[i], ignored);
   }
-  object_set_attr(instance, "n_sequence_fields", Value::int64(9), ignored);
-  object_set_attr(instance, "n_fields", Value::int64(9), ignored);
-  object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
-  object_set_attr(instance, "_tuple", Value::tuple(std::move(items)), ignored);
+  set_struct_time_metadata(instance, std::move(items), zone, gmtoff);
   return instance;
+}
+
+Value make_struct_time_from_timestamp(const Value& klass, std::time_t timestamp, bool utc) {
+  const std::tm tm = tm_from_time_t(timestamp, utc);
+  if (utc) {
+    return make_struct_time(klass, tm, Value::string("UTC"), Value::int64(0));
+  }
+  return make_struct_time(
+      klass,
+      tm,
+      Value::string(format_tm("%Z", tm)),
+      Value::int64(local_offset_seconds(timestamp)));
 }
 
 bool numeric_time_arg(const Value& value, std::time_t& out, std::string& error) {
@@ -234,7 +272,7 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
   return true;
 }
 
-void set_struct_time_attrs(Value& instance, const std::vector<Value>& items) {
+void set_struct_time_attrs(Value& instance, const std::vector<Value>& items, const Value& zone, const Value& gmtoff) {
   static const char* names[] = {
       "tm_year",
       "tm_mon",
@@ -250,10 +288,7 @@ void set_struct_time_attrs(Value& instance, const std::vector<Value>& items) {
   for (size_t i = 0; i < 9 && i < items.size(); ++i) {
     object_set_attr(instance, names[i], items[i], ignored);
   }
-  object_set_attr(instance, "n_sequence_fields", Value::int64(9), ignored);
-  object_set_attr(instance, "n_fields", Value::int64(9), ignored);
-  object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
-  object_set_attr(instance, "_tuple", Value::tuple(items), ignored);
+  set_struct_time_metadata(instance, items, zone, gmtoff);
 }
 
 bool time_struct_time_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -266,8 +301,35 @@ bool time_struct_time_init(Runtime&, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   auto items = tm_tuple_items(tm);
+  Value zone = Value::none();
+  Value gmtoff = Value::none();
+  if (auto* tuple = value_as_tuple(args[1])) {
+    if (tuple->items.size() >= 10) {
+      value_assign_fast(zone, tuple->items[9]);
+    }
+    if (tuple->items.size() >= 11) {
+      value_assign_fast(gmtoff, tuple->items[10]);
+    }
+  } else if (auto* list = value_as_list(args[1])) {
+    if (list->items.size() >= 10) {
+      value_assign_fast(zone, list->items[9]);
+    }
+    if (list->items.size() >= 11) {
+      value_assign_fast(gmtoff, list->items[10]);
+    }
+  } else {
+    std::string ignored;
+    object_get_attr(args[1], "tm_zone", zone, ignored);
+    object_get_attr(args[1], "tm_gmtoff", gmtoff, ignored);
+    if (zone.tag == ValueTag::Invalid) {
+      value_set_none(zone);
+    }
+    if (gmtoff.tag == ValueTag::Invalid) {
+      value_set_none(gmtoff);
+    }
+  }
   Value& self = const_cast<Value&>(args[0]);
-  set_struct_time_attrs(self, items);
+  set_struct_time_attrs(self, items, zone, gmtoff);
   value_set_none(out);
   return true;
 }
@@ -388,7 +450,7 @@ bool time_localtime(Runtime&, const Value* args, uint32_t argc, Value& out, std:
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
-  out = make_struct_time(state->struct_time_class, tm_from_time_t(timestamp, false));
+  out = make_struct_time_from_timestamp(state->struct_time_class, timestamp, false);
   return true;
 }
 
@@ -398,7 +460,7 @@ bool time_gmtime(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
-  out = make_struct_time(state->struct_time_class, tm_from_time_t(timestamp, true));
+  out = make_struct_time_from_timestamp(state->struct_time_class, timestamp, true);
   return true;
 }
 
@@ -418,12 +480,6 @@ bool time_mktime(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   }
   out = Value::number(static_cast<double>(timestamp));
   return true;
-}
-
-std::string format_tm(const std::string& format, const std::tm& tm) {
-  std::ostringstream stream;
-  stream << std::put_time(&tm, format.c_str());
-  return stream.str();
 }
 
 bool time_strftime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

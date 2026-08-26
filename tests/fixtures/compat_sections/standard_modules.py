@@ -451,9 +451,12 @@ print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_m
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))
 # time structseq behavior and parsing.
 print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
+print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC", epoch_utc.tm_gmtoff == 0)
 constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
+constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123))
 parsed_time = time.strptime("2026-08-26", "%Y-%m-%d")
 print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
+print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
 print(isinstance(time.timezone, int), isinstance(time.altzone, int), isinstance(time.daylight, int))
 print(len(time.tzname) == 2, isinstance(time.tzname[0], str), isinstance(time.tzname[1], str), time.altzone <= time.timezone if time.daylight else time.altzone == time.timezone)
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())

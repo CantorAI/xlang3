@@ -482,7 +482,8 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
-  `struct_time`, and platform-backed timezone constants/names; locale-specific parsing,
+  `struct_time` with CPython 3.14-style `n_fields` plus `tm_zone`/`tm_gmtoff` named fields, and
+  platform-backed timezone constants/names; locale-specific parsing,
   historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
