@@ -589,6 +589,8 @@ def main() -> int:
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
         active_section = saved_state.get("section", section) if resume_phase else section
         stageable_changes = changed_paths()
+        current_prompt_path = saved_state.get("prompt_path", "")
+        current_baseline_paths = saved_state.get("baseline_stageable_paths", stageable_changes)
 
         print()
         print("=" * 72)
@@ -646,6 +648,8 @@ def main() -> int:
                     "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                 })
                 resume_phase = "codex_done"
+                current_prompt_path = str(prompt_path)
+                current_baseline_paths = saved_state.get("baseline_stageable_paths", [])
         elif resume_phase and resume_phase not in {"codex_done", "validated"}:
             print("Saved state is not recognized; starting a fresh iteration.")
             clear_loop_state(config, goal)
@@ -663,6 +667,8 @@ def main() -> int:
 
             prompt = compose_prompt(config, goal, active_section, items)
             prompt_path = write_prompt(config, goal, prompt, iteration)
+            current_prompt_path = str(prompt_path)
+            current_baseline_paths = stageable_changes
             print()
             print(f"Wrote prompt: {prompt_path}")
 
@@ -724,9 +730,9 @@ def main() -> int:
                 "phase": "validated",
                 "goal": goal,
                 "section": active_section,
-                "prompt_path": saved_state.get("prompt_path", ""),
+                "prompt_path": current_prompt_path,
                 "iteration": iteration,
-                "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", stageable_changes),
+                "baseline_stageable_paths": current_baseline_paths,
             })
 
         if args.no_commit:
