@@ -53,6 +53,8 @@ int64_t g_int_max_str_digits = kDefaultIntMaxStrDigits;
 Value g_profile_function = Value::none();
 std::vector<Value> g_audit_hooks;
 thread_local int64_t g_coroutine_origin_tracking_depth = 0;
+Value g_asyncgen_firstiter = Value::none();
+Value g_asyncgen_finalizer = Value::none();
 std::string g_filesystem_encoding = "utf-8";
 std::string g_filesystem_encode_errors = "surrogatepass";
 
@@ -251,6 +253,15 @@ Value make_thread_info() {
 #endif
           {"lock", Value::none()},
           {"version", Value::none()},
+      });
+}
+
+Value make_asyncgen_hooks() {
+  return make_structseq(
+      "asyncgen_hooks",
+      {
+          {"firstiter", g_asyncgen_firstiter},
+          {"finalizer", g_asyncgen_finalizer},
       });
 }
 
@@ -742,6 +753,102 @@ bool sys_get_coroutine_origin_tracking_depth(Runtime&, const Value*, uint32_t ar
   }
   value_set_int64(out, g_coroutine_origin_tracking_depth);
   return true;
+}
+
+bool validate_asyncgen_hook(Runtime& runtime, const Value& hook, const char* name, std::string& error) {
+  if (hook.tag == ValueTag::None || is_callable_value(hook)) {
+    return true;
+  }
+  error = std::string("callable ") + name + " expected";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool sys_get_asyncgen_hooks(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.get_asyncgen_hooks expected 0 arguments";
+    return false;
+  }
+  out = make_asyncgen_hooks();
+  return true;
+}
+
+bool sys_set_asyncgen_hooks_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  if (argc > 2) {
+    error = "sys.set_asyncgen_hooks expected at most 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value* firstiter = argc >= 1 ? &args[0] : nullptr;
+  const Value* finalizer = argc >= 2 ? &args[1] : nullptr;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      error = "sys.set_asyncgen_hooks received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (name == "firstiter") {
+      if (firstiter != nullptr) {
+        error = "sys.set_asyncgen_hooks got multiple values for firstiter";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      firstiter = kwargs[i].value;
+    } else if (name == "finalizer") {
+      if (finalizer != nullptr) {
+        error = "sys.set_asyncgen_hooks got multiple values for finalizer";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      finalizer = kwargs[i].value;
+    } else {
+      error = "sys.set_asyncgen_hooks got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (firstiter != nullptr) {
+    if (!validate_asyncgen_hook(runtime, *firstiter, "firstiter", error)) {
+      return false;
+    }
+  }
+  if (finalizer != nullptr) {
+    if (!validate_asyncgen_hook(runtime, *finalizer, "finalizer", error)) {
+      return false;
+    }
+  }
+  if (firstiter != nullptr) {
+    value_assign_fast(g_asyncgen_firstiter, *firstiter);
+  }
+  if (finalizer != nullptr) {
+    value_assign_fast(g_asyncgen_finalizer, *finalizer);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_set_asyncgen_hooks(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return sys_set_asyncgen_hooks_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool sys_set_asyncgen_hooks_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return sys_set_asyncgen_hooks_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
 bool sys_getdefaultencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1552,6 +1659,12 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_clear_type_cache", runtime.make_native_function("sys._clear_type_cache", sys_clear_type_cache), error);
   module_set_attr(sys, "get_coroutine_origin_tracking_depth", runtime.make_native_function("sys.get_coroutine_origin_tracking_depth", sys_get_coroutine_origin_tracking_depth), error);
   module_set_attr(sys, "set_coroutine_origin_tracking_depth", runtime.make_native_function("sys.set_coroutine_origin_tracking_depth", sys_set_coroutine_origin_tracking_depth), error);
+  module_set_attr(sys, "get_asyncgen_hooks", runtime.make_native_function("sys.get_asyncgen_hooks", sys_get_asyncgen_hooks), error);
+  module_set_attr(
+      sys,
+      "set_asyncgen_hooks",
+      runtime.make_native_function("sys.set_asyncgen_hooks", sys_set_asyncgen_hooks, nullptr, nullptr, nullptr, false, sys_set_asyncgen_hooks_kw),
+      error);
   module_set_attr(sys, "_xlang3_debug_set_hook", runtime.make_native_function("sys._xlang3_debug_set_hook", sys_xlang3_debug_set_hook), error);
   module_set_attr(sys, "_xlang3_debug_add_breakpoint", runtime.make_native_function("sys._xlang3_debug_add_breakpoint", sys_xlang3_debug_add_breakpoint), error);
   module_set_attr(sys, "_xlang3_debug_clear_breakpoints", runtime.make_native_function("sys._xlang3_debug_clear_breakpoints", sys_xlang3_debug_clear_breakpoints), error);

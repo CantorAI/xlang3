@@ -670,6 +670,25 @@ try:
     sys.set_coroutine_origin_tracking_depth(-1)
 except ValueError as err:
     print("coroutine-origin-depth", "non-negative" in str(err))
+asyncgen_hooks = sys.get_asyncgen_hooks()
+print(type(asyncgen_hooks).__name__, len(asyncgen_hooks), asyncgen_hooks.firstiter is None, asyncgen_hooks.finalizer is None)
+def asyncgen_firstiter_probe(generator):
+    return None
+def asyncgen_finalizer_probe(generator):
+    return None
+print(sys.set_asyncgen_hooks(asyncgen_firstiter_probe, asyncgen_finalizer_probe) is None)
+asyncgen_hooks = sys.get_asyncgen_hooks()
+print(asyncgen_hooks.firstiter is asyncgen_firstiter_probe, asyncgen_hooks.finalizer is asyncgen_finalizer_probe, asyncgen_hooks[0] is asyncgen_firstiter_probe, type(asyncgen_hooks).firstiter.__name__)
+print(sys.set_asyncgen_hooks(finalizer=None) is None, sys.get_asyncgen_hooks().firstiter is asyncgen_firstiter_probe, sys.get_asyncgen_hooks().finalizer is None)
+print(sys.set_asyncgen_hooks(firstiter=None) is None, sys.get_asyncgen_hooks().firstiter is None, sys.get_asyncgen_hooks().finalizer is None)
+try:
+    sys.set_asyncgen_hooks(42)
+except TypeError as err:
+    print("asyncgen-hooks", "firstiter" in str(err), "callable" in str(err))
+try:
+    sys.set_asyncgen_hooks(None, 42)
+except TypeError as err:
+    print("asyncgen-hooks", "finalizer" in str(err), "callable" in str(err))
 try:
     raise RuntimeError("active")
 except RuntimeError as err:

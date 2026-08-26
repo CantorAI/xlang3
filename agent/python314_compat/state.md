@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-frame snapshots expose active builtins mappings through f_builtins
+sys async-generator hooks expose stateful CPython-style configuration
 ```
 
 Current next loop:

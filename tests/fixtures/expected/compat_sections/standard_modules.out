@@ -148,6 +148,13 @@ True True 0
 2
 0
 coroutine-origin-depth True
+asyncgen_hooks 2 True True
+True
+True True True firstiter
+True True True
+True True True
+asyncgen-hooks True True
+asyncgen-hooks True True
 True True
 True
 5

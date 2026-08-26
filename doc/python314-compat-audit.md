@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native frame `f_builtins` snapshot batch.
+Last updated after the native `sys` async-generator hook batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` async-generator hook configuration: added
+  stateful `get_asyncgen_hooks()` / `set_asyncgen_hooks()` with positional
+  and keyword updates, callable-or-`None` validation, and a structseq-like
+  `asyncgen_hooks` result exposing named fields and sequence slots for
+  CPython-style stdlib runtime probes.
 - Expanded native frame snapshots behind `sys._getframe()` and
   `sys._current_frames()`: frame objects now expose `f_builtins` as a
   snapshot of the active builtins module mapping instead of an empty
@@ -596,6 +601,7 @@ Native or runtime-backed foundation:
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
+  async-generator hook configuration with structseq-like `asyncgen_hooks`,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
