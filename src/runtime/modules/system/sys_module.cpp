@@ -375,6 +375,21 @@ bool sys_exc_info(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
+bool sys_exception(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.exception expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value& exception = runtime.active_exception();
+  if (exception.tag == ValueTag::Invalid) {
+    value_set_none(out);
+  } else {
+    value_assign_fast(out, exception);
+  }
+  return true;
+}
+
 bool sys_settrace(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys.settrace expected 1 argument";
@@ -400,21 +415,64 @@ bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
-bool sys_getframe(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_frame_at_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, const char* name) {
   if (argc > 1) {
-    error = "sys._getframe expected at most 1 argument";
+    error = std::string(name) + " expected at most 1 argument";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__module__", Value::string("sys")});
-  Value frame_type = Value::class_object("frame", std::move(attrs));
-  out = Value::instance(frame_type);
-  object_set_attr(out, "f_lineno", Value::int64(0), error);
-  object_set_attr(out, "f_code", Value::none(), error);
-  object_set_attr(out, "f_globals", runtime.current_globals_module(), error);
-  object_set_attr(out, "f_locals", runtime.current_globals_module(), error);
-  object_set_attr(out, "f_back", Value::none(), error);
+  int64_t depth = 0;
+  if (argc == 1) {
+    if (args[0].tag != ValueTag::Int64) {
+      error = std::string(name) + " depth must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    depth = args[0].as.i64;
+    if (depth < 0) {
+      error = "call stack is not deep enough";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+  }
+  out = runtime.current_frame_snapshot();
+  for (int64_t i = 0; i < depth; ++i) {
+    if (out.tag == ValueTag::None) {
+      error = "call stack is not deep enough";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    Value back;
+    if (!object_get_attr(out, "f_back", back, error) || back.tag == ValueTag::None) {
+      error = "call stack is not deep enough";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    value_assign_fast(out, back);
+  }
+  return true;
+}
+
+bool sys_getframe(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return sys_frame_at_depth(runtime, args, argc, out, error, "sys._getframe");
+}
+
+bool sys_getframemodulename(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  Value frame;
+  if (!sys_frame_at_depth(runtime, args, argc, frame, error, "sys._getframemodulename")) {
+    return false;
+  }
+  auto* frame_object = value_as_frame(frame);
+  if (frame_object == nullptr) {
+    value_set_none(out);
+    return true;
+  }
+  auto* module = value_as_module(frame_object->globals_module);
+  if (module == nullptr) {
+    value_set_none(out);
+  } else {
+    out = Value::string(module->name);
+  }
   return true;
 }
 
@@ -665,6 +723,15 @@ bool sys_is_finalizing(Runtime&, const Value*, uint32_t argc, Value& out, std::s
   return true;
 }
 
+bool sys_is_gil_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._is_gil_enabled expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
 bool sys_xlang3_debug_set_hook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._xlang3_debug_set_hook expected 1 argument";
@@ -866,6 +933,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "pycache_prefix", Value::none(), error);
   module_set_attr(sys, "copyright", Value::string("Copyright (C) 2026 CantorAI Inc. and The XLang Foundation"), error);
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
+  module_set_attr(sys, "exception", runtime.make_native_function("sys.exception", sys_exception), error);
   module_set_attr(sys, "exit", runtime.make_native_function("sys.exit", sys_exit), error);
   module_set_attr(sys, "displayhook", runtime.make_native_function("sys.displayhook", sys_displayhook), error);
   module_set_attr(sys, "__displayhook__", runtime.make_native_function("sys.__displayhook__", sys_displayhook), error);
@@ -891,7 +959,9 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "get_int_max_str_digits", runtime.make_native_function("sys.get_int_max_str_digits", sys_get_int_max_str_digits), error);
   module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
   module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
+  module_set_attr(sys, "_is_gil_enabled", runtime.make_native_function("sys._is_gil_enabled", sys_is_gil_enabled), error);
   module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);
+  module_set_attr(sys, "_getframemodulename", runtime.make_native_function("sys._getframemodulename", sys_getframemodulename), error);
   module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);
   module_set_attr(sys, "_xlang3_debug_set_hook", runtime.make_native_function("sys._xlang3_debug_set_hook", sys_xlang3_debug_set_hook), error);
   module_set_attr(sys, "_xlang3_debug_add_breakpoint", runtime.make_native_function("sys._xlang3_debug_add_breakpoint", sys_xlang3_debug_add_breakpoint), error);

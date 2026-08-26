@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time` platform timezone metadata batch.
+Last updated after the native `_abc` positive/negative cache state batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `_abc` cache state: positive subclass cache, negative subclass
+  cache, `_get_dump` cache visibility, `_reset_caches`, and negative-cache
+  invalidation after virtual subclass registration.
 - Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
   `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
@@ -488,8 +491,9 @@ Native or runtime-backed foundation:
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
   virtual subclass checks, `isinstance`/`issubclass` metaclass hook dispatch, and ABC
-  `__subclasshook__` True/False/`NotImplemented` fallback behavior; negative caches and exact CPython
-  invalidation internals pending
+  `__subclasshook__` True/False/`NotImplemented` fallback behavior, positive/negative subclass
+  caches, and negative-cache invalidation after virtual subclass registration; exact CPython
+  weakref-backed cache objects and invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

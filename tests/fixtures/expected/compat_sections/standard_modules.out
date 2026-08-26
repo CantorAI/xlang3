@@ -45,10 +45,18 @@ True Expression
 True True
 True True
 True True True
+True True True
 False False
+0 0 True
+0 0 0 True
 True NotImplementedType
 True True False
+True True
 False False False
+True True
+False
+True True
+True 0 True
 True
 True True True
 True True True
@@ -87,6 +95,9 @@ True True True True True
 True True True
 True 0
 True False
+True True True
+(sys_frame_probe, <module>, __main__, False)
+True True
 5
 True False True True
 True True True True

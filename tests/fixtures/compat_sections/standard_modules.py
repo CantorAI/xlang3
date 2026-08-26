@@ -249,8 +249,15 @@ token_before = abc.get_cache_token()
 print(NativeABC.register(Concrete) is Concrete, abc.get_cache_token() > token_before)
 print(issubclass(Concrete, NativeABC), isinstance(Concrete(), NativeABC))
 print(len(_abc._get_dump(NativeABC)[0]) >= 1, _abc._abc_subclasscheck(NativeABC, Concrete), _abc._abc_instancecheck(NativeABC, Concrete()))
+native_dump = _abc._get_dump(NativeABC)
+print(len(native_dump[1]) >= 1, len(native_dump[2]) == 0, native_dump[3] == abc.get_cache_token())
 _abc._reset_registry(NativeABC)
 print(issubclass(Concrete, NativeABC), _abc._abc_subclasscheck(NativeABC, Concrete))
+native_dump = _abc._get_dump(NativeABC)
+print(len(native_dump[0]), len(native_dump[1]), len(native_dump[2]) >= 1)
+_abc._reset_caches(NativeABC)
+native_dump = _abc._get_dump(NativeABC)
+print(len(native_dump[0]), len(native_dump[1]), len(native_dump[2]), native_dump[3] == abc.get_cache_token())
 print(NotImplemented is NotImplemented, type(NotImplemented).__name__)
 
 class HookedABC(metaclass=abc.ABCMeta):
@@ -267,6 +274,8 @@ class PlainConcrete:
     pass
 
 print(issubclass(MarkedConcrete, HookedABC), isinstance(MarkedConcrete(), HookedABC), issubclass(PlainConcrete, HookedABC))
+hooked_dump = _abc._get_dump(HookedABC)
+print(len(hooked_dump[1]) >= 1, len(hooked_dump[2]) >= 1)
 
 class RejectingABC(metaclass=abc.ABCMeta):
     @classmethod
@@ -275,6 +284,21 @@ class RejectingABC(metaclass=abc.ABCMeta):
 
 RejectingABC.register(Concrete)
 print(issubclass(Concrete, RejectingABC), isinstance(Concrete(), RejectingABC), _abc._abc_subclasscheck(RejectingABC, Concrete))
+rejecting_dump = _abc._get_dump(RejectingABC)
+print(len(rejecting_dump[0]) >= 1, len(rejecting_dump[2]) >= 1)
+
+class LaterRegisteredABC(metaclass=abc.ABCMeta):
+    pass
+
+class LaterConcrete:
+    pass
+
+print(issubclass(LaterConcrete, LaterRegisteredABC))
+later_dump = _abc._get_dump(LaterRegisteredABC)
+print(len(later_dump[2]) >= 1, later_dump[3] == abc.get_cache_token())
+LaterRegisteredABC.register(LaterConcrete)
+later_dump = _abc._get_dump(LaterRegisteredABC)
+print(issubclass(LaterConcrete, LaterRegisteredABC), len(later_dump[2]), later_dump[3] == abc.get_cache_token())
 
 @abc.abstractmethod
 def abstract_fn():
@@ -439,6 +463,17 @@ def sys_profile_probe(frame, event, arg):
 sys.setprofile(sys_profile_probe)
 print(sys.getprofile() is sys_profile_probe, sys.is_finalizing())
 sys.setprofile(None)
+print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == False)
+def sys_frame_probe():
+    frame = sys._getframe()
+    caller = sys._getframe(1)
+    return frame.f_code.co_name, caller.f_code.co_name, frame.f_globals["__name__"], frame.f_locals["frame"] is frame
+
+print(sys_frame_probe())
+try:
+    raise RuntimeError("active")
+except RuntimeError as err:
+    print(sys.exception() is err, sys.exc_info()[1] is err)
 try:
     sys.exit(5)
 except SystemExit as err:

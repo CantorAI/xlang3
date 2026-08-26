@@ -25,6 +25,9 @@ namespace {
 
 int64_t g_cache_token = 0;
 static constexpr const char* kRegistryAttr = "__xlang3_abc_registry__";
+static constexpr const char* kCacheAttr = "__xlang3_abc_cache__";
+static constexpr const char* kNegativeCacheAttr = "__xlang3_abc_negative_cache__";
+static constexpr const char* kNegativeCacheVersionAttr = "__xlang3_abc_negative_cache_version__";
 
 bool ensure_class(Runtime& runtime, const Value& value, const char* name, std::string& error) {
   if (value_as_class(value) != nullptr) {
@@ -35,13 +38,64 @@ bool ensure_class(Runtime& runtime, const Value& value, const char* name, std::s
   return false;
 }
 
-bool registry_list(Value& abc_class, Value& out, std::string& error) {
+bool abc_state_list(Value& abc_class, const char* attr, Value& out, std::string& error) {
   std::string ignored;
-  if (object_get_attr(abc_class, kRegistryAttr, out, ignored) && value_as_list(out) != nullptr) {
+  if (object_get_attr(abc_class, attr, out, ignored) && value_as_list(out) != nullptr) {
     return true;
   }
   out = Value::list({});
-  return object_set_attr(abc_class, kRegistryAttr, out, error);
+  return object_set_attr(abc_class, attr, out, error);
+}
+
+bool registry_list(Value& abc_class, Value& out, std::string& error) {
+  return abc_state_list(abc_class, kRegistryAttr, out, error);
+}
+
+bool list_contains_identity(const Value& list_value, const Value& needle) {
+  auto* list = value_as_list(list_value);
+  if (list == nullptr) {
+    return false;
+  }
+  for (const auto& item : list->items) {
+    if (value_is(item, needle)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool append_unique_identity(Value& list_value, const Value& item) {
+  auto* list = value_as_list(list_value);
+  if (list == nullptr || list_contains_identity(list_value, item)) {
+    return false;
+  }
+  list->items.push_back(item);
+  return true;
+}
+
+bool clear_abc_list_attr(Value& abc_class, const char* attr, std::string& error) {
+  return object_set_attr(abc_class, attr, Value::list({}), error);
+}
+
+int64_t abc_negative_cache_version(const Value& abc_class) {
+  Value version;
+  std::string ignored;
+  if (!object_get_attr(abc_class, kNegativeCacheVersionAttr, version, ignored) || version.tag != ValueTag::Int64) {
+    return -1;
+  }
+  return version.as.i64;
+}
+
+bool set_negative_cache_version(Value& abc_class, int64_t version, std::string& error) {
+  return object_set_attr(abc_class, kNegativeCacheVersionAttr, Value::int64(version), error);
+}
+
+bool clear_stale_negative_cache(Value& abc_class, std::string& error) {
+  if (abc_negative_cache_version(abc_class) == g_cache_token) {
+    return true;
+  }
+  return clear_abc_list_attr(abc_class, kNegativeCacheAttr, error) &&
+         set_negative_cache_version(abc_class, g_cache_token, error);
 }
 
 bool registry_contains_registered_base(const Value& abc_class, const Value& subclass) {
@@ -71,6 +125,26 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
     out = false;
     return true;
   }
+  Value mutable_abc = abc_class;
+  if (!clear_stale_negative_cache(mutable_abc, error)) {
+    return false;
+  }
+  Value positive_cache;
+  if (!abc_state_list(mutable_abc, kCacheAttr, positive_cache, error)) {
+    return false;
+  }
+  if (list_contains_identity(positive_cache, subclass)) {
+    out = true;
+    return true;
+  }
+  Value negative_cache;
+  if (!abc_state_list(mutable_abc, kNegativeCacheAttr, negative_cache, error)) {
+    return false;
+  }
+  if (list_contains_identity(negative_cache, subclass)) {
+    out = false;
+    return true;
+  }
   Value hook;
   std::string hook_error;
   if (object_get_attr(abc_class, "__subclasshook__", hook, hook_error)) {
@@ -81,10 +155,20 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
     const Value* not_implemented = runtime.find_builtin("NotImplemented");
     if (not_implemented == nullptr || !value_is(hook_result, *not_implemented)) {
       out = value_truthy(hook_result);
+      if (out) {
+        append_unique_identity(positive_cache, subclass);
+      } else {
+        append_unique_identity(negative_cache, subclass);
+      }
       return true;
     }
   }
   out = class_is_subclass(sub, abc) || registry_contains_registered_base(abc_class, subclass);
+  if (out) {
+    append_unique_identity(positive_cache, subclass);
+  } else {
+    append_unique_identity(negative_cache, subclass);
+  }
   return true;
 }
 
@@ -117,14 +201,7 @@ bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   auto* list = value_as_list(registry);
-  bool present = false;
-  for (const auto& item : list->items) {
-    if (value_is(item, args[1])) {
-      present = true;
-      break;
-    }
-  }
-  if (!present) {
+  if (list != nullptr && !list_contains_identity(registry, args[1])) {
     list->items.push_back(args[1]);
     ++g_cache_token;
   }
@@ -186,7 +263,20 @@ bool abc_get_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   auto* list = value_as_list(registry);
-  out = Value::tuple({Value::set(list == nullptr ? std::vector<Value>{} : list->items), Value::set({}), Value::set({}), Value::int64(g_cache_token)});
+  Value positive_cache;
+  Value negative_cache;
+  if (!abc_state_list(abc_class, kCacheAttr, positive_cache, error) ||
+      !clear_stale_negative_cache(abc_class, error) ||
+      !abc_state_list(abc_class, kNegativeCacheAttr, negative_cache, error)) {
+    return false;
+  }
+  auto* cache_list = value_as_list(positive_cache);
+  auto* negative_list = value_as_list(negative_cache);
+  out = Value::tuple({
+      Value::set(list == nullptr ? std::vector<Value>{} : list->items),
+      Value::set(cache_list == nullptr ? std::vector<Value>{} : cache_list->items),
+      Value::set(negative_list == nullptr ? std::vector<Value>{} : negative_list->items),
+      Value::int64(abc_negative_cache_version(abc_class))});
   return true;
 }
 
@@ -199,10 +289,31 @@ bool abc_reset_registry(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return false;
   }
   Value abc_class = args[0];
-  if (!object_set_attr(abc_class, kRegistryAttr, Value::list({}), error)) {
+  if (!object_set_attr(abc_class, kRegistryAttr, Value::list({}), error) ||
+      !clear_abc_list_attr(abc_class, kCacheAttr, error) ||
+      !clear_abc_list_attr(abc_class, kNegativeCacheAttr, error) ||
+      !set_negative_cache_version(abc_class, g_cache_token, error)) {
     return false;
   }
   ++g_cache_token;
+  value_set_none(out);
+  return true;
+}
+
+bool abc_reset_caches(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_abc._reset_caches() expected class";
+    return false;
+  }
+  if (!ensure_class(runtime, args[0], "_abc._reset_caches() class", error)) {
+    return false;
+  }
+  Value abc_class = args[0];
+  if (!clear_abc_list_attr(abc_class, kCacheAttr, error) ||
+      !clear_abc_list_attr(abc_class, kNegativeCacheAttr, error) ||
+      !set_negative_cache_version(abc_class, g_cache_token, error)) {
+    return false;
+  }
   value_set_none(out);
   return true;
 }
@@ -242,7 +353,7 @@ void register_abc_module(Runtime& runtime) {
       .function("_abc_subclasscheck", abc_subclasscheck)
       .function("_get_dump", abc_get_dump)
       .function("_reset_registry", abc_reset_registry)
-      .function("_reset_caches", abc_return_none);
+      .function("_reset_caches", abc_reset_caches);
   runtime.register_module("_abc", builder.finish());
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
@@ -259,6 +370,9 @@ void register_abc_module(Runtime& runtime) {
   Value abc_class = Value::class_object("ABC", {}, Value::invalid(), {}, abc_meta);
   std::string error;
   object_set_attr(abc_class, kRegistryAttr, Value::list({}), error);
+  object_set_attr(abc_class, kCacheAttr, Value::list({}), error);
+  object_set_attr(abc_class, kNegativeCacheAttr, Value::list({}), error);
+  object_set_attr(abc_class, kNegativeCacheVersionAttr, Value::int64(g_cache_token), error);
   NativeModuleBuilder public_builder(runtime, "abc");
   public_builder.value("ABCMeta", abc_meta)
       .value("ABC", abc_class)
