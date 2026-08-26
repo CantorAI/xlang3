@@ -428,8 +428,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: native `fnmatch`, `fnmatchcase`, `filter`, `filterfalse`, `translate`, `glob.has_magic`,
-  `glob.escape`, and VFS-backed `glob`/`iglob` with recursive `**` foundation; true lazy `iglob`,
-  `root_dir`/`dir_fd`/`include_hidden` keyword options, bytes paths, and exact CPython path edge cases pending
+  `glob.escape`, and VFS-backed `glob`/`iglob` with recursive `**`, iterator-returning `iglob`,
+  `root_dir`, `include_hidden`, and bytes-path result preservation; real `dir_fd`,
+  platform-specific path normalization, and exact CPython path edge cases pending
 - [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, `total_ordering`, and real
   positional-call `lru_cache`/`cache` wrappers with bounded eviction, `cache_info`, `cache_clear`,
   and `cache_parameters` foundations; keyword-call caching, exact `CacheInfo` namedtuple behavior,

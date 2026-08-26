@@ -138,6 +138,10 @@ xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
 [xlang3_glob_case/a.py]
 [xlang3_glob_case/a.py, xlang3_glob_case/sub/c.py]
 [xlang3_glob_case/b.txt]
+[a.py]
+[.hidden.py, a.py]
+.hidden.py [a.py]
+True [b'b.txt']
 True True True True
 True http.client
 True resource-data

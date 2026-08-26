@@ -518,6 +518,12 @@ os.makedirs("xlang3_glob_case/sub", exist_ok=True)
 print(glob.glob("xlang3_glob_case/*.py"))
 print(glob.glob("xlang3_glob_case/**/*.py", True))
 print(list(glob.iglob("xlang3_glob_case/*.txt")))
+print(glob.glob("*.py", root_dir="xlang3_glob_case"))
+print(glob.glob("*.py", root_dir="xlang3_glob_case", include_hidden=True))
+hidden_iter = glob.iglob("*.py", root_dir="xlang3_glob_case", include_hidden=True)
+print(next(hidden_iter), list(hidden_iter))
+byte_glob = glob.glob(bytes("*.txt", "utf-8"), root_dir=bytes("xlang3_glob_case", "utf-8"))
+print(isinstance(byte_glob[0], bytes), byte_glob)
 
 found_functions = False
 for module_info in pkgutil.iter_modules([core_fixture_dir]):
