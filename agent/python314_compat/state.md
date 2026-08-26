@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native sys coroutine-origin tracking depth helpers
+Native time.struct_time constructor extra-field handling
 ```
 
 Current next loop:

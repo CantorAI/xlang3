@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -239,6 +240,10 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
     error = "time tuple must have 9 elements";
     return false;
   }
+  if (items.size() > 11) {
+    error = "time.struct_time() takes an at most 11-sequence";
+    return false;
+  }
   int year = 0;
   int month = 0;
   int day = 0;
@@ -272,6 +277,37 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
   return true;
 }
 
+bool struct_time_extra_fields_from_dict(
+    const Value& dict_value,
+    bool sequence_has_zone,
+    bool sequence_has_gmtoff,
+    Value& zone,
+    Value& gmtoff,
+    std::string& error) {
+  auto* dict = value_as_dict(dict_value);
+  if (dict == nullptr) {
+    error = "time.struct_time() optional second argument must be a dict";
+    return false;
+  }
+  for (const auto& entry : dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key == nullptr) {
+      error = "time.struct_time() got duplicate or unexpected field name(s)";
+      return false;
+    }
+    const std::string name = string_object_to_string(*key);
+    if (name == "tm_zone" && !sequence_has_zone) {
+      value_assign_fast(zone, entry.second);
+    } else if (name == "tm_gmtoff" && !sequence_has_gmtoff) {
+      value_assign_fast(gmtoff, entry.second);
+    } else {
+      error = "time.struct_time() got duplicate or unexpected field name(s)";
+      return false;
+    }
+  }
+  return true;
+}
+
 void set_struct_time_attrs(Value& instance, const std::vector<Value>& items, const Value& zone, const Value& gmtoff) {
   static const char* names[] = {
       "tm_year",
@@ -291,31 +327,39 @@ void set_struct_time_attrs(Value& instance, const std::vector<Value>& items, con
   set_struct_time_metadata(instance, items, zone, gmtoff);
 }
 
-bool time_struct_time_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "time.struct_time() expected one sequence";
+bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "time.struct_time() expected one sequence and optional dict";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::tm tm{};
   if (!tm_from_sequence_like(args[1], tm, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto items = tm_tuple_items(tm);
   Value zone = Value::none();
   Value gmtoff = Value::none();
+  bool sequence_has_zone = false;
+  bool sequence_has_gmtoff = false;
   if (auto* tuple = value_as_tuple(args[1])) {
     if (tuple->items.size() >= 10) {
       value_assign_fast(zone, tuple->items[9]);
+      sequence_has_zone = true;
     }
     if (tuple->items.size() >= 11) {
       value_assign_fast(gmtoff, tuple->items[10]);
+      sequence_has_gmtoff = true;
     }
   } else if (auto* list = value_as_list(args[1])) {
     if (list->items.size() >= 10) {
       value_assign_fast(zone, list->items[9]);
+      sequence_has_zone = true;
     }
     if (list->items.size() >= 11) {
       value_assign_fast(gmtoff, list->items[10]);
+      sequence_has_gmtoff = true;
     }
   } else {
     std::string ignored;
@@ -323,10 +367,18 @@ bool time_struct_time_init(Runtime&, const Value* args, uint32_t argc, Value& ou
     object_get_attr(args[1], "tm_gmtoff", gmtoff, ignored);
     if (zone.tag == ValueTag::Invalid) {
       value_set_none(zone);
+    } else {
+      sequence_has_zone = true;
     }
     if (gmtoff.tag == ValueTag::Invalid) {
       value_set_none(gmtoff);
+    } else {
+      sequence_has_gmtoff = true;
     }
+  }
+  if (argc == 3 && !struct_time_extra_fields_from_dict(args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   Value& self = const_cast<Value&>(args[0]);
   set_struct_time_attrs(self, items, zone, gmtoff);

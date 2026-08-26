@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` coroutine-origin tracking depth helper batch.
+Last updated after the native `time.struct_time` constructor extra-field batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `time.struct_time`: the constructor now accepts the CPython
+  optional dict form for `tm_zone` and `tm_gmtoff`, preserves those named
+  fields, rejects duplicate/unexpected extra field names, and rejects sequences
+  longer than 11 fields with `TypeError`.
 - Expanded native `sys`: `set_coroutine_origin_tracking_depth()` now stores
   and reports the thread-local configured depth through
   `get_coroutine_origin_tracking_depth()`, including negative-depth validation.
@@ -521,8 +525,9 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
-  `struct_time` with CPython 3.14-style `n_fields` plus `tm_zone`/`tm_gmtoff` named fields, and
-  platform-backed timezone constants/names; locale-specific parsing,
+  `struct_time` with CPython 3.14-style `n_fields` plus `tm_zone`/`tm_gmtoff` named fields,
+  constructor dict extra-field handling, long-sequence rejection, and platform-backed timezone constants/names;
+  locale-specific parsing,
   historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,

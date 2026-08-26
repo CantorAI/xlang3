@@ -130,6 +130,10 @@ True True True
 11 0 True True
 2026 8 2026 8 26
 11 True True X 123
+Y 456 9 11
+struct-time-extra True
+struct-time-extra True
+struct-time-extra True
 True True True
 True True True True
 True True 3.14
