@@ -643,12 +643,22 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       }
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    const Value* actual_index = &index;
+    if (object.as.obj->kind == ObjectKind::MemoryView) {
+      if (auto* tuple = value_as_tuple(index)) {
+        if (tuple->items.size() != 1) {
+          error = "memoryview: invalid tuple index";
+          return false;
+        }
+        actual_index = &tuple->items[0];
+      }
+    }
+    if (actual_index->tag != ValueTag::Int64) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(storage.size), resolved)) {
+    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(storage.size), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -852,12 +862,20 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       }
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    const Value* actual_index = &index;
+    if (auto* tuple = value_as_tuple(index)) {
+      if (tuple->items.size() != 1) {
+        error = "memoryview: invalid tuple index";
+        return false;
+      }
+      actual_index = &tuple->items[0];
+    }
+    if (actual_index->tag != ValueTag::Int64) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(view->size), resolved)) {
+    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(view->size), resolved)) {
       error = "index out of range";
       return false;
     }

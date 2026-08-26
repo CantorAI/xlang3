@@ -6,8 +6,13 @@ bytearray(b'AZc!?') b'AZc!?'
 False B 1 1 (5,) (1,) True True
 [65, 90, 99, 33, 63] 415a63213f True True
 bytearray(b'Axy!?') B [65, 120, 121, 33, 63]
+1 1 2 3 121
+memoryview-index-miss
+True True [65, 120, 121, 33, 63]
+66 42-78-79-21-3f 42-7879-213f 4278-7921-3f
+b'Bxy!?' [66, 120, 121, 33, 63]
 121 b'x' b'xy'
 b'ok' True
 released
 True True True
-b'Axy!?' bytearray(b'Axy!?')
+b'Bxy!?' bytearray(b'Bxy!?')

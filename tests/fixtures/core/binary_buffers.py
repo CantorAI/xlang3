@@ -31,6 +31,16 @@ print(mv.readonly, mv.format, mv.itemsize, mv.ndim, mv.shape, mv.strides, mv.c_c
 print(mv.tolist(), mv.hex(), mv == bytes(ba), mv[1:4] == b"Zc!")
 mv[1:3] = b"xy"
 print(ba, mv.cast("B").format, mv.cast("b", (5,)).tolist())
+print(mv.count(120), mv.index(120), mv.index(b"y"), mv.index(33, 3), mv[(2,)])
+try:
+    mv.index(111)
+except ValueError:
+    print("memoryview-index-miss")
+readonly = mv.toreadonly()
+print(readonly.readonly, readonly.obj is ba, readonly.tolist())
+mv[0] = 66
+print(readonly.tolist()[0], readonly.hex("-"), readonly.hex("-", 2), readonly.hex("-", -2))
+print(readonly.tobytes("A"), readonly.cast("B", [5]).tolist())
 
 ro = memoryview(b"xy")
 print(ro[1], ro[0:1].tobytes(), bytes(ro))

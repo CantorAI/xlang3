@@ -338,9 +338,11 @@ Section-level fixture coverage:
 - [x] `str`: object stringification and bytes-like decoding constructor forms
 - [x] `bytes`: bytes-like, iterable-of-int, zero-filled integer count, and encoded string constructor forms
 - [x] `bytearray`: bytes-like, iterable-of-int, zero-filled integer count, and encoded string constructor forms
-- [~] `memoryview`: bytes/bytearray/memoryview construction, length/index/slice basics, readonly and shape metadata,
-  `tobytes`, `tolist`, `hex`, byte-sized `cast`, `release`, context manager release behavior, writable bytearray-backed
-  item/slice assignment, and bytes-like equality foundations; full multi-format/multi-dimensional buffer protocol pending
+- [~] `memoryview`: bytes/bytearray/memoryview construction, length/index/slice basics, tuple-of-one indexing, readonly and shape metadata,
+  `tobytes(order)`, `tolist`, `hex` separators, byte-sized `cast` with tuple/list one-dimensional shape, `toreadonly`,
+  3.14 `count`/`index`, `release`, context manager release behavior, writable bytearray-backed item/slice assignment,
+  and bytes-like equality foundations; full multi-format/multi-dimensional buffer protocol, exporter resize locking,
+  hash behavior, and exact release exception typing pending
 - [x] `list`: iterable constructor basics
 - [x] `dict`: mapping/pair iterable constructor plus keyword and expanded keyword forms
 - [x] `set`: iterable constructor basics

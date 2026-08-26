@@ -778,7 +778,8 @@ bool bytearray_reverse_method(Runtime&, const Value* args, uint32_t argc, Value&
 }
 
 bool memoryview_tobytes_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 1, "memoryview.tobytes", error)) {
+  if (argc < 1 || argc > 2) {
+    error = "memoryview.tobytes expected optional order";
     return false;
   }
   auto* view = value_as_memoryview(args[0]);
@@ -789,6 +790,16 @@ bool memoryview_tobytes_method(Runtime&, const Value* args, uint32_t argc, Value
   if (view->released) {
     error = "operation forbidden on released memoryview object";
     return false;
+  }
+  if (argc == 2 && args[1].tag != ValueTag::None) {
+    std::string order;
+    if (!get_string_arg(args[1], "memoryview.tobytes order", order, error)) {
+      return false;
+    }
+    if (order != "C" && order != "F" && order != "A") {
+      error = "memoryview.tobytes order must be 'C', 'F', or 'A'";
+      return false;
+    }
   }
   std::string bytes;
   if (!append_bytes_from_value(bytes, args[0], error)) {
@@ -824,8 +835,33 @@ bool memoryview_tolist_method(Runtime&, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool append_hex_string(std::string_view bytes, std::string_view sep, int64_t bytes_per_sep, std::string& result, std::string& error) {
+  if (bytes_per_sep == 0) {
+    error = "bytes_per_sep must not be zero";
+    return false;
+  }
+  static constexpr char digits[] = "0123456789abcdef";
+  result.clear();
+  result.reserve(bytes.size() * 2 + (sep.empty() ? 0 : bytes.size() / static_cast<size_t>(std::llabs(bytes_per_sep)) * sep.size()));
+  const auto group = static_cast<size_t>(std::llabs(bytes_per_sep));
+  for (size_t i = 0; i < bytes.size(); ++i) {
+    if (!sep.empty() && i != 0) {
+      const bool insert =
+          bytes_per_sep > 0 ? ((bytes.size() - i) % group == 0) : (i % group == 0);
+      if (insert) {
+        result.append(sep.data(), sep.size());
+      }
+    }
+    const auto byte = static_cast<unsigned char>(bytes[i]);
+    result.push_back(digits[byte >> 4u]);
+    result.push_back(digits[byte & 0x0fu]);
+  }
+  return true;
+}
+
 bool memoryview_hex_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 1, "memoryview.hex", error)) {
+  if (argc < 1 || argc > 3) {
+    error = "memoryview.hex expected optional sep and bytes_per_sep";
     return false;
   }
   auto* view = value_as_memoryview(args[0]);
@@ -841,16 +877,148 @@ bool memoryview_hex_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   if (!append_bytes_from_value(bytes, args[0], error)) {
     return false;
   }
-  static constexpr char digits[] = "0123456789abcdef";
+  std::string sep;
+  int64_t bytes_per_sep = 1;
+  if (argc >= 2) {
+    if (!get_string_arg(args[1], "memoryview.hex sep", sep, error)) {
+      return false;
+    }
+  }
+  if (argc == 3) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "memoryview.hex bytes_per_sep must be int";
+      return false;
+    }
+    bytes_per_sep = args[2].as.i64;
+  }
   std::string result;
-  result.resize(bytes.size() * 2);
-  for (size_t i = 0; i < bytes.size(); ++i) {
-    const auto byte = static_cast<unsigned char>(bytes[i]);
-    result[i * 2] = digits[byte >> 4u];
-    result[i * 2 + 1] = digits[byte & 0x0fu];
+  if (!append_hex_string(bytes, sep, bytes_per_sep, result, error)) {
+    return false;
   }
   out = Value::string(std::move(result));
   return true;
+}
+
+bool memoryview_element_arg(const Value& value, int64_t& out, std::string& error) {
+  if (value.tag == ValueTag::Int64) {
+    if (value.as.i64 < 0 || value.as.i64 > 255) {
+      error = "memoryview element must be in range(0, 256)";
+      return false;
+    }
+    out = value.as.i64;
+    return true;
+  }
+  std::string bytes;
+  if (!append_bytes_from_value(bytes, value, error)) {
+    error = "memoryview element must be int or single-byte bytes-like object";
+    return false;
+  }
+  if (bytes.size() != 1) {
+    error = "memoryview element bytes-like object must have length 1";
+    return false;
+  }
+  out = static_cast<unsigned char>(bytes[0]);
+  return true;
+}
+
+bool normalize_memoryview_search_bounds(size_t size, const Value* args, uint32_t argc, size_t& start, size_t& stop, std::string& error) {
+  start = 0;
+  stop = size;
+  if (argc >= 3) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "memoryview.index start must be int";
+      return false;
+    }
+    int64_t value = args[2].as.i64;
+    if (value < 0) value += static_cast<int64_t>(size);
+    if (value < 0) value = 0;
+    if (value > static_cast<int64_t>(size)) value = static_cast<int64_t>(size);
+    start = static_cast<size_t>(value);
+  }
+  if (argc >= 4) {
+    if (args[3].tag != ValueTag::Int64) {
+      error = "memoryview.index stop must be int";
+      return false;
+    }
+    int64_t value = args[3].as.i64;
+    if (value < 0) value += static_cast<int64_t>(size);
+    if (value < 0) value = 0;
+    if (value > static_cast<int64_t>(size)) value = static_cast<int64_t>(size);
+    stop = static_cast<size_t>(value);
+  }
+  if (stop < start) {
+    stop = start;
+  }
+  return true;
+}
+
+bool memoryview_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "memoryview.count", error)) {
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr) {
+    error = "memoryview.count target is not memoryview";
+    return false;
+  }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
+  int64_t needle = 0;
+  if (!memoryview_element_arg(args[1], needle, error)) {
+    return false;
+  }
+  std::string bytes;
+  if (!append_bytes_from_value(bytes, args[0], error)) {
+    return false;
+  }
+  int64_t count = 0;
+  for (unsigned char byte : bytes) {
+    if (byte == static_cast<unsigned char>(needle)) {
+      ++count;
+    }
+  }
+  value_set_int64(out, count);
+  return true;
+}
+
+bool memoryview_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "memoryview.index expected value, start, and stop";
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr) {
+    error = "memoryview.index target is not memoryview";
+    return false;
+  }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
+  int64_t needle = 0;
+  if (!memoryview_element_arg(args[1], needle, error)) {
+    return false;
+  }
+  size_t start = 0;
+  size_t stop = 0;
+  if (!normalize_memoryview_search_bounds(view->size, args, argc, start, stop, error)) {
+    return false;
+  }
+  std::string bytes;
+  if (!append_bytes_from_value(bytes, args[0], error)) {
+    return false;
+  }
+  for (size_t i = start; i < stop && i < bytes.size(); ++i) {
+    if (static_cast<unsigned char>(bytes[i]) == static_cast<unsigned char>(needle)) {
+      value_set_int64(out, static_cast<int64_t>(i));
+      return true;
+    }
+  }
+  error = "memoryview.index(x): x not in view";
+  runtime.raise_class_error("ValueError", error);
+  return false;
 }
 
 bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -876,9 +1044,15 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
     return false;
   }
   if (argc == 3 && args[2].tag != ValueTag::None) {
-    auto* shape = value_as_tuple(args[2]);
-    if (shape == nullptr || shape->items.size() != 1 || shape->items[0].tag != ValueTag::Int64 ||
-        shape->items[0].as.i64 != static_cast<int64_t>(view->size)) {
+    const TupleObject* shape_tuple = value_as_tuple(args[2]);
+    const ListObject* shape_list = value_as_list(args[2]);
+    const auto valid_tuple = shape_tuple != nullptr && shape_tuple->items.size() == 1 &&
+                             shape_tuple->items[0].tag == ValueTag::Int64 &&
+                             shape_tuple->items[0].as.i64 == static_cast<int64_t>(view->size);
+    const auto valid_list = shape_list != nullptr && shape_list->items.size() == 1 &&
+                            shape_list->items[0].tag == ValueTag::Int64 &&
+                            shape_list->items[0].as.i64 == static_cast<int64_t>(view->size);
+    if (!valid_tuple && !valid_list) {
       error = "memoryview.cast only supports one-dimensional byte shape";
       return false;
     }
@@ -886,6 +1060,26 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
   out = Value::memoryview(view->owner, view->offset, view->size, view->readonly);
   if (auto* cast_view = value_as_memoryview(out)) {
     cast_view->format = std::move(format);
+  }
+  return true;
+}
+
+bool memoryview_toreadonly_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "memoryview.toreadonly", error)) {
+    return false;
+  }
+  auto* view = value_as_memoryview(args[0]);
+  if (view == nullptr) {
+    error = "memoryview.toreadonly target is not memoryview";
+    return false;
+  }
+  if (view->released) {
+    error = "operation forbidden on released memoryview object";
+    return false;
+  }
+  out = Value::memoryview(view->owner, view->offset, view->size, true);
+  if (auto* readonly = value_as_memoryview(out)) {
+    readonly->format = view->format;
   }
   return true;
 }
@@ -999,10 +1193,13 @@ bool memoryview_get_method(const Value& object, const std::string& name, Value& 
       {"__enter__", "memoryview.__enter__", memoryview_enter_method},
       {"__exit__", "memoryview.__exit__", memoryview_exit_method},
       {"cast", "memoryview.cast", memoryview_cast_method},
+      {"count", "memoryview.count", memoryview_count_method},
       {"hex", "memoryview.hex", memoryview_hex_method},
+      {"index", "memoryview.index", memoryview_index_method},
       {"release", "memoryview.release", memoryview_release_method},
       {"tobytes", "memoryview.tobytes", memoryview_tobytes_method},
       {"tolist", "memoryview.tolist", memoryview_tolist_method},
+      {"toreadonly", "memoryview.toreadonly", memoryview_toreadonly_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }
