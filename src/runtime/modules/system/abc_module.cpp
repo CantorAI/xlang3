@@ -195,6 +195,19 @@ bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       !ensure_class(runtime, args[1], "_abc._abc_register() subclass", error)) {
     return false;
   }
+  auto* abc = value_as_class(args[0]);
+  auto* subclass = value_as_class(args[1]);
+  if (abc != nullptr && subclass != nullptr) {
+    if (class_is_subclass(subclass, abc)) {
+      value_assign_fast(out, args[1]);
+      return true;
+    }
+    if (class_is_subclass(abc, subclass)) {
+      error = "Refusing to create an inheritance cycle";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+  }
   Value registry;
   Value abc_class = args[0];
   if (!registry_list(abc_class, registry, error)) {

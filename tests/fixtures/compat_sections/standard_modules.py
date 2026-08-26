@@ -300,6 +300,19 @@ LaterRegisteredABC.register(LaterConcrete)
 later_dump = _abc._get_dump(LaterRegisteredABC)
 print(issubclass(LaterConcrete, LaterRegisteredABC), len(later_dump[2]), later_dump[3] == abc.get_cache_token())
 
+class DirectABC(metaclass=abc.ABCMeta):
+    pass
+
+class DirectConcrete(DirectABC):
+    pass
+
+direct_token = abc.get_cache_token()
+print(DirectABC.register(DirectConcrete) is DirectConcrete, abc.get_cache_token() == direct_token, len(_abc._get_dump(DirectABC)[0]))
+try:
+    DirectConcrete.register(DirectABC)
+except RuntimeError as err:
+    print("abc-cycle", "inheritance cycle" in str(err))
+
 @abc.abstractmethod
 def abstract_fn():
     pass

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `_abc` positive/negative cache state batch.
+Last updated after the native `_abc` registration parity batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `_abc` registration parity: direct real subclasses are
+  treated as already registered without cache-token churn, while virtual
+  registrations that would create inheritance cycles raise `RuntimeError`.
 - Expanded native `_abc` cache state: positive subclass cache, negative subclass
   cache, `_get_dump` cache visibility, `_reset_caches`, and negative-cache
   invalidation after virtual subclass registration.
@@ -490,9 +493,10 @@ Native or runtime-backed foundation:
   historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
-  virtual subclass checks, `isinstance`/`issubclass` metaclass hook dispatch, and ABC
-  `__subclasshook__` True/False/`NotImplemented` fallback behavior, positive/negative subclass
-  caches, and negative-cache invalidation after virtual subclass registration; exact CPython
+  virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
+  `isinstance`/`issubclass` metaclass hook dispatch, and ABC `__subclasshook__`
+  True/False/`NotImplemented` fallback behavior, positive/negative subclass caches,
+  and negative-cache invalidation after virtual subclass registration; exact CPython
   weakref-backed cache objects and invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform

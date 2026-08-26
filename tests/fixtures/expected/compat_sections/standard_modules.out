@@ -57,6 +57,8 @@ True True
 False
 True True
 True 0 True
+True True 0
+abc-cycle True
 True
 True True True
 True True True
