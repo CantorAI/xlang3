@@ -359,6 +359,24 @@ class ConcreteABC(AbstractEnforcedABC):
 
 print("run" in StillAbstractABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__), ConcreteABC().run())
 
+class DirectInitABC:
+    @abc.abstractmethod
+    def direct(self):
+        return "direct"
+
+print(hasattr(DirectInitABC, "__abstractmethods__"))
+print(_abc._abc_init(DirectInitABC), "direct" in DirectInitABC.__abstractmethods__, len(DirectInitABC.__abstractmethods__))
+try:
+    DirectInitABC()
+except TypeError as err:
+    print("abc-direct-init", "abstract class" in str(err), "direct" in str(err))
+direct_init_dump = _abc._get_dump(DirectInitABC)
+print(len(direct_init_dump[0]), len(direct_init_dump[1]), len(direct_init_dump[2]), direct_init_dump[3] == abc.get_cache_token())
+try:
+    _abc._abc_init(42)
+except TypeError as err:
+    print("abc-init-type", "class" in str(err))
+
 # numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
 import numbers
 

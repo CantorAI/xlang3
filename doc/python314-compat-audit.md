@@ -90,6 +90,10 @@ Recent completed batches:
 - Expanded native `_abc` cache state: positive subclass cache, negative subclass
   cache, `_get_dump` cache visibility, `_reset_caches`, and negative-cache
   invalidation after virtual subclass registration.
+- Expanded native `_abc_init`: direct `_abc._abc_init(cls)` now validates class
+  input, computes `__abstractmethods__`, initializes registry/cache state, and
+  enables abstract-instantiation enforcement for classes initialized through the
+  CPython `abc.py` path.
 - Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
   `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
@@ -512,8 +516,9 @@ Native or runtime-backed foundation:
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
-  through concrete overrides, abstract-class instantiation `TypeError`, cache-token/register/dump/reset
-  helpers, virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
+  through concrete overrides, `_abc_init` class initialization for the CPython `abc.py` path,
+  abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers,
+  virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
   `isinstance`/`issubclass` metaclass hook dispatch, and ABC `__subclasshook__`
   True/False/`NotImplemented` fallback behavior, positive/negative subclass caches,
   and negative-cache invalidation after virtual subclass registration; exact CPython

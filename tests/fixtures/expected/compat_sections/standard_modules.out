@@ -66,6 +66,11 @@ property True True prop
 True 1
 abc-abstract-instantiation True True
 True 0 concrete
+False
+None True 1
+abc-direct-init True True
+0 0 0 True
+abc-init-type True
 True True True
 True True True
 True True True

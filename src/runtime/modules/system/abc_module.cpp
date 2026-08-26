@@ -18,6 +18,9 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
+
+#include <algorithm>
 
 namespace xlang3 {
 
@@ -75,6 +78,72 @@ bool append_unique_identity(Value& list_value, const Value& item) {
 
 bool clear_abc_list_attr(Value& abc_class, const char* attr, std::string& error) {
   return object_set_attr(abc_class, attr, Value::list({}), error);
+}
+
+bool value_has_abstract_marker(const Value& value) {
+  Value marker;
+  std::string ignored;
+  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+}
+
+void add_abstract_name(std::vector<Value>& names, const std::string& name) {
+  for (const auto& item : names) {
+    auto* string = value_as_string(item);
+    if (string != nullptr && string_object_to_string(*string) == name) {
+      return;
+    }
+  }
+  names.push_back(Value::string(name));
+}
+
+void collect_abstract_names(const Value& value, std::vector<std::string>& names) {
+  auto add_name = [&names](const Value& item) {
+    auto* string = value_as_string(item);
+    if (string == nullptr) {
+      return;
+    }
+    const auto name = string_object_to_string(*string);
+    if (std::find(names.begin(), names.end(), name) == names.end()) {
+      names.push_back(name);
+    }
+  };
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      add_name(item);
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      add_name(item);
+    }
+  } else if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      add_name(item);
+    }
+  }
+}
+
+Value abc_abstract_methods_for_class(ClassObject& klass) {
+  std::vector<Value> abstracts;
+  std::vector<std::string> inherited_names;
+  for (const auto& base : klass.bases) {
+    Value base_abstracts;
+    std::string ignored;
+    if (object_get_attr(base, "__abstractmethods__", base_abstracts, ignored)) {
+      collect_abstract_names(base_abstracts, inherited_names);
+    }
+  }
+  for (const auto& name : inherited_names) {
+    auto override_it = klass.attrs.find(name);
+    if (override_it == klass.attrs.end() || value_has_abstract_marker(override_it->second)) {
+      add_abstract_name(abstracts, name);
+    }
+  }
+  for (const auto& attr : klass.attrs) {
+    if (value_has_abstract_marker(attr.second)) {
+      add_abstract_name(abstracts, attr.first);
+    }
+  }
+  return Value::set(std::move(abstracts));
 }
 
 int64_t abc_negative_cache_version(const Value& abc_class) {
@@ -173,6 +242,28 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
 }
 
 bool abc_return_none(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_none(out);
+  return true;
+}
+
+bool abc_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_abc._abc_init() expected class";
+    return false;
+  }
+  if (!ensure_class(runtime, args[0], "_abc._abc_init() class", error)) {
+    return false;
+  }
+  Value abc_class = args[0];
+  auto* klass = value_as_class(abc_class);
+  if (klass == nullptr ||
+      !object_set_attr(abc_class, "__abstractmethods__", abc_abstract_methods_for_class(*klass), error) ||
+      !object_set_attr(abc_class, kRegistryAttr, Value::list({}), error) ||
+      !object_set_attr(abc_class, kCacheAttr, Value::list({}), error) ||
+      !object_set_attr(abc_class, kNegativeCacheAttr, Value::list({}), error) ||
+      !set_negative_cache_version(abc_class, g_cache_token, error)) {
+    return false;
+  }
   value_set_none(out);
   return true;
 }
@@ -384,7 +475,7 @@ bool abc_abstractproperty(Runtime& runtime, const Value* args, uint32_t argc, Va
 void register_abc_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_abc");
   builder.function("get_cache_token", abc_get_cache_token)
-      .function("_abc_init", abc_return_none)
+      .function("_abc_init", abc_init)
       .function("_abc_register", abc_register)
       .function("_abc_instancecheck", abc_instancecheck)
       .function("_abc_subclasscheck", abc_subclasscheck)
