@@ -561,6 +561,7 @@ try:
     sys._is_interned(42)
 except TypeError as err:
     print("sys-is-interned-type", "string" in str(err))
+print(sys._is_immortal(None), sys._is_immortal(True), sys._is_immortal(42), sys._is_immortal("abc"), sys._is_immortal([]))
 sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
 print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)

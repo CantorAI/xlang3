@@ -818,6 +818,16 @@ bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys._is_immortal expected object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_bool(out, args[0].tag != ValueTag::Object);
+  return true;
+}
+
 int64_t shallow_sizeof(const Value& value) {
   switch (value.tag) {
     case ValueTag::Invalid:
@@ -1472,6 +1482,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
   module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
   module_set_attr(sys, "_is_interned", runtime.make_native_function("sys._is_interned", sys_is_interned), error);
+  module_set_attr(sys, "_is_immortal", runtime.make_native_function("sys._is_immortal", sys_is_immortal), error);
   module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
   module_set_attr(sys, "getrefcount", runtime.make_native_function("sys.getrefcount", sys_getrefcount), error);
   module_set_attr(sys, "getallocatedblocks", runtime.make_native_function("sys.getallocatedblocks", sys_getallocatedblocks), error);

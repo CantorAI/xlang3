@@ -73,6 +73,10 @@ Recent completed batches:
   standard-library module-name set, so stdlib/package probes can recognize
   importable standard modules such as `asyncio`, `email`, `encodings`, and
   `tomllib` without pure-Python facades.
+- Added native `sys._is_immortal` for CPython 3.14 feature probes. XLang3
+  reports non-refcounted tagged singleton/scalar values as immortal and heap
+  objects as non-immortal, matching the runtime's actual ownership model
+  without adding a pure-Python facade.
 - Expanded native `sys` structseq-like metadata: generated `version_info`,
   `flags`, `float_info`, `hash_info`, `thread_info`, and Windows
   `windows_version` type objects now expose CPython-style
@@ -577,6 +581,7 @@ Native or runtime-backed foundation:
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
+  `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
