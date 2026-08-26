@@ -1,0 +1,86 @@
+<!--
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+# Python 3.14 Compatibility Goal
+
+This folder is the goal package for the XLang3 Python 3.14 compatibility work.
+It stores the goal, rules, current state, and queue used by the Codex-driven
+development loop.
+
+The shared runner scripts live in:
+
+```text
+agent/scripts/
+```
+
+Those scripts are intentionally XLang3-aware. They read `agent/config.toml`,
+which records this repository layout, the Visual Studio CMake build, fixture
+locations, this goal folder, the audit file, and the Codex prompt contract.
+
+The product audit remains in:
+
+```text
+doc/python314-compat-audit.md
+```
+
+The compatibility fixtures remain in:
+
+```text
+tests/fixtures/core/
+tests/fixtures/compat_sections/
+tests/fixtures/expected/
+```
+
+The agent loop reads the audit, finds unfinished items, builds XLang3 with the
+Visual Studio CMake toolchain, runs the fixture suite, and commits only after the
+tree passes validation.
+
+Typical use:
+
+```text
+C:\Python\Python314\python.exe agent\scripts\extract_context.py --section "Standard Modules Foundation"
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py --dry-run
+```
+
+To let the loop ask a Codex backend to do one batch, pass the backend command.
+The loop sends Codex a compact extracted prompt, not the full audit/control
+markdown every time. The command can use `{prompt_file}` or `{prompt}`. If
+neither placeholder is present, the prompt file path is appended.
+
+```text
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py ^
+  --codex-command "codex exec --dangerously-bypass-approvals-and-sandbox {prompt_file}" ^
+  --commit-message "Close Python 3.14 runtime compatibility gaps"
+```
+
+After manual Codex work, the lower-level fixture runner can still be used
+directly:
+
+```text
+C:\Python\Python314\python.exe agent\scripts\run_fixtures.py --xlang3 build\Release\xlang3.exe
+```
+
+The script is intentionally conservative: it does not edit code by itself, and
+it does not stage root-level scratch files or build output.
+
+Resume behavior:
+
+```text
+agent/python314_compat/.agent_runs/loop_state.json
+```
+
+The loop records its current phase there. If the process is stopped after Codex
+work but before validation or commit, running the same command again resumes the
+saved validation/commit path. Use `--reset-loop-state` only when intentionally
+discarding the saved batch.

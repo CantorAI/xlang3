@@ -11,19 +11,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-build/
-build-embedded-host/
-build-rp2040/
-build-rp2040-vs/
-.xlang3/
-tmp-ir/
-scratch/
-agent/*/.agent_runs/
-*.user
-*.suo
-*.vcxproj.user
-__pycache__/
-*.pyc
+default_goal = "python314_compat"
 
-browser-*.json
-github-*.json
+[repo]
+build_dir = "build"
+release_exe = "build/Release/xlang3.exe"
+fixture_root = "tests/fixtures"
+
+[goals.python314_compat]
+title = "XLang3 Python 3.14 Compatibility"
+folder = "agent/python314_compat"
+audit = "doc/python314-compat-audit.md"
+runs_dir = "agent/python314_compat/.agent_runs"
+state = "agent/python314_compat/state.md"
+queue = "agent/python314_compat/queue.md"
+rules = "agent/python314_compat/rules.md"
