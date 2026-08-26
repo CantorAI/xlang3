@@ -58,6 +58,10 @@ def default_xlang3(config: dict) -> str:
     return str(ROOT / config.get("repo", {}).get("release_exe", "build/Release/xlang3.exe"))
 
 
+def default_codex_command(config: dict) -> str:
+    return config.get("codex", {}).get("command", "")
+
+
 def run(command: list[str] | str, *, shell: bool = False) -> None:
     print()
     print("==", command if isinstance(command, str) else " ".join(command))
@@ -209,6 +213,34 @@ def read_loop_state(config: dict, goal: str) -> dict:
         raise SystemExit(f"invalid loop state file: {path}: {exc}") from exc
 
 
+def print_loop_status(config: dict, goal: str, section: str, limit: int) -> None:
+    current_state = read_loop_state(config, goal)
+    checked, partial, missing = audit_counts(config, goal, section)
+    items = unfinished_items(config, goal, section, limit)
+
+    print(f"Repo: {ROOT}")
+    print(f"Goal: {goal}")
+    print(f"Section: {section or 'whole audit'}")
+    print(f"Audit counts: checked={checked}, partial={partial}, missing={missing}")
+
+    if current_state.get("active"):
+        print(f"Saved loop phase: {current_state.get('phase', '')}")
+        print(f"Saved prompt: {current_state.get('prompt_path', '')}")
+    else:
+        print("Saved loop phase: none")
+
+    stageable_changes = changed_paths()
+    print(f"Stageable changed files: {len(stageable_changes)}")
+    for path in stageable_changes[:20]:
+        print(f"  {path}")
+    if len(stageable_changes) > 20:
+        print(f"  ... {len(stageable_changes) - 20} more")
+
+    print("Next unfinished rows:")
+    for line, mark, text in items:
+        print(f"[{mark}] line {line}: {text}")
+
+
 def write_loop_state(config: dict, goal: str, state: dict) -> None:
     path = state_path(config, goal)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -280,6 +312,10 @@ def validate(cmake: str, xlang3: str, skip_build: bool, skip_tests: bool) -> Non
         print()
         print("Status: checking patch whitespace")
         run(["git", "diff", "--check"])
+
+
+def should_resume_as_codex_done(phase: str, stageable_changes: list[str]) -> bool:
+    return phase in {"prompt_written", "codex_running"} and bool(stageable_changes)
 
 
 def stageable(path: str) -> bool:
@@ -357,6 +393,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=8, help="Number of unfinished audit rows to include in the Codex prompt.")
     parser.add_argument("--iterations", type=int, default=1, help="Number of Codex work/validate/commit cycles.")
     parser.add_argument("--codex-command", default="", help="Backend command. Use {prompt_file} or {prompt}; otherwise prompt file is appended.")
+    parser.add_argument("--status", action="store_true", help="Show current goal/audit/resume status and exit.")
     parser.add_argument("--dry-run", action="store_true", help="Write and print prompts without invoking Codex, building, testing, or committing.")
     parser.add_argument("--no-commit", action="store_true", help="Validate but do not commit.")
     parser.add_argument("--commit-message", default="", help="Commit message for validated changes.")
@@ -371,16 +408,22 @@ def main() -> int:
     config = load_config()
     goal = args.goal or config.get("default_goal", "")
     xlang3 = args.xlang3 or default_xlang3(config)
+    codex_command = args.codex_command or default_codex_command(config)
     cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
 
     if args.reset_loop_state:
         clear_loop_state(config, goal)
         print(f"Cleared loop state for goal: {goal}")
 
+    if args.status:
+        print_loop_status(config, goal, args.section, args.limit)
+        return 0
+
     for iteration in range(1, args.iterations + 1):
         saved_state = read_loop_state(config, goal)
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
         active_section = saved_state.get("section", args.section) if resume_phase else args.section
+        stageable_changes = changed_paths()
 
         print()
         print("=" * 72)
@@ -390,16 +433,48 @@ def main() -> int:
         print(f"Section: {active_section or 'whole audit'}")
         if resume_phase:
             print(f"Resume phase: {resume_phase}")
+            print(f"Stageable changed files: {len(stageable_changes)}")
         print("=" * 72)
 
-        if resume_phase and resume_phase not in {"codex_done", "validated"}:
-            print("Saved state is from an incomplete prompt/backend phase; starting a fresh iteration.")
+        if should_resume_as_codex_done(resume_phase, stageable_changes):
+            print("Saved phase was interrupted, but stageable changes exist; resuming at validation.")
+            resume_phase = "codex_done"
+        elif resume_phase in {"prompt_written", "codex_running"}:
+            prompt_path = Path(saved_state.get("prompt_path", ""))
+            if not prompt_path.exists():
+                print("Saved prompt is missing; starting a fresh iteration.")
+                clear_loop_state(config, goal)
+                saved_state = {}
+                resume_phase = ""
+            else:
+                prompt = prompt_path.read_text(encoding="utf-8")
+                print("Resuming saved Codex prompt.")
+                write_loop_state(config, goal, {
+                    "active": True,
+                    "phase": "codex_running",
+                    "goal": goal,
+                    "section": active_section,
+                    "prompt_path": str(prompt_path),
+                    "iteration": iteration,
+                })
+                invoke_codex(codex_command, prompt_path, prompt)
+                write_loop_state(config, goal, {
+                    "active": True,
+                    "phase": "codex_done",
+                    "goal": goal,
+                    "section": active_section,
+                    "prompt_path": str(prompt_path),
+                    "iteration": iteration,
+                })
+                resume_phase = "codex_done"
+        elif resume_phase and resume_phase not in {"codex_done", "validated"}:
+            print("Saved state is not recognized; starting a fresh iteration.")
             clear_loop_state(config, goal)
             saved_state = {}
             resume_phase = ""
 
         if not resume_phase:
-            checked, partial, missing = audit_counts(config, goal, active_section, )
+            checked, partial, missing = audit_counts(config, goal, active_section)
             items = unfinished_items(config, goal, active_section, args.limit)
             print()
             print(f"Audit counts: checked={checked}, partial={partial}, missing={missing}")
@@ -428,7 +503,15 @@ def main() -> int:
                 clear_loop_state(config, goal)
                 continue
 
-            invoke_codex(args.codex_command, prompt_path, prompt)
+            write_loop_state(config, goal, {
+                "active": True,
+                "phase": "codex_running",
+                "goal": goal,
+                "section": active_section,
+                "prompt_path": str(prompt_path),
+                "iteration": iteration,
+            })
+            invoke_codex(codex_command, prompt_path, prompt)
             write_loop_state(config, goal, {
                 "active": True,
                 "phase": "codex_done",

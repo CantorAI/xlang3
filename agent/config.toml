@@ -18,6 +18,9 @@ build_dir = "build"
 release_exe = "build/Release/xlang3.exe"
 fixture_root = "tests/fixtures"
 
+[codex]
+command = ""
+
 [goals.python314_compat]
 title = "XLang3 Python 3.14 Compatibility"
 folder = "agent/python314_compat"

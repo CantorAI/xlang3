@@ -80,7 +80,10 @@ Resume behavior:
 agent/python314_compat/.agent_runs/loop_state.json
 ```
 
-The loop records its current phase there. If the process is stopped after Codex
-work but before validation or commit, running the same command again resumes the
-saved validation/commit path. Use `--reset-loop-state` only when intentionally
-discarding the saved batch.
+The loop records its current phase there. If the process is stopped while Codex
+is running, the next run checks for stageable source changes. With changes, it
+continues to validation; without changes, it reruns the saved prompt. If it is
+stopped after validation, the next run resumes at commit.
+
+Use `--status` to inspect the saved phase and next audit rows. Use
+`--reset-loop-state` only when intentionally discarding the saved batch.

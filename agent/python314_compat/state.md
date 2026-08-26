@@ -43,4 +43,5 @@ Add fixture coverage under tests/fixtures.
 Build with Visual Studio CMake.
 Run agent/scripts/run_fixtures.py.
 Commit only after tests pass.
+If stopped or killed, rerun the same command and resume from loop_state.json.
 ```

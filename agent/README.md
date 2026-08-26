@@ -25,3 +25,11 @@ documents, and commit flow.
 
 Goal folders such as `agent/python314_compat` hold the durable instructions,
 queue, state, and skill metadata for one long-running product goal.
+
+Useful commands:
+
+```text
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py --goal python314_compat --status
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py --goal python314_compat --dry-run
+C:\Python\Python314\python.exe agent\scripts\run_fixtures.py
+```
