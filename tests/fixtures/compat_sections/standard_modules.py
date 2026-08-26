@@ -154,6 +154,29 @@ print(ast.literal_eval(const_node), list(ast.iter_fields(bin_node))[0][0], len(l
 print(ast.dump(bin_node))
 print(isinstance(ast.parse("x = 1"), ast.Module), ast.parse("1", mode="eval").__class__.__name__)
 
+# abc/_abc: native ABCMeta register/check helpers feed normal isinstance/issubclass.
+import abc
+import _abc
+
+class NativeABC(metaclass=abc.ABCMeta):
+    pass
+
+class Concrete:
+    pass
+
+token_before = abc.get_cache_token()
+print(NativeABC.register(Concrete) is Concrete, abc.get_cache_token() > token_before)
+print(issubclass(Concrete, NativeABC), isinstance(Concrete(), NativeABC))
+print(len(_abc._get_dump(NativeABC)[0]) >= 1, _abc._abc_subclasscheck(NativeABC, Concrete), _abc._abc_instancecheck(NativeABC, Concrete()))
+_abc._reset_registry(NativeABC)
+print(issubclass(Concrete, NativeABC), _abc._abc_subclasscheck(NativeABC, Concrete))
+
+@abc.abstractmethod
+def abstract_fn():
+    pass
+
+print(abstract_fn.__isabstractmethod__)
+
 # typing: aliases, decorators, TypeVar, NewType, Generic, and Protocol foundations.
 import typing
 

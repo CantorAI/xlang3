@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -162,8 +163,66 @@ const Value* find_builtin_type(Runtime& runtime, const char* name) {
   return name == nullptr ? nullptr : runtime.find_builtin(name);
 }
 
+bool call_class_check_hook(
+    Runtime& runtime,
+    const Value& classinfo,
+    const char* hook_name,
+    const Value& hook_arg,
+    bool& out,
+    std::string& error) {
+  Value hook;
+  std::string hook_error;
+  if (!object_get_attr(classinfo, hook_name, hook, hook_error)) {
+    return true;
+  }
+
+  Value function_value;
+  std::vector<Value> leading_args;
+  if (auto* bound = value_as_bound_method(hook)) {
+    value_assign_fast(function_value, bound->function);
+    leading_args.push_back(bound->self);
+  } else {
+    value_assign_fast(function_value, hook);
+  }
+  leading_args.push_back(hook_arg);
+
+  Value result;
+  if (auto* native = value_as_native_function(function_value)) {
+    if (native->callback == nullptr ||
+        !native->callback(
+            runtime,
+            leading_args.empty() ? nullptr : leading_args.data(),
+            static_cast<uint32_t>(leading_args.size()),
+            result,
+            error,
+            native->user_data)) {
+      if (error.empty()) {
+        error = std::string(hook_name) + " failed";
+      }
+      return false;
+    }
+  } else if (auto* function = value_as_function(function_value)) {
+    CallArgsView args;
+    args.leading = leading_args.empty() ? nullptr : leading_args.data();
+    args.leading_count = static_cast<uint32_t>(leading_args.size());
+    Interpreter interpreter(runtime);
+    RuntimeResult call_result = interpreter.run_function_value(function, args);
+    if (!call_result.errors.empty()) {
+      error = call_result.errors.front();
+      return false;
+    }
+    value_assign_fast(result, call_result.value);
+  } else {
+    return true;
+  }
+
+  out = value_truthy(result);
+  return true;
+}
+
 bool class_tuple_matches(
     Runtime& runtime,
+    const Value& check_subject,
     const Value& actual_type,
     const Value& classinfo,
     bool subclass_check,
@@ -172,7 +231,7 @@ bool class_tuple_matches(
   if (auto* tuple = value_as_tuple(classinfo)) {
     for (const auto& item : tuple->items) {
       bool item_match = false;
-      if (!class_tuple_matches(runtime, actual_type, item, subclass_check, item_match, error)) {
+      if (!class_tuple_matches(runtime, check_subject, actual_type, item, subclass_check, item_match, error)) {
         return false;
       }
       if (item_match) {
@@ -194,6 +253,13 @@ bool class_tuple_matches(
   }
 
   out = class_is_subclass(actual, expected);
+  if (!out) {
+    const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
+    const Value& hook_arg = subclass_check ? actual_type : check_subject;
+    if (!call_class_check_hook(runtime, classinfo, hook_name, hook_arg, out, error)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -250,7 +316,7 @@ bool builtin_isinstance(
     return false;
   }
   bool result = false;
-  if (!class_tuple_matches(runtime, actual_type, args[1], false, result, error)) {
+  if (!class_tuple_matches(runtime, args[0], actual_type, args[1], false, result, error)) {
     return false;
   }
   out = Value::boolean(result);
@@ -275,7 +341,7 @@ bool builtin_issubclass(
     return false;
   }
   bool result = false;
-  if (!class_tuple_matches(runtime, args[0], args[1], true, result, error)) {
+  if (!class_tuple_matches(runtime, args[0], args[0], args[1], true, result, error)) {
     return false;
   }
   out = Value::boolean(result);

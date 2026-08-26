@@ -29,6 +29,11 @@ suppressed
 9 left 6
 BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
 True Expression
+True True
+True True
+True True True
+False False
+True
 T 2 object True
 5 UserId int
 x List Optional

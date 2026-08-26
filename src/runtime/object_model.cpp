@@ -385,6 +385,25 @@ bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, 
   return false;
 }
 
+bool bind_metaclass_attr_for_class_access(const Value& class_value, Value attr, Value& out) {
+  if (auto* method = value_as_static_method(attr)) {
+    value_assign_fast(out, method->function);
+    return true;
+  }
+  if (auto* method = value_as_class_method(attr)) {
+    Value function;
+    value_assign_fast(function, method->function);
+    out = Value::bound_method(class_value, std::move(function));
+    return true;
+  }
+  if (value_as_function(attr) != nullptr || value_as_native_function(attr) != nullptr) {
+    out = Value::bound_method(class_value, std::move(attr));
+    return true;
+  }
+  value_assign_fast(out, attr);
+  return true;
+}
+
 bool class_or_bases_have_descriptors(const ClassObject* klass) {
   if (klass->has_descriptors) {
     return true;
@@ -1563,6 +1582,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (!class_lookup_attr(klass, name, out, error)) {
+      auto* metaclass = value_as_class(klass->metaclass);
+      if (metaclass != nullptr) {
+        Value meta_attr;
+        std::string meta_error;
+        if (class_lookup_attr(metaclass, name, meta_attr, meta_error)) {
+          return bind_metaclass_attr_for_class_access(object, std::move(meta_attr), out);
+        }
+      }
       error = "class '" + klass->name + "' has no attribute '" + name + "'";
       return false;
     }

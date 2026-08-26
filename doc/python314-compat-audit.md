@@ -386,7 +386,9 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, and `mktime` placeholder; full calendrical tuple APIs and platform clock exactness pending
 - [x] `_thread` subset
-- [~] `abc` / `_abc`: ABC cache-token/register/check facade; real ABC registry/cache semantics pending
+- [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
+  virtual subclass checks, and `isinstance`/`issubclass` metaclass hook dispatch; negative caches,
+  `__subclasshook__`, and exact CPython invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, and `S_IS*` helpers
