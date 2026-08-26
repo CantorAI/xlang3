@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` structseq tuple-behavior batch.
+Last updated after the native `sys` CPython 3.14 metadata/probe batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` CPython 3.14 metadata/probe coverage with `_git`,
+  `_vpath`, `_home`, `float_repr_style`, `getunicodeinternedsize()`,
+  `_get_cpu_count_config()`, `is_remote_debug_enabled()`,
+  `_clear_type_descriptors()`, `_dump_tracelets()`, `_settraceallthreads()`,
+  and `_setprofileallthreads()`.
 - Expanded native `sys` structseq behavior: `version_info`, `flags`,
   `int_info`, `float_info`, `hash_info`, `thread_info`, Windows
   `windows_version`, `sys.implementation.version`, and `asyncgen_hooks` now
@@ -615,7 +620,11 @@ Native or runtime-backed foundation:
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors,
   tuple inheritance, sequence iteration, and tuple-backed `count`/`index`,
   `implementation` metadata, `builtin_module_names`,
-  CPython 3.14 top-level `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
+  CPython 3.14 top-level `stdlib_module_names`, `_git`/`_vpath`/`_home`
+  metadata, `float_repr_style`, `getunicodeinternedsize`,
+  `_get_cpu_count_config`, `is_remote_debug_enabled`,
+  `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors`,
+  `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,

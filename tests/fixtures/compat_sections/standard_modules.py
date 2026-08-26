@@ -558,6 +558,9 @@ sys_intern_prefix = "xlang"
 sys_intern_dynamic = sys_intern_prefix + "3"
 sys_intern_canonical = sys.intern(sys_intern_dynamic)
 print(sys.intern("xlang3") is sys_intern_canonical, sys._is_interned(sys_intern_canonical), sys._is_interned(sys_intern_dynamic))
+unicode_interned_before = sys.getunicodeinternedsize()
+sys.intern("interned-size-probe")
+print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "XLang3", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
 try:
     sys._is_interned(42)
 except TypeError as err:
@@ -615,6 +618,8 @@ def sys_profile_probe(frame, event, arg):
 sys.setprofile(sys_profile_probe)
 print(sys.getprofile() is sys_profile_probe, sys.is_finalizing())
 sys.setprofile(None)
+sys._setprofileallthreads(sys_profile_probe)
+print(sys.getprofile() is sys_profile_probe, sys._setprofileallthreads(None) is None, sys.getprofile() is None)
 def sys_trace_probe(frame, event, arg):
     return sys_trace_probe
 def sys_call_tracing_probe(left, right):
@@ -622,6 +627,8 @@ def sys_call_tracing_probe(left, right):
 sys.settrace(sys_trace_probe)
 print(sys.gettrace() is sys_trace_probe, sys.call_tracing(sys_call_tracing_probe, (2, 5)), sys.gettrace() is sys_trace_probe)
 sys.settrace(None)
+sys._settraceallthreads(sys_trace_probe)
+print(sys.gettrace() is sys_trace_probe, sys._settraceallthreads(None) is None, sys.gettrace() is None)
 try:
     sys.call_tracing(sys_call_tracing_probe, [1, 2])
 except TypeError as err:
@@ -681,7 +688,7 @@ multi_thread_exceptions = sys._current_exceptions()
 print(len(multi_thread_exceptions) >= 2, threading.get_ident() in multi_thread_exceptions, sys_exception_thread_ident[0] in multi_thread_exceptions, multi_thread_exceptions[sys_exception_thread_ident[0]] is sys_exception_thread_error[0])
 sys_exception_thread_release.set()
 sys_exception_thread.join()
-print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys.get_coroutine_origin_tracking_depth())
+print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors() is None, sys._dump_tracelets() is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
 sys.set_coroutine_origin_tracking_depth(2)
 print(sys.get_coroutine_origin_tracking_depth())
 sys.set_coroutine_origin_tracking_depth(0)

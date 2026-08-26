@@ -737,6 +737,10 @@ bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
+bool sys_settraceallthreads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return sys_settrace(runtime, args, argc, out, error, user_data);
+}
+
 bool sys_call_tracing(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "sys.call_tracing expected function and argument tuple";
@@ -845,6 +849,15 @@ bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value
   return true;
 }
 
+bool sys_get_cpu_count_config(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._get_cpu_count_config expected 0 arguments";
+    return false;
+  }
+  value_set_int64(out, -1);
+  return true;
+}
+
 bool sys_clear_internal_caches(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys._clear_internal_caches expected 0 arguments";
@@ -855,6 +868,10 @@ bool sys_clear_internal_caches(Runtime&, const Value*, uint32_t argc, Value& out
 }
 
 bool sys_clear_type_cache(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return sys_clear_internal_caches(runtime, args, argc, out, error, user_data);
+}
+
+bool sys_clear_type_descriptors(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   return sys_clear_internal_caches(runtime, args, argc, out, error, user_data);
 }
 
@@ -1064,6 +1081,16 @@ bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     }
   }
   value_set_bool(out, false);
+  return true;
+}
+
+bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getunicodeinternedsize expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(interned_strings().size()));
   return true;
 }
 
@@ -1341,6 +1368,10 @@ bool sys_getprofile(Runtime& runtime, const Value*, uint32_t argc, Value& out, s
   return true;
 }
 
+bool sys_setprofileallthreads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return sys_setprofile(runtime, args, argc, out, error, user_data);
+}
+
 double g_switch_interval = 0.005;
 
 bool sys_getswitchinterval(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1412,6 +1443,15 @@ bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t ar
 bool sys_is_finalizing(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys.is_finalizing expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
+bool sys_is_remote_debug_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.is_remote_debug_enabled expected 0 arguments";
     return false;
   }
   out = Value::boolean(false);
@@ -1518,6 +1558,15 @@ bool sys_debugmallocstats(Runtime&, const Value*, uint32_t argc, Value& out, std
             << "object_blocks=" << live_block_count(object_stats) << "\n"
             << "bucket_blocks=" << live_block_count(bucket_stats) << "\n"
             << "large_blocks=" << live_block_count(large_stats) << "\n";
+  value_set_none(out);
+  return true;
+}
+
+bool sys_dump_tracelets(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._dump_tracelets expected 0 arguments";
+    return false;
+  }
   value_set_none(out);
   return true;
 }
@@ -1660,6 +1709,10 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "hexversion", Value::int64(0x030e07f0), error);
   module_set_attr(sys, "api_version", Value::int64(1013), error);
   module_set_attr(sys, "abiflags", Value::string(""), error);
+  module_set_attr(sys, "_git", Value::tuple({Value::string("XLang3"), Value::string(""), Value::string("")}), error);
+  module_set_attr(sys, "_vpath", Value::string(""), error);
+  module_set_attr(sys, "_home", Value::none(), error);
+  module_set_attr(sys, "float_repr_style", Value::string("short"), error);
   module_set_attr(sys, "platform", Value::string(
 #if defined(_WIN32)
                                       "win32"
@@ -1748,25 +1801,30 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
   module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
   module_set_attr(sys, "_is_interned", runtime.make_native_function("sys._is_interned", sys_is_interned), error);
+  module_set_attr(sys, "getunicodeinternedsize", runtime.make_native_function("sys.getunicodeinternedsize", sys_getunicodeinternedsize), error);
   module_set_attr(sys, "_is_immortal", runtime.make_native_function("sys._is_immortal", sys_is_immortal), error);
   module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
   module_set_attr(sys, "getrefcount", runtime.make_native_function("sys.getrefcount", sys_getrefcount), error);
   module_set_attr(sys, "getallocatedblocks", runtime.make_native_function("sys.getallocatedblocks", sys_getallocatedblocks), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
+  module_set_attr(sys, "_settraceallthreads", runtime.make_native_function("sys._settraceallthreads", sys_settraceallthreads), error);
   module_set_attr(sys, "call_tracing", runtime.make_native_function("sys.call_tracing", sys_call_tracing), error);
   module_set_attr(sys, "setprofile", runtime.make_native_function("sys.setprofile", sys_setprofile), error);
   module_set_attr(sys, "getprofile", runtime.make_native_function("sys.getprofile", sys_getprofile), error);
+  module_set_attr(sys, "_setprofileallthreads", runtime.make_native_function("sys._setprofileallthreads", sys_setprofileallthreads), error);
   module_set_attr(sys, "getswitchinterval", runtime.make_native_function("sys.getswitchinterval", sys_getswitchinterval), error);
   module_set_attr(sys, "setswitchinterval", runtime.make_native_function("sys.setswitchinterval", sys_setswitchinterval), error);
   module_set_attr(sys, "get_int_max_str_digits", runtime.make_native_function("sys.get_int_max_str_digits", sys_get_int_max_str_digits), error);
   module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
   module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
+  module_set_attr(sys, "is_remote_debug_enabled", runtime.make_native_function("sys.is_remote_debug_enabled", sys_is_remote_debug_enabled), error);
   module_set_attr(sys, "_is_gil_enabled", runtime.make_native_function("sys._is_gil_enabled", sys_is_gil_enabled), error);
   module_set_attr(sys, "activate_stack_trampoline", runtime.make_native_function("sys.activate_stack_trampoline", sys_activate_stack_trampoline), error);
   module_set_attr(sys, "deactivate_stack_trampoline", runtime.make_native_function("sys.deactivate_stack_trampoline", sys_deactivate_stack_trampoline), error);
   module_set_attr(sys, "is_stack_trampoline_active", runtime.make_native_function("sys.is_stack_trampoline_active", sys_is_stack_trampoline_active), error);
   module_set_attr(sys, "_debugmallocstats", runtime.make_native_function("sys._debugmallocstats", sys_debugmallocstats), error);
+  module_set_attr(sys, "_dump_tracelets", runtime.make_native_function("sys._dump_tracelets", sys_dump_tracelets), error);
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
   jit_builder.function("is_available", sys_jit_is_available)
       .function("is_enabled", sys_jit_is_enabled)
@@ -1784,8 +1842,10 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_getframemodulename", runtime.make_native_function("sys._getframemodulename", sys_getframemodulename), error);
   module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);
   module_set_attr(sys, "_current_exceptions", runtime.make_native_function("sys._current_exceptions", sys_current_exceptions), error);
+  module_set_attr(sys, "_get_cpu_count_config", runtime.make_native_function("sys._get_cpu_count_config", sys_get_cpu_count_config), error);
   module_set_attr(sys, "_clear_internal_caches", runtime.make_native_function("sys._clear_internal_caches", sys_clear_internal_caches), error);
   module_set_attr(sys, "_clear_type_cache", runtime.make_native_function("sys._clear_type_cache", sys_clear_type_cache), error);
+  module_set_attr(sys, "_clear_type_descriptors", runtime.make_native_function("sys._clear_type_descriptors", sys_clear_type_descriptors), error);
   module_set_attr(sys, "get_coroutine_origin_tracking_depth", runtime.make_native_function("sys.get_coroutine_origin_tracking_depth", sys_get_coroutine_origin_tracking_depth), error);
   module_set_attr(sys, "set_coroutine_origin_tracking_depth", runtime.make_native_function("sys.set_coroutine_origin_tracking_depth", sys_set_coroutine_origin_tracking_depth), error);
   module_set_attr(sys, "get_asyncgen_hooks", runtime.make_native_function("sys.get_asyncgen_hooks", sys_get_asyncgen_hooks), error);

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys structseq metadata objects expose tuple-backed count/index behavior
+sys exposes CPython 3.14 metadata/probe helpers for stdlib feature checks
 ```
 
 Current next loop:
