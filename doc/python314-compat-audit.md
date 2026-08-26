@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.stdlib_module_names` and thread-id frame snapshot batch.
+Last updated after the native `sys.getrefcount` / `sys.getallocatedblocks` probe batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: added `getrefcount()` backed by XLang3 object
+  refcounts and `getallocatedblocks()` backed by current thread allocator
+  block counters for CPython-style runtime/memory probes.
 - Expanded native `sys`: added `stdlib_module_names` metadata for standard
   library membership probes, and keyed `_current_frames()` /
   `_current_exceptions()` by the active XLang3 thread identifier instead of a
@@ -505,7 +508,8 @@ Native or runtime-backed foundation:
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
   `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`,
-  `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`, `getsizeof`, `exit`, display/exception hook
+  `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`,
+  `getsizeof`, `getrefcount`, `getallocatedblocks`, `exit`, display/exception hook
   placeholders, audit hook dispatch, stdio capability probes, profile/switch-interval/int-string
   helpers, trace/debug hooks, current-thread-id-keyed `_current_frames` snapshots,
   `_current_exceptions`, cache-clear hooks, coroutine-origin tracking helpers,

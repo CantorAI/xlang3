@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-35b5584 Close source encoding gaps for tokenizer
+Native sys refcount/allocation probes
 ```
 
 Current next loop:

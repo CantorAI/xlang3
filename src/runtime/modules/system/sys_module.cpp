@@ -23,7 +23,9 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include "../thread/thread_objects.h"
+#include "runtime/memory/x3_runtime_memory.h"
 
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -800,6 +802,41 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool sys_getrefcount(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.getrefcount expected object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].tag == ValueTag::Object && args[0].as.obj != nullptr) {
+    const uint32_t refcount = args[0].as.obj->refcnt.load(std::memory_order_relaxed);
+    value_set_int64(out, static_cast<int64_t>(refcount) + 1);
+    return true;
+  }
+  value_set_int64(out, 1);
+  return true;
+}
+
+uint64_t live_block_count(const memory::X3MemoryCounter& counter) {
+  return counter.alloc_count >= counter.free_count ? counter.alloc_count - counter.free_count : 0;
+}
+
+bool sys_getallocatedblocks(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getallocatedblocks expected 0 arguments";
+    return false;
+  }
+  const auto& object_stats = memory::x3_thread_object_pools().stats();
+  const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
+  const auto& large_stats = memory::x3_thread_buckets().large_stats();
+  const uint64_t blocks =
+      live_block_count(object_stats) + live_block_count(bucket_stats) + live_block_count(large_stats);
+  value_set_int64(out, blocks > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())
+                           ? std::numeric_limits<int64_t>::max()
+                           : static_cast<int64_t>(blocks));
+  return true;
+}
+
 bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
     error = "sys.exit expected optional status";
@@ -1200,6 +1237,8 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
   module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
   module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
+  module_set_attr(sys, "getrefcount", runtime.make_native_function("sys.getrefcount", sys_getrefcount), error);
+  module_set_attr(sys, "getallocatedblocks", runtime.make_native_function("sys.getallocatedblocks", sys_getallocatedblocks), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
   module_set_attr(sys, "setprofile", runtime.make_native_function("sys.setprofile", sys_setprofile), error);

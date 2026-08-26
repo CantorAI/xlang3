@@ -519,6 +519,9 @@ sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
+sys_allocated_before = sys.getallocatedblocks()
+sys_ref_target = []
+print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
