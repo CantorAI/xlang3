@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.getsizeof` protocol batch.
+Last updated after the native `time.struct_time` class metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `time.struct_time`: the type object now exposes
+  CPython-style structseq metadata (`n_sequence_fields`, `n_fields`, and
+  `n_unnamed_fields`) plus non-null `tm_zone`/`tm_gmtoff` member descriptors,
+  matching stdlib probes that inspect the type rather than an instance.
 - Expanded native `sys.getsizeof`: the function now honors a callable
   `__sizeof__()` protocol result for Python objects and returns the supplied
   default when an unusable non-callable `__sizeof__` attribute is present,
@@ -572,8 +576,9 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
-  `struct_time` with CPython 3.14-style `n_fields` plus `tm_zone`/`tm_gmtoff` named fields,
-  constructor dict extra-field handling, long-sequence rejection, and platform-backed timezone constants/names;
+  `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
+  `n_unnamed_fields` plus `tm_zone`/`tm_gmtoff` named/member fields, constructor dict
+  extra-field handling, long-sequence rejection, and platform-backed timezone constants/names;
   locale-specific parsing,
   historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset

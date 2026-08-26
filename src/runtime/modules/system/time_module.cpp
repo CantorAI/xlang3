@@ -157,6 +157,13 @@ Value make_struct_time(const Value& klass, const std::tm& tm, const Value& zone 
   return instance;
 }
 
+Value make_member_descriptor(const std::string& name) {
+  Value descriptor = Value::instance(Value::class_object("member_descriptor", {}));
+  std::string ignored;
+  object_set_attr(descriptor, "__name__", Value::string(name), ignored);
+  return descriptor;
+}
+
 Value make_struct_time_from_timestamp(const Value& klass, std::time_t timestamp, bool utc) {
   const std::tm tm = tm_from_time_t(timestamp, utc);
   if (utc) {
@@ -715,6 +722,11 @@ void register_time_module(Runtime& runtime) {
       {
           {"__module__", Value::string("time")},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init)},
+          {"n_sequence_fields", Value::int64(9)},
+          {"n_fields", Value::int64(11)},
+          {"n_unnamed_fields", Value::int64(0)},
+          {"tm_zone", make_member_descriptor("tm_zone")},
+          {"tm_gmtoff", make_member_descriptor("tm_gmtoff")},
       });
   runtime.register_native_package_cleanup(state, time_module_state_cleanup);
 

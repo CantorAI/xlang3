@@ -705,6 +705,7 @@ print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isi
 # time structseq behavior and parsing.
 print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
 print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC", epoch_utc.tm_gmtoff == 0)
+print(time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct_time.n_unnamed_fields, time.struct_time.tm_zone is not None, time.struct_time.tm_gmtoff is not None)
 constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123))
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})
