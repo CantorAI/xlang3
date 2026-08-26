@@ -158,6 +158,8 @@ True True True
 Y 456 9 11
 (9, 999, -1) 9 999
 weekday weekday
+True 1 2 7 6
+struct-time-index-missing True
 struct-time-extra True
 struct-time-extra True
 struct-time-extra True

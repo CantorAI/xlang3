@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.struct_time constructor preserves CPython 3.14 stored sequence fields
+time.struct_time is a tuple subclass with tuple-backed count/index
 ```
 
 Current next loop:

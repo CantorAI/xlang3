@@ -720,6 +720,11 @@ print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_t
 print(constructed_dict_time.tm_zone, constructed_dict_time.tm_gmtoff, len(constructed_dict_time), constructed_dict_time.n_fields)
 print(tuple(constructed_preserved_time)[6:9], constructed_preserved_time.tm_wday, constructed_preserved_time.tm_yday)
 print(constructed_string_field_time.tm_wday, tuple(constructed_string_field_time)[6])
+print(isinstance(constructed_time, tuple), constructed_time.count(2026), constructed_time.count(2), constructed_time.index(238), constructed_time.index(2, 6))
+try:
+    constructed_time.index("missing")
+except ValueError as err:
+    print("struct-time-index-missing", "not in tuple" in str(err))
 for bad_struct_time_args in [
     ((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X"), {"tm_zone": "Y"}),
     ((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"unexpected": "Y"}),

@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
 
 #include <chrono>
 #include <ctime>
@@ -209,6 +210,89 @@ bool int_from_value(const Value& value, const char* name, int& out, std::string&
   }
   out = static_cast<int>(value.as.i64);
   return true;
+}
+
+bool struct_time_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
+  Value tuple_value;
+  std::string ignored;
+  if (!object_get_attr(self, "_tuple", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
+    error = std::string(method) + " target has no tuple storage";
+    return false;
+  }
+  return true;
+}
+
+bool normalize_struct_time_bound(const Value& value, size_t size, size_t& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = "time.struct_time.index bounds must be int";
+    return false;
+  }
+  int64_t index = value.as.i64;
+  if (index < 0) {
+    index += static_cast<int64_t>(size);
+  }
+  if (index < 0) {
+    index = 0;
+  }
+  if (index > static_cast<int64_t>(size)) {
+    index = static_cast<int64_t>(size);
+  }
+  out = static_cast<size_t>(index);
+  return true;
+}
+
+bool time_struct_time_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "time.struct_time.count expected value";
+    return false;
+  }
+  TupleObject* tuple = nullptr;
+  if (!struct_time_tuple_storage(args[0], "time.struct_time.count", tuple, error)) {
+    return false;
+  }
+  int64_t count = 0;
+  for (const auto& item : tuple->items) {
+    if (value_key_equal(item, args[1])) {
+      ++count;
+    }
+  }
+  out = Value::int64(count);
+  return true;
+}
+
+bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "time.struct_time.index expected value and optional bounds";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  TupleObject* tuple = nullptr;
+  if (!struct_time_tuple_storage(args[0], "time.struct_time.index", tuple, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  size_t start = 0;
+  size_t stop = tuple->items.size();
+  if (argc >= 3 && !normalize_struct_time_bound(args[2], tuple->items.size(), start, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc >= 4 && !normalize_struct_time_bound(args[3], tuple->items.size(), stop, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (start > stop) {
+    start = stop;
+  }
+  for (size_t i = start; i < stop; ++i) {
+    if (value_key_equal(tuple->items[i], args[1])) {
+      out = Value::int64(static_cast<int64_t>(i));
+      return true;
+    }
+  }
+  error = "tuple.index(x): x not in tuple";
+  runtime.raise_class_error("ValueError", error);
+  return false;
 }
 
 bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error) {
@@ -755,17 +839,21 @@ TimezoneInfo platform_timezone_info() {
 
 void register_time_module(Runtime& runtime) {
   auto* state = new TimeModuleState();
+  const Value* tuple_base = runtime.find_builtin("tuple");
   state->struct_time_class = Value::class_object(
       "struct_time",
       {
           {"__module__", Value::string("time")},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init)},
+          {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count)},
+          {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index)},
           {"n_sequence_fields", Value::int64(9)},
           {"n_fields", Value::int64(11)},
           {"n_unnamed_fields", Value::int64(0)},
           {"tm_zone", make_member_descriptor("tm_zone")},
           {"tm_gmtoff", make_member_descriptor("tm_gmtoff")},
-      });
+      },
+      tuple_base != nullptr ? *tuple_base : Value::invalid());
   runtime.register_native_package_cleanup(state, time_module_state_cleanup);
 
   const TimezoneInfo timezone = platform_timezone_info();
