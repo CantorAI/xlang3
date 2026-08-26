@@ -725,7 +725,8 @@ Value Value::frame(
     Value globals_module,
     uint32_t instruction_index,
     Value locals,
-    Value back) {
+    Value back,
+    Value builtins) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<FrameObject>(ObjectKind::Frame);
@@ -735,6 +736,7 @@ Value Value::frame(
   obj->globals_module = std::move(globals_module);
   obj->locals = std::move(locals);
   obj->back = std::move(back);
+  obj->builtins = std::move(builtins);
   v.as.obj = &obj->header;
   return v;
 }

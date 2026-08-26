@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` int-string digit runtime-state batch.
+Last updated after the native frame `f_builtins` snapshot batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native frame snapshots behind `sys._getframe()` and
+  `sys._current_frames()`: frame objects now expose `f_builtins` as a
+  snapshot of the active builtins module mapping instead of an empty
+  placeholder dict, covering stdlib inspection/debug probes that expect
+  builtins such as `len`, `print`, and exception classes to be present.
 - Expanded native `sys` int-string digit runtime state: `sys.int_info` now
   exposes CPython 3.14 `default_max_str_digits` and
   `str_digits_check_threshold`, while `get_int_max_str_digits()` and
@@ -594,7 +599,8 @@ Native or runtime-backed foundation:
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
-  and `context_aware_warnings`, and frame placeholders; full CPython startup flags/config/runtime internals
+  and `context_aware_warnings`, and frame placeholders with populated
+  `f_builtins`; full CPython startup flags/config/runtime internals
   pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

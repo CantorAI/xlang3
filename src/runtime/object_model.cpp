@@ -1508,7 +1508,11 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_builtins") {
-      out = Value::dict({});
+      if (frame->builtins.tag == ValueTag::Invalid) {
+        out = Value::dict({});
+      } else {
+        value_assign_fast(out, frame->builtins);
+      }
       return true;
     }
     if (name == "f_back") {

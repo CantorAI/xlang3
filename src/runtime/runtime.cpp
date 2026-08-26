@@ -649,7 +649,7 @@ Value module_attrs_snapshot(const Value& module_value) {
   return Value::dict(std::move(entries));
 }
 
-Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index) {
+Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index, const Value& builtins) {
   const auto& view = frames[index];
   if (view.module_owner == nullptr || view.module_owner->get() == nullptr || view.globals_module == nullptr ||
       view.instruction_index == nullptr) {
@@ -657,7 +657,7 @@ Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index)
   }
   Value back = Value::none();
   if (index != 0) {
-    back = materialize_frame_from_stack(frames, index - 1);
+    back = materialize_frame_from_stack(frames, index - 1, builtins);
   }
   return Value::frame(
       *view.module_owner,
@@ -665,15 +665,21 @@ Value materialize_frame_from_stack(const RuntimeFrameView* frames, size_t index)
       *view.globals_module,
       static_cast<uint32_t>(*view.instruction_index),
       locals_snapshot_from_view(view),
-      std::move(back));
+      std::move(back),
+      builtins);
 }
 
 } // namespace
 
 Value Runtime::current_frame_snapshot() const {
+  Value builtins = Value::dict({});
+  auto builtins_it = modules_.find("builtins");
+  if (builtins_it != modules_.end()) {
+    builtins = module_attrs_snapshot(builtins_it->second);
+  }
   const auto& state = current_frame_state(*this);
   if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
-    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1);
+    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1, builtins);
   }
   if (state.module_owner == nullptr || state.globals_module == nullptr ||
       state.module_owner->get() == nullptr) {
@@ -684,7 +690,9 @@ Value Runtime::current_frame_snapshot() const {
       state.function_id,
       *state.globals_module,
       state.instruction_index,
-      current_locals_snapshot());
+      current_locals_snapshot(),
+      Value::invalid(),
+      builtins);
 }
 
 void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {
@@ -732,9 +740,9 @@ Value Runtime::current_locals_snapshot() const {
 
 namespace {
 
-Value frame_snapshot_from_state(const RuntimeCurrentFrameState& state) {
+Value frame_snapshot_from_state(const RuntimeCurrentFrameState& state, const Value& builtins) {
   if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
-    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1);
+    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1, builtins);
   }
   if (state.module_owner == nullptr || state.globals_module == nullptr ||
       state.module_owner->get() == nullptr) {
@@ -755,12 +763,19 @@ Value frame_snapshot_from_state(const RuntimeCurrentFrameState& state) {
                 nullptr,
                 state.local_count,
                 state.function_id,
-            }));
+            }),
+      Value::invalid(),
+      builtins);
 }
 
 } // namespace
 
 Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const {
+  Value builtins = Value::dict({});
+  auto builtins_it = modules_.find("builtins");
+  if (builtins_it != modules_.end()) {
+    builtins = module_attrs_snapshot(builtins_it->second);
+  }
   std::vector<std::pair<Value, Value>> entries;
   std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
   auto runtime_it = g_runtime_frame_registry.find(this);
@@ -770,7 +785,7 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
     if (runtime_it != g_runtime_frame_registry.end()) {
       auto frame_it = runtime_it->second.find(ident);
       if (frame_it != runtime_it->second.end()) {
-        frame = frame_snapshot_from_state(frame_it->second);
+        frame = frame_snapshot_from_state(frame_it->second, builtins);
       }
     }
     entries.push_back({Value::int64(ident), std::move(frame)});

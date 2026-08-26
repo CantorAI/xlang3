@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys int-string digit helpers expose CPython 3.14 state, thresholds, and flags metadata
+frame snapshots expose active builtins mappings through f_builtins
 ```
 
 Current next loop:

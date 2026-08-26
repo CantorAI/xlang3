@@ -612,6 +612,7 @@ def sys_audit_probe(event, args):
     audit_events.append((event, args))
 sys.addaudithook(sys_audit_probe)
 print(sys.audit("xlang3.fixture", 1, "a") is None, audit_events[0][0], audit_events[0][1])
+import builtins
 def sys_frame_probe():
     frame = sys._getframe()
     caller = sys._getframe(1)
@@ -622,6 +623,7 @@ current_frames = sys._current_frames()
 current_exceptions = sys._current_exceptions()
 current_thread_id = list(current_frames)[0]
 print(len(current_frames), len(current_exceptions), current_thread_id in current_exceptions, current_frames[current_thread_id].f_code.co_name == "<module>", current_exceptions[current_thread_id] is None)
+print(sys._getframe().f_builtins["len"] is builtins.len, "Exception" in sys._getframe().f_builtins, current_frames[current_thread_id].f_builtins["print"] is builtins.print)
 print(current_thread_id == threading.get_ident(), "sys" in sys.stdlib_module_names, "threading" in sys.stdlib_module_names, len(sys.stdlib_module_names) > len(sys.builtin_module_names))
 print("asyncio" in sys.stdlib_module_names, "email" in sys.stdlib_module_names, "encodings" in sys.stdlib_module_names, "tomllib" in sys.stdlib_module_names, "site-packages" in sys.stdlib_module_names)
 sys_frame_thread_ready = threading.Event()
@@ -677,7 +679,6 @@ try:
     sys.exit(5)
 except SystemExit as err:
     print(err.code)
-import builtins
 class SysHookCapture:
     def __init__(self):
         self.items = []
