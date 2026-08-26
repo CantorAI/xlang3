@@ -790,6 +790,37 @@ bool code_replace_method_kw(
   return true;
 }
 
+bool callable_metadata_attr(const Value& callable, const std::string& name, Value& out) {
+  std::string ignored;
+  if (object_get_attr(callable, name, out, ignored)) {
+    return true;
+  }
+  if (name == "__annotations__") {
+    out = Value::dict({});
+    return true;
+  }
+  if (name == "__doc__" || name == "__module__") {
+    value_set_none(out);
+    return true;
+  }
+  return false;
+}
+
+bool callable_name_attr(const Value& callable, Value& out) {
+  if (callable_metadata_attr(callable, "__name__", out)) {
+    return true;
+  }
+  out = Value::string(value_to_string(callable));
+  return true;
+}
+
+bool callable_qualname_attr(const Value& callable, Value& out) {
+  if (callable_metadata_attr(callable, "__qualname__", out)) {
+    return true;
+  }
+  return callable_name_attr(callable, out);
+}
+
 } // namespace
 
 Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
@@ -1475,7 +1506,20 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_set_none(out);
       return true;
     }
+    if (name == "__qualname__") {
+      out = Value::string(native->name);
+      return true;
+    }
     if (name == "__doc__") {
+      value_set_none(out);
+      return true;
+    }
+    if (name == "__annotations__") {
+      out = Value::dict({});
+      return true;
+    }
+    if (name == "__defaults__" || name == "__kwdefaults__" || name == "__closure__" ||
+        name == "__text_signature__") {
       value_set_none(out);
       return true;
     }
@@ -1499,13 +1543,48 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(out, bound->function);
       return true;
     }
+    if (name == "__name__") {
+      return callable_name_attr(bound->function, out);
+    }
+    if (name == "__qualname__") {
+      return callable_qualname_attr(bound->function, out);
+    }
+    if (name == "__module__" || name == "__doc__" || name == "__annotations__") {
+      return callable_metadata_attr(bound->function, name, out);
+    }
     error = "method has no attribute '" + name + "'";
     return false;
   }
 
   if (auto* method = value_as_static_method(object)) {
+    if (method->attrs_dict.tag != ValueTag::Invalid) {
+      std::string ignored;
+      if (mapping_get_item(method->attrs_dict, Value::string(name), out, ignored)) {
+        return true;
+      }
+    }
     if (name == "__func__") {
       value_assign_fast(out, method->function);
+      return true;
+    }
+    if (name == "__wrapped__") {
+      value_assign_fast(out, method->function);
+      return true;
+    }
+    if (name == "__name__") {
+      return callable_name_attr(method->function, out);
+    }
+    if (name == "__qualname__") {
+      return callable_qualname_attr(method->function, out);
+    }
+    if (name == "__module__" || name == "__doc__" || name == "__annotations__") {
+      return callable_metadata_attr(method->function, name, out);
+    }
+    if (name == "__dict__") {
+      if (method->attrs_dict.tag == ValueTag::Invalid) {
+        method->attrs_dict = Value::dict({});
+      }
+      value_assign_fast(out, method->attrs_dict);
       return true;
     }
     error = "staticmethod has no attribute '" + name + "'";
@@ -1513,8 +1592,34 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* method = value_as_class_method(object)) {
+    if (method->attrs_dict.tag != ValueTag::Invalid) {
+      std::string ignored;
+      if (mapping_get_item(method->attrs_dict, Value::string(name), out, ignored)) {
+        return true;
+      }
+    }
     if (name == "__func__") {
       value_assign_fast(out, method->function);
+      return true;
+    }
+    if (name == "__wrapped__") {
+      value_assign_fast(out, method->function);
+      return true;
+    }
+    if (name == "__name__") {
+      return callable_name_attr(method->function, out);
+    }
+    if (name == "__qualname__") {
+      return callable_qualname_attr(method->function, out);
+    }
+    if (name == "__module__" || name == "__doc__" || name == "__annotations__") {
+      return callable_metadata_attr(method->function, name, out);
+    }
+    if (name == "__dict__") {
+      if (method->attrs_dict.tag == ValueTag::Invalid) {
+        method->attrs_dict = Value::dict({});
+      }
+      value_assign_fast(out, method->attrs_dict);
       return true;
     }
     error = "classmethod has no attribute '" + name + "'";
@@ -1609,6 +1714,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         return false;
       }
       out = Value::tuple(*mro);
+      return true;
+    }
+    if (name == "__dict__") {
+      std::vector<std::pair<Value, Value>> entries;
+      entries.reserve(klass->attrs.size());
+      for (const auto& attr : klass->attrs) {
+        entries.push_back({Value::string(attr.first), attr.second});
+      }
+      out = Value::dict(std::move(entries));
       return true;
     }
     if (!class_lookup_attr(klass, name, out, error)) {
@@ -1837,6 +1951,18 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     }
     return mapping_set_item(*native->attrs_dict, Value::string(name), value, error);
   }
+  if (auto* method = value_as_static_method(object)) {
+    if (method->attrs_dict.tag == ValueTag::Invalid) {
+      method->attrs_dict = Value::dict({});
+    }
+    return mapping_set_item(method->attrs_dict, Value::string(name), value, error);
+  }
+  if (auto* method = value_as_class_method(object)) {
+    if (method->attrs_dict.tag == ValueTag::Invalid) {
+      method->attrs_dict = Value::dict({});
+    }
+    return mapping_set_item(method->attrs_dict, Value::string(name), value, error);
+  }
   if (auto* frame = value_as_frame(object)) {
     if (name == "f_lineno") {
       if (value.tag != ValueTag::Int64) {
@@ -1932,6 +2058,22 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
       return true;
     }
     error = "function has no attribute '" + name + "'";
+    return false;
+  }
+  if (auto* method = value_as_static_method(object)) {
+    if (method->attrs_dict.tag != ValueTag::Invalid &&
+        mapping_delete_item(method->attrs_dict, Value::string(name), error)) {
+      return true;
+    }
+    error = "staticmethod has no attribute '" + name + "'";
+    return false;
+  }
+  if (auto* method = value_as_class_method(object)) {
+    if (method->attrs_dict.tag != ValueTag::Invalid &&
+        mapping_delete_item(method->attrs_dict, Value::string(name), error)) {
+      return true;
+    }
+    error = "classmethod has no attribute '" + name + "'";
     return false;
   }
   if (auto* instance = value_as_instance(object)) {

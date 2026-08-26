@@ -7,6 +7,13 @@ T
 99 [eval]
 8 42 [MetaMade] type
 18 CustomMeta CustomMeta
+inst MetadataProbe.inst inst doc MetadataProbe inst
+sm MetadataProbe.sm 5
+cm True MetadataProbe
+staticmethod classmethod
+sm True sm sm doc static-tag
+cm True cm class-tag
+len len None True True
 41
 1
 7

@@ -69,11 +69,13 @@ struct BoundMethodObject {
 struct StaticMethodObject {
   Object header;
   Value function;
+  Value attrs_dict;
 };
 
 struct ClassMethodObject {
   Object header;
   Value function;
+  Value attrs_dict;
 };
 
 struct SuperObject {

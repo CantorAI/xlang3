@@ -632,10 +632,13 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   assignment, custom function attrs, explicit assignment through live
   `__dict__`, `__globals__`, `__closure__`, `__code__`, and `__qualname__`
   basics for module functions, nested functions, class methods, nested
-  class methods, and native wrapper functions that opt into Python-function
-  metadata. Still pending: CPython-exact code object completeness,
-  bound-method metadata, static methods, class methods, and builtin native
-  function descriptor edge cases.
+  class methods, bound methods, raw `staticmethod`/`classmethod` wrappers,
+  class `__dict__` inspection, and native/builtin function metadata such as
+  `__name__`, `__qualname__`, `__module__`, defaults, annotations, and custom
+  wrapper attrs. Still pending: CPython-exact code object completeness, live
+  mappingproxy semantics for class dictionaries, exact read-only/error
+  behavior on method descriptors, and builtin native function descriptor edge
+  cases.
 
 - [~] tokenizer/string-literal audit:
   Section fixture covers raw strings, bytes escapes, f-strings, adjacent

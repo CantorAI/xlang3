@@ -117,6 +117,35 @@ class CustomMade(metaclass=CustomMeta):
 print(MetaMade.value, MetaMade.from_meta, meta_calls, type(MetaMade).__name__)
 print(CustomMade.value, type(CustomMade).__name__, CustomMade.__class__.__name__)
 
+# Callable metadata: bound methods, staticmethod/classmethod descriptors, and native builtins.
+class MetadataProbe:
+    def inst(self):
+        """inst doc"""
+        return "inst"
+
+    @staticmethod
+    def sm(x: "int") -> "int":
+        """sm doc"""
+        return x + 1
+
+    @classmethod
+    def cm(cls):
+        """cm doc"""
+        return cls.__name__
+
+bound = MetadataProbe().inst
+raw_static = MetadataProbe.__dict__["sm"]
+raw_class = MetadataProbe.__dict__["cm"]
+raw_static.tag = "static-tag"
+raw_class.tag = "class-tag"
+print(bound.__name__, bound.__qualname__, bound.__doc__, bound.__self__.__class__.__name__, bound.__func__.__name__)
+print(MetadataProbe.sm.__name__, MetadataProbe.sm.__qualname__, MetadataProbe.sm(4))
+print(MetadataProbe.cm.__name__, MetadataProbe.cm.__self__ is MetadataProbe, MetadataProbe.cm())
+print(type(raw_static).__name__, type(raw_class).__name__)
+print(raw_static.__func__.__name__, raw_static.__wrapped__ is raw_static.__func__, raw_static.__name__, raw_static.__doc__, raw_static.__dict__["tag"])
+print(raw_class.__func__.__name__, raw_class.__wrapped__ is raw_class.__func__, raw_class.__name__, raw_class.__dict__["tag"])
+print(len.__name__, len.__qualname__, len.__module__, len.__defaults__ is None, isinstance(len.__annotations__, dict))
+
 # Lambda expressions.
 inc = lambda x: x + 1
 print(inc(40))
