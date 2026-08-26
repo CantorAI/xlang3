@@ -413,7 +413,7 @@ High-level modules currently backed by native/runtime code:
 
 - [~] `threading`
 - [~] `os`: VFS-backed `listdir`, scandir iterator/context-manager foundation, exported/reused `DirEntry`, `makedirs`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/symlink/error semantics pending
-- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `relpath`, `samefile`, `commonprefix`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; full path normalization/platform semantics pending
+- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `split`, `splitext`, `splitdrive`, `join`, `relpath`, `samefile`, `commonprefix`, `commonpath`, `expanduser`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; exact platform-specific normalization and symlink semantics pending
 - [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
 - [~] `ast`: public `_ast`/`ast` class surface, constructible keyword/positional AST nodes with `_fields`, `dump`, `iter_fields`, `walk`, `NodeVisitor`, `literal_eval` for literal nodes, and parse-result shell foundations; real parser-to-AST lowering and exact CPython node metadata pending
@@ -514,7 +514,7 @@ High-level modules currently backed by native/runtime code:
   full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
-- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, `/` join via native `__truediv__`, and basic path transforms; full pathlib glob/match/resolve/operator edge semantics pending
+- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, `/` join via native `__truediv__`, `absolute`, `resolve`, `mkdir`, `unlink`, `iterdir`, `glob`, `rglob`, `match`, `__fspath__`, and string/repr basics; full platform-specific pathlib edge semantics, permissions, symlink behavior, and lazy iterator details pending
 - [~] `urllib.parse`: quote/unquote helpers plus `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`,
   `urljoin`, `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options,
   strict parsing/errors, complete RFC edge cases, and exact CPython result tuple subclasses pending

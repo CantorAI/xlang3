@@ -513,6 +513,8 @@ print(os.path.isfile(__file__), os.path.isdir(core_fixture_dir), os.path.exists(
 print(os.path.relpath(__file__, core_fixture_dir).endswith("standard_modules.py"), os.path.samefile(__file__, os.path.abspath(__file__)))
 print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLANG3_MISSING_VAR") == "$XLANG3_MISSING_VAR")
 print(os.path.realpath("") == os.getcwd(), os.path.abspath("") == os.getcwd())
+print(os.path.split("alpha/beta/gamma.txt"), os.path.commonpath(["alpha/beta/a.py", "alpha/beta/c.py"]))
+print(os.path.normpath("alpha/./beta/../gamma"), os.path.basename("alpha/beta.txt"), os.path.dirname("alpha/beta.txt"))
 mode = os.stat(__file__)[stat.ST_MODE]
 print(stat.S_ISREG(mode), stat.S_ISDIR(mode), stat.S_IFMT(mode) == stat.S_IFREG, stat.S_IMODE(mode) >= 0)
 
@@ -545,6 +547,21 @@ print(path_obj.name, path_obj.stem, path_obj.suffix, path_obj.suffixes)
 print(path_obj.with_suffix(".bin").name, path_obj.with_name("renamed.txt").name, path_obj.parts[-1])
 print(path_obj.write_text("path text"), path_obj.read_text())
 print(path_obj.write_bytes(b"xy"), path_obj.read_bytes(), path_obj.exists(), path_obj.is_file(), path_obj.is_absolute())
+path_dir = pathlib.Path("xlang3_pathlib_dir")
+path_dir.mkdir(exist_ok=True)
+nested_dir = path_dir / "sub" / "deep"
+nested_dir.mkdir(parents=True, exist_ok=True)
+root_note = path_dir / "root.txt"
+deep_note = nested_dir / "note.txt"
+root_note.write_text("root")
+deep_note.write_text("deep")
+print(path_dir.exists(), path_dir.is_dir(), deep_note.parent.name, deep_note.resolve().is_absolute())
+print(sorted([item.name for item in path_dir.iterdir()]))
+print(sorted([item.name for item in path_dir.glob("*.txt")]), sorted([item.name for item in path_dir.rglob("*.txt")]))
+print(root_note.match("*.txt"), deep_note.match("xlang3_pathlib_dir/sub/deep/*.txt"), str(path_dir / "sub").endswith("sub"))
+root_note.unlink()
+(path_dir / "missing.txt").unlink(missing_ok=True)
+print(root_note.exists() == False, list(path_dir.glob("*.txt")) == [])
 glob_root = pathlib.Path("xlang3_glob_case")
 os.makedirs("xlang3_glob_case/sub", exist_ok=True)
 (glob_root / "a.py").write_text("a")

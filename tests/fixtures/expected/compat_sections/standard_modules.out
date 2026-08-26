@@ -138,6 +138,8 @@ True True True
 True True
 alpha_ True
 True True
+(alpha/beta, gamma.txt) alpha\beta
+alpha\gamma beta.txt alpha
 True False True True
 True True True
 scandir-closed
@@ -148,6 +150,11 @@ xlang3_pathlib_section.txt xlang3_pathlib_section .txt [.txt]
 xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
 9 path text
 2 b'xy' True True False
+True True deep True
+[root.txt, sub]
+[root.txt] [note.txt, root.txt]
+True True True
+True True
 [xlang3_glob_case/a.py]
 [xlang3_glob_case/a.py, xlang3_glob_case/sub/c.py]
 [xlang3_glob_case/b.txt]

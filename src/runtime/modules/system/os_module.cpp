@@ -775,6 +775,30 @@ bool path_splitext(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool path_split(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "split() expected one path";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+
+  const size_t sep = last_path_separator(path);
+  if (sep == std::string::npos) {
+    out = Value::tuple({Value::string(""), Value::string(path)});
+    return true;
+  }
+  size_t head_end = sep;
+  while (head_end > 0 && (path[head_end - 1] == '/' || path[head_end - 1] == '\\')) {
+    --head_end;
+  }
+  const std::string head = sep == 0 ? path.substr(0, 1) : path.substr(0, head_end);
+  out = Value::tuple({Value::string(head), Value::string(path.substr(sep + 1))});
+  return true;
+}
+
 bool path_splitdrive(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "splitdrive() expected one path";
@@ -802,6 +826,84 @@ bool path_splitdrive(Runtime&, const Value* args, uint32_t argc, Value& out, std
   }
 #endif
   out = Value::tuple({Value::string(""), Value::string(path)});
+  return true;
+}
+
+bool collect_path_sequence(const Value& value, std::vector<std::string>& paths, std::string& error) {
+  if (auto* list = value_as_list(value)) {
+    paths.reserve(list->items.size());
+    for (const auto& item : list->items) {
+      std::string path;
+      if (!get_string_arg(item, "path", path, error)) {
+        return false;
+      }
+      paths.push_back(std::move(path));
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    paths.reserve(tuple->items.size());
+    for (const auto& item : tuple->items) {
+      std::string path;
+      if (!get_string_arg(item, "path", path, error)) {
+        return false;
+      }
+      paths.push_back(std::move(path));
+    }
+    return true;
+  }
+  error = "expected sequence of path strings";
+  return false;
+}
+
+bool path_commonpath(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "commonpath() expected iterable";
+    return false;
+  }
+  std::vector<std::string> paths;
+  if (!collect_path_sequence(args[0], paths, error)) {
+    return false;
+  }
+  if (paths.empty()) {
+    error = "commonpath() arg is an empty sequence";
+    return false;
+  }
+
+  std::vector<std::filesystem::path> normalized;
+  normalized.reserve(paths.size());
+  const bool first_absolute = std::filesystem::path(paths[0]).is_absolute();
+  for (const auto& path : paths) {
+    std::filesystem::path fs_path(path);
+    if (fs_path.is_absolute() != first_absolute) {
+      error = "Can't mix absolute and relative paths";
+      return false;
+    }
+    normalized.push_back(fs_path.lexically_normal());
+  }
+
+  std::vector<std::filesystem::path> prefix;
+  for (const auto& part : normalized[0]) {
+    prefix.push_back(part);
+  }
+  for (size_t i = 1; i < normalized.size(); ++i) {
+    std::vector<std::filesystem::path> parts;
+    for (const auto& part : normalized[i]) {
+      parts.push_back(part);
+    }
+    size_t keep = 0;
+    const size_t limit = std::min(prefix.size(), parts.size());
+    while (keep < limit && prefix[keep] == parts[keep]) {
+      ++keep;
+    }
+    prefix.resize(keep);
+  }
+
+  std::filesystem::path result;
+  for (const auto& part : prefix) {
+    result /= part;
+  }
+  out = Value::string(result.empty() ? std::string(".") : result.string());
   return true;
 }
 
@@ -1011,7 +1113,9 @@ Value make_os_path_module(Runtime& runtime) {
       .function("join", path_join)
       .function("relpath", path_relpath)
       .function("commonprefix", path_commonprefix)
+      .function("commonpath", path_commonpath)
       .function("samefile", path_samefile)
+      .function("split", path_split)
       .function("splitext", path_splitext)
       .function("splitdrive", path_splitdrive)
       .function("expanduser", path_expanduser)

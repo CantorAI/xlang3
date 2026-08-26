@@ -19,10 +19,13 @@ limitations under the License.
 #include "xlang3/vfs.h"
 
 #include <algorithm>
+#include <string_view>
 
 namespace xlang3 {
 
 namespace {
+
+Value make_path_instance(const Value& klass, const std::string& path, std::string& error);
 
 std::string to_path_text(const Value& value) {
   if (auto* str = value_as_string(value)) {
@@ -73,6 +76,31 @@ std::string path_parent(const std::string& path) {
   return text.substr(0, pos);
 }
 
+bool path_is_absolute_text(const std::string& path) {
+  return (!path.empty() && (path[0] == '/' || path[0] == '\\')) || (path.size() >= 2 && path[1] == ':');
+}
+
+std::vector<std::string> split_path_parts(const std::string& path) {
+  std::vector<std::string> values;
+  std::string normalized = normalize_slashes(path);
+  if (!normalized.empty() && normalized.front() == '/') {
+    values.push_back("/");
+  }
+  size_t start = (!normalized.empty() && normalized.front() == '/') ? 1 : 0;
+  while (start < normalized.size()) {
+    const size_t slash = normalized.find('/', start);
+    std::string part = slash == std::string::npos ? normalized.substr(start) : normalized.substr(start, slash - start);
+    if (!part.empty()) {
+      values.push_back(std::move(part));
+    }
+    if (slash == std::string::npos) {
+      break;
+    }
+    start = slash + 1;
+  }
+  return values;
+}
+
 std::string path_suffix(const std::string& path) {
   const std::string name = path_name(path);
   const auto pos = name.find_last_of('.');
@@ -102,6 +130,110 @@ std::vector<std::string> path_suffixes(const std::string& path) {
     ++pos;
   }
   return suffixes;
+}
+
+bool path_match_pattern(std::string_view text, std::string_view pattern) {
+  size_t ti = 0;
+  size_t pi = 0;
+  size_t star = std::string_view::npos;
+  size_t match = 0;
+  while (ti < text.size()) {
+    if (pi < pattern.size() && (pattern[pi] == '?' || pattern[pi] == text[ti])) {
+      ++ti;
+      ++pi;
+    } else if (pi < pattern.size() && pattern[pi] == '*') {
+      star = pi++;
+      match = ti;
+    } else if (star != std::string_view::npos) {
+      pi = star + 1;
+      ti = ++match;
+    } else {
+      return false;
+    }
+  }
+  while (pi < pattern.size() && pattern[pi] == '*') {
+    ++pi;
+  }
+  return pi == pattern.size();
+}
+
+bool path_collect_glob(
+    Runtime& runtime,
+    const Value& klass,
+    const std::string& base,
+    const std::vector<std::string>& segments,
+    size_t index,
+    std::vector<Value>& out,
+    std::string& error) {
+  if (index >= segments.size()) {
+    VfsStat stat;
+    if (!runtime.vfs().stat(base, stat, error)) {
+      return false;
+    }
+    if (stat.kind != VfsNodeKind::Missing) {
+      out.push_back(make_path_instance(klass, base, error));
+      return error.empty();
+    }
+    return true;
+  }
+
+  const std::string& segment = segments[index];
+  if (segment == "**") {
+    if (!path_collect_glob(runtime, klass, base, segments, index + 1, out, error)) {
+      return false;
+    }
+    std::vector<std::string> names;
+    VfsStat stat;
+    if (!runtime.vfs().stat(base, stat, error)) {
+      return false;
+    }
+    if (stat.kind != VfsNodeKind::Directory) {
+      return true;
+    }
+    if (!runtime.vfs().list_dir(base, names, error)) {
+      return false;
+    }
+    std::sort(names.begin(), names.end());
+    for (const auto& name : names) {
+      if (!name.empty() && name.front() == '.') {
+        continue;
+      }
+      const std::string child = join_paths(base, name);
+      if (!path_collect_glob(runtime, klass, child, segments, index, out, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const bool has_wildcard = segment.find('*') != std::string::npos || segment.find('?') != std::string::npos;
+  if (!has_wildcard) {
+    return path_collect_glob(runtime, klass, join_paths(base, segment), segments, index + 1, out, error);
+  }
+
+  VfsStat stat;
+  if (!runtime.vfs().stat(base, stat, error)) {
+    return false;
+  }
+  if (stat.kind != VfsNodeKind::Directory) {
+    return true;
+  }
+  std::vector<std::string> names;
+  if (!runtime.vfs().list_dir(base, names, error)) {
+    return false;
+  }
+  std::sort(names.begin(), names.end());
+  for (const auto& name : names) {
+    if (!name.empty() && name.front() == '.') {
+      continue;
+    }
+    if (path_match_pattern(name, segment)) {
+      if (!path_collect_glob(runtime, klass, join_paths(base, name), segments, index + 1, out, error)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 bool set_path_attrs(Value& instance, const std::string& path, std::string& error) {
@@ -142,6 +274,24 @@ bool path_as_posix(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     return false;
   }
   out = Value::string(normalize_slashes(to_path_text(args[0])));
+  return true;
+}
+
+bool path_string(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.__str__() expected no arguments";
+    return false;
+  }
+  out = Value::string(to_path_text(args[0]));
+  return true;
+}
+
+bool path_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.__repr__() expected no arguments";
+    return false;
+  }
+  out = Value::string("Path('" + normalize_slashes(to_path_text(args[0])) + "')");
   return true;
 }
 
@@ -196,18 +346,8 @@ bool path_property_value(const Value* args, uint32_t argc, Value& out, std::stri
     out = Value::list(std::move(values));
   } else if (std::string(name) == "parts") {
     std::vector<Value> values;
-    std::string normalized = normalize_slashes(path);
-    size_t start = 0;
-    while (start < normalized.size()) {
-      const size_t slash = normalized.find('/', start);
-      std::string part = slash == std::string::npos ? normalized.substr(start) : normalized.substr(start, slash - start);
-      if (!part.empty()) {
-        values.push_back(Value::string(std::move(part)));
-      }
-      if (slash == std::string::npos) {
-        break;
-      }
-      start = slash + 1;
+    for (auto& part : split_path_parts(path)) {
+      values.push_back(Value::string(std::move(part)));
     }
     out = Value::tuple(std::move(values));
   } else {
@@ -282,6 +422,52 @@ bool path_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool path_absolute(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.absolute() expected no arguments";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "Path.absolute() self is invalid";
+    return false;
+  }
+  ResolvedPath resolved;
+  if (!runtime.vfs().resolve(to_path_text(args[0]), resolved, error)) {
+    return false;
+  }
+  out = make_path_instance(instance->klass, resolved.path, error);
+  return error.empty();
+}
+
+bool path_resolve(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "Path.resolve() expected optional strict";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "Path.resolve() self is invalid";
+    return false;
+  }
+  ResolvedPath resolved;
+  if (!runtime.vfs().resolve(to_path_text(args[0]), resolved, error)) {
+    return false;
+  }
+  if (argc == 2 && value_truthy(args[1])) {
+    VfsStat stat;
+    if (!runtime.vfs().stat(resolved.path, stat, error)) {
+      return false;
+    }
+    if (stat.kind == VfsNodeKind::Missing) {
+      error = "No such file or directory: " + to_path_text(args[0]);
+      return false;
+    }
+  }
+  out = make_path_instance(instance->klass, resolved.path, error);
+  return error.empty();
+}
+
 bool path_read_text(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "Path.read_text() expected no arguments";
@@ -343,6 +529,204 @@ bool path_write_bytes(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool path_mkdir_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  if (argc < 1 || argc > 4) {
+    error = "Path.mkdir() expected optional mode, parents, exist_ok";
+    return false;
+  }
+  bool parents = argc >= 3 && value_truthy(args[2]);
+  bool exist_ok = argc >= 4 && value_truthy(args[3]);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "Path.mkdir() got invalid keyword argument";
+      return false;
+    }
+    const std::string name(kwargs[i].name);
+    if (name == "parents") {
+      parents = value_truthy(*kwargs[i].value);
+    } else if (name == "exist_ok") {
+      exist_ok = value_truthy(*kwargs[i].value);
+    } else if (name != "mode") {
+      error = "Path.mkdir() got unexpected keyword argument '" + name + "'";
+      return false;
+    }
+  }
+  if (parents) {
+    if (!runtime.vfs().make_dirs(to_path_text(args[0]), exist_ok, error)) {
+      return false;
+    }
+  } else {
+    const std::string parent = path_parent(to_path_text(args[0]));
+    if (parent != "." && parent != "/" && parent != to_path_text(args[0])) {
+      VfsStat parent_stat;
+      if (!runtime.vfs().stat(parent, parent_stat, error)) {
+        return false;
+      }
+      if (parent_stat.kind != VfsNodeKind::Directory) {
+        error = "parent directory does not exist: " + parent;
+        return false;
+      }
+    }
+    if (!runtime.vfs().make_dirs(to_path_text(args[0]), exist_ok, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool path_mkdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return path_mkdir_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool path_mkdir_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return path_mkdir_impl(runtime, args, argc, kwargs, kwargc, out, error);
+}
+
+bool path_unlink_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  if (argc < 1 || argc > 2) {
+    error = "Path.unlink() expected optional missing_ok";
+    return false;
+  }
+  bool missing_ok = argc == 2 && value_truthy(args[1]);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "Path.unlink() got invalid keyword argument";
+      return false;
+    }
+    const std::string name(kwargs[i].name);
+    if (name == "missing_ok") {
+      missing_ok = value_truthy(*kwargs[i].value);
+    } else {
+      error = "Path.unlink() got unexpected keyword argument '" + name + "'";
+      return false;
+    }
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(to_path_text(args[0]), stat, error)) {
+    return false;
+  }
+  if (stat.kind == VfsNodeKind::Missing) {
+    if (missing_ok) {
+      value_set_none(out);
+      return true;
+    }
+    error = "No such file or directory: " + to_path_text(args[0]);
+    return false;
+  }
+  if (!runtime.vfs().remove(to_path_text(args[0]), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool path_unlink(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return path_unlink_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool path_unlink_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return path_unlink_impl(runtime, args, argc, kwargs, kwargc, out, error);
+}
+
+bool path_iterdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Path.iterdir() expected no arguments";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "Path.iterdir() self is invalid";
+    return false;
+  }
+  std::vector<std::string> names;
+  if (!runtime.vfs().list_dir(to_path_text(args[0]), names, error)) {
+    return false;
+  }
+  std::sort(names.begin(), names.end());
+  std::vector<Value> values;
+  values.reserve(names.size());
+  for (const auto& name : names) {
+    values.push_back(make_path_instance(instance->klass, join_paths(to_path_text(args[0]), name), error));
+    if (!error.empty()) {
+      return false;
+    }
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool path_glob(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.glob() expected pattern";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "Path.glob() self is invalid";
+    return false;
+  }
+  const std::vector<std::string> segments = split_path_parts(to_path_text(args[1]));
+  std::vector<Value> matches;
+  if (!path_collect_glob(runtime, instance->klass, to_path_text(args[0]), segments, 0, matches, error)) {
+    return false;
+  }
+  out = Value::list(std::move(matches));
+  return true;
+}
+
+bool path_rglob(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.rglob() expected pattern";
+    return false;
+  }
+  Value recursive_pattern = Value::string(join_paths("**", to_path_text(args[1])));
+  Value call_args[2] = {args[0], recursive_pattern};
+  return path_glob(runtime, call_args, 2, out, error, nullptr);
+}
+
+bool path_match(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Path.match() expected pattern";
+    return false;
+  }
+  const std::string path = normalize_slashes(to_path_text(args[0]));
+  const std::string pattern = normalize_slashes(to_path_text(args[1]));
+  const bool anchored = pattern.find('/') != std::string::npos;
+  value_set_bool(out, path_match_pattern(anchored ? path : path_name(path), pattern));
+  return true;
+}
+
 bool path_with_name(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "Path.with_name() expected name";
@@ -381,13 +765,15 @@ bool path_is_absolute(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   const std::string path = to_path_text(args[0]);
-  value_set_bool(out, (!path.empty() && (path[0] == '/' || path[0] == '\\')) || (path.size() >= 2 && path[1] == ':'));
+  value_set_bool(out, path_is_absolute_text(path));
   return true;
 }
 
 Value make_path_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("pathlib.Path.__init__", path_init)});
+  attrs.push_back({"__str__", runtime.make_native_function("pathlib.Path.__str__", path_string)});
+  attrs.push_back({"__repr__", runtime.make_native_function("pathlib.Path.__repr__", path_repr)});
   attrs.push_back({"__fspath__", runtime.make_native_function("pathlib.Path.__fspath__", path_fspath)});
   attrs.push_back({"as_posix", runtime.make_native_function("pathlib.Path.as_posix", path_as_posix)});
   attrs.push_back({"joinpath", runtime.make_native_function("pathlib.Path.joinpath", path_joinpath)});
@@ -428,10 +814,18 @@ Value make_path_class(Runtime& runtime, const char* name) {
   attrs.push_back({"is_file", runtime.make_native_function("pathlib.Path.is_file", path_is_file)});
   attrs.push_back({"is_dir", runtime.make_native_function("pathlib.Path.is_dir", path_is_dir)});
   attrs.push_back({"is_absolute", runtime.make_native_function("pathlib.Path.is_absolute", path_is_absolute)});
+  attrs.push_back({"absolute", runtime.make_native_function("pathlib.Path.absolute", path_absolute)});
+  attrs.push_back({"resolve", runtime.make_native_function("pathlib.Path.resolve", path_resolve)});
   attrs.push_back({"read_text", runtime.make_native_function("pathlib.Path.read_text", path_read_text)});
   attrs.push_back({"write_text", runtime.make_native_function("pathlib.Path.write_text", path_write_text)});
   attrs.push_back({"read_bytes", runtime.make_native_function("pathlib.Path.read_bytes", path_read_bytes)});
   attrs.push_back({"write_bytes", runtime.make_native_function("pathlib.Path.write_bytes", path_write_bytes)});
+  attrs.push_back({"mkdir", runtime.make_native_function("pathlib.Path.mkdir", path_mkdir, nullptr, nullptr, nullptr, false, path_mkdir_kw)});
+  attrs.push_back({"unlink", runtime.make_native_function("pathlib.Path.unlink", path_unlink, nullptr, nullptr, nullptr, false, path_unlink_kw)});
+  attrs.push_back({"iterdir", runtime.make_native_function("pathlib.Path.iterdir", path_iterdir)});
+  attrs.push_back({"glob", runtime.make_native_function("pathlib.Path.glob", path_glob)});
+  attrs.push_back({"rglob", runtime.make_native_function("pathlib.Path.rglob", path_rglob)});
+  attrs.push_back({"match", runtime.make_native_function("pathlib.Path.match", path_match)});
   return Value::class_object(name, std::move(attrs));
 }
 
