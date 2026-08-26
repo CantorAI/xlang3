@@ -649,6 +649,8 @@ print(list(itertools.islice(StandardIter([0, 1, 2, 3]), 1, 3)))
 print(list(itertools.chain(StandardIter([1]), StandardIter([2]))), list(itertools.product(StandardIter([1, 2]), StandardIter(["x"]))))
 print(list(itertools.combinations(StandardIter([1, 2, 3]), 2)), list(itertools.permutations(StandardIter([1, 2]), 2)))
 print(list(itertools.accumulate(StandardIter([1, 2, 3]))), list(itertools.starmap(original, StandardIter([(5, 6)]))))
+tee_left, tee_right = itertools.tee(StandardIter([4, 5, 6]))
+print(list(itertools.pairwise([1, 2, 3, 4])), next(tee_left), list(tee_left), list(tee_right))
 
 # collections: Counter, OrderedDict, ChainMap, and namedtuple foundations.
 from collections import ChainMap, Counter, OrderedDict, deque, namedtuple

@@ -444,7 +444,11 @@ High-level modules currently backed by native/runtime code:
   `CO_FUTURE_*` compiler flag constants; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup, `GetPassWarning` is exposed,
   and password readers accept positional/keyword CPython-shaped arguments; real terminal echo control pending
-- [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, lazy `chain` with `__next__`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; full lazy object identity for every helper, keyword-only options, and complete iterator algebra pending
+- [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`,
+  `filterfalse`, `compress`, `repeat(times)`, lazy `chain` with `__next__`, `batched`,
+  `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`,
+  `starmap`, `zip_longest`, `pairwise`, and snapshot-backed `tee`; full lazy object identity
+  for every helper, keyword-only options, and complete iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`dump`, file-like I/O, CPython-style default separators,
   `indent`, `sort_keys`, `ensure_ascii`, `separators`, `skipkeys`, `default`, `object_hook`,
   `object_pairs_hook`, `parse_int`, `parse_float`, `JSONEncoder.encode`/`iterencode`, and

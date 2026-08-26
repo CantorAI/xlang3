@@ -591,6 +591,50 @@ bool itertools_zip_longest(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool itertools_pairwise(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "itertools.pairwise() expected iterable";
+    return false;
+  }
+  std::vector<Value> values;
+  if (!collect_iterable(runtime, args[0], values, error)) {
+    return false;
+  }
+  std::vector<Value> pairs;
+  if (values.size() >= 2) {
+    pairs.reserve(values.size() - 1);
+    for (size_t i = 0; i + 1 < values.size(); ++i) {
+      pairs.push_back(Value::tuple({values[i], values[i + 1]}));
+    }
+  }
+  out = Value::list(std::move(pairs));
+  return true;
+}
+
+bool itertools_tee(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "itertools.tee() expected iterable and optional n";
+    return false;
+  }
+  int64_t count = 2;
+  if (argc == 2 && (!int_arg(args[1], count) || count < 0)) {
+    error = "itertools.tee() n must be a non-negative int";
+    return false;
+  }
+  std::vector<Value> values;
+  if (!collect_iterable(runtime, args[0], values, error)) {
+    return false;
+  }
+  Value snapshot = Value::list(std::move(values));
+  std::vector<Value> iterators;
+  iterators.reserve(static_cast<size_t>(count));
+  for (int64_t i = 0; i < count; ++i) {
+    iterators.push_back(Value::sequence_iterator(snapshot, 0));
+  }
+  out = Value::tuple(std::move(iterators));
+  return true;
+}
+
 } // namespace
 
 void register_itertools_module(Runtime& runtime) {
@@ -610,7 +654,9 @@ void register_itertools_module(Runtime& runtime) {
       .function("permutations", itertools_permutations)
       .function("accumulate", itertools_accumulate)
       .function("starmap", itertools_starmap)
-      .function("zip_longest", itertools_zip_longest);
+      .function("zip_longest", itertools_zip_longest)
+      .function("pairwise", itertools_pairwise)
+      .function("tee", itertools_tee);
   runtime.register_module("itertools", builder.finish());
 }
 
