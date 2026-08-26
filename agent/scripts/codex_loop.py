@@ -60,6 +60,13 @@ def default_xlang3(config: dict) -> str:
     return str(ROOT / config.get("repo", {}).get("release_exe", "build/Release/xlang3.exe"))
 
 
+def default_python(config: dict) -> str:
+    configured = config.get("repo", {}).get("python_exe", "").strip()
+    if configured:
+        return configured
+    return os.environ.get("PYTHON", "python")
+
+
 def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
@@ -135,6 +142,11 @@ def default_section(config: dict, goal: str) -> str:
 
 def default_limit(config: dict, goal: str) -> int:
     return int(goal_config(config, goal).get("default_limit", 8))
+
+
+def default_iterations(config: dict, goal: str) -> int:
+    # 0 means keep running batches until the selected audit scope is complete.
+    return int(goal_config(config, goal).get("default_iterations", 1))
 
 
 def default_commit_message(config: dict, goal: str) -> str:
@@ -457,7 +469,7 @@ def resolve_cmake(explicit: str) -> str:
     raise SystemExit("cmake.exe was not found. Pass --cmake.")
 
 
-def validate(cmake: str, xlang3: str, skip_build: bool, skip_tests: bool) -> None:
+def validate(cmake: str, xlang3: str, python_exe: str, skip_build: bool, skip_tests: bool) -> None:
     if not skip_build:
         print()
         print("Status: building Release xlang3")
@@ -466,7 +478,7 @@ def validate(cmake: str, xlang3: str, skip_build: bool, skip_tests: bool) -> Non
         print()
         print("Status: running compatibility fixtures")
         run([
-            os.environ.get("PYTHON", "python"),
+            python_exe,
             "agent\\scripts\\run_fixtures.py",
             "--xlang3",
             xlang3,
@@ -593,13 +605,13 @@ Rules:
     return fallback
 
 
-def commit_and_push(config: dict, goal: str, message: str) -> None:
+def commit_and_push(config: dict, goal: str, message: str) -> bool:
     paths = changed_paths()
     if not paths:
         print()
         print("No stageable compatibility changes found.")
         run(["git", "status", "--short"])
-        return
+        return False
 
     print()
     print("Status: staging whitelisted files")
@@ -618,6 +630,7 @@ def commit_and_push(config: dict, goal: str, message: str) -> None:
     print()
     print("Status: pushing")
     run(["git", "push"])
+    return True
 
 
 def main() -> int:
@@ -625,7 +638,12 @@ def main() -> int:
     parser.add_argument("--goal", default="", help="Goal name from agent/config.toml.")
     parser.add_argument("--section", default=None, help="Optional audit section name.")
     parser.add_argument("--limit", type=int, default=0, help="Number of unfinished audit rows to include in the Codex prompt.")
-    parser.add_argument("--iterations", type=int, default=1, help="Number of Codex work/validate/commit cycles.")
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=-1,
+        help="Number of Codex work/validate/commit cycles. 0 means continuous until done.",
+    )
     parser.add_argument("--codex-command", default="", help="Backend command. Use {prompt_file} or {prompt}; otherwise prompt file is appended.")
     parser.add_argument("--status", action="store_true", help="Show current goal/audit/resume status and exit.")
     parser.add_argument("--dry-run", action="store_true", help="Write and print prompts without invoking Codex, building, testing, or committing.")
@@ -644,7 +662,10 @@ def main() -> int:
     section = args.section if args.section is not None else default_section(config, goal)
     limit = args.limit if args.limit > 0 else default_limit(config, goal)
     commit_message = args.commit_message or default_commit_message(config, goal)
+    iterations = args.iterations if args.iterations >= 0 else default_iterations(config, goal)
+    continuous = iterations == 0
     xlang3 = args.xlang3 or default_xlang3(config)
+    python_exe = default_python(config)
     codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
     cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
 
@@ -670,7 +691,8 @@ def main() -> int:
     if not args.dry_run and resume_phase not in {"codex_done", "validated"}:
         preflight_codex_command(codex_command)
 
-    for iteration in range(1, args.iterations + 1):
+    iteration = 1
+    while continuous or iteration <= iterations:
         saved_state = read_loop_state(config, goal)
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
         active_section = saved_state.get("section", section) if resume_phase else section
@@ -680,7 +702,8 @@ def main() -> int:
 
         print()
         print("=" * 72)
-        print(f"XLang3 Python 3.14 compatibility loop iteration {iteration}/{args.iterations}")
+        iteration_total = "continuous" if continuous else str(iterations)
+        print(f"XLang3 Python 3.14 compatibility loop iteration {iteration}/{iteration_total}")
         print(f"Repo: {ROOT}")
         print(f"Goal: {goal}")
         print(f"Section: {active_section or 'whole audit'}")
@@ -747,6 +770,10 @@ def main() -> int:
             items = unfinished_items(config, goal, active_section, limit)
             print()
             print(f"Audit counts: checked={checked}, partial={partial}, missing={missing}")
+            if not items:
+                print("No unfinished rows remain in this audit scope.")
+                clear_loop_state(config, goal)
+                break
             print("Next unfinished rows:")
             for line, mark, text in items:
                 print(f"[{mark}] line {line}: {text}")
@@ -773,7 +800,7 @@ def main() -> int:
                 print("Dry run: compact prompt follows.")
                 print(prompt)
                 clear_loop_state(config, goal)
-                continue
+                break
 
             write_loop_state(config, goal, {
                 "active": True,
@@ -810,7 +837,7 @@ def main() -> int:
         if resume_phase == "codex_done" or not resume_phase:
             print()
             print("Status: validating Codex changes")
-            validate(cmake, xlang3, args.skip_build, args.skip_tests)
+            validate(cmake, xlang3, python_exe, args.skip_build, args.skip_tests)
             write_loop_state(config, goal, {
                 "active": True,
                 "phase": "validated",
@@ -825,9 +852,16 @@ def main() -> int:
             print()
             print("No commit requested. Current status:")
             run(["git", "status", "--short"])
-        else:
-            commit_and_push(config, goal, commit_message)
             clear_loop_state(config, goal)
+            break
+        else:
+            committed = commit_and_push(config, goal, commit_message)
+            clear_loop_state(config, goal)
+            if continuous and not committed:
+                print("Stopping continuous loop because this batch produced no stageable changes.")
+                break
+
+        iteration += 1
 
     return 0
 
