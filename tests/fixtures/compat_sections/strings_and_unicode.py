@@ -107,6 +107,19 @@ mv = memoryview(mv_source)
 print(mv.tobytes(), mv[2])
 print(mv.readonly, mv.nbytes, mv.itemsize, mv.format, mv.ndim, mv.shape, mv.strides, mv.suboffsets)
 print(mv.tolist(), mv.obj is mv_source)
+readonly_mv = memoryview(b"abc")
+print(readonly_mv == b"abc", readonly_mv == bytearray(b"abc"), hash(readonly_mv) == hash(b"abc"))
+print({readonly_mv: "ok"}[b"abc"])
+try:
+    hash(mv)
+except TypeError:
+    print("memoryview-unhashable")
+with memoryview(b"xy") as released_mv:
+    print(released_mv.tobytes())
+try:
+    released_mv.tobytes()
+except Exception:
+    print("memoryview-released")
 
 # Unicode database module foundation: names, categories, numeric values, and normalization.
 import unicodedata

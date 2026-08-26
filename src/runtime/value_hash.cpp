@@ -18,6 +18,41 @@ limitations under the License.
 
 namespace xlang3 {
 
+namespace {
+
+struct HashBinaryView {
+  const char* data = nullptr;
+  size_t size = 0;
+  bool readonly = true;
+};
+
+HashBinaryView hash_binary_view(const Value& value) {
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    return {view.data(), view.size(), true};
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    return {bytearray->value.data(), bytearray->value.size(), false};
+  }
+  if (auto* memoryview = value_as_memoryview(value)) {
+    if (memoryview->released) {
+      return {};
+    }
+    const auto owner = hash_binary_view(memoryview->owner);
+    if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
+      return {};
+    }
+    return {owner.data + memoryview->offset, memoryview->size, memoryview->readonly && owner.readonly};
+  }
+  return {};
+}
+
+bool is_binary_like_value(const Value& value) {
+  return value_as_bytes(value) != nullptr || value_as_bytearray(value) != nullptr || value_as_memoryview(value) != nullptr;
+}
+
+} // namespace
+
 bool value_key_equal(const Value& lhs, const Value& rhs) {
   if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Int64) {
     return (lhs.as.b ? 1 : 0) == rhs.as.i64;
@@ -33,6 +68,12 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
     const double a = lhs.tag == ValueTag::Int64 ? static_cast<double>(lhs.as.i64) : lhs.as.f64;
     const double b = rhs.tag == ValueTag::Int64 ? static_cast<double>(rhs.as.i64) : rhs.as.f64;
     return a == b;
+  }
+  if (is_binary_like_value(lhs) && is_binary_like_value(rhs)) {
+    const auto left = hash_binary_view(lhs);
+    const auto right = hash_binary_view(rhs);
+    return left.data != nullptr && right.data != nullptr && left.size == right.size &&
+           (left.size == 0 || std::char_traits<char>::compare(left.data, right.data, left.size) == 0);
   }
   if (lhs.tag != rhs.tag) {
     return false;
@@ -104,6 +145,19 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
+        return true;
+      }
+      if (auto* view = value_as_memoryview(value)) {
+        const auto bytes = hash_binary_view(value);
+        if (view->released || bytes.data == nullptr) {
+          error = "operation forbidden on released memoryview object";
+          return false;
+        }
+        if (!bytes.readonly || (view->format != "B" && view->format != "b" && view->format != "c")) {
+          error = "unhashable type: 'memoryview'";
+          return false;
+        }
+        out = std::hash<std::string_view>{}(std::string_view(bytes.data, bytes.size));
         return true;
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
