@@ -14,9 +14,11 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
 
 #include <cstdint>
 #include <iostream>
@@ -27,6 +29,8 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+int g_recursion_limit = 1000;
 
 bool bytes_or_string_text(const Value& value, std::string& out) {
   if (auto* text = value_as_string(value)) {
@@ -240,6 +244,112 @@ bool sys_current_frames(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool sys_getdefaultencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getdefaultencoding expected 0 arguments";
+    return false;
+  }
+  out = Value::string("utf-8");
+  return true;
+}
+
+bool sys_getfilesystemencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getfilesystemencoding expected 0 arguments";
+    return false;
+  }
+  out = Value::string("utf-8");
+  return true;
+}
+
+bool sys_getfilesystemencodeerrors(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getfilesystemencodeerrors expected 0 arguments";
+    return false;
+  }
+  out = Value::string("surrogatepass");
+  return true;
+}
+
+bool sys_getrecursionlimit(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getrecursionlimit expected 0 arguments";
+    return false;
+  }
+  value_set_int64(out, g_recursion_limit);
+  return true;
+}
+
+bool sys_setrecursionlimit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "sys.setrecursionlimit expected integer limit";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].as.i64 < 1 || args[0].as.i64 > std::numeric_limits<int>::max()) {
+    error = "recursion limit must be positive";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  g_recursion_limit = static_cast<int>(args[0].as.i64);
+  value_set_none(out);
+  return true;
+}
+
+bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "sys.intern expected string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+int64_t shallow_sizeof(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::Invalid:
+    case ValueTag::None:
+      return 16;
+    case ValueTag::Bool:
+    case ValueTag::Int64:
+      return 28;
+    case ValueTag::Double:
+      return 24;
+    case ValueTag::Object:
+      if (auto* string = value_as_string(value)) {
+        return static_cast<int64_t>(sizeof(StringObject) + string->size);
+      }
+      if (auto* bytes = value_as_bytes(value)) {
+        return static_cast<int64_t>(sizeof(BytesObject) + bytes->size);
+      }
+      if (auto* bytearray = value_as_bytearray(value)) {
+        return static_cast<int64_t>(sizeof(ByteArrayObject) + bytearray->value.capacity());
+      }
+      if (auto* tuple = value_as_tuple(value)) {
+        return static_cast<int64_t>(sizeof(TupleObject) + tuple->items.capacity() * sizeof(Value));
+      }
+      if (auto* list = value_as_list(value)) {
+        return static_cast<int64_t>(sizeof(ListObject) + list->items.capacity() * sizeof(Value));
+      }
+      if (auto* dict = value_as_dict(value)) {
+        return static_cast<int64_t>(sizeof(DictObject) + dict->entries.capacity() * sizeof(std::pair<Value, Value>));
+      }
+      return 64;
+  }
+  return 0;
+}
+
+bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "sys.getsizeof expected object and optional default";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_int64(out, shallow_sizeof(args[0]));
+  return true;
+}
+
 bool sys_xlang3_debug_set_hook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._xlang3_debug_set_hook expected 1 argument";
@@ -374,6 +484,8 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "version_info", Value::tuple({Value::int64(3), Value::int64(14), Value::int64(0), Value::string("final"), Value::int64(0)}), error);
   module_set_attr(sys, "version", Value::string("3.14.0 (XLang3)"), error);
+  module_set_attr(sys, "hexversion", Value::int64(0x030e00f0), error);
+  module_set_attr(sys, "api_version", Value::int64(1013), error);
   module_set_attr(sys, "platform", Value::string(
 #if defined(_WIN32)
                                       "win32"
@@ -390,6 +502,11 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "byteorder", Value::string("little"), error);
   module_set_attr(sys, "dont_write_bytecode", Value::boolean(true), error);
   module_set_attr(sys, "flags", Value::tuple({}), error);
+  module_set_attr(sys, "warnoptions", Value::list({}), error);
+  module_set_attr(sys, "_xoptions", Value::dict({}), error);
+  module_set_attr(sys, "meta_path", Value::list({}), error);
+  module_set_attr(sys, "path_hooks", Value::list({}), error);
+  module_set_attr(sys, "path_importer_cache", Value::dict({}), error);
   module_set_attr(sys, "builtin_module_names", Value::tuple({}), error);
   Value stdin_stream = make_sys_stdio(runtime, "_XLang3Stdin", "stdin");
   Value stdout_stream = make_sys_stdio(runtime, "_XLang3Stdout", "stdout");
@@ -409,6 +526,13 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "prefix", Value::string(""), error);
   module_set_attr(sys, "base_prefix", Value::string(""), error);
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
+  module_set_attr(sys, "getdefaultencoding", runtime.make_native_function("sys.getdefaultencoding", sys_getdefaultencoding), error);
+  module_set_attr(sys, "getfilesystemencoding", runtime.make_native_function("sys.getfilesystemencoding", sys_getfilesystemencoding), error);
+  module_set_attr(sys, "getfilesystemencodeerrors", runtime.make_native_function("sys.getfilesystemencodeerrors", sys_getfilesystemencodeerrors), error);
+  module_set_attr(sys, "getrecursionlimit", runtime.make_native_function("sys.getrecursionlimit", sys_getrecursionlimit), error);
+  module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
+  module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
+  module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
   module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);

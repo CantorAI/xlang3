@@ -381,8 +381,10 @@ Section-level fixture coverage:
 
 Native or runtime-backed foundation:
 
-- [~] `sys`: `modules` and `exc_info` basics
-- [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `sleep`
+- [~] `sys`: `modules`, `exc_info`, stdio objects, argv/path/import-cache containers, version/platform fields,
+  default/filesystem encoding helpers, recursion-limit helpers, `intern`, `getsizeof`, trace/debug hooks, and frame placeholders; full CPython startup flags/config/runtime internals pending
+- [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
+  `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, and `mktime` placeholder; full calendrical tuple APIs and platform clock exactness pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: ABC cache-token/register/check facade; real ABC registry/cache semantics pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
