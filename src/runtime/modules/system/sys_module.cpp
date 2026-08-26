@@ -47,6 +47,9 @@ namespace xlang3 {
 namespace {
 
 int g_recursion_limit = 1000;
+constexpr int64_t kDefaultIntMaxStrDigits = 4300;
+constexpr int64_t kIntStrDigitsCheckThreshold = 640;
+int64_t g_int_max_str_digits = kDefaultIntMaxStrDigits;
 Value g_profile_function = Value::none();
 std::vector<Value> g_audit_hooks;
 thread_local int64_t g_coroutine_origin_tracking_depth = 0;
@@ -183,13 +186,24 @@ Value make_flags() {
           {"utf8_mode", Value::int64(1)},
           {"warn_default_encoding", Value::int64(0)},
           {"safe_path", Value::boolean(false)},
-          {"int_max_str_digits", Value::int64(0)},
+          {"int_max_str_digits", Value::int64(g_int_max_str_digits)},
           {"gil", Value::int64(1)},
           {"thread_inherit_context", Value::int64(0)},
           {"context_aware_warnings", Value::int64(0)},
       },
       "sys",
       18);
+}
+
+Value make_int_info() {
+  return make_structseq(
+      "int_info",
+      {
+          {"bits_per_digit", Value::int64(30)},
+          {"sizeof_digit", Value::int64(4)},
+          {"default_max_str_digits", Value::int64(kDefaultIntMaxStrDigits)},
+          {"str_digits_check_threshold", Value::int64(kIntStrDigitsCheckThreshold)},
+      });
 }
 
 Value make_float_info() {
@@ -1125,20 +1139,36 @@ bool sys_get_int_max_str_digits(Runtime&, const Value*, uint32_t argc, Value& ou
     error = "sys.get_int_max_str_digits expected 0 arguments";
     return false;
   }
-  value_set_int64(out, 0);
+  value_set_int64(out, g_int_max_str_digits);
   return true;
 }
 
 bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 || args[0].tag != ValueTag::Int64) {
-    error = "sys.set_int_max_str_digits expected integer";
+    error = "object cannot be interpreted as an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (args[0].as.i64 < 0) {
-    error = "maxdigits must be non-negative";
+  const int64_t max_digits = args[0].as.i64;
+  if (max_digits != 0 && max_digits < kIntStrDigitsCheckThreshold) {
+    error = "maxdigits must be >= 640 or 0 for unlimited";
     runtime.raise_class_error("ValueError", error);
     return false;
+  }
+  g_int_max_str_digits = max_digits;
+  Value sys;
+  if (runtime.import_module("sys", sys, error)) {
+    Value flags;
+    std::string ignored;
+    if (module_get_attr(sys, "flags", flags, ignored)) {
+      object_set_attr(flags, "int_max_str_digits", Value::int64(g_int_max_str_digits), ignored);
+      Value tuple_value;
+      if (object_get_attr(flags, "_tuple", tuple_value, ignored)) {
+        if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && tuple->items.size() > 17) {
+          tuple->items[17] = Value::int64(g_int_max_str_digits);
+        }
+      }
+    }
   }
   value_set_none(out);
   return true;
@@ -1412,6 +1442,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "byteorder", Value::string("little"), error);
   module_set_attr(sys, "dont_write_bytecode", Value::boolean(true), error);
   module_set_attr(sys, "flags", make_flags(), error);
+  module_set_attr(sys, "int_info", make_int_info(), error);
   module_set_attr(sys, "float_info", make_float_info(), error);
   module_set_attr(sys, "hash_info", make_hash_info(), error);
   module_set_attr(sys, "thread_info", make_thread_info(), error);

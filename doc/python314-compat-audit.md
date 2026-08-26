@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.stdlib_module_names` Python 3.14 metadata batch.
+Last updated after the native `sys` int-string digit runtime-state batch.
 
 Current checklist count:
 
@@ -69,6 +69,12 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` int-string digit runtime state: `sys.int_info` now
+  exposes CPython 3.14 `default_max_str_digits` and
+  `str_digits_check_threshold`, while `get_int_max_str_digits()` and
+  `set_int_max_str_digits()` preserve the configured limit, validate the
+  CPython 640-or-0 rule, and keep `sys.flags.int_max_str_digits` plus its
+  sequence slot in sync.
 - Expanded native `sys.stdlib_module_names` to the full Python 3.14 top-level
   standard-library module-name set, so stdlib/package probes can recognize
   importable standard modules such as `asyncio`, `email`, `encodings`, and
@@ -579,7 +585,8 @@ Native or runtime-backed foundation:
   protocol/default handling, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
-  stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,
+  stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
+  and stateful `sys.flags.int_max_str_digits`, trace/debug hooks,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,

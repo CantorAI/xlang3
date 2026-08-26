@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.stdlib_module_names exposes the Python 3.14 top-level stdlib name set
+sys int-string digit helpers expose CPython 3.14 state, thresholds, and flags metadata
 ```
 
 Current next loop:

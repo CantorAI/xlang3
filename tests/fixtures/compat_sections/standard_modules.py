@@ -589,8 +589,18 @@ except ValueError as err:
 print(sys.deactivate_stack_trampoline() is None, sys.is_stack_trampoline_active())
 old_switch = sys.getswitchinterval()
 sys.setswitchinterval(0.002)
-print(sys.getswitchinterval() > 0, sys.get_int_max_str_digits())
+old_int_max_digits = sys.get_int_max_str_digits()
+print(sys.getswitchinterval() > 0, old_int_max_digits, sys.flags.int_max_str_digits, sys.int_info.default_max_str_digits, sys.int_info.str_digits_check_threshold)
+sys.set_int_max_str_digits(640)
+print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17], sys.int_info[2], sys.int_info[3])
+sys.set_int_max_str_digits(0)
+print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17])
+sys.set_int_max_str_digits(old_int_max_digits)
 sys.setswitchinterval(old_switch)
+try:
+    sys.set_int_max_str_digits(1)
+except ValueError as err:
+    print("int-max-str-digits", ">= 640" in str(err), "0 for unlimited" in str(err))
 def sys_profile_probe(frame, event, arg):
     return None
 sys.setprofile(sys_profile_probe)
