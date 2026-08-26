@@ -112,6 +112,54 @@ void append_ascii_backslash_escape(uint32_t codepoint, std::string& out) {
   }
 }
 
+std::string canonical_encoding(std::string name) {
+  for (char& ch : name) {
+    if (ch == '-' || ch == ' ' || ch == '.') {
+      ch = '_';
+    } else {
+      ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+  }
+  if (name == "utf8" || name == "u8" || name == "cp65001") {
+    return "utf_8";
+  }
+  if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
+    return "latin_1";
+  }
+  if (name == "us_ascii" || name == "646") {
+    return "ascii";
+  }
+  return name;
+}
+
+std::string latin1_encode_text(Runtime& runtime, std::string_view text, const std::string& errors, std::string& error) {
+  std::string encoded;
+  encoded.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    const unsigned char ch = static_cast<unsigned char>(text[i]);
+    const size_t width = utf8_codepoint_width(ch);
+    const uint32_t codepoint = width == 0 || i + width > text.size() ? ch : decode_utf8_codepoint(text.substr(i), width);
+    const size_t advance = width == 0 ? 1 : width;
+    if (codepoint <= 0xff) {
+      encoded.push_back(static_cast<char>(codepoint));
+      i += advance;
+    } else if (errors == "ignore") {
+      i += advance;
+    } else if (errors == "replace") {
+      encoded.push_back('?');
+      i += advance;
+    } else if (errors == "backslashreplace") {
+      append_ascii_backslash_escape(codepoint, encoded);
+      i += advance;
+    } else {
+      error = "latin-1 codec can't encode character";
+      runtime.raise_class_error("UnicodeEncodeError", error);
+      return {};
+    }
+  }
+  return encoded;
+}
+
 /*
 Native string methods must be alias-safe: the destination register can be the
 same VM register as the receiver or an argument. When a method keeps a
@@ -1119,11 +1167,12 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   for (auto& ch : encoding) {
     ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
   }
+  encoding = canonical_encoding(std::move(encoding));
   for (auto& ch : errors) {
     ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
   }
-  if (encoding != "ascii" && encoding != "utf-8" && encoding != "utf8") {
-    error = "only utf-8/ascii encoding is supported";
+  if (encoding != "ascii" && encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "latin_1") {
+    error = "only utf-8/ascii/latin-1 encoding is supported";
     return false;
   }
   if (encoding == "ascii") {
@@ -1155,6 +1204,18 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
       }
     }
     out = Value::bytes(std::move(encoded));
+    return true;
+  }
+  if (encoding == "latin_1") {
+    std::string encoded = latin1_encode_text(runtime, as_view(text), errors, error);
+    if (!error.empty()) {
+      return false;
+    }
+    out = Value::bytes(std::move(encoded));
+    return true;
+  }
+  if (encoding == "utf_8_sig") {
+    out = Value::bytes(std::string("\xef\xbb\xbf", 3) + std::string(as_view(text)));
     return true;
   }
   out = Value::bytes(std::string(as_view(text)));

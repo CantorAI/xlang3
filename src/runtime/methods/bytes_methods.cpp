@@ -37,6 +37,49 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
 
 bool get_bytes_like_view(const Value& value, const char* name, std::string_view& out, std::string& error);
 
+std::string canonical_encoding(std::string name) {
+  for (char& ch : name) {
+    if (ch == '-' || ch == ' ' || ch == '.') {
+      ch = '_';
+    } else {
+      ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+  }
+  if (name == "utf8" || name == "u8" || name == "cp65001") {
+    return "utf_8";
+  }
+  if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
+    return "latin_1";
+  }
+  if (name == "us_ascii" || name == "646") {
+    return "ascii";
+  }
+  return name;
+}
+
+bool append_utf8(uint32_t codepoint, std::string& out) {
+  if (codepoint <= 0x7f) {
+    out.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7ff) {
+    out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else {
+    out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  }
+  return true;
+}
+
+std::string latin1_decode_text(std::string_view text) {
+  std::string decoded;
+  decoded.reserve(text.size() * 2);
+  for (unsigned char ch : text) {
+    append_utf8(ch, decoded);
+  }
+  return decoded;
+}
+
 bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 3) {
     error = "bytes.decode expected 0 to 2 arguments, got " + std::to_string(argc - 1);
@@ -54,8 +97,9 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     for (auto& ch : encoding) {
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
-    if (encoding != "utf-8" && encoding != "utf8" && encoding != "ascii") {
-      error = "only utf-8/ascii encoding is supported";
+    encoding = canonical_encoding(std::move(encoding));
+    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" && encoding != "latin_1") {
+      error = "only utf-8/ascii/latin-1 encoding is supported";
       return false;
     }
   }
@@ -86,6 +130,18 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     }
     out = Value::string(std::move(decoded));
     return true;
+  }
+  if (encoding == "latin_1") {
+    out = Value::string(latin1_decode_text(text));
+    return true;
+  }
+  if (encoding == "utf_8_sig") {
+    if (text.size() >= 3 &&
+        static_cast<unsigned char>(text[0]) == 0xef &&
+        static_cast<unsigned char>(text[1]) == 0xbb &&
+        static_cast<unsigned char>(text[2]) == 0xbf) {
+      text.remove_prefix(3);
+    }
   }
   out = Value::string(std::string(text));
   return true;

@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 
 #include <cctype>
+#include <unordered_map>
 #include <string_view>
 
 namespace xlang3 {
@@ -26,11 +27,31 @@ namespace {
 
 std::string normalize_encoding(std::string name) {
   for (char& ch : name) {
-    if (ch == '-') {
+    if (ch == '-' || ch == ' ' || ch == '.') {
       ch = '_';
     } else {
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
+  }
+  return name;
+}
+
+std::string canonical_encoding(std::string name) {
+  name = normalize_encoding(std::move(name));
+  if (name == "utf8" || name == "u8" || name == "cp65001") {
+    return "utf_8";
+  }
+  if (name == "utf_8_sig") {
+    return "utf_8_sig";
+  }
+  if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
+    return "latin_1";
+  }
+  if (name == "us_ascii" || name == "646") {
+    return "ascii";
+  }
+  if (name == "hex_codec") {
+    return "hex";
   }
   return name;
 }
@@ -54,6 +75,27 @@ bool value_bytes_text(const Value& value, std::string& out) {
     return true;
   }
   return false;
+}
+
+bool append_utf8(uint32_t codepoint, std::string& out) {
+  if (codepoint <= 0x7f) {
+    out.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7ff) {
+    out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else if (codepoint <= 0xffff) {
+    out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else if (codepoint <= 0x10ffff) {
+    out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else {
+    return false;
+  }
+  return true;
 }
 
 uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
@@ -84,6 +126,43 @@ void append_ascii_backslash_escape(uint32_t codepoint, std::string& out) {
       out.push_back(digits[(codepoint >> shift) & 0x0f]);
     }
   }
+}
+
+std::string latin1_encode_text(Runtime& runtime, std::string_view text, const std::string& errors, std::string& error) {
+  std::string encoded;
+  encoded.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    const unsigned char ch = static_cast<unsigned char>(text[i]);
+    const size_t width = utf8_codepoint_width(ch);
+    const uint32_t codepoint = width == 0 || i + width > text.size() ? ch : decode_utf8_codepoint(text.substr(i), width);
+    const size_t advance = width == 0 ? 1 : width;
+    if (codepoint <= 0xff) {
+      encoded.push_back(static_cast<char>(codepoint));
+      i += advance;
+    } else if (errors == "ignore") {
+      i += advance;
+    } else if (errors == "replace") {
+      encoded.push_back('?');
+      i += advance;
+    } else if (errors == "backslashreplace") {
+      append_ascii_backslash_escape(codepoint, encoded);
+      i += advance;
+    } else {
+      error = "latin-1 codec can't encode character";
+      runtime.raise_class_error("UnicodeEncodeError", error);
+      return {};
+    }
+  }
+  return encoded;
+}
+
+std::string latin1_decode_text(std::string_view text) {
+  std::string decoded;
+  decoded.reserve(text.size() * 2);
+  for (unsigned char ch : text) {
+    append_utf8(ch, decoded);
+  }
+  return decoded;
 }
 
 std::string ascii_encode_text(Runtime& runtime, std::string_view text, const std::string& errors, std::string& error) {
@@ -204,7 +283,7 @@ void string_user_data_cleanup(void* data) {
 }
 
 bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& encoding, const std::string& errors, Value& out, std::string& error) {
-  if (encoding == "hex" || encoding == "hex_codec") {
+  if (encoding == "hex") {
     std::string data;
     if (!value_bytes_text(value, data)) {
       error = "codecs.encode(..., 'hex') expected bytes";
@@ -212,7 +291,7 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return hex_encode(data, out);
   }
-  if (encoding == "utf_8" || encoding == "utf8" || encoding == "ascii") {
+  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1") {
     std::string text;
     if (!value_text(value, text)) {
       error = "codecs.encode expected str";
@@ -224,6 +303,14 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
         return false;
       }
       out = Value::bytes(std::move(encoded));
+    } else if (encoding == "latin_1") {
+      std::string encoded = latin1_encode_text(runtime, text, errors, error);
+      if (!error.empty()) {
+        return false;
+      }
+      out = Value::bytes(std::move(encoded));
+    } else if (encoding == "utf_8_sig") {
+      out = Value::bytes(std::string("\xef\xbb\xbf", 3) + text);
     } else {
       out = Value::bytes(std::move(text));
     }
@@ -234,7 +321,7 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
 }
 
 bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& encoding, const std::string& errors, Value& out, std::string& error) {
-  if (encoding == "hex" || encoding == "hex_codec") {
+  if (encoding == "hex") {
     std::string data;
     if (!value_bytes_text(value, data) && !value_text(value, data)) {
       error = "codecs.decode(..., 'hex') expected bytes-like or str";
@@ -242,7 +329,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return hex_decode(data, out, error);
   }
-  if (encoding == "utf_8" || encoding == "utf8" || encoding == "ascii") {
+  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1") {
     std::string data;
     if (!value_bytes_text(value, data)) {
       error = "codecs.decode expected bytes-like";
@@ -254,6 +341,16 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
         return false;
       }
       out = Value::string(std::move(decoded));
+    } else if (encoding == "latin_1") {
+      out = Value::string(latin1_decode_text(data));
+    } else if (encoding == "utf_8_sig") {
+      if (data.size() >= 3 &&
+          static_cast<unsigned char>(data[0]) == 0xef &&
+          static_cast<unsigned char>(data[1]) == 0xbb &&
+          static_cast<unsigned char>(data[2]) == 0xbf) {
+        data.erase(0, 3);
+      }
+      out = Value::string(std::move(data));
     } else {
       out = Value::string(std::move(data));
     }
@@ -272,7 +369,7 @@ bool codecs_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (argc >= 2) {
     auto* enc = value_as_string(args[1]);
     if (enc != nullptr) {
-      encoding = normalize_encoding(string_object_to_string(*enc));
+      encoding = canonical_encoding(string_object_to_string(*enc));
     }
   }
   return encode_with_codec(runtime, args[0], encoding, normalized_errors(args, argc, 2), out, error);
@@ -287,7 +384,7 @@ bool codecs_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (argc >= 2) {
     auto* enc = value_as_string(args[1]);
     if (enc != nullptr) {
-      encoding = normalize_encoding(string_object_to_string(*enc));
+      encoding = canonical_encoding(string_object_to_string(*enc));
     }
   }
   return decode_with_codec(runtime, args[0], encoding, normalized_errors(args, argc, 2), out, error);
@@ -330,8 +427,8 @@ bool codecs_lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     error = "codecs.lookup() expected encoding name";
     return false;
   }
-  const std::string name = normalize_encoding(string_object_to_string(*value_as_string(args[0])));
-  if (name != "utf_8" && name != "utf8" && name != "ascii" && name != "hex" && name != "hex_codec") {
+  const std::string name = canonical_encoding(string_object_to_string(*value_as_string(args[0])));
+  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" && name != "hex") {
     error = "unknown encoding: " + name;
     return false;
   }
@@ -353,6 +450,84 @@ bool codecs_lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool codecs_getencoder(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  Value info;
+  if (!codecs_lookup(runtime, args, argc, info, error, nullptr)) {
+    return false;
+  }
+  return object_get_attr(info, "encode", out, error);
+}
+
+bool codecs_getdecoder(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  Value info;
+  if (!codecs_lookup(runtime, args, argc, info, error, nullptr)) {
+    return false;
+  }
+  return object_get_attr(info, "decode", out, error);
+}
+
+std::unordered_map<std::string, Value>& error_handler_registry() {
+  static std::unordered_map<std::string, Value> handlers;
+  return handlers;
+}
+
+bool codecs_strict_errors(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "strict error handler re-raises codec exceptions";
+  runtime.raise_class_error("UnicodeError", error);
+  return false;
+}
+
+bool codecs_ignore_errors(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  out = Value::tuple({Value::string(""), Value::int64(0)});
+  return true;
+}
+
+bool codecs_replace_errors(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  out = Value::tuple({Value::string("\xef\xbf\xbd"), Value::int64(0)});
+  return true;
+}
+
+bool codecs_lookup_error(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "codecs.lookup_error() expected error handler name";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const std::string name = normalize_encoding(string_object_to_string(*value_as_string(args[0])));
+  if (name == "strict") {
+    out = runtime.make_native_function("codecs.strict_errors", codecs_strict_errors);
+    return true;
+  }
+  if (name == "ignore") {
+    out = runtime.make_native_function("codecs.ignore_errors", codecs_ignore_errors);
+    return true;
+  }
+  if (name == "replace") {
+    out = runtime.make_native_function("codecs.replace_errors", codecs_replace_errors);
+    return true;
+  }
+  auto it = error_handler_registry().find(name);
+  if (it != error_handler_registry().end()) {
+    out = it->second;
+    return true;
+  }
+  error = "unknown error handler name '" + name + "'";
+  runtime.raise_class_error("LookupError", error);
+  return false;
+}
+
+bool codecs_register_error(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_string(args[0]) == nullptr) {
+    error = "codecs.register_error() expected name and handler";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const std::string name = normalize_encoding(string_object_to_string(*value_as_string(args[0])));
+  error_handler_registry()[name] = args[1];
+  out = Value::none();
+  return true;
+}
+
 } // namespace
 
 void register_codecs_module(Runtime& runtime) {
@@ -360,6 +535,10 @@ void register_codecs_module(Runtime& runtime) {
   builder.function("lookup", codecs_lookup)
       .function("encode", codecs_encode)
       .function("decode", codecs_decode)
+      .function("getencoder", codecs_getencoder)
+      .function("getdecoder", codecs_getdecoder)
+      .function("lookup_error", codecs_lookup_error)
+      .function("register_error", codecs_register_error)
       .value("BOM_UTF8", Value::bytes(std::string("\xEF\xBB\xBF", 3)))
       .value("BOM", Value::bytes({}));
   runtime.register_module("codecs", builder.finish());

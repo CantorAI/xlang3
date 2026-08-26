@@ -52,3 +52,8 @@ Lo ON W
 unicode-lookup-error
 ascii b'x' ab
 (b'?x', 2) (Hi, 2)
+b'\xe9?' 2 233 ? 5 ok
+utf_8 latin_1
+(b'\xe9?', 2) (ok, 5)
+True
+True
