@@ -57,6 +57,26 @@ def cmp_num(a, b):
 Key = functools.cmp_to_key(cmp_num)
 print(functools.reduce(combine, [1, 2, 3]), functools.reduce(combine, [2, 3], 1))
 print(Key(1) < Key(2), Key(2) > Key(1), Key(2) == Key(2), Key(3) != Key(2))
+
+# functools cache decorators memoize positional calls, expose info/clear helpers, and enforce bounded LRU eviction.
+cache_calls = []
+
+@functools.lru_cache(maxsize=2)
+def cached_double(value):
+    cache_calls.append(value)
+    return value * 2
+
+print(cached_double(1), cached_double(1), cached_double(2), cached_double(3), cached_double(1))
+print(cache_calls, cached_double.cache_info())
+cached_double.cache_clear()
+print(cached_double.cache_info())
+
+@functools.cache
+def cached_inc(value):
+    cache_calls.append(value + 100)
+    return value + 1
+
+print(cached_inc(5), cached_inc(5), cached_inc.cache_info(), cached_inc.cache_parameters())
 compiled_command = code.compile_command("answer = 42")
 print(compiled_command.co_filename, compiled_command.co_name, code.compile_command("if True:") is None)
 print(fnmatch.fnmatch("alpha.py", "*.py"), fnmatch.fnmatchcase("alpha.py", "a[!0-9]*.py"))

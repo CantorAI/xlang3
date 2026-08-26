@@ -18,8 +18,11 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <memory>
 
 namespace xlang3 {
 
@@ -43,6 +46,30 @@ struct CmpToKeyObjectState {
   Value cmp;
 };
 
+struct LruCacheEntry {
+  size_t hash = 0;
+  Value key;
+  Value value;
+  uint64_t serial = 0;
+};
+
+struct LruCacheState {
+  Value callable;
+  int64_t maxsize = 128;
+  bool unlimited = false;
+  bool typed = false;
+  uint64_t hits = 0;
+  uint64_t misses = 0;
+  uint64_t serial = 0;
+  std::vector<LruCacheEntry> entries;
+};
+
+struct LruCacheConfig {
+  int64_t maxsize = 128;
+  bool unlimited = false;
+  bool typed = false;
+};
+
 enum class TotalOrderingOp : uintptr_t {
   Le = 1,
   Gt = 2,
@@ -59,6 +86,321 @@ void partial_cleanup(void* data) {
 
 void cmp_to_key_object_cleanup(void* data) {
   delete static_cast<CmpToKeyObjectState*>(data);
+}
+
+void lru_cache_config_cleanup(void* data) {
+  delete static_cast<LruCacheConfig*>(data);
+}
+
+void lru_cache_shared_cleanup(void* data) {
+  delete static_cast<std::shared_ptr<LruCacheState>*>(data);
+}
+
+bool functools_is_callable(const Value& value) {
+  return value_as_function(value) != nullptr ||
+         value_as_native_function(value) != nullptr ||
+         value_as_bound_method(value) != nullptr;
+}
+
+std::shared_ptr<LruCacheState>* lru_cache_state_handle(void* user_data, std::string& error) {
+  auto* handle = static_cast<std::shared_ptr<LruCacheState>*>(user_data);
+  if (handle == nullptr || *handle == nullptr) {
+    error = "invalid functools cache state";
+    return nullptr;
+  }
+  return handle;
+}
+
+Value lru_cache_make_key(const Value* args, uint32_t argc, bool typed) {
+  if (!typed && argc == 1) {
+    return args[0];
+  }
+  std::vector<Value> items;
+  items.reserve(static_cast<size_t>(argc) + (typed ? argc + 1 : 0));
+  for (uint32_t i = 0; i < argc; ++i) {
+    items.push_back(args[i]);
+  }
+  if (typed) {
+    items.push_back(Value::string("__typed__"));
+    for (uint32_t i = 0; i < argc; ++i) {
+      items.push_back(Value::int64(static_cast<int64_t>(args[i].tag)));
+      if (args[i].tag == ValueTag::Object && args[i].as.obj != nullptr) {
+        items.push_back(Value::int64(static_cast<int64_t>(args[i].as.obj->kind)));
+      } else {
+        items.push_back(Value::int64(-1));
+      }
+    }
+  }
+  return Value::tuple(std::move(items));
+}
+
+bool lru_cache_lookup(LruCacheState& state, const Value& key, size_t hash, Value& out) {
+  for (auto& entry : state.entries) {
+    if (entry.hash == hash && value_key_equal(entry.key, key)) {
+      ++state.hits;
+      entry.serial = ++state.serial;
+      value_assign_fast(out, entry.value);
+      return true;
+    }
+  }
+  ++state.misses;
+  return false;
+}
+
+void lru_cache_store(LruCacheState& state, Value key, size_t hash, const Value& value) {
+  if (state.maxsize == 0 && !state.unlimited) {
+    return;
+  }
+  LruCacheEntry entry;
+  entry.hash = hash;
+  entry.key = std::move(key);
+  entry.value = value;
+  entry.serial = ++state.serial;
+  state.entries.push_back(std::move(entry));
+  if (!state.unlimited && static_cast<int64_t>(state.entries.size()) > state.maxsize) {
+    auto it = std::min_element(state.entries.begin(), state.entries.end(), [](const auto& lhs, const auto& rhs) {
+      return lhs.serial < rhs.serial;
+    });
+    if (it != state.entries.end()) {
+      state.entries.erase(it);
+    }
+  }
+}
+
+bool lru_cache_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  auto* handle = lru_cache_state_handle(user_data, error);
+  if (handle == nullptr) {
+    return false;
+  }
+  auto& state = **handle;
+  Value key = lru_cache_make_key(args, argc, state.typed);
+  size_t hash = 0;
+  if (!value_hash_key(key, hash, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (lru_cache_lookup(state, key, hash, out)) {
+    return true;
+  }
+  Value computed;
+  if (!runtime_call_callable(runtime, state.callable, args, argc, computed, error)) {
+    return false;
+  }
+  lru_cache_store(state, std::move(key), hash, computed);
+  value_assign_fast(out, computed);
+  return true;
+}
+
+bool lru_cache_wrapper_call_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc != 0) {
+    error = "functools cache keyword calls are not implemented";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return lru_cache_wrapper_call(runtime, args, argc, out, error, user_data);
+}
+
+bool lru_cache_info_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 0) {
+    error = "cache_info() takes no arguments";
+    return false;
+  }
+  auto* handle = lru_cache_state_handle(user_data, error);
+  if (handle == nullptr) {
+    return false;
+  }
+  const auto& state = **handle;
+  out = Value::tuple({
+      Value::int64(static_cast<int64_t>(state.hits)),
+      Value::int64(static_cast<int64_t>(state.misses)),
+      state.unlimited ? Value::none() : Value::int64(state.maxsize),
+      Value::int64(static_cast<int64_t>(state.entries.size()))});
+  return true;
+}
+
+bool lru_cache_clear_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 0) {
+    error = "cache_clear() takes no arguments";
+    return false;
+  }
+  auto* handle = lru_cache_state_handle(user_data, error);
+  if (handle == nullptr) {
+    return false;
+  }
+  auto& state = **handle;
+  state.entries.clear();
+  state.hits = 0;
+  state.misses = 0;
+  state.serial = 0;
+  value_set_none(out);
+  return true;
+}
+
+bool lru_cache_parameters_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 0) {
+    error = "cache_parameters() takes no arguments";
+    return false;
+  }
+  auto* handle = lru_cache_state_handle(user_data, error);
+  if (handle == nullptr) {
+    return false;
+  }
+  const auto& state = **handle;
+  out = Value::dict({
+      {Value::string("maxsize"), state.unlimited ? Value::none() : Value::int64(state.maxsize)},
+      {Value::string("typed"), Value::boolean(state.typed)}});
+  return true;
+}
+
+bool lru_cache_build_wrapper(Runtime& runtime, const Value& callable, const LruCacheConfig& config, Value& out, std::string& error) {
+  if (!functools_is_callable(callable)) {
+    error = "the first argument must be callable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto state = std::make_shared<LruCacheState>();
+  state->callable = callable;
+  state->maxsize = config.maxsize;
+  state->unlimited = config.unlimited;
+  state->typed = config.typed;
+  auto* wrapper_handle = new std::shared_ptr<LruCacheState>(state);
+  out = runtime.make_native_function(
+      "functools._lru_cache_wrapper",
+      lru_cache_wrapper_call,
+      wrapper_handle,
+      lru_cache_shared_cleanup,
+      nullptr,
+      false,
+      lru_cache_wrapper_call_kw);
+
+  auto* info_handle = new std::shared_ptr<LruCacheState>(state);
+  auto* clear_handle = new std::shared_ptr<LruCacheState>(state);
+  auto* parameters_handle = new std::shared_ptr<LruCacheState>(state);
+  if (!object_set_attr(out, "cache_info", runtime.make_native_function("functools._lru_cache_wrapper.cache_info", lru_cache_info_call, info_handle, lru_cache_shared_cleanup), error) ||
+      !object_set_attr(out, "cache_clear", runtime.make_native_function("functools._lru_cache_wrapper.cache_clear", lru_cache_clear_call, clear_handle, lru_cache_shared_cleanup), error) ||
+      !object_set_attr(out, "cache_parameters", runtime.make_native_function("functools._lru_cache_wrapper.cache_parameters", lru_cache_parameters_call, parameters_handle, lru_cache_shared_cleanup), error) ||
+      !object_set_attr(out, "__wrapped__", callable, error)) {
+    return false;
+  }
+  return true;
+}
+
+bool lru_cache_decorator_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "lru_cache decorator expected one callable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* config = static_cast<LruCacheConfig*>(user_data);
+  if (config == nullptr) {
+    error = "invalid lru_cache decorator";
+    return false;
+  }
+  return lru_cache_build_wrapper(runtime, args[0], *config, out, error);
+}
+
+bool parse_lru_cache_options(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    LruCacheConfig& config,
+    bool& direct_callable,
+    Value& callable,
+    std::string& error) {
+  direct_callable = false;
+  if (argc > 1) {
+    error = "lru_cache() expected at most one positional argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc == 1) {
+    if (functools_is_callable(args[0])) {
+      direct_callable = true;
+      value_assign_fast(callable, args[0]);
+    } else if (args[0].tag == ValueTag::None) {
+      config.unlimited = true;
+    } else if (args[0].tag == ValueTag::Int64) {
+      config.maxsize = args[0].as.i64 < 0 ? 0 : args[0].as.i64;
+    } else {
+      error = "lru_cache() maxsize must be an integer, None, or callable";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      error = "lru_cache() received invalid keyword argument";
+      return false;
+    }
+    if (name == "maxsize") {
+      if (kwargs[i].value->tag == ValueTag::None) {
+        config.unlimited = true;
+      } else if (kwargs[i].value->tag == ValueTag::Int64) {
+        config.unlimited = false;
+        config.maxsize = kwargs[i].value->as.i64 < 0 ? 0 : kwargs[i].value->as.i64;
+      } else {
+        error = "lru_cache() maxsize must be an integer or None";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    } else if (name == "typed") {
+      config.typed = value_truthy(*kwargs[i].value);
+    } else {
+      error = "lru_cache() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool lru_cache_entry(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  LruCacheConfig config;
+  bool direct_callable = false;
+  Value callable;
+  if (!parse_lru_cache_options(runtime, args, argc, kwargs, kwargc, config, direct_callable, callable, error)) {
+    return false;
+  }
+  if (direct_callable) {
+    return lru_cache_build_wrapper(runtime, callable, config, out, error);
+  }
+  auto* stored = new LruCacheConfig(config);
+  out = runtime.make_native_function("functools.lru_cache.<decorator>", lru_cache_decorator_call, stored, lru_cache_config_cleanup);
+  return true;
+}
+
+bool lru_cache_entry_positional(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return lru_cache_entry(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool cache_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "cache() expected one callable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  LruCacheConfig config;
+  config.unlimited = true;
+  return lru_cache_build_wrapper(runtime, args[0], config, out, error);
 }
 
 CmpToKeyObjectState* cmp_to_key_object_state(const Value& self, std::string& error) {
@@ -445,8 +787,17 @@ void register_functools_module(Runtime& runtime) {
               nullptr,
               false,
               wraps_entry))
-      .function("lru_cache", identity_decorator_factory)
-      .function("cache", identity_decorator_factory)
+      .value(
+          "lru_cache",
+          runtime.make_native_function(
+              "functools.lru_cache",
+              lru_cache_entry_positional,
+              nullptr,
+              nullptr,
+              nullptr,
+              false,
+              lru_cache_entry))
+      .function("cache", cache_entry)
       .function("partial", partial_entry)
       .function("reduce", reduce_entry)
       .function("cmp_to_key", cmp_to_key_entry)

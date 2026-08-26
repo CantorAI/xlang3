@@ -429,7 +429,10 @@ High-level modules currently backed by native/runtime code:
 - [~] `fnmatch` / `glob`: native `fnmatch`, `fnmatchcase`, `filter`, `filterfalse`, `translate`, `glob.has_magic`,
   `glob.escape`, and VFS-backed `glob`/`iglob` with recursive `**` foundation; true lazy `iglob`,
   `root_dir`/`dir_fd`/`include_hidden` keyword options, bytes paths, and exact CPython path edge cases pending
-- [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, and `total_ordering` foundations; real cache wrappers, singledispatch, descriptor edge cases, and full CPython semantics pending
+- [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, `total_ordering`, and real
+  positional-call `lru_cache`/`cache` wrappers with bounded eviction, `cache_info`, `cache_clear`,
+  and `cache_parameters` foundations; keyword-call caching, exact `CacheInfo` namedtuple behavior,
+  `singledispatch`, descriptor edge cases, and full CPython semantics pending
 - [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
 - [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, `chain`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; lazy object identity, keyword-only options, and full iterator algebra pending

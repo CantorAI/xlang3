@@ -1444,6 +1444,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* native = value_as_native_function(object)) {
+    if (native->attrs_dict != nullptr && native->attrs_dict->tag != ValueTag::Invalid) {
+      std::string ignored;
+      if (mapping_get_item(*native->attrs_dict, Value::string(name), out, ignored)) {
+        return true;
+      }
+    }
     if (name == "__name__") {
       out = Value::string(native->name);
       return true;
@@ -1454,6 +1460,13 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "__doc__") {
       value_set_none(out);
+      return true;
+    }
+    if (name == "__dict__") {
+      if (native->attrs_dict == nullptr) {
+        native->attrs_dict = new Value(Value::dict({}));
+      }
+      value_assign_fast(out, *native->attrs_dict);
       return true;
     }
     error = "function has no attribute '" + name + "'";
@@ -1790,6 +1803,16 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     }
     return mapping_set_item(function->attrs_dict, Value::string(name), value, error);
   }
+  if (auto* native = value_as_native_function(object)) {
+    if (name == "__doc__" || name == "__name__" || name == "__module__") {
+      error = "native function attribute '" + name + "' is read-only";
+      return false;
+    }
+    if (native->attrs_dict == nullptr) {
+      native->attrs_dict = new Value(Value::dict({}));
+    }
+    return mapping_set_item(*native->attrs_dict, Value::string(name), value, error);
+  }
   if (auto* frame = value_as_frame(object)) {
     if (name == "f_lineno") {
       if (value.tag != ValueTag::Int64) {
@@ -1873,6 +1896,15 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   if (auto* function = value_as_function(object)) {
     if (function->attrs_dict.tag != ValueTag::Invalid &&
         mapping_delete_item(function->attrs_dict, Value::string(name), error)) {
+      return true;
+    }
+    error = "function has no attribute '" + name + "'";
+    return false;
+  }
+  if (auto* native = value_as_native_function(object)) {
+    if (native->attrs_dict != nullptr &&
+        native->attrs_dict->tag != ValueTag::Invalid &&
+        mapping_delete_item(*native->attrs_dict, Value::string(name), error)) {
       return true;
     }
     error = "function has no attribute '" + name + "'";

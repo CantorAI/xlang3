@@ -138,6 +138,7 @@ struct NativeFunctionObject {
   bool fast_releases_vm_lock = false;
   void* user_data = nullptr;
   void (*user_data_cleanup)(void*) = nullptr;
+  Value* attrs_dict = nullptr;
 };
 
 struct StringObject {

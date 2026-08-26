@@ -891,6 +891,7 @@ void release(const Value& value) {
       if (as_native_function(value.as.obj)->user_data_cleanup != nullptr) {
         as_native_function(value.as.obj)->user_data_cleanup(as_native_function(value.as.obj)->user_data);
       }
+      delete as_native_function(value.as.obj)->attrs_dict;
       delete as_native_function(value.as.obj);
       break;
     case ObjectKind::Code:
