@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native sys startup/config probe surface
+Native sys string interning probe surface
 ```
 
 Current next loop:

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` startup/config probe batch.
+Last updated after the native `sys` string interning probe batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: `intern()` now keeps a runtime intern table and
+  returns the canonical string object for repeated equal strings, with
+  `_is_interned()` exposing object-identity membership for CPython-style
+  feature probes.
 - Expanded native `sys`: added CPython-style startup/config probe surface for
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`,
   `getwindowsversion()`, `_enablelegacywindowsfsencoding()` with observable
@@ -521,10 +525,11 @@ Native or runtime-backed foundation:
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
   `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`,
-  `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`,
-  `getsizeof`, `getrefcount`, `getallocatedblocks`, `exit`, display/exception hook
-  placeholders, audit hook dispatch, stdio capability probes, profile/switch-interval/int-string
-  helpers, trace/debug hooks, current-thread-id-keyed `_current_frames` snapshots,
+  `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
+  with runtime canonicalization plus `_is_interned`, `getsizeof`, `getrefcount`,
+  `getallocatedblocks`, `exit`, display/exception hook placeholders, audit hook dispatch,
+  stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,
+  current-thread-id-keyed `_current_frames` snapshots,
   `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`, and frame placeholders; full CPython startup flags/config/runtime internals

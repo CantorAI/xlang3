@@ -53,6 +53,11 @@ thread_local int64_t g_coroutine_origin_tracking_depth = 0;
 std::string g_filesystem_encoding = "utf-8";
 std::string g_filesystem_encode_errors = "surrogatepass";
 
+std::vector<Value>& interned_strings() {
+  static auto* table = new std::vector<Value>();
+  return *table;
+}
+
 bool is_callable_value(const Value& value) {
   return value_as_function(value) != nullptr ||
          value_as_native_function(value) != nullptr ||
@@ -796,7 +801,33 @@ bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const std::string text = string_object_to_string(*value_as_string(args[0]));
+  auto& interned = interned_strings();
+  for (const auto& item : interned) {
+    auto* interned_string = value_as_string(item);
+    if (interned_string != nullptr && string_object_to_string(*interned_string) == text) {
+      value_assign_fast(out, item);
+      return true;
+    }
+  }
+  interned.push_back(args[0]);
   value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "sys._is_interned expected string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (const auto& interned : interned_strings()) {
+    if (value_is(interned, args[0])) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
   return true;
 }
 
@@ -1319,6 +1350,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "getrecursionlimit", runtime.make_native_function("sys.getrecursionlimit", sys_getrecursionlimit), error);
   module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
   module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
+  module_set_attr(sys, "_is_interned", runtime.make_native_function("sys._is_interned", sys_is_interned), error);
   module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
   module_set_attr(sys, "getrefcount", runtime.make_native_function("sys.getrefcount", sys_getrefcount), error);
   module_set_attr(sys, "getallocatedblocks", runtime.make_native_function("sys.getallocatedblocks", sys_getallocatedblocks), error);

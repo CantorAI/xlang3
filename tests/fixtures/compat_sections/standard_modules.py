@@ -519,6 +519,14 @@ sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
+sys_intern_prefix = "xlang"
+sys_intern_dynamic = sys_intern_prefix + "3"
+sys_intern_canonical = sys.intern(sys_intern_dynamic)
+print(sys.intern("xlang3") is sys_intern_canonical, sys._is_interned(sys_intern_canonical), sys._is_interned(sys_intern_dynamic))
+try:
+    sys._is_interned(42)
+except TypeError as err:
+    print("sys-is-interned-type", "string" in str(err))
 sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
 print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)
