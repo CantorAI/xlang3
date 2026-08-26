@@ -18,6 +18,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import tomllib
 from pathlib import Path
@@ -63,6 +64,38 @@ def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
 
+def resolve_codex_executable() -> str:
+    explicit = os.environ.get("XLANG3_CODEX_EXE", "").strip()
+    if explicit:
+        return explicit
+
+    local_bin = Path.home() / "AppData" / "Local" / "OpenAI" / "Codex" / "bin"
+    if local_bin.exists():
+        candidates = sorted(
+            local_bin.glob("*\\codex.exe"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for candidate in candidates:
+            return str(candidate)
+
+    found = shutil.which("codex")
+    if found:
+        return found
+
+    raise SystemExit(
+        "Codex CLI was not found. Install/open Codex Desktop, or set XLANG3_CODEX_EXE."
+    )
+
+
+def expand_command_template(command: str) -> str:
+    if "{codex}" in command:
+        command = command.replace("{codex}", resolve_codex_executable())
+    if "{root}" in command:
+        command = command.replace("{root}", str(ROOT))
+    return command
+
+
 def default_section(config: dict, goal: str) -> str:
     return goal_config(config, goal).get("default_section", "")
 
@@ -79,7 +112,7 @@ def validate_codex_command(command: str) -> str:
             f"Invalid Codex backend command: {stripped!r}. "
             "Pass a real command or use --dry-run/--status."
         )
-    return stripped
+    return expand_command_template(stripped)
 
 
 def preflight_codex_command(command: str) -> None:
@@ -123,6 +156,14 @@ def run(command: list[str] | str, *, shell: bool = False) -> None:
     print()
     print("==", command if isinstance(command, str) else " ".join(command))
     result = subprocess.run(command, cwd=ROOT, shell=shell)
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
+
+
+def run_with_input(command: str, stdin_text: str) -> None:
+    print()
+    print("==", command)
+    result = subprocess.run(command, cwd=ROOT, shell=True, text=True, input=stdin_text)
     if result.returncode != 0:
         raise SystemExit(result.returncode)
 
@@ -338,7 +379,12 @@ def invoke_codex(command_template: str, prompt_path: Path, prompt: str) -> None:
     elif "{prompt}" in command:
         command = command.replace("{prompt}", prompt.replace('"', '\\"'))
     else:
-        command = f'{command} "{prompt_path}"'
+        print()
+        print("== Codex backend")
+        print(f"Prompt file: {prompt_path}")
+        run_with_input(command, prompt)
+        print("Codex backend finished.")
+        return
 
     print()
     print("== Codex backend")

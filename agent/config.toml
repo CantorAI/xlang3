@@ -19,7 +19,7 @@ release_exe = "build/Release/xlang3.exe"
 fixture_root = "tests/fixtures"
 
 [codex]
-command = "codex exec --dangerously-bypass-approvals-and-sandbox {prompt_file}"
+command = "\"{codex}\" exec --dangerously-bypass-approvals-and-sandbox -C \"{root}\" -"
 
 [goals.python314_compat]
 title = "XLang3 Python 3.14 Compatibility"
