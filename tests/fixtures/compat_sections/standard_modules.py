@@ -518,6 +518,28 @@ print(os.path.normpath("alpha/./beta/../gamma"), os.path.basename("alpha/beta.tx
 mode = os.stat(__file__)[stat.ST_MODE]
 print(stat.S_ISREG(mode), stat.S_ISDIR(mode), stat.S_IFMT(mode) == stat.S_IFREG, stat.S_IMODE(mode) >= 0)
 
+# Common os filesystem operations stay behind the VFS.
+os_dir = "xlang3_os_dir"
+if os.path.exists(os_dir + "/renamed.txt"):
+    os.remove(os_dir + "/renamed.txt")
+if os.path.exists(os_dir + "/replaced.txt"):
+    os.remove(os_dir + "/replaced.txt")
+if os.path.isdir(os_dir):
+    os.rmdir(os_dir)
+os.mkdir(os_dir)
+with open(os_dir + "/created.txt", "w") as f:
+    f.write("abc")
+print(os.path.lexists(os_dir), os.path.getsize(os_dir + "/created.txt"), os.access(os_dir + "/created.txt", os.F_OK))
+os.rename(os_dir + "/created.txt", os_dir + "/renamed.txt")
+with open(os_dir + "/replaced.txt", "w") as f:
+    f.write("old")
+os.replace(os_dir + "/renamed.txt", os_dir + "/replaced.txt")
+fs_path_obj = pathlib.Path(os_dir + "/replaced.txt")
+print(os.path.exists(os_dir + "/renamed.txt") == False, os.path.getsize(os_dir + "/replaced.txt"), os.fsdecode(os.fsencode(fs_path_obj)) == os.fspath(fs_path_obj))
+os.remove(os_dir + "/replaced.txt")
+os.rmdir(os_dir)
+print(os.path.exists(os_dir) == False, isinstance(os.getcwdb(), bytes))
+
 # os.scandir behaves as an iterator and context manager.
 scan = os.scandir(compat_fixture_dir)
 first_entry = next(scan)

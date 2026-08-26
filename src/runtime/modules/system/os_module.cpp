@@ -134,6 +134,15 @@ bool os_getcwd(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::s
   return true;
 }
 
+bool os_getcwdb(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "os.getcwdb() expected no arguments";
+    return false;
+  }
+  out = Value::bytes(runtime.vfs().cwd());
+  return true;
+}
+
 bool os_chdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "os.chdir() expected one argument";
@@ -147,6 +156,32 @@ bool os_chdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   value_set_none(out);
+  return true;
+}
+
+bool os_fsencode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "os.fsencode() expected one argument";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.fsencode path", path, error)) {
+    return false;
+  }
+  out = Value::bytes(path.text);
+  return true;
+}
+
+bool os_fsdecode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "os.fsdecode() expected one argument";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.fsdecode path", path, error)) {
+    return false;
+  }
+  out = Value::string(path.text);
   return true;
 }
 
@@ -534,15 +569,122 @@ bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     error = "os.remove() expected one argument";
     return false;
   }
-  std::string path;
-  if (!get_string_arg(args[0], "os.remove path", path, error)) {
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.remove path", path, error)) {
     return false;
   }
-  if (!runtime.vfs().remove(path, error)) {
+  if (!runtime.vfs().remove(path.text, error)) {
     return false;
   }
   value_set_none(out);
   return true;
+}
+
+bool os_mkdir_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  if (argc < 1 || argc > 2) {
+    error = "os.mkdir() expected path and optional mode";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.mkdir path", path, error)) {
+    return false;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? std::string() : std::string(kwargs[i].name);
+    if (name != "mode" && name != "dir_fd") {
+      error = "os.mkdir() got unexpected keyword argument '" + name + "'";
+      return false;
+    }
+  }
+  const std::string parent = std::filesystem::path(path.text).parent_path().string();
+  if (!parent.empty()) {
+    VfsStat stat;
+    if (!runtime.vfs().stat(parent, stat, error)) {
+      return false;
+    }
+    if (stat.kind != VfsNodeKind::Directory) {
+      error = "parent directory does not exist: " + parent;
+      return false;
+    }
+  }
+  if (!runtime.vfs().make_dirs(path.text, false, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_mkdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return os_mkdir_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool os_mkdir_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return os_mkdir_impl(runtime, args, argc, kwargs, kwargc, out, error);
+}
+
+bool os_rmdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "os.rmdir() expected one argument";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.rmdir path", path, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(path.text, stat, error)) {
+    return false;
+  }
+  if (stat.kind != VfsNodeKind::Directory) {
+    error = "not a directory: " + path.text;
+    return false;
+  }
+  if (!runtime.vfs().remove(path.text, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_rename_common(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool replace) {
+  if (argc != 2) {
+    error = replace ? "os.replace() expected src and dst" : "os.rename() expected src and dst";
+    return false;
+  }
+  PathArg src;
+  PathArg dst;
+  if (!get_path_arg(runtime, args[0], "src", src, error) ||
+      !get_path_arg(runtime, args[1], "dst", dst, error)) {
+    return false;
+  }
+  if (!runtime.vfs().rename(src.text, dst.text, replace, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_rename(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return os_rename_common(runtime, args, argc, out, error, false);
+}
+
+bool os_replace(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return os_rename_common(runtime, args, argc, out, error, true);
 }
 
 bool os_makedirs_impl(
@@ -624,6 +766,23 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
       Value::int64(0),
       Value::int64(0),
   });
+  return true;
+}
+
+bool os_access(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "os.access() expected path and mode";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.access path", path, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(path.text, stat, error)) {
+    return false;
+  }
+  value_set_bool(out, stat.kind != VfsNodeKind::Missing);
   return true;
 }
 
@@ -722,6 +881,12 @@ bool path_unary(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
       return false;
     }
     out = Value::boolean(stat.kind != VfsNodeKind::Missing);
+  } else if (std::string(op) == "lexists") {
+    VfsStat stat;
+    if (!runtime.vfs().stat(path, stat, error)) {
+      return false;
+    }
+    out = Value::boolean(stat.kind != VfsNodeKind::Missing);
   } else if (std::string(op) == "isdir") {
     VfsStat stat;
     if (!runtime.vfs().stat(path, stat, error)) {
@@ -739,6 +904,27 @@ bool path_unary(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   } else {
     value_assign_fast(out, args[0]);
   }
+  return true;
+}
+
+bool path_getsize(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "getsize() expected one path";
+    return false;
+  }
+  std::string path;
+  if (!get_string_arg(args[0], "path", path, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(path, stat, error)) {
+    return false;
+  }
+  if (stat.kind == VfsNodeKind::Missing) {
+    error = "No such file or directory: " + path;
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(stat.size));
   return true;
 }
 
@@ -1107,9 +1293,11 @@ Value make_os_path_module(Runtime& runtime) {
       .value("dirname", runtime.make_native_function("os.path.dirname", path_unary, const_cast<char*>("dirname")))
       .value("basename", runtime.make_native_function("os.path.basename", path_unary, const_cast<char*>("basename")))
       .value("exists", runtime.make_native_function("os.path.exists", path_unary, const_cast<char*>("exists")))
+      .value("lexists", runtime.make_native_function("os.path.lexists", path_unary, const_cast<char*>("lexists")))
       .value("isdir", runtime.make_native_function("os.path.isdir", path_unary, const_cast<char*>("isdir")))
       .value("isfile", runtime.make_native_function("os.path.isfile", path_unary, const_cast<char*>("isfile")))
       .value("isabs", runtime.make_native_function("os.path.isabs", path_unary, const_cast<char*>("isabs")))
+      .function("getsize", path_getsize)
       .function("join", path_join)
       .function("relpath", path_relpath)
       .function("commonprefix", path_commonprefix)
@@ -1147,7 +1335,10 @@ void register_os_module(Runtime& runtime) {
 
   NativeModuleBuilder builder(runtime, "os");
   builder.function("getcwd", os_getcwd)
+      .function("getcwdb", os_getcwdb)
       .function("chdir", os_chdir)
+      .function("fsencode", os_fsencode)
+      .function("fsdecode", os_fsdecode)
       .function("urandom", os_urandom)
       .function("getpid", os_getpid)
       .function("getppid", os_getppid)
@@ -1155,14 +1346,23 @@ void register_os_module(Runtime& runtime) {
       .function("listdir", os_listdir)
       .value("scandir", runtime.make_native_function("os.scandir", os_scandir, os_state))
       .value("DirEntry", os_state->dir_entry_class)
+      .function("mkdir", os_mkdir, nullptr, false, os_mkdir_kw)
       .function("makedirs", os_makedirs, nullptr, false, os_makedirs_kw)
       .function("remove", os_remove)
       .function("unlink", os_remove)
+      .function("rmdir", os_rmdir)
+      .function("rename", os_rename)
+      .function("replace", os_replace)
       .function("stat", os_stat)
+      .function("access", os_access)
       .function("getenv", os_getenv)
       .function("fspath", os_fspath)
       .value("path", path_module)
       .value("environ", env_dict)
+      .value("F_OK", Value::int64(0))
+      .value("R_OK", Value::int64(4))
+      .value("W_OK", Value::int64(2))
+      .value("X_OK", Value::int64(1))
 #if defined(_WIN32)
       .value("name", Value::string("nt"))
       .value("sep", Value::string("\\"))

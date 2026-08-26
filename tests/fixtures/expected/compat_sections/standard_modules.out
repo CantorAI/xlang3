@@ -141,6 +141,9 @@ True True
 (alpha/beta, gamma.txt) alpha\beta
 alpha\gamma beta.txt alpha
 True False True True
+True 3 True
+True 3 True
+True True
 True True True
 scandir-closed
 True False False True True

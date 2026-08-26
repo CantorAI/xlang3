@@ -79,6 +79,27 @@ public:
     return true;
   }
 
+  bool rename(const std::string& old_path, const std::string& new_path, bool replace, std::string& error) override {
+    std::error_code ec;
+    if (!replace && std::filesystem::exists(new_path, ec)) {
+      error = "destination exists: " + new_path;
+      return false;
+    }
+    if (replace && std::filesystem::exists(new_path, ec)) {
+      std::filesystem::remove(new_path, ec);
+      if (ec) {
+        error = "cannot replace path " + new_path + ": " + ec.message();
+        return false;
+      }
+    }
+    std::filesystem::rename(old_path, new_path, ec);
+    if (ec) {
+      error = "cannot rename " + old_path + " to " + new_path + ": " + ec.message();
+      return false;
+    }
+    return true;
+  }
+
   bool make_dirs(const std::string& path, bool exist_ok, std::string& error) override {
     std::error_code ec;
     if (std::filesystem::exists(path, ec)) {
@@ -211,6 +232,19 @@ bool Vfs::write_file(const std::string& path, const uint8_t* data, std::size_t s
 bool Vfs::remove(const std::string& path, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->remove(resolved.path, error);
+}
+
+bool Vfs::rename(const std::string& old_path, const std::string& new_path, bool replace, std::string& error) {
+  ResolvedPath old_resolved;
+  ResolvedPath new_resolved;
+  if (!resolve(old_path, old_resolved, error) || !resolve(new_path, new_resolved, error)) {
+    return false;
+  }
+  if (old_resolved.fs != new_resolved.fs) {
+    error = "cross-filesystem rename is not supported";
+    return false;
+  }
+  return old_resolved.fs->rename(old_resolved.path, new_resolved.path, replace, error);
 }
 
 bool Vfs::make_dirs(const std::string& path, bool exist_ok, std::string& error) {
