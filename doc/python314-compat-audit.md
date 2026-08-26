@@ -445,7 +445,9 @@ High-level modules currently backed by native/runtime code:
   `object_pairs_hook`, `parse_int`, `parse_float`, `JSONEncoder.encode`/`iterencode`, and
   `JSONDecoder.decode` foundations; exact `JSONDecodeError` payloads, `allow_nan`/`parse_constant`,
   streaming encoder details, and full CPython package behavior pending
-- [~] `locale`: category constants, set/get locale, encoding helpers, normalize, and localeconv shape; real platform locale semantics pending
+- [~] `locale`: category constants, set/get locale, encoding helpers, normalize,
+  localeconv shape, `strcoll`, `strxfrm`, `localize`, `delocalize`, `atoi`,
+  `atof`, and `CHAR_MAX`; real platform locale semantics pending
 - [~] `marshal`: XLang3-native `dumps`/`loads` and file `dump`/`load` round-trip foundations for scalars,
   strings/bytes, and common containers; this is intentionally not CPython `.pyc`/code-object marshal exact yet
 - [~] `numbers`: numeric ABC hierarchy is backed by `ABCMeta`, builtin numeric scalar types are registered

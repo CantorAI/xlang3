@@ -14,9 +14,12 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 
+#include <algorithm>
 #include <clocale>
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,6 +27,16 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
+  auto* text = value_as_string(value);
+  if (text == nullptr) {
+    error = std::string(name) + " must be str";
+    return false;
+  }
+  out = string_object_to_string(*text);
+  return true;
+}
 
 bool locale_setlocale(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2 || args[0].tag != ValueTag::Int64) {
@@ -97,12 +110,11 @@ bool locale_normalize(Runtime&, const Value* args, uint32_t argc, Value& out, st
     error = "locale.normalize() expected one locale name";
     return false;
   }
-  auto* text = value_as_string(args[0]);
-  if (text == nullptr) {
-    error = "locale name must be str";
+  std::string text;
+  if (!get_string_arg(args[0], "locale name", text, error)) {
     return false;
   }
-  out = Value::string(string_object_to_string(*text));
+  out = Value::string(std::move(text));
   return true;
 }
 
@@ -118,6 +130,118 @@ bool locale_localeconv(Runtime&, const Value*, uint32_t argc, Value& out, std::s
   entries.push_back({Value::string("int_curr_symbol"), Value::string("")});
   entries.push_back({Value::string("frac_digits"), Value::int64(127)});
   out = Value::dict(std::move(entries));
+  return true;
+}
+
+bool locale_strcoll(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "locale.strcoll() expected two strings";
+    return false;
+  }
+  std::string left;
+  std::string right;
+  if (!get_string_arg(args[0], "string", left, error) || !get_string_arg(args[1], "string", right, error)) {
+    return false;
+  }
+  const int cmp = std::strcoll(left.c_str(), right.c_str());
+  value_set_int64(out, cmp < 0 ? -1 : cmp > 0 ? 1 : 0);
+  return true;
+}
+
+bool locale_strxfrm(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "locale.strxfrm() expected one string";
+    return false;
+  }
+  std::string text;
+  if (!get_string_arg(args[0], "string", text, error)) {
+    return false;
+  }
+  std::vector<char> buffer(text.size() * 2 + 16);
+  const size_t needed = std::strxfrm(buffer.data(), text.c_str(), buffer.size());
+  if (needed >= buffer.size()) {
+    buffer.resize(needed + 1);
+    std::strxfrm(buffer.data(), text.c_str(), buffer.size());
+  }
+  out = Value::string(std::string(buffer.data()));
+  return true;
+}
+
+std::string delocalize_text(std::string text) {
+  text.erase(std::remove(text.begin(), text.end(), ','), text.end());
+  return text;
+}
+
+bool locale_delocalize(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "locale.delocalize() expected one string";
+    return false;
+  }
+  std::string text;
+  if (!get_string_arg(args[0], "string", text, error)) {
+    return false;
+  }
+  out = Value::string(delocalize_text(std::move(text)));
+  return true;
+}
+
+bool locale_localize(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "locale.localize() expected string and optional grouping";
+    return false;
+  }
+  std::string text;
+  if (!get_string_arg(args[0], "string", text, error)) {
+    return false;
+  }
+  out = Value::string(std::move(text));
+  return true;
+}
+
+bool locale_atof(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "locale.atof() expected string and optional function";
+    return false;
+  }
+  std::string text;
+  if (!get_string_arg(args[0], "string", text, error)) {
+    return false;
+  }
+  std::string normalized_text = delocalize_text(std::move(text));
+  Value normalized = Value::string(normalized_text);
+  if (argc == 2) {
+    return runtime_call_callable(runtime, args[1], &normalized, 1, out, error);
+  }
+  char* end = nullptr;
+  const double parsed = std::strtod(normalized_text.c_str(), &end);
+  if (end == nullptr || *end != '\0') {
+    error = "could not convert string to float";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = Value::number(parsed);
+  return true;
+}
+
+bool locale_atoi(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "locale.atoi() expected one string";
+    return false;
+  }
+  std::string text;
+  if (!get_string_arg(args[0], "string", text, error)) {
+    return false;
+  }
+  const std::string normalized = delocalize_text(std::move(text));
+  char* end = nullptr;
+  const long long parsed = std::strtoll(normalized.c_str(), &end, 10);
+  if (end == nullptr || *end != '\0') {
+    error = "invalid literal for int()";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(parsed));
+  (void)user_data;
   return true;
 }
 
@@ -137,7 +261,14 @@ void register_locale_module(Runtime& runtime) {
       .function("getlocale", locale_getlocale)
       .function("getdefaultlocale", locale_getdefaultlocale)
       .function("normalize", locale_normalize)
-      .function("localeconv", locale_localeconv);
+      .function("localeconv", locale_localeconv)
+      .function("strcoll", locale_strcoll)
+      .function("strxfrm", locale_strxfrm)
+      .function("delocalize", locale_delocalize)
+      .function("localize", locale_localize)
+      .function("atof", locale_atof)
+      .function("atoi", locale_atoi)
+      .value("CHAR_MAX", Value::int64(127));
   runtime.register_module("locale", builder.finish());
 }
 

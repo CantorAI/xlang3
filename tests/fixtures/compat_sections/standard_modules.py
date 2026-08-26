@@ -335,6 +335,8 @@ import winreg
 import xmlrpc.client
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
+print(locale.delocalize("1,234.5"), locale.localize("1234.5"), locale.atoi("1,234"), locale.atof("1,234.5"))
+print(locale.strcoll("a", "b") < 0, isinstance(locale.strxfrm("abc"), str), locale.CHAR_MAX)
 old_recursion_limit = sys.getrecursionlimit()
 sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)

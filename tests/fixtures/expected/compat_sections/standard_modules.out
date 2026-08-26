@@ -62,6 +62,8 @@ True True
 0 0 64 64
 260 True 1
 True True .
+1234.5 1234.5 1234 1234.5
+True True 127
 utf-8 utf-8 surrogatepass True
 True True True True True
 True False True True
