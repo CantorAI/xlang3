@@ -545,6 +545,21 @@ def less_than_four(x):
 def is_even(x):
     return x % 2 == 0
 
+class StandardIter:
+    def __init__(self, values):
+        self.values = values
+        self.index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index >= len(self.values):
+            raise StopIteration()
+        value = self.values[self.index]
+        self.index = self.index + 1
+        return value
+
 print(list(itertools.islice([0, 1, 2, 3, 4, 5], 1, 5, 2)))
 print(list(itertools.takewhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
@@ -563,20 +578,28 @@ print(list(itertools.combinations([1, 2, 3], 2)), list(itertools.combinations_wi
 print(list(itertools.permutations([1, 2, 3], 2)))
 print(list(itertools.accumulate([1, 2, 3, 4])), list(itertools.starmap(original, [(1, 2), (3, 4)])))
 print(list(itertools.zip_longest([1, 2], ["a"])))
+print(list(itertools.islice(StandardIter([0, 1, 2, 3]), 1, 3)))
+print(list(itertools.chain(StandardIter([1]), StandardIter([2]))), list(itertools.product(StandardIter([1, 2]), StandardIter(["x"]))))
+print(list(itertools.combinations(StandardIter([1, 2, 3]), 2)), list(itertools.permutations(StandardIter([1, 2]), 2)))
+print(list(itertools.accumulate(StandardIter([1, 2, 3]))), list(itertools.starmap(original, StandardIter([(5, 6)]))))
 
 # collections: Counter, OrderedDict, ChainMap, and namedtuple foundations.
-from collections import ChainMap, Counter, OrderedDict, namedtuple
+from collections import ChainMap, Counter, OrderedDict, deque, namedtuple
 
 Pair = namedtuple("Pair", "left right")
-pair = Pair._make([7, 8])
+pair = Pair._make(StandardIter([7, 8]))
 print(pair.left, pair.right, Pair._fields)
 
 counts = Counter("abbccc")
-counts.update(["a", "d"])
+counts.update(StandardIter(["a", "d"]))
 counts.subtract({"c": 1, "d": 2})
 print(counts["a"], counts["b"], counts["c"], counts["d"], counts["z"])
 print(counts.total(), counts.most_common(2))
 print(list(counts.elements()))
+dq = deque(StandardIter([1, 2]))
+dq.extend(StandardIter([3]))
+dq.extendleft(StandardIter([0]))
+print(dq.to_list())
 
 ordered = OrderedDict({"a": 1, "b": 2})
 print(list(ordered.keys()), list(ordered.values()), list(ordered.items()))

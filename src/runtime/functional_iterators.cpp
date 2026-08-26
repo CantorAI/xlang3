@@ -215,6 +215,12 @@ bool runtime_call_callable(
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
     if (!result.errors.empty()) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        error = result.errors.front();
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
       error = result.errors.front();
       runtime.raise_class_error("RuntimeError", error);
       return false;
@@ -240,6 +246,56 @@ bool runtime_call_callable(
   }
 
   return raise_type_error(runtime, "object is not callable", error);
+}
+
+bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error) {
+  if (sequence_get_iter(iterable, out, error)) {
+    return true;
+  }
+
+  Value iter_method;
+  std::string attr_error;
+  if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
+    error = error.empty() ? "object is not iterable" : error;
+    return false;
+  }
+
+  Value iter_result;
+  std::string call_error;
+  if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+    error = call_error.empty() ? "__iter__ call failed" : call_error;
+    return false;
+  }
+
+  std::string concrete_error;
+  if (sequence_get_iter(iter_result, out, concrete_error)) {
+    error.clear();
+    return true;
+  }
+
+  out = functional_protocol_iterator(&runtime, std::move(iter_result));
+  error.clear();
+  return true;
+}
+
+bool runtime_collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
+  Value iterator;
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    out.push_back(std::move(item));
+  }
 }
 
 bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::string& error) {

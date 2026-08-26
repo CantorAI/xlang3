@@ -138,12 +138,12 @@ bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
-bool list_extend_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool list_extend_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "list.extend", error)) {
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   std::vector<Value> items;

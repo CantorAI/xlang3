@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
@@ -558,7 +559,7 @@ bool bytes_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool bytes_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool bytes_join_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "bytes.join", error)) {
     return false;
   }
@@ -567,7 +568,7 @@ bool bytes_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
 

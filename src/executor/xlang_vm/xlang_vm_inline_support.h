@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "xlang3/compiler.h"
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -717,7 +718,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (args.star_arg != UINT32_MAX) {
       Value iterator;
-      if (!sequence_get_iter(args.registers[args.star_arg], iterator, error)) {
+      if (!runtime_get_iter(runtime, args.registers[args.star_arg], iterator, error)) {
         error = "* argument must be iterable";
         return false;
       }
@@ -1144,22 +1145,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     std::vector<Value> items;
     if (constructor_args.size() == 1) {
-      Value iterator;
-      if (!sequence_get_iter(constructor_args.get(0), iterator, error)) {
+      if (!runtime_collect_iterable(runtime, constructor_args.get(0), items, error)) {
         return false;
       }
-      execution_lock.unlock();
-      for (;;) {
-        bool done = false;
-        Value item;
-        if (!sequence_iter_next(iterator, done, item, error)) {
-          execution_lock.lock();
-          return false;
-        }
-        if (done) break;
-        items.push_back(std::move(item));
-      }
-      execution_lock.lock();
     }
     if (constructor == XlangVMBuiltinConstructor::List) {
       out = Value::list(std::move(items));
@@ -1203,7 +1191,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return false;
     }
     Value iterator;
-    if (!sequence_get_iter(arg, iterator, local_error)) {
+    if (!runtime_get_iter(runtime, arg, iterator, local_error)) {
       return false;
     }
     for (;;) {
@@ -1259,7 +1247,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     Value iterator;
-    if (!sequence_get_iter(source, iterator, error)) {
+    if (!runtime_get_iter(runtime, source, iterator, error)) {
       return false;
     }
     for (;;) {

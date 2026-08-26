@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
@@ -165,7 +166,7 @@ bool dict_setdefault_method(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool update_one_mapping_or_pairs(Value& target, const Value& source, std::string& error) {
+bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& source, std::string& error) {
   if (auto* source_dict = value_as_dict(source)) {
     for (const auto& entry : source_dict->entries) {
       if (!mapping_set_item(target, entry.first, entry.second, error)) {
@@ -196,7 +197,7 @@ bool update_one_mapping_or_pairs(Value& target, const Value& source, std::string
   }
 
   Value iterator;
-  if (!sequence_get_iter(source, iterator, error)) {
+  if (!runtime_get_iter(runtime, source, iterator, error)) {
     return false;
   }
   while (true) {
@@ -234,7 +235,7 @@ bool update_one_mapping_or_pairs(Value& target, const Value& source, std::string
   }
 }
 
-bool dict_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "dict.update expected at most 1 positional argument, got " + std::to_string(argc - 1);
     return false;
@@ -245,7 +246,7 @@ bool dict_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   }
   if (argc == 2) {
     Value target = args[0];
-    if (!update_one_mapping_or_pairs(target, args[1], error)) {
+    if (!update_one_mapping_or_pairs(runtime, target, args[1], error)) {
       return false;
     }
   }
@@ -278,7 +279,7 @@ bool dict_update_method_kw(
   return true;
 }
 
-bool dict_fromkeys_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_fromkeys_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "dict.fromkeys expected iterable and optional value";
     return false;
@@ -286,7 +287,7 @@ bool dict_fromkeys_method(Runtime&, const Value* args, uint32_t argc, Value& out
   Value result = Value::dict({});
   const Value fill = argc == 3 ? args[2] : Value::none();
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   while (true) {

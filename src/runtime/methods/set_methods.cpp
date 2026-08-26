@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
@@ -35,9 +36,9 @@ bool set_add_method(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
-bool add_iterable_items(Value& set, const Value& iterable, std::string& error) {
+bool add_iterable_items(Runtime& runtime, Value& set, const Value& iterable, std::string& error) {
   Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
     return false;
   }
   while (true) {
@@ -64,9 +65,9 @@ bool set_contains_value(const SetObject& set, const Value& value) {
   return false;
 }
 
-bool iterable_all_in_set(const Value& iterable, const SetObject& set, bool& out, std::string& error) {
+bool iterable_all_in_set(Runtime& runtime, const Value& iterable, const SetObject& set, bool& out, std::string& error) {
   Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
     return false;
   }
   out = true;
@@ -181,7 +182,7 @@ bool set_remove_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool set_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "set.update expected at least set self";
     return false;
@@ -192,7 +193,7 @@ bool set_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   for (uint32_t i = 1; i < argc; ++i) {
-    if (!add_iterable_items(set, args[i], error)) {
+    if (!add_iterable_items(runtime, set, args[i], error)) {
       return false;
     }
   }
@@ -200,7 +201,7 @@ bool set_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool set_union_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_union_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   auto* set = value_as_set(args[0]);
   if (set == nullptr) {
     error = "set.union target is not a set";
@@ -208,14 +209,14 @@ bool set_union_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   }
   out = Value::set(set->items);
   for (uint32_t i = 1; i < argc; ++i) {
-    if (!add_iterable_items(out, args[i], error)) {
+    if (!add_iterable_items(runtime, out, args[i], error)) {
       return false;
     }
   }
   return true;
 }
 
-bool set_intersection_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_intersection_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   auto* set = value_as_set(args[0]);
   if (set == nullptr) {
     error = "set.intersection target is not a set";
@@ -225,7 +226,7 @@ bool set_intersection_method(Runtime&, const Value* args, uint32_t argc, Value& 
   auto* result = value_as_set(out);
   for (uint32_t i = 1; i < argc; ++i) {
     Value iterator;
-    if (!sequence_get_iter(args[i], iterator, error)) {
+    if (!runtime_get_iter(runtime, args[i], iterator, error)) {
       return false;
     }
     std::vector<Value> keep;
@@ -252,7 +253,7 @@ bool set_intersection_method(Runtime&, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
-bool set_difference_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_difference_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   auto* set = value_as_set(args[0]);
   if (set == nullptr) {
     error = "set.difference target is not a set";
@@ -262,7 +263,7 @@ bool set_difference_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   auto* result = value_as_set(out);
   for (uint32_t i = 1; i < argc; ++i) {
     Value iterator;
-    if (!sequence_get_iter(args[i], iterator, error)) {
+    if (!runtime_get_iter(runtime, args[i], iterator, error)) {
       return false;
     }
     while (true) {
@@ -285,7 +286,7 @@ bool set_difference_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
-bool set_symmetric_difference_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_symmetric_difference_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.symmetric_difference", error)) {
     return false;
   }
@@ -297,7 +298,7 @@ bool set_symmetric_difference_method(Runtime&, const Value* args, uint32_t argc,
   out = Value::set(set->items);
   auto* result = value_as_set(out);
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   while (true) {
@@ -371,7 +372,7 @@ bool set_symmetric_difference_update_method(Runtime& runtime, const Value* args,
   return true;
 }
 
-bool set_isdisjoint_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_isdisjoint_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.isdisjoint", error)) {
     return false;
   }
@@ -381,7 +382,7 @@ bool set_isdisjoint_method(Runtime&, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   while (true) {
@@ -401,7 +402,7 @@ bool set_isdisjoint_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   }
 }
 
-bool set_issubset_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_issubset_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.issubset", error)) {
     return false;
   }
@@ -411,19 +412,19 @@ bool set_issubset_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   Value other_value = Value::set({});
-  if (!add_iterable_items(other_value, args[1], error)) {
+  if (!add_iterable_items(runtime, other_value, args[1], error)) {
     return false;
   }
   auto* other = value_as_set(other_value);
   bool ok = false;
-  if (!iterable_all_in_set(args[0], *other, ok, error)) {
+  if (!iterable_all_in_set(runtime, args[0], *other, ok, error)) {
     return false;
   }
   value_set_bool(out, ok);
   return true;
 }
 
-bool set_issuperset_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_issuperset_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.issuperset", error)) {
     return false;
   }
@@ -433,7 +434,7 @@ bool set_issuperset_method(Runtime&, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   bool ok = false;
-  if (!iterable_all_in_set(args[1], *set, ok, error)) {
+  if (!iterable_all_in_set(runtime, args[1], *set, ok, error)) {
     return false;
   }
   value_set_bool(out, ok);

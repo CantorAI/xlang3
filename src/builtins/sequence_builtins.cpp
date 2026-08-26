@@ -182,7 +182,7 @@ bool builtin_iter(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!sequence_get_iter(args[0], out, error)) {
+  if (!runtime_get_iter(runtime, args[0], out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -268,7 +268,7 @@ bool builtin_frozenset(
     return true;
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }

@@ -34,9 +34,9 @@ bool int_arg(const Value& value, int64_t& out) {
   return false;
 }
 
-bool collect_iterable(const Value& iterable, std::vector<Value>& values, std::string& error) {
+bool collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& values, std::string& error) {
   Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
     return false;
   }
   for (;;) {
@@ -71,7 +71,7 @@ bool itertools_count(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
-bool itertools_islice(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "itertools.islice() expected iterable and slice bounds";
     return false;
@@ -99,7 +99,7 @@ bool itertools_islice(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -127,7 +127,7 @@ bool itertools_takewhile(Runtime& runtime, const Value* args, uint32_t argc, Val
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -159,7 +159,7 @@ bool itertools_dropwhile(Runtime& runtime, const Value* args, uint32_t argc, Val
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -195,7 +195,7 @@ bool itertools_filterfalse(Runtime& runtime, const Value* args, uint32_t argc, V
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -224,14 +224,14 @@ bool itertools_filterfalse(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
-bool itertools_compress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "itertools.compress() expected data and selectors";
     return false;
   }
   std::vector<Value> data;
   std::vector<Value> selectors;
-  if (!collect_iterable(args[0], data, error) || !collect_iterable(args[1], selectors, error)) {
+  if (!collect_iterable(runtime, args[0], data, error) || !collect_iterable(runtime, args[1], selectors, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -269,12 +269,12 @@ bool itertools_repeat(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool itertools_chain(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_chain(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   std::vector<Value> iterators;
   iterators.reserve(argc);
   for (uint32_t i = 0; i < argc; ++i) {
     Value iterator;
-    if (!sequence_get_iter(args[i], iterator, error)) {
+    if (!runtime_get_iter(runtime, args[i], iterator, error)) {
       return false;
     }
     iterators.push_back(std::move(iterator));
@@ -283,7 +283,7 @@ bool itertools_chain(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
-bool itertools_batched(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_batched(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "itertools.batched() expected iterable, n, and optional strict";
     return false;
@@ -295,7 +295,7 @@ bool itertools_batched(Runtime&, const Value* args, uint32_t argc, Value& out, s
   }
 
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     return false;
   }
 
@@ -339,7 +339,7 @@ void product_visit(
   }
 }
 
-bool itertools_product(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_product(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     out = Value::list({Value::tuple({})});
     return true;
@@ -348,7 +348,7 @@ bool itertools_product(Runtime&, const Value* args, uint32_t argc, Value& out, s
   pools.reserve(argc);
   for (uint32_t i = 0; i < argc; ++i) {
     pools.emplace_back();
-    if (!collect_iterable(args[i], pools.back(), error)) {
+    if (!collect_iterable(runtime, args[i], pools.back(), error)) {
       return false;
     }
   }
@@ -376,7 +376,7 @@ void combinations_visit(
   }
 }
 
-bool itertools_combinations(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_combinations(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "itertools.combinations() expected iterable and r";
     return false;
@@ -387,7 +387,7 @@ bool itertools_combinations(Runtime&, const Value* args, uint32_t argc, Value& o
     return false;
   }
   std::vector<Value> pool;
-  if (!collect_iterable(args[0], pool, error)) {
+  if (!collect_iterable(runtime, args[0], pool, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -416,7 +416,7 @@ void combinations_with_replacement_visit(
   }
 }
 
-bool itertools_combinations_with_replacement(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_combinations_with_replacement(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "itertools.combinations_with_replacement() expected iterable and r";
     return false;
@@ -427,7 +427,7 @@ bool itertools_combinations_with_replacement(Runtime&, const Value* args, uint32
     return false;
   }
   std::vector<Value> pool;
-  if (!collect_iterable(args[0], pool, error)) {
+  if (!collect_iterable(runtime, args[0], pool, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -461,13 +461,13 @@ void permutations_visit(
   }
 }
 
-bool itertools_permutations(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_permutations(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "itertools.permutations() expected iterable and optional r";
     return false;
   }
   std::vector<Value> pool;
-  if (!collect_iterable(args[0], pool, error)) {
+  if (!collect_iterable(runtime, args[0], pool, error)) {
     return false;
   }
   int64_t r = static_cast<int64_t>(pool.size());
@@ -491,7 +491,7 @@ bool itertools_accumulate(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -535,7 +535,7 @@ bool itertools_starmap(Runtime& runtime, const Value* args, uint32_t argc, Value
     return false;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -549,7 +549,7 @@ bool itertools_starmap(Runtime& runtime, const Value* args, uint32_t argc, Value
       break;
     }
     std::vector<Value> call_args;
-    if (!collect_iterable(packed, call_args, error)) {
+    if (!collect_iterable(runtime, packed, call_args, error)) {
       return false;
     }
     Value mapped;
@@ -562,7 +562,7 @@ bool itertools_starmap(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
-bool itertools_zip_longest(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_zip_longest(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     out = Value::list({});
     return true;
@@ -572,7 +572,7 @@ bool itertools_zip_longest(Runtime&, const Value* args, uint32_t argc, Value& ou
   size_t max_size = 0;
   for (uint32_t i = 0; i < argc; ++i) {
     pools.emplace_back();
-    if (!collect_iterable(args[i], pools.back(), error)) {
+    if (!collect_iterable(runtime, args[i], pools.back(), error)) {
       return false;
     }
     max_size = std::max(max_size, pools.back().size());

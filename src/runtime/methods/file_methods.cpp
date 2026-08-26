@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
@@ -356,7 +357,7 @@ bool write_bytes(FileObject& file, const Value& value, Value& out, std::string& 
   return true;
 }
 
-bool file_writelines_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_writelines_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "file.writelines() expected iterable";
     return false;
@@ -374,7 +375,7 @@ bool file_writelines_method(Runtime&, const Value* args, uint32_t argc, Value& o
     return true;
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
   for (;;) {

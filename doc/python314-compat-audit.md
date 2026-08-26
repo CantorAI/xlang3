@@ -283,8 +283,8 @@ Section-level fixture coverage:
 - [x] string methods are tracked in the dedicated Strings And Unicode section
 - [x] tuple methods: `count` and `index`
 - [x] slicing semantics for list/tuple/string/bytes/bytearray reads plus list/bytearray slice assignment and deletion basics
-- [x] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, and lazy iterator basics
-- [x] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter foundations
+- [x] iteration protocol completeness: `iter()`, `next()`, default exhaustion value, user-defined `__iter__`/`__next__`, constructor collection, star-argument expansion, and lazy iterator basics
+- [x] iterator objects compatibility: range/sequence/dict/set/generator plus enumerate/zip/map/filter and protocol-wrapper foundations
 - [x] hashing/equality audit: scalar/string/bytes/object identity, recursive tuple key hashing/equality, mutable-container unhashability, and bool/int key equality covered in section fixture
 - [x] ordering behavior audit: tuple/list lexicographic comparisons and stable list sort with key/reverse for comparable values
 - [x] views: dict keys/items/values compatibility. Live iterable view objects exist for keys, values, and items; keys/items support set-like equality and `|`/`&`/`-`/`^` algebra; values-view equality follows identity semantics.

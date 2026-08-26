@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
@@ -316,9 +317,9 @@ bool join_string_values(
   return publish_string_result(out, result_value);
 }
 
-bool collect_join_iterable(const Value& iterable, std::vector<Value>& items, std::string& error) {
+bool collect_join_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& items, std::string& error) {
   Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
     return false;
   }
   for (;;) {
@@ -931,7 +932,7 @@ bool string_replace_fast_method(
   return replace_string_body(leading[0], text, old_text, new_text, max_count, out);
 }
 
-bool string_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool string_join_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "str.join", error)) {
     return false;
   }
@@ -947,7 +948,7 @@ bool string_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     return join_string_values(sep, tuple->items, out, error);
   }
   std::vector<Value> items;
-  if (!collect_join_iterable(args[1], items, error)) {
+  if (!collect_join_iterable(runtime, args[1], items, error)) {
     error = "str.join argument must be iterable";
     return false;
   }
@@ -955,7 +956,7 @@ bool string_join_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
 }
 
 bool string_join_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -980,7 +981,7 @@ bool string_join_fast_method(
     return join_string_values(sep, tuple->items, out, error);
   }
   std::vector<Value> items;
-  if (!collect_join_iterable(sequence, items, error)) {
+  if (!collect_join_iterable(runtime, sequence, items, error)) {
     error = "str.join argument must be iterable";
     return false;
   }

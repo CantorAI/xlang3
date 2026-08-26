@@ -309,41 +309,7 @@ bool eval_globals_from_args(
 }
 
 bool collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
-  Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
-    Value iter_method;
-    std::string attr_error;
-    if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    Value iter_result;
-    std::string call_error;
-    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
-      runtime.raise_class_error("TypeError", call_error);
-      error = call_error;
-      return false;
-    }
-    std::string concrete_error;
-    if (sequence_get_iter(iter_result, iterator, concrete_error)) {
-      error.clear();
-    } else {
-      iterator = functional_protocol_iterator(&runtime, std::move(iter_result));
-      error.clear();
-    }
-  }
-  for (;;) {
-    bool done = false;
-    Value item;
-    if (!sequence_iter_next(iterator, done, item, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (done) {
-      return true;
-    }
-    out.push_back(std::move(item));
-  }
+  return runtime_collect_iterable(runtime, iterable, out, error);
 }
 
 bool builtin_identity(
@@ -523,7 +489,7 @@ bool builtin_enumerate(
     index = args[1].as.i64;
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -545,7 +511,7 @@ bool builtin_map(
   iterators.reserve(argc - 1);
   for (uint32_t i = 1; i < argc; ++i) {
     Value iterator;
-    if (!sequence_get_iter(args[i], iterator, error)) {
+    if (!runtime_get_iter(runtime, args[i], iterator, error)) {
       runtime.raise_class_error("TypeError", error);
       return false;
     }
@@ -566,7 +532,7 @@ bool builtin_filter(
     return raise_type_error(runtime, "filter() expected 2 arguments", error);
   }
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -589,7 +555,7 @@ bool builtin_zip(
   iterators.reserve(argc);
   for (uint32_t i = 0; i < argc; ++i) {
     Value iterator;
-    if (!sequence_get_iter(args[i], iterator, error)) {
+    if (!runtime_get_iter(runtime, args[i], iterator, error)) {
       runtime.raise_class_error("TypeError", error);
       return false;
     }
@@ -610,7 +576,7 @@ bool builtin_sum(
     return raise_type_error(runtime, "sum() expected 1 or 2 arguments", error);
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1602,7 +1568,7 @@ bool builtin_all(
     return raise_type_error(runtime, "all() expected 1 argument", error);
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1635,7 +1601,7 @@ bool builtin_any(
     return raise_type_error(runtime, "any() expected 1 argument", error);
   }
   Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }

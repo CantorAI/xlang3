@@ -35,6 +35,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -138,7 +139,7 @@ RuntimeResult Interpreter::run_function(
       } else {
         Value iterator;
         std::string iter_error;
-        if (!sequence_get_iter(star, iterator, iter_error)) {
+        if (!runtime_get_iter(runtime_, star, iterator, iter_error)) {
           return bind_error("function '" + target_fn.name + "' * argument must be iterable");
         }
         while (true) {
@@ -653,6 +654,7 @@ RuntimeResult Interpreter::run_function(
     const std::string exception_type_text = value_to_string(runtime_.exception_type(current_exception));
     const std::string exception_summary =
         exception_text.empty() ? exception_type_text : exception_type_text + ": " + exception_text;
+    runtime_.set_pending_exception(current_exception);
     std::string frame_summary = failing_function;
     if (!failing_location.empty()) {
       frame_summary += " (" + failing_location + ")";

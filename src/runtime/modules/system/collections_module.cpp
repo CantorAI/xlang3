@@ -125,9 +125,9 @@ Value* defaultdict_find(DefaultDictState& state, const Value& key) {
   return nullptr;
 }
 
-bool deque_extend_from_iterable(DequeState& state, const Value& iterable, bool left, std::string& error) {
+bool deque_extend_from_iterable(Runtime& runtime, DequeState& state, const Value& iterable, bool left, std::string& error) {
   Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
     return false;
   }
   std::vector<Value> values;
@@ -154,13 +154,13 @@ bool deque_extend_from_iterable(DequeState& state, const Value& iterable, bool l
   return true;
 }
 
-bool deque_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "deque.__init__ expected optional iterable";
     return false;
   }
   auto* state = new DequeState();
-  if (argc == 2 && !deque_extend_from_iterable(*state, args[1], false, error)) {
+  if (argc == 2 && !deque_extend_from_iterable(runtime, *state, args[1], false, error)) {
     delete state;
     return false;
   }
@@ -250,26 +250,26 @@ bool deque_clear(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool deque_extend(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_extend(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "deque.extend() expected one iterable";
     return false;
   }
   auto* state = deque_state(args[0], error);
-  if (state == nullptr || !deque_extend_from_iterable(*state, args[1], false, error)) {
+  if (state == nullptr || !deque_extend_from_iterable(runtime, *state, args[1], false, error)) {
     return false;
   }
   value_set_none(out);
   return true;
 }
 
-bool deque_extendleft(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_extendleft(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "deque.extendleft() expected one iterable";
     return false;
   }
   auto* state = deque_state(args[0], error);
-  if (state == nullptr || !deque_extend_from_iterable(*state, args[1], true, error)) {
+  if (state == nullptr || !deque_extend_from_iterable(runtime, *state, args[1], true, error)) {
     return false;
   }
   value_set_none(out);
@@ -459,13 +459,13 @@ bool counter_add_count(Value& storage, const Value& key, int64_t delta, std::str
   return mapping_set_item(storage, key, Value::int64(value + delta), error);
 }
 
-bool counter_update_from_iterable(Value& storage, const Value& iterable, int64_t delta, std::string& error) {
+bool counter_update_from_iterable(Runtime& runtime, Value& storage, const Value& iterable, int64_t delta, std::string& error) {
   if (auto* counter = static_cast<CounterState*>(instance_get_native_data(iterable, kCounterNativeType))) {
-    return counter_update_from_iterable(storage, counter->storage, delta, error);
+    return counter_update_from_iterable(runtime, storage, counter->storage, delta, error);
   }
   if (auto* instance = value_as_instance(iterable)) {
     if (value_as_dict(instance->mapping_storage) != nullptr) {
-      return counter_update_from_iterable(storage, instance->mapping_storage, delta, error);
+      return counter_update_from_iterable(runtime, storage, instance->mapping_storage, delta, error);
     }
   }
   if (auto* dict = value_as_dict(iterable)) {
@@ -481,7 +481,7 @@ bool counter_update_from_iterable(Value& storage, const Value& iterable, int64_t
     return true;
   }
   Value iterator;
-  if (!sequence_get_iter(iterable, iterator, error)) {
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
     return false;
   }
   for (;;) {
@@ -499,14 +499,14 @@ bool counter_update_from_iterable(Value& storage, const Value& iterable, int64_t
   }
 }
 
-bool counter_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool counter_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "Counter.__init__() expected optional iterable or mapping";
     return false;
   }
   auto* state = new CounterState();
   state->storage = Value::dict({});
-  if (argc == 2 && !counter_update_from_iterable(state->storage, args[1], 1, error)) {
+  if (argc == 2 && !counter_update_from_iterable(runtime, state->storage, args[1], 1, error)) {
     delete state;
     return false;
   }
@@ -551,7 +551,7 @@ bool counter_setitem(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
-bool counter_update(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool counter_update(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "Counter.update() expected optional iterable or mapping";
     return false;
@@ -560,14 +560,14 @@ bool counter_update(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   if (storage == nullptr) {
     return false;
   }
-  if (argc == 2 && !counter_update_from_iterable(*storage, args[1], 1, error)) {
+  if (argc == 2 && !counter_update_from_iterable(runtime, *storage, args[1], 1, error)) {
     return false;
   }
   value_set_none(out);
   return true;
 }
 
-bool counter_subtract(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool counter_subtract(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "Counter.subtract() expected optional iterable or mapping";
     return false;
@@ -576,7 +576,7 @@ bool counter_subtract(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (storage == nullptr) {
     return false;
   }
-  if (argc == 2 && !counter_update_from_iterable(*storage, args[1], -1, error)) {
+  if (argc == 2 && !counter_update_from_iterable(runtime, *storage, args[1], -1, error)) {
     return false;
   }
   value_set_none(out);
@@ -721,7 +721,7 @@ bool namedtuple_make(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
 
   Value iterator;
-  if (!sequence_get_iter(args[1], iterator, error)) {
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }

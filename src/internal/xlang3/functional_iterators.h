@@ -87,4 +87,7 @@ bool runtime_call_callable(
     Value& out,
     std::string& error);
 
+bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error);
+bool runtime_collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error);
+
 } // namespace xlang3

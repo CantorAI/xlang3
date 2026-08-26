@@ -79,6 +79,95 @@ print(list(enumerate(["a", "b"], 3)))
 print(list(zip([1, 2], ["a", "b", "c"])))
 print(list(map(lambda x: x + 1, [1, 2, 3])))
 print(list(filter(lambda x: x > 1, [0, 2, 3])))
+
+# User iterator protocol works across builtins and constructors.
+class CountingIter:
+    def __init__(self, stop):
+        self.i = 0
+        self.stop = stop
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.i = self.i + 1
+        if self.i > self.stop:
+            raise StopIteration()
+        return self.i
+
+class PairIter:
+    def __init__(self, stop):
+        self.i = 0
+        self.stop = stop
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.i = self.i + 1
+        if self.i > self.stop:
+            raise StopIteration()
+        return (self.i, self.i * 10)
+
+class TextIter:
+    def __init__(self, stop):
+        self.i = 0
+        self.stop = stop
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.i = self.i + 1
+        if self.i > self.stop:
+            raise StopIteration()
+        return "s" + str(self.i)
+
+class ByteIter:
+    def __init__(self, stop):
+        self.i = 0
+        self.stop = stop
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.i = self.i + 1
+        if self.i > self.stop:
+            raise StopIteration()
+        return bytes([64 + self.i])
+
+def add3(a, b, c):
+    return a + b + c
+
+print(next(iter(CountingIter(1))))
+print(list(CountingIter(3)), tuple(CountingIter(2)), set(CountingIter(2)) == {1, 2})
+print(frozenset(CountingIter(2)) == {1, 2}, sum(CountingIter(3)), all(CountingIter(2)), any(CountingIter(0)))
+print(list(zip(CountingIter(2), CountingIter(3))))
+print(list(map(lambda x: x * 2, CountingIter(3))))
+print(list(filter(lambda x: x > 1, CountingIter(3))))
+print(sorted(CountingIter(3), reverse=True), min(CountingIter(3)), max(CountingIter(3)))
+print(add3(*CountingIter(3)))
+extended = [0]
+extended.extend(CountingIter(3))
+print(extended)
+updated = {}
+updated.update(CountingIter(0))
+updated.update(PairIter(2))
+print(updated[1], updated[2], dict.fromkeys(CountingIter(2), "v")[2])
+base_set = {1}
+base_set.update(CountingIter(3))
+print(base_set == {1, 2, 3}, base_set.union(CountingIter(4)) == {1, 2, 3, 4})
+print(base_set.intersection(CountingIter(2)) == {1, 2}, base_set.difference(CountingIter(2)) == {3})
+print(base_set.symmetric_difference(CountingIter(2)) == {3}, base_set.isdisjoint(CountingIter(0)))
+print(base_set.issuperset(CountingIter(2)), {1, 2}.issubset(CountingIter(3)))
+print(",".join(TextIter(3)))
+print(b"-".join(ByteIter(2)))
+with open("xlang3_builtins_text.tmp", "w", encoding="utf-8") as f:
+    f.writelines(TextIter(2))
+with open("xlang3_builtins_text.tmp", "r", encoding="utf-8") as f:
+    print(f.read())
+
 code_eval = compile("1 + 2", "<builtins>", "eval")
 code_exec = compile("builtins_exec_value = 9", "<builtins>", "exec")
 print(eval(code_eval))
