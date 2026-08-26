@@ -712,10 +712,14 @@ print(time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct
 constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123))
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})
+constructed_preserved_time = time.struct_time((2026, 8, 26, 1, 2, 3, 9, 999, -1))
+constructed_string_field_time = time.struct_time((2026, 8, 26, 1, 2, 3, "weekday", 238, -1))
 parsed_time = time.strptime("2026-08-26", "%Y-%m-%d")
 print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
 print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
 print(constructed_dict_time.tm_zone, constructed_dict_time.tm_gmtoff, len(constructed_dict_time), constructed_dict_time.n_fields)
+print(tuple(constructed_preserved_time)[6:9], constructed_preserved_time.tm_wday, constructed_preserved_time.tm_yday)
+print(constructed_string_field_time.tm_wday, tuple(constructed_string_field_time)[6])
 for bad_struct_time_args in [
     ((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X"), {"tm_zone": "Y"}),
     ((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"unexpected": "Y"}),

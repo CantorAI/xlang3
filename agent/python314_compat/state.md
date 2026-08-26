@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys structseq type metadata/member descriptors
+time.struct_time constructor preserves CPython 3.14 stored sequence fields
 ```
 
 Current next loop:

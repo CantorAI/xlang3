@@ -585,7 +585,8 @@ Native or runtime-backed foundation:
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
   `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
   `n_unnamed_fields` plus `tm_zone`/`tm_gmtoff` named/member fields, constructor dict
-  extra-field handling, long-sequence rejection, and platform-backed timezone constants/names;
+  extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
+  fields including irregular or non-int stored values, and platform-backed timezone constants/names;
   locale-specific parsing,
   historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset

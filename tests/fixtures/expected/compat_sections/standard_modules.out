@@ -156,6 +156,8 @@ True True True
 2026 8 2026 8 26
 11 True True X 123
 Y 456 9 11
+(9, 999, -1) 9 999
+weekday weekday
 struct-time-extra True
 struct-time-extra True
 struct-time-extra True

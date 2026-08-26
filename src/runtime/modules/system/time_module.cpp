@@ -284,6 +284,78 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
   return true;
 }
 
+bool struct_time_constructor_items(
+    const Value& value,
+    std::vector<Value>& items,
+    Value& zone,
+    Value& gmtoff,
+    bool& sequence_has_zone,
+    bool& sequence_has_gmtoff,
+    std::string& error) {
+  std::vector<Value> raw_items;
+  if (auto* tuple = value_as_tuple(value)) {
+    raw_items = tuple->items;
+  } else if (auto* list = value_as_list(value)) {
+    raw_items = list->items;
+  } else if (value_as_instance(value) != nullptr) {
+    static const char* names[] = {
+        "tm_year",
+        "tm_mon",
+        "tm_mday",
+        "tm_hour",
+        "tm_min",
+        "tm_sec",
+        "tm_wday",
+        "tm_yday",
+        "tm_isdst",
+    };
+    raw_items.reserve(11);
+    for (const char* name : names) {
+      Value attr;
+      std::string attr_error;
+      if (!object_get_attr(value, name, attr, attr_error)) {
+        error = "time tuple must have 9 elements";
+        return false;
+      }
+      raw_items.push_back(std::move(attr));
+    }
+    std::string ignored;
+    object_get_attr(value, "tm_zone", zone, ignored);
+    object_get_attr(value, "tm_gmtoff", gmtoff, ignored);
+    if (zone.tag == ValueTag::Invalid) {
+      value_set_none(zone);
+    } else {
+      sequence_has_zone = true;
+    }
+    if (gmtoff.tag == ValueTag::Invalid) {
+      value_set_none(gmtoff);
+    } else {
+      sequence_has_gmtoff = true;
+    }
+  } else {
+    error = "time tuple must be tuple, list, or struct_time";
+    return false;
+  }
+  if (raw_items.size() < 9) {
+    error = "time tuple must have 9 elements";
+    return false;
+  }
+  if (raw_items.size() > 11) {
+    error = "time.struct_time() takes an at most 11-sequence";
+    return false;
+  }
+  items.assign(raw_items.begin(), raw_items.begin() + 9);
+  if (raw_items.size() >= 10) {
+    value_assign_fast(zone, raw_items[9]);
+    sequence_has_zone = true;
+  }
+  if (raw_items.size() >= 11) {
+    value_assign_fast(gmtoff, raw_items[10]);
+    sequence_has_gmtoff = true;
+  }
+  return true;
+}
+
 bool struct_time_extra_fields_from_dict(
     const Value& dict_value,
     bool sequence_has_zone,
@@ -340,48 +412,14 @@ bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  std::tm tm{};
-  if (!tm_from_sequence_like(args[1], tm, error)) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  auto items = tm_tuple_items(tm);
   Value zone = Value::none();
   Value gmtoff = Value::none();
   bool sequence_has_zone = false;
   bool sequence_has_gmtoff = false;
-  if (auto* tuple = value_as_tuple(args[1])) {
-    if (tuple->items.size() >= 10) {
-      value_assign_fast(zone, tuple->items[9]);
-      sequence_has_zone = true;
-    }
-    if (tuple->items.size() >= 11) {
-      value_assign_fast(gmtoff, tuple->items[10]);
-      sequence_has_gmtoff = true;
-    }
-  } else if (auto* list = value_as_list(args[1])) {
-    if (list->items.size() >= 10) {
-      value_assign_fast(zone, list->items[9]);
-      sequence_has_zone = true;
-    }
-    if (list->items.size() >= 11) {
-      value_assign_fast(gmtoff, list->items[10]);
-      sequence_has_gmtoff = true;
-    }
-  } else {
-    std::string ignored;
-    object_get_attr(args[1], "tm_zone", zone, ignored);
-    object_get_attr(args[1], "tm_gmtoff", gmtoff, ignored);
-    if (zone.tag == ValueTag::Invalid) {
-      value_set_none(zone);
-    } else {
-      sequence_has_zone = true;
-    }
-    if (gmtoff.tag == ValueTag::Invalid) {
-      value_set_none(gmtoff);
-    } else {
-      sequence_has_gmtoff = true;
-    }
+  std::vector<Value> items;
+  if (!struct_time_constructor_items(args[1], items, zone, gmtoff, sequence_has_zone, sequence_has_gmtoff, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   if (argc == 3 && !struct_time_extra_fields_from_dict(args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
     runtime.raise_class_error("TypeError", error);
