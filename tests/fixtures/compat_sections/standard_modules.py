@@ -602,6 +602,8 @@ operator.delitem(values, 0)
 print(values, operator.truth(values), operator.not_([]), operator.is_(box, box), operator.is_not(box, values))
 print(operator.length_hint(values), operator.countOf([1, 2, 1], 1), operator.indexOf(["a", "b"], "b"))
 print(operator.iadd([1], [2]), operator.iconcat("x", "y"), operator.iand(6, 3), operator.ior(4, 1), operator.ixor(6, 3))
+print(operator.__getitem__(values, 0), operator.__add__(2, 4), operator.__lt__(1, 2), operator.__abs__(-7))
+print(operator.call(original, 6, 7), operator.__contains__(values, 5), operator.__neg__(3), operator.__invert__(3))
 
 # itertools: finite iterator helpers consume generic iterables correctly.
 import itertools
@@ -713,6 +715,23 @@ limited.get()
 limited.task_done()
 limited.join()
 print(limited.empty())
+
+kw_queue = queue.Queue(maxsize=2)
+kw_queue.put("kw", block=False, timeout=None)
+print(kw_queue.get(block=False, timeout=None))
+
+shutdown_queue = queue.Queue()
+shutdown_queue.put("before")
+shutdown_queue.shutdown()
+print(shutdown_queue.get())
+try:
+    shutdown_queue.get_nowait()
+except queue.ShutDown:
+    print("shutdown-empty")
+try:
+    shutdown_queue.put_nowait("after")
+except queue.ShutDown:
+    print("shutdown-put")
 
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)

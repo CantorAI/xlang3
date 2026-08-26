@@ -464,7 +464,9 @@ High-level modules currently backed by native/runtime code:
   subclass registration works with `isinstance`/`issubclass`; exact abstract method surface and complex
   numeric protocol edge cases pending
 - [~] `opcode`: public opcode map/name foundation, CPython 3.14 category-list constants, `cmp_op`, `EXTENDED_ARG`, and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
-- [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
+- [~] `operator`: arithmetic, in-place and `__dunder__` aliases, bitwise, comparison,
+  `call`, `abs`, truth/identity/contains, item mutation, length/count/index helpers,
+  magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
 - [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes,
   `Pickler`/`Unpickler`, and `dumps`/`loads`/file `dump`/`load`; new output uses a CPython-readable
   pickle opcode subset for common scalars/bytes/strings/containers, and XLang3 reads the same protocol-4
@@ -480,7 +482,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
-- [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`, and `Full` foundations with ordering/maxsize/task helpers; blocking/wakeup semantics pending
+- [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`,
+  `Full`, and `ShutDown` foundations with ordering/maxsize/task helpers,
+  keyword-shaped put/get, and `Queue.shutdown()` basics; blocking/wakeup semantics pending
 - [~] `string`: public constants, `_string.formatter_parser`/`formatter_field_name_split`, and native
   `Formatter` methods for `format`, `vformat`, `parse`, `get_value`, `format_field`, and `convert_field`;
   full nested-field parsing, keyword formatting, subclass override hooks, and exact CPython formatter behavior pending

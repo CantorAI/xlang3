@@ -20,6 +20,8 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <cstdint>
+#include <cmath>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -360,6 +362,34 @@ bool operator_invert_entry(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool operator_abs_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "operator.abs() expected one numeric argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].tag == ValueTag::Int64) {
+    value_set_int64(out, args[0].as.i64 < 0 ? -args[0].as.i64 : args[0].as.i64);
+    return true;
+  }
+  if (args[0].tag == ValueTag::Double) {
+    out = Value::number(std::fabs(args[0].as.f64));
+    return true;
+  }
+  error = "bad operand type for abs()";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool operator_call_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "operator.call() expected callable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, args[0], argc > 1 ? args + 1 : nullptr, argc > 1 ? argc - 1 : 0, out, error);
+}
+
 bool compare_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
     error = "operator comparison expected two arguments";
@@ -516,53 +546,92 @@ void register_operator_module(Runtime& runtime) {
   };
   builder.function("index", operator_index)
       .function("getitem", operator_getitem)
+      .function("__getitem__", operator_getitem)
       .function("setitem", operator_setitem)
+      .function("__setitem__", operator_setitem)
       .function("delitem", operator_delitem)
+      .function("__delitem__", operator_delitem)
       .function("truth", operator_truth)
       .function("not_", operator_not)
       .function("is_", operator_is)
       .function("is_not", operator_is_not)
       .function("contains", operator_contains)
+      .function("__contains__", operator_contains)
       .function("length_hint", operator_length_hint)
       .function("countOf", operator_count_of)
       .function("indexOf", operator_index_of)
+      .function("call", operator_call_entry)
+      .function("__call__", operator_call_entry)
       .value("add", runtime.make_native_function("operator.add", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("__add__", runtime.make_native_function("operator.__add__", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("concat", runtime.make_native_function("operator.concat", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("iadd", runtime.make_native_function("operator.iadd", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("iconcat", runtime.make_native_function("operator.iconcat", binary_value_entry, binary_tag(BinaryKind::Add)))
       .value("sub", runtime.make_native_function("operator.sub", binary_value_entry, binary_tag(BinaryKind::Sub)))
+      .value("__sub__", runtime.make_native_function("operator.__sub__", binary_value_entry, binary_tag(BinaryKind::Sub)))
       .value("isub", runtime.make_native_function("operator.isub", binary_value_entry, binary_tag(BinaryKind::Sub)))
+      .value("__isub__", runtime.make_native_function("operator.__isub__", binary_value_entry, binary_tag(BinaryKind::Sub)))
       .value("mul", runtime.make_native_function("operator.mul", binary_value_entry, binary_tag(BinaryKind::Mul)))
+      .value("__mul__", runtime.make_native_function("operator.__mul__", binary_value_entry, binary_tag(BinaryKind::Mul)))
       .value("imul", runtime.make_native_function("operator.imul", binary_value_entry, binary_tag(BinaryKind::Mul)))
+      .value("__imul__", runtime.make_native_function("operator.__imul__", binary_value_entry, binary_tag(BinaryKind::Mul)))
       .value("truediv", runtime.make_native_function("operator.truediv", binary_value_entry, binary_tag(BinaryKind::Div)))
+      .value("__truediv__", runtime.make_native_function("operator.__truediv__", binary_value_entry, binary_tag(BinaryKind::Div)))
       .value("itruediv", runtime.make_native_function("operator.itruediv", binary_value_entry, binary_tag(BinaryKind::Div)))
+      .value("__itruediv__", runtime.make_native_function("operator.__itruediv__", binary_value_entry, binary_tag(BinaryKind::Div)))
       .value("floordiv", runtime.make_native_function("operator.floordiv", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
+      .value("__floordiv__", runtime.make_native_function("operator.__floordiv__", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
       .value("ifloordiv", runtime.make_native_function("operator.ifloordiv", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
+      .value("__ifloordiv__", runtime.make_native_function("operator.__ifloordiv__", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
       .value("mod", runtime.make_native_function("operator.mod", binary_value_entry, binary_tag(BinaryKind::Mod)))
+      .value("__mod__", runtime.make_native_function("operator.__mod__", binary_value_entry, binary_tag(BinaryKind::Mod)))
       .value("imod", runtime.make_native_function("operator.imod", binary_value_entry, binary_tag(BinaryKind::Mod)))
+      .value("__imod__", runtime.make_native_function("operator.__imod__", binary_value_entry, binary_tag(BinaryKind::Mod)))
       .value("pow", runtime.make_native_function("operator.pow", binary_value_entry, binary_tag(BinaryKind::Pow)))
+      .value("__pow__", runtime.make_native_function("operator.__pow__", binary_value_entry, binary_tag(BinaryKind::Pow)))
       .value("ipow", runtime.make_native_function("operator.ipow", binary_value_entry, binary_tag(BinaryKind::Pow)))
+      .value("__ipow__", runtime.make_native_function("operator.__ipow__", binary_value_entry, binary_tag(BinaryKind::Pow)))
       .value("and_", runtime.make_native_function("operator.and_", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
+      .value("__and__", runtime.make_native_function("operator.__and__", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
       .value("iand", runtime.make_native_function("operator.iand", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
+      .value("__iand__", runtime.make_native_function("operator.__iand__", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
       .value("or_", runtime.make_native_function("operator.or_", binary_value_entry, binary_tag(BinaryKind::BitOr)))
+      .value("__or__", runtime.make_native_function("operator.__or__", binary_value_entry, binary_tag(BinaryKind::BitOr)))
       .value("ior", runtime.make_native_function("operator.ior", binary_value_entry, binary_tag(BinaryKind::BitOr)))
+      .value("__ior__", runtime.make_native_function("operator.__ior__", binary_value_entry, binary_tag(BinaryKind::BitOr)))
       .value("xor", runtime.make_native_function("operator.xor", binary_value_entry, binary_tag(BinaryKind::BitXor)))
+      .value("__xor__", runtime.make_native_function("operator.__xor__", binary_value_entry, binary_tag(BinaryKind::BitXor)))
       .value("ixor", runtime.make_native_function("operator.ixor", binary_value_entry, binary_tag(BinaryKind::BitXor)))
+      .value("__ixor__", runtime.make_native_function("operator.__ixor__", binary_value_entry, binary_tag(BinaryKind::BitXor)))
       .value("lshift", runtime.make_native_function("operator.lshift", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
+      .value("__lshift__", runtime.make_native_function("operator.__lshift__", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
       .value("ilshift", runtime.make_native_function("operator.ilshift", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
+      .value("__ilshift__", runtime.make_native_function("operator.__ilshift__", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
       .value("rshift", runtime.make_native_function("operator.rshift", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
       .value("irshift", runtime.make_native_function("operator.irshift", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
+      .value("__rshift__", runtime.make_native_function("operator.__rshift__", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
+      .value("__irshift__", runtime.make_native_function("operator.__irshift__", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
       .function("neg", operator_neg)
+      .function("__neg__", operator_neg)
       .function("pos", operator_pos)
+      .function("__pos__", operator_pos)
       .function("invert", operator_invert_entry)
       .function("inv", operator_invert_entry)
+      .function("__invert__", operator_invert_entry)
+      .function("abs", operator_abs_entry)
+      .function("__abs__", operator_abs_entry)
       .value("eq", runtime.make_native_function("operator.eq", compare_entry, const_cast<char*>("==")))
+      .value("__eq__", runtime.make_native_function("operator.__eq__", compare_entry, const_cast<char*>("==")))
       .value("ne", runtime.make_native_function("operator.ne", compare_entry, const_cast<char*>("!=")))
+      .value("__ne__", runtime.make_native_function("operator.__ne__", compare_entry, const_cast<char*>("!=")))
       .value("lt", runtime.make_native_function("operator.lt", compare_entry, const_cast<char*>("<")))
+      .value("__lt__", runtime.make_native_function("operator.__lt__", compare_entry, const_cast<char*>("<")))
       .value("le", runtime.make_native_function("operator.le", compare_entry, const_cast<char*>("<=")))
+      .value("__le__", runtime.make_native_function("operator.__le__", compare_entry, const_cast<char*>("<=")))
       .value("gt", runtime.make_native_function("operator.gt", compare_entry, const_cast<char*>(">")))
+      .value("__gt__", runtime.make_native_function("operator.__gt__", compare_entry, const_cast<char*>(">")))
       .value("ge", runtime.make_native_function("operator.ge", compare_entry, const_cast<char*>(">=")))
+      .value("__ge__", runtime.make_native_function("operator.__ge__", compare_entry, const_cast<char*>(">=")))
       .function("attrgetter", attrgetter_entry)
       .function("itemgetter", itemgetter_entry)
       .function("methodcaller", methodcaller_entry);

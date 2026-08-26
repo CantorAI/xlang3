@@ -53,6 +53,8 @@ struct QueueState {
   int64_t maxsize = 0;
   int64_t unfinished_tasks = 0;
   QueueMode mode = QueueMode::Fifo;
+  bool shutdown = false;
+  bool immediate_shutdown = false;
 };
 
 SimpleQueueState* simple_queue_state(const Value& self, std::string& error) {
@@ -92,6 +94,25 @@ bool parse_blocking_args(const char* name, uint32_t argc, uint32_t max_argc, std
   if (argc > max_argc) {
     error = std::string(name) + "() expected item and optional block/timeout";
     return false;
+  }
+  return true;
+}
+
+bool validate_block_timeout_keywords(
+    const char* name,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    std::string& error) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = std::string(name) + "() got invalid keyword argument";
+      return false;
+    }
+    const std::string key(kwargs[i].name);
+    if (key != "block" && key != "timeout") {
+      error = std::string(name) + "() got an unexpected keyword argument '" + key + "'";
+      return false;
+    }
   }
   return true;
 }
@@ -288,6 +309,10 @@ bool queue_put(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   std::lock_guard<std::mutex> lock(state->mutex);
+  if (state->shutdown) {
+    raise_queue_exception(runtime, "ShutDown", "queue is shut down");
+    return false;
+  }
   if (state->maxsize > 0 && static_cast<int64_t>(state->items.size()) >= state->maxsize) {
     raise_queue_exception(runtime, "Full", "queue is full");
     return false;
@@ -302,6 +327,21 @@ bool queue_put(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool queue_put_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!validate_block_timeout_keywords("Queue.put", kwargs, kwargc, error)) {
+    return false;
+  }
+  return queue_put(runtime, args, argc, out, error, user_data);
+}
+
 bool queue_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!parse_blocking_args("Queue.get", argc, 3, error)) {
     return false;
@@ -312,6 +352,10 @@ bool queue_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   }
   std::lock_guard<std::mutex> lock(state->mutex);
   if (state->items.empty()) {
+    if (state->shutdown) {
+      raise_queue_exception(runtime, "ShutDown", "queue is shut down");
+      return false;
+    }
     raise_queue_exception(runtime, "Empty", "queue is empty");
     return false;
   }
@@ -323,6 +367,21 @@ bool queue_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     state->items.pop_front();
   }
   return true;
+}
+
+bool queue_get_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!validate_block_timeout_keywords("Queue.get", kwargs, kwargc, error)) {
+    return false;
+  }
+  return queue_get(runtime, args, argc, out, error, user_data);
 }
 
 bool queue_empty(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -398,6 +457,68 @@ bool queue_join(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   return true;
 }
 
+bool queue_shutdown_impl(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc > 2) {
+    error = "Queue.shutdown() expected optional immediate";
+    return false;
+  }
+  bool immediate = false;
+  if (argc == 2) {
+    immediate = value_truthy(args[1]);
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "Queue.shutdown() got invalid keyword argument";
+      return false;
+    }
+    const std::string key(kwargs[i].name);
+    if (key != "immediate") {
+      error = "Queue.shutdown() got an unexpected keyword argument '" + key + "'";
+      return false;
+    }
+    immediate = value_truthy(*kwargs[i].value);
+  }
+  auto* state = queue_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->shutdown = true;
+    state->immediate_shutdown = immediate;
+    if (immediate) {
+      state->items.clear();
+      state->unfinished_tasks = 0;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool queue_shutdown(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return queue_shutdown_impl(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool queue_shutdown_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return queue_shutdown_impl(runtime, args, argc, kwargs, kwargc, out, error, user_data);
+}
+
 Value make_queue_class(Runtime& runtime, const QueueClassSpec& spec) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("queue")});
@@ -410,15 +531,21 @@ Value make_queue_class(Runtime& runtime, const QueueClassSpec& spec) {
                        nullptr,
                        false,
                        queue_init_kw)});
-  attrs.push_back({"put", runtime.make_native_function(std::string("queue.") + spec.class_name + ".put", queue_put)});
-  attrs.push_back({"put_nowait", runtime.make_native_function(std::string("queue.") + spec.class_name + ".put_nowait", queue_put)});
-  attrs.push_back({"get", runtime.make_native_function(std::string("queue.") + spec.class_name + ".get", queue_get)});
-  attrs.push_back({"get_nowait", runtime.make_native_function(std::string("queue.") + spec.class_name + ".get_nowait", queue_get)});
+  attrs.push_back({"put",
+                   runtime.make_native_function(std::string("queue.") + spec.class_name + ".put", queue_put, nullptr, nullptr, nullptr, false, queue_put_kw)});
+  attrs.push_back({"put_nowait",
+                   runtime.make_native_function(std::string("queue.") + spec.class_name + ".put_nowait", queue_put, nullptr, nullptr, nullptr, false, queue_put_kw)});
+  attrs.push_back({"get",
+                   runtime.make_native_function(std::string("queue.") + spec.class_name + ".get", queue_get, nullptr, nullptr, nullptr, false, queue_get_kw)});
+  attrs.push_back({"get_nowait",
+                   runtime.make_native_function(std::string("queue.") + spec.class_name + ".get_nowait", queue_get, nullptr, nullptr, nullptr, false, queue_get_kw)});
   attrs.push_back({"empty", runtime.make_native_function(std::string("queue.") + spec.class_name + ".empty", queue_empty)});
   attrs.push_back({"full", runtime.make_native_function(std::string("queue.") + spec.class_name + ".full", queue_full)});
   attrs.push_back({"qsize", runtime.make_native_function(std::string("queue.") + spec.class_name + ".qsize", queue_qsize)});
   attrs.push_back({"task_done", runtime.make_native_function(std::string("queue.") + spec.class_name + ".task_done", queue_task_done)});
   attrs.push_back({"join", runtime.make_native_function(std::string("queue.") + spec.class_name + ".join", queue_join)});
+  attrs.push_back({"shutdown",
+                   runtime.make_native_function(std::string("queue.") + spec.class_name + ".shutdown", queue_shutdown, nullptr, nullptr, nullptr, false, queue_shutdown_kw)});
   return Value::class_object(spec.class_name, std::move(attrs));
 }
 
@@ -436,8 +563,10 @@ void register_queue_module(Runtime& runtime) {
   Value exception_base = runtime.find_builtin("Exception") != nullptr ? *runtime.find_builtin("Exception") : Value::invalid();
   Value empty_class = Value::class_object("Empty", {}, exception_base);
   Value full_class = Value::class_object("Full", {}, exception_base);
+  Value shutdown_class = Value::class_object("ShutDown", {}, exception_base);
   runtime.register_builtin("Empty", empty_class);
   runtime.register_builtin("Full", full_class);
+  runtime.register_builtin("ShutDown", shutdown_class);
 
   NativeModuleBuilder builder(runtime, "_queue");
   builder.value("SimpleQueue", simple_queue_class);
@@ -450,6 +579,7 @@ void register_queue_module(Runtime& runtime) {
       .value("PriorityQueue", priority_queue_class)
       .value("Empty", empty_class)
       .value("Full", full_class)
+      .value("ShutDown", shutdown_class)
       .value("deque", Value::class_object("deque", {}));
   runtime.register_module("queue", facade.finish());
 }
