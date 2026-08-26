@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.struct_time` constructor extra-field batch.
+Last updated after the native `sys` startup/config probe batch.
 
 Current checklist count:
 
@@ -69,6 +69,12 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: added CPython-style startup/config probe surface for
+  `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`,
+  `getwindowsversion()`, `_enablelegacywindowsfsencoding()` with observable
+  filesystem encoding/error state updates, and `_debugmallocstats()` backed by
+  XLang3 allocator counters so stdlib feature detection can run without
+  compatibility facades.
 - Expanded native `time.struct_time`: the constructor now accepts the CPython
   optional dict form for `tm_zone` and `tm_gmtoff`, preserves those named
   fields, rejects duplicate/unexpected extra field names, and rejects sequences
@@ -520,7 +526,8 @@ Native or runtime-backed foundation:
   placeholders, audit hook dispatch, stdio capability probes, profile/switch-interval/int-string
   helpers, trace/debug hooks, current-thread-id-keyed `_current_frames` snapshots,
   `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
-  and frame placeholders; full CPython startup flags/config/runtime internals
+  `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
+  stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`, and frame placeholders; full CPython startup flags/config/runtime internals
   and multi-thread frame/exception enumeration pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

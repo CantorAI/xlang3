@@ -50,6 +50,8 @@ int g_recursion_limit = 1000;
 Value g_profile_function = Value::none();
 std::vector<Value> g_audit_hooks;
 thread_local int64_t g_coroutine_origin_tracking_depth = 0;
+std::string g_filesystem_encoding = "utf-8";
+std::string g_filesystem_encode_errors = "surrogatepass";
 
 bool is_callable_value(const Value& value) {
   return value_as_function(value) != nullptr ||
@@ -108,6 +110,19 @@ std::string runtime_prefix(const Runtime& runtime) {
   }
   std::error_code ec;
   return std::filesystem::current_path(ec).string();
+}
+
+std::string runtime_stdlib_dir(const Runtime& runtime) {
+  std::error_code ec;
+  const auto& roots = runtime.import_roots();
+  for (const auto& root : roots) {
+    const auto lib = root / "Lib";
+    if (std::filesystem::is_directory(lib, ec)) {
+      return lib.string();
+    }
+    ec.clear();
+  }
+  return (std::filesystem::path(runtime_prefix(runtime)) / "Lib").string();
 }
 
 Value make_version_info() {
@@ -194,6 +209,31 @@ Value make_thread_info() {
           {"version", Value::none()},
       });
 }
+
+#if defined(_WIN32)
+Value make_windows_version() {
+  OSVERSIONINFOW version_info{};
+  version_info.dwOSVersionInfoSize = sizeof(version_info);
+  GetVersionExW(&version_info);
+  const int64_t major = static_cast<int64_t>(version_info.dwMajorVersion);
+  const int64_t minor = static_cast<int64_t>(version_info.dwMinorVersion);
+  const int64_t build = static_cast<int64_t>(version_info.dwBuildNumber);
+  return make_structseq(
+      "windows_version",
+      {
+          {"major", Value::int64(major)},
+          {"minor", Value::int64(minor)},
+          {"build", Value::int64(build)},
+          {"platform", Value::int64(static_cast<int64_t>(version_info.dwPlatformId))},
+          {"service_pack", Value::string("")},
+          {"service_pack_major", Value::int64(0)},
+          {"service_pack_minor", Value::int64(0)},
+          {"suite_mask", Value::int64(0)},
+          {"product_type", Value::int64(0)},
+          {"platform_version", Value::tuple({Value::int64(major), Value::int64(minor), Value::int64(build)})},
+      });
+}
+#endif
 
 Value make_builtin_module_names() {
   return Value::tuple({
@@ -712,7 +752,7 @@ bool sys_getfilesystemencoding(Runtime&, const Value*, uint32_t argc, Value& out
     error = "sys.getfilesystemencoding expected 0 arguments";
     return false;
   }
-  out = Value::string("utf-8");
+  out = Value::string(g_filesystem_encoding);
   return true;
 }
 
@@ -721,7 +761,7 @@ bool sys_getfilesystemencodeerrors(Runtime&, const Value*, uint32_t argc, Value&
     error = "sys.getfilesystemencodeerrors expected 0 arguments";
     return false;
   }
-  out = Value::string("surrogatepass");
+  out = Value::string(g_filesystem_encode_errors);
   return true;
 }
 
@@ -1018,6 +1058,44 @@ bool sys_is_gil_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
+#if defined(_WIN32)
+bool sys_getwindowsversion(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getwindowsversion expected 0 arguments";
+    return false;
+  }
+  out = make_windows_version();
+  return true;
+}
+
+bool sys_enablelegacywindowsfsencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._enablelegacywindowsfsencoding expected 0 arguments";
+    return false;
+  }
+  g_filesystem_encoding = "mbcs";
+  g_filesystem_encode_errors = "replace";
+  value_set_none(out);
+  return true;
+}
+#endif
+
+bool sys_debugmallocstats(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._debugmallocstats expected 0 arguments";
+    return false;
+  }
+  const auto& object_stats = memory::x3_thread_object_pools().stats();
+  const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
+  const auto& large_stats = memory::x3_thread_buckets().large_stats();
+  std::cerr << "XLang3 allocator stats\n"
+            << "object_blocks=" << live_block_count(object_stats) << "\n"
+            << "bucket_blocks=" << live_block_count(bucket_stats) << "\n"
+            << "large_blocks=" << live_block_count(large_stats) << "\n";
+  value_set_none(out);
+  return true;
+}
+
 bool sys_xlang3_debug_set_hook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._xlang3_debug_set_hook expected 1 argument";
@@ -1203,12 +1281,15 @@ void register_sys_module(Runtime& runtime) {
   object_set_attr(implementation, "_multiarch", Value::string(""), error);
   const std::string exe = executable_path();
   const std::string prefix = runtime_prefix(runtime);
+  const std::string stdlib_dir = runtime_stdlib_dir(runtime);
   module_set_attr(sys, "executable", Value::string(exe), error);
   module_set_attr(sys, "_base_executable", Value::string(exe), error);
   module_set_attr(sys, "prefix", Value::string(prefix), error);
   module_set_attr(sys, "base_prefix", Value::string(prefix), error);
   module_set_attr(sys, "exec_prefix", Value::string(prefix), error);
   module_set_attr(sys, "base_exec_prefix", Value::string(prefix), error);
+  module_set_attr(sys, "_stdlib_dir", Value::string(stdlib_dir), error);
+  module_set_attr(sys, "_framework", Value::string(""), error);
   module_set_attr(sys, "platlibdir", Value::string(
 #if defined(_WIN32)
                                       "DLLs"
@@ -1251,6 +1332,13 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
   module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
   module_set_attr(sys, "_is_gil_enabled", runtime.make_native_function("sys._is_gil_enabled", sys_is_gil_enabled), error);
+  module_set_attr(sys, "_debugmallocstats", runtime.make_native_function("sys._debugmallocstats", sys_debugmallocstats), error);
+#if defined(_WIN32)
+  module_set_attr(sys, "winver", Value::string("3.14"), error);
+  module_set_attr(sys, "dllhandle", Value::int64(reinterpret_cast<int64_t>(GetModuleHandleW(nullptr))), error);
+  module_set_attr(sys, "getwindowsversion", runtime.make_native_function("sys.getwindowsversion", sys_getwindowsversion), error);
+  module_set_attr(sys, "_enablelegacywindowsfsencoding", runtime.make_native_function("sys._enablelegacywindowsfsencoding", sys_enablelegacywindowsfsencoding), error);
+#endif
   module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);
   module_set_attr(sys, "_getframemodulename", runtime.make_native_function("sys._getframemodulename", sys_getframemodulename), error);
   module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native time.struct_time constructor extra-field handling
+Native sys startup/config probe surface
 ```
 
 Current next loop:
