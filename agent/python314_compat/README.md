@@ -50,7 +50,6 @@ Typical use:
 
 ```text
 powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1
-C:\Python\Python314\python.exe agent\scripts\extract_context.py --section "Standard Modules Foundation"
 C:\Python\Python314\python.exe agent\scripts\codex_loop.py --dry-run
 ```
 

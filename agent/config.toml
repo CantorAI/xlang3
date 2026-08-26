@@ -19,7 +19,7 @@ release_exe = "build/Release/xlang3.exe"
 fixture_root = "tests/fixtures"
 
 [codex]
-command = ""
+command = "codex exec --dangerously-bypass-approvals-and-sandbox {prompt_file}"
 
 [goals.python314_compat]
 title = "XLang3 Python 3.14 Compatibility"
@@ -29,3 +29,5 @@ runs_dir = "agent/python314_compat/.agent_runs"
 state = "agent/python314_compat/state.md"
 queue = "agent/python314_compat/queue.md"
 rules = "agent/python314_compat/rules.md"
+default_section = "Standard Modules Foundation"
+default_limit = 3

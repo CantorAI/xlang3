@@ -29,8 +29,9 @@ queue, state, and skill metadata for one long-running product goal.
 Useful commands:
 
 ```text
-C:\Python\Python314\python.exe agent\scripts\codex_loop.py --goal python314_compat --status
-C:\Python\Python314\python.exe agent\scripts\codex_loop.py --goal python314_compat --dry-run
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py --status
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py --dry-run
 C:\Python\Python314\python.exe agent\scripts\run_fixtures.py
 ```
 
@@ -38,11 +39,11 @@ PowerShell wrapper:
 
 ```text
 powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1
-powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Status
-powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Section "Standard Modules Foundation" -DryRun
-powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Run -Section "Standard Modules Foundation"
+powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 --status
+powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 --dry-run
 ```
 
-With no arguments, the wrapper shows status. It does not start a real Codex
-batch unless `-Run` is passed with `[codex].command` configured, or
-`-CodexCommand` is passed directly.
+With no arguments, the wrapper starts the Python compatibility loop using the
+defaults from `agent/config.toml`. The wrapper itself only launches Python; the
+Python script owns goal selection, backend command, resume, validation, commit,
+and push behavior.

@@ -11,25 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 param(
-    [string]$Section = "",
-    [int]$Limit = 3,
-    [int]$Iterations = 1,
-    [string]$CodexCommand = "",
-    [string]$CommitMessage = "Advance Python 3.14 compatibility",
-    [switch]$Run,
-    [switch]$Status,
-    [switch]$DryRun,
-    [switch]$NoCommit,
-    [switch]$SkipBuild,
-    [switch]$SkipTests,
-    [switch]$ResetLoopState
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Args
 )
 
 $ErrorActionPreference = "Stop"
-
-if ($CodexCommand.Trim() -eq "...") {
-    throw "Invalid -CodexCommand '...'. Pass a real Codex backend command, or use -DryRun/-Status."
-}
 
 $root = Split-Path -Parent $PSScriptRoot
 $python = "C:\Python\Python314\python.exe"
@@ -37,51 +23,9 @@ if (-not (Test-Path -LiteralPath $python)) {
     $python = "python"
 }
 
-$argsList = @(
-    "agent\scripts\codex_loop.py",
-    "--goal", "python314_compat",
-    "--limit", "$Limit",
-    "--iterations", "$Iterations"
-)
-
-if ($Section) {
-    $argsList += @("--section", $Section)
-}
-if ($CodexCommand) {
-    $argsList += @("--codex-command", $CodexCommand)
-}
-if ($CommitMessage) {
-    $argsList += @("--commit-message", $CommitMessage)
-}
-if ($Status) {
-    $argsList += "--status"
-}
-if ($DryRun) {
-    $argsList += "--dry-run"
-}
-if ($NoCommit) {
-    $argsList += "--no-commit"
-}
-if ($SkipBuild) {
-    $argsList += "--skip-build"
-}
-if ($SkipTests) {
-    $argsList += "--skip-tests"
-}
-if ($ResetLoopState) {
-    $argsList += "--reset-loop-state"
-}
-
-$hasRunMode = $Run -or $Status -or $DryRun -or $CodexCommand
-if (-not $hasRunMode) {
-    Write-Host "No Codex backend command was provided; showing status."
-    Write-Host "For a real batch, pass -Run with [codex].command in agent\config.toml, or pass -CodexCommand."
-    $argsList += "--status"
-}
-
 Push-Location $root
 try {
-    & $python @argsList
+    & $python "agent\scripts\codex_loop.py" @Args
     exit $LASTEXITCODE
 }
 finally {

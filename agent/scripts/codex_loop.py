@@ -17,6 +17,7 @@ import datetime as _dt
 import json
 import os
 import re
+import shlex
 import subprocess
 import tomllib
 from pathlib import Path
@@ -62,6 +63,14 @@ def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
 
+def default_section(config: dict, goal: str) -> str:
+    return goal_config(config, goal).get("default_section", "")
+
+
+def default_limit(config: dict, goal: str) -> int:
+    return int(goal_config(config, goal).get("default_limit", 8))
+
+
 def validate_codex_command(command: str) -> str:
     stripped = command.strip()
     placeholders = {"...", "<codex-command>", "TODO", "todo"}
@@ -71,6 +80,43 @@ def validate_codex_command(command: str) -> str:
             "Pass a real command or use --dry-run/--status."
         )
     return stripped
+
+
+def preflight_codex_command(command: str) -> None:
+    if not command:
+        return
+
+    try:
+        parts = shlex.split(command, posix=False)
+    except ValueError as exc:
+        raise SystemExit(f"Invalid Codex backend command syntax: {exc}") from exc
+    if not parts:
+        return
+
+    tool = parts[0].strip('"')
+    lowered = tool.lower()
+    if lowered != "codex" and not lowered.endswith("\\codex.exe"):
+        return
+
+    try:
+        result = subprocess.run(
+            [tool, "--help"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise SystemExit(
+            "Codex backend command is configured, but the Codex CLI did not launch. "
+            f"Command: {tool} --help\n{exc}"
+        ) from exc
+    if result.returncode != 0:
+        message = (result.stderr or result.stdout).strip()
+        raise SystemExit(
+            "Codex backend command is configured, but the Codex CLI did not launch. "
+            f"Command: {tool} --help\n{message}"
+        )
 
 
 def run(command: list[str] | str, *, shell: bool = False) -> None:
@@ -419,8 +465,8 @@ def commit_and_push(message: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the XLang3 Python 3.14 Codex compatibility loop.")
     parser.add_argument("--goal", default="", help="Goal name from agent/config.toml.")
-    parser.add_argument("--section", default="", help="Optional audit section name.")
-    parser.add_argument("--limit", type=int, default=8, help="Number of unfinished audit rows to include in the Codex prompt.")
+    parser.add_argument("--section", default=None, help="Optional audit section name.")
+    parser.add_argument("--limit", type=int, default=0, help="Number of unfinished audit rows to include in the Codex prompt.")
     parser.add_argument("--iterations", type=int, default=1, help="Number of Codex work/validate/commit cycles.")
     parser.add_argument("--codex-command", default="", help="Backend command. Use {prompt_file} or {prompt}; otherwise prompt file is appended.")
     parser.add_argument("--status", action="store_true", help="Show current goal/audit/resume status and exit.")
@@ -437,6 +483,8 @@ def main() -> int:
     os.chdir(ROOT)
     config = load_config()
     goal = args.goal or config.get("default_goal", "")
+    section = args.section if args.section is not None else default_section(config, goal)
+    limit = args.limit if args.limit > 0 else default_limit(config, goal)
     xlang3 = args.xlang3 or default_xlang3(config)
     codex_command = validate_codex_command(args.codex_command or default_codex_command(config))
     cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
@@ -446,7 +494,7 @@ def main() -> int:
         print(f"Cleared loop state for goal: {goal}")
 
     if args.status:
-        print_loop_status(config, goal, args.section, args.limit)
+        print_loop_status(config, goal, section, limit)
         return 0
 
     saved_state = read_loop_state(config, goal)
@@ -460,11 +508,13 @@ def main() -> int:
             "No Codex backend command configured. Pass --codex-command, "
             "set [codex].command in agent/config.toml, or use --dry-run/--status."
         )
+    if not args.dry_run and resume_phase not in {"codex_done", "validated"}:
+        preflight_codex_command(codex_command)
 
     for iteration in range(1, args.iterations + 1):
         saved_state = read_loop_state(config, goal)
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
-        active_section = saved_state.get("section", args.section) if resume_phase else args.section
+        active_section = saved_state.get("section", section) if resume_phase else section
         stageable_changes = changed_paths()
 
         print()
@@ -500,7 +550,19 @@ def main() -> int:
                     "iteration": iteration,
                     "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                 })
-                invoke_codex(codex_command, prompt_path, prompt)
+                try:
+                    invoke_codex(codex_command, prompt_path, prompt)
+                except SystemExit:
+                    write_loop_state(config, goal, {
+                        "active": True,
+                        "phase": "prompt_written",
+                        "goal": goal,
+                        "section": active_section,
+                        "prompt_path": str(prompt_path),
+                        "iteration": iteration,
+                        "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                    })
+                    raise
                 write_loop_state(config, goal, {
                     "active": True,
                     "phase": "codex_done",
@@ -519,7 +581,7 @@ def main() -> int:
 
         if not resume_phase:
             checked, partial, missing = audit_counts(config, goal, active_section)
-            items = unfinished_items(config, goal, active_section, args.limit)
+            items = unfinished_items(config, goal, active_section, limit)
             print()
             print(f"Audit counts: checked={checked}, partial={partial}, missing={missing}")
             print("Next unfinished rows:")
@@ -557,7 +619,19 @@ def main() -> int:
                 "iteration": iteration,
                 "baseline_stageable_paths": stageable_changes,
             })
-            invoke_codex(codex_command, prompt_path, prompt)
+            try:
+                invoke_codex(codex_command, prompt_path, prompt)
+            except SystemExit:
+                write_loop_state(config, goal, {
+                    "active": True,
+                    "phase": "prompt_written",
+                    "goal": goal,
+                    "section": active_section,
+                    "prompt_path": str(prompt_path),
+                    "iteration": iteration,
+                    "baseline_stageable_paths": stageable_changes,
+                })
+                raise
             write_loop_state(config, goal, {
                 "active": True,
                 "phase": "codex_done",
