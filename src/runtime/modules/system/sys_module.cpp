@@ -1140,6 +1140,63 @@ bool sys_is_gil_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool sys_activate_stack_trampoline(Runtime& runtime, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
+  StringObject* backend = argc == 1 ? value_as_string(args[0]) : nullptr;
+  if (backend == nullptr) {
+    error = "sys.activate_stack_trampoline expected backend name";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  error = string_object_to_string(*backend) + " trampoline not available";
+  runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
+bool sys_deactivate_stack_trampoline(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.deactivate_stack_trampoline expected 0 arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_is_stack_trampoline_active(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.is_stack_trampoline_active expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
+bool sys_jit_is_available(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._jit.is_available expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
+bool sys_jit_is_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._jit.is_enabled expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
+bool sys_jit_is_active(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._jit.is_active expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
 #if defined(_WIN32)
 bool sys_getwindowsversion(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
@@ -1361,6 +1418,7 @@ void register_sys_module(Runtime& runtime) {
   object_set_attr(implementation, "cache_tag", Value::string("xlang3-314"), error);
   object_set_attr(implementation, "hexversion", Value::int64(0x030e07f0), error);
   object_set_attr(implementation, "_multiarch", Value::string(""), error);
+  object_set_attr(implementation, "supports_isolated_interpreters", Value::boolean(false), error);
   const std::string exe = executable_path();
   const std::string prefix = runtime_prefix(runtime);
   const std::string stdlib_dir = runtime_stdlib_dir(runtime);
@@ -1415,7 +1473,17 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
   module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
   module_set_attr(sys, "_is_gil_enabled", runtime.make_native_function("sys._is_gil_enabled", sys_is_gil_enabled), error);
+  module_set_attr(sys, "activate_stack_trampoline", runtime.make_native_function("sys.activate_stack_trampoline", sys_activate_stack_trampoline), error);
+  module_set_attr(sys, "deactivate_stack_trampoline", runtime.make_native_function("sys.deactivate_stack_trampoline", sys_deactivate_stack_trampoline), error);
+  module_set_attr(sys, "is_stack_trampoline_active", runtime.make_native_function("sys.is_stack_trampoline_active", sys_is_stack_trampoline_active), error);
   module_set_attr(sys, "_debugmallocstats", runtime.make_native_function("sys._debugmallocstats", sys_debugmallocstats), error);
+  NativeModuleBuilder jit_builder(runtime, "sys._jit");
+  jit_builder.function("is_available", sys_jit_is_available)
+      .function("is_enabled", sys_jit_is_enabled)
+      .function("is_active", sys_jit_is_active);
+  Value jit_module = jit_builder.finish();
+  module_set_attr(sys, "_jit", jit_module, error);
+  runtime.register_module("sys._jit", jit_module);
 #if defined(_WIN32)
   module_set_attr(sys, "winver", Value::string("3.14"), error);
   module_set_attr(sys, "dllhandle", Value::int64(reinterpret_cast<int64_t>(GetModuleHandleW(nullptr))), error);

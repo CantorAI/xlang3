@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native multi-thread `sys._current_exceptions` batch.
+Last updated after the native `sys` runtime-probe metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: `sys.implementation` now exposes
+  `supports_isolated_interpreters`, stack-trampoline probes report the
+  currently inactive/unavailable XLang3 runtime state, and `sys._jit` exposes
+  CPython 3.14-style JIT state probes for stdlib feature detection.
 - Expanded native `sys`: `_current_exceptions()` now snapshots active
   exception objects per live XLang3 thread, so Python 3.14-style
   thread-id-keyed exception introspection reports worker-thread handlers as
@@ -547,6 +551,7 @@ Native or runtime-backed foundation:
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,
+  `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,

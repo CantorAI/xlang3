@@ -559,6 +559,7 @@ print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getall
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
+print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
 print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
 print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe"), sys.prefix != "")
@@ -568,6 +569,11 @@ windows_version = sys.getwindowsversion()
 print(windows_version.major >= 0, len(windows_version), windows_version.n_fields, isinstance(windows_version.platform_version, tuple))
 print(sys._enablelegacywindowsfsencoding() is None, sys._debugmallocstats() is None, isinstance(sys.dllhandle, int))
 print(sys.getfilesystemencoding(), sys.getfilesystemencodeerrors())
+try:
+    sys.activate_stack_trampoline("perf")
+except ValueError as err:
+    print("stack-trampoline", "not available" in str(err))
+print(sys.deactivate_stack_trampoline() is None, sys.is_stack_trampoline_active())
 old_switch = sys.getswitchinterval()
 sys.setswitchinterval(0.002)
 print(sys.getswitchinterval() > 0, sys.get_int_max_str_digits())
