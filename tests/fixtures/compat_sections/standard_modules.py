@@ -575,6 +575,11 @@ print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.
 print(type(sys.version_info).n_fields, type(sys.version_info).major.__name__, type(sys.flags).n_fields, type(sys.flags).gil.__name__)
 print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
 print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sys.thread_info).n_sequence_fields, type(sys.thread_info).name.__name__)
+print(isinstance(sys.version_info, tuple), sys.version_info.count(3), sys.version_info.index("final"), list(sys.version_info)[0])
+print(isinstance(sys.flags, tuple), sys.flags.count(sys.flags.gil) >= 1, sys.flags.index(sys.flags.int_max_str_digits), sys.flags.n_fields > len(sys.flags))
+print(isinstance(sys.float_info, tuple), sys.float_info.count(sys.float_info.radix), sys.float_info.index(sys.float_info.radix), list(sys.float_info)[-1])
+print(isinstance(sys.hash_info, tuple), sys.hash_info.index(sys.hash_info.algorithm), sys.hash_info.count(sys.hash_info.cutoff) >= 1)
+print(isinstance(sys.thread_info, tuple), sys.thread_info.index(sys.thread_info.name), sys.thread_info.count(sys.thread_info.name))
 print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe"), sys.prefix != "")
 print("sys" in sys.builtin_module_names, sys.pycache_prefix is None, isinstance(sys.orig_argv, list))
 print(sys.executable == sys._base_executable, sys.prefix == sys.base_prefix == sys.exec_prefix == sys.base_exec_prefix, isinstance(sys.real_prefix, str), len(sys.orig_argv) >= 1, sys.orig_argv[0] == sys.executable)
@@ -583,6 +588,7 @@ print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib"), sys._fr
 windows_version = sys.getwindowsversion()
 print(windows_version.major >= 0, len(windows_version), windows_version.n_fields, isinstance(windows_version.platform_version, tuple))
 print(type(windows_version).n_fields, type(windows_version).platform_version.__name__)
+print(isinstance(windows_version, tuple), windows_version.index(windows_version.platform), windows_version.count(windows_version.service_pack) >= 1)
 print(sys._enablelegacywindowsfsencoding() is None, sys._debugmallocstats() is None, isinstance(sys.dllhandle, int))
 print(sys.getfilesystemencoding(), sys.getfilesystemencodeerrors())
 try:
@@ -686,6 +692,7 @@ except ValueError as err:
     print("coroutine-origin-depth", "non-negative" in str(err))
 asyncgen_hooks = sys.get_asyncgen_hooks()
 print(type(asyncgen_hooks).__name__, len(asyncgen_hooks), asyncgen_hooks.firstiter is None, asyncgen_hooks.finalizer is None)
+print(isinstance(asyncgen_hooks, tuple), asyncgen_hooks.count(None), asyncgen_hooks.index(None))
 def asyncgen_firstiter_probe(generator):
     return None
 def asyncgen_finalizer_probe(generator):

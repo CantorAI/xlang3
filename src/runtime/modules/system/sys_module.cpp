@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
 
 #include "../thread/thread_objects.h"
 #include "runtime/memory/x3_runtime_memory.h"
@@ -82,13 +83,99 @@ Value make_member_descriptor(const std::string& name) {
   return descriptor;
 }
 
+bool sys_structseq_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
+  Value tuple_value;
+  std::string ignored;
+  if (!object_get_attr(self, "_tuple", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
+    error = std::string(method) + " target has no tuple storage";
+    return false;
+  }
+  return true;
+}
+
+bool sys_structseq_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "sys structseq count expected value";
+    return false;
+  }
+  TupleObject* tuple = nullptr;
+  if (!sys_structseq_tuple_storage(args[0], "sys structseq count", tuple, error)) {
+    return false;
+  }
+  int64_t count = 0;
+  for (const auto& item : tuple->items) {
+    if (value_key_equal(item, args[1])) {
+      ++count;
+    }
+  }
+  out = Value::int64(count);
+  return true;
+}
+
+bool sys_structseq_bound(const Value& value, size_t size, size_t& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = "sys structseq index bounds must be int";
+    return false;
+  }
+  int64_t index = value.as.i64;
+  if (index < 0) {
+    index += static_cast<int64_t>(size);
+  }
+  if (index < 0) {
+    index = 0;
+  }
+  if (index > static_cast<int64_t>(size)) {
+    index = static_cast<int64_t>(size);
+  }
+  out = static_cast<size_t>(index);
+  return true;
+}
+
+bool sys_structseq_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "sys structseq index expected value and optional bounds";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  TupleObject* tuple = nullptr;
+  if (!sys_structseq_tuple_storage(args[0], "sys structseq index", tuple, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  size_t start = 0;
+  size_t stop = tuple->items.size();
+  if (argc >= 3 && !sys_structseq_bound(args[2], tuple->items.size(), start, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc >= 4 && !sys_structseq_bound(args[3], tuple->items.size(), stop, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (start > stop) {
+    start = stop;
+  }
+  for (size_t i = start; i < stop; ++i) {
+    if (value_key_equal(tuple->items[i], args[1])) {
+      out = Value::int64(static_cast<int64_t>(i));
+      return true;
+    }
+  }
+  error = "tuple.index(x): x not in tuple";
+  runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
 Value make_structseq(
+    Runtime& runtime,
     const std::string& type_name,
     const std::vector<std::pair<std::string, Value>>& fields,
     const std::string& module_name = "sys",
     size_t sequence_fields = std::numeric_limits<size_t>::max()) {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
+  class_attrs.push_back({"count", runtime.make_native_function(type_name + ".count", sys_structseq_count)});
+  class_attrs.push_back({"index", runtime.make_native_function(type_name + ".index", sys_structseq_index)});
   if (sequence_fields == std::numeric_limits<size_t>::max() || sequence_fields > fields.size()) {
     sequence_fields = fields.size();
   }
@@ -98,7 +185,11 @@ Value make_structseq(
   for (const auto& field : fields) {
     class_attrs.push_back({field.first, make_member_descriptor(field.first)});
   }
-  Value instance = Value::instance(Value::class_object(type_name, std::move(class_attrs)));
+  const Value* tuple_base = runtime.find_builtin("tuple");
+  Value instance = Value::instance(Value::class_object(
+      type_name,
+      std::move(class_attrs),
+      tuple_base != nullptr ? *tuple_base : Value::invalid()));
   std::vector<Value> tuple_items;
   tuple_items.reserve(sequence_fields);
   std::string ignored;
@@ -155,8 +246,9 @@ std::string runtime_stdlib_dir(const Runtime& runtime) {
   return (std::filesystem::path(runtime_prefix(runtime)) / "Lib").string();
 }
 
-Value make_version_info() {
+Value make_version_info(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "version_info",
       {
           {"major", Value::int64(3)},
@@ -167,8 +259,9 @@ Value make_version_info() {
       });
 }
 
-Value make_flags() {
+Value make_flags(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "flags",
       {
           {"debug", Value::int64(0)},
@@ -197,8 +290,9 @@ Value make_flags() {
       18);
 }
 
-Value make_int_info() {
+Value make_int_info(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "int_info",
       {
           {"bits_per_digit", Value::int64(30)},
@@ -208,8 +302,9 @@ Value make_int_info() {
       });
 }
 
-Value make_float_info() {
+Value make_float_info(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "float_info",
       {
           {"max", Value::number((std::numeric_limits<double>::max)())},
@@ -226,8 +321,9 @@ Value make_float_info() {
       });
 }
 
-Value make_hash_info() {
+Value make_hash_info(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "hash_info",
       {
           {"width", Value::int64(64)},
@@ -242,8 +338,9 @@ Value make_hash_info() {
       });
 }
 
-Value make_thread_info() {
+Value make_thread_info(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "thread_info",
       {
 #if defined(_WIN32)
@@ -256,8 +353,9 @@ Value make_thread_info() {
       });
 }
 
-Value make_asyncgen_hooks() {
+Value make_asyncgen_hooks(Runtime& runtime) {
   return make_structseq(
+      runtime,
       "asyncgen_hooks",
       {
           {"firstiter", g_asyncgen_firstiter},
@@ -266,7 +364,7 @@ Value make_asyncgen_hooks() {
 }
 
 #if defined(_WIN32)
-Value make_windows_version() {
+Value make_windows_version(Runtime& runtime) {
   OSVERSIONINFOW version_info{};
   version_info.dwOSVersionInfoSize = sizeof(version_info);
   GetVersionExW(&version_info);
@@ -274,6 +372,7 @@ Value make_windows_version() {
   const int64_t minor = static_cast<int64_t>(version_info.dwMinorVersion);
   const int64_t build = static_cast<int64_t>(version_info.dwBuildNumber);
   return make_structseq(
+      runtime,
       "windows_version",
       {
           {"major", Value::int64(major)},
@@ -793,12 +892,12 @@ bool validate_asyncgen_hook(Runtime& runtime, const Value& hook, const char* nam
   return false;
 }
 
-bool sys_get_asyncgen_hooks(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_get_asyncgen_hooks(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys.get_asyncgen_hooks expected 0 arguments";
     return false;
   }
-  out = make_asyncgen_hooks();
+  out = make_asyncgen_hooks(runtime);
   return true;
 }
 
@@ -1386,12 +1485,12 @@ bool sys_jit_is_active(Runtime&, const Value*, uint32_t argc, Value& out, std::s
 }
 
 #if defined(_WIN32)
-bool sys_getwindowsversion(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getwindowsversion(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys.getwindowsversion expected 0 arguments";
     return false;
   }
-  out = make_windows_version();
+  out = make_windows_version(runtime);
   return true;
 }
 
@@ -1556,7 +1655,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "modules", modules_ref, error);
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);
-  module_set_attr(sys, "version_info", make_version_info(), error);
+  module_set_attr(sys, "version_info", make_version_info(runtime), error);
   module_set_attr(sys, "version", Value::string("3.14.7 (XLang3)"), error);
   module_set_attr(sys, "hexversion", Value::int64(0x030e07f0), error);
   module_set_attr(sys, "api_version", Value::int64(1013), error);
@@ -1577,11 +1676,11 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "maxunicode", Value::int64(0x10ffff), error);
   module_set_attr(sys, "byteorder", Value::string("little"), error);
   module_set_attr(sys, "dont_write_bytecode", Value::boolean(true), error);
-  module_set_attr(sys, "flags", make_flags(), error);
-  module_set_attr(sys, "int_info", make_int_info(), error);
-  module_set_attr(sys, "float_info", make_float_info(), error);
-  module_set_attr(sys, "hash_info", make_hash_info(), error);
-  module_set_attr(sys, "thread_info", make_thread_info(), error);
+  module_set_attr(sys, "flags", make_flags(runtime), error);
+  module_set_attr(sys, "int_info", make_int_info(runtime), error);
+  module_set_attr(sys, "float_info", make_float_info(runtime), error);
+  module_set_attr(sys, "hash_info", make_hash_info(runtime), error);
+  module_set_attr(sys, "thread_info", make_thread_info(runtime), error);
   module_set_attr(sys, "warnoptions", Value::list({}), error);
   module_set_attr(sys, "_xoptions", Value::dict({}), error);
   module_set_attr(sys, "meta_path", Value::list({}), error);
@@ -1603,7 +1702,7 @@ void register_sys_module(Runtime& runtime) {
   Value implementation;
   module_get_attr(sys, "implementation", implementation, error);
   object_set_attr(implementation, "name", Value::string("xlang3"), error);
-  object_set_attr(implementation, "version", make_version_info(), error);
+  object_set_attr(implementation, "version", make_version_info(runtime), error);
   object_set_attr(implementation, "cache_tag", Value::string("xlang3-314"), error);
   object_set_attr(implementation, "hexversion", Value::int64(0x030e07f0), error);
   object_set_attr(implementation, "_multiarch", Value::string(""), error);

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` startup metadata batch.
+Last updated after the native `sys` structseq tuple-behavior batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` structseq behavior: `version_info`, `flags`,
+  `int_info`, `float_info`, `hash_info`, `thread_info`, Windows
+  `windows_version`, `sys.implementation.version`, and `asyncgen_hooks` now
+  use the runtime tuple base and expose tuple-backed `count()` / `index()`
+  over their sequence fields while retaining CPython-style named metadata.
 - Expanded native `sys` trace/debug hook coverage with `sys.call_tracing`.
 - Expanded process-published `sys` startup metadata so `sys.executable`,
   `sys._base_executable`, `sys.prefix`, `sys.base_prefix`,
@@ -606,8 +611,9 @@ Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields including `_base_executable`,
-  `exec_prefix`, `base_exec_prefix`, and `real_prefix`, structseq-like `version_info`/`flags`/`float_info`/
-  `hash_info`/`thread_info` with instance/type field counts and type-level named member descriptors,
+  `exec_prefix`, `base_exec_prefix`, and `real_prefix`, structseq-like `version_info`/`flags`/`int_info`/
+  `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors,
+  tuple inheritance, sequence iteration, and tuple-backed `count`/`index`,
   `implementation` metadata, `builtin_module_names`,
   CPython 3.14 top-level `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
