@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` structseq type metadata batch.
+Last updated after the native `sys.stdlib_module_names` Python 3.14 metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys.stdlib_module_names` to the full Python 3.14 top-level
+  standard-library module-name set, so stdlib/package probes can recognize
+  importable standard modules such as `asyncio`, `email`, `encodings`, and
+  `tomllib` without pure-Python facades.
 - Expanded native `sys` structseq-like metadata: generated `version_info`,
   `flags`, `float_info`, `hash_info`, `thread_info`, and Windows
   `windows_version` type objects now expose CPython-style
@@ -566,7 +570,7 @@ Native or runtime-backed foundation:
   version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
   `hash_info`/`thread_info` with instance/type field counts and type-level named member descriptors,
   `implementation` metadata, `builtin_module_names`,
-  `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
+  CPython 3.14 top-level `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,

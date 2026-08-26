@@ -612,6 +612,7 @@ current_exceptions = sys._current_exceptions()
 current_thread_id = list(current_frames)[0]
 print(len(current_frames), len(current_exceptions), current_thread_id in current_exceptions, current_frames[current_thread_id].f_code.co_name == "<module>", current_exceptions[current_thread_id] is None)
 print(current_thread_id == threading.get_ident(), "sys" in sys.stdlib_module_names, "threading" in sys.stdlib_module_names, len(sys.stdlib_module_names) > len(sys.builtin_module_names))
+print("asyncio" in sys.stdlib_module_names, "email" in sys.stdlib_module_names, "encodings" in sys.stdlib_module_names, "tomllib" in sys.stdlib_module_names, "site-packages" in sys.stdlib_module_names)
 sys_frame_thread_ready = threading.Event()
 sys_frame_thread_release = threading.Event()
 sys_frame_thread_ident = []
