@@ -808,3 +808,18 @@ try:
     subprocess.run(["cmd", "/c", "exit 7"], check=True, capture_output=True, text=True)
 except subprocess.CalledProcessError as err:
     print(err.returncode, err.cmd[2], err.stdout == "")
+shell_completed = subprocess.run("echo shell-ok", shell=True, capture_output=True, text=True)
+print(shell_completed.stdout.strip())
+input_completed = subprocess.run(["cmd", "/c", "more"], input="stdin-ok", stdout=subprocess.PIPE, text=True)
+print(input_completed.stdout.strip())
+merged_completed = subprocess.run(["cmd", "/c", "echo merged-error 1>&2"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+print(merged_completed.stdout.strip())
+pipe_proc = subprocess.Popen(["cmd", "/c", "more"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+pipe_out, pipe_err = pipe_proc.communicate(b"pipe-ok")
+print(pipe_proc.pid > 0, pipe_proc.returncode, isinstance(pipe_out, bytes), pipe_err is None, len(pipe_out) > 0)
+with subprocess.Popen(["cmd", "/c", "exit 0"]) as context_proc:
+    print(context_proc.pid > 0)
+try:
+    subprocess.run(["cmd", "/c", "ping -n 3 127.0.0.1 >nul"], timeout=0.01, shell=True)
+except subprocess.TimeoutExpired as err:
+    print(err.cmd[0], err.timeout > 0)

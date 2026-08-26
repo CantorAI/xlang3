@@ -493,7 +493,12 @@ High-level modules currently backed by native/runtime code:
   `Struct`, and catchable `struct.error` foundations for common endian prefixes plus integer,
   bool, float/double, char, bytes, pascal-string, and pad format units; native alignment,
   exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
-- [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
+- [~] `subprocess`: constants, `Popen` wait/poll/terminate/kill/communicate/context-manager basics,
+  `pid`/`args`/`returncode` metadata, `run()` with Windows child launch, concurrent pipe draining,
+  `capture_output`/`stdout=PIPE`/`stderr=PIPE`/`stderr=STDOUT`/`DEVNULL`, `input`, `timeout`,
+  `shell`, `CompletedProcess`, and catchable `CalledProcessError`/`TimeoutExpired` foundations;
+  POSIX process launch, exact file-handle inheritance, text-mode `Popen.communicate`, advanced
+  lifecycle/session/group semantics, and full CPython edge behavior pending
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
   `_get_preferred_schemes`, `_expand_vars`, `_get_sysconfigdata_name`, `is_python_build`,
   config filename helpers, common config-var helpers, and makefile-variable expansion;

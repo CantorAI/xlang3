@@ -223,3 +223,9 @@ True 0 xlang3-subprocess
 0 True
 0 0
 7 exit 7 True
+shell-ok
+stdin-ok
+merged-error
+True 0 True True True
+True
+cmd True
