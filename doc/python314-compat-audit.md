@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: `_current_frames()` now reports the active runtime
+  frame for the current thread, `_current_exceptions()` follows the Python 3.14
+  single-exception-value shape, and cache-clear/coroutine-origin tracking
+  helpers cover common stdlib cleanup/introspection calls.
 - Expanded native `abc`/`_abc`: `ABCMeta`-created classes now expose
   computed `__abstractmethods__`, inherited abstract methods are cleared by
   concrete overrides after base/metaclass reconciliation, and abstract ABC
@@ -495,8 +499,10 @@ Native or runtime-backed foundation:
   `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`, default/filesystem
   encoding helpers, recursion-limit helpers, `intern`, `getsizeof`, `exit`, display/exception hook
   placeholders, audit hook dispatch, stdio capability probes, profile/switch-interval/int-string
-  helpers, trace/debug hooks, and frame placeholders;
-  full CPython startup flags/config/runtime internals pending
+  helpers, trace/debug hooks, current-thread `_current_frames` snapshots,
+  `_current_exceptions`, cache-clear hooks, coroutine-origin tracking helpers,
+  and frame placeholders; full CPython startup flags/config/runtime internals
+  and multi-thread frame/exception enumeration pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable

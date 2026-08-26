@@ -553,12 +553,59 @@ bool sys_getframemodulename(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
-bool sys_current_frames(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys._current_frames expected 0 arguments";
     return false;
   }
-  out = Value::dict({});
+  out = Value::dict({{Value::int64(1), runtime.current_frame_snapshot()}});
+  return true;
+}
+
+bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._current_exceptions expected 0 arguments";
+    return false;
+  }
+  const Value& exception = runtime.active_exception();
+  out = Value::dict({{Value::int64(1), exception.tag == ValueTag::Invalid ? Value::none() : exception}});
+  return true;
+}
+
+bool sys_clear_internal_caches(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys._clear_internal_caches expected 0 arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_clear_type_cache(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return sys_clear_internal_caches(runtime, args, argc, out, error, user_data);
+}
+
+bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "sys.set_coroutine_origin_tracking_depth expected integer depth";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].as.i64 < 0) {
+    error = "depth must be non-negative";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_get_coroutine_origin_tracking_depth(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.get_coroutine_origin_tracking_depth expected 0 arguments";
+    return false;
+  }
+  value_set_int64(out, 0);
   return true;
 }
 
@@ -1080,6 +1127,11 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);
   module_set_attr(sys, "_getframemodulename", runtime.make_native_function("sys._getframemodulename", sys_getframemodulename), error);
   module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);
+  module_set_attr(sys, "_current_exceptions", runtime.make_native_function("sys._current_exceptions", sys_current_exceptions), error);
+  module_set_attr(sys, "_clear_internal_caches", runtime.make_native_function("sys._clear_internal_caches", sys_clear_internal_caches), error);
+  module_set_attr(sys, "_clear_type_cache", runtime.make_native_function("sys._clear_type_cache", sys_clear_type_cache), error);
+  module_set_attr(sys, "get_coroutine_origin_tracking_depth", runtime.make_native_function("sys.get_coroutine_origin_tracking_depth", sys_get_coroutine_origin_tracking_depth), error);
+  module_set_attr(sys, "set_coroutine_origin_tracking_depth", runtime.make_native_function("sys.set_coroutine_origin_tracking_depth", sys_set_coroutine_origin_tracking_depth), error);
   module_set_attr(sys, "_xlang3_debug_set_hook", runtime.make_native_function("sys._xlang3_debug_set_hook", sys_xlang3_debug_set_hook), error);
   module_set_attr(sys, "_xlang3_debug_add_breakpoint", runtime.make_native_function("sys._xlang3_debug_add_breakpoint", sys_xlang3_debug_add_breakpoint), error);
   module_set_attr(sys, "_xlang3_debug_clear_breakpoints", runtime.make_native_function("sys._xlang3_debug_clear_breakpoints", sys_xlang3_debug_clear_breakpoints), error);
