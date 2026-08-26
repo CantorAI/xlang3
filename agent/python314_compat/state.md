@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.flags Python 3.14 named-only metadata and sequence-field split
+sys.getsizeof __sizeof__ protocol/default handling
 ```
 
 Current next loop:

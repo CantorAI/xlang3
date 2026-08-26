@@ -545,6 +545,14 @@ sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
+class SysSizeProbe:
+    def __sizeof__(self):
+        return 123
+
+class SysSizeDefaultProbe:
+    __sizeof__ = 42
+
+print(sys.getsizeof(SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), 99))
 sys_intern_prefix = "xlang"
 sys_intern_dynamic = sys_intern_prefix + "3"
 sys_intern_canonical = sys.intern(sys_intern_dynamic)

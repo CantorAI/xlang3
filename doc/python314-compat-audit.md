@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.flags` Python 3.14 metadata batch.
+Last updated after the native `sys.getsizeof` protocol batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys.getsizeof`: the function now honors a callable
+  `__sizeof__()` protocol result for Python objects and returns the supplied
+  default when an unusable non-callable `__sizeof__` attribute is present,
+  while preserving the existing XLang3 shallow-size fallback for objects
+  without the protocol.
 - Expanded native `sys.flags`: the structseq-like object now exposes the
   CPython 3.14 named-only `gil`, `thread_inherit_context`, and
   `context_aware_warnings` fields while preserving the 18-field sequence view
@@ -551,7 +556,8 @@ Native or runtime-backed foundation:
   version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
   `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`,
   `stdlib_module_names`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
-  with runtime canonicalization plus `_is_interned`, `getsizeof`, `getrefcount`,
+  with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
+  protocol/default handling, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,

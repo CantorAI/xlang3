@@ -882,6 +882,30 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  Value sizeof_method;
+  std::string attr_error;
+  if (object_get_attr(args[0], "__sizeof__", sizeof_method, attr_error)) {
+    if (!is_callable_value(sizeof_method)) {
+      if (argc == 2) {
+        value_assign_fast(out, args[1]);
+        return true;
+      }
+      error = "__sizeof__ must be callable";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    Value size;
+    if (!runtime_call_callable(runtime, sizeof_method, nullptr, 0, size, error)) {
+      return false;
+    }
+    if (size.tag != ValueTag::Int64) {
+      error = "__sizeof__() should return int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    value_assign_fast(out, size);
+    return true;
+  }
   value_set_int64(out, shallow_sizeof(args[0]));
   return true;
 }

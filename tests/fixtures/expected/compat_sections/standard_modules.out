@@ -108,6 +108,7 @@ GetPassWarning True True
 True True 127
 utf-8 utf-8 surrogatepass True
 True True True True True
+123 99
 True True True
 sys-is-interned-type True
 True True True
