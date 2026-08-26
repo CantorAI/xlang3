@@ -66,28 +66,34 @@ def default_codex_command(config: dict) -> str:
 
 def resolve_codex_executable(config: dict | None = None) -> str:
     if config:
-        configured = config.get("codex", {}).get("exe", "").strip()
-        if configured:
-            path = Path(configured)
+        codex_config = config.get("codex", {})
+        configured_exe = codex_config.get("exe", "").strip()
+        if configured_exe:
+            path = Path(configured_exe)
             if not path.is_absolute():
                 path = ROOT / path
             if not path.exists():
                 raise SystemExit(f"Configured Codex executable does not exist: {path}")
             return str(path)
 
+        configured_bin = codex_config.get("bin_dir", "").strip()
+        if configured_bin:
+            path = Path(configured_bin)
+            if not path.is_absolute():
+                path = ROOT / path
+            candidate = newest_codex_executable(path)
+            if candidate:
+                return str(candidate)
+            raise SystemExit(f"Configured Codex bin directory has no codex.exe: {path}")
+
     explicit = os.environ.get("XLANG3_CODEX_EXE", "").strip()
     if explicit:
         return explicit
 
     local_bin = Path.home() / "AppData" / "Local" / "OpenAI" / "Codex" / "bin"
-    if local_bin.exists():
-        candidates = sorted(
-            local_bin.glob("*\\codex.exe"),
-            key=lambda path: path.stat().st_mtime,
-            reverse=True,
-        )
-        for candidate in candidates:
-            return str(candidate)
+    candidate = newest_codex_executable(local_bin)
+    if candidate:
+        return str(candidate)
 
     found = shutil.which("codex")
     if found:
@@ -96,6 +102,17 @@ def resolve_codex_executable(config: dict | None = None) -> str:
     raise SystemExit(
         "Codex CLI was not found. Install/open Codex Desktop, or set XLANG3_CODEX_EXE."
     )
+
+
+def newest_codex_executable(folder: Path) -> Path | None:
+    if not folder.exists():
+        return None
+    candidates = sorted(
+        folder.glob("*\\codex.exe"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
 
 
 def expand_command_template(config: dict, command: str) -> str:
