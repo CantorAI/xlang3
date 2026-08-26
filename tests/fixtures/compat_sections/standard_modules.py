@@ -409,6 +409,12 @@ print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() 
 epoch_utc = time.gmtime(0)
 print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_mon, epoch_utc.tm_mday, time.strftime("%Y", epoch_utc))
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))
+# time structseq behavior and parsing.
+print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
+constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
+parsed_time = time.strptime("2026-08-26", "%Y-%m-%d")
+print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
+print(isinstance(time.timezone, int), isinstance(time.altzone, int), isinstance(time.daylight, int))
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("user") in sysconfig.get_scheme_names(), sysconfig.is_python_build())
 # sysconfig preferred-scheme and expansion helpers.

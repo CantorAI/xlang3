@@ -23,6 +23,7 @@ limitations under the License.
 #include <iomanip>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 namespace xlang3 {
 
@@ -229,6 +230,44 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
   return true;
 }
 
+void set_struct_time_attrs(Value& instance, const std::vector<Value>& items) {
+  static const char* names[] = {
+      "tm_year",
+      "tm_mon",
+      "tm_mday",
+      "tm_hour",
+      "tm_min",
+      "tm_sec",
+      "tm_wday",
+      "tm_yday",
+      "tm_isdst",
+  };
+  std::string ignored;
+  for (size_t i = 0; i < 9 && i < items.size(); ++i) {
+    object_set_attr(instance, names[i], items[i], ignored);
+  }
+  object_set_attr(instance, "n_sequence_fields", Value::int64(9), ignored);
+  object_set_attr(instance, "n_fields", Value::int64(9), ignored);
+  object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
+  object_set_attr(instance, "_tuple", Value::tuple(items), ignored);
+}
+
+bool time_struct_time_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "time.struct_time() expected one sequence";
+    return false;
+  }
+  std::tm tm{};
+  if (!tm_from_sequence_like(args[1], tm, error)) {
+    return false;
+  }
+  auto items = tm_tuple_items(tm);
+  Value& self = const_cast<Value&>(args[0]);
+  set_struct_time_attrs(self, items);
+  value_set_none(out);
+  return true;
+}
+
 bool time_time(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "time.time", error)) {
     return false;
@@ -405,6 +444,33 @@ bool time_strftime(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool time_strptime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "time.strptime() expected string and optional format";
+    return false;
+  }
+  std::string text;
+  if (!get_string_arg(args[0], "time.strptime string", text, error)) {
+    return false;
+  }
+  std::string format = "%a %b %d %H:%M:%S %Y";
+  if (argc == 2 && !get_string_arg(args[1], "time.strptime format", format, error)) {
+    return false;
+  }
+  std::tm tm{};
+  tm.tm_isdst = -1;
+  std::istringstream stream(text);
+  stream >> std::get_time(&tm, format.c_str());
+  if (stream.fail()) {
+    error = "time data does not match format";
+    return false;
+  }
+  std::mktime(&tm);
+  auto* state = static_cast<TimeModuleState*>(user_data);
+  out = make_struct_time(state->struct_time_class, tm);
+  return true;
+}
+
 bool time_asctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
     error = "time.asctime() expected optional time tuple";
@@ -433,12 +499,35 @@ bool time_ctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   return true;
 }
 
+std::tm local_tm_for_epoch(std::time_t timestamp) {
+  return tm_from_time_t(timestamp, false);
+}
+
+int64_t local_timezone_offset_seconds() {
+  const std::time_t epoch = 0;
+  std::tm local = local_tm_for_epoch(epoch);
+  const std::time_t local_as_timestamp = std::mktime(&local);
+  if (local_as_timestamp == static_cast<std::time_t>(-1)) {
+    return 0;
+  }
+  return static_cast<int64_t>(local_as_timestamp - epoch);
+}
+
 } // namespace
 
 void register_time_module(Runtime& runtime) {
   auto* state = new TimeModuleState();
-  state->struct_time_class = Value::class_object("struct_time", {{"__module__", Value::string("time")}});
+  state->struct_time_class = Value::class_object(
+      "struct_time",
+      {
+          {"__module__", Value::string("time")},
+          {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init)},
+      });
   runtime.register_native_package_cleanup(state, time_module_state_cleanup);
+
+  const int64_t timezone = local_timezone_offset_seconds();
+  const std::tm epoch_local = local_tm_for_epoch(0);
+  const bool daylight = epoch_local.tm_isdst > 0;
 
   NativeModuleBuilder builder(runtime, "time");
   builder.function("time", time_time)
@@ -457,12 +546,13 @@ void register_time_module(Runtime& runtime) {
       .value("gmtime", runtime.make_native_function("time.gmtime", time_gmtime, state))
       .function("mktime", time_mktime)
       .function("strftime", time_strftime)
+      .value("strptime", runtime.make_native_function("time.strptime", time_strptime, state))
       .function("asctime", time_asctime)
       .function("ctime", time_ctime)
       .value("struct_time", state->struct_time_class)
-      .value("timezone", Value::int64(0))
-      .value("altzone", Value::int64(0))
-      .value("daylight", Value::int64(0))
+      .value("timezone", Value::int64(timezone))
+      .value("altzone", Value::int64(timezone))
+      .value("daylight", Value::int64(daylight ? 1 : 0))
       .value("tzname", Value::tuple({Value::string("UTC"), Value::string("UTC")}));
   runtime.register_module("time", builder.finish());
 }

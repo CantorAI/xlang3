@@ -86,6 +86,9 @@ True False True True
 True True True True
 True 1970 1 1 1970
 True True True
+1970 9 9 [1970, 1, 1]
+2026 8 2026 8 26
+True True True
 True True 3.14
 True True False
 True True True
