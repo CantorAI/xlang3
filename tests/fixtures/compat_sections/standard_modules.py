@@ -177,6 +177,18 @@ def abstract_fn():
 
 print(abstract_fn.__isabstractmethod__)
 
+# numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
+import numbers
+
+print(issubclass(numbers.Integral, numbers.Rational), issubclass(numbers.Real, numbers.Complex), issubclass(numbers.Complex, numbers.Number))
+print(isinstance(1, numbers.Integral), isinstance(True, numbers.Integral), isinstance(1, numbers.Number))
+print(isinstance(1.5, numbers.Real), isinstance(1.5, numbers.Rational), isinstance(1.5, numbers.Number))
+
+class MyIntegral:
+    pass
+
+print(numbers.Integral.register(MyIntegral) is MyIntegral, issubclass(MyIntegral, numbers.Integral), isinstance(MyIntegral(), numbers.Number))
+
 # typing: aliases, decorators, TypeVar, NewType, Generic, and Protocol foundations.
 import typing
 

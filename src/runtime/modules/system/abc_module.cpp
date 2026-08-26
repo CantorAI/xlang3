@@ -140,7 +140,7 @@ bool abc_instancecheck(Runtime& runtime, const Value* args, uint32_t argc, Value
   Value instance_class;
   if (auto* instance = value_as_instance(args[1])) {
     value_assign_fast(instance_class, instance->klass);
-  } else {
+  } else if (!runtime_type_of_value(runtime, args[1], instance_class)) {
     instance_class = Value::invalid();
   }
   value_set_bool(out, instance_class.tag != ValueTag::Invalid && abc_subclass_matches(args[0], instance_class));

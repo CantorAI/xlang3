@@ -438,7 +438,10 @@ High-level modules currently backed by native/runtime code:
 - [~] `locale`: category constants, set/get locale, encoding helpers, normalize, and localeconv shape; real platform locale semantics pending
 - [~] `marshal`: XLang3-native `dumps`/`loads` and file `dump`/`load` round-trip foundations for scalars,
   strings/bytes, and common containers; this is intentionally not CPython `.pyc`/code-object marshal exact yet
-- [~] `numbers`: numeric ABC facade; real ABC registration/virtual subclass integration pending
+- [~] `numbers`: numeric ABC hierarchy is backed by `ABCMeta`, builtin numeric scalar types are registered
+  across the CPython-style `Number`/`Complex`/`Real`/`Rational`/`Integral` lattice, and user virtual
+  subclass registration works with `isinstance`/`issubclass`; exact abstract method surface and complex
+  numeric protocol edge cases pending
 - [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
 - [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes,
