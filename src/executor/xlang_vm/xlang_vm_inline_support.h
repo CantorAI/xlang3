@@ -451,6 +451,7 @@ enum class XlangVMBuiltinConstructor : uint8_t {
   List,
   Tuple,
   Set,
+  FrozenSet,
   Dict,
   Bytes,
   ByteArray,
@@ -585,7 +586,7 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(Tuple
       xlang_vm_add_abstract_name(abstracts, string_object_to_string(*key));
     }
   }
-  return Value::set(std::move(abstracts));
+  return Value::frozenset(std::move(abstracts));
 }
 
 XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(const std::string& name) {
@@ -600,6 +601,7 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
       {XlangVMNames::builtin_list, XlangVMBuiltinConstructor::List},
       {XlangVMNames::builtin_tuple, XlangVMBuiltinConstructor::Tuple},
       {XlangVMNames::builtin_set, XlangVMBuiltinConstructor::Set},
+      {XlangVMNames::builtin_frozenset, XlangVMBuiltinConstructor::FrozenSet},
       {XlangVMNames::builtin_dict, XlangVMBuiltinConstructor::Dict},
       {XlangVMNames::builtin_bytes, XlangVMBuiltinConstructor::Bytes},
       {XlangVMNames::builtin_bytearray, XlangVMBuiltinConstructor::ByteArray},
@@ -1218,7 +1220,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     return true;
   }
 
-  if (constructor == XlangVMBuiltinConstructor::List || constructor == XlangVMBuiltinConstructor::Tuple || constructor == XlangVMBuiltinConstructor::Set) {
+  if (constructor == XlangVMBuiltinConstructor::List || constructor == XlangVMBuiltinConstructor::Tuple ||
+      constructor == XlangVMBuiltinConstructor::Set || constructor == XlangVMBuiltinConstructor::FrozenSet) {
     if (!reject_constructor_keywords()) return false;
     if (constructor_args.size() > 1) {
       error = klass.name + "() expected at most 1 argument";
@@ -1234,6 +1237,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       out = Value::list(std::move(items));
     } else if (constructor == XlangVMBuiltinConstructor::Tuple) {
       out = Value::tuple(std::move(items));
+    } else if (constructor == XlangVMBuiltinConstructor::FrozenSet) {
+      out = Value::frozenset(std::move(items));
     } else {
       out = Value::set(std::move(items));
     }

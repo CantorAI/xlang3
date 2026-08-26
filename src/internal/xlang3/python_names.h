@@ -31,6 +31,7 @@ struct PythonNames {
   static constexpr const char* builtin_list = "list";
   static constexpr const char* builtin_tuple = "tuple";
   static constexpr const char* builtin_set = "set";
+  static constexpr const char* builtin_frozenset = "frozenset";
   static constexpr const char* builtin_dict = "dict";
   static constexpr const char* builtin_bytes = "bytes";
   static constexpr const char* builtin_bytearray = "bytearray";

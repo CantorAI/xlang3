@@ -444,7 +444,14 @@ bool set_issuperset_method(Runtime& runtime, const Value* args, uint32_t argc, V
 } // namespace
 
 bool set_get_method(const Value& object, const std::string& name, Value& out) {
-  if (value_as_set(object) == nullptr) {
+  auto* set = value_as_set(object);
+  if (set == nullptr) {
+    return false;
+  }
+  if (set->frozen &&
+      (name == "add" || name == "clear" || name == "difference_update" || name == "discard" ||
+       name == "intersection_update" || name == "pop" || name == "remove" ||
+       name == "symmetric_difference_update" || name == "update")) {
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {

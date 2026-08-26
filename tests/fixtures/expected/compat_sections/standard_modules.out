@@ -65,11 +65,12 @@ True
 classmethod True True AbstractDescriptorProbe
 staticmethod True True static
 property True True prop
-True 1
+True 1 frozenset False
+True True
 abc-abstract-instantiation True True
 True 0 concrete
-True 0
-True True 1
+True 0 frozenset
+True True 1 True
 abc-updated-abstract True True
 True 0 restored
 True False 42

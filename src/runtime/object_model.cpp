@@ -516,7 +516,7 @@ void update_abc_abstract_methods_for_class(ClassObject& klass) {
       object_model_add_abstract_name(abstracts, attr.first);
     }
   }
-  klass.attrs["__abstractmethods__"] = Value::set(std::move(abstracts));
+  klass.attrs["__abstractmethods__"] = Value::frozenset(std::move(abstracts));
 }
 
 void add_unique_slot_name(std::vector<std::string>& slots, const std::string& name) {

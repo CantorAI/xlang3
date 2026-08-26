@@ -160,7 +160,7 @@ Value abc_abstract_methods_for_type_new(TupleObject* bases, DictObject* namespac
       add_abstract_name(abstracts, string_object_to_string(*key));
     }
   }
-  return Value::set(std::move(abstracts));
+  return Value::frozenset(std::move(abstracts));
 }
 
 const char* builtin_type_name_for_kind(ObjectKind kind) {
@@ -703,7 +703,7 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
         return true;
       }
       break;
-    case ValueTag::Object:
+    case ValueTag::Object: {
       if (value.as.obj == nullptr) {
         break;
       }
@@ -717,11 +717,18 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
           return true;
         }
       }
-      if (const auto* type = find_builtin_type(runtime, builtin_type_name_for_kind(value.as.obj->kind))) {
+      const char* type_name = builtin_type_name_for_kind(value.as.obj->kind);
+      if (value.as.obj->kind == ObjectKind::Set) {
+        if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
+          type_name = "frozenset";
+        }
+      }
+      if (const auto* type = find_builtin_type(runtime, type_name)) {
         value_assign_fast(out, *type);
         return true;
       }
       break;
+    }
     case ValueTag::Invalid:
       break;
   }
@@ -781,6 +788,7 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "dict_values", object_type);
   register_builtin_type(runtime, "dict_items", object_type);
   register_builtin_type(runtime, "set", object_type);
+  register_builtin_type(runtime, "frozenset", object_type);
   register_builtin_type(runtime, "range", object_type);
   register_builtin_type(runtime, "iterator", object_type);
   register_builtin_type(runtime, "enumerate", object_type);

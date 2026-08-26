@@ -199,6 +199,7 @@ struct Value {
   static Value dict(std::vector<std::pair<Value, Value>> entries);
   static Value dict_reserved(size_t capacity);
   static Value set(std::vector<Value> items);
+  static Value frozenset(std::vector<Value> items);
   static Value range(int64_t start, int64_t stop, int64_t step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
   static Value sequence_iterator(Value source, uint64_t index);

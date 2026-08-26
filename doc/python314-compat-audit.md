@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` async-generator hook batch.
+Last updated after the native `abc.__abstractmethods__` frozenset batch.
 
 Current checklist count:
 
@@ -69,6 +69,12 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `abc`/`_abc`: `__abstractmethods__` is now represented by
+  a runtime `frozenset` object for ABCMeta-created classes, direct
+  `_abc_init()` classes, and `abc.update_abstractmethods()` recomputation.
+  The `frozenset` builtin now remains a class for `isinstance(...,
+  frozenset)` probes while using a VM-backed constructor that returns immutable
+  set storage.
 - Expanded native `sys` async-generator hook configuration: added
   stateful `get_asyncgen_hooks()` / `set_asyncgen_hooks()` with positional
   and keyword updates, callable-or-`None` validation, and a structseq-like
@@ -628,8 +634,7 @@ Native or runtime-backed foundation:
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,
   positive/negative subclass caches,
   and negative-cache invalidation after virtual subclass registration; exact CPython
-  weakref-backed cache objects, `frozenset` identity for `__abstractmethods__`, and invalidation
-  internals pending
+  weakref-backed cache objects and invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

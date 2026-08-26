@@ -143,7 +143,7 @@ Value abc_abstract_methods_for_class(ClassObject& klass) {
       add_abstract_name(abstracts, attr.first);
     }
   }
-  return Value::set(std::move(abstracts));
+  return Value::frozenset(std::move(abstracts));
 }
 
 int64_t abc_negative_cache_version(const Value& abc_class) {

@@ -356,7 +356,8 @@ class AbstractEnforcedABC(metaclass=abc.ABCMeta):
     def run(self):
         return "abstract"
 
-print("run" in AbstractEnforcedABC.__abstractmethods__, len(AbstractEnforcedABC.__abstractmethods__))
+print("run" in AbstractEnforcedABC.__abstractmethods__, len(AbstractEnforcedABC.__abstractmethods__), type(AbstractEnforcedABC.__abstractmethods__).__name__, hasattr(AbstractEnforcedABC.__abstractmethods__, "add"))
+print(isinstance(AbstractEnforcedABC.__abstractmethods__, frozenset), hash(AbstractEnforcedABC.__abstractmethods__) == hash(frozenset({"run"})))
 try:
     AbstractEnforcedABC()
 except TypeError as err:
@@ -370,9 +371,9 @@ class ConcreteABC(AbstractEnforcedABC):
         return "concrete"
 
 print("run" in StillAbstractABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__), ConcreteABC().run())
-print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, len(ConcreteABC.__abstractmethods__))
+print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, len(ConcreteABC.__abstractmethods__), type(ConcreteABC.__abstractmethods__).__name__)
 ConcreteABC.run = abc.abstractmethod(ConcreteABC.run)
-print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, "run" in ConcreteABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__))
+print(abc.update_abstractmethods(ConcreteABC) is ConcreteABC, "run" in ConcreteABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__), isinstance(ConcreteABC.__abstractmethods__, frozenset))
 try:
     ConcreteABC()
 except TypeError as err:

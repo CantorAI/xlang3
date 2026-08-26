@@ -24,6 +24,7 @@ namespace xlang3 {
 
 struct SetObject {
   Object header;
+  bool frozen = false;
   std::vector<Value> items;
 };
 

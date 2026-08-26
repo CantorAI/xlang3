@@ -91,10 +91,13 @@ Value make_set_iterator(Value source, uint64_t index) {
 
 } // namespace
 
-Value Value::set(std::vector<Value> items) {
+namespace {
+
+Value make_set_value(std::vector<Value> items, bool frozen) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_set_object();
+  obj->frozen = frozen;
   obj->items.reserve(items.size());
   for (const auto& item : items) {
     std::string error;
@@ -102,6 +105,16 @@ Value Value::set(std::vector<Value> items) {
   }
   v.as.obj = &obj->header;
   return v;
+}
+
+} // namespace
+
+Value Value::set(std::vector<Value> items) {
+  return make_set_value(std::move(items), false);
+}
+
+Value Value::frozenset(std::vector<Value> items) {
+  return make_set_value(std::move(items), true);
 }
 
 void set_release_object(Object* object) {
@@ -119,6 +132,17 @@ void set_release_object(Object* object) {
 
 std::string set_to_string(const Value& value) {
   if (auto* set = value_as_set(value)) {
+    if (set->frozen) {
+      std::string text = "frozenset({";
+      for (size_t i = 0; i < set->items.size(); ++i) {
+        if (i != 0) {
+          text += ", ";
+        }
+        text += value_to_string(set->items[i]);
+      }
+      text += "})";
+      return text;
+    }
     std::string text = "{";
     for (size_t i = 0; i < set->items.size(); ++i) {
       if (i != 0) {
@@ -190,6 +214,10 @@ bool set_add(Value& set, const Value& item, std::string& error) {
   auto* obj = value_as_set(set);
   if (obj == nullptr) {
     error = "set add target is not a set";
+    return false;
+  }
+  if (obj->frozen) {
+    error = "frozenset is immutable";
     return false;
   }
   return append_unique(obj->items, item, error);

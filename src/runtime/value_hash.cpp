@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/value_hash.h"
 
+#include "xlang3/set_object.h"
+
 #include <functional>
 
 namespace xlang3 {
@@ -180,6 +182,20 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
           case ObjectKind::List:
           case ObjectKind::Dict:
           case ObjectKind::Set:
+            if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
+              size_t hash = 0x2f4f0f1f0e0d0c0bull;
+              for (const auto& item : set->items) {
+                size_t item_hash = 0;
+                if (!value_hash_key(item, item_hash, error)) {
+                  return false;
+                }
+                hash ^= item_hash + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+              }
+              out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+              return true;
+            }
+            error = "object is not hashable";
+            return false;
           case ObjectKind::DictKeysView:
           case ObjectKind::DictValuesView:
           case ObjectKind::DictItemsView:
