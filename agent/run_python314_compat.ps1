@@ -27,6 +27,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+if ($CodexCommand.Trim() -eq "...") {
+    throw "Invalid -CodexCommand '...'. Pass a real Codex backend command, or use -DryRun/-Status."
+}
+
 $root = Split-Path -Parent $PSScriptRoot
 $python = "C:\Python\Python314\python.exe"
 if (-not (Test-Path -LiteralPath $python)) {

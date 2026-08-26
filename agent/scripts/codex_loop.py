@@ -62,6 +62,17 @@ def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
 
+def validate_codex_command(command: str) -> str:
+    stripped = command.strip()
+    placeholders = {"...", "<codex-command>", "TODO", "todo"}
+    if stripped in placeholders:
+        raise SystemExit(
+            f"Invalid Codex backend command: {stripped!r}. "
+            "Pass a real command or use --dry-run/--status."
+        )
+    return stripped
+
+
 def run(command: list[str] | str, *, shell: bool = False) -> None:
     print()
     print("==", command if isinstance(command, str) else " ".join(command))
@@ -427,7 +438,7 @@ def main() -> int:
     config = load_config()
     goal = args.goal or config.get("default_goal", "")
     xlang3 = args.xlang3 or default_xlang3(config)
-    codex_command = args.codex_command or default_codex_command(config)
+    codex_command = validate_codex_command(args.codex_command or default_codex_command(config))
     cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
 
     if args.reset_loop_state:
