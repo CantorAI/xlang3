@@ -475,6 +475,99 @@ bool file_closed_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool file_readable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.readable", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.readable", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_set_bool(out, file->readable);
+  return true;
+}
+
+bool file_writable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.writable", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.writable", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_set_bool(out, file->writable);
+  return true;
+}
+
+bool file_seekable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.seekable", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.seekable", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_set_bool(out, true);
+  return true;
+}
+
+bool file_isatty_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.isatty", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.isatty", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+bool file_fileno_method(Runtime& runtime, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.fileno", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.fileno", error);
+  if (file == nullptr) {
+    return false;
+  }
+  error = "fileno";
+  runtime.raise_class_error("OSError", error);
+  return false;
+}
+
+bool file_truncate_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "file.truncate() expected optional size";
+    return false;
+  }
+  auto* file = require_file(args[0], "file.truncate", error);
+  if (file == nullptr) {
+    return false;
+  }
+  if (!file->writable) {
+    error = "file is not writable";
+    return false;
+  }
+  size_t size = file->cursor;
+  if (argc == 2) {
+    if (args[1].tag == ValueTag::None) {
+      size = file->cursor;
+    } else if (args[1].tag == ValueTag::Int64 && args[1].as.i64 >= 0) {
+      size = static_cast<size_t>(args[1].as.i64);
+    } else {
+      error = "file.truncate size must be a non-negative int or None";
+      return false;
+    }
+  }
+  file->buffer.resize(size, '\0');
+  if (file->cursor > size) {
+    file->cursor = size;
+  }
+  value_set_int64(out, static_cast<int64_t>(size));
+  return true;
+}
+
 bool file_enter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.__enter__", error)) {
     return false;
@@ -534,20 +627,50 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag != ValueTag::Object || object.as.obj == nullptr || object.as.obj->kind != ObjectKind::File) {
     return false;
   }
+  auto* file = reinterpret_cast<FileObject*>(object.as.obj);
+  if (name == "name") {
+    out = Value::string(file->path);
+    return true;
+  }
+  if (name == "mode") {
+    out = Value::string(file->mode);
+    return true;
+  }
+  if (name == "closed") {
+    value_set_bool(out, file->closed);
+    return true;
+  }
+  if (name == "encoding") {
+    out = file->binary ? Value::none() : Value::string(file->encoding);
+    return true;
+  }
+  if (name == "errors") {
+    out = file->binary ? Value::none() : Value::string(file->errors);
+    return true;
+  }
+  if (name == "newlines") {
+    out = Value::none();
+    return true;
+  }
   static constexpr BuiltinMethodSpec methods[] = {
       {"__enter__", "file.__enter__", file_enter_method},
       {"__exit__", "file.__exit__", file_exit_method},
       {"__iter__", "file.__iter__", file_iter_method},
       {"__next__", "file.__next__", file_next_method},
       {"close", "file.close", file_close_method},
-      {"closed", "file.closed", file_closed_method},
+      {"fileno", "file.fileno", file_fileno_method},
       {"flush", "file.flush", file_flush_method},
+      {"isatty", "file.isatty", file_isatty_method},
       {"read", "file.read", file_read_method},
       {"readline", "file.readline", file_readline_method},
       {"readlines", "file.readlines", file_readlines_method},
+      {"readable", "file.readable", file_readable_method},
       {"seek", "file.seek", file_seek_method},
+      {"seekable", "file.seekable", file_seekable_method},
       {"tell", "file.tell", file_tell_method},
+      {"truncate", "file.truncate", file_truncate_method},
       {"write", "file.write", file_write_method},
+      {"writable", "file.writable", file_writable_method},
       {"writelines", "file.writelines", file_writelines_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);

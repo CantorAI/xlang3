@@ -1,6 +1,10 @@
+True w utf-8 strict None
+False True True False
 4
 13
 False
+True
+True False True
 one
 
 4
@@ -13,6 +17,10 @@ one
 two
 three
 four
+3 3
+one
+fileno-error
+None None
 b'one'
 2
 b'xy'

@@ -7,12 +7,17 @@ if path.exists():
     os.remove(path.as_posix())
 
 with open(path, "w", encoding="utf-8") as f:
+    print(f.name.endswith("xlang3_file_io_compat.tmp"), f.mode, f.encoding, f.errors, f.newlines)
+    print(f.readable(), f.writable(), f.seekable(), f.isatty())
     print(f.write("one\n"))
     f.writelines(["two\n", "three"])
     print(f.tell())
-    print(f.closed())
+    print(f.closed)
+
+print(f.closed)
 
 with open(path, "r") as f:
+    print(f.readable(), f.writable(), f.seekable())
     print(f.readline())
     print(f.tell())
     f.seek(0)
@@ -25,7 +30,21 @@ with open(path, "a+") as f:
     f.seek(0)
     print(f.read())
 
+with open(path, "r+") as f:
+    f.seek(3)
+    print(f.truncate(), f.tell())
+
+with open(path, "r") as f:
+    print(f.read())
+
+try:
+    with open(path, "r") as f:
+        f.fileno()
+except OSError:
+    print("fileno-error")
+
 with open(path, "rb") as f:
+    print(f.encoding, f.errors)
     data = f.read(3)
     print(data)
 

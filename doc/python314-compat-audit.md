@@ -364,7 +364,7 @@ Section-level fixture coverage:
 - [x] `bin`
 - [x] `oct`
 - [x] `hex`
-- [~] `open`: VFS-backed text/binary basics, CPython-style positional/keyword forms, context-manager methods, file iteration, encoding/error keyword basics, and universal/newline translation foundation; exact buffering/opener/error-class semantics pending
+- [~] `open`: VFS-backed text/binary basics, CPython-style positional/keyword forms, context-manager methods, file iteration, file attribute probes, encoding/error keyword basics, and universal/newline translation foundation; exact buffering/opener/error-class semantics pending
 - [x] `getattr`
 - [x] `setattr`
 - [x] `hasattr`
@@ -506,7 +506,7 @@ High-level modules currently backed by native/runtime code:
 ### Filesystem And IO
 
 - [x] runtime VFS abstraction
-- [~] file object: read/write/close/context manager plus read(size), readline(s), writelines, seek/tell, closed, iterator protocol, newline translation basics, and text encoding/error basics; exact buffering/error-class semantics pending
+- [~] file object: read/write/close/context manager plus read(size), readline(s), writelines, seek/tell/truncate, `name`/`mode`/`closed`/`encoding`/`errors`/`newlines` attributes, readable/writable/seekable/isatty/fileno probes, iterator protocol, newline translation basics, and text encoding/error basics; exact buffering/error-class semantics pending
 - [x] host filesystem backend
 - [x] Pico flash file store foundation
 - [~] CPython-compatible `open`: VFS path/path-like input, `r/w/a/x/+` mode parsing, text/binary positional and keyword handling, and file iterator behavior; full error classes/opener semantics pending
