@@ -609,6 +609,26 @@ multi_thread_frames = sys._current_frames()
 print(len(multi_thread_frames) >= 2, threading.get_ident() in multi_thread_frames, sys_frame_thread_ident[0] in multi_thread_frames, multi_thread_frames[sys_frame_thread_ident[0]].f_code.co_name == "sys_frame_thread_worker")
 sys_frame_thread_release.set()
 sys_frame_thread.join()
+sys_exception_thread_ready = threading.Event()
+sys_exception_thread_release = threading.Event()
+sys_exception_thread_ident = []
+sys_exception_thread_error = []
+def sys_exception_thread_worker():
+    sys_exception_thread_ident.append(threading.get_ident())
+    try:
+        raise ValueError("thread-active")
+    except ValueError as err:
+        sys_exception_thread_error.append(err)
+        sys_exception_thread_ready.set()
+        sys_exception_thread_release.wait()
+
+sys_exception_thread = threading.Thread(target=sys_exception_thread_worker)
+sys_exception_thread.start()
+sys_exception_thread_ready.wait()
+multi_thread_exceptions = sys._current_exceptions()
+print(len(multi_thread_exceptions) >= 2, threading.get_ident() in multi_thread_exceptions, sys_exception_thread_ident[0] in multi_thread_exceptions, multi_thread_exceptions[sys_exception_thread_ident[0]] is sys_exception_thread_error[0])
+sys_exception_thread_release.set()
+sys_exception_thread.join()
 print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys.get_coroutine_origin_tracking_depth())
 sys.set_coroutine_origin_tracking_depth(2)
 print(sys.get_coroutine_origin_tracking_depth())

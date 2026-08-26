@@ -19,6 +19,9 @@ limitations under the License.
 
 namespace xlang3 {
 
+Value& runtime_current_exception_state(const Runtime& runtime);
+void runtime_publish_current_exception_state(const Runtime& runtime);
+
 bool is_exception_class_name(const std::string& name) {
   return name == "BaseException" ||
          name == "Exception" ||
@@ -97,11 +100,17 @@ bool Runtime::take_pending_exception(Value& out) {
 }
 
 void Runtime::set_active_exception(Value exception) {
-  active_exception_ = std::move(exception);
+  runtime_current_exception_state(*this) = std::move(exception);
+  runtime_publish_current_exception_state(*this);
 }
 
 void Runtime::clear_active_exception() {
-  value_set_invalid(active_exception_);
+  value_set_invalid(runtime_current_exception_state(*this));
+  runtime_publish_current_exception_state(*this);
+}
+
+const Value& Runtime::active_exception() const {
+  return runtime_current_exception_state(*this);
 }
 
 } // namespace xlang3

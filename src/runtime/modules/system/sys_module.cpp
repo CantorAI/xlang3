@@ -700,8 +700,7 @@ bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value
     error = "sys._current_exceptions expected 0 arguments";
     return false;
   }
-  const Value& exception = runtime.active_exception();
-  out = Value::dict({{Value::int64(xlang_thread_current_ident()), exception.tag == ValueTag::Invalid ? Value::none() : exception}});
+  out = runtime.current_exception_snapshots(xlang_thread_active_idents());
   return true;
 }
 

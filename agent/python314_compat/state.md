@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._current_frames live multi-thread frame snapshots
+sys._current_exceptions live multi-thread exception snapshots
 ```
 
 Current next loop:

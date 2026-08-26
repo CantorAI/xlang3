@@ -60,9 +60,12 @@ struct RuntimeCurrentFrameState {
 };
 
 thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
+thread_local std::unordered_map<const Runtime*, Value> g_runtime_active_exceptions;
 
 std::mutex g_runtime_frame_registry_mutex;
 std::unordered_map<const Runtime*, std::unordered_map<int64_t, RuntimeCurrentFrameState>> g_runtime_frame_registry;
+std::mutex g_runtime_exception_registry_mutex;
+std::unordered_map<const Runtime*, std::unordered_map<int64_t, Value>> g_runtime_exception_registry;
 
 int64_t runtime_current_thread_ident() {
   return static_cast<int64_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()) & 0x7fffffffffffffffll);
@@ -95,6 +98,20 @@ void clear_runtime_frame_states(const Runtime& runtime) {
 }
 
 } // namespace
+
+Value& runtime_current_exception_state(const Runtime& runtime) {
+  return g_runtime_active_exceptions[&runtime];
+}
+
+void runtime_publish_current_exception_state(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+  g_runtime_exception_registry[&runtime][runtime_current_thread_ident()] = runtime_current_exception_state(runtime);
+}
+
+void runtime_clear_exception_states(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+  g_runtime_exception_registry.erase(&runtime);
+}
 
 namespace {
 
@@ -323,12 +340,14 @@ Runtime::~Runtime() {
   run_exit_functions(ignored);
   value_set_invalid(pending_exception_);
   value_set_invalid(active_exception_);
+  value_set_invalid(runtime_current_exception_state(*this));
   value_set_invalid(current_globals_module_);
   value_set_invalid(trace_function_);
   value_set_invalid(thread_trace_function_);
   value_set_invalid(debug_hook_);
   clear_current_frame();
   clear_runtime_frame_states(*this);
+  runtime_clear_exception_states(*this);
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
       it->second(it->first);
@@ -758,6 +777,31 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
   }
   if (entries.empty()) {
     entries.push_back({Value::int64(runtime_current_thread_ident()), current_frame_snapshot()});
+  }
+  return Value::dict(std::move(entries));
+}
+
+Value Runtime::current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const {
+  std::vector<std::pair<Value, Value>> entries;
+  std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+  auto runtime_it = g_runtime_exception_registry.find(this);
+  entries.reserve(live_thread_ids.size());
+  for (const auto ident : live_thread_ids) {
+    Value exception = Value::none();
+    if (runtime_it != g_runtime_exception_registry.end()) {
+      auto exception_it = runtime_it->second.find(ident);
+      if (exception_it != runtime_it->second.end() && exception_it->second.tag != ValueTag::Invalid) {
+        exception = exception_it->second;
+      }
+    }
+    entries.push_back({Value::int64(ident), std::move(exception)});
+  }
+  if (entries.empty()) {
+    const auto& exception = runtime_current_exception_state(*this);
+    entries.push_back({
+        Value::int64(runtime_current_thread_ident()),
+        exception.tag == ValueTag::Invalid ? Value::none() : exception,
+    });
   }
   return Value::dict(std::move(entries));
 }

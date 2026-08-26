@@ -116,7 +116,7 @@ public:
   bool take_pending_exception(Value& out);
   void set_active_exception(Value exception);
   void clear_active_exception();
-  const Value& active_exception() const { return active_exception_; }
+  const Value& active_exception() const;
   Value make_native_function(
       std::string name,
       NativeFunctionCallback callback,
@@ -173,6 +173,7 @@ public:
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
   Value current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const;
+  Value current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const;
   void set_debug_hook(Value hook);
   const Value& debug_hook() const { return debug_hook_; }
   bool debug_dispatch_active() const { return debug_dispatch_active_; }
