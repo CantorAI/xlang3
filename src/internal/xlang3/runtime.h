@@ -172,6 +172,7 @@ public:
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
+  Value current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const;
   void set_debug_hook(Value hook);
   const Value& debug_hook() const { return debug_hook_; }
   bool debug_dispatch_active() const { return debug_dispatch_active_; }

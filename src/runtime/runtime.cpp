@@ -28,6 +28,8 @@ limitations under the License.
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <mutex>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 
@@ -59,8 +61,37 @@ struct RuntimeCurrentFrameState {
 
 thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
 
+std::mutex g_runtime_frame_registry_mutex;
+std::unordered_map<const Runtime*, std::unordered_map<int64_t, RuntimeCurrentFrameState>> g_runtime_frame_registry;
+
+int64_t runtime_current_thread_ident() {
+  return static_cast<int64_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()) & 0x7fffffffffffffffll);
+}
+
 RuntimeCurrentFrameState& current_frame_state(const Runtime& runtime) {
   return g_runtime_current_frames[&runtime];
+}
+
+void publish_current_frame_state(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  g_runtime_frame_registry[&runtime][runtime_current_thread_ident()] = current_frame_state(runtime);
+}
+
+void clear_current_frame_state(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  auto runtime_it = g_runtime_frame_registry.find(&runtime);
+  if (runtime_it == g_runtime_frame_registry.end()) {
+    return;
+  }
+  runtime_it->second.erase(runtime_current_thread_ident());
+  if (runtime_it->second.empty()) {
+    g_runtime_frame_registry.erase(runtime_it);
+  }
+}
+
+void clear_runtime_frame_states(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  g_runtime_frame_registry.erase(&runtime);
 }
 
 } // namespace
@@ -297,6 +328,7 @@ Runtime::~Runtime() {
   value_set_invalid(thread_trace_function_);
   value_set_invalid(debug_hook_);
   clear_current_frame();
+  clear_runtime_frame_states(*this);
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
       it->second(it->first);
@@ -539,12 +571,14 @@ void Runtime::set_current_frame(
   state.function_id = function_id;
   state.globals_module = globals_module;
   state.instruction_index = instruction_index;
+  publish_current_frame_state(*this);
 }
 
 void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {
   auto& state = current_frame_state(*this);
   state.frame_stack = frames;
   state.frame_stack_count = count;
+  publish_current_frame_state(*this);
 }
 
 void Runtime::clear_current_frame() {
@@ -556,6 +590,7 @@ void Runtime::clear_current_frame() {
   state.frame_stack = nullptr;
   state.frame_stack_count = 0;
   clear_current_frame_locals();
+  clear_current_frame_state(*this);
 }
 
 namespace {
@@ -638,6 +673,7 @@ void Runtime::set_current_frame_locals(const std::vector<std::string>* names, co
   state.local_names = names;
   state.local_values = values;
   state.local_count = count;
+  publish_current_frame_state(*this);
 }
 
 void Runtime::clear_current_frame_locals() {
@@ -645,6 +681,7 @@ void Runtime::clear_current_frame_locals() {
   state.local_names = nullptr;
   state.local_values = nullptr;
   state.local_count = 0;
+  publish_current_frame_state(*this);
 }
 
 Value Runtime::current_locals_snapshot() const {
@@ -670,6 +707,57 @@ Value Runtime::current_locals_snapshot() const {
       continue;
     }
     entries.push_back({Value::string(name), state.local_values[i]});
+  }
+  return Value::dict(std::move(entries));
+}
+
+namespace {
+
+Value frame_snapshot_from_state(const RuntimeCurrentFrameState& state) {
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1);
+  }
+  if (state.module_owner == nullptr || state.globals_module == nullptr ||
+      state.module_owner->get() == nullptr) {
+    return Value::none();
+  }
+  return Value::frame(
+      *state.module_owner,
+      state.function_id,
+      *state.globals_module,
+      state.instruction_index,
+      state.function_id == state.module_owner->get()->entry
+          ? module_attrs_snapshot(*state.globals_module)
+          : locals_snapshot_from_view(RuntimeFrameView{
+                state.module_owner,
+                state.globals_module,
+                state.local_names,
+                state.local_values,
+                nullptr,
+                state.local_count,
+                state.function_id,
+            }));
+}
+
+} // namespace
+
+Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const {
+  std::vector<std::pair<Value, Value>> entries;
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  auto runtime_it = g_runtime_frame_registry.find(this);
+  entries.reserve(live_thread_ids.size());
+  for (const auto ident : live_thread_ids) {
+    Value frame = Value::none();
+    if (runtime_it != g_runtime_frame_registry.end()) {
+      auto frame_it = runtime_it->second.find(ident);
+      if (frame_it != runtime_it->second.end()) {
+        frame = frame_snapshot_from_state(frame_it->second);
+      }
+    }
+    entries.push_back({Value::int64(ident), std::move(frame)});
+  }
+  if (entries.empty()) {
+    entries.push_back({Value::int64(runtime_current_thread_ident()), current_frame_snapshot()});
   }
   return Value::dict(std::move(entries));
 }

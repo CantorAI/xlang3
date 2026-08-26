@@ -811,6 +811,27 @@ size_t xlang_thread_active_count() {
   return count;
 }
 
+std::vector<int64_t> xlang_thread_active_idents() {
+  std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
+  std::vector<int64_t> idents;
+  idents.push_back(xlang_thread_current_ident());
+  auto it = g_thread_registry.begin();
+  while (it != g_thread_registry.end()) {
+    if (auto state = it->lock()) {
+      if (xlang_thread_is_alive_state(*state)) {
+        std::lock_guard<std::mutex> state_lock(state->mutex);
+        if (state->ident != 0) {
+          idents.push_back(state->ident);
+        }
+      }
+      ++it;
+    } else {
+      it = g_thread_registry.erase(it);
+    }
+  }
+  return idents;
+}
+
 bool xlang_thread_tuple_to_args(const Value& value, std::vector<Value>& out, std::string& error) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Tuple) {
     error = "thread args must be a tuple";

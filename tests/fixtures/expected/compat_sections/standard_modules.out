@@ -128,6 +128,7 @@ True xlang3.fixture (1, a)
 (sys_frame_probe, <module>, __main__, False)
 1 1 True True True
 True True True True
+True True True True
 True True 0
 2
 0

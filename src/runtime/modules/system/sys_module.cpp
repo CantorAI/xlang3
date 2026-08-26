@@ -691,7 +691,7 @@ bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& ou
     error = "sys._current_frames expected 0 arguments";
     return false;
   }
-  out = Value::dict({{Value::int64(xlang_thread_current_ident()), runtime.current_frame_snapshot()}});
+  out = runtime.current_frame_snapshots(xlang_thread_active_idents());
   return true;
 }
 

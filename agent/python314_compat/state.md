@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-ABCMeta hook dispatch before direct subclass acceptance
+sys._current_frames live multi-thread frame snapshots
 ```
 
 Current next loop:

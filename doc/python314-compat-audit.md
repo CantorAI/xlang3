@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `abc.update_abstractmethods` batch.
+Last updated after the native multi-thread `sys._current_frames` batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: `_current_frames()` now returns runtime-maintained
+  frame snapshots for live XLang3 threads, including worker threads blocked in
+  standard threading primitives, instead of only reporting the caller thread.
 - Expanded native `sys`: `intern()` now keeps a runtime intern table and
   returns the canonical string object for repeated equal strings, with
   `_is_interned()` exposing object-identity membership for CPython-style
@@ -540,11 +543,11 @@ Native or runtime-backed foundation:
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers, trace/debug hooks,
-  current-thread-id-keyed `_current_frames` snapshots,
+  live-thread-id-keyed `_current_frames` snapshots,
   `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`, and frame placeholders; full CPython startup flags/config/runtime internals
-  and multi-thread frame/exception enumeration pending
+  and multi-thread exception enumeration pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
