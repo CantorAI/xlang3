@@ -44,6 +44,7 @@ same = items
 other = [1, 2, 3]
 print(1 < 2 <= 2, 3 != 4, items is same, items is not other)
 print(2 in items, 4 not in items, "ell" in "hello", "z" not in "hello")
+print("aa" < "ab", "b" > "aa", b"aa" < b"ab")
 print(True and "yes", False or "fallback")
 
 # Conditional expression.

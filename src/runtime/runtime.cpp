@@ -151,6 +151,36 @@ std::filesystem::path normalize_import_root(std::filesystem::path root) {
 bool has_import_root(const std::vector<std::filesystem::path>& roots, const std::filesystem::path& root) {
   return std::find(roots.begin(), roots.end(), root) != roots.end();
 }
+
+std::filesystem::path module_relative_source_path(const std::string& name) {
+  std::filesystem::path path;
+  size_t start = 0;
+  for (;;) {
+    const size_t dot = name.find('.', start);
+    const auto part = name.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
+    if (!part.empty()) {
+      path /= part;
+    }
+    if (dot == std::string::npos) {
+      break;
+    }
+    start = dot + 1;
+  }
+  path += ".py";
+  return path;
+}
+
+std::string module_source_file_from_roots(const Runtime& runtime, const std::string& name) {
+  const auto relative_file = module_relative_source_path(name);
+  for (const auto& root : runtime.import_roots()) {
+    std::error_code ec;
+    const auto candidate = root / relative_file;
+    if (std::filesystem::is_regular_file(candidate, ec)) {
+      return candidate.generic_string();
+    }
+  }
+  return {};
+}
 #endif
 
 bool module_has_real_attr(const Value& module, const std::string& name) {
@@ -228,6 +258,18 @@ void Runtime::initialize() {
 #if !defined(XLANG3_EMBEDDED)
   add_default_import_layout(*this, runtime_library_dir());
   add_default_python_lib_roots(*this);
+  for (auto& entry : modules_) {
+    Value existing;
+    std::string ignored;
+    if (module_get_attr(entry.second, "__file__", existing, ignored) && existing.tag != ValueTag::Invalid) {
+      continue;
+    }
+    ignored.clear();
+    const auto source_file = module_source_file_from_roots(*this, entry.first);
+    if (!source_file.empty()) {
+      module_set_attr(entry.second, "__file__", Value::string(source_file), ignored);
+    }
+  }
 #endif
 }
 

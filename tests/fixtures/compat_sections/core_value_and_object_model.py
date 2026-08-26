@@ -136,6 +136,24 @@ try:
 except Exception:
     print("metaclass-conflict-blocked")
 
+def with_metaclass(meta, *bases):
+    class temporary_meta(meta):
+        def __new__(cls, name, this_bases, namespace):
+            return meta(name, bases, namespace)
+
+    return type.__new__(temporary_meta, "temporary_class", (), {})
+
+class CompatLeft(with_metaclass(ParentMeta)):
+    pass
+
+class CompatRight(with_metaclass(ParentMeta)):
+    pass
+
+class CompatJoin(CompatLeft, CompatRight):
+    pass
+
+print(type(CompatJoin).__name__, issubclass(CompatJoin, CompatLeft), issubclass(CompatJoin, CompatRight))
+
 # Descriptor lookup, property get/set/delete, and instance fallback.
 class Descriptor:
     def __get__(self, obj, owner):

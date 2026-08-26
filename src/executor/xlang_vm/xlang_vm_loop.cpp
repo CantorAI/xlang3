@@ -136,7 +136,22 @@ RuntimeResult Interpreter::run_function(
       } else if (auto* list = value_as_list(star)) {
         for (const auto& item : list->items) positional.push_back(item);
       } else {
-        return bind_error("function '" + target_fn.name + "' * argument must be tuple or list");
+        Value iterator;
+        std::string iter_error;
+        if (!sequence_get_iter(star, iterator, iter_error)) {
+          return bind_error("function '" + target_fn.name + "' * argument must be iterable");
+        }
+        while (true) {
+          bool done = false;
+          Value item;
+          if (!sequence_iter_next(iterator, done, item, iter_error)) {
+            return bind_error(iter_error.empty() ? "function '" + target_fn.name + "' failed to expand * argument" : iter_error);
+          }
+          if (done) {
+            break;
+          }
+          positional.push_back(std::move(item));
+        }
       }
     }
 

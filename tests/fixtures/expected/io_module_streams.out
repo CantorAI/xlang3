@@ -8,3 +8,5 @@ b'x'
 b'xZ'
 8192
 <class 'TextIOBase'>
+TextIOWrapper TextIOWrapper True
+FileIO True True

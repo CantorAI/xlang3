@@ -549,7 +549,8 @@ ast::StmtPtr Parser::parse_statement_impl() {
     }
     return std::make_unique<ast::ImportManyStmt>(std::move(imports));
   }
-  if (match(TokenKind::KwMatch)) {
+  if (check(TokenKind::KwMatch) && is_match_statement_start()) {
+    advance();
     return parse_match_statement();
   }
   return parse_simple_statement();
@@ -721,6 +722,37 @@ bool Parser::validate_match_pattern(const ast::Expr& pattern) {
     return true;
   }
   error_here("invalid capture names in match pattern");
+  return false;
+}
+
+bool Parser::is_match_statement_start() const {
+  if (!check(TokenKind::KwMatch)) {
+    return false;
+  }
+
+  uint32_t depth = 0;
+  for (size_t i = current_ + 1; i < tokens_.size(); ++i) {
+    const auto kind = tokens_[i].kind;
+    if (kind == TokenKind::End || kind == TokenKind::Newline || kind == TokenKind::Semicolon) {
+      return false;
+    }
+    if (kind == TokenKind::LParen || kind == TokenKind::LBracket || kind == TokenKind::LBrace) {
+      ++depth;
+      continue;
+    }
+    if (kind == TokenKind::RParen || kind == TokenKind::RBracket || kind == TokenKind::RBrace) {
+      if (depth > 0) {
+        --depth;
+      }
+      continue;
+    }
+    if (depth == 0 && kind == TokenKind::Colon) {
+      return true;
+    }
+    if (depth == 0 && kind == TokenKind::Assign) {
+      return false;
+    }
+  }
   return false;
 }
 

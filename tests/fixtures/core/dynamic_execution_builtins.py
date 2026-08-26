@@ -39,6 +39,7 @@ print(read_live(), globals().get("g_live"), "g_live" in globals())
 print("__name__" in globals().keys(), globals().setdefault("g_default", 5))
 globals().update({"g_live": 50})
 print(read_live(), globals().pop("g_default"), "g_default" in globals())
+print(any(name == "g_live" and value == 50 for name, value in globals().items()))
 del globals()["g_live"]
 print("g_live" in globals())
 

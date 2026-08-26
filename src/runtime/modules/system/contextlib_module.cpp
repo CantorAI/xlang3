@@ -186,6 +186,35 @@ bool contextmanager_entry(Runtime& runtime, const Value* args, uint32_t argc, Va
       generator_context_factory_call,
       state,
       context_factory_cleanup);
+  if (auto* native = value_as_native_function(out)) {
+    Value name;
+    Value qualname;
+    Value module;
+    Value doc;
+    std::string ignored;
+    if (!object_get_attr(args[0], "__name__", name, ignored)) {
+      name = Value::string("helper");
+    }
+    ignored.clear();
+    if (!object_get_attr(args[0], "__qualname__", qualname, ignored)) {
+      value_assign_fast(qualname, name);
+    }
+    ignored.clear();
+    if (!object_get_attr(args[0], "__module__", module, ignored)) {
+      value_set_none(module);
+    }
+    ignored.clear();
+    if (!object_get_attr(args[0], "__doc__", doc, ignored)) {
+      value_set_none(doc);
+    }
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__name__"), name},
+        {Value::string("__qualname__"), qualname},
+        {Value::string("__module__"), module},
+        {Value::string("__doc__"), doc},
+        {Value::string("__wrapped__"), args[0]},
+    }));
+  }
   return true;
 }
 

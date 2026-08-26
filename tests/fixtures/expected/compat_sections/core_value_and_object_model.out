@@ -17,6 +17,7 @@ MappingPrepared:seed body
 NonClassMade:plain 0
 ParentMeta
 metaclass-conflict-blocked
+ParentMeta True True
 4 class:Box
 10 11
 0

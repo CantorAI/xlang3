@@ -187,6 +187,7 @@ private:
   ast::ExprPtr parse_with_manager_expr();
   ast::ExprPtr parse_for_target();
   bool validate_match_pattern(const ast::Expr& pattern);
+  bool is_match_statement_start() const;
   ast::ExprPtr parse_expression();
   ast::ExprPtr parse_named_expression();
   ast::ExprPtr parse_tuple();

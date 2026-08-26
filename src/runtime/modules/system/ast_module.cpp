@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -377,6 +378,80 @@ bool ast_literal_eval(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return literal_from_node(args[0], out, error);
 }
 
+std::string ast_node_class_name(const Value& node) {
+  auto* instance = value_as_instance(node);
+  if (instance == nullptr) {
+    return {};
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass == nullptr ? std::string() : klass->name;
+}
+
+bool node_visitor_generic_visit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "NodeVisitor.generic_visit() expected self and node";
+    return false;
+  }
+  Value visit_method;
+  if (!object_get_attr(args[0], "visit", visit_method, error)) {
+    return false;
+  }
+  for (const auto& field : fields_for(args[1])) {
+    Value field_value;
+    std::string ignored;
+    if (!object_get_attr(args[1], field, field_value, ignored)) {
+      continue;
+    }
+    if (value_as_instance(field_value) != nullptr) {
+      Value ignored_result;
+      if (!runtime_call_callable(runtime, visit_method, &field_value, 1, ignored_result, error)) {
+        return false;
+      }
+      continue;
+    }
+    if (auto* list = value_as_list(field_value)) {
+      for (const auto& item : list->items) {
+        if (value_as_instance(item) == nullptr) {
+          continue;
+        }
+        Value ignored_result;
+        if (!runtime_call_callable(runtime, visit_method, &item, 1, ignored_result, error)) {
+          return false;
+        }
+      }
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool node_visitor_visit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "NodeVisitor.visit() expected self and node";
+    return false;
+  }
+  const auto class_name = ast_node_class_name(args[1]);
+  if (!class_name.empty()) {
+    Value method;
+    std::string ignored;
+    if (object_get_attr(args[0], "visit_" + class_name, method, ignored)) {
+      return runtime_call_callable(runtime, method, &args[1], 1, out, error);
+    }
+  }
+  Value generic_visit;
+  if (!object_get_attr(args[0], "generic_visit", generic_visit, error)) {
+    return false;
+  }
+  return runtime_call_callable(runtime, generic_visit, &args[1], 1, out, error);
+}
+
+Value make_node_visitor_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"visit", runtime.make_native_function("ast.NodeVisitor.visit", node_visitor_visit)});
+  attrs.push_back({"generic_visit", runtime.make_native_function("ast.NodeVisitor.generic_visit", node_visitor_generic_visit)});
+  return Value::class_object("NodeVisitor", std::move(attrs));
+}
+
 void add_class(NativeModuleBuilder& builder, AstState* state, const char* name, Value klass) {
   state->classes[name] = klass;
   builder.value(name, std::move(klass));
@@ -524,7 +599,8 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
       .function("dump", ast_dump)
       .function("iter_fields", ast_iter_fields)
       .function("walk", ast_walk)
-      .function("literal_eval", ast_literal_eval);
+      .function("literal_eval", ast_literal_eval)
+      .value("NodeVisitor", make_node_visitor_class(runtime));
 }
 
 } // namespace

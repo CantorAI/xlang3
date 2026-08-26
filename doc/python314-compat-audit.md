@@ -62,6 +62,7 @@ Section-level fixture coverage:
 - [x] compound statement simple suites on one line: `def f(): return x`, `class C: pass`, `if x: y`
 - [x] line continuation with backslash
 - [x] implicit line continuation across brackets for multi-line expressions
+- [x] implicit continuation with triple-quoted string literals and chained calls inside call arguments
 - [x] `if`
 - [x] `else`
 - [x] `elif`
@@ -145,7 +146,7 @@ Section-level fixture coverage:
 - [x] string literals
 - [x] string escapes
 - [x] raw strings
-- [x] string literal lexing edge cases: quote-heavy normal and triple-quoted strings covered in section fixture
+- [x] string literal lexing edge cases: quote-heavy normal strings, triple-quoted strings, and triple-string suffix/chained-call tokenization covered in section fixture
 - [x] bytes literals
 - [x] f-strings: expressions, escaped braces, `!s` / `!r` / `!a`, debug `=`, dynamic specs, and core scalar format specs
 - [x] unicode escape completeness
@@ -246,7 +247,7 @@ Section-level fixture coverage:
 - [x] closure cells
 - [x] default args runtime behavior
 - [x] keyword args runtime behavior: keyword-only/default/`**kwargs` binding and catchable binder `TypeError` covered in section fixture
-- [x] varargs/kwargs objects
+- [x] varargs/kwargs objects, including `*args` call expansion from general iterables
 - [x] function object attributes: `__name__`, `__qualname__`, `__module__`, `__doc__`, positional `__defaults__`, keyword-only `__kwdefaults__`, `__annotations__`, custom attrs, live `__dict__`, `__globals__`, `__closure__`, and `__code__` covered in section fixture
 - [x] code objects: XLang3 IR-backed code objects expose `co_name`, `co_qualname`, `co_argcount`, `co_posonlyargcount`, `co_kwonlyargcount`, `co_nlocals`, `co_stacksize`, signature/generator/coroutine `co_flags`, `co_varnames`, `co_names`, `co_consts`, `co_freevars`, `co_cellvars`, `co_filename`, `co_firstlineno`, bytes-shaped `co_code`, `co_linetable`, `co_exceptiontable`, iterable `co_lines()` / `co_positions()`, and keyword `replace(...)` for common code metadata
 - [x] frame objects: expose `f_code`, `f_back`, `f_globals`, `f_builtins`, `f_locals`, `f_lasti`, source-backed `f_lineno`, and debugger-facing `f_trace`, `f_trace_lines`, and `f_trace_opcodes` fields
@@ -316,7 +317,7 @@ Section-level fixture coverage:
 - [x] native package dynamic library import
 - [x] `xlang_` fallback native package naming
 - [x] `sys.modules` runtime-maintained module registry dict
-- [x] module specs: native, source, package, namespace, and zip-source modules expose real `__spec__`, `__loader__`, `origin`, `parent`, `has_location`, and package search-location metadata
+- [x] module specs and source metadata: native, source, package, namespace, and zip-source modules expose real `__spec__`, `__loader__`, `origin`, `parent`, `has_location`, package search-location metadata, and source-backed `__file__` where applicable
 - [x] loaders/finders: `importlib.abc` and `importlib.machinery` expose common loader/finder classes; `SourceFileLoader` supports `create_module`, `exec_module`, `get_filename`, and `get_data`; `PathFinder.find_spec` returns specs for importable modules
 - [x] `importlib` compatibility: `import_module`, relative `import_module`, `invalidate_caches`, `util.find_spec`, `spec_from_file_location`, `module_from_spec`, explicit loader execution, and metadata distribution facade basics covered
 - [x] namespace packages: no-`__init__.py` package import, child binding, list-shaped `__path__`, importlib spec basics, and multi-root path merging covered
@@ -395,7 +396,7 @@ Native or runtime-backed foundation:
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, and `S_IS*` helpers
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
-- [~] `_io`: module exposes VFS-backed `open`, `open_code`, `StringIO`, `BytesIO`, file-like context/read/write/seek helpers, iterator hooks, and text newline/encoding basics; concrete CPython IO type hierarchy pending
+- [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek helpers, iterator hooks, and text newline/encoding basics; exact buffering and full CPython IO internals pending
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
@@ -410,13 +411,13 @@ High-level modules currently backed by native/runtime code:
 - [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `relpath`, `samefile`, `commonprefix`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; full path normalization/platform semantics pending
 - [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
-- [~] `ast`: public `_ast`/`ast` class surface, constructible keyword/positional AST nodes with `_fields`, `dump`, `iter_fields`, `walk`, `literal_eval` for literal nodes, and parse-result shell foundations; real parser-to-AST lowering and exact CPython node metadata pending
+- [~] `ast`: public `_ast`/`ast` class surface, constructible keyword/positional AST nodes with `_fields`, `dump`, `iter_fields`, `walk`, `NodeVisitor`, `literal_eval` for literal nodes, and parse-result shell foundations; real parser-to-AST lowering and exact CPython node metadata pending
 - [~] `code`: `compile_command` uses the XLang3 compiler for complete source and returns `None` for common incomplete REPL blocks; full interactive compiler/console semantics pending
 - [~] `codecs`: alias-normalized `lookup`, `getencoder`/`getdecoder`, CodecInfo encode/decode callables,
   UTF-8/UTF-8-SIG/ASCII/Latin-1 encode/decode with strict/ignore/replace/backslashreplace basics, ASCII-compatible
   `idna` lookup/encode/decode foundation, hex encode/decode, and error-handler lookup/registration foundation;
   full codec registry/error handling pending
-- [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
+- [~] `contextlib`: generator `contextmanager`, wrapper metadata (`__name__`, `__qualname__`, `__module__`, `__doc__`, `__wrapped__`) and writable wrapper docs, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [~] `ctypes`:
   Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,
   `memmove`/`memset` no-op shape, string buffers, simple `Structure` field
@@ -448,7 +449,7 @@ High-level modules currently backed by native/runtime code:
   across the CPython-style `Number`/`Complex`/`Real`/`Rational`/`Integral` lattice, and user virtual
   subclass registration works with `isinstance`/`issubclass`; exact abstract method surface and complex
   numeric protocol edge cases pending
-- [~] `opcode`: public opcode map/name foundation and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
+- [~] `opcode`: public opcode map/name foundation, CPython 3.14 category-list constants, `cmp_op`, `EXTENDED_ARG`, and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: arithmetic, in-place aliases, bitwise, comparison, truth/identity/contains, item mutation, length/count/index helpers, magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
 - [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes,
   `Pickler`/`Unpickler`, and `dumps`/`loads`/file `dump`/`load`; new output uses a CPython-readable
@@ -459,7 +460,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
   `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
   zip/resource edge cases, and exact import-package behavior pending
-- [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, `findall`, `split`, `sub`, and `escape` facade; full CPython regex semantics pending
+- [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, `findall`, `split`, `sub`, flag aliases, bytes-pattern basics, and `escape` facade; full CPython regex semantics pending
 - [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
@@ -592,15 +593,18 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   `__kwdefaults__`, direct assignment for those defaults, annotations
   assignment, custom function attrs, explicit assignment through live
   `__dict__`, `__globals__`, `__closure__`, `__code__`, and `__qualname__`
-  basics for module functions, nested functions, class methods, and nested
-  class methods. Still pending: CPython-exact code object completeness,
-  bound-method metadata, static methods, class methods, and native functions.
+  basics for module functions, nested functions, class methods, nested
+  class methods, and native wrapper functions that opt into Python-function
+  metadata. Still pending: CPython-exact code object completeness,
+  bound-method metadata, static methods, class methods, and builtin native
+  function descriptor edge cases.
 
 - [~] tokenizer/string-literal audit:
   Section fixture covers raw strings, bytes escapes, f-strings, adjacent
   literals, triple strings after expressions, comments, escaped quotes, and
-  triple quote sequences inside normal strings. Remaining work: broader
-  tokenizer parity against CPython `Lib/tokenize.py`.
+  triple quote sequences inside normal strings, plus triple-quoted literals
+  with suffix/chained calls inside implicit line continuation. Remaining work:
+  broader tokenizer parity against CPython `Lib/tokenize.py`.
 
 ## Audit Method
 

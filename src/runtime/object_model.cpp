@@ -347,6 +347,23 @@ bool choose_compatible_metaclass(Value& current, const Value& candidate, std::st
   if (class_is_subclass(current_class, candidate_class)) {
     return true;
   }
+  std::vector<const ClassObject*> current_mro;
+  std::vector<const ClassObject*> candidate_mro;
+  std::string ignored;
+  if (class_mro_classes(current_class, current_mro, ignored) &&
+      class_mro_classes(candidate_class, candidate_mro, ignored)) {
+    for (const auto* current_base : current_mro) {
+      if (current_base == nullptr || current_base->name == "type" || current_base->name == "object") {
+        continue;
+      }
+      for (const auto* candidate_base : candidate_mro) {
+        if (current_base == candidate_base) {
+          current = class_value(current_base);
+          return true;
+        }
+      }
+    }
+  }
   error = "metaclass conflict: the metaclass of a derived class must be a non-strict subclass of the metaclasses of all its bases";
   return false;
 }
@@ -1805,6 +1822,13 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
   }
   if (auto* native = value_as_native_function(object)) {
     if (name == "__doc__" || name == "__name__" || name == "__module__") {
+      if (native->attrs_dict != nullptr && native->attrs_dict->tag != ValueTag::Invalid) {
+        Value existing;
+        std::string ignored;
+        if (mapping_get_item(*native->attrs_dict, Value::string(name), existing, ignored)) {
+          return mapping_set_item(*native->attrs_dict, Value::string(name), value, error);
+        }
+      }
       error = "native function attribute '" + name + "' is read-only";
       return false;
     }

@@ -49,6 +49,14 @@ void match_cleanup(void* data) {
 bool regex_match_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data);
 
 bool value_to_regex_string(const Value& value, std::string& out, std::string& error) {
+  if (auto* string = value_as_string(value)) {
+    out = string_object_to_string(*string);
+    return true;
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    out = bytes_object_to_string(*bytes);
+    return true;
+  }
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
     error = "regular expression argument must be str";
     return false;
@@ -361,9 +369,21 @@ void register_re_module(Runtime& runtime) {
       .function("split", regex_split)
       .function("sub", regex_sub)
       .function("escape", regex_escape)
+      .value("NOFLAG", Value::int64(0))
+      .value("ASCII", Value::int64(256))
+      .value("A", Value::int64(256))
       .value("IGNORECASE", Value::int64(2))
+      .value("I", Value::int64(2))
+      .value("LOCALE", Value::int64(4))
+      .value("L", Value::int64(4))
       .value("MULTILINE", Value::int64(8))
+      .value("M", Value::int64(8))
       .value("DOTALL", Value::int64(16))
+      .value("S", Value::int64(16))
+      .value("VERBOSE", Value::int64(64))
+      .value("X", Value::int64(64))
+      .value("DEBUG", Value::int64(128))
+      .value("RegexFlag", Value::class_object("RegexFlag", {}))
       .value("Pattern", Value::class_object("Pattern", {}))
       .value("Match", Value::class_object("Match", {}));
   runtime.register_module("re", builder.finish());

@@ -1746,6 +1746,46 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     value_set_bool(out, result);
     return true;
   }
+  if (auto* left_string = value_as_string(lhs)) {
+    if (auto* right_string = value_as_string(rhs)) {
+      const auto ordering = string_object_view(*left_string).compare(string_object_view(*right_string));
+      if (op == "==") result = ordering == 0;
+      else if (op == "!=") result = ordering != 0;
+      else if (op == "<") result = ordering < 0;
+      else if (op == "<=") result = ordering <= 0;
+      else if (op == ">") result = ordering > 0;
+      else if (op == ">=") result = ordering >= 0;
+      else {
+        error = "unknown comparison operator";
+        return false;
+      }
+      value_set_bool(out, result);
+      return true;
+    }
+  }
+  const auto left_binary_order = binary_compare_view(lhs);
+  const auto right_binary_order = binary_compare_view(rhs);
+  if (left_binary_order.data != nullptr && right_binary_order.data != nullptr) {
+    const int cmp = std::memcmp(
+        left_binary_order.data,
+        right_binary_order.data,
+        std::min(left_binary_order.size, right_binary_order.size));
+    const int ordering = cmp != 0 ? cmp :
+        (left_binary_order.size < right_binary_order.size ? -1 :
+            (left_binary_order.size > right_binary_order.size ? 1 : 0));
+    if (op == "==") result = ordering == 0;
+    else if (op == "!=") result = ordering != 0;
+    else if (op == "<") result = ordering < 0;
+    else if (op == "<=") result = ordering <= 0;
+    else if (op == ">") result = ordering > 0;
+    else if (op == ">=") result = ordering >= 0;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
   if (op == "==" || op == "!=") {
     const auto left_binary = binary_compare_view(lhs);
     const auto right_binary = binary_compare_view(rhs);

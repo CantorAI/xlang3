@@ -499,11 +499,14 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
 
 bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
   DictIterationKind kind = DictIterationKind::Keys;
-  if (dict_source_from_view_or_dict(object, kind) == nullptr && value_as_module(object) == nullptr) {
+  auto* view = value_as_dict_view(object);
+  if (dict_source_from_view_or_dict(object, kind) == nullptr &&
+      value_as_module(object) == nullptr &&
+      (view == nullptr || value_as_module(view->source) == nullptr)) {
     error = "object is not a dict";
     return false;
   }
-  if (auto* view = value_as_dict_view(object)) {
+  if (view != nullptr) {
     out = make_dict_iterator(view->source, 0, kind);
   } else {
     out = make_dict_iterator(object, 0, kind);

@@ -82,6 +82,7 @@ void register_operator_module(Runtime& runtime);
 void register_pathlib_module(Runtime& runtime);
 void register_pickle_module(Runtime& runtime);
 void register_subprocess_module(Runtime& runtime);
+void register_tokenize_module(Runtime& runtime);
 void register_winreg_module(Runtime& runtime);
 void register_zlib_module(Runtime& runtime);
 void register_zipfile_module(Runtime& runtime);

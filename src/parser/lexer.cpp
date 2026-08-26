@@ -85,6 +85,14 @@ bool update_line_join_state(std::string_view line, int& bracket_depth, bool& exp
       break;
     }
     if (ch == '"' || ch == '\'') {
+      if (i + 2 < line.size() && line[i + 1] == ch && line[i + 2] == ch) {
+        const size_t close = line.find(std::string_view(line.data() + i, 3), i + 3);
+        if (close == std::string_view::npos) {
+          break;
+        }
+        i = close + 2;
+        continue;
+      }
       in_string = true;
       quote = ch;
       continue;
@@ -505,34 +513,49 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
     const auto prefix = detect_string_start(line_text, i);
     if (prefix.valid) {
       const char quote = line_text[prefix.quote];
-      i = prefix.quote + 1;
+      const bool is_triple = prefix.quote + 2 < line_text.size() &&
+                             line_text[prefix.quote + 1] == quote &&
+                             line_text[prefix.quote + 2] == quote;
+      i = prefix.quote + (is_triple ? 3 : 1);
       std::string value;
       bool closed = false;
-      while (i < line_text.size()) {
-        if (line_text[i] == quote) {
+      if (is_triple) {
+        const std::string_view opener(line_text.data() + prefix.quote, 3);
+        const size_t close = line_text.find(opener, i);
+        if (close != std::string_view::npos) {
+          value = std::string(line_text.substr(i, close - i));
+          i = close + 3;
           closed = true;
-          break;
         }
-        if (!prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+      } else {
+        while (i < line_text.size()) {
+          if (line_text[i] == quote) {
+            closed = true;
+            break;
+          }
+          if (!prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+            value.push_back(line_text[i++]);
+            value.push_back(line_text[i++]);
+            continue;
+          }
+          if (prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+            value.push_back(line_text[i++]);
+            value.push_back(line_text[i++]);
+            continue;
+          }
           value.push_back(line_text[i++]);
-          value.push_back(line_text[i++]);
-          continue;
         }
-        if (prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
-          value.push_back(line_text[i++]);
-          value.push_back(line_text[i++]);
-          continue;
-        }
-        value.push_back(line_text[i++]);
       }
       if (!closed) {
         errors_.push_back("line " + std::to_string(line_no) + ": unterminated string");
         return;
       }
-      ++i;
+      if (!is_triple) {
+        ++i;
+      }
       value = decode_string_content(value, prefix.raw, prefix.bytes);
       const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
-      emit_owned(kind, std::move(value), line_no, col);
+      emit_owned(kind, std::move(value), line_no, col, is_triple);
       continue;
     }
     if (std::isalpha(static_cast<unsigned char>(ch)) || ch == '_') {

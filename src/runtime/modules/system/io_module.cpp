@@ -409,11 +409,25 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
     builder.value("open", *open);
   }
   Value io_base = Value::class_object("IOBase", {});
+  Value raw_io_base = Value::class_object("RawIOBase", {}, io_base);
   Value text_io_base = Value::class_object("TextIOBase", {});
-  Value buffered_io_base = Value::class_object("BufferedIOBase", {});
+  Value buffered_io_base = Value::class_object("BufferedIOBase", {}, io_base);
+  Value file_io = Value::class_object("FileIO", {}, raw_io_base);
+  Value buffered_reader = Value::class_object("BufferedReader", {}, buffered_io_base);
+  Value buffered_writer = Value::class_object("BufferedWriter", {}, buffered_io_base);
+  Value buffered_random = Value::class_object("BufferedRandom", {}, buffered_io_base);
+  Value buffered_rw_pair = Value::class_object("BufferedRWPair", {}, buffered_io_base);
+  Value text_io_wrapper = Value::class_object("TextIOWrapper", {}, text_io_base);
   builder.value("IOBase", io_base)
+      .value("RawIOBase", raw_io_base)
       .value("TextIOBase", text_io_base)
       .value("BufferedIOBase", buffered_io_base)
+      .value("FileIO", file_io)
+      .value("BufferedReader", buffered_reader)
+      .value("BufferedWriter", buffered_writer)
+      .value("BufferedRandom", buffered_random)
+      .value("BufferedRWPair", buffered_rw_pair)
+      .value("TextIOWrapper", text_io_wrapper)
       .value("StringIO", string_io)
       .value("BytesIO", bytes_io)
       .value("open_code", runtime.make_native_function("io.open_code", io_open_code))

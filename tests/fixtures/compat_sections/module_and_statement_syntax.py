@@ -191,6 +191,21 @@ match [1, 3]:
     case _:
         total = total + len(failed_capture)
 
+# match/case remain soft keywords outside structural pattern positions.
+match = 5
+case = 6
+total = total + match + case
+
+# Triple-quoted strings with chained calls inside multi-line call arguments.
+triple_target = "abc"
+triple_values = []
+triple_values.append(
+    """{triple_target}""".format(
+        triple_target=triple_target
+    ).upper()
+)
+total = total + len(triple_values[0])
+
 # type parameter syntax accepted on def/class and runtime metadata basics.
 def typed_identity[T](value):
     return value

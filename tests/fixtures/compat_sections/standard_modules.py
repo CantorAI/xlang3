@@ -29,6 +29,7 @@ import functools
 import fnmatch
 import glob
 import code
+from contextlib import contextmanager
 
 def original(a, b):
     "doc text"
@@ -47,6 +48,16 @@ functools.update_wrapper(plain, original)
 print(plain.__name__, plain.__doc__, plain.__wrapped__ is original)
 add_two = functools.partial(original, 2)
 print(add_two(5))
+
+# contextlib.contextmanager preserves Python function metadata and writable wrapper docs.
+@contextmanager
+def managed_value():
+    "managed doc"
+    yield "ok"
+
+print(managed_value.__name__, managed_value.__doc__, managed_value.__wrapped__.__name__)
+managed_value.__doc__ = "changed doc"
+print(managed_value.__doc__)
 
 def combine(a, b):
     return a * 10 + b
@@ -173,6 +184,17 @@ module_node = ast.Module(body=[ast.Expr(value=bin_node)], type_ignores=[])
 print(ast.literal_eval(const_node), list(ast.iter_fields(bin_node))[0][0], len(list(ast.walk(module_node))))
 print(ast.dump(bin_node))
 print(isinstance(ast.parse("x = 1"), ast.Module), ast.parse("1", mode="eval").__class__.__name__)
+
+class NameCollector(ast.NodeVisitor):
+    def __init__(self):
+        self.names = []
+
+    def visit_Name(self, node):
+        self.names.append(node.id)
+
+collector = NameCollector()
+collector.visit(ast.Module(body=[ast.Expr(value=ast.Name(id="seen", ctx=ast.Load()))], type_ignores=[]))
+print(collector.names)
 
 # abc/_abc: native ABCMeta register/check helpers feed normal isinstance/issubclass.
 import abc
@@ -305,6 +327,7 @@ import subprocess
 import struct
 import sys
 import sysconfig
+import threading
 import time
 import urllib.parse
 import winreg
@@ -321,7 +344,8 @@ print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, is
 print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() >= 0, time.thread_time_ns() >= 0)
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("user") in sysconfig.get_scheme_names(), sysconfig.is_python_build())
-print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT)
+print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT, opcode.EXTENDED_ARG, opcode.cmp_op[2])
+print(threading.__file__.endswith("threading.py"), os.__file__.endswith("os.py"))
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
 signature = inspect.signature(original)
@@ -363,6 +387,8 @@ compiled = re.compile("[a-z]+")
 print(m.group(0), m.group(1), m.groups(), m.span(2))
 print(compiled.match("abc").group(0), compiled.search("123abc").group(0), re.fullmatch("[0-9]+", "123") is not None)
 print(re.findall("[0-9]+", "a1b22"), re.split(",", "a,b,c"), re.sub("[0-9]+", "#", "a12b3"))
+print(re.ASCII, re.A, re.NOFLAG, re.VERBOSE, re.X, re.RegexFlag.__name__)
+print(re.compile(br"[a-z]+", re.ASCII).match(b"abc").group(0))
 
 # codecs: normalized lookup plus UTF-8 and hex encode/decode foundations.
 codec_info = codecs.lookup("UTF-8")

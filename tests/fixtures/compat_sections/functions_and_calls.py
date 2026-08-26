@@ -48,6 +48,7 @@ def binder(a, /, b, *rest, c=4, **kw):
 more = (3, 4)
 named = {"name": "ok"}
 print(binder(1, 2, *more, c=5, **named))
+print(user_add(*"ab"))
 try:
     binder(a=1, b=2, name="bad")
 except TypeError:

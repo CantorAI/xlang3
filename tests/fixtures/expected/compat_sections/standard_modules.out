@@ -3,6 +3,8 @@ native
 original doc text True 5
 original doc text True
 7
+managed_value managed doc managed_value
+changed doc
 123 123
 True True True True
 2 2 4 6 2
@@ -33,6 +35,7 @@ suppressed
 9 left 6
 BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
 True Expression
+[seen]
 True True
 True True
 True True True
@@ -65,7 +68,8 @@ True False True True
 True True True True
 True True 3.14
 True True False
-82 RESUME 43
+82 RESUME 43 69 ==
+True True
 2147483649 131097 1 None
 True True True
 [a, b] a True
@@ -93,6 +97,8 @@ error
 id42 id (id, 42) (2, 4)
 abc abc True
 [1, 22] [a, b, c] a#b#
+256 256 0 64 64 RegexFlag
+abc
 utf_8 codec b'hi'
 idna example.com
 a 1 True False

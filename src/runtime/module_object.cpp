@@ -17,6 +17,10 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 
+#if !defined(XLANG3_EMBEDDED)
+#include <filesystem>
+#endif
+
 namespace xlang3 {
 
 namespace {
@@ -28,6 +32,60 @@ T* allocate_module_object(ObjectKind kind) {
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
   return obj;
+}
+
+#if !defined(XLANG3_EMBEDDED)
+std::filesystem::path module_relative_source_path(const std::string& name) {
+  std::filesystem::path path;
+  size_t start = 0;
+  for (;;) {
+    const size_t dot = name.find('.', start);
+    const auto part = name.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
+    if (!part.empty()) {
+      path /= part;
+    }
+    if (dot == std::string::npos) {
+      break;
+    }
+    start = dot + 1;
+  }
+  path += ".py";
+  return path;
+}
+
+std::string native_module_source_file(Runtime& runtime, const std::string& name) {
+  const auto relative_file = module_relative_source_path(name);
+  for (const auto& root : runtime.import_roots()) {
+    const auto candidate = root / relative_file;
+    std::error_code ec;
+    if (std::filesystem::is_regular_file(candidate, ec)) {
+      return candidate.generic_string();
+    }
+    auto package_path = root;
+    size_t start = 0;
+    for (;;) {
+      const size_t dot = name.find('.', start);
+      const auto part = name.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
+      if (!part.empty()) {
+        package_path /= part;
+      }
+      if (dot == std::string::npos) {
+        break;
+      }
+      start = dot + 1;
+    }
+    const auto package_init = package_path / "__init__.py";
+    if (std::filesystem::is_regular_file(package_init, ec)) {
+      return package_init.generic_string();
+    }
+  }
+  return {};
+}
+#endif
+
+std::string module_package_name(const std::string& name) {
+  const size_t dot = name.rfind('.');
+  return dot == std::string::npos ? std::string() : name.substr(0, dot);
 }
 
 } // namespace
@@ -130,7 +188,16 @@ bool module_find_attr_slot(const Value& object, const std::string& name, uint32_
 }
 
 NativeModuleBuilder::NativeModuleBuilder(Runtime& runtime, std::string name)
-    : runtime_(runtime), name_(std::move(name)), module_(Value::module(name_)) {}
+    : runtime_(runtime), name_(std::move(name)), module_(Value::module(name_)) {
+  std::string error;
+  module_set_attr(module_, "__package__", Value::string(module_package_name(name_)), error);
+#if !defined(XLANG3_EMBEDDED)
+  const auto source_file = native_module_source_file(runtime_, name_);
+  if (!source_file.empty()) {
+    module_set_attr(module_, "__file__", Value::string(source_file), error);
+  }
+#endif
+}
 
 NativeModuleBuilder& NativeModuleBuilder::value(std::string name, Value value) {
   std::string error;
