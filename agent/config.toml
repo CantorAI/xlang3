@@ -21,6 +21,7 @@ fixture_root = "tests/fixtures"
 [codex]
 bin_dir = "C:/Users/shaw9/AppData/Local/OpenAI/Codex/bin"
 command = "\"{codex}\" exec --dangerously-bypass-approvals-and-sandbox -C \"{root}\" -"
+commit_message_command = "\"{codex}\" exec --sandbox read-only -C \"{root}\" -o \"{output}\" -"
 
 [goals.python314_compat]
 title = "XLang3 Python 3.14 Compatibility"
@@ -32,3 +33,4 @@ queue = "agent/python314_compat/queue.md"
 rules = "agent/python314_compat/rules.md"
 default_section = "Standard Modules Foundation"
 default_limit = 3
+default_commit_message = "Advance Python 3.14 compatibility"

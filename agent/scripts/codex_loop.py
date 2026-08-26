@@ -64,6 +64,10 @@ def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
 
+def default_commit_message_command(config: dict) -> str:
+    return config.get("codex", {}).get("commit_message_command", "")
+
+
 def resolve_codex_executable(config: dict | None = None) -> str:
     if config:
         codex_config = config.get("codex", {})
@@ -115,11 +119,13 @@ def newest_codex_executable(folder: Path) -> Path | None:
     return candidates[0] if candidates else None
 
 
-def expand_command_template(config: dict, command: str) -> str:
+def expand_command_template(config: dict, command: str, output: str = "") -> str:
     if "{codex}" in command:
         command = command.replace("{codex}", resolve_codex_executable(config))
     if "{root}" in command:
         command = command.replace("{root}", str(ROOT))
+    if "{output}" in command:
+        command = command.replace("{output}", output)
     return command
 
 
@@ -131,7 +137,14 @@ def default_limit(config: dict, goal: str) -> int:
     return int(goal_config(config, goal).get("default_limit", 8))
 
 
-def validate_codex_command(config: dict, command: str) -> str:
+def default_commit_message(config: dict, goal: str) -> str:
+    return goal_config(config, goal).get(
+        "default_commit_message",
+        "Advance Python 3.14 compatibility",
+    )
+
+
+def validate_codex_command(config: dict, command: str, output: str = "") -> str:
     stripped = command.strip()
     placeholders = {"...", "<codex-command>", "TODO", "todo"}
     if stripped in placeholders:
@@ -139,7 +152,7 @@ def validate_codex_command(config: dict, command: str) -> str:
             f"Invalid Codex backend command: {stripped!r}. "
             "Pass a real command or use --dry-run/--status."
         )
-    return expand_command_template(config, stripped)
+    return expand_command_template(config, stripped, output)
 
 
 def preflight_codex_command(command: str) -> None:
@@ -193,6 +206,10 @@ def run_with_input(command: str, stdin_text: str) -> None:
     result = subprocess.run(command, cwd=ROOT, shell=True, text=True, input=stdin_text)
     if result.returncode != 0:
         raise SystemExit(result.returncode)
+
+
+def capture(command: list[str]) -> str:
+    return subprocess.check_output(command, cwd=ROOT, text=True, stderr=subprocess.STDOUT)
 
 
 def read_text(path: Path) -> str:
@@ -510,7 +527,73 @@ def changed_paths() -> list[str]:
     return paths
 
 
-def commit_and_push(message: str) -> None:
+def staged_diff_context(max_diff_chars: int = 12000) -> str:
+    names = capture(["git", "diff", "--cached", "--name-only"]).strip()
+    stat = capture(["git", "diff", "--cached", "--stat"]).strip()
+    diff = capture(["git", "diff", "--cached", "--", *names.splitlines()]) if names else ""
+    if len(diff) > max_diff_chars:
+        diff = diff[:max_diff_chars] + "\n... diff truncated ...\n"
+    return f"""Staged files:
+{names}
+
+Stat:
+{stat}
+
+Diff:
+{diff}
+"""
+
+
+def sanitize_commit_message(text: str) -> str:
+    for line in text.splitlines():
+        candidate = line.strip().strip('"').strip("'")
+        if not candidate:
+            continue
+        prefixes = ("commit message:", "subject:", "- ")
+        lowered = candidate.lower()
+        for prefix in prefixes:
+            if lowered.startswith(prefix):
+                candidate = candidate[len(prefix):].strip()
+                lowered = candidate.lower()
+        if candidate:
+            return candidate[:120]
+    return ""
+
+
+def generate_commit_message(config: dict, goal: str, fallback: str) -> str:
+    template = default_commit_message_command(config)
+    if not template:
+        return fallback
+
+    output_path = runs_dir(config, goal) / "commit_message.txt"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    command = validate_codex_command(config, template, str(output_path))
+    prompt = f"""Generate exactly one Git commit subject line for this staged XLang3 change.
+
+Rules:
+- Output only the subject line.
+- Use imperative mood.
+- Keep it under 72 characters if possible.
+- Do not include markdown, bullets, quotes, or explanation.
+
+{staged_diff_context()}
+"""
+
+    try:
+        if output_path.exists():
+            output_path.unlink()
+        run_with_input(command, prompt)
+        if output_path.exists():
+            generated = sanitize_commit_message(output_path.read_text(encoding="utf-8"))
+            if generated:
+                print(f"Generated commit message: {generated}")
+                return generated
+    except (OSError, subprocess.SubprocessError, SystemExit) as exc:
+        print(f"Commit message generation failed; using fallback. {exc}")
+    return fallback
+
+
+def commit_and_push(config: dict, goal: str, message: str) -> None:
     paths = changed_paths()
     if not paths:
         print()
@@ -526,6 +609,8 @@ def commit_and_push(message: str) -> None:
 
     if not message:
         raise SystemExit("--commit-message is required unless --no-commit is set")
+
+    message = generate_commit_message(config, goal, message)
 
     print()
     print("Status: committing")
@@ -558,6 +643,7 @@ def main() -> int:
     goal = args.goal or config.get("default_goal", "")
     section = args.section if args.section is not None else default_section(config, goal)
     limit = args.limit if args.limit > 0 else default_limit(config, goal)
+    commit_message = args.commit_message or default_commit_message(config, goal)
     xlang3 = args.xlang3 or default_xlang3(config)
     codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
     cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
@@ -740,7 +826,7 @@ def main() -> int:
             print("No commit requested. Current status:")
             run(["git", "status", "--short"])
         else:
-            commit_and_push(args.commit_message)
+            commit_and_push(config, goal, commit_message)
             clear_loop_state(config, goal)
 
     return 0
