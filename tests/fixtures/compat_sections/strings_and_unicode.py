@@ -118,6 +118,14 @@ print(ord(unicodedata.normalize("NFC", "e" + acute)), unicodedata.is_normalized(
 print(ord(unicodedata.normalize("NFD", "Å")[0]), ord(unicodedata.normalize("NFD", "Å")[1]))
 fraction = unicodedata.normalize("NFKD", "¾")
 print(unicodedata.normalize("NFKC", "²"), ord(fraction[0]), ord(fraction[1]), ord(fraction[2]))
+
+# Unicode decomposition and lookup aliases for table-backed compatibility.
+angstrom = "\u212b"
+roman_four = "\u2163"
+print(unicodedata.decomposition("é"), unicodedata.decomposition("¾"), unicodedata.decomposition(roman_four))
+print(unicodedata.lookup("LF") == "\n", unicodedata.lookup("LINE FEED") == "\n")
+print(unicodedata.name("\n", "control"), unicodedata.category("\n"), unicodedata.bidirectional("\n"))
+print(unicodedata.name(angstrom), ord(unicodedata.normalize("NFC", angstrom)), unicodedata.normalize("NFKC", roman_four))
 try:
     unicodedata.lookup("NO SUCH")
 except KeyError:

@@ -298,9 +298,9 @@ Section-level fixture coverage:
 - [x] f-string runtime formatting
 - [x] bytes / bytearray: constructors, indexing/slicing, mutation, startswith/endswith tuple prefixes, partition/rpartition, split/join, count/find/index/rfind/rindex, strip/lstrip/rstrip, replace, hex, decode, copy, append/extend/pop/remove/reverse/clear, and raw `\xNN` bytes-literal escapes covered
 - [x] memoryview: construction over bytes-like storage, indexing, `tobytes`, `tolist`, and core read-only/shape metadata attributes covered
-- [~] deep Unicode database behavior: native `unicodedata` foundation now covers lookup/name, category,
-  bidirectional, combining class, East Asian width, mirrored, decimal/digit/numeric, and NFC/NFD/NFKC/NFKD
-  normalization for the current table-driven core set; codec paths now cover alias-normalized lookup,
+- [~] deep Unicode database behavior: native `unicodedata` foundation now covers lookup/name and selected
+  name aliases, category, bidirectional, combining class, East Asian width, mirrored, decimal/digit/numeric,
+  decomposition, and NFC/NFD/NFKC/NFKD normalization for the current table-driven core set; codec paths now cover alias-normalized lookup,
   getencoder/getdecoder, CodecInfo encode/decode callables, error-handler lookup/registration foundation,
   and strict/ignore/replace/backslashreplace basics for UTF-8/UTF-8-SIG/ASCII/Latin-1; complete
   generated Unicode tables, locale-sensitive casing, grapheme-cluster text segmentation, identifier edge

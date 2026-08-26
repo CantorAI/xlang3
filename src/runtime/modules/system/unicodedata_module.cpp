@@ -44,6 +44,7 @@ constexpr int kNoNumber = -1;
 constexpr double kNoNumeric = -1.0;
 
 constexpr UnicodeRecord kUnicodeRecords[] = {
+    {0x000a, nullptr, "Cc", "B", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x0020, "SPACE", "Zs", "WS", 0, "Na", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x0030, "DIGIT ZERO", "Nd", "EN", 0, "Na", 0, 0, 0, 0.0},
     {0x0031, "DIGIT ONE", "Nd", "EN", 0, "Na", 0, 1, 1, 1.0},
@@ -64,6 +65,8 @@ constexpr UnicodeRecord kUnicodeRecords[] = {
     {0x0301, "COMBINING ACUTE ACCENT", "Mn", "NSM", 230, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x030a, "COMBINING RING ABOVE", "Mn", "NSM", 230, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x2044, "FRACTION SLASH", "Sm", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
+    {0x212b, "ANGSTROM SIGN", "Lu", "L", 0, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
+    {0x2163, "ROMAN NUMERAL FOUR", "Nl", "L", 0, "A", 0, kNoNumber, kNoNumber, 4.0},
     {0x4e2d, "CJK UNIFIED IDEOGRAPH-4E2D", "Lo", "L", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x1f642, "SLIGHTLY SMILING FACE", "So", "ON", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
 };
@@ -126,12 +129,34 @@ const UnicodeRecord* find_record_by_name(std::string name) {
   std::transform(name.begin(), name.end(), name.begin(), [](unsigned char ch) {
     return static_cast<char>(std::toupper(ch));
   });
+  if (name == "LINE FEED" || name == "LF") {
+    return find_record(0x000a);
+  }
   for (const auto& record : kUnicodeRecords) {
-    if (name == record.name) {
+    if (record.name != nullptr && name == record.name) {
       return &record;
     }
   }
   return nullptr;
+}
+
+std::string decomposition_mapping(uint32_t codepoint) {
+  switch (codepoint) {
+    case 0x00b2:
+      return "<super> 0032";
+    case 0x00be:
+      return "<fraction> 0033 2044 0034";
+    case 0x00c5:
+      return "0041 030A";
+    case 0x00e9:
+      return "0065 0301";
+    case 0x212b:
+      return "00C5";
+    case 0x2163:
+      return "<compat> 0049 0056";
+    default:
+      return "";
+  }
 }
 
 bool get_single_codepoint(Runtime& runtime, const Value& value, const char* function_name, uint32_t& codepoint, std::string& error) {
@@ -170,7 +195,7 @@ std::string decompose_canonical(std::string_view text) {
     if (codepoint == 0x00e9) {
       out.push_back('e');
       append_utf8(0x0301, out);
-    } else if (codepoint == 0x00c5) {
+    } else if (codepoint == 0x00c5 || codepoint == 0x212b) {
       out.push_back('A');
       append_utf8(0x030a, out);
     } else {
@@ -215,7 +240,7 @@ std::string normalize_text(const std::string& form, std::string_view text) {
     return decompose_canonical(text);
   }
   if (form == "NFC") {
-    return compose_canonical(text);
+    return compose_canonical(decompose_canonical(text));
   }
   if (form == "NFKD") {
     std::string decomposed = decompose_canonical(text);
@@ -233,6 +258,8 @@ std::string normalize_text(const std::string& form, std::string_view text) {
         out.push_back('3');
         append_utf8(0x2044, out);
         out.push_back('4');
+      } else if (codepoint == 0x2163) {
+        out.append("IV");
       } else {
         out.append(std::string_view(decomposed).substr(i, width));
       }
@@ -290,7 +317,7 @@ bool unicode_name(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   const UnicodeRecord* record = find_record(codepoint);
-  if (record != nullptr) {
+  if (record != nullptr && record->name != nullptr) {
     out = Value::string(record->name);
     return true;
   }
@@ -409,6 +436,20 @@ bool unicode_numeric(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return false;
 }
 
+bool unicode_decomposition(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "unicodedata.decomposition() expected character";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  uint32_t codepoint = 0;
+  if (!get_single_codepoint(runtime, args[0], "decomposition", codepoint, error)) {
+    return false;
+  }
+  out = Value::string(decomposition_mapping(codepoint));
+  return true;
+}
+
 bool unicode_normalize(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "unicodedata.normalize() expected form and unistr";
@@ -457,6 +498,7 @@ void register_unicodedata_module(Runtime& runtime) {
       .function("decimal", unicode_decimal)
       .function("digit", unicode_digit)
       .function("numeric", unicode_numeric)
+      .function("decomposition", unicode_decomposition)
       .function("normalize", unicode_normalize)
       .function("is_normalized", unicode_is_normalized)
       .value("unidata_version", Value::string("17.0.0"));
