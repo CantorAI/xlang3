@@ -30,12 +30,14 @@ constexpr const char* kMatchType = "re.Match";
 struct PatternState {
   std::string pattern;
   std::regex regex;
+  bool bytes_pattern = false;
 };
 
 struct MatchState {
   std::string text;
   std::vector<std::string> groups;
   std::vector<std::pair<int64_t, int64_t>> spans;
+  bool bytes_result = false;
 };
 
 void pattern_cleanup(void* data) {
@@ -48,13 +50,15 @@ void match_cleanup(void* data) {
 
 bool regex_match_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data);
 
-bool value_to_regex_string(const Value& value, std::string& out, std::string& error) {
+bool value_to_regex_string(const Value& value, std::string& out, bool& bytes_value, std::string& error) {
   if (auto* string = value_as_string(value)) {
     out = string_object_to_string(*string);
+    bytes_value = false;
     return true;
   }
   if (auto* bytes = value_as_bytes(value)) {
     out = bytes_object_to_string(*bytes);
+    bytes_value = true;
     return true;
   }
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
@@ -62,7 +66,13 @@ bool value_to_regex_string(const Value& value, std::string& out, std::string& er
     return false;
   }
   out = value_to_string(value);
+  bytes_value = false;
   return true;
+}
+
+bool value_to_regex_string(const Value& value, std::string& out, std::string& error) {
+  bool ignored = false;
+  return value_to_regex_string(value, out, ignored, error);
 }
 
 int64_t match_group_index(const Value* args, uint32_t argc) {
@@ -87,7 +97,8 @@ bool match_group(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
     error = "no such group";
     return false;
   }
-  out = Value::string(state->groups[static_cast<size_t>(index)]);
+  const std::string& group = state->groups[static_cast<size_t>(index)];
+  out = state->bytes_result ? Value::bytes(group) : Value::string(group);
   return true;
 }
 
@@ -134,15 +145,16 @@ bool match_groups(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   }
   std::vector<Value> values;
   for (size_t i = 1; i < state->groups.size(); ++i) {
-    values.push_back(Value::string(state->groups[i]));
+    values.push_back(state->bytes_result ? Value::bytes(state->groups[i]) : Value::string(state->groups[i]));
   }
   out = Value::tuple(std::move(values));
   return true;
 }
 
-Value make_match(Runtime& runtime, const std::string& text, const std::smatch& match, std::string& error) {
+Value make_match(Runtime& runtime, const std::string& text, const std::smatch& match, bool bytes_result, std::string& error) {
   auto* state = new MatchState();
   state->text = text;
+  state->bytes_result = bytes_result;
   state->groups.reserve(match.size());
   state->spans.reserve(match.size());
   for (size_t i = 0; i < match.size(); ++i) {
@@ -171,9 +183,10 @@ Value make_match(Runtime& runtime, const std::string& text, const std::smatch& m
   return instance;
 }
 
-bool compile_pattern(Runtime& runtime, const std::string& pattern, Value& out, std::string& error) {
+bool compile_pattern(Runtime& runtime, const std::string& pattern, bool bytes_pattern, Value& out, std::string& error) {
   auto* state = new PatternState();
   state->pattern = pattern;
+  state->bytes_pattern = bytes_pattern;
   try {
     state->regex = std::regex(pattern);
   } catch (const std::regex_error&) {
@@ -183,7 +196,7 @@ bool compile_pattern(Runtime& runtime, const std::string& pattern, Value& out, s
     return false;
   }
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"pattern", Value::string(pattern)});
+  attrs.push_back({"pattern", bytes_pattern ? Value::bytes(pattern) : Value::string(pattern)});
   attrs.push_back({"match", runtime.make_native_function("re.Pattern.match", regex_match_entry)});
   attrs.push_back({"search", runtime.make_native_function("re.Pattern.search", regex_match_entry, reinterpret_cast<void*>(1))});
   attrs.push_back({"fullmatch", runtime.make_native_function("re.Pattern.fullmatch", regex_match_entry, reinterpret_cast<void*>(2))});
@@ -202,21 +215,22 @@ bool regex_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   std::string pattern;
-  if (!value_to_regex_string(args[0], pattern, error)) {
+  bool bytes_pattern = false;
+  if (!value_to_regex_string(args[0], pattern, bytes_pattern, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return compile_pattern(runtime, pattern, out, error);
+  return compile_pattern(runtime, pattern, bytes_pattern, out, error);
 }
 
-bool run_match(Runtime& runtime, const std::regex& regex, const std::string& text, int mode, Value& out, std::string& error) {
+bool run_match(Runtime& runtime, const std::regex& regex, const std::string& text, int mode, bool bytes_result, Value& out, std::string& error) {
   try {
     std::smatch match;
     const bool ok = mode == 2 ? std::regex_match(text, match, regex) :
         mode == 0 ? std::regex_search(text, match, regex, std::regex_constants::match_continuous) :
         std::regex_search(text, match, regex);
     if (ok) {
-      out = make_match(runtime, text, match, error);
+      out = make_match(runtime, text, match, bytes_result, error);
     } else {
       value_set_none(out);
     }
@@ -234,24 +248,26 @@ bool regex_match_entry(Runtime& runtime, const Value* args, uint32_t argc, Value
     return false;
   }
   std::string text;
-  if (!value_to_regex_string(args[1], text, error)) {
+  bool bytes_text = false;
+  if (!value_to_regex_string(args[1], text, bytes_text, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* pattern_state = static_cast<PatternState*>(instance_get_native_data(args[0], kPatternType));
   if (pattern_state != nullptr) {
     const int mode = user_data == reinterpret_cast<void*>(2) ? 2 : user_data == nullptr ? 0 : 1;
-    return run_match(runtime, pattern_state->regex, text, mode, out, error);
+    return run_match(runtime, pattern_state->regex, text, mode, pattern_state->bytes_pattern || bytes_text, out, error);
   }
   std::string pattern;
-  if (!value_to_regex_string(args[0], pattern, error)) {
+  bool bytes_pattern = false;
+  if (!value_to_regex_string(args[0], pattern, bytes_pattern, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   try {
     std::regex regex(pattern);
     const int mode = user_data == reinterpret_cast<void*>(2) ? 2 : user_data == nullptr ? 0 : 1;
-    return run_match(runtime, regex, text, mode, out, error);
+    return run_match(runtime, regex, text, mode, bytes_pattern || bytes_text, out, error);
   } catch (const std::regex_error&) {
     error = "invalid regular expression";
     runtime.raise_class_error("ValueError", error);

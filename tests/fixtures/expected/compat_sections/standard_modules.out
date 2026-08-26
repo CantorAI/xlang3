@@ -104,6 +104,8 @@ True True
 True
 82 RESUME 43 69 ==
 68 True 1 a 55 = 0
+iso-8859-1 name True
+utf-8 value =
 [# note, # tail] 2 2
 True True
 2147483649 131097 1 None
@@ -134,7 +136,7 @@ id42 id (id, 42) (2, 4)
 abc abc True
 [1, 22] [a, b, c] a#b#
 256 256 0 64 64 RegexFlag
-abc
+b'abc'
 utf_8 codec b'hi'
 idna example.com
 a 1 True False

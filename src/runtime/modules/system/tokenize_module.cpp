@@ -19,6 +19,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 
+#include "source_encoding.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -178,24 +180,35 @@ bool token_kind_to_tokenize_number(TokenKind kind, int64_t& out) {
   return false;
 }
 
-bool value_to_source_text(const Value& value, std::string& out) {
+bool value_to_source_text(const Value& value, std::string& out, bool& bytes_like) {
   if (StringObject* string_value = value_as_string(value)) {
     out = string_object_to_string(*string_value);
+    bytes_like = false;
     return true;
   }
   if (BytesObject* bytes_value = value_as_bytes(value)) {
     out = std::string(bytes_object_view(*bytes_value));
+    bytes_like = true;
     return true;
   }
   if (ByteArrayObject* bytearray_value = value_as_bytearray(value)) {
     out = bytearray_value->value;
+    bytes_like = true;
     return true;
   }
   return false;
 }
 
-bool read_source_from_readline(Runtime& runtime, const Value& readline, std::string& source, std::string& error) {
+bool read_source_from_readline(
+    Runtime& runtime,
+    const Value& readline,
+    const std::string* requested_encoding,
+    std::string& source,
+    std::string& encoding,
+    std::string& error) {
   source.clear();
+  encoding = "utf-8";
+  bool saw_bytes = false;
   for (;;) {
     Value line;
     if (!runtime_call_callable(runtime, readline, nullptr, 0, line, error)) {
@@ -210,14 +223,28 @@ bool read_source_from_readline(Runtime& runtime, const Value& readline, std::str
       return false;
     }
     std::string text;
-    if (!value_to_source_text(line, text)) {
+    bool bytes_like = false;
+    if (!value_to_source_text(line, text, bytes_like)) {
       error = "TokenizerIter readline must return bytes or str";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
     if (text.empty()) {
+      if (saw_bytes) {
+        PythonSourceText decoded;
+        const bool decoded_ok = requested_encoding == nullptr
+                                    ? decode_python_source_bytes(source, decoded, error)
+                                    : decode_python_source_bytes_as(source, *requested_encoding, decoded, error);
+        if (!decoded_ok) {
+          runtime.raise_class_error("SyntaxError", error);
+          return false;
+        }
+        source = std::move(decoded.text);
+        encoding = std::move(decoded.encoding);
+      }
       return true;
     }
+    saw_bytes = saw_bytes || bytes_like;
     source += text;
   }
 }
@@ -317,7 +344,14 @@ Value make_token_tuple(const TokenizerToken& token) {
   return Value::tuple(std::move(items));
 }
 
-bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool tokenizer_iter_init_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const std::string* requested_encoding,
+    bool emit_encoding_token,
+    Value& out,
+    std::string& error) {
   if (argc < 2) {
     error = "TokenizerIter.__init__() missing readline";
     runtime.raise_class_error("TypeError", error);
@@ -325,7 +359,8 @@ bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
 
   std::string source;
-  if (!read_source_from_readline(runtime, args[1], source, error)) {
+  std::string encoding;
+  if (!read_source_from_readline(runtime, args[1], requested_encoding, source, encoding, error)) {
     return false;
   }
 
@@ -338,6 +373,9 @@ bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
 
   auto* state = new TokenizerIterState();
+  if (emit_encoding_token) {
+    state->tokens.push_back({TokEncoding, encoding, 0, 0, ""});
+  }
 
   const std::vector<std::string> lines = split_source_lines(source);
   std::vector<TokenizerToken> extra_tokens = collect_comment_and_nl_tokens(lines);
@@ -389,6 +427,10 @@ bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Val
   return true;
 }
 
+bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return tokenizer_iter_init_impl(runtime, args, argc, nullptr, true, out, error);
+}
+
 bool tokenizer_iter_init_kw(
     Runtime& runtime,
     const Value* args,
@@ -398,6 +440,7 @@ bool tokenizer_iter_init_kw(
     Value& out,
     std::string& error,
     void* user_data) {
+  std::string requested_encoding;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
     if (name != "encoding" && name != "extra_tokens") {
@@ -405,8 +448,18 @@ bool tokenizer_iter_init_kw(
       runtime.raise_class_error("TypeError", error);
       return false;
     }
+    if (name == "encoding") {
+      if (auto* str = value_as_string(*kwargs[i].value)) {
+        requested_encoding = string_object_to_string(*str);
+      } else if (kwargs[i].value->tag != ValueTag::None) {
+        error = "TokenizerIter.__init__() encoding must be str or None";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    }
   }
-  return tokenizer_iter_init(runtime, args, argc, out, error, user_data);
+  const std::string* encoding_ptr = requested_encoding.empty() ? nullptr : &requested_encoding;
+  return tokenizer_iter_init_impl(runtime, args, argc, encoding_ptr, encoding_ptr == nullptr, out, error);
 }
 
 bool tokenizer_iter_self(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

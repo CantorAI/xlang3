@@ -17,6 +17,8 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/vfs.h"
 
+#include "source_encoding.h"
+
 #include <mutex>
 #include <unordered_map>
 
@@ -47,13 +49,13 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
   return false;
 }
 
-std::vector<std::string> split_source_lines(const std::vector<uint8_t>& bytes) {
+std::vector<std::string> split_source_lines(std::string_view text) {
   std::vector<std::string> lines;
   std::string current;
   current.reserve(128);
-  for (uint8_t byte : bytes) {
-    current.push_back(static_cast<char>(byte));
-    if (byte == '\n') {
+  for (char ch : text) {
+    current.push_back(ch);
+    if (ch == '\n') {
       lines.push_back(std::move(current));
       current.clear();
     }
@@ -79,7 +81,11 @@ bool read_lines(Runtime& runtime, const std::string& filename, std::vector<std::
   if (!runtime.vfs().read_file(filename, bytes, ignored)) {
     return false;
   }
-  lines = split_source_lines(bytes);
+  PythonSourceText source;
+  if (!decode_python_source_bytes(std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()), source, ignored)) {
+    return false;
+  }
+  lines = split_source_lines(source.text);
 
   {
     std::lock_guard<std::mutex> lock(linecache_mutex());
@@ -163,7 +169,15 @@ bool linecache_updatecache(Runtime& runtime, const Value* args, uint32_t argc, V
     return true;
   }
 
-  std::vector<std::string> lines = split_source_lines(bytes);
+  PythonSourceText source;
+  if (!decode_python_source_bytes(std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()), source, ignored)) {
+    std::lock_guard<std::mutex> lock(linecache_mutex());
+    linecache_entries().erase(filename);
+    out = Value::list({});
+    return true;
+  }
+
+  std::vector<std::string> lines = split_source_lines(source.text);
   {
     std::lock_guard<std::mutex> lock(linecache_mutex());
     linecache_entries()[filename] = LineCacheEntry{lines};

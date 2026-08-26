@@ -450,6 +450,10 @@ print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == s
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT, opcode.EXTENDED_ARG, opcode.cmp_op[2])
 token_items = list(tokenize.tokenize(iter([b"a=1\n", b""]).__next__))
 print(token_items[0].type, token_items[0].string == "utf-8", token_items[1].type, token_items[1].string, token_items[2].type, token_items[2].string, token_items[-1].type)
+latin_tokens = list(tokenize.tokenize(iter([b"# coding: latin-1\n", b"name='caf\xe9'\n", b""]).__next__))
+print(latin_tokens[0].string, latin_tokens[3].string, latin_tokens[5].type == tokenize.STRING)
+bom_tokens = list(tokenize.tokenize(iter([b"\xef\xbb\xbfvalue=7\n", b""]).__next__))
+print(bom_tokens[0].string, bom_tokens[1].string, bom_tokens[2].string)
 comment_tokens = list(tokenize.tokenize(iter([b"x = '#'\n", b"# note\n", b"\n", b"y = 2 # tail\n", b""]).__next__))
 comment_kinds = [item.type for item in comment_tokens if item.string in ("# note", "# tail", "\n")]
 comment_text = [item.string for item in comment_tokens if item.type == tokenize.COMMENT]

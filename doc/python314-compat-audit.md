@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after commit `bca02b2` (`Update Python compatibility audit progress`).
+Last updated after the linecache/tokenize source-encoding closeout batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
+  ASCII, and Latin-1 coding cookies; wired it into `linecache` and `_tokenize`.
+- Fixed bytes-regex match groups so CPython `Lib/tokenize.py` can run its
+  `detect_encoding()` path against bytes input.
 - `eacf098` expanded `time`: constructible/indexable/iterable `struct_time`, `strptime`, and timezone constants.
 - `9c7a42b` expanded `enum`: direct enum `__repr__`/`__str__`, `Flag`/`IntFlag` bitwise operators, inversion, and composite names.
 - `148a008` expanded callable metadata: bound methods, raw `staticmethod`/`classmethod`, native function metadata, and class `__dict__` inspection.
@@ -76,8 +80,8 @@ Recent completed batches:
 
 Recommended next batch:
 
-- `linecache` plus tokenizer encoding-cookie behavior, because this feeds debugger/source lookup and pure-Python library compatibility.
-- Then `inspect` source/signature gaps that depend on the improved source lookup.
+- `inspect` source/signature gaps that depend on improved source lookup.
+- Then `traceback` frame/line formatting.
 - Then importlib/resource edge behavior for real stdlib package loading.
 
 ## Standard Module Closeout Policy
@@ -100,8 +104,8 @@ Closeout meanings:
 
 Current P0 closeout queue:
 
-- `linecache`: encoding-cookie handling and exact source cache invalidation.
-- `tokenize` / `_tokenize`: encoding-cookie/BOM behavior and exact token text.
+- `linecache`: exact source cache invalidation.
+- `tokenize` / `_tokenize`: exact token text and broader CPython tokenizer parity.
 - `inspect`: real source lookup, frame stack, signatures, annotations, and descriptor classification.
 - `traceback`: exact frame, line, exception-chain, and formatting behavior.
 - `importlib` / `pkgutil`: real finder/loader/resource/package semantics.
@@ -567,7 +571,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
   `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
   zip/resource edge cases, and exact import-package behavior pending
-- [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, `findall`, `split`, `sub`, flag aliases, bytes-pattern basics, and `escape` facade; full CPython regex semantics pending
+- [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, bytes-pattern match groups, `findall`, `split`, `sub`, flag aliases, bytes-pattern basics, and `escape` facade; full CPython regex semantics pending
 - [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
 - [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
@@ -593,8 +597,8 @@ High-level modules currently backed by native/runtime code:
   full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
-- [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, lazy `itertools.chain`, and native COMMENT/NL preservation for comment-only, blank, and inline-comment lines; exact token text for string literals, encoding-cookie/BOM details, and full CPython tokenizer parity pending
-- [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation; encoding-cookie handling and exact cache invalidation semantics pending
+- [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, lazy `itertools.chain`, native COMMENT/NL preservation for comment-only, blank, and inline-comment lines, and UTF-8/UTF-8-BOM/ASCII/Latin-1 coding-cookie handling; exact token text for string literals and full CPython tokenizer parity pending
+- [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation with UTF-8/UTF-8-BOM/ASCII/Latin-1 coding-cookie decoding; exact cache invalidation semantics pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`/`getabsfile`,
   `getmodule`/`getmodulename`, `getmro`, doc cleanup, unwrap, generator/coroutine state helpers,
   Python-callable `getmembers` predicates, `getfullargspec`, and `signature`/`Signature`/`Parameter`/`BoundArguments`
@@ -730,8 +734,7 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   with suffix/chained calls inside implicit line continuation. `tokenize`
   fixture coverage now also checks COMMENT/NL tokens while preserving `#`
   inside string literals. Remaining work: exact source-token text for strings,
-  encoding-cookie/BOM behavior, and broader tokenizer parity against CPython
-  `Lib/tokenize.py`.
+  broader tokenizer parity against CPython `Lib/tokenize.py`.
 
 ## Audit Method
 
