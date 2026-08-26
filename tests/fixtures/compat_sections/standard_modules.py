@@ -450,6 +450,10 @@ print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == s
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT, opcode.EXTENDED_ARG, opcode.cmp_op[2])
 token_items = list(tokenize.tokenize(iter([b"a=1\n", b""]).__next__))
 print(token_items[0].type, token_items[0].string == "utf-8", token_items[1].type, token_items[1].string, token_items[2].type, token_items[2].string, token_items[-1].type)
+comment_tokens = list(tokenize.tokenize(iter([b"x = '#'\n", b"# note\n", b"\n", b"y = 2 # tail\n", b""]).__next__))
+comment_kinds = [item.type for item in comment_tokens if item.string in ("# note", "# tail", "\n")]
+comment_text = [item.string for item in comment_tokens if item.type == tokenize.COMMENT]
+print(comment_text, comment_kinds.count(tokenize.COMMENT), comment_kinds.count(tokenize.NL))
 print(threading.__file__.endswith("threading.py"), os.__file__.endswith("os.py"))
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)

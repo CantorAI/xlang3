@@ -510,7 +510,7 @@ High-level modules currently backed by native/runtime code:
   full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
-- [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, and lazy `itertools.chain`; comments/NL, exact token text for string literals, encoding-cookie/BOM details, and full CPython tokenizer parity pending
+- [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, lazy `itertools.chain`, and native COMMENT/NL preservation for comment-only, blank, and inline-comment lines; exact token text for string literals, encoding-cookie/BOM details, and full CPython tokenizer parity pending
 - [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation; encoding-cookie handling and exact cache invalidation semantics pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`/`getabsfile`,
   `getmodule`/`getmodulename`, `getmro`, doc cleanup, unwrap, generator/coroutine state helpers,
@@ -644,8 +644,11 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
   Section fixture covers raw strings, bytes escapes, f-strings, adjacent
   literals, triple strings after expressions, comments, escaped quotes, and
   triple quote sequences inside normal strings, plus triple-quoted literals
-  with suffix/chained calls inside implicit line continuation. Remaining work:
-  broader tokenizer parity against CPython `Lib/tokenize.py`.
+  with suffix/chained calls inside implicit line continuation. `tokenize`
+  fixture coverage now also checks COMMENT/NL tokens while preserving `#`
+  inside string literals. Remaining work: exact source-token text for strings,
+  encoding-cookie/BOM behavior, and broader tokenizer parity against CPython
+  `Lib/tokenize.py`.
 
 ## Audit Method
 

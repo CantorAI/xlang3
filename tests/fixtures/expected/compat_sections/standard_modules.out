@@ -104,6 +104,7 @@ True True
 True
 82 RESUME 43 69 ==
 68 True 1 a 55 = 0
+[# note, # tail] 2 2
 True True
 2147483649 131097 1 None
 True True True

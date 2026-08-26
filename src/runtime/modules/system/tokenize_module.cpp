@@ -41,6 +41,8 @@ enum TokenizeNumber : int64_t {
   TokIndent = 5,
   TokDedent = 6,
   TokOp = 55,
+  TokComment = 65,
+  TokNl = 66,
   TokEncoding = 68,
 };
 
@@ -242,6 +244,59 @@ std::string line_text_at(const std::vector<std::string>& lines, uint32_t one_bas
   return lines[one_based_line - 1];
 }
 
+size_t comment_start_in_line(std::string_view line) {
+  char quote = '\0';
+  bool escaped = false;
+  for (size_t i = 0; i < line.size(); ++i) {
+    const char ch = line[i];
+    if (quote != '\0') {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch == '\\') {
+        escaped = true;
+        continue;
+      }
+      if (ch == quote) {
+        quote = '\0';
+      }
+      continue;
+    }
+    if (ch == '\'' || ch == '"') {
+      quote = ch;
+      continue;
+    }
+    if (ch == '#') {
+      return i;
+    }
+  }
+  return std::string_view::npos;
+}
+
+std::vector<TokenizerToken> collect_comment_and_nl_tokens(const std::vector<std::string>& lines) {
+  std::vector<TokenizerToken> out;
+  for (uint32_t line_index = 0; line_index < lines.size(); ++line_index) {
+    const uint32_t line_no = line_index + 1;
+    const std::string& line = lines[line_index];
+    const size_t newline_size = !line.empty() && line.back() == '\n' ? 1 : 0;
+    const std::string_view content(line.data(), line.size() - newline_size);
+    const size_t first = content.find_first_not_of(" \t\r");
+    if (first == std::string_view::npos) {
+      out.push_back({TokNl, std::string(line.substr(content.size())), line_no, static_cast<uint32_t>(content.size()), line});
+      continue;
+    }
+    const size_t comment = comment_start_in_line(content);
+    if (comment != std::string_view::npos) {
+      out.push_back({TokComment, std::string(content.substr(comment)), line_no, static_cast<uint32_t>(comment), line});
+      if (first == comment) {
+        out.push_back({TokNl, std::string(line.substr(content.size())), line_no, static_cast<uint32_t>(content.size()), line});
+      }
+    }
+  }
+  return out;
+}
+
 Value make_position_tuple(uint32_t line, uint32_t column) {
   std::vector<Value> items;
   items.reserve(2);
@@ -285,6 +340,18 @@ bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Val
   auto* state = new TokenizerIterState();
 
   const std::vector<std::string> lines = split_source_lines(source);
+  std::vector<TokenizerToken> extra_tokens = collect_comment_and_nl_tokens(lines);
+  size_t extra_index = 0;
+  auto append_extra_before = [&](uint32_t line, uint32_t column) {
+    while (extra_index < extra_tokens.size()) {
+      const auto& extra = extra_tokens[extra_index];
+      if (extra.line > line || (extra.line == line && extra.column >= column)) {
+        break;
+      }
+      state->tokens.push_back(extra);
+      ++extra_index;
+    }
+  };
   bool saw_end = false;
   for (const Token& token : lex.tokens) {
     int64_t type = TokOp;
@@ -295,12 +362,18 @@ bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Val
       saw_end = true;
     }
     const uint32_t zero_based_column = token.column > 0 ? token.column - 1 : 0;
+    append_extra_before(
+        token.kind == TokenKind::End ? static_cast<uint32_t>(lines.size() + 1) : token.line,
+        token.kind == TokenKind::End ? 0 : zero_based_column);
     state->tokens.push_back(
         {type,
          std::string(token.text),
          token.kind == TokenKind::End ? static_cast<uint32_t>(lines.size() + 1) : token.line,
          token.kind == TokenKind::End ? 0 : zero_based_column,
          token.kind == TokenKind::End ? std::string() : line_text_at(lines, token.line)});
+  }
+  while (extra_index < extra_tokens.size()) {
+    state->tokens.push_back(extra_tokens[extra_index++]);
   }
   if (!saw_end) {
     state->tokens.push_back({TokEndMarker, "", static_cast<uint32_t>(lines.size() + 1), 0, ""});
