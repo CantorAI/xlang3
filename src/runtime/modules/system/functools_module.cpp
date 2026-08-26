@@ -465,6 +465,16 @@ bool partial_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       nullptr,
       false,
       partial_call_kw);
+  std::vector<Value> bound_args;
+  bound_args.reserve(state->bound_args.size());
+  for (const auto& arg : state->bound_args) {
+    bound_args.push_back(arg);
+  }
+  if (!object_set_attr(out, "func", state->callable, error) ||
+      !object_set_attr(out, "args", Value::tuple(std::move(bound_args)), error) ||
+      !object_set_attr(out, "keywords", Value::none(), error)) {
+    return false;
+  }
   return true;
 }
 

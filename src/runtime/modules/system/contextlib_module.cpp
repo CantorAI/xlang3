@@ -32,6 +32,7 @@ constexpr const char* kGeneratorContextType = "contextlib._GeneratorContextManag
 constexpr const char* kNullContextType = "contextlib.nullcontext";
 constexpr const char* kClosingType = "contextlib.closing";
 constexpr const char* kSuppressType = "contextlib.suppress";
+constexpr const char* kExitStackType = "contextlib.ExitStack";
 
 struct GeneratorContextState {
   Value generator;
@@ -55,6 +56,16 @@ struct SuppressState {
   std::vector<Value> exceptions;
 };
 
+struct ExitStackCallback {
+  Value callable;
+  std::vector<Value> args;
+  bool receives_exception = false;
+};
+
+struct ExitStackState {
+  std::vector<ExitStackCallback> callbacks;
+};
+
 void generator_context_cleanup(void* data) {
   delete static_cast<GeneratorContextState*>(data);
 }
@@ -73,6 +84,10 @@ void closing_cleanup(void* data) {
 
 void suppress_cleanup(void* data) {
   delete static_cast<SuppressState*>(data);
+}
+
+void exit_stack_cleanup(void* data) {
+  delete static_cast<ExitStackState*>(data);
 }
 
 bool generator_context_enter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -364,11 +379,167 @@ bool suppress_exit(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool abstract_context_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "AbstractContextManager.__enter__() expected self";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool abstract_context_exit(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_bool(out, false);
+  return true;
+}
+
+ExitStackState* exit_stack_state(const Value& self, std::string& error) {
+  auto* state = static_cast<ExitStackState*>(instance_get_native_data(self, kExitStackType));
+  if (state == nullptr) {
+    error = "invalid ExitStack";
+  }
+  return state;
+}
+
+bool exit_stack_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ExitStack() expected no arguments";
+    return false;
+  }
+  auto* state = new ExitStackState();
+  if (!instance_set_native_data(args[0], kExitStackType, state, exit_stack_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool exit_stack_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "ExitStack.__enter__() expected self";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool exit_stack_push(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ExitStack.push() expected exit callback";
+    return false;
+  }
+  auto* state = exit_stack_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  state->callbacks.push_back(ExitStackCallback{args[1], {}, true});
+  value_assign_fast(out, args[1]);
+  return true;
+}
+
+bool exit_stack_callback(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2) {
+    error = "ExitStack.callback() expected callback";
+    return false;
+  }
+  auto* state = exit_stack_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  ExitStackCallback callback;
+  callback.callable = args[1];
+  callback.receives_exception = false;
+  callback.args.reserve(argc - 2);
+  for (uint32_t i = 2; i < argc; ++i) {
+    callback.args.push_back(args[i]);
+  }
+  state->callbacks.push_back(std::move(callback));
+  value_assign_fast(out, args[1]);
+  return true;
+}
+
+bool exit_stack_enter_context(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ExitStack.enter_context() expected context manager";
+    return false;
+  }
+  auto* state = exit_stack_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  Value enter_method;
+  if (!object_get_attr(args[1], "__enter__", enter_method, error)) {
+    return false;
+  }
+  Value exit_method;
+  if (!object_get_attr(args[1], "__exit__", exit_method, error)) {
+    return false;
+  }
+  if (!runtime_call_callable(runtime, enter_method, nullptr, 0, out, error)) {
+    return false;
+  }
+  state->callbacks.push_back(ExitStackCallback{exit_method, {}, true});
+  return true;
+}
+
+bool exit_stack_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 4) {
+    error = "ExitStack.__exit__() expected exc_type, exc_val, exc_tb";
+    return false;
+  }
+  auto* state = exit_stack_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  bool suppress = false;
+  while (!state->callbacks.empty()) {
+    ExitStackCallback callback = std::move(state->callbacks.back());
+    state->callbacks.pop_back();
+    Value result;
+    if (callback.receives_exception) {
+      Value call_args[3] = {args[1], args[2], args[3]};
+      if (!runtime_call_callable(runtime, callback.callable, call_args, 3, result, error)) {
+        return false;
+      }
+      if (value_truthy(result)) {
+        suppress = true;
+      }
+    } else if (!runtime_call_callable(
+                   runtime,
+                   callback.callable,
+                   callback.args.empty() ? nullptr : callback.args.data(),
+                   static_cast<uint32_t>(callback.args.size()),
+                   result,
+                   error)) {
+      return false;
+    }
+  }
+  value_set_bool(out, suppress);
+  return true;
+}
+
+bool exit_stack_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "ExitStack.close() expected no arguments";
+    return false;
+  }
+  Value call_args[4] = {args[0], Value::none(), Value::none(), Value::none()};
+  return exit_stack_exit(runtime, call_args, 4, out, error, user_data);
+}
+
 Value make_generator_context_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__enter__", runtime.make_native_function("contextlib._GeneratorContextManager.__enter__", generator_context_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("contextlib._GeneratorContextManager.__exit__", generator_context_exit)});
   return Value::class_object("_GeneratorContextManager", std::move(attrs));
+}
+
+Value make_abstract_context_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__enter__", runtime.make_native_function("contextlib.AbstractContextManager.__enter__", abstract_context_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("contextlib.AbstractContextManager.__exit__", abstract_context_exit)});
+  return Value::class_object("AbstractContextManager", std::move(attrs));
 }
 
 Value make_nullcontext_class(Runtime& runtime) {
@@ -395,6 +566,18 @@ Value make_suppress_class(Runtime& runtime) {
   return Value::class_object("suppress", std::move(attrs));
 }
 
+Value make_exit_stack_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function("contextlib.ExitStack.__init__", exit_stack_init)});
+  attrs.push_back({"__enter__", runtime.make_native_function("contextlib.ExitStack.__enter__", exit_stack_enter)});
+  attrs.push_back({"__exit__", runtime.make_native_function("contextlib.ExitStack.__exit__", exit_stack_exit)});
+  attrs.push_back({"enter_context", runtime.make_native_function("contextlib.ExitStack.enter_context", exit_stack_enter_context)});
+  attrs.push_back({"push", runtime.make_native_function("contextlib.ExitStack.push", exit_stack_push)});
+  attrs.push_back({"callback", runtime.make_native_function("contextlib.ExitStack.callback", exit_stack_callback)});
+  attrs.push_back({"close", runtime.make_native_function("contextlib.ExitStack.close", exit_stack_close)});
+  return Value::class_object("ExitStack", std::move(attrs));
+}
+
 } // namespace
 
 void register_contextlib_module(Runtime& runtime) {
@@ -411,7 +594,9 @@ void register_contextlib_module(Runtime& runtime) {
               [](void* data) { delete static_cast<Value*>(data); }))
       .value("nullcontext", make_nullcontext_class(runtime))
       .value("closing", make_closing_class(runtime))
-      .value("suppress", make_suppress_class(runtime));
+      .value("suppress", make_suppress_class(runtime))
+      .value("AbstractContextManager", make_abstract_context_class(runtime))
+      .value("ExitStack", make_exit_stack_class(runtime));
   runtime.register_module("contextlib", builder.finish());
 }
 

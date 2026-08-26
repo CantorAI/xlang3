@@ -421,7 +421,7 @@ High-level modules currently backed by native/runtime code:
   UTF-8/UTF-8-SIG/ASCII/Latin-1 encode/decode with strict/ignore/replace/backslashreplace basics, ASCII-compatible
   `idna` lookup/encode/decode foundation, hex encode/decode, and error-handler lookup/registration foundation;
   full codec registry/error handling pending
-- [~] `contextlib`: generator `contextmanager`, wrapper metadata (`__name__`, `__qualname__`, `__module__`, `__doc__`, `__wrapped__`) and writable wrapper docs, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
+- [~] `contextlib`: generator `contextmanager`, wrapper metadata (`__name__`, `__qualname__`, `__module__`, `__doc__`, `__wrapped__`) and writable wrapper docs, `nullcontext`, `closing`, `suppress`, `AbstractContextManager`, and native `ExitStack` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [~] `ctypes`:
   Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,
   `memmove`/`memset` no-op shape, string buffers, simple `Structure` field
@@ -435,7 +435,7 @@ High-level modules currently backed by native/runtime code:
   `glob.escape`, and VFS-backed `glob`/`iglob` with recursive `**`, iterator-returning `iglob`,
   `root_dir`, `include_hidden`, and bytes-path result preservation; real `dir_fd`,
   platform-specific path normalization, and exact CPython path edge cases pending
-- [~] `functools`: `update_wrapper`, `wraps`, `partial`, `reduce`, `cmp_to_key`, `total_ordering`, and real
+- [~] `functools`: `update_wrapper`, `wraps`, `partial` callable/inspection metadata, `reduce`, `cmp_to_key`, `total_ordering`, and real
   positional-call `lru_cache`/`cache` wrappers with bounded eviction, `cache_info`, `cache_clear`,
   and `cache_parameters` foundations; keyword-call caching, exact `CacheInfo` namedtuple behavior,
   `singledispatch`, descriptor edge cases, and full CPython semantics pending

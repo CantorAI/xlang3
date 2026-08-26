@@ -48,6 +48,7 @@ functools.update_wrapper(plain, original)
 print(plain.__name__, plain.__doc__, plain.__wrapped__ is original)
 add_two = functools.partial(original, 2)
 print(add_two(5))
+print(add_two.func is original, add_two.args, add_two.keywords is None)
 
 # contextlib.contextmanager preserves Python function metadata and writable wrapper docs.
 @contextmanager
@@ -165,6 +166,27 @@ print(target.closed)
 with contextlib.suppress(ValueError):
     raise ValueError("hidden")
 print("suppressed")
+
+# contextlib: ExitStack closes callbacks and entered contexts in LIFO order.
+events = []
+
+class StackTarget:
+    def __enter__(self):
+        events.append("enter")
+        return "stacked"
+
+    def __exit__(self, exc_type, exc, tb):
+        events.append("exit")
+        return False
+
+def stack_callback(label):
+    events.append(label)
+
+with contextlib.ExitStack() as stack:
+    print(stack.enter_context(StackTarget()))
+    stack.callback(stack_callback, "callback")
+
+print(events)
 
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.
 import argparse

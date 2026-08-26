@@ -3,6 +3,7 @@ native
 original doc text True 5
 original doc text True
 7
+True (2,) True
 managed_value managed doc managed_value
 changed doc
 123 123
@@ -31,6 +32,8 @@ null
 True False
 True
 suppressed
+stacked
+[enter, callback, exit]
 7 True bob
 9 left 6
 BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
