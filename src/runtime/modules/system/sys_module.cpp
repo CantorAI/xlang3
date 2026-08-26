@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -42,6 +44,19 @@ namespace {
 
 int g_recursion_limit = 1000;
 Value g_profile_function = Value::none();
+std::vector<Value> g_audit_hooks;
+
+bool is_callable_value(const Value& value) {
+  return value_as_function(value) != nullptr ||
+         value_as_native_function(value) != nullptr ||
+         value_as_bound_method(value) != nullptr ||
+         value_as_class(value) != nullptr ||
+         [&]() {
+           Value call_attr;
+           std::string ignored;
+           return value_as_instance(value) != nullptr && attribute_get(value, "__call__", call_attr, ignored);
+         }();
+}
 
 Value make_structseq(
     const std::string& type_name,
@@ -340,6 +355,61 @@ bool sys_stdio_close(Runtime&, const Value*, uint32_t argc, Value& out, std::str
   return true;
 }
 
+bool sys_stdio_isatty(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "stdio.isatty() expected no arguments";
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+bool sys_stdio_readable(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "stdio.readable() expected no arguments";
+    return false;
+  }
+  const char* kind = static_cast<const char*>(user_data);
+  value_set_bool(out, std::string(kind) == "stdin");
+  return true;
+}
+
+bool sys_stdio_writable(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "stdio.writable() expected no arguments";
+    return false;
+  }
+  const char* kind = static_cast<const char*>(user_data);
+  value_set_bool(out, std::string(kind) != "stdin");
+  return true;
+}
+
+bool sys_stdio_seekable(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "stdio.seekable() expected no arguments";
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+bool sys_stdio_fileno(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "stdio.fileno() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const std::string kind = static_cast<const char*>(user_data);
+  if (kind == "stdin") {
+    value_set_int64(out, 0);
+  } else if (kind == "stdout") {
+    value_set_int64(out, 1);
+  } else {
+    value_set_int64(out, 2);
+  }
+  return true;
+}
+
 Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"write", runtime.make_native_function(std::string("sys.") + kind + ".write", sys_stdio_write, const_cast<char*>(kind))});
@@ -347,12 +417,19 @@ Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind)
   attrs.push_back({"readline", runtime.make_native_function(std::string("sys.") + kind + ".readline", sys_stdio_readline, const_cast<char*>(kind))});
   attrs.push_back({"flush", runtime.make_native_function(std::string("sys.") + kind + ".flush", sys_stdio_flush, const_cast<char*>(kind))});
   attrs.push_back({"close", runtime.make_native_function(std::string("sys.") + kind + ".close", sys_stdio_close, const_cast<char*>(kind))});
+  attrs.push_back({"isatty", runtime.make_native_function(std::string("sys.") + kind + ".isatty", sys_stdio_isatty, const_cast<char*>(kind))});
+  attrs.push_back({"readable", runtime.make_native_function(std::string("sys.") + kind + ".readable", sys_stdio_readable, const_cast<char*>(kind))});
+  attrs.push_back({"writable", runtime.make_native_function(std::string("sys.") + kind + ".writable", sys_stdio_writable, const_cast<char*>(kind))});
+  attrs.push_back({"seekable", runtime.make_native_function(std::string("sys.") + kind + ".seekable", sys_stdio_seekable, const_cast<char*>(kind))});
+  attrs.push_back({"fileno", runtime.make_native_function(std::string("sys.") + kind + ".fileno", sys_stdio_fileno, const_cast<char*>(kind))});
   Value klass = Value::class_object(class_name, std::move(attrs));
   Value stream = Value::instance(klass);
   std::string ignored;
   object_set_attr(stream, "encoding", Value::string("utf-8"), ignored);
   object_set_attr(stream, "errors", Value::string("strict"), ignored);
   object_set_attr(stream, "buffer", stream, ignored);
+  object_set_attr(stream, "closed", Value::boolean(false), ignored);
+  object_set_attr(stream, "line_buffering", Value::boolean(true), ignored);
   object_set_attr(stream, "_line_buffering", Value::boolean(true), ignored);
   return stream;
 }
@@ -637,6 +714,44 @@ bool sys_unraisablehook(Runtime&, const Value*, uint32_t argc, Value& out, std::
 }
 
 bool sys_breakpointhook(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_none(out);
+  return true;
+}
+
+bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.addaudithook expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!is_callable_value(args[0])) {
+    error = "sys.addaudithook expected callable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  g_audit_hooks.push_back(args[0]);
+  value_set_none(out);
+  return true;
+}
+
+bool sys_audit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || value_as_string(args[0]) == nullptr) {
+    error = "sys.audit expected event name string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> event_args;
+  event_args.reserve(argc > 0 ? argc - 1 : 0);
+  for (uint32_t i = 1; i < argc; ++i) {
+    event_args.push_back(args[i]);
+  }
+  Value hook_args[] = {args[0], Value::tuple(std::move(event_args))};
+  for (const auto& hook : g_audit_hooks) {
+    Value ignored;
+    if (!runtime_call_callable(runtime, hook, hook_args, 2, ignored, error)) {
+      return false;
+    }
+  }
   value_set_none(out);
   return true;
 }
@@ -943,6 +1058,8 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "__unraisablehook__", runtime.make_native_function("sys.__unraisablehook__", sys_unraisablehook), error);
   module_set_attr(sys, "breakpointhook", runtime.make_native_function("sys.breakpointhook", sys_breakpointhook), error);
   module_set_attr(sys, "__breakpointhook__", runtime.make_native_function("sys.__breakpointhook__", sys_breakpointhook), error);
+  module_set_attr(sys, "addaudithook", runtime.make_native_function("sys.addaudithook", sys_addaudithook), error);
+  module_set_attr(sys, "audit", runtime.make_native_function("sys.audit", sys_audit), error);
   module_set_attr(sys, "getdefaultencoding", runtime.make_native_function("sys.getdefaultencoding", sys_getdefaultencoding), error);
   module_set_attr(sys, "getfilesystemencoding", runtime.make_native_function("sys.getfilesystemencoding", sys_getfilesystemencoding), error);
   module_set_attr(sys, "getfilesystemencodeerrors", runtime.make_native_function("sys.getfilesystemencodeerrors", sys_getfilesystemencodeerrors), error);

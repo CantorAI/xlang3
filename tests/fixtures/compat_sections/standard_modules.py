@@ -481,6 +481,7 @@ sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
+print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
@@ -497,6 +498,11 @@ sys.setprofile(sys_profile_probe)
 print(sys.getprofile() is sys_profile_probe, sys.is_finalizing())
 sys.setprofile(None)
 print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == False)
+audit_events = []
+def sys_audit_probe(event, args):
+    audit_events.append((event, args))
+sys.addaudithook(sys_audit_probe)
+print(sys.audit("xlang3.fixture", 1, "a") is None, audit_events[0][0], audit_events[0][1])
 def sys_frame_probe():
     frame = sys._getframe()
     caller = sys._getframe(1)

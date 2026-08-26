@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `abc` abstract descriptor decorator batch.
+Last updated after the native `sys` audit-hook and stdio-capability batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: stdio objects now expose common capability probes
+  (`isatty`, `readable`, `writable`, `seekable`, `fileno`, `closed`, and
+  `line_buffering`), and `sys.addaudithook`/`sys.audit` maintain and dispatch
+  Python-level audit hooks.
 - Expanded native `abc` abstract descriptor decorators: `abstractclassmethod`,
   `abstractstaticmethod`, and `abstractproperty` now create descriptor objects
   while preserving observable `__isabstractmethod__` metadata.
@@ -486,7 +490,8 @@ Native or runtime-backed foundation:
   version/platform/prefix/executable fields, structseq-like `version_info`/`flags`/`float_info`/
   `hash_info`/`thread_info`, `implementation` metadata, `builtin_module_names`, default/filesystem
   encoding helpers, recursion-limit helpers, `intern`, `getsizeof`, `exit`, display/exception hook
-  placeholders, profile/switch-interval/int-string helpers, trace/debug hooks, and frame placeholders;
+  placeholders, audit hook dispatch, stdio capability probes, profile/switch-interval/int-string
+  helpers, trace/debug hooks, and frame placeholders;
   full CPython startup flags/config/runtime internals pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

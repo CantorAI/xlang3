@@ -93,6 +93,7 @@ GetPassWarning True True
 True True 127
 utf-8 utf-8 surrogatepass True
 True True True True True
+True False True 2 False False True False
 3 14 7 xlang3-314
 0 1 False True
 2 53 64 nt
@@ -101,6 +102,7 @@ True True True
 True 0
 True False
 True True True
+True xlang3.fixture (1, a)
 (sys_frame_probe, <module>, __main__, False)
 True True
 5
