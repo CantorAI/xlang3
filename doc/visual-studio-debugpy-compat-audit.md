@@ -83,9 +83,9 @@ The canonical debt list for these recent changes lives in
 - [ ] One-line compound suites:
   `def f(): return x`, `class C: pass`, `if x: y`, `while x: y`,
   `for x in y: z`, `try: x`, `except E: y`.
-- [ ] Full function annotations used by debugpy public APIs:
-  PEP 604 unions, generic aliases, and complex annotations must parse and lower
-  without changing runtime behavior.
+- [~] Full function annotations used by debugpy public APIs:
+  `from __future__ import annotations` now stores tested forward refs, PEP 604 unions, generic aliases,
+  and tuple-generic annotation forms as strings; remaining complex annotation forms still need import-ladder coverage.
 - [ ] Complete f-string behavior, including CPython 3.14 edge cases.
 - [ ] Full exception-handler syntax and behavior audit for pydevd paths.
 

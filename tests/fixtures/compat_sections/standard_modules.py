@@ -347,6 +347,7 @@ print(re.findall("[0-9]+", "a1b22"), re.split(",", "a,b,c"), re.sub("[0-9]+", "#
 # codecs: normalized lookup plus UTF-8 and hex encode/decode foundations.
 codec_info = codecs.lookup("UTF-8")
 print(codec_info.name, codecs.decode(codecs.encode("codec", "utf-8"), "utf_8"), codecs.decode(b"6869", "hex"))
+print(codecs.lookup("idna").name, codecs.decode(codecs.encode("example.com", "idna"), "idna"))
 
 # io: memory streams support common file-like read/write/seek/context helpers.
 text_stream = io.StringIO("a\nb")
@@ -426,6 +427,7 @@ compat_fixture_dir = "/".join(file_parts[:-1])
 print(os.path.isfile(__file__), os.path.isdir(core_fixture_dir), os.path.exists(core_fixture_dir + "/missing.file") == False)
 print(os.path.relpath(__file__, core_fixture_dir).endswith("standard_modules.py"), os.path.samefile(__file__, os.path.abspath(__file__)))
 print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLANG3_MISSING_VAR") == "$XLANG3_MISSING_VAR")
+print(os.path.realpath("") == os.getcwd(), os.path.abspath("") == os.getcwd())
 mode = os.stat(__file__)[stat.ST_MODE]
 print(stat.S_ISREG(mode), stat.S_ISDIR(mode), (mode & stat.S_IFMT) == stat.S_IFREG)
 path_obj = pathlib.Path("xlang3_pathlib_section.txt")

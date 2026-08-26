@@ -90,6 +90,7 @@ id42 id (id, 42) (2, 4)
 abc abc True
 [1, 22] [a, b, c] a#b#
 utf_8 codec b'hi'
+idna example.com
 a 1 True False
 b'abc' True True
 True
@@ -112,6 +113,7 @@ demo.echo 7 rpc
 True True True
 True True
 alpha_ True
+True True
 True False True
 xlang3_pathlib_section.txt xlang3_pathlib_section .txt [.txt]
 xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt

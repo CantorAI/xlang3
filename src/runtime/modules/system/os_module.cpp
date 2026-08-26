@@ -423,12 +423,20 @@ bool path_unary(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   const char* op = static_cast<const char*>(user_data);
   std::filesystem::path fs_path(path);
   if (std::string(op) == "abspath") {
+    if (path.empty()) {
+      out = Value::string(runtime.vfs().cwd());
+      return true;
+    }
     ResolvedPath resolved;
     if (!runtime.vfs().resolve(path, resolved, error)) {
       return false;
     }
     out = Value::string(std::move(resolved.path));
   } else if (std::string(op) == "realpath") {
+    if (path.empty()) {
+      out = Value::string(runtime.vfs().cwd());
+      return true;
+    }
     ResolvedPath resolved;
     if (!runtime.vfs().resolve(path, resolved, error)) {
       return false;

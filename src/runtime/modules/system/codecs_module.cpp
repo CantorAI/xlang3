@@ -50,6 +50,9 @@ std::string canonical_encoding(std::string name) {
   if (name == "us_ascii" || name == "646") {
     return "ascii";
   }
+  if (name == "idna") {
+    return "idna";
+  }
   if (name == "hex_codec") {
     return "hex";
   }
@@ -291,7 +294,7 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return hex_encode(data, out);
   }
-  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1") {
+  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1" || encoding == "idna") {
     std::string text;
     if (!value_text(value, text)) {
       error = "codecs.encode expected str";
@@ -311,6 +314,12 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
       out = Value::bytes(std::move(encoded));
     } else if (encoding == "utf_8_sig") {
       out = Value::bytes(std::string("\xef\xbb\xbf", 3) + text);
+    } else if (encoding == "idna") {
+      std::string encoded = ascii_encode_text(runtime, text, errors, error);
+      if (!error.empty()) {
+        return false;
+      }
+      out = Value::bytes(std::move(encoded));
     } else {
       out = Value::bytes(std::move(text));
     }
@@ -329,7 +338,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return hex_decode(data, out, error);
   }
-  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1") {
+  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1" || encoding == "idna") {
     std::string data;
     if (!value_bytes_text(value, data)) {
       error = "codecs.decode expected bytes-like";
@@ -343,6 +352,12 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
       out = Value::string(std::move(decoded));
     } else if (encoding == "latin_1") {
       out = Value::string(latin1_decode_text(data));
+    } else if (encoding == "idna") {
+      std::string decoded = ascii_decode_text(runtime, data, errors, error);
+      if (!error.empty()) {
+        return false;
+      }
+      out = Value::string(std::move(decoded));
     } else if (encoding == "utf_8_sig") {
       if (data.size() >= 3 &&
           static_cast<unsigned char>(data[0]) == 0xef &&
@@ -428,7 +443,7 @@ bool codecs_lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   const std::string name = canonical_encoding(string_object_to_string(*value_as_string(args[0])));
-  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" && name != "hex") {
+  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" && name != "idna" && name != "hex") {
     error = "unknown encoding: " + name;
     return false;
   }

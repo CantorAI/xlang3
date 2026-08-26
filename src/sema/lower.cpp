@@ -158,6 +158,133 @@ bool collect_literal_slots_from_expr(const ast::Expr& expr, std::vector<std::str
   return false;
 }
 
+std::string quote_annotation_string(const std::string& value) {
+  std::string out = "'";
+  for (char ch : value) {
+    if (ch == '\\' || ch == '\'') {
+      out.push_back('\\');
+    }
+    out.push_back(ch);
+  }
+  out.push_back('\'');
+  return out;
+}
+
+std::string join_annotation_parts(const std::vector<std::string>& parts, const char* separator) {
+  std::string out;
+  for (size_t i = 0; i < parts.size(); ++i) {
+    if (i != 0) {
+      out += separator;
+    }
+    out += parts[i];
+  }
+  return out;
+}
+
+std::string annotation_expr_to_string(const ast::Expr& expr) {
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    return name->name;
+  }
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    return annotation_expr_to_string(*attr->object) + "." + attr->name;
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    std::string index;
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(subscript->index.get())) {
+      std::vector<std::string> parts;
+      parts.reserve(tuple->items.size());
+      for (const auto& item : tuple->items) {
+        parts.push_back(annotation_expr_to_string(*item));
+      }
+      index = join_annotation_parts(parts, ", ");
+    } else {
+      index = annotation_expr_to_string(*subscript->index);
+    }
+    return annotation_expr_to_string(*subscript->object) + "[" + index + "]";
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    return annotation_expr_to_string(*binary->lhs) + " " + binary->op + " " + annotation_expr_to_string(*binary->rhs);
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    return unary->op + annotation_expr_to_string(*unary->expr);
+  }
+  if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+    switch (literal->kind) {
+      case ast::LiteralExpr::Kind::None:
+        return "None";
+      case ast::LiteralExpr::Kind::Bool:
+        return literal->bool_value ? "True" : "False";
+      case ast::LiteralExpr::Kind::String:
+        return quote_annotation_string(literal->text);
+      case ast::LiteralExpr::Kind::Bytes:
+        return "b" + quote_annotation_string(literal->text);
+      case ast::LiteralExpr::Kind::Ellipsis:
+        return "...";
+      case ast::LiteralExpr::Kind::Int:
+      case ast::LiteralExpr::Kind::Double:
+        return literal->text;
+    }
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(tuple->items.size());
+    for (const auto& item : tuple->items) {
+      parts.push_back(annotation_expr_to_string(*item));
+    }
+    if (parts.size() == 1) {
+      return "(" + parts[0] + ",)";
+    }
+    return "(" + join_annotation_parts(parts, ", ") + ")";
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(list->items.size());
+    for (const auto& item : list->items) {
+      parts.push_back(annotation_expr_to_string(*item));
+    }
+    return "[" + join_annotation_parts(parts, ", ") + "]";
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    if (!call->call_args.empty()) {
+      parts.reserve(call->call_args.size());
+      for (const auto& arg : call->call_args) {
+        std::string item = annotation_expr_to_string(*arg.value);
+        if (arg.star) {
+          item = "*" + item;
+        } else if (arg.kw_star) {
+          item = "**" + item;
+        } else if (!arg.name.empty()) {
+          item = arg.name + "=" + item;
+        }
+        parts.push_back(std::move(item));
+      }
+    } else {
+      parts.reserve(call->args.size());
+      for (const auto& arg : call->args) {
+        parts.push_back(annotation_expr_to_string(*arg));
+      }
+    }
+    return annotation_expr_to_string(*call->callee) + "(" + join_annotation_parts(parts, ", ") + ")";
+  }
+  return "<annotation>";
+}
+
+bool module_uses_future_annotations(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    auto* import = dynamic_cast<const ast::FromImportStmt*>(stmt.get());
+    if (import == nullptr || import->module != "__future__") {
+      continue;
+    }
+    for (const auto& binding : import->names) {
+      if (binding.name == "annotations") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool append_literal_string_name(const ast::Expr& expr, std::vector<std::string>& names) {
   auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
   if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
@@ -903,9 +1030,11 @@ public:
       std::unordered_map<std::string, ClassInfo> class_infos = {},
       std::unordered_map<std::string, uint32_t> module_global_slots = {},
       std::unordered_set<uint32_t> imported_module_slots = {},
-      std::string qualname_prefix = {})
+      std::string qualname_prefix = {},
+      bool future_annotations = false)
       : module_(module),
         is_module_(is_module),
+        future_annotations_(future_annotations),
         instance_slot_self_(std::move(instance_slot_self)),
         instance_slots_(std::move(instance_slots)),
         class_infos_(std::move(class_infos)),
@@ -1013,6 +1142,15 @@ private:
     const auto tuple = new_reg();
     emit(ir::Op::MakeTuple, tuple, add_tuple_items(std::move(items)));
     return tuple;
+  }
+
+  uint32_t lower_annotation(const ast::Expr& annotation) {
+    if (!future_annotations_) {
+      return lower_expr(annotation);
+    }
+    const auto reg = new_reg();
+    emit(ir::Op::LoadConst, reg, add_const(Value::string(annotation_expr_to_string(annotation))));
+    return reg;
   }
 
   uint32_t add_tuple_items(std::vector<uint32_t> items) {
@@ -2180,12 +2318,12 @@ private:
           }
         }
         if (fn.signature[i].annotation != nullptr) {
-          annotation_regs.push_back(std::make_pair(fn.signature[i].name, lower_expr(*fn.signature[i].annotation)));
+          annotation_regs.push_back(std::make_pair(fn.signature[i].name, lower_annotation(*fn.signature[i].annotation)));
         }
       }
     }
     if (fn.return_annotation != nullptr) {
-      annotation_regs.push_back(std::make_pair("return", lower_expr(*fn.return_annotation)));
+      annotation_regs.push_back(std::make_pair("return", lower_annotation(*fn.return_annotation)));
     }
     const bool has_yield = body_contains_yield(fn.body);
     FunctionLowerer child_lowerer(
@@ -2194,7 +2332,8 @@ private:
         std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
         imported_module_slots_,
         qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
-                                : std::move(qualname_parent));
+                                : std::move(qualname_parent),
+        future_annotations_);
     child_lowerer.fn_.type_params = fn.type_params;
     child_lowerer.lower_body(fn.body);
     module_.functions.push_back(child_lowerer.finish());
@@ -2395,7 +2534,7 @@ private:
         if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
           const auto key_reg = new_reg();
           emit(ir::Op::LoadConst, key_reg, add_const(Value::string(name->name)));
-          class_annotations.push_back(std::make_pair(key_reg, lower_expr(*assign->annotation)));
+          class_annotations.push_back(std::make_pair(key_reg, lower_annotation(*assign->annotation)));
         }
         if (assign->value != nullptr) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
@@ -3540,6 +3679,7 @@ private:
 
   ir::Module& module_;
   bool is_module_ = false;
+  bool future_annotations_ = false;
   std::string instance_slot_self_;
   std::unordered_map<std::string, uint32_t> instance_slots_;
   std::unordered_map<std::string, ClassInfo> class_infos_;
@@ -3569,7 +3709,25 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
   LowerResult result;
   auto global_slots = collect_module_global_slots(module_ast);
   result.module.global_slots = global_slots.names;
-  FunctionLowerer lowerer(result.module, "<module>", {}, {}, {}, module_ast.body, false, false, false, 1, true, {}, {}, {}, global_slots.slots);
+  FunctionLowerer lowerer(
+      result.module,
+      "<module>",
+      {},
+      {},
+      {},
+      module_ast.body,
+      false,
+      false,
+      false,
+      1,
+      true,
+      {},
+      {},
+      {},
+      global_slots.slots,
+      {},
+      {},
+      module_uses_future_annotations(module_ast.body));
   lowerer.lower_body(module_ast.body);
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);

@@ -117,6 +117,8 @@ Section-level fixture coverage:
 - [x] parameter annotations with function `__annotations__` metadata
 - [x] return annotations with function `__annotations__` metadata
 - [x] class variable annotations populate class `__annotations__`
+- [x] `from __future__ import annotations` stores function and class annotations as strings for tested
+  forward refs, PEP 604 unions, generic aliases, string literals, and tuple-generic forms
 - [x] decorators on functions, including native callable decorators
 - [x] decorators on classes
 - [x] nested functions
@@ -405,14 +407,15 @@ High-level modules currently backed by native/runtime code:
 
 - [~] `threading`
 - [~] `os`: VFS-backed `listdir`, exported/reused `scandir`/`DirEntry` foundation, `makedirs`, `remove`/`unlink`, `stat`, `getcwd`, `chdir`, plus `getenv`/`fspath` basics; full stat/scandir/path-like/error semantics pending
-- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `relpath`, `samefile`, `commonprefix`, and `expandvars`; full path normalization/platform semantics pending
+- [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`isdir`/`isfile`/absolute resolution plus `relpath`, `samefile`, `commonprefix`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; full path normalization/platform semantics pending
 - [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
 - [~] `argparse`: `ArgumentParser` supports `add_argument`, option aliases, positional args, defaults, `type=int`, `store_true`, and `parse_args(list)` basics; full CPython parser/error/help behavior pending
 - [~] `ast`: public `_ast`/`ast` class surface, constructible keyword/positional AST nodes with `_fields`, `dump`, `iter_fields`, `walk`, `literal_eval` for literal nodes, and parse-result shell foundations; real parser-to-AST lowering and exact CPython node metadata pending
 - [~] `code`: `compile_command` uses the XLang3 compiler for complete source and returns `None` for common incomplete REPL blocks; full interactive compiler/console semantics pending
 - [~] `codecs`: alias-normalized `lookup`, `getencoder`/`getdecoder`, CodecInfo encode/decode callables,
-  UTF-8/UTF-8-SIG/ASCII/Latin-1 encode/decode with strict/ignore/replace/backslashreplace basics, hex
-  encode/decode, and error-handler lookup/registration foundation; full codec registry/error handling pending
+  UTF-8/UTF-8-SIG/ASCII/Latin-1 encode/decode with strict/ignore/replace/backslashreplace basics, ASCII-compatible
+  `idna` lookup/encode/decode foundation, hex encode/decode, and error-handler lookup/registration foundation;
+  full codec registry/error handling pending
 - [~] `contextlib`: generator `contextmanager`, `nullcontext`, `closing`, and `suppress` basics work with with-statements; async helpers and full generator exception propagation semantics pending
 - [~] `ctypes`:
   Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,
