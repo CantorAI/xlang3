@@ -33,3 +33,10 @@ C:\Python\Python314\python.exe agent\scripts\codex_loop.py --goal python314_comp
 C:\Python\Python314\python.exe agent\scripts\codex_loop.py --goal python314_compat --dry-run
 C:\Python\Python314\python.exe agent\scripts\run_fixtures.py
 ```
+
+PowerShell wrapper:
+
+```text
+powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Status
+powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Section "Standard Modules Foundation" -DryRun
+```
