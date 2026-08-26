@@ -21,16 +21,199 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace xlang3 {
 
 namespace {
 
 int g_recursion_limit = 1000;
+Value g_profile_function = Value::none();
+
+Value make_structseq(
+    const std::string& type_name,
+    const std::vector<std::pair<std::string, Value>>& fields,
+    const std::string& module_name = "sys") {
+  std::vector<std::pair<std::string, Value>> class_attrs;
+  class_attrs.push_back({"__module__", Value::string(module_name)});
+  Value instance = Value::instance(Value::class_object(type_name, std::move(class_attrs)));
+  std::vector<Value> tuple_items;
+  tuple_items.reserve(fields.size());
+  std::string ignored;
+  for (const auto& field : fields) {
+    object_set_attr(instance, field.first, field.second, ignored);
+    tuple_items.push_back(field.second);
+  }
+  object_set_attr(instance, "n_sequence_fields", Value::int64(static_cast<int64_t>(fields.size())), ignored);
+  object_set_attr(instance, "n_fields", Value::int64(static_cast<int64_t>(fields.size())), ignored);
+  object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
+  object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
+  return instance;
+}
+
+std::string executable_path() {
+#if defined(_WIN32)
+  std::wstring buffer(32768, L'\0');
+  const DWORD size = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+  if (size > 0) {
+    buffer.resize(size);
+    const int bytes = WideCharToMultiByte(CP_UTF8, 0, buffer.data(), static_cast<int>(buffer.size()), nullptr, 0, nullptr, nullptr);
+    std::string text(static_cast<size_t>(bytes), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, buffer.data(), static_cast<int>(buffer.size()), text.data(), bytes, nullptr, nullptr);
+    return text;
+  }
+#endif
+  std::error_code ec;
+  auto path = std::filesystem::current_path(ec) / "xlang3";
+  return path.string();
+}
+
+std::string runtime_prefix(const Runtime& runtime) {
+  const auto& roots = runtime.import_roots();
+  if (!roots.empty()) {
+    return roots.front().string();
+  }
+  std::error_code ec;
+  return std::filesystem::current_path(ec).string();
+}
+
+Value make_version_info() {
+  return make_structseq(
+      "version_info",
+      {
+          {"major", Value::int64(3)},
+          {"minor", Value::int64(14)},
+          {"micro", Value::int64(7)},
+          {"releaselevel", Value::string("final")},
+          {"serial", Value::int64(0)},
+      });
+}
+
+Value make_flags() {
+  return make_structseq(
+      "flags",
+      {
+          {"debug", Value::int64(0)},
+          {"inspect", Value::int64(0)},
+          {"interactive", Value::int64(0)},
+          {"optimize", Value::int64(0)},
+          {"dont_write_bytecode", Value::int64(1)},
+          {"no_user_site", Value::int64(0)},
+          {"no_site", Value::int64(0)},
+          {"ignore_environment", Value::int64(0)},
+          {"verbose", Value::int64(0)},
+          {"bytes_warning", Value::int64(0)},
+          {"quiet", Value::int64(0)},
+          {"hash_randomization", Value::int64(0)},
+          {"isolated", Value::int64(0)},
+          {"dev_mode", Value::boolean(false)},
+          {"utf8_mode", Value::int64(1)},
+          {"warn_default_encoding", Value::int64(0)},
+          {"safe_path", Value::boolean(false)},
+          {"int_max_str_digits", Value::int64(0)},
+      });
+}
+
+Value make_float_info() {
+  return make_structseq(
+      "float_info",
+      {
+          {"max", Value::number((std::numeric_limits<double>::max)())},
+          {"max_exp", Value::int64(std::numeric_limits<double>::max_exponent)},
+          {"max_10_exp", Value::int64(std::numeric_limits<double>::max_exponent10)},
+          {"min", Value::number((std::numeric_limits<double>::min)())},
+          {"min_exp", Value::int64(std::numeric_limits<double>::min_exponent)},
+          {"min_10_exp", Value::int64(std::numeric_limits<double>::min_exponent10)},
+          {"dig", Value::int64(std::numeric_limits<double>::digits10)},
+          {"mant_dig", Value::int64(std::numeric_limits<double>::digits)},
+          {"epsilon", Value::number(std::numeric_limits<double>::epsilon())},
+          {"radix", Value::int64(std::numeric_limits<double>::radix)},
+          {"rounds", Value::int64(1)},
+      });
+}
+
+Value make_hash_info() {
+  return make_structseq(
+      "hash_info",
+      {
+          {"width", Value::int64(64)},
+          {"modulus", Value::int64(2305843009213693951LL)},
+          {"inf", Value::int64(314159)},
+          {"nan", Value::int64(0)},
+          {"imag", Value::int64(1000003)},
+          {"algorithm", Value::string("xlang3")},
+          {"hash_bits", Value::int64(64)},
+          {"seed_bits", Value::int64(0)},
+          {"cutoff", Value::int64(0)},
+      });
+}
+
+Value make_thread_info() {
+  return make_structseq(
+      "thread_info",
+      {
+#if defined(_WIN32)
+          {"name", Value::string("nt")},
+#else
+          {"name", Value::string("pthread")},
+#endif
+          {"lock", Value::none()},
+          {"version", Value::none()},
+      });
+}
+
+Value make_builtin_module_names() {
+  return Value::tuple({
+      Value::string("_abc"),
+      Value::string("_ast"),
+      Value::string("_builtins"),
+      Value::string("_codecs"),
+      Value::string("_collections"),
+      Value::string("_imp"),
+      Value::string("_io"),
+      Value::string("_queue"),
+      Value::string("_signal"),
+      Value::string("_socket"),
+      Value::string("_stat"),
+      Value::string("_string"),
+      Value::string("_thread"),
+      Value::string("_warnings"),
+      Value::string("_weakref"),
+      Value::string("abc"),
+      Value::string("argparse"),
+      Value::string("atexit"),
+      Value::string("builtins"),
+      Value::string("codecs"),
+      Value::string("collections"),
+      Value::string("contextlib"),
+      Value::string("functools"),
+      Value::string("importlib"),
+      Value::string("io"),
+      Value::string("json"),
+      Value::string("math"),
+      Value::string("os"),
+      Value::string("platform"),
+      Value::string("subprocess"),
+      Value::string("sys"),
+      Value::string("time"),
+      Value::string("types"),
+      Value::string("zipfile"),
+      Value::string("zlib"),
+  });
+}
 
 bool bytes_or_string_text(const Value& value, std::string& out) {
   if (auto* text = value_as_string(value)) {
@@ -350,6 +533,138 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 1) {
+    error = "sys.exit expected optional status";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value exception = runtime.make_exception("SystemExit", "");
+  std::string ignored;
+  object_set_attr(exception, "code", argc == 0 ? Value::none() : args[0], ignored);
+  object_set_attr(exception, "args", argc == 0 ? Value::tuple({}) : Value::tuple({args[0]}), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  value_set_none(out);
+  return false;
+}
+
+bool sys_displayhook(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.displayhook expected one argument";
+    return false;
+  }
+  if (args[0].tag != ValueTag::None) {
+    std::cout << value_to_string(args[0]) << "\n";
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_excepthook(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "sys.excepthook expected type, value, traceback";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_unraisablehook(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.unraisablehook expected one argument";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_breakpointhook(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_none(out);
+  return true;
+}
+
+bool sys_setprofile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.setprofile expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(g_profile_function, args[0]);
+  value_set_none(out);
+  return true;
+}
+
+bool sys_getprofile(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getprofile expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, g_profile_function);
+  return true;
+}
+
+double g_switch_interval = 0.005;
+
+bool sys_getswitchinterval(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.getswitchinterval expected 0 arguments";
+    return false;
+  }
+  out = Value::number(g_switch_interval);
+  return true;
+}
+
+bool sys_setswitchinterval(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || (args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double)) {
+    error = "sys.setswitchinterval expected number";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const double value = args[0].tag == ValueTag::Int64 ? static_cast<double>(args[0].as.i64) : args[0].as.f64;
+  if (value <= 0.0) {
+    error = "switch interval must be strictly positive";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  g_switch_interval = value;
+  value_set_none(out);
+  return true;
+}
+
+bool sys_get_int_max_str_digits(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.get_int_max_str_digits expected 0 arguments";
+    return false;
+  }
+  value_set_int64(out, 0);
+  return true;
+}
+
+bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "sys.set_int_max_str_digits expected integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].as.i64 < 0) {
+    error = "maxdigits must be non-negative";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_is_finalizing(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sys.is_finalizing expected 0 arguments";
+    return false;
+  }
+  out = Value::boolean(false);
+  return true;
+}
+
 bool sys_xlang3_debug_set_hook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._xlang3_debug_set_hook expected 1 argument";
@@ -482,10 +797,12 @@ void register_sys_module(Runtime& runtime) {
   value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
   module_set_attr(sys, "modules", modules_ref, error);
   module_set_attr(sys, "argv", Value::list({}), error);
-  module_set_attr(sys, "version_info", Value::tuple({Value::int64(3), Value::int64(14), Value::int64(7), Value::string("final"), Value::int64(0)}), error);
+  module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);
+  module_set_attr(sys, "version_info", make_version_info(), error);
   module_set_attr(sys, "version", Value::string("3.14.7 (XLang3)"), error);
-  module_set_attr(sys, "hexversion", Value::int64(0x030e00f0), error);
+  module_set_attr(sys, "hexversion", Value::int64(0x030e07f0), error);
   module_set_attr(sys, "api_version", Value::int64(1013), error);
+  module_set_attr(sys, "abiflags", Value::string(""), error);
   module_set_attr(sys, "platform", Value::string(
 #if defined(_WIN32)
                                       "win32"
@@ -499,15 +816,20 @@ void register_sys_module(Runtime& runtime) {
                                       ),
       error);
   module_set_attr(sys, "maxsize", Value::int64(std::numeric_limits<int64_t>::max()), error);
+  module_set_attr(sys, "maxunicode", Value::int64(0x10ffff), error);
   module_set_attr(sys, "byteorder", Value::string("little"), error);
   module_set_attr(sys, "dont_write_bytecode", Value::boolean(true), error);
-  module_set_attr(sys, "flags", Value::tuple({}), error);
+  module_set_attr(sys, "flags", make_flags(), error);
+  module_set_attr(sys, "float_info", make_float_info(), error);
+  module_set_attr(sys, "hash_info", make_hash_info(), error);
+  module_set_attr(sys, "thread_info", make_thread_info(), error);
   module_set_attr(sys, "warnoptions", Value::list({}), error);
   module_set_attr(sys, "_xoptions", Value::dict({}), error);
   module_set_attr(sys, "meta_path", Value::list({}), error);
   module_set_attr(sys, "path_hooks", Value::list({}), error);
   module_set_attr(sys, "path_importer_cache", Value::dict({}), error);
-  module_set_attr(sys, "builtin_module_names", Value::tuple({}), error);
+  module_set_attr(sys, "builtin_module_names", make_builtin_module_names(), error);
+  module_set_attr(sys, "modules", modules_ref, error);
   Value stdin_stream = make_sys_stdio(runtime, "_XLang3Stdin", "stdin");
   Value stdout_stream = make_sys_stdio(runtime, "_XLang3Stdout", "stdout");
   Value stderr_stream = make_sys_stdio(runtime, "_XLang3Stderr", "stderr");
@@ -521,11 +843,38 @@ void register_sys_module(Runtime& runtime) {
   Value implementation;
   module_get_attr(sys, "implementation", implementation, error);
   object_set_attr(implementation, "name", Value::string("xlang3"), error);
-  object_set_attr(implementation, "version", Value::tuple({Value::int64(3), Value::int64(14), Value::int64(0), Value::string("final"), Value::int64(0)}), error);
-  module_set_attr(sys, "executable", Value::string(""), error);
-  module_set_attr(sys, "prefix", Value::string(""), error);
-  module_set_attr(sys, "base_prefix", Value::string(""), error);
+  object_set_attr(implementation, "version", make_version_info(), error);
+  object_set_attr(implementation, "cache_tag", Value::string("xlang3-314"), error);
+  object_set_attr(implementation, "hexversion", Value::int64(0x030e07f0), error);
+  object_set_attr(implementation, "_multiarch", Value::string(""), error);
+  const std::string exe = executable_path();
+  const std::string prefix = runtime_prefix(runtime);
+  module_set_attr(sys, "executable", Value::string(exe), error);
+  module_set_attr(sys, "_base_executable", Value::string(exe), error);
+  module_set_attr(sys, "prefix", Value::string(prefix), error);
+  module_set_attr(sys, "base_prefix", Value::string(prefix), error);
+  module_set_attr(sys, "exec_prefix", Value::string(prefix), error);
+  module_set_attr(sys, "base_exec_prefix", Value::string(prefix), error);
+  module_set_attr(sys, "platlibdir", Value::string(
+#if defined(_WIN32)
+                                      "DLLs"
+#else
+                                      "lib"
+#endif
+                                      ),
+      error);
+  module_set_attr(sys, "pycache_prefix", Value::none(), error);
+  module_set_attr(sys, "copyright", Value::string("Copyright (C) 2026 CantorAI Inc. and The XLang Foundation"), error);
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
+  module_set_attr(sys, "exit", runtime.make_native_function("sys.exit", sys_exit), error);
+  module_set_attr(sys, "displayhook", runtime.make_native_function("sys.displayhook", sys_displayhook), error);
+  module_set_attr(sys, "__displayhook__", runtime.make_native_function("sys.__displayhook__", sys_displayhook), error);
+  module_set_attr(sys, "excepthook", runtime.make_native_function("sys.excepthook", sys_excepthook), error);
+  module_set_attr(sys, "__excepthook__", runtime.make_native_function("sys.__excepthook__", sys_excepthook), error);
+  module_set_attr(sys, "unraisablehook", runtime.make_native_function("sys.unraisablehook", sys_unraisablehook), error);
+  module_set_attr(sys, "__unraisablehook__", runtime.make_native_function("sys.__unraisablehook__", sys_unraisablehook), error);
+  module_set_attr(sys, "breakpointhook", runtime.make_native_function("sys.breakpointhook", sys_breakpointhook), error);
+  module_set_attr(sys, "__breakpointhook__", runtime.make_native_function("sys.__breakpointhook__", sys_breakpointhook), error);
   module_set_attr(sys, "getdefaultencoding", runtime.make_native_function("sys.getdefaultencoding", sys_getdefaultencoding), error);
   module_set_attr(sys, "getfilesystemencoding", runtime.make_native_function("sys.getfilesystemencoding", sys_getfilesystemencoding), error);
   module_set_attr(sys, "getfilesystemencodeerrors", runtime.make_native_function("sys.getfilesystemencodeerrors", sys_getfilesystemencodeerrors), error);
@@ -535,6 +884,13 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
+  module_set_attr(sys, "setprofile", runtime.make_native_function("sys.setprofile", sys_setprofile), error);
+  module_set_attr(sys, "getprofile", runtime.make_native_function("sys.getprofile", sys_getprofile), error);
+  module_set_attr(sys, "getswitchinterval", runtime.make_native_function("sys.getswitchinterval", sys_getswitchinterval), error);
+  module_set_attr(sys, "setswitchinterval", runtime.make_native_function("sys.setswitchinterval", sys_setswitchinterval), error);
+  module_set_attr(sys, "get_int_max_str_digits", runtime.make_native_function("sys.get_int_max_str_digits", sys_get_int_max_str_digits), error);
+  module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
+  module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
   module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);
   module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);
   module_set_attr(sys, "_xlang3_debug_set_hook", runtime.make_native_function("sys._xlang3_debug_set_hook", sys_xlang3_debug_set_hook), error);

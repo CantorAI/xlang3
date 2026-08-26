@@ -187,6 +187,17 @@ BinaryStorageView binary_storage(const Value& value) {
   return {};
 }
 
+bool struct_sequence_storage(const Value& value, Value& out) {
+  if (value_as_instance(value) == nullptr) {
+    return false;
+  }
+  std::string ignored;
+  if (!object_get_attr(value, "_tuple", out, ignored)) {
+    return false;
+  }
+  return value_as_tuple(out) != nullptr;
+}
+
 std::string binary_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
   std::string text;
   if (step > 0) {
@@ -407,6 +418,11 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     out = Value::sequence_iterator(iterable, 0);
     return true;
   }
+  Value struct_tuple;
+  if (struct_sequence_storage(iterable, struct_tuple)) {
+    out = Value::sequence_iterator(struct_tuple, 0);
+    return true;
+  }
   error = "object is not iterable";
   return false;
 }
@@ -526,6 +542,10 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     return mapping_get_item(object, index, out, error);
   }
   if (auto* instance = value_as_instance(object)) {
+    Value struct_tuple;
+    if (struct_sequence_storage(object, struct_tuple)) {
+      return sequence_get_item(struct_tuple, index, out, error);
+    }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_get_item(instance->mapping_storage, index, out, error);
     }
@@ -1028,6 +1048,10 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     return mapping_len(value, out, error);
   }
   if (auto* instance = value_as_instance(value)) {
+    Value struct_tuple;
+    if (struct_sequence_storage(value, struct_tuple)) {
+      return sequence_len(struct_tuple, out, error);
+    }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_len(instance->mapping_storage, out, error);
     }
