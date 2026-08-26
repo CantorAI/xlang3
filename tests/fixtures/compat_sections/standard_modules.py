@@ -198,6 +198,23 @@ parser.add_argument("--verbose", action="store_true")
 parser.add_argument("name")
 parsed = parser.parse_args(["--num", "7", "--verbose", "bob"])
 print(parsed.num, parsed.verbose, parsed.name)
+parser2 = argparse.ArgumentParser(prog="tool", description="demo parser", add_help=False)
+parser2.add_argument("--off", action="store_false", dest="enabled")
+parser2.add_argument("--mode", choices=["fast", "slow"], required=True)
+parser2.add_argument("--tag", action="append", default=[])
+parser2.add_argument("-v", action="count")
+parser2.add_argument("--const", action="store_const", const="C", default="D")
+parser2.add_argument("--pair", nargs=2)
+parser2.add_argument("--scale", type=float, default=1.0)
+ns = argparse.Namespace(existing="keep")
+parsed2 = parser2.parse_args(["--mode", "fast", "--tag", "a", "--tag", "b", "-v", "-v", "--off", "--const", "--pair", "x", "y", "--scale=2.5"], namespace=ns)
+print(isinstance(parsed2, argparse.Namespace), parsed2.existing, parsed2.mode, parsed2.tag, parsed2.v, parsed2.enabled, parsed2.const, parsed2.pair, parsed2.scale)
+known, unknown = parser2.parse_known_args(["--mode", "slow", "--unknown", "value"])
+print(known.mode, unknown, "usage: tool" in parser2.format_usage(), "demo parser" in parser2.format_help())
+try:
+    parser2.parse_args(["--mode", "bad"])
+except Exception as exc:
+    print("argparse-error", "invalid choice" in str(exc))
 
 # ast: constructible nodes, field iteration, dumping, walking, and literal_eval foundations.
 const_node = ast.Constant(9)

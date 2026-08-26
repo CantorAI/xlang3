@@ -35,6 +35,9 @@ suppressed
 stacked
 [enter, callback, exit]
 7 True bob
+True keep fast [a, b] 2 False C [x, y] 2.5
+slow [--unknown, value] True True
+argparse-error True
 9 left 6
 BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
 True Expression
