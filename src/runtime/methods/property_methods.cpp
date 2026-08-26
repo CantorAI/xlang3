@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/object_model.h"
 
 namespace xlang3 {
 
@@ -63,6 +64,21 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
   auto* property = value_as_property(object);
   if (property == nullptr) {
     return false;
+  }
+  if (name == "__isabstractmethod__") {
+    for (const Value* accessor : {&property->fget, &property->fset, &property->fdel}) {
+      if (accessor->tag == ValueTag::None || accessor->tag == ValueTag::Invalid) {
+        continue;
+      }
+      Value marker;
+      std::string ignored;
+      if (object_get_attr(*accessor, "__isabstractmethod__", marker, ignored) && value_truthy(marker)) {
+        value_set_bool(out, true);
+        return true;
+      }
+    }
+    value_set_bool(out, false);
+    return true;
   }
   if (name == "fget") {
     value_assign_fast(out, property->fget);

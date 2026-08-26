@@ -319,6 +319,26 @@ def abstract_fn():
 
 print(abstract_fn.__isabstractmethod__)
 
+class AbstractDescriptorProbe:
+    @abc.abstractclassmethod
+    def named(cls):
+        return cls.__name__
+
+    @abc.abstractstaticmethod
+    def static():
+        return "static"
+
+    @abc.abstractproperty
+    def prop(self):
+        return "prop"
+
+raw_abstract_class = AbstractDescriptorProbe.__dict__["named"]
+raw_abstract_static = AbstractDescriptorProbe.__dict__["static"]
+raw_abstract_property = AbstractDescriptorProbe.__dict__["prop"]
+print(type(raw_abstract_class).__name__, raw_abstract_class.__isabstractmethod__, raw_abstract_class.__func__.__isabstractmethod__, AbstractDescriptorProbe.named())
+print(type(raw_abstract_static).__name__, raw_abstract_static.__isabstractmethod__, raw_abstract_static.__func__.__isabstractmethod__, AbstractDescriptorProbe.static())
+print(type(raw_abstract_property).__name__, raw_abstract_property.__isabstractmethod__, raw_abstract_property.fget.__isabstractmethod__, AbstractDescriptorProbe().prop)
+
 # numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
 import numbers
 

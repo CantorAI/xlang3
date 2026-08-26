@@ -355,6 +355,30 @@ bool abc_abstractmethod(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool abc_abstractclassmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (!abc_abstractmethod(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  out = Value::class_method(args[0]);
+  return object_set_attr(out, "__isabstractmethod__", Value::boolean(true), error);
+}
+
+bool abc_abstractstaticmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (!abc_abstractmethod(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  out = Value::static_method(args[0]);
+  return object_set_attr(out, "__isabstractmethod__", Value::boolean(true), error);
+}
+
+bool abc_abstractproperty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (!abc_abstractmethod(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  out = Value::property(args[0], Value::none(), Value::none(), Value::none());
+  return true;
+}
+
 } // namespace
 
 void register_abc_module(Runtime& runtime) {
@@ -391,9 +415,9 @@ void register_abc_module(Runtime& runtime) {
       .value("ABC", abc_class)
       .function("get_cache_token", abc_get_cache_token)
       .function("abstractmethod", abc_abstractmethod)
-      .function("abstractclassmethod", abc_abstractmethod)
-      .function("abstractstaticmethod", abc_abstractmethod)
-      .function("abstractproperty", abc_abstractmethod);
+      .function("abstractclassmethod", abc_abstractclassmethod)
+      .function("abstractstaticmethod", abc_abstractstaticmethod)
+      .function("abstractproperty", abc_abstractproperty);
   runtime.register_module("abc", public_builder.finish());
 }
 
