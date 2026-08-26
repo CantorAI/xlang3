@@ -551,6 +551,7 @@ current_frames = sys._current_frames()
 current_exceptions = sys._current_exceptions()
 current_thread_id = list(current_frames)[0]
 print(len(current_frames), len(current_exceptions), current_thread_id in current_exceptions, current_frames[current_thread_id].f_code.co_name == "<module>", current_exceptions[current_thread_id] is None)
+print(current_thread_id == threading.get_ident(), "sys" in sys.stdlib_module_names, "threading" in sys.stdlib_module_names, len(sys.stdlib_module_names) > len(sys.builtin_module_names))
 print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys.get_coroutine_origin_tracking_depth())
 sys.set_coroutine_origin_tracking_depth(0)
 try:

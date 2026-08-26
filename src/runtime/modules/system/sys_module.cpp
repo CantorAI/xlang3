@@ -22,6 +22,8 @@ limitations under the License.
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
+#include "../thread/thread_objects.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -226,6 +228,89 @@ Value make_builtin_module_names() {
       Value::string("time"),
       Value::string("types"),
       Value::string("zipfile"),
+      Value::string("zlib"),
+  });
+}
+
+Value make_stdlib_module_names() {
+  return Value::set({
+      Value::string("__future__"),
+      Value::string("_abc"),
+      Value::string("_ast"),
+      Value::string("_codecs"),
+      Value::string("_collections"),
+      Value::string("_imp"),
+      Value::string("_io"),
+      Value::string("_queue"),
+      Value::string("_signal"),
+      Value::string("_socket"),
+      Value::string("_stat"),
+      Value::string("_string"),
+      Value::string("_thread"),
+      Value::string("_warnings"),
+      Value::string("_weakref"),
+      Value::string("abc"),
+      Value::string("argparse"),
+      Value::string("ast"),
+      Value::string("atexit"),
+      Value::string("builtins"),
+      Value::string("code"),
+      Value::string("codecs"),
+      Value::string("collections"),
+      Value::string("contextlib"),
+      Value::string("ctypes"),
+      Value::string("dataclasses"),
+      Value::string("dis"),
+      Value::string("enum"),
+      Value::string("fnmatch"),
+      Value::string("functools"),
+      Value::string("getpass"),
+      Value::string("glob"),
+      Value::string("imp"),
+      Value::string("importlib"),
+      Value::string("inspect"),
+      Value::string("io"),
+      Value::string("itertools"),
+      Value::string("json"),
+      Value::string("linecache"),
+      Value::string("locale"),
+      Value::string("logging"),
+      Value::string("marshal"),
+      Value::string("math"),
+      Value::string("numbers"),
+      Value::string("opcode"),
+      Value::string("operator"),
+      Value::string("os"),
+      Value::string("pathlib"),
+      Value::string("pickle"),
+      Value::string("pkgutil"),
+      Value::string("platform"),
+      Value::string("queue"),
+      Value::string("re"),
+      Value::string("runpy"),
+      Value::string("select"),
+      Value::string("signal"),
+      Value::string("site"),
+      Value::string("socket"),
+      Value::string("stat"),
+      Value::string("string"),
+      Value::string("struct"),
+      Value::string("subprocess"),
+      Value::string("sys"),
+      Value::string("sysconfig"),
+      Value::string("threading"),
+      Value::string("time"),
+      Value::string("tokenize"),
+      Value::string("traceback"),
+      Value::string("types"),
+      Value::string("unicodedata"),
+      Value::string("urllib"),
+      Value::string("warnings"),
+      Value::string("weakref"),
+      Value::string("winreg"),
+      Value::string("xmlrpc"),
+      Value::string("zipfile"),
+      Value::string("zipimport"),
       Value::string("zlib"),
   });
 }
@@ -558,7 +643,7 @@ bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& ou
     error = "sys._current_frames expected 0 arguments";
     return false;
   }
-  out = Value::dict({{Value::int64(1), runtime.current_frame_snapshot()}});
+  out = Value::dict({{Value::int64(xlang_thread_current_ident()), runtime.current_frame_snapshot()}});
   return true;
 }
 
@@ -568,7 +653,7 @@ bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value
     return false;
   }
   const Value& exception = runtime.active_exception();
-  out = Value::dict({{Value::int64(1), exception.tag == ValueTag::Invalid ? Value::none() : exception}});
+  out = Value::dict({{Value::int64(xlang_thread_current_ident()), exception.tag == ValueTag::Invalid ? Value::none() : exception}});
   return true;
 }
 
@@ -1058,6 +1143,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "path_hooks", Value::list({}), error);
   module_set_attr(sys, "path_importer_cache", Value::dict({}), error);
   module_set_attr(sys, "builtin_module_names", make_builtin_module_names(), error);
+  module_set_attr(sys, "stdlib_module_names", make_stdlib_module_names(), error);
   module_set_attr(sys, "modules", modules_ref, error);
   Value stdin_stream = make_sys_stdio(runtime, "_XLang3Stdin", "stdin");
   Value stdout_stream = make_sys_stdio(runtime, "_XLang3Stdout", "stdout");
