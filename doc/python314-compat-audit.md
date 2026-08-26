@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after commit `fec3484` (`Preserve tokenizer comments and NL tokens`).
+Last updated after commit `bca02b2` (`Update Python compatibility audit progress`).
 
 Current checklist count:
 
@@ -79,6 +79,59 @@ Recommended next batch:
 - `linecache` plus tokenizer encoding-cookie behavior, because this feeds debugger/source lookup and pure-Python library compatibility.
 - Then `inspect` source/signature gaps that depend on the improved source lookup.
 - Then importlib/resource edge behavior for real stdlib package loading.
+
+## Standard Module Closeout Policy
+
+The standard-module section is now treated as a closeout queue, not a loose
+progress list. A `[~]` item is allowed only when the implemented subset is real,
+fixture-backed, and the remaining CPython gap is named. If the remaining gap can
+break ordinary Python code, it must stay in the active closeout queue until it is
+implemented or moved to an explicitly documented lower-risk edge bucket.
+
+Closeout meanings:
+
+- `P0 blocker`: likely to break pure-Python stdlib, debugpy, import tooling, or
+  ordinary file/source lookup. Fix before returning to IDE/debugpy compatibility.
+- `P1 common stdlib risk`: likely to break normal Python application code, but
+  not the next debugger/import milestone. Fix during the standard-module pass.
+- `P2 edge parity`: exact CPython/platform/internal behavior. Keep tracked with
+  tests where possible, but do not claim full parity until the edge behavior is
+  implemented.
+
+Current P0 closeout queue:
+
+- `linecache`: encoding-cookie handling and exact source cache invalidation.
+- `tokenize` / `_tokenize`: encoding-cookie/BOM behavior and exact token text.
+- `inspect`: real source lookup, frame stack, signatures, annotations, and descriptor classification.
+- `traceback`: exact frame, line, exception-chain, and formatting behavior.
+- `importlib` / `pkgutil`: real finder/loader/resource/package semantics.
+- `sys` / `os` / `_io` / `open`: startup paths, stdio/file objects, path-like objects, and VFS-backed file semantics.
+
+Current P1 closeout queue:
+
+- `argparse`, `contextlib`, `functools`, `collections`, `itertools`, `pathlib`,
+  `subprocess`, `json`, `pickle`, `queue`, `threading`, `typing`, `re`,
+  `codecs`, `locale`, `struct`, `zlib`, `zipfile`, `urllib.parse`, `warnings`,
+  `logging`, `dataclasses`, `enum`, `abc`, `socket`, and `select`.
+
+Current P2 parity queue:
+
+- `.pyc`/CPython bytecode and exact `marshal` code-object format.
+- Full CPython import locks, frozen-module internals, and startup flag matrix.
+- True weakref lifetime/callback semantics and exact `mappingproxy`/type identity internals.
+- Full `ctypes` ABI/FFI, callback, structure-layout, and platform-loader behavior.
+- Real OS signal delivery/thread semantics and full socket/network descriptor behavior.
+- Exact timezone/DST/locale behavior and full Unicode database/grapheme/codec edge matrix.
+- Encrypted ZIP, true ZIP64 large-file archives, optional BZIP2/LZMA/Zstandard payload engines, and exact `zipfile.Path` edge semantics.
+
+Rule:
+
+```text
+Do not hide compatibility debt by marking broad modules [x]. Each [~] row must
+name the exact remaining gap. During implementation, close P0 first, then P1.
+P2 items may remain partial only when their risk and CPython-specific nature are
+documented here.
+```
 
 ## Syntax Compatibility
 
