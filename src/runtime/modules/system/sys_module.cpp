@@ -49,6 +49,7 @@ namespace {
 int g_recursion_limit = 1000;
 Value g_profile_function = Value::none();
 std::vector<Value> g_audit_hooks;
+thread_local int64_t g_coroutine_origin_tracking_depth = 0;
 
 bool is_callable_value(const Value& value) {
   return value_as_function(value) != nullptr ||
@@ -683,6 +684,7 @@ bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  g_coroutine_origin_tracking_depth = args[0].as.i64;
   value_set_none(out);
   return true;
 }
@@ -692,7 +694,7 @@ bool sys_get_coroutine_origin_tracking_depth(Runtime&, const Value*, uint32_t ar
     error = "sys.get_coroutine_origin_tracking_depth expected 0 arguments";
     return false;
   }
-  value_set_int64(out, 0);
+  value_set_int64(out, g_coroutine_origin_tracking_depth);
   return true;
 }
 

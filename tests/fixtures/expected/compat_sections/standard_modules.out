@@ -116,6 +116,9 @@ True xlang3.fixture (1, a)
 1 1 True True True
 True True True True
 True True 0
+2
+0
+coroutine-origin-depth True
 True True
 True
 5

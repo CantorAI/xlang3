@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.getrefcount` / `sys.getallocatedblocks` probe batch.
+Last updated after the native `sys` coroutine-origin tracking depth helper batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys`: `set_coroutine_origin_tracking_depth()` now stores
+  and reports the thread-local configured depth through
+  `get_coroutine_origin_tracking_depth()`, including negative-depth validation.
 - Expanded native `sys`: added `getrefcount()` backed by XLang3 object
   refcounts and `getallocatedblocks()` backed by current thread allocator
   block counters for CPython-style runtime/memory probes.
@@ -512,7 +515,7 @@ Native or runtime-backed foundation:
   `getsizeof`, `getrefcount`, `getallocatedblocks`, `exit`, display/exception hook
   placeholders, audit hook dispatch, stdio capability probes, profile/switch-interval/int-string
   helpers, trace/debug hooks, current-thread-id-keyed `_current_frames` snapshots,
-  `_current_exceptions`, cache-clear hooks, coroutine-origin tracking helpers,
+  `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   and frame placeholders; full CPython startup flags/config/runtime internals
   and multi-thread frame/exception enumeration pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,

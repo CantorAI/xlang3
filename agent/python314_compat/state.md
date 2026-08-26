@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native sys refcount/allocation probes
+Native sys coroutine-origin tracking depth helpers
 ```
 
 Current next loop:
