@@ -67,6 +67,33 @@ def default_python(config: dict) -> str:
     return os.environ.get("PYTHON", "python")
 
 
+def default_cmake(config: dict) -> str:
+    return config.get("repo", {}).get("cmake_exe", "").strip()
+
+
+def command_quote(value: str) -> str:
+    return '"' + value.replace('"', '\"') + '"'
+
+
+def build_command_text(config: dict) -> str:
+    cmake = default_cmake(config) or "cmake"
+    return f"{command_quote(cmake)} --build build --config Release --target xlang3 -- /m"
+
+
+def fixture_command_text(config: dict) -> str:
+    return (
+        f"{command_quote(default_python(config))} agent\\scripts\\run_fixtures.py "
+        f"--xlang3 {command_quote(default_xlang3(config))}"
+    )
+
+
+def section_fixture_command_text(config: dict, section: str) -> str:
+    fixture = section.lower().replace(" ", "_").replace("and", "and")
+    if section == "Standard Modules Foundation":
+        fixture = "standard_modules"
+    return f"{command_quote(default_xlang3(config))} tests\\fixtures\\compat_sections\\{fixture}.py"
+
+
 def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
@@ -259,6 +286,8 @@ def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
 
 
 def unfinished_items(config: dict, goal: str, section: str, limit: int) -> list[tuple[int, str, str]]:
+    # Cursor extraction keeps prompts small: only unfinished rows after the
+    # selected section cursor are passed to Codex, never the full audit doc.
     lines = read_text(audit_path(config, goal)).splitlines()
     selected = section_lines(lines, section)
     items: list[tuple[int, str, str]] = []
@@ -320,10 +349,14 @@ def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int,
         next_items = "- No unfinished items found in the selected scope."
 
     checked, partial, missing = audit_counts(config, goal, section)
+    build_command = build_command_text(config)
+    fixture_command = fixture_command_text(config)
+    section_fixture_command = section_fixture_command_text(config, section) if section else ""
+    audit_cursor = f"{section or 'whole audit'}::{items[0][0] if items else 'done'}"
     return f"""# XLang3 Python 3.14 Compatibility Batch
 
-This is a compact extracted context. Do not reread the full control markdown
-unless something is ambiguous.
+This is a compact cursor-extracted context. Do not reread the full control
+markdown unless something is ambiguous; use the audit cursor and rows below.
 
 Goal:
 Make XLang3 runtime compatible with Python 3.14 so CPython standard-library
@@ -341,9 +374,20 @@ Runtime doctrine:
 - No benchmark-specific code.
 - No stubs, placeholder facades, or fake compatibility.
 - Every compatibility change needs fixture coverage under tests/fixtures.
+- Use the fixed local commands below. Do not rediscover cmake, msbuild, ninja,
+  python.exe, or xlang3.exe paths unless one of these exact commands fails.
+- Build only the Release xlang3 target during this loop.
 - Update doc/python314-compat-audit.md truthfully.
 - Update agent/python314_compat/state.md if the checkpoint changes.
 - The loop will build, test, commit, and push after your work.
+
+Fixed local commands:
+- Build: {build_command}
+- Full fixture validation: {fixture_command}
+- Selected section quick run: {section_fixture_command or "not available for whole-audit mode"}
+
+Audit cursor:
+{audit_cursor}
 
 Selected audit section:
 {section or "whole audit"}
@@ -356,10 +400,11 @@ Audit counts:
 - partial: {partial}
 - missing: {missing}
 
-Next unfinished audit rows:
+Next unfinished audit rows from the cursor:
 {next_items}
 
-Implement one coherent compatibility batch now.
+Implement one coherent compatibility batch now. Do not scan unrelated audit
+sections; update only the checked/partial rows affected by this batch.
 """
 
 
@@ -449,9 +494,12 @@ def invoke_codex(command_template: str, prompt_path: Path, prompt: str) -> None:
     print("Codex backend finished.")
 
 
-def resolve_cmake(explicit: str) -> str:
+def resolve_cmake(explicit: str, config: dict) -> str:
     if explicit:
         return explicit
+    configured = default_cmake(config)
+    if configured:
+        return configured
 
     for folder in os.environ.get("PATH", "").split(os.pathsep):
         candidate = Path(folder) / "cmake.exe"
@@ -667,7 +715,7 @@ def main() -> int:
     xlang3 = args.xlang3 or default_xlang3(config)
     python_exe = default_python(config)
     codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
-    cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
+    cmake = resolve_cmake(args.cmake, config) if not args.dry_run and not args.skip_build else ""
 
     if args.reset_loop_state:
         clear_loop_state(config, goal)
