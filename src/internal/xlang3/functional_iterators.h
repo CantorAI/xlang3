@@ -47,10 +47,32 @@ struct FilterIteratorObject {
   Value iterator;
 };
 
+struct CallableIteratorObject {
+  Object header;
+  Runtime* runtime = nullptr;
+  Value callable;
+  Value sentinel;
+};
+
+struct ChainIteratorObject {
+  Object header;
+  std::vector<Value> iterators;
+  size_t index = 0;
+};
+
+struct ProtocolIteratorObject {
+  Object header;
+  Runtime* runtime = nullptr;
+  Value iterator;
+};
+
 Value functional_enumerate_iterator(Value iterator, int64_t start);
 Value functional_zip_iterator(std::vector<Value> iterators);
 Value functional_map_iterator(Runtime* runtime, Value callable, std::vector<Value> iterators);
 Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterator);
+Value functional_callable_iterator(Runtime* runtime, Value callable, Value sentinel);
+Value functional_chain_iterator(std::vector<Value> iterators);
+Value functional_protocol_iterator(Runtime* runtime, Value iterator);
 
 bool value_is_functional_iterator(const Value& value);
 void functional_iterator_release_object(Object* object);

@@ -270,13 +270,16 @@ bool itertools_repeat(Runtime&, const Value* args, uint32_t argc, Value& out, st
 }
 
 bool itertools_chain(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  std::vector<Value> values;
+  std::vector<Value> iterators;
+  iterators.reserve(argc);
   for (uint32_t i = 0; i < argc; ++i) {
-    if (!collect_iterable(args[i], values, error)) {
+    Value iterator;
+    if (!sequence_get_iter(args[i], iterator, error)) {
       return false;
     }
+    iterators.push_back(std::move(iterator));
   }
-  out = Value::list(std::move(values));
+  out = functional_chain_iterator(std::move(iterators));
   return true;
 }
 

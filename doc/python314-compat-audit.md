@@ -436,7 +436,7 @@ High-level modules currently backed by native/runtime code:
   `singledispatch`, descriptor edge cases, and full CPython semantics pending
 - [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
 - [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
-- [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, `chain`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; lazy object identity, keyword-only options, and full iterator algebra pending
+- [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, lazy `chain` with `__next__`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; full lazy object identity for every helper, keyword-only options, and complete iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`dump`, file-like I/O, CPython-style default separators,
   `indent`, `sort_keys`, `ensure_ascii`, `separators`, `skipkeys`, `default`, `object_hook`,
   `object_pairs_hook`, `parse_int`, `parse_float`, `JSONEncoder.encode`/`iterencode`, and
@@ -477,6 +477,7 @@ High-level modules currently backed by native/runtime code:
   `is_python_build`, and common config-var helpers; full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
+- [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, and lazy `itertools.chain`; comments/NL, exact token text for string literals, encoding-cookie/BOM details, and full CPython tokenizer parity pending
 - [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation; encoding-cookie handling and exact cache invalidation semantics pending
 - [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`/`getabsfile`,
   `getmodule`/`getmodulename`, `getmro`, doc cleanup, unwrap, generator/coroutine state helpers,
@@ -487,7 +488,7 @@ High-level modules currently backed by native/runtime code:
 - [~] `importlib`: `import_module`, `invalidate_caches`, `importlib.util.find_spec`/`resolve_name`,
   loader/spec/module creation foundations, and VFS-backed `importlib.resources` read helpers
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
-- [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
+- [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple` with `_make`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, `/` join via native `__truediv__`, and basic path transforms; full pathlib glob/match/resolve/operator edge semantics pending

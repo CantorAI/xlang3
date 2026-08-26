@@ -140,6 +140,7 @@ const BuiltinMethodSpec* string_find_method_spec(const Value& object, const std:
 bool bytes_get_method(const Value& object, const std::string& name, Value& out);
 bool bytearray_get_method(const Value& object, const std::string& name, Value& out);
 bool memoryview_get_method(const Value& object, const std::string& name, Value& out);
+bool iterator_get_method(const Value& object, const std::string& name, Value& out);
 bool generator_get_method(const Value& object, const std::string& name, Value& out);
 bool property_get_method(const Value& object, const std::string& name, Value& out);
 

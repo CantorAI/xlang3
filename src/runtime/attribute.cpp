@@ -33,6 +33,7 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
          bytes_get_method(object, name, out) ||
          bytearray_get_method(object, name, out) ||
          memoryview_get_method(object, name, out) ||
+         iterator_get_method(object, name, out) ||
          generator_get_method(object, name, out) ||
          property_get_method(object, name, out);
 }

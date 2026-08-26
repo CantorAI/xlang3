@@ -16,9 +16,11 @@ limitations under the License.
 
 #include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/attribute.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
 
 #include <utility>
 
@@ -84,6 +86,37 @@ Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterat
   return value;
 }
 
+Value functional_callable_iterator(Runtime* runtime, Value callable, Value sentinel) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<CallableIteratorObject>(ObjectKind::CallableIterator);
+  obj->runtime = runtime;
+  obj->callable = std::move(callable);
+  obj->sentinel = std::move(sentinel);
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_chain_iterator(std::vector<Value> iterators) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ChainIteratorObject>(ObjectKind::ChainIterator);
+  obj->iterators = std::move(iterators);
+  obj->index = 0;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_protocol_iterator(Runtime* runtime, Value iterator) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ProtocolIteratorObject>(ObjectKind::ProtocolIterator);
+  obj->runtime = runtime;
+  obj->iterator = std::move(iterator);
+  value.as.obj = &obj->header;
+  return value;
+}
+
 bool value_is_functional_iterator(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return false;
@@ -91,7 +124,10 @@ bool value_is_functional_iterator(const Value& value) {
   return value.as.obj->kind == ObjectKind::EnumerateIterator ||
          value.as.obj->kind == ObjectKind::ZipIterator ||
          value.as.obj->kind == ObjectKind::MapIterator ||
-         value.as.obj->kind == ObjectKind::FilterIterator;
+         value.as.obj->kind == ObjectKind::FilterIterator ||
+         value.as.obj->kind == ObjectKind::CallableIterator ||
+         value.as.obj->kind == ObjectKind::ChainIterator ||
+         value.as.obj->kind == ObjectKind::ProtocolIterator;
 }
 
 void functional_iterator_release_object(Object* object) {
@@ -107,6 +143,15 @@ void functional_iterator_release_object(Object* object) {
       break;
     case ObjectKind::FilterIterator:
       delete reinterpret_cast<FilterIteratorObject*>(object);
+      break;
+    case ObjectKind::CallableIterator:
+      delete reinterpret_cast<CallableIteratorObject*>(object);
+      break;
+    case ObjectKind::ChainIterator:
+      delete reinterpret_cast<ChainIteratorObject*>(object);
+      break;
+    case ObjectKind::ProtocolIterator:
+      delete reinterpret_cast<ProtocolIteratorObject*>(object);
       break;
     default:
       break;
@@ -126,6 +171,12 @@ std::string functional_iterator_to_string(const Value& value) {
       return "<map object>";
     case ObjectKind::FilterIterator:
       return "<filter object>";
+    case ObjectKind::CallableIterator:
+      return "<callable_iterator>";
+    case ObjectKind::ChainIterator:
+      return "<itertools.chain object>";
+    case ObjectKind::ProtocolIterator:
+      return "<iterator>";
     default:
       return "<iterator>";
   }
@@ -290,6 +341,72 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
         return true;
       }
     }
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::CallableIterator) {
+    auto* obj = reinterpret_cast<CallableIteratorObject*>(iterator.as.obj);
+    if (obj->runtime == nullptr) {
+      error = "callable iterator has no runtime";
+      return false;
+    }
+    if (!runtime_call_callable(*obj->runtime, obj->callable, nullptr, 0, out, error)) {
+      return false;
+    }
+    if (value_key_equal(out, obj->sentinel)) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    done = false;
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ChainIterator) {
+    auto* obj = reinterpret_cast<ChainIteratorObject*>(iterator.as.obj);
+    while (obj->index < obj->iterators.size()) {
+      Value item;
+      bool child_done = false;
+      if (!sequence_iter_next(obj->iterators[obj->index], child_done, item, error)) {
+        return false;
+      }
+      if (!child_done) {
+        done = false;
+        out = std::move(item);
+        return true;
+      }
+      ++obj->index;
+    }
+    done = true;
+    value_set_none(out);
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ProtocolIterator) {
+    auto* obj = reinterpret_cast<ProtocolIteratorObject*>(iterator.as.obj);
+    if (obj->runtime == nullptr) {
+      error = "protocol iterator has no runtime";
+      return false;
+    }
+    Value next_method;
+    std::string attr_error;
+    if (!attribute_get(obj->iterator, "__next__", next_method, attr_error)) {
+      error = attr_error;
+      return false;
+    }
+    if (!runtime_call_callable(*obj->runtime, next_method, nullptr, 0, out, error)) {
+      Value pending;
+      if (obj->runtime->take_pending_exception(pending)) {
+        if (auto* klass = value_as_class(obj->runtime->exception_type(pending)); klass != nullptr && klass->name == "StopIteration") {
+          done = true;
+          value_set_none(out);
+          return true;
+        }
+        obj->runtime->set_pending_exception(std::move(pending));
+      }
+      return false;
+    }
+    done = false;
+    return true;
   }
 
   error = "invalid iterator";

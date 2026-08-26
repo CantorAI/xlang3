@@ -120,6 +120,12 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "map";
     case ObjectKind::FilterIterator:
       return "filter";
+    case ObjectKind::CallableIterator:
+      return "callable_iterator";
+    case ObjectKind::ChainIterator:
+      return "chain";
+    case ObjectKind::ProtocolIterator:
+      return "iterator";
     case ObjectKind::Generator:
       return "generator";
     case ObjectKind::Module:

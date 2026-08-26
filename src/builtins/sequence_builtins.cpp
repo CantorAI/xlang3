@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
@@ -28,6 +30,19 @@ bool require_int_arg(const Value& value, const char* name, int64_t& out, std::st
   }
   out = value.as.i64;
   return true;
+}
+
+bool value_is_callable_for_iter(const Value& value) {
+  if (value_as_native_function(value) != nullptr || value_as_function(value) != nullptr ||
+      value_as_bound_method(value) != nullptr || value_as_class(value) != nullptr) {
+    return true;
+  }
+  if (value_as_instance(value) != nullptr) {
+    Value call_attr;
+    std::string ignored;
+    return object_get_class_attr_for_instance(value, "__call__", call_attr, ignored);
+  }
+  return false;
 }
 
 bool builtin_range(
@@ -153,8 +168,17 @@ bool builtin_iter(
     Value& out,
     std::string& error,
     void*) {
+  if (argc == 2) {
+    if (!value_is_callable_for_iter(args[0])) {
+      error = "iter(v, w): v must be callable";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    out = functional_callable_iterator(&runtime, args[0], args[1]);
+    return true;
+  }
   if (argc != 1) {
-    error = "iter() expected 1 argument";
+    error = "iter() expected 1 or 2 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang3/attribute.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/sequence.h"
 
 #include <string>
@@ -25,6 +27,7 @@ namespace xlang3::xlang_vm::ops {
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow get_iter(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     RaiseRuntimeError&& raise_runtime_error) {
   std::string error;
@@ -37,6 +40,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_iter(
     return XlangVMOpFlow::Next;
   }
   if (!sequence_get_iter(regs[in.a], regs[in.dst], error)) {
+    Value iter_method;
+    std::string attr_error;
+    if (attribute_get(regs[in.a], "__iter__", iter_method, attr_error)) {
+      Value iter_result;
+      std::string call_error;
+      if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+        return raise_runtime_error(call_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      Value concrete_iterator;
+      std::string concrete_error;
+      if (sequence_get_iter(iter_result, concrete_iterator, concrete_error)) {
+        value_assign_fast(regs[in.dst], concrete_iterator);
+      } else {
+        regs[in.dst] = functional_protocol_iterator(&runtime, std::move(iter_result));
+      }
+      return XlangVMOpFlow::Next;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

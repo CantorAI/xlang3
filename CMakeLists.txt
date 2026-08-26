@@ -60,6 +60,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/methods/string_methods.cpp
   src/runtime/methods/tuple_methods.cpp
   src/runtime/methods/bytes_methods.cpp
+  src/runtime/methods/iterator_methods.cpp
   src/runtime/methods/property_methods.cpp
   src/runtime/memory/x3_bucket_allocator.cpp
   src/runtime/memory/x3_memory.cpp

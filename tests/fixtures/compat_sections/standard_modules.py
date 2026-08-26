@@ -329,6 +329,7 @@ import sys
 import sysconfig
 import threading
 import time
+import tokenize
 import urllib.parse
 import winreg
 import xmlrpc.client
@@ -345,6 +346,8 @@ print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() 
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("user") in sysconfig.get_scheme_names(), sysconfig.is_python_build())
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT, opcode.EXTENDED_ARG, opcode.cmp_op[2])
+token_items = list(tokenize.tokenize(iter([b"a=1\n", b""]).__next__))
+print(token_items[0].type, token_items[0].string == "utf-8", token_items[1].type, token_items[1].string, token_items[2].type, token_items[2].string, token_items[-1].type)
 print(threading.__file__.endswith("threading.py"), os.__file__.endswith("os.py"))
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
@@ -547,15 +550,26 @@ print(list(itertools.takewhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.filterfalse(is_even, [1, 2, 3, 4])))
 print(list(itertools.compress(["a", "b", "c"], [1, 0, 1])), list(itertools.repeat("x", 3)))
-print(list(itertools.chain([1, 2], (3, 4))), list(itertools.batched([1, 2, 3, 4, 5], 2)))
+callable_iter_count = 0
+def callable_iter_source():
+    global callable_iter_count
+    callable_iter_count = callable_iter_count + 1
+    return callable_iter_count
+
+chain_probe = itertools.chain([9], [10])
+print(list(itertools.chain([1, 2], (3, 4))), chain_probe.__next__(), chain_probe.__next__(), list(iter(callable_iter_source, 3)), list(itertools.batched([1, 2, 3, 4, 5], 2)))
 print(list(itertools.product([1, 2], ["a", "b"])))
 print(list(itertools.combinations([1, 2, 3], 2)), list(itertools.combinations_with_replacement(["x", "y"], 2)))
 print(list(itertools.permutations([1, 2, 3], 2)))
 print(list(itertools.accumulate([1, 2, 3, 4])), list(itertools.starmap(original, [(1, 2), (3, 4)])))
 print(list(itertools.zip_longest([1, 2], ["a"])))
 
-# collections: Counter, OrderedDict, and ChainMap foundations.
-from collections import ChainMap, Counter, OrderedDict
+# collections: Counter, OrderedDict, ChainMap, and namedtuple foundations.
+from collections import ChainMap, Counter, OrderedDict, namedtuple
+
+Pair = namedtuple("Pair", "left right")
+pair = Pair._make([7, 8])
+print(pair.left, pair.right, Pair._fields)
 
 counts = Counter("abbccc")
 counts.update(["a", "d"])

@@ -707,6 +707,55 @@ bool namedtuple_init(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
+bool namedtuple_make(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  auto* fields = static_cast<std::vector<std::string>*>(user_data);
+  if (fields == nullptr || argc != 2) {
+    error = "namedtuple._make() expected iterable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "namedtuple._make() expected class receiver";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  Value iterator;
+  if (!sequence_get_iter(args[1], iterator, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<Value> values;
+  values.reserve(fields->size());
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    values.push_back(std::move(item));
+  }
+  if (values.size() != fields->size()) {
+    error = "namedtuple._make() argument count mismatch";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  out = Value::instance(args[0]);
+  for (size_t i = 0; i < fields->size(); ++i) {
+    if (!object_set_attr(out, (*fields)[i], values[i], error)) {
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+  }
+  return true;
+}
+
 bool namedtuple_factory(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "namedtuple() expected typename and field_names";
@@ -720,6 +769,7 @@ bool namedtuple_factory(Runtime& runtime, const Value* args, uint32_t argc, Valu
 
   auto fields = parse_namedtuple_fields(args[1]);
   auto* captured_fields = new std::vector<std::string>(fields);
+  auto* make_fields = new std::vector<std::string>(fields);
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"_fields", [&fields]() {
                      std::vector<Value> values;
@@ -735,6 +785,12 @@ bool namedtuple_factory(Runtime& runtime, const Value* args, uint32_t argc, Valu
                        namedtuple_init,
                        captured_fields,
                        namedtuple_fields_cleanup)});
+  attrs.push_back({"_make",
+                   Value::class_method(runtime.make_native_function(
+                       "collections.namedtuple._make",
+                       namedtuple_make,
+                       make_fields,
+                       namedtuple_fields_cleanup))});
   out = Value::class_object(string_object_to_string(*type_name), std::move(attrs));
   return true;
 }

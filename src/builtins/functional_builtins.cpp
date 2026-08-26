@@ -311,8 +311,26 @@ bool eval_globals_from_args(
 bool collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
   Value iterator;
   if (!sequence_get_iter(iterable, iterator, error)) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    Value iter_method;
+    std::string attr_error;
+    if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    Value iter_result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+      runtime.raise_class_error("TypeError", call_error);
+      error = call_error;
+      return false;
+    }
+    std::string concrete_error;
+    if (sequence_get_iter(iter_result, iterator, concrete_error)) {
+      error.clear();
+    } else {
+      iterator = functional_protocol_iterator(&runtime, std::move(iter_result));
+      error.clear();
+    }
   }
   for (;;) {
     bool done = false;

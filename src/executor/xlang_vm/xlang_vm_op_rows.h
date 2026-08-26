@@ -71,7 +71,7 @@ XLANG3_VM_FLOW(GetItem, xlang3::xlang_vm::ops::get_item(in, runtime_, regs, inst
 XLANG3_VM_FLOW(SetItem, xlang3::xlang_vm::ops::set_item(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(DeleteItem, xlang3::xlang_vm::ops::delete_item(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(UnpackSequence, xlang3::xlang_vm::ops::unpack_sequence(in, regs, result, raise_runtime_error))
-XLANG3_VM_FLOW(GetIter, xlang3::xlang_vm::ops::get_iter(in, regs, raise_runtime_error))
+XLANG3_VM_FLOW(GetIter, xlang3::xlang_vm::ops::get_iter(in, runtime_, regs, raise_runtime_error))
 XLANG3_VM_FLOW(IterNext, xlang3::xlang_vm::ops::iter_next(in, regs, ip, raise_runtime_error))
 XLANG3_VM_FLOW(ForRangeConstLocalNext, xlang3::xlang_vm::ops::for_range_const_local_next(in, fn, locals, ip, result))
 XLANG3_VM_FLOW(Add, xlang3::xlang_vm::ops::add(in, regs, raise_runtime_error))

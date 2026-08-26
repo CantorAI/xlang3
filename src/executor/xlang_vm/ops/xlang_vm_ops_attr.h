@@ -307,7 +307,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                               raise_runtime_error, raise_exception_value);
       }
     }
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_exception_value(runtime.make_exception("AttributeError", error))
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
   }
   if (auto* slot = value_as_slot_descriptor(attr)) {
     if (auto* instance = value_as_instance(regs[in.a])) {
