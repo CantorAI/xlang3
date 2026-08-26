@@ -75,9 +75,12 @@ def read_text(path: Path) -> str:
 
 
 def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
-    numbered = list(enumerate(lines, start=1))
     if not section:
-        return numbered
+        for index, line in enumerate(lines):
+            match = HEADING_RE.match(line)
+            if match and len(match.group(1)) == 2:
+                return list(enumerate(lines[index:], start=index + 1))
+        return list(enumerate(lines, start=1))
 
     start_index = -1
     start_level = 0
@@ -105,7 +108,13 @@ def unfinished_items(config: dict, goal: str, section: str, limit: int) -> list[
     lines = read_text(audit_path(config, goal)).splitlines()
     selected = section_lines(lines, section)
     items: list[tuple[int, str, str]] = []
+    in_fence = False
     for index, (line_number, line) in enumerate(selected):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         match = CHECK_RE.match(line)
         if not match:
             continue
@@ -129,7 +138,13 @@ def unfinished_items(config: dict, goal: str, section: str, limit: int) -> list[
 def audit_counts(config: dict, goal: str, section: str) -> tuple[int, int, int]:
     lines = read_text(audit_path(config, goal)).splitlines()
     checked = partial = missing = 0
+    in_fence = False
     for _, line in section_lines(lines, section):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         match = CHECK_RE.match(line)
         if not match:
             continue
@@ -314,8 +329,12 @@ def validate(cmake: str, xlang3: str, skip_build: bool, skip_tests: bool) -> Non
         run(["git", "diff", "--check"])
 
 
-def should_resume_as_codex_done(phase: str, stageable_changes: list[str]) -> bool:
-    return phase in {"prompt_written", "codex_running"} and bool(stageable_changes)
+def should_resume_as_codex_done(phase: str, saved_state: dict, stageable_changes: list[str]) -> bool:
+    if phase not in {"prompt_written", "codex_running"}:
+        return False
+    baseline = sorted(saved_state.get("baseline_stageable_paths", []))
+    current = sorted(stageable_changes)
+    return current != baseline
 
 
 def stageable(path: str) -> bool:
@@ -419,6 +438,18 @@ def main() -> int:
         print_loop_status(config, goal, args.section, args.limit)
         return 0
 
+    saved_state = read_loop_state(config, goal)
+    resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
+    if (
+        not args.dry_run
+        and not codex_command
+        and resume_phase not in {"codex_done", "validated"}
+    ):
+        raise SystemExit(
+            "No Codex backend command configured. Pass --codex-command, "
+            "set [codex].command in agent/config.toml, or use --dry-run/--status."
+        )
+
     for iteration in range(1, args.iterations + 1):
         saved_state = read_loop_state(config, goal)
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
@@ -436,7 +467,7 @@ def main() -> int:
             print(f"Stageable changed files: {len(stageable_changes)}")
         print("=" * 72)
 
-        if should_resume_as_codex_done(resume_phase, stageable_changes):
+        if should_resume_as_codex_done(resume_phase, saved_state, stageable_changes):
             print("Saved phase was interrupted, but stageable changes exist; resuming at validation.")
             resume_phase = "codex_done"
         elif resume_phase in {"prompt_written", "codex_running"}:
@@ -456,6 +487,7 @@ def main() -> int:
                     "section": active_section,
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
+                    "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                 })
                 invoke_codex(codex_command, prompt_path, prompt)
                 write_loop_state(config, goal, {
@@ -465,6 +497,7 @@ def main() -> int:
                     "section": active_section,
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
+                    "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                 })
                 resume_phase = "codex_done"
         elif resume_phase and resume_phase not in {"codex_done", "validated"}:
@@ -494,6 +527,7 @@ def main() -> int:
                 "section": active_section,
                 "prompt_path": str(prompt_path),
                 "iteration": iteration,
+                "baseline_stageable_paths": stageable_changes,
             })
 
             if args.dry_run:
@@ -510,6 +544,7 @@ def main() -> int:
                 "section": active_section,
                 "prompt_path": str(prompt_path),
                 "iteration": iteration,
+                "baseline_stageable_paths": stageable_changes,
             })
             invoke_codex(codex_command, prompt_path, prompt)
             write_loop_state(config, goal, {
@@ -519,6 +554,7 @@ def main() -> int:
                 "section": active_section,
                 "prompt_path": str(prompt_path),
                 "iteration": iteration,
+                "baseline_stageable_paths": stageable_changes,
             })
 
         if resume_phase == "codex_done" or not resume_phase:
@@ -532,6 +568,7 @@ def main() -> int:
                 "section": active_section,
                 "prompt_path": saved_state.get("prompt_path", ""),
                 "iteration": iteration,
+                "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", stageable_changes),
             })
 
         if args.no_commit:

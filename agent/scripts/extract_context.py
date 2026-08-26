@@ -45,9 +45,12 @@ def read_lines(path: Path) -> list[str]:
 
 
 def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
-    numbered = list(enumerate(lines, start=1))
     if not section:
-        return numbered
+        for index, line in enumerate(lines):
+            match = HEADING_RE.match(line)
+            if match and len(match.group(1)) == 2:
+                return list(enumerate(lines[index:], start=index + 1))
+        return list(enumerate(lines, start=1))
 
     start = -1
     level = 0
@@ -74,8 +77,14 @@ def extract(config: dict, goal: str, section: str, limit: int) -> str:
     checked = partial = missing = 0
     unfinished: list[tuple[int, str, str]] = []
     selected = section_lines(read_lines(audit_path(config, goal)), section)
+    in_fence = False
 
     for index, (line_number, line) in enumerate(selected):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         match = CHECK_RE.match(line)
         if not match:
             continue

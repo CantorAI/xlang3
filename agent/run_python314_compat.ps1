@@ -16,6 +16,7 @@ param(
     [int]$Iterations = 1,
     [string]$CodexCommand = "",
     [string]$CommitMessage = "Advance Python 3.14 compatibility",
+    [switch]$Run,
     [switch]$Status,
     [switch]$DryRun,
     [switch]$NoCommit,
@@ -65,6 +66,13 @@ if ($SkipTests) {
 }
 if ($ResetLoopState) {
     $argsList += "--reset-loop-state"
+}
+
+$hasRunMode = $Run -or $Status -or $DryRun -or $CodexCommand
+if (-not $hasRunMode) {
+    Write-Host "No Codex backend command was provided; showing status."
+    Write-Host "For a real batch, pass -Run with [codex].command in agent\config.toml, or pass -CodexCommand."
+    $argsList += "--status"
 }
 
 Push-Location $root

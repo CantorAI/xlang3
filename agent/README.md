@@ -37,6 +37,12 @@ C:\Python\Python314\python.exe agent\scripts\run_fixtures.py
 PowerShell wrapper:
 
 ```text
+powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1
 powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Status
 powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Section "Standard Modules Foundation" -DryRun
+powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1 -Run -Section "Standard Modules Foundation"
 ```
+
+With no arguments, the wrapper shows status. It does not start a real Codex
+batch unless `-Run` is passed with `[codex].command` configured, or
+`-CodexCommand` is passed directly.
