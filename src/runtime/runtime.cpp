@@ -682,8 +682,11 @@ const std::shared_ptr<const ir::Module>* Runtime::current_frame_module_owner() c
   return current_frame_state(*this).module_owner;
 }
 
-void Runtime::register_exit_function(Value callable, std::vector<Value> args) {
-  exit_functions_.push_back(ExitFunction{std::move(callable), std::move(args)});
+void Runtime::register_exit_function(
+    Value callable,
+    std::vector<Value> args,
+    std::vector<std::pair<std::string, Value>> kwargs) {
+  exit_functions_.push_back(ExitFunction{std::move(callable), std::move(args), std::move(kwargs)});
 }
 
 void Runtime::unregister_exit_function(const Value& callable) {

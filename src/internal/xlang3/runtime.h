@@ -76,6 +76,7 @@ struct RawBlockContext {
 struct ExitFunction {
   Value callable;
   std::vector<Value> args;
+  std::vector<std::pair<std::string, Value>> kwargs;
 };
 
 class Runtime {
@@ -190,7 +191,7 @@ public:
   RuntimePauseReason debug_step_pause_reason(size_t frame_count, uint32_t line) const;
   bool debug_skip_breakpoint_at_step_origin(size_t frame_count, uint32_t line) const;
   bool debug_breakpoint_matches(std::string_view file, uint32_t line) const;
-  void register_exit_function(Value callable, std::vector<Value> args);
+  void register_exit_function(Value callable, std::vector<Value> args, std::vector<std::pair<std::string, Value>> kwargs = {});
   void unregister_exit_function(const Value& callable);
   bool run_exit_functions(std::string& error);
 

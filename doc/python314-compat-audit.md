@@ -392,7 +392,7 @@ Native or runtime-backed foundation:
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
   virtual subclass checks, and `isinstance`/`issubclass` metaclass hook dispatch; negative caches,
   `__subclasshook__`, and exact CPython invalidation internals pending
-- [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`; keyword args and full shutdown reporting pending
+- [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, and `S_IS*` helpers
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`

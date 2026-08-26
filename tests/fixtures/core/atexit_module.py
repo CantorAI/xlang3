@@ -18,9 +18,18 @@ items = []
 def add(value):
     items.append(value)
 
+def add_many(prefix, *, name, count=1):
+    items.append(prefix + ":" + name + ":" + str(count))
+
+class Recorder:
+    def __call__(self, label, *, suffix):
+        items.append(label + "-" + suffix)
+
 atexit.register(add, "first")
 atexit.register(add, "second")
 atexit.unregister(add)
 atexit.register(add, "kept")
+atexit.register(add_many, "kw", name="done", count=3)
+atexit.register(Recorder(), "callable", suffix="object")
 atexit._run_exitfuncs()
 print(items)
