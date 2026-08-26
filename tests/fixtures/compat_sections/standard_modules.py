@@ -607,6 +607,17 @@ def sys_profile_probe(frame, event, arg):
 sys.setprofile(sys_profile_probe)
 print(sys.getprofile() is sys_profile_probe, sys.is_finalizing())
 sys.setprofile(None)
+def sys_trace_probe(frame, event, arg):
+    return sys_trace_probe
+def sys_call_tracing_probe(left, right):
+    return left + right
+sys.settrace(sys_trace_probe)
+print(sys.gettrace() is sys_trace_probe, sys.call_tracing(sys_call_tracing_probe, (2, 5)), sys.gettrace() is sys_trace_probe)
+sys.settrace(None)
+try:
+    sys.call_tracing(sys_call_tracing_probe, [1, 2])
+except TypeError as err:
+    print("call-tracing-type", "tuple" in str(err))
 print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == False)
 audit_events = []
 def sys_audit_probe(event, args):

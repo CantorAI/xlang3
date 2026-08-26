@@ -136,6 +136,8 @@ True 4300 4300 4300 640
 0 0 0
 int-max-str-digits True True
 True False
+True 7 True
+call-tracing-type True
 True True True
 True xlang3.fixture (1, a)
 (sys_frame_probe, <module>, __main__, False)

@@ -638,6 +638,35 @@ bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
+bool sys_call_tracing(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "sys.call_tracing expected function and argument tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* tuple_args = value_as_tuple(args[1]);
+  if (tuple_args == nullptr) {
+    error = "sys.call_tracing argument list must be a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value previous_trace;
+  if (runtime.trace_function().tag == ValueTag::Invalid) {
+    value_set_invalid(previous_trace);
+  } else {
+    value_assign_fast(previous_trace, runtime.trace_function());
+  }
+  const bool ok = runtime_call_callable(
+      runtime,
+      args[0],
+      tuple_args->items.empty() ? nullptr : tuple_args->items.begin(),
+      static_cast<uint32_t>(tuple_args->items.size()),
+      out,
+      error);
+  runtime.set_trace_function(previous_trace);
+  return ok;
+}
+
 bool sys_frame_at_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, const char* name) {
   if (argc > 1) {
     error = std::string(name) + " expected at most 1 argument";
@@ -1626,6 +1655,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "getallocatedblocks", runtime.make_native_function("sys.getallocatedblocks", sys_getallocatedblocks), error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
+  module_set_attr(sys, "call_tracing", runtime.make_native_function("sys.call_tracing", sys_call_tracing), error);
   module_set_attr(sys, "setprofile", runtime.make_native_function("sys.setprofile", sys_setprofile), error);
   module_set_attr(sys, "getprofile", runtime.make_native_function("sys.getprofile", sys_getprofile), error);
   module_set_attr(sys, "getswitchinterval", runtime.make_native_function("sys.getswitchinterval", sys_getswitchinterval), error);

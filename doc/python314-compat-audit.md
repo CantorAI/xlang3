@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `abc.__abstractmethods__` frozenset batch.
+Last updated after the native `sys.call_tracing` batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` trace/debug hook coverage with `sys.call_tracing`.
+  The function now validates the CPython-style `(func, args_tuple)` shape,
+  calls through the runtime's normal callable dispatch with tuple unpacking,
+  and restores the active trace hook after the call.
 - Expanded native `abc`/`_abc`: `__abstractmethods__` is now represented by
   a runtime `frozenset` object for ABCMeta-created classes, direct
   `_abc_init()` classes, and `abc.update_abstractmethods()` recomputation.
@@ -602,7 +606,8 @@ Native or runtime-backed foundation:
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
-  and stateful `sys.flags.int_max_str_digits`, trace/debug hooks,
+  and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
+  `call_tracing`,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,

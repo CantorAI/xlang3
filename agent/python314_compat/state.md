@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc __abstractmethods__ expose runtime frozenset identity
+sys.call_tracing forwards tuple args and preserves trace hook
 ```
 
 Current next loop:
