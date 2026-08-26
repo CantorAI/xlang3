@@ -221,14 +221,111 @@ XLANG3_HOT_INLINE XlangVMOpFlow bit_and(const ir::Instr& in, XlangVMSmallRegiste
   return binary_arithmetic(in, regs, fast_bit_and, value_bit_and, std::forward<RaiseRuntimeError>(raise_runtime_error));
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow bit_or(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
-  return binary_arithmetic(in, regs, fast_bit_or, value_bit_or, std::forward<RaiseRuntimeError>(raise_runtime_error));
+template <typename FastOp, typename SlowOp, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    FastOp&& fast_op,
+    SlowOp&& slow_op,
+    const char* special_method_name,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  const auto& lhs = regs[in.a];
+  const auto& rhs = regs[in.b];
+  if (fast_op(lhs, rhs, regs[in.dst])) {
+    return XlangVMOpFlow::Next;
+  }
+  std::string error;
+  if (slow_op(lhs, rhs, regs[in.dst], error)) {
+    return XlangVMOpFlow::Next;
+  }
+  bool handled = false;
+  if (!call_native_binary_special_method(
+          runtime,
+          lhs,
+          rhs,
+          special_method_name,
+          native_call_args,
+          execution_lock,
+          regs[in.dst],
+          raise_runtime_error,
+          raise_exception_value,
+          handled)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (handled) {
+    return XlangVMOpFlow::Next;
+  }
+  return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow bit_xor(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
-  return binary_arithmetic(in, regs, fast_bit_xor, value_bit_xor, std::forward<RaiseRuntimeError>(raise_runtime_error));
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow bit_and(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in,
+      runtime,
+      regs,
+      native_call_args,
+      execution_lock,
+      fast_bit_and,
+      value_bit_and,
+      "__and__",
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow bit_or(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in,
+      runtime,
+      regs,
+      native_call_args,
+      execution_lock,
+      fast_bit_or,
+      value_bit_or,
+      "__or__",
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow bit_xor(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in,
+      runtime,
+      regs,
+      native_call_args,
+      execution_lock,
+      fast_bit_xor,
+      value_bit_xor,
+      "__xor__",
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
 }
 
 template <typename RaiseRuntimeError>
@@ -381,10 +478,43 @@ XLANG3_HOT_INLINE XlangVMOpFlow neg(const ir::Instr& in, XlangVMSmallRegisterBuf
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow invert(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow invert(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   if (!value_invert(regs[in.a], regs[in.dst], error)) {
+    Value method;
+    std::string attr_error;
+    if (attribute_get(regs[in.a], "__invert__", method, attr_error)) {
+      auto* bound = value_as_bound_method(method);
+      if (bound != nullptr) {
+        auto* native = value_as_native_function(bound->function);
+        if (native != nullptr) {
+          Value leading[1] = {bound->self};
+          CallArgsView args;
+          args.leading = leading;
+          args.leading_count = 1;
+          if (!call_native_function(
+                  runtime,
+                  native,
+                  args,
+                  native_call_args,
+                  execution_lock,
+                  regs[in.dst],
+                  raise_runtime_error,
+                  raise_exception_value)) {
+            return XlangVMOpFlow::ReturnResult;
+          }
+          return XlangVMOpFlow::Next;
+        }
+      }
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

@@ -62,6 +62,9 @@ True True True
 [Color.RED, Color.BLUE] True [RED, BLUE]
 THREE True True
 unique-error
+READ|WRITE 3 <Perm.READ|WRITE: 3> Perm.READ|WRITE
+True True True
+R|X 5 True True
 5 True True
 True True
 True True

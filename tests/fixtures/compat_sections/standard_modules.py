@@ -324,6 +324,22 @@ try:
 except ValueError:
     print("unique-error")
 
+# enum Flag/IntFlag bitwise operations and member display.
+class Perm(enum.Flag):
+    READ = 1
+    WRITE = 2
+
+class Mode(enum.IntFlag):
+    R = 1
+    W = 2
+    X = 4
+
+perm_combo = Perm.READ | Perm.WRITE
+mode_combo = Mode.R | Mode.X
+print(perm_combo.name, perm_combo.value, perm_combo.__repr__(), perm_combo.__str__())
+print((perm_combo & Perm.READ) is Perm.READ, (perm_combo ^ Perm.WRITE) is Perm.READ, (~Perm.READ) is Perm.WRITE)
+print(mode_combo.name, mode_combo.value, isinstance(mode_combo, Mode), (mode_combo & Mode.X) is Mode.X)
+
 # ctypes: scalar values, pointer/byref contents, buffers, simple Structure defaults, wintypes, and WinDLL facade.
 import ctypes
 from ctypes import wintypes

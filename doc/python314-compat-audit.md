@@ -603,10 +603,12 @@ considered complete until CPython-vs-XLang3 tests exist for the declared scope.
 - [~] `enum` audit:
   Native module now turns enum subclass constants into member objects and tests
   member creation, value lookup, aliases, `auto()`, `IntEnum` basics, class
-  attributes, iteration over canonical members, member string display, and
-  `unique` duplicate rejection. Remaining work: CPython-exact metaclass
-  behavior, `repr`, `Flag`/`IntFlag` operators, richer decorators, and
-  pickling-facing helpers.
+  attributes, iteration over canonical members, member string display, direct
+  `__repr__`/`__str__`, `Flag`/`IntFlag` bitwise operators, inversion over the
+  defined flag mask, composite-member naming, and `unique` duplicate rejection.
+  Remaining work: CPython-exact metaclass behavior, builtin `repr()` dispatch
+  through special methods, richer decorators, pickling-facing helpers, and the
+  full boundary/error-policy matrix.
 
 - [~] inherited builtin constructor audit:
   subclasses of `int`, `str`, `float`, and `bytes` route through builtin
