@@ -339,6 +339,26 @@ print(type(raw_abstract_class).__name__, raw_abstract_class.__isabstractmethod__
 print(type(raw_abstract_static).__name__, raw_abstract_static.__isabstractmethod__, raw_abstract_static.__func__.__isabstractmethod__, AbstractDescriptorProbe.static())
 print(type(raw_abstract_property).__name__, raw_abstract_property.__isabstractmethod__, raw_abstract_property.fget.__isabstractmethod__, AbstractDescriptorProbe().prop)
 
+class AbstractEnforcedABC(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def run(self):
+        return "abstract"
+
+print("run" in AbstractEnforcedABC.__abstractmethods__, len(AbstractEnforcedABC.__abstractmethods__))
+try:
+    AbstractEnforcedABC()
+except TypeError as err:
+    print("abc-abstract-instantiation", "abstract class" in str(err), "run" in str(err))
+
+class StillAbstractABC(AbstractEnforcedABC):
+    pass
+
+class ConcreteABC(AbstractEnforcedABC):
+    def run(self):
+        return "concrete"
+
+print("run" in StillAbstractABC.__abstractmethods__, len(ConcreteABC.__abstractmethods__), ConcreteABC().run())
+
 # numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
 import numbers
 

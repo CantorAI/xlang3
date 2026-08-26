@@ -434,6 +434,91 @@ bool class_or_bases_have_descriptors(const ClassObject* klass) {
   return false;
 }
 
+bool object_model_value_has_abstract_marker(const Value& value) {
+  Value marker;
+  std::string ignored;
+  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+}
+
+void object_model_add_abstract_name(std::vector<Value>& names, const std::string& name) {
+  for (const auto& item : names) {
+    auto* string = value_as_string(item);
+    if (string != nullptr && string_object_to_string(*string) == name) {
+      return;
+    }
+  }
+  names.push_back(Value::string(name));
+}
+
+void object_model_collect_abstract_names(const Value& value, std::vector<std::string>& names) {
+  auto add_name = [&names](const Value& item) {
+    auto* string = value_as_string(item);
+    if (string == nullptr) {
+      return;
+    }
+    const auto name = string_object_to_string(*string);
+    if (std::find(names.begin(), names.end(), name) == names.end()) {
+      names.push_back(name);
+    }
+  };
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      add_name(item);
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      add_name(item);
+    }
+  } else if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      add_name(item);
+    }
+  }
+}
+
+bool class_or_bases_use_abc_meta(ClassObject& klass) {
+  auto* metaclass = value_as_class(klass.metaclass);
+  if (metaclass != nullptr &&
+      (metaclass->name == "ABCMeta" || class_has_builtin_base_name_impl(metaclass, "ABCMeta"))) {
+    return true;
+  }
+  for (const auto& base : klass.bases) {
+    Value ignored_value;
+    std::string ignored_error;
+    if (object_get_attr(base, "__abstractmethods__", ignored_value, ignored_error)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void update_abc_abstract_methods_for_class(ClassObject& klass) {
+  if (!class_or_bases_use_abc_meta(klass)) {
+    return;
+  }
+  std::vector<Value> abstracts;
+  std::vector<std::string> inherited_names;
+  for (const auto& base : klass.bases) {
+    Value base_abstracts;
+    std::string ignored;
+    if (object_get_attr(base, "__abstractmethods__", base_abstracts, ignored)) {
+      object_model_collect_abstract_names(base_abstracts, inherited_names);
+    }
+  }
+  for (const auto& name : inherited_names) {
+    auto override_it = klass.attrs.find(name);
+    if (override_it == klass.attrs.end() || object_model_value_has_abstract_marker(override_it->second)) {
+      object_model_add_abstract_name(abstracts, name);
+    }
+  }
+  for (const auto& attr : klass.attrs) {
+    if (object_model_value_has_abstract_marker(attr.second)) {
+      object_model_add_abstract_name(abstracts, attr.first);
+    }
+  }
+  klass.attrs["__abstractmethods__"] = Value::set(std::move(abstracts));
+}
+
 void add_unique_slot_name(std::vector<std::string>& slots, const std::string& name) {
   if (name == "__weakref__") {
     return;
@@ -2177,6 +2262,7 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   if (klass_obj->bases.size() == 1) {
     klass_obj->base = std::move(base);
   }
+  update_abc_abstract_methods_for_class(*klass_obj);
   if (!finalize_enum_class(*klass_obj)) {
     error = "enum class finalization failed";
     return false;

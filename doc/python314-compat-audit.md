@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` audit-hook and stdio-capability batch.
+Last updated after the native `ABCMeta.__abstractmethods__` enforcement batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `abc`/`_abc`: `ABCMeta`-created classes now expose
+  computed `__abstractmethods__`, inherited abstract methods are cleared by
+  concrete overrides after base/metaclass reconciliation, and abstract ABC
+  instantiation raises `TypeError`.
 - Expanded native `sys`: stdio objects now expose common capability probes
   (`isatty`, `readable`, `writable`, `seekable`, `fileno`, `closed`, and
   `line_buffering`), and `sys.addaudithook`/`sys.audit` maintain and dispatch
@@ -501,12 +505,14 @@ Native or runtime-backed foundation:
   historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
-  cache-token/register/dump/reset helpers,
-  virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
+  computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
+  through concrete overrides, abstract-class instantiation `TypeError`, cache-token/register/dump/reset
+  helpers, virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
   `isinstance`/`issubclass` metaclass hook dispatch, and ABC `__subclasshook__`
   True/False/`NotImplemented` fallback behavior, positive/negative subclass caches,
   and negative-cache invalidation after virtual subclass registration; exact CPython
-  weakref-backed cache objects and invalidation internals pending
+  weakref-backed cache objects, `frozenset` identity for `__abstractmethods__`, and invalidation
+  internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

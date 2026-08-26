@@ -63,6 +63,9 @@ True
 classmethod True True AbstractDescriptorProbe
 staticmethod True True static
 property True True prop
+True 1
+abc-abstract-instantiation True True
+True 0 concrete
 True True True
 True True True
 True True True

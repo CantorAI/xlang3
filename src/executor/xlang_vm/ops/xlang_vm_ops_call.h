@@ -28,6 +28,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 
 #include <cctype>
 #include <string>
@@ -50,6 +51,60 @@ XLANG3_HOT_INLINE std::string& xlang_vm_native_error_scratch() {
   thread_local std::string error;
   error.clear();
   return error;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_abstract_methods_empty(const Value& methods, std::string& first_name) {
+  auto visit = [&first_name](const Value& item) {
+    if (first_name.empty()) {
+      if (auto* string = value_as_string(item)) {
+        first_name = string_object_to_string(*string);
+      }
+    }
+  };
+  if (auto* set = value_as_set(methods)) {
+    for (const auto& item : set->items) {
+      visit(item);
+    }
+    return set->items.empty();
+  }
+  if (auto* tuple = value_as_tuple(methods)) {
+    for (const auto& item : tuple->items) {
+      visit(item);
+    }
+    return tuple->items.empty();
+  }
+  if (auto* list = value_as_list(methods)) {
+    for (const auto& item : list->items) {
+      visit(item);
+    }
+    return list->items.empty();
+  }
+  return true;
+}
+
+template <typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool xlang_vm_reject_abstract_class_instantiation(
+    Runtime& runtime,
+    const Value& class_value,
+    ClassObject& klass,
+    bool& rejected,
+    RaiseExceptionValue&& raise_exception_value) {
+  rejected = false;
+  Value abstract_methods;
+  std::string ignored;
+  if (!object_get_attr(class_value, "__abstractmethods__", abstract_methods, ignored)) {
+    return true;
+  }
+  std::string first_name;
+  if (xlang_vm_abstract_methods_empty(abstract_methods, first_name)) {
+    return true;
+  }
+  rejected = true;
+  std::string message = "Can't instantiate abstract class " + klass.name + " without an implementation for abstract method";
+  if (!first_name.empty()) {
+    message += " '" + first_name + "'";
+  }
+  return raise_exception_value(runtime.make_exception("TypeError", message));
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
@@ -1079,6 +1134,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
       if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
       return XlangVMOpFlow::ReturnResult;
     }
+    bool abstract_rejected = false;
+    if (!xlang_vm_reject_abstract_class_instantiation(runtime, callee, *klass, abstract_rejected, raise_exception_value)) {
+      return XlangVMOpFlow::ReturnResult;
+    }
+    if (abstract_rejected) {
+      return XlangVMOpFlow::ContinueLoop;
+    }
     Value instance = Value::instance(callee);
     CallArgsView init_args = call_args;
     init_args.leading = &instance;
@@ -1404,6 +1466,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     if (!constructor_error.empty()) {
       if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
       return XlangVMOpFlow::ReturnResult;
+    }
+    bool abstract_rejected = false;
+    if (!xlang_vm_reject_abstract_class_instantiation(runtime, callee, *klass, abstract_rejected, raise_exception_value)) {
+      return XlangVMOpFlow::ReturnResult;
+    }
+    if (abstract_rejected) {
+      return XlangVMOpFlow::ContinueLoop;
     }
     Value instance = Value::instance(callee);
     CallArgsView init_args = call_args;

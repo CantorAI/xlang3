@@ -79,6 +79,90 @@ DictObject* type_new_namespace_dict(const Value& value) {
   return nullptr;
 }
 
+bool value_has_abstract_marker(const Value& value) {
+  Value marker;
+  std::string ignored;
+  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+}
+
+bool metaclass_is_abc_meta(const Value& value) {
+  auto* klass = value_as_class(value);
+  if (klass == nullptr) {
+    return false;
+  }
+  return klass->name == "ABCMeta" || class_has_builtin_base_name(klass, "ABCMeta");
+}
+
+void add_abstract_name(std::vector<Value>& names, const std::string& name) {
+  for (const auto& item : names) {
+    auto* string = value_as_string(item);
+    if (string != nullptr && string_object_to_string(*string) == name) {
+      return;
+    }
+  }
+  names.push_back(Value::string(name));
+}
+
+void collect_abstract_names_from_iterable(const Value& value, std::vector<std::string>& names) {
+  auto add_name = [&names](const Value& item) {
+    auto* string = value_as_string(item);
+    if (string == nullptr) {
+      return;
+    }
+    const auto name = string_object_to_string(*string);
+    if (std::find(names.begin(), names.end(), name) == names.end()) {
+      names.push_back(name);
+    }
+  };
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      add_name(item);
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      add_name(item);
+    }
+  } else if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      add_name(item);
+    }
+  }
+}
+
+Value abc_abstract_methods_for_type_new(TupleObject* bases, DictObject* namespace_dict) {
+  std::vector<Value> abstracts;
+  std::vector<std::string> inherited_names;
+  for (const auto& base : bases->items) {
+    Value base_abstracts;
+    std::string ignored;
+    if (object_get_attr(base, "__abstractmethods__", base_abstracts, ignored)) {
+      collect_abstract_names_from_iterable(base_abstracts, inherited_names);
+    }
+  }
+  for (const auto& name : inherited_names) {
+    Value override_value;
+    bool has_override = false;
+    for (const auto& entry : namespace_dict->entries) {
+      auto* key = value_as_string(entry.first);
+      if (key != nullptr && string_object_to_string(*key) == name) {
+        value_assign_fast(override_value, entry.second);
+        has_override = true;
+        break;
+      }
+    }
+    if (!has_override || value_has_abstract_marker(override_value)) {
+      add_abstract_name(abstracts, name);
+    }
+  }
+  for (const auto& entry : namespace_dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key != nullptr && value_has_abstract_marker(entry.second)) {
+      add_abstract_name(abstracts, string_object_to_string(*key));
+    }
+  }
+  return Value::set(std::move(abstracts));
+}
+
 const char* builtin_type_name_for_kind(ObjectKind kind) {
   switch (kind) {
     case ObjectKind::String:
@@ -454,6 +538,12 @@ bool builtin_type_new(
   out = Value::class_object(string_object_to_string(*name), std::move(attrs), base, {}, args[0]);
   for (size_t i = 1; i < bases->items.size(); ++i) {
     if (!class_set_base(out, bases->items[i], error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (metaclass_is_abc_meta(args[0])) {
+    if (!object_set_attr(out, "__abstractmethods__", abc_abstract_methods_for_type_new(bases, namespace_dict), error)) {
       runtime.raise_class_error("TypeError", error);
       return false;
     }
