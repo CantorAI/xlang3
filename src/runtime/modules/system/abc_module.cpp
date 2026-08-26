@@ -271,10 +271,12 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
       return true;
     }
   }
-  out = class_is_subclass(sub, abc) || registry_contains_registered_base(abc_class, subclass);
-  if (out) {
+  const bool direct_subclass = class_is_subclass(sub, abc);
+  const bool registered_subclass = registry_contains_registered_base(abc_class, subclass);
+  out = direct_subclass || registered_subclass;
+  if (direct_subclass) {
     append_unique_identity(positive_cache, subclass);
-  } else {
+  } else if (!registered_subclass) {
     append_unique_identity(negative_cache, subclass);
   }
   return true;
@@ -448,13 +450,9 @@ bool abc_reset_registry(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return false;
   }
   Value abc_class = args[0];
-  if (!object_set_attr(abc_class, kRegistryAttr, Value::list({}), error) ||
-      !clear_abc_list_attr(abc_class, kCacheAttr, error) ||
-      !clear_abc_list_attr(abc_class, kNegativeCacheAttr, error) ||
-      !set_negative_cache_version(abc_class, g_cache_token, error)) {
+  if (!object_set_attr(abc_class, kRegistryAttr, Value::list({}), error)) {
     return false;
   }
-  ++g_cache_token;
   value_set_none(out);
   return true;
 }

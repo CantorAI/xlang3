@@ -46,7 +46,7 @@ True True
 True True
 True True True
 True True True
-True True False True
+True False True
 False False
 0 0 True
 0 0 0 True
@@ -60,6 +60,8 @@ True True
 True 0 True
 True True 0
 abc-cycle True
+True True
+True True 0 True True
 False False False
 True
 True

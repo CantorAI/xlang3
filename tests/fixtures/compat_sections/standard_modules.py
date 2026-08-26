@@ -250,10 +250,9 @@ print(NativeABC.register(Concrete) is Concrete, abc.get_cache_token() > token_be
 print(issubclass(Concrete, NativeABC), isinstance(Concrete(), NativeABC))
 print(len(_abc._get_dump(NativeABC)[0]) >= 1, _abc._abc_subclasscheck(NativeABC, Concrete), _abc._abc_instancecheck(NativeABC, Concrete()))
 native_dump = _abc._get_dump(NativeABC)
-print(len(native_dump[1]) >= 1, len(native_dump[2]) == 0, native_dump[3] == abc.get_cache_token())
+print(len(native_dump[1]) == 0, len(native_dump[2]) == 0, native_dump[3] == abc.get_cache_token())
 native_registry_ref = next(iter(native_dump[0]))
-native_cache_ref = next(iter(native_dump[1]))
-print(native_registry_ref() is Concrete, native_cache_ref() is Concrete, Concrete in native_dump[0], native_registry_ref in native_dump[0])
+print(native_registry_ref() is Concrete, Concrete in native_dump[0], native_registry_ref in native_dump[0])
 _abc._reset_registry(NativeABC)
 print(issubclass(Concrete, NativeABC), _abc._abc_subclasscheck(NativeABC, Concrete))
 native_dump = _abc._get_dump(NativeABC)
@@ -315,6 +314,9 @@ try:
     DirectConcrete.register(DirectABC)
 except RuntimeError as err:
     print("abc-cycle", "inheritance cycle" in str(err))
+print(issubclass(DirectConcrete, DirectABC), len(_abc._get_dump(DirectABC)[1]) >= 1)
+direct_reset_token = abc.get_cache_token()
+print(_abc._reset_registry(DirectABC) is None, abc.get_cache_token() == direct_reset_token, len(_abc._get_dump(DirectABC)[0]), len(_abc._get_dump(DirectABC)[1]) >= 1, issubclass(DirectConcrete, DirectABC))
 
 class DirectRejectingABC(metaclass=abc.ABCMeta):
     @classmethod

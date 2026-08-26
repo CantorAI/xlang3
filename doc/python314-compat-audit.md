@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `_abc` cache parity: virtual registry matches no longer
+  enter the positive subclass cache, and `_reset_registry()` now preserves
+  positive/negative caches plus the cache token like CPython 3.14.
 - Expanded native `_abc._get_dump()` to expose CPython-style snapshot sets of
   callable weak references for the registry, positive cache, and negative cache
   while keeping internal ABC matching state identity-based.
@@ -665,7 +668,9 @@ Native or runtime-backed foundation:
   `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,
   positive/negative subclass caches,
-  negative-cache invalidation after virtual subclass registration, and CPython-style
+  negative-cache invalidation after virtual subclass registration, virtual registry
+  matches staying out of the positive cache, `_reset_registry` preserving caches/token,
+  and CPython-style
   weakref-backed `_get_dump` snapshot sets; exact CPython weakref lifecycle and
   invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
