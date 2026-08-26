@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys startup executable/prefix metadata is synchronized after launcher initialization
+time.struct_time exposes CPython-style named-field repr coverage
 ```
 
 Current next loop:

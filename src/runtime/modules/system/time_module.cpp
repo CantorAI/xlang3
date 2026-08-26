@@ -295,6 +295,64 @@ bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, 
   return false;
 }
 
+std::string struct_time_field_repr(const Value& value) {
+  if (auto* string = value_as_string(value)) {
+    std::string text;
+    text.push_back('\'');
+    for (char ch : string_object_view(*string)) {
+      if (ch == '\'' || ch == '\\') {
+        text.push_back('\\');
+      }
+      if (ch == '\n') {
+        text += "\\n";
+      } else if (ch == '\r') {
+        text += "\\r";
+      } else if (ch == '\t') {
+        text += "\\t";
+      } else {
+        text.push_back(ch);
+      }
+    }
+    text.push_back('\'');
+    return text;
+  }
+  return value_to_string(value);
+}
+
+bool time_struct_time_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "time.struct_time.__repr__() expected no arguments";
+    return false;
+  }
+  static const char* names[] = {
+      "tm_year",
+      "tm_mon",
+      "tm_mday",
+      "tm_hour",
+      "tm_min",
+      "tm_sec",
+      "tm_wday",
+      "tm_yday",
+      "tm_isdst",
+  };
+  TupleObject* tuple = nullptr;
+  if (!struct_time_tuple_storage(args[0], "time.struct_time.__repr__", tuple, error)) {
+    return false;
+  }
+  std::string text = "time.struct_time(";
+  for (size_t i = 0; i < 9 && i < tuple->items.size(); ++i) {
+    if (i != 0) {
+      text += ", ";
+    }
+    text += names[i];
+    text += "=";
+    text += struct_time_field_repr(tuple->items[i]);
+  }
+  text += ")";
+  out = Value::string(std::move(text));
+  return true;
+}
+
 bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error) {
   std::vector<Value> items;
   if (auto* tuple = value_as_tuple(value)) {
@@ -845,6 +903,7 @@ void register_time_module(Runtime& runtime) {
       {
           {"__module__", Value::string("time")},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init)},
+          {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr)},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count)},
           {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index)},
           {"n_sequence_fields", Value::int64(9)},

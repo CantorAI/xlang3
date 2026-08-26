@@ -151,6 +151,10 @@ Recent completed batches:
   optional dict form for `tm_zone` and `tm_gmtoff`, preserves those named
   fields, rejects duplicate/unexpected extra field names, and rejects sequences
   longer than 11 fields with `TypeError`.
+- Expanded native `time.struct_time`: instances now expose a CPython-style
+  `__repr__()` that renders the nine sequence fields with named structseq
+  labels while omitting the non-sequence `tm_zone`/`tm_gmtoff` extras, matching
+  CPython 3.14 constructor and timestamp results.
 - Expanded native `sys`: `set_coroutine_origin_tracking_depth()` now stores
   and reports the thread-local configured depth through
   `get_coroutine_origin_tracking_depth()`, including negative-depth validation.
@@ -631,7 +635,7 @@ Native or runtime-backed foundation:
   `n_unnamed_fields` plus `tm_zone`/`tm_gmtoff` named/member fields, constructor dict
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
-  `count`/`index`, and platform-backed timezone constants/names; locale-specific parsing and
+  `count`/`index`, CPython-style named-field `__repr__`, and platform-backed timezone constants/names; locale-specific parsing and
   historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
