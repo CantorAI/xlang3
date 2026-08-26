@@ -64,7 +64,17 @@ def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
 
 
-def resolve_codex_executable() -> str:
+def resolve_codex_executable(config: dict | None = None) -> str:
+    if config:
+        configured = config.get("codex", {}).get("exe", "").strip()
+        if configured:
+            path = Path(configured)
+            if not path.is_absolute():
+                path = ROOT / path
+            if not path.exists():
+                raise SystemExit(f"Configured Codex executable does not exist: {path}")
+            return str(path)
+
     explicit = os.environ.get("XLANG3_CODEX_EXE", "").strip()
     if explicit:
         return explicit
@@ -88,9 +98,9 @@ def resolve_codex_executable() -> str:
     )
 
 
-def expand_command_template(command: str) -> str:
+def expand_command_template(config: dict, command: str) -> str:
     if "{codex}" in command:
-        command = command.replace("{codex}", resolve_codex_executable())
+        command = command.replace("{codex}", resolve_codex_executable(config))
     if "{root}" in command:
         command = command.replace("{root}", str(ROOT))
     return command
@@ -104,7 +114,7 @@ def default_limit(config: dict, goal: str) -> int:
     return int(goal_config(config, goal).get("default_limit", 8))
 
 
-def validate_codex_command(command: str) -> str:
+def validate_codex_command(config: dict, command: str) -> str:
     stripped = command.strip()
     placeholders = {"...", "<codex-command>", "TODO", "todo"}
     if stripped in placeholders:
@@ -112,7 +122,7 @@ def validate_codex_command(command: str) -> str:
             f"Invalid Codex backend command: {stripped!r}. "
             "Pass a real command or use --dry-run/--status."
         )
-    return expand_command_template(stripped)
+    return expand_command_template(config, stripped)
 
 
 def preflight_codex_command(command: str) -> None:
@@ -532,7 +542,7 @@ def main() -> int:
     section = args.section if args.section is not None else default_section(config, goal)
     limit = args.limit if args.limit > 0 else default_limit(config, goal)
     xlang3 = args.xlang3 or default_xlang3(config)
-    codex_command = validate_codex_command(args.codex_command or default_codex_command(config))
+    codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
     cmake = resolve_cmake(args.cmake) if not args.dry_run and not args.skip_build else ""
 
     if args.reset_loop_state:

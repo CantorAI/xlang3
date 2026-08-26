@@ -19,6 +19,7 @@ release_exe = "build/Release/xlang3.exe"
 fixture_root = "tests/fixtures"
 
 [codex]
+exe = "C:/Users/shaw9/AppData/Local/OpenAI/Codex/bin/8fffe69425752027/codex.exe"
 command = "\"{codex}\" exec --dangerously-bypass-approvals-and-sandbox -C \"{root}\" -"
 
 [goals.python314_compat]
