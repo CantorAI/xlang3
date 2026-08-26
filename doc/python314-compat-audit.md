@@ -437,8 +437,10 @@ High-level modules currently backed by native/runtime code:
   positional-call `lru_cache`/`cache` wrappers with bounded eviction, `cache_info`, `cache_clear`,
   and `cache_parameters` foundations; keyword-call caching, exact `CacheInfo` namedtuple behavior,
   `singledispatch`, descriptor edge cases, and full CPython semantics pending
-- [~] `__future__`: feature names and `_Feature` metadata/method basics; compiler integration is parser/runtime-owned
-- [~] `getpass`: `getuser` uses host environment lookup and password readers accept CPython-shaped arguments; real terminal echo control pending
+- [~] `__future__`: feature names, `_Feature` metadata/method basics, `__all__`, and public
+  `CO_FUTURE_*` compiler flag constants; compiler integration is parser/runtime-owned
+- [~] `getpass`: `getuser` uses host environment lookup, `GetPassWarning` is exposed,
+  and password readers accept positional/keyword CPython-shaped arguments; real terminal echo control pending
 - [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`, `filterfalse`, `compress`, `repeat(times)`, lazy `chain` with `__next__`, `batched`, `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`, `starmap`, and `zip_longest`; full lazy object identity for every helper, keyword-only options, and complete iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`dump`, file-like I/O, CPython-style default separators,
   `indent`, `sort_keys`, `ensure_ascii`, `separators`, `skipkeys`, `default`, `object_hook`,
@@ -461,7 +463,9 @@ High-level modules currently backed by native/runtime code:
   pickle opcode subset for common scalars/bytes/strings/containers, and XLang3 reads the same protocol-4
   subset from CPython; reducers, persistent IDs, shared-reference memo semantics, custom object state,
   extension registry, and protocol-5 out-of-band buffers pending
-- [~] `platform`: platform/python version helpers foundation
+- [~] `platform`: platform/python version helpers, build/compiler/branch/revision metadata,
+  node lookup, `uname()` object, `architecture()`, and `libc_ver()` foundations; exact OS-release
+  probing and CPython namedtuple identity pending
 - [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
   `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
   zip/resource edge cases, and exact import-package behavior pending
@@ -479,7 +483,8 @@ High-level modules currently backed by native/runtime code:
   exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
 - [~] `subprocess`: constants, `Popen` wait/poll/terminate basics, `run()` with Windows child launch, `capture_output`/`stdout=PIPE` text/bytes capture, `CompletedProcess`, and catchable `CalledProcessError` foundations; POSIX process launch, async pipe draining, timeout, input, shell details, and full lifecycle semantics pending
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
-  `is_python_build`, and common config-var helpers; full install scheme compatibility pending
+  `is_python_build`, config filename helpers, common config-var helpers, and makefile-variable
+  expansion; full install scheme compatibility pending
 - [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
 - [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
 - [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, and lazy `itertools.chain`; comments/NL, exact token text for string literals, encoding-cookie/BOM details, and full CPython tokenizer parity pending

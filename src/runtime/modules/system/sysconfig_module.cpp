@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 
 #include <string>
@@ -56,6 +57,29 @@ Value config_var_value(const std::string& name) {
   if (name == "py_version" || name == "VERSION") {
     return Value::string("3.14");
   }
+  if (name == "implementation") {
+    return Value::string("xlang3");
+  }
+  if (name == "abiflags" || name == "MULTIARCH" || name == "PYTHONFRAMEWORK") {
+    return Value::string("");
+  }
+  if (name == "prefix" || name == "exec_prefix" || name == "base" || name == "platbase" ||
+      name == "installed_base" || name == "installed_platbase" || name == "projectbase" ||
+      name == "srcdir") {
+    return Value::string(".");
+  }
+  if (name == "BINDIR") {
+    return Value::string("./Scripts");
+  }
+  if (name == "LIBDIR" || name == "LIBDEST" || name == "BINLIBDEST") {
+    return Value::string(".");
+  }
+  if (name == "INCLUDEPY" || name == "CONFINCLUDEPY") {
+    return Value::string("./include");
+  }
+  if (name == "LIBPL") {
+    return Value::string("./config");
+  }
   if (name == "Py_DEBUG") {
     return Value::int64(0);
   }
@@ -78,6 +102,10 @@ Value config_var_value(const std::string& name) {
   }
 #endif
   return Value::none();
+}
+
+void add_config_entry(std::vector<std::pair<Value, Value>>& entries, const char* name) {
+  entries.push_back({Value::string(name), config_var_value(name)});
 }
 
 bool sysconfig_get_path(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -142,13 +170,17 @@ bool sysconfig_get_config_var(Runtime&, const Value* args, uint32_t argc, Value&
 
 bool sysconfig_get_config_vars(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
-    out = Value::dict({
-        {Value::string("py_version"), Value::string("3.14")},
-        {Value::string("VERSION"), Value::string("3.14")},
-        {Value::string("Py_DEBUG"), Value::int64(0)},
-        {Value::string("SOABI"), Value::string("xlang3-314")},
-        {Value::string("EXT_SUFFIX"), config_var_value("EXT_SUFFIX")},
-    });
+    std::vector<std::pair<Value, Value>> entries;
+    const char* names[] = {
+        "py_version", "VERSION", "implementation", "abiflags", "MULTIARCH", "prefix", "exec_prefix",
+        "base", "platbase", "installed_base", "installed_platbase", "projectbase", "srcdir", "BINDIR",
+        "LIBDIR", "INCLUDEPY", "CONFINCLUDEPY", "LIBDEST", "BINLIBDEST", "LIBPL", "PYTHONFRAMEWORK",
+        "Py_DEBUG", "SOABI", "EXT_SUFFIX", "EXE",
+    };
+    for (const char* name : names) {
+      add_config_entry(entries, name);
+    }
+    out = Value::dict(std::move(entries));
     return true;
   }
   std::vector<Value> values;
@@ -162,6 +194,60 @@ bool sysconfig_get_config_vars(Runtime&, const Value* args, uint32_t argc, Value
     values.push_back(config_var_value(string_object_to_string(*name)));
   }
   out = Value::list(std::move(values));
+  return true;
+}
+
+bool sysconfig_get_makefile_filename(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig.get_makefile_filename() expected no arguments";
+    return false;
+  }
+  out = Value::string(sysconfig_root(runtime) + "/config/Makefile");
+  return true;
+}
+
+bool sysconfig_get_config_h_filename(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "sysconfig.get_config_h_filename() expected no arguments";
+    return false;
+  }
+  out = Value::string(sysconfig_root(runtime) + "/include/pyconfig.h");
+  return true;
+}
+
+bool sysconfig_expand_makefile_vars(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "sysconfig.expand_makefile_vars() expected string and vars";
+    return false;
+  }
+  auto* text = value_as_string(args[0]);
+  auto* vars = value_as_dict(args[1]);
+  if (text == nullptr || vars == nullptr) {
+    error = "sysconfig.expand_makefile_vars() expected str and dict";
+    return false;
+  }
+  std::string result = string_object_to_string(*text);
+  for (const auto& entry : vars->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key == nullptr || entry.second.tag == ValueTag::None) {
+      continue;
+    }
+    const std::string name = string_object_to_string(*key);
+    const std::string value = value_to_string(entry.second);
+    const std::string paren_pattern = "$(" + name + ")";
+    const std::string brace_pattern = "${" + name + "}";
+    size_t pos = 0;
+    while ((pos = result.find(paren_pattern, pos)) != std::string::npos) {
+      result.replace(pos, paren_pattern.size(), value);
+      pos += value.size();
+    }
+    pos = 0;
+    while ((pos = result.find(brace_pattern, pos)) != std::string::npos) {
+      result.replace(pos, brace_pattern.size(), value);
+      pos += value.size();
+    }
+  }
+  out = Value::string(std::move(result));
   return true;
 }
 
@@ -259,6 +345,9 @@ void register_sysconfig_module(Runtime& runtime) {
       .function("get_paths", sysconfig_get_paths)
       .function("get_config_var", sysconfig_get_config_var)
       .function("get_config_vars", sysconfig_get_config_vars)
+      .function("get_makefile_filename", sysconfig_get_makefile_filename)
+      .function("get_config_h_filename", sysconfig_get_config_h_filename)
+      .function("expand_makefile_vars", sysconfig_expand_makefile_vars)
       .function("get_platform", sysconfig_get_platform)
       .function("get_python_version", sysconfig_get_python_version)
       .function("get_default_scheme", sysconfig_get_default_scheme)

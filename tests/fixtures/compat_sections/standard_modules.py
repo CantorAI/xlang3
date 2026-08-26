@@ -257,6 +257,7 @@ import __future__
 
 feature = __future__.annotations
 print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
+print("annotations" in __future__.all_feature_names, __future__.CO_FUTURE_ANNOTATIONS == feature.compiler_flag, "all_feature_names" in __future__.__all__)
 
 # enum: class constants become members, aliases reuse members, auto increments, value lookup works, and unique rejects aliases.
 import enum
@@ -318,6 +319,7 @@ import opcode
 import os
 import pathlib
 import pickle
+import platform
 import pkgutil
 import re
 import signal
@@ -335,6 +337,7 @@ import winreg
 import xmlrpc.client
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
+print(getpass.GetPassWarning.__name__, getpass.getpass(prompt="x", stream=None) == "", getpass.default_getpass("x") == "")
 print(locale.delocalize("1,234.5"), locale.localize("1234.5"), locale.atoi("1,234"), locale.atof("1,234.5"))
 print(locale.strcoll("a", "b") < 0, isinstance(locale.strxfrm("abc"), str), locale.CHAR_MAX)
 old_recursion_limit = sys.getrecursionlimit()
@@ -350,6 +353,12 @@ print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_m
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())
 print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("user") in sysconfig.get_scheme_names(), sysconfig.is_python_build())
+uname = platform.uname()
+print(platform.python_implementation(), platform.python_version_tuple()[0], len(platform.python_compiler()) >= 0)
+print(platform.system() == uname.system, platform.machine() == uname.machine, isinstance(platform.architecture()[0], str), isinstance(platform.libc_ver(), tuple))
+config_vars = sysconfig.get_config_vars()
+print(sysconfig.get_makefile_filename().endswith("Makefile"), sysconfig.get_config_h_filename().endswith("pyconfig.h"))
+print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == sysconfig.get_config_var("py_version") + "-" + sysconfig.get_config_var("SOABI"))
 print(opcode.opmap["LOAD_CONST"], opcode.opname[opcode.opmap["RESUME"]], opcode.HAVE_ARGUMENT, opcode.EXTENDED_ARG, opcode.cmp_op[2])
 token_items = list(tokenize.tokenize(iter([b"a=1\n", b""]).__next__))
 print(token_items[0].type, token_items[0].string == "utf-8", token_items[1].type, token_items[1].string, token_items[2].type, token_items[2].string, token_items[-1].type)

@@ -93,6 +93,29 @@ void register_future_module(Runtime& runtime) {
   Value feature_class = make_feature_class(runtime);
   Value never = Value::none();
   builder.value("all_feature_names", make_feature_names())
+      .value("__all__", Value::list({
+                            Value::string("all_feature_names"),
+                            Value::string("nested_scopes"),
+                            Value::string("generators"),
+                            Value::string("division"),
+                            Value::string("absolute_import"),
+                            Value::string("with_statement"),
+                            Value::string("print_function"),
+                            Value::string("unicode_literals"),
+                            Value::string("barry_as_FLUFL"),
+                            Value::string("generator_stop"),
+                            Value::string("annotations"),
+                        }))
+      .value("CO_NESTED", Value::int64(16))
+      .value("CO_FUTURE_NESTED_SCOPES", Value::int64(16))
+      .value("CO_FUTURE_DIVISION", Value::int64(131072))
+      .value("CO_FUTURE_ABSOLUTE_IMPORT", Value::int64(262144))
+      .value("CO_FUTURE_WITH_STATEMENT", Value::int64(524288))
+      .value("CO_FUTURE_PRINT_FUNCTION", Value::int64(1048576))
+      .value("CO_FUTURE_UNICODE_LITERALS", Value::int64(2097152))
+      .value("CO_FUTURE_BARRY_AS_BDFL", Value::int64(4194304))
+      .value("CO_FUTURE_GENERATOR_STOP", Value::int64(8388608))
+      .value("CO_FUTURE_ANNOTATIONS", Value::int64(16777216))
       .value("_Feature", feature_class)
       .value("nested_scopes", make_feature(feature_class, "nested_scopes", release_tuple(2, 1, 0, "beta", 1), release_tuple(2, 2, 0, "final", 0), 16))
       .value("generators", make_feature(feature_class, "generators", release_tuple(2, 2, 0, "alpha", 1), release_tuple(2, 3, 0, "final", 0), 0))

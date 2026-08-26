@@ -15,6 +15,9 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+
+#include <cstdlib>
 
 namespace xlang3 {
 
@@ -35,6 +38,40 @@ bool platform_python_implementation(Runtime&, const Value* args, uint32_t argc, 
 
 bool platform_python_version(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return return_string("3.14.0", args, argc, out, error, "platform.python_version");
+}
+
+bool platform_python_build(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "platform.python_build() expected no arguments";
+    return false;
+  }
+  out = Value::tuple({Value::string("xlang3"), Value::string("Aug 2026")});
+  return true;
+}
+
+bool platform_python_compiler(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+#if defined(_MSC_VER)
+  if (argc != 0) {
+    error = "platform.python_compiler() expected no arguments";
+    return false;
+  }
+  out = Value::string("MSC v." + std::to_string(_MSC_VER));
+  return true;
+#elif defined(__clang__)
+  return return_string("Clang", args, argc, out, error, "platform.python_compiler");
+#elif defined(__GNUC__)
+  return return_string("GCC", args, argc, out, error, "platform.python_compiler");
+#else
+  return return_string("", args, argc, out, error, "platform.python_compiler");
+#endif
+}
+
+bool platform_python_branch(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return return_string("xlang3", args, argc, out, error, "platform.python_branch");
+}
+
+bool platform_python_revision(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return return_string("", args, argc, out, error, "platform.python_revision");
 }
 
 bool platform_python_version_tuple(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -89,7 +126,26 @@ bool platform_processor(Runtime&, const Value* args, uint32_t argc, Value& out, 
 }
 
 bool platform_node(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return return_string("", args, argc, out, error, "platform.node");
+  if (argc != 0) {
+    error = "platform.node() expected no arguments";
+    return false;
+  }
+#if defined(_WIN32)
+  const char* name = std::getenv("COMPUTERNAME");
+#else
+  const char* name = std::getenv("HOSTNAME");
+#endif
+  out = Value::string(name == nullptr ? "" : name);
+  return true;
+}
+
+Value platform_node_value() {
+#if defined(_WIN32)
+  const char* name = std::getenv("COMPUTERNAME");
+#else
+  const char* name = std::getenv("HOSTNAME");
+#endif
+  return Value::string(name == nullptr ? "" : name);
 }
 
 bool platform_platform(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -116,12 +172,84 @@ bool platform_architecture(Runtime&, const Value*, uint32_t argc, Value& out, st
   return true;
 }
 
+Value platform_system_value() {
+#if defined(_WIN32)
+  return Value::string("Windows");
+#elif defined(__APPLE__)
+  return Value::string("Darwin");
+#else
+  return Value::string("Linux");
+#endif
+}
+
+Value platform_machine_value() {
+#if defined(_M_X64) || defined(__x86_64__)
+  return Value::string("AMD64");
+#elif defined(_M_ARM64) || defined(__aarch64__)
+  return Value::string("ARM64");
+#elif defined(_M_IX86) || defined(__i386__)
+  return Value::string("x86");
+#else
+  return Value::string("");
+#endif
+}
+
+bool platform_uname(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "platform.uname() expected no arguments";
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("platform")});
+  attrs.push_back({"system", platform_system_value()});
+  attrs.push_back({"node", platform_node_value()});
+  attrs.push_back({"release", Value::string("")});
+  attrs.push_back({"version", Value::string("")});
+  attrs.push_back({"machine", platform_machine_value()});
+  attrs.push_back({"processor", platform_machine_value()});
+  Value instance = Value::instance(Value::class_object("uname_result", std::move(attrs)));
+  std::string ignored;
+  object_set_attr(
+      instance,
+      "_tuple",
+      Value::tuple({
+          platform_system_value(),
+          platform_node_value(),
+          Value::string(""),
+          Value::string(""),
+          platform_machine_value(),
+          platform_machine_value(),
+      }),
+      ignored);
+  out = std::move(instance);
+  return true;
+}
+
+bool platform_libc_ver(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "platform.libc_ver() expected optional executable/lib/version";
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::tuple({Value::string(""), Value::string("")});
+#elif defined(__GLIBC__)
+  out = Value::tuple({Value::string("glibc"), Value::string("")});
+#else
+  out = Value::tuple({Value::string(""), Value::string("")});
+#endif
+  return true;
+}
+
 } // namespace
 
 void register_platform_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "platform");
   builder.function("python_implementation", platform_python_implementation)
       .function("python_version", platform_python_version)
+      .function("python_build", platform_python_build)
+      .function("python_compiler", platform_python_compiler)
+      .function("python_branch", platform_python_branch)
+      .function("python_revision", platform_python_revision)
       .function("python_version_tuple", platform_python_version_tuple)
       .function("system", platform_system)
       .function("machine", platform_machine)
@@ -130,7 +258,9 @@ void register_platform_module(Runtime& runtime) {
       .function("processor", platform_processor)
       .function("node", platform_node)
       .function("platform", platform_platform)
-      .function("architecture", platform_architecture);
+      .function("architecture", platform_architecture)
+      .function("uname", platform_uname)
+      .function("libc_ver", platform_libc_ver);
   runtime.register_module("platform", builder.finish());
 }
 

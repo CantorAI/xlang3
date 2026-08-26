@@ -50,6 +50,7 @@ T 2 object True
 x List Optional
 FinalClass True True False
 annotations 3 None 16777216
+True True True
 RED 1 BLUE 2
 True True True
 [Color.RED, Color.BLUE] True [RED, BLUE]
@@ -62,6 +63,7 @@ True True
 0 0 64 64
 260 True 1
 True True .
+GetPassWarning True True
 1234.5 1234.5 1234 1234.5
 True True 127
 utf-8 utf-8 surrogatepass True
@@ -72,6 +74,10 @@ True 1970 1 1 1970
 True True True
 True True 3.14
 True True False
+CPython 3 True
+True True True True
+True True
+True
 82 RESUME 43 69 ==
 68 True 1 a 55 = 0
 True True
