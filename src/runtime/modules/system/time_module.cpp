@@ -25,6 +25,10 @@ limitations under the License.
 #include <thread>
 #include <vector>
 
+#if defined(_WIN32)
+#include <cstdlib>
+#endif
+
 namespace xlang3 {
 
 namespace {
@@ -503,14 +507,95 @@ std::tm local_tm_for_epoch(std::time_t timestamp) {
   return tm_from_time_t(timestamp, false);
 }
 
-int64_t local_timezone_offset_seconds() {
-  const std::time_t epoch = 0;
-  std::tm local = local_tm_for_epoch(epoch);
-  const std::time_t local_as_timestamp = std::mktime(&local);
-  if (local_as_timestamp == static_cast<std::time_t>(-1)) {
-    return 0;
+struct TimezoneInfo {
+  int64_t timezone = 0;
+  int64_t altzone = 0;
+  int64_t daylight = 0;
+  std::string standard_name = "UTC";
+  std::string daylight_name = "UTC";
+};
+
+TimezoneInfo platform_timezone_info() {
+  TimezoneInfo info;
+#if defined(_WIN32)
+  _tzset();
+  long timezone_seconds = 0;
+  int daylight = 0;
+  long dst_bias = 0;
+  if (_get_timezone(&timezone_seconds) == 0) {
+    info.timezone = static_cast<int64_t>(timezone_seconds);
   }
-  return static_cast<int64_t>(local_as_timestamp - epoch);
+  if (_get_daylight(&daylight) == 0) {
+    info.daylight = daylight != 0 ? 1 : 0;
+  }
+  info.altzone = info.timezone;
+  if (info.daylight && _get_dstbias(&dst_bias) == 0) {
+    info.altzone = info.timezone + static_cast<int64_t>(dst_bias);
+  }
+  for (int index = 0; index < 2; ++index) {
+    size_t required = 0;
+    if (_get_tzname(&required, nullptr, 0, index) != 0 || required == 0) {
+      continue;
+    }
+    std::string name(required, '\0');
+    if (_get_tzname(&required, name.data(), required, index) == 0) {
+      if (!name.empty() && name.back() == '\0') {
+        name.pop_back();
+      }
+      if (index == 0) {
+        info.standard_name = name;
+      } else {
+        info.daylight_name = name;
+      }
+    }
+  }
+#else
+  tzset();
+  auto offset_seconds = [](std::time_t timestamp) -> int64_t {
+    std::tm local = tm_from_time_t(timestamp, false);
+    std::tm utc = tm_from_time_t(timestamp, true);
+    local.tm_isdst = -1;
+    utc.tm_isdst = -1;
+    const std::time_t local_stamp = std::mktime(&local);
+    const std::time_t utc_as_local_stamp = std::mktime(&utc);
+    if (local_stamp == static_cast<std::time_t>(-1) || utc_as_local_stamp == static_cast<std::time_t>(-1)) {
+      return 0;
+    }
+    return static_cast<int64_t>(std::difftime(utc_as_local_stamp, local_stamp));
+  };
+  const std::time_t now = std::time(nullptr);
+  const std::tm now_local = tm_from_time_t(now, false);
+  std::tm january{};
+  january.tm_year = now_local.tm_year;
+  january.tm_mon = 0;
+  january.tm_mday = 1;
+  january.tm_hour = 12;
+  january.tm_isdst = -1;
+  std::tm july = january;
+  july.tm_mon = 6;
+  const std::time_t january_stamp = std::mktime(&january);
+  const std::time_t july_stamp = std::mktime(&july);
+  const int64_t january_offset = offset_seconds(january_stamp);
+  const int64_t july_offset = offset_seconds(july_stamp);
+  const std::string january_name = format_tm("%Z", tm_from_time_t(january_stamp, false));
+  const std::string july_name = format_tm("%Z", tm_from_time_t(july_stamp, false));
+  info.daylight = january_offset != july_offset ? 1 : 0;
+  info.timezone = january_offset >= july_offset ? january_offset : july_offset;
+  info.altzone = january_offset < july_offset ? january_offset : july_offset;
+  info.standard_name = january_offset >= july_offset ? january_name : july_name;
+  info.daylight_name = january_offset < july_offset ? january_name : july_name;
+  if (info.standard_name.empty()) {
+    info.standard_name = "UTC";
+  }
+  if (info.daylight_name.empty()) {
+    info.daylight_name = info.standard_name;
+  }
+#endif
+  if (!info.daylight) {
+    info.altzone = info.timezone;
+    info.daylight_name = info.standard_name;
+  }
+  return info;
 }
 
 } // namespace
@@ -525,9 +610,7 @@ void register_time_module(Runtime& runtime) {
       });
   runtime.register_native_package_cleanup(state, time_module_state_cleanup);
 
-  const int64_t timezone = local_timezone_offset_seconds();
-  const std::tm epoch_local = local_tm_for_epoch(0);
-  const bool daylight = epoch_local.tm_isdst > 0;
+  const TimezoneInfo timezone = platform_timezone_info();
 
   NativeModuleBuilder builder(runtime, "time");
   builder.function("time", time_time)
@@ -550,10 +633,10 @@ void register_time_module(Runtime& runtime) {
       .function("asctime", time_asctime)
       .function("ctime", time_ctime)
       .value("struct_time", state->struct_time_class)
-      .value("timezone", Value::int64(timezone))
-      .value("altzone", Value::int64(timezone))
-      .value("daylight", Value::int64(daylight ? 1 : 0))
-      .value("tzname", Value::tuple({Value::string("UTC"), Value::string("UTC")}));
+      .value("timezone", Value::int64(timezone.timezone))
+      .value("altzone", Value::int64(timezone.altzone))
+      .value("daylight", Value::int64(timezone.daylight))
+      .value("tzname", Value::tuple({Value::string(timezone.standard_name), Value::string(timezone.daylight_name)}));
   runtime.register_module("time", builder.finish());
 }
 

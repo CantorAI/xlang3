@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the linecache/tokenize source-encoding closeout batch.
+Last updated after the native `time` platform timezone metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,8 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
+  `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
   ASCII, and Latin-1 coding cookies; wired it into `linecache` and `_tokenize`.
 - Fixed bytes-regex match groups so CPython `Lib/tokenize.py` can run its
@@ -480,8 +482,8 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
-  `struct_time`, and timezone constants; exact platform timezone/DST names, locale-specific parsing,
-  and CPython tuple-subclass identity remain pending
+  `struct_time`, and platform-backed timezone constants/names; locale-specific parsing,
+  historical DST edge behavior, and CPython tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
   virtual subclass checks, `isinstance`/`issubclass` metaclass hook dispatch, and ABC
