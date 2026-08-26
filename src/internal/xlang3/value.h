@@ -574,6 +574,10 @@ struct FileObject {
   std::string path;
   std::string mode;
   std::string buffer;
+  std::string encoding = "utf-8";
+  std::string errors = "strict";
+  std::string newline;
+  bool newline_is_none = true;
   std::size_t cursor = 0;
   bool readable = false;
   bool writable = false;

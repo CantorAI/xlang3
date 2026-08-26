@@ -374,6 +374,15 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (value_as_generator(iterable) != nullptr) {
     return generator_get_iter(iterable, out, error);
   }
+  if (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr && iterable.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(iterable.as.obj);
+    if (file->closed) {
+      error = "file.__iter__ on closed file";
+      return false;
+    }
+    value_assign_fast(out, iterable);
+    return true;
+  }
   if (value_is_functional_iterator(iterable)) {
     value_assign_fast(out, iterable);
     return true;
@@ -435,6 +444,31 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
   }
   if (value_as_generator(iterator) != nullptr) {
     return generator_iter_next(iterator, done, out, error);
+  }
+  if (iterator.tag == ValueTag::Object && iterator.as.obj != nullptr && iterator.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(iterator.as.obj);
+    if (file->closed) {
+      error = "file.__next__ on closed file";
+      return false;
+    }
+    const size_t start = std::min(file->cursor, file->buffer.size());
+    if (start >= file->buffer.size()) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    size_t end = start;
+    while (end < file->buffer.size()) {
+      ++end;
+      if (file->buffer[end - 1] == '\n') {
+        break;
+      }
+    }
+    std::string line = file->buffer.substr(start, end - start);
+    out = file->binary ? Value::bytes(std::move(line)) : Value::string(std::move(line));
+    file->cursor = end;
+    done = false;
+    return true;
   }
   if (value_is_functional_iterator(iterator)) {
     return functional_iterator_next(iterator, done, out, error);

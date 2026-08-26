@@ -14,10 +14,12 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
 #include <algorithm>
+#include <cctype>
 
 namespace xlang3 {
 namespace {
@@ -61,6 +63,103 @@ bool get_write_bytes_arg(const Value& value, bool binary, const char* name, std:
   return false;
 }
 
+std::string normalize_name(std::string text) {
+  for (char& ch : text) {
+    if (ch == '-' || ch == ' ' || ch == '.') {
+      ch = '_';
+    } else {
+      ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+  }
+  if (text == "utf8" || text == "u8" || text == "cp65001") {
+    return "utf_8";
+  }
+  if (text == "latin1" || text == "latin_1" || text == "iso8859_1" || text == "iso_8859_1") {
+    return "latin_1";
+  }
+  if (text == "us_ascii" || text == "646") {
+    return "ascii";
+  }
+  return text;
+}
+
+std::string translate_newlines_for_write(std::string text, const FileObject& file) {
+  if (file.newline_is_none || file.newline.empty() || file.newline == "\n") {
+    return text;
+  }
+  std::string out;
+  out.reserve(text.size());
+  for (char ch : text) {
+    if (ch == '\n') {
+      out += file.newline;
+    } else {
+      out.push_back(ch);
+    }
+  }
+  return out;
+}
+
+uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
+  if (width == 1) {
+    return static_cast<unsigned char>(text[0]);
+  }
+  uint32_t codepoint = static_cast<unsigned char>(text[0]) & ((1u << (7 - width)) - 1u);
+  for (size_t i = 1; i < width; ++i) {
+    codepoint = (codepoint << 6) | (static_cast<unsigned char>(text[i]) & 0x3fu);
+  }
+  return codepoint;
+}
+
+bool encode_text_buffer(const FileObject& file, std::string& out, std::string& error) {
+  const std::string encoding = normalize_name(file.encoding);
+  const std::string errors = normalize_name(file.errors);
+  const std::string text = translate_newlines_for_write(file.buffer, file);
+  if (encoding == "utf_8" || encoding == "utf_8_sig") {
+    out = encoding == "utf_8_sig" ? std::string("\xef\xbb\xbf", 3) + text : text;
+    return true;
+  }
+  if (encoding == "ascii") {
+    for (size_t i = 0; i < text.size();) {
+      const unsigned char ch = static_cast<unsigned char>(text[i]);
+      const size_t width = utf8_codepoint_width(ch);
+      const uint32_t codepoint = width == 0 || i + width > text.size() ? ch : decode_utf8_codepoint(std::string_view(text).substr(i), width);
+      const size_t advance = width == 0 ? 1 : width;
+      if (codepoint < 128) {
+        out.push_back(static_cast<char>(codepoint));
+      } else if (errors == "ignore") {
+      } else if (errors == "replace") {
+        out.push_back('?');
+      } else {
+        error = "ascii codec can't encode character";
+        return false;
+      }
+      i += advance;
+    }
+    return true;
+  }
+  if (encoding == "latin_1") {
+    for (size_t i = 0; i < text.size();) {
+      const unsigned char ch = static_cast<unsigned char>(text[i]);
+      const size_t width = utf8_codepoint_width(ch);
+      const uint32_t codepoint = width == 0 || i + width > text.size() ? ch : decode_utf8_codepoint(std::string_view(text).substr(i), width);
+      const size_t advance = width == 0 ? 1 : width;
+      if (codepoint <= 0xff) {
+        out.push_back(static_cast<char>(codepoint));
+      } else if (errors == "ignore") {
+      } else if (errors == "replace") {
+        out.push_back('?');
+      } else {
+        error = "latin-1 codec can't encode character";
+        return false;
+      }
+      i += advance;
+    }
+    return true;
+  }
+  error = "unsupported file encoding: " + file.encoding;
+  return false;
+}
+
 bool flush_file(FileObject& file, std::string& error) {
   if (file.devnull) {
     return true;
@@ -72,10 +171,15 @@ bool flush_file(FileObject& file, std::string& error) {
     error = "file has no filesystem";
     return false;
   }
+  std::string storage;
+  const std::string& bytes = file.binary ? file.buffer : storage;
+  if (!file.binary && !encode_text_buffer(file, storage, error)) {
+    return false;
+  }
   return file.fs->write_file(
       file.path,
-      reinterpret_cast<const uint8_t*>(file.buffer.data()),
-      file.buffer.size(),
+      reinterpret_cast<const uint8_t*>(bytes.data()),
+      bytes.size(),
       error);
 }
 
@@ -133,13 +237,15 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
       return false;
     }
-    value_set_int64(out, static_cast<int64_t>(text.size()));
+    const size_t written = file->binary ? text.size() : utf8_codepoint_count(text);
+    value_set_int64(out, static_cast<int64_t>(written));
     return true;
   }
   std::string text;
   if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
     return false;
   }
+  const size_t written = file->binary ? text.size() : utf8_codepoint_count(text);
   if (file->append) {
     file->cursor = file->buffer.size();
   }
@@ -151,7 +257,7 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   }
   std::copy(text.begin(), text.end(), file->buffer.begin() + static_cast<std::ptrdiff_t>(file->cursor));
   file->cursor += text.size();
-  value_set_int64(out, static_cast<int64_t>(text.size()));
+  value_set_int64(out, static_cast<int64_t>(written));
   return true;
 }
 
@@ -381,6 +487,34 @@ bool file_enter_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool file_iter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.__iter__", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.__iter__", error);
+  if (file == nullptr) {
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool file_next_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.__next__", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.__next__", error);
+  if (file == nullptr) {
+    return false;
+  }
+  if (file->cursor >= file->buffer.size()) {
+    error = "StopIteration";
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
+  return read_line(*file, out, error);
+}
+
 bool file_exit_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 4, "file.__exit__", error)) {
     return false;
@@ -403,6 +537,8 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
   static constexpr BuiltinMethodSpec methods[] = {
       {"__enter__", "file.__enter__", file_enter_method},
       {"__exit__", "file.__exit__", file_exit_method},
+      {"__iter__", "file.__iter__", file_iter_method},
+      {"__next__", "file.__next__", file_next_method},
       {"close", "file.close", file_close_method},
       {"closed", "file.closed", file_closed_method},
       {"flush", "file.flush", file_flush_method},

@@ -362,7 +362,7 @@ Section-level fixture coverage:
 - [x] `bin`
 - [x] `oct`
 - [x] `hex`
-- [~] `open`: VFS-backed text/binary basics, keyword forms, and context-manager methods; exact buffering/newline semantics pending
+- [~] `open`: VFS-backed text/binary basics, CPython-style positional/keyword forms, context-manager methods, file iteration, encoding/error keyword basics, and universal/newline translation foundation; exact buffering/opener/error-class semantics pending
 - [x] `getattr`
 - [x] `setattr`
 - [x] `hasattr`
@@ -387,7 +387,7 @@ Native or runtime-backed foundation:
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, and `S_IS*` helpers
 - [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
-- [~] `_io`: module exposes VFS-backed `open`, `open_code`, `StringIO`, `BytesIO`, file-like context/read/write/seek helpers; concrete CPython IO type hierarchy pending
+- [~] `_io`: module exposes VFS-backed `open`, `open_code`, `StringIO`, `BytesIO`, file-like context/read/write/seek helpers, iterator hooks, and text newline/encoding basics; concrete CPython IO type hierarchy pending
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
@@ -504,13 +504,13 @@ High-level modules currently backed by native/runtime code:
 ### Filesystem And IO
 
 - [x] runtime VFS abstraction
-- [~] file object: read/write/close/context manager plus read(size), readline(s), writelines, seek/tell, closed; iterator/newline/full errors pending
+- [~] file object: read/write/close/context manager plus read(size), readline(s), writelines, seek/tell, closed, iterator protocol, newline translation basics, and text encoding/error basics; exact buffering/error-class semantics pending
 - [x] host filesystem backend
 - [x] Pico flash file store foundation
-- [~] CPython-compatible `open`: VFS path/path-like input and `r/w/a/x/+` mode parsing; full error classes/opener semantics pending
+- [~] CPython-compatible `open`: VFS path/path-like input, `r/w/a/x/+` mode parsing, text/binary positional and keyword handling, and file iterator behavior; full error classes/opener semantics pending
 - [~] text/binary modes: text strings and binary bytes/bytearray for core read/write paths
 - [~] buffering behavior: `buffering` keyword is accepted and validated; buffering policy is still VFS-buffer based
-- [~] encoding behavior: UTF-8 text path accepted through `encoding`/`errors`/`newline` keywords; codec conversion and newline translation pending
+- [~] encoding behavior: UTF-8/UTF-8-SIG/ASCII/Latin-1 text paths use `encoding`/`errors`/`newline` keywords with basic codec conversion and newline translation; full codec registry matrix pending
 - [~] `io` module: `_io` and `io` expose `open`, IO base type placeholders, `StringIO`, and `BytesIO`; full CPython hierarchy pending
 - [~] path protocol: `open(Path(...))`, `os.fspath(Path(...))`, and `Path.__fspath__` basics
 

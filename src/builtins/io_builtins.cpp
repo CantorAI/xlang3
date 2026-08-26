@@ -17,6 +17,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
 
+#include <cctype>
+
 namespace xlang3 {
 
 namespace {
@@ -31,6 +33,110 @@ struct OpenMode {
   bool update = false;
   bool binary = false;
 };
+
+struct OpenOptions {
+  std::string encoding = "utf-8";
+  std::string errors = "strict";
+  std::string newline;
+  bool newline_is_none = true;
+  int64_t buffering = -1;
+};
+
+std::string normalize_name(std::string text) {
+  for (char& ch : text) {
+    if (ch == '-' || ch == ' ' || ch == '.') {
+      ch = '_';
+    } else {
+      ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+  }
+  if (text == "utf8" || text == "u8" || text == "cp65001") {
+    return "utf_8";
+  }
+  if (text == "latin1" || text == "latin_1" || text == "iso8859_1" || text == "iso_8859_1") {
+    return "latin_1";
+  }
+  if (text == "us_ascii" || text == "646") {
+    return "ascii";
+  }
+  return text;
+}
+
+bool append_utf8(uint32_t codepoint, std::string& out) {
+  if (codepoint <= 0x7f) {
+    out.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7ff) {
+    out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else if (codepoint <= 0xffff) {
+    out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else {
+    out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  }
+  return true;
+}
+
+std::string normalize_newlines_for_read(std::string text, const OpenOptions& options) {
+  if (!options.newline_is_none && options.newline.empty()) {
+    return text;
+  }
+  std::string out;
+  out.reserve(text.size());
+  for (size_t i = 0; i < text.size(); ++i) {
+    if (text[i] == '\r') {
+      if (i + 1 < text.size() && text[i + 1] == '\n') {
+        ++i;
+      }
+      out.push_back('\n');
+    } else {
+      out.push_back(text[i]);
+    }
+  }
+  return out;
+}
+
+bool decode_file_text(const std::string& bytes, const OpenOptions& options, std::string& out, std::string& error) {
+  const std::string encoding = normalize_name(options.encoding);
+  const std::string errors = normalize_name(options.errors);
+  std::string decoded;
+  if (encoding == "utf_8" || encoding == "utf_8_sig") {
+    size_t start = 0;
+    if (encoding == "utf_8_sig" && bytes.size() >= 3 &&
+        static_cast<unsigned char>(bytes[0]) == 0xef &&
+        static_cast<unsigned char>(bytes[1]) == 0xbb &&
+        static_cast<unsigned char>(bytes[2]) == 0xbf) {
+      start = 3;
+    }
+    decoded.assign(bytes.data() + start, bytes.size() - start);
+  } else if (encoding == "latin_1") {
+    for (unsigned char ch : bytes) {
+      append_utf8(ch, decoded);
+    }
+  } else if (encoding == "ascii") {
+    for (unsigned char ch : bytes) {
+      if (ch < 128) {
+        decoded.push_back(static_cast<char>(ch));
+      } else if (errors == "ignore") {
+        continue;
+      } else if (errors == "replace") {
+        decoded += "\xef\xbf\xbd";
+      } else {
+        error = "ascii codec can't decode byte";
+        return false;
+      }
+    }
+  } else {
+    error = "unsupported file encoding: " + options.encoding;
+    return false;
+  }
+  out = normalize_newlines_for_read(std::move(decoded), options);
+  return true;
+}
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
@@ -147,6 +253,85 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
   return true;
 }
 
+bool apply_open_option(const std::string& key, const Value& value, OpenOptions& options, std::string& error) {
+  if (key == "buffering") {
+    if (value.tag != ValueTag::Int64) {
+      error = "open buffering must be int";
+      return false;
+    }
+    options.buffering = value.as.i64;
+    return true;
+  }
+  if (key == "encoding") {
+    if (value.tag == ValueTag::None) {
+      options.encoding = "utf-8";
+      return true;
+    }
+    if (value_as_string(value) == nullptr) {
+      error = "open encoding must be str or None";
+      return false;
+    }
+    options.encoding = string_object_to_string(*value_as_string(value));
+    return true;
+  }
+  if (key == "errors") {
+    if (value.tag == ValueTag::None) {
+      options.errors = "strict";
+      return true;
+    }
+    if (value_as_string(value) == nullptr) {
+      error = "open errors must be str or None";
+      return false;
+    }
+    options.errors = string_object_to_string(*value_as_string(value));
+    return true;
+  }
+  if (key == "newline") {
+    if (value.tag == ValueTag::None) {
+      options.newline_is_none = true;
+      options.newline.clear();
+      return true;
+    }
+    if (value_as_string(value) == nullptr) {
+      error = "open newline must be str or None";
+      return false;
+    }
+    options.newline_is_none = false;
+    options.newline = string_object_to_string(*value_as_string(value));
+    if (!(options.newline.empty() || options.newline == "\n" || options.newline == "\r" || options.newline == "\r\n")) {
+      error = "illegal newline value";
+      return false;
+    }
+    return true;
+  }
+  if (key == "closefd") {
+    if (value.tag != ValueTag::Bool) {
+      error = "open closefd must be bool";
+      return false;
+    }
+    return true;
+  }
+  if (key == "opener") {
+    if (value.tag != ValueTag::None) {
+      error = "open opener is not supported yet";
+      return false;
+    }
+    return true;
+  }
+  error = "open got unsupported keyword argument '" + key + "'";
+  return false;
+}
+
+bool apply_open_positional_options(const Value* args, uint32_t argc, OpenOptions& options, std::string& error) {
+  static constexpr const char* kNames[] = {"buffering", "encoding", "errors", "newline", "closefd", "opener"};
+  for (uint32_t i = 2; i < argc; ++i) {
+    if (!apply_open_option(kNames[i - 2], args[i], options, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool is_devnull_path(const std::string& path) {
 #if defined(_WIN32)
   return path == "NUL" || path == "nul";
@@ -223,9 +408,9 @@ bool builtin_open(
     uint32_t argc,
     Value& out,
     std::string& error,
-    void*) {
-  if (argc != 1 && argc != 2) {
-    error = "open expected 1 or 2 arguments, got " + std::to_string(argc);
+    void* user_data) {
+  if (argc < 1 || argc > 8) {
+    error = "open expected between 1 and 8 arguments, got " + std::to_string(argc);
     return false;
   }
   std::string path;
@@ -233,7 +418,13 @@ bool builtin_open(
   if (!get_path_arg(args[0], "open path", path, error)) {
     return false;
   }
-  if (argc == 2 && !get_string_arg(args[1], "open mode", mode, error)) {
+  if (argc >= 2 && !get_string_arg(args[1], "open mode", mode, error)) {
+    return false;
+  }
+  OpenOptions options;
+  if (user_data != nullptr) {
+    options = *static_cast<OpenOptions*>(user_data);
+  } else if (!apply_open_positional_options(args, argc, options, error)) {
     return false;
   }
 
@@ -250,6 +441,10 @@ bool builtin_open(
     file->append = parsed.append;
     file->binary = parsed.binary;
     file->devnull = true;
+    file->encoding = options.encoding;
+    file->errors = options.errors;
+    file->newline = options.newline;
+    file->newline_is_none = options.newline_is_none;
     return true;
   }
 
@@ -274,6 +469,9 @@ bool builtin_open(
         return false;
       }
       buffer.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+      if (!parsed.binary && !decode_file_text(buffer, options, buffer, error)) {
+        return false;
+      }
     } else if (!parsed.writable) {
       error = "file not found: " + path;
       return false;
@@ -286,6 +484,10 @@ bool builtin_open(
   file->writable = parsed.writable;
   file->append = parsed.append;
   file->binary = parsed.binary;
+  file->encoding = options.encoding;
+  file->errors = options.errors;
+  file->newline = options.newline;
+  file->newline_is_none = options.newline_is_none;
   file->cursor = parsed.append ? file->buffer.size() : 0;
   return true;
 }
@@ -299,15 +501,19 @@ bool builtin_open_kw(
     Value& out,
     std::string& error,
     void* user_data) {
-  if (argc < 1 || argc > 2) {
-    error = "open expected path and optional mode";
+  if (argc < 1 || argc > 8) {
+    error = "open expected between 1 and 8 arguments";
     return false;
   }
   std::vector<Value> positional;
+  OpenOptions options;
   positional.reserve(2);
   positional.push_back(args[0]);
   if (argc == 2) {
     positional.push_back(args[1]);
+  }
+  if (!apply_open_positional_options(args, argc, options, error)) {
+    return false;
   }
   for (uint32_t i = 0; i < kwargc; ++i) {
     const char* name = kwargs[i].name;
@@ -323,14 +529,26 @@ bool builtin_open_kw(
         return false;
       }
       positional.push_back(*value);
-    } else if (key == "encoding" || key == "errors" || key == "newline") {
-      if (value_as_string(*value) == nullptr && value->tag != ValueTag::None) {
-        error = "open " + key + " must be str or None";
+    } else if (key == "buffering" || key == "encoding" || key == "errors" || key == "newline" || key == "closefd" || key == "opener") {
+      uint32_t positional_index = 0;
+      if (key == "buffering") {
+        positional_index = 2;
+      } else if (key == "encoding") {
+        positional_index = 3;
+      } else if (key == "errors") {
+        positional_index = 4;
+      } else if (key == "newline") {
+        positional_index = 5;
+      } else if (key == "closefd") {
+        positional_index = 6;
+      } else {
+        positional_index = 7;
+      }
+      if (argc > positional_index) {
+        error = "open got multiple values for argument '" + key + "'";
         return false;
       }
-    } else if (key == "buffering") {
-      if (value->tag != ValueTag::Int64) {
-        error = "open buffering must be int";
+      if (!apply_open_option(key, *value, options, error)) {
         return false;
       }
     } else {
@@ -344,7 +562,7 @@ bool builtin_open_kw(
       static_cast<uint32_t>(positional.size()),
       out,
       error,
-      user_data);
+      &options);
 }
 
 } // namespace
