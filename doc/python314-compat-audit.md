@@ -50,6 +50,36 @@ Section-level fixture coverage:
 - `tests/fixtures/compat_sections/builtins.py`
 - `tests/fixtures/compat_sections/standard_modules.py`
 
+## Current Progress Snapshot
+
+Last updated after commit `fec3484` (`Preserve tokenizer comments and NL tokens`).
+
+Current checklist count:
+
+- Syntax compatibility: 146 checked, 0 partial, 0 missing.
+- Runtime compatibility: 144 checked, 111 partial, 0 missing.
+- Recent compatibility debt: 0 checked, 5 partial, 0 missing.
+
+What this means:
+
+- The parser/syntax surface tracked in this audit is currently covered by section fixtures.
+- Runtime compatibility has broad tested foundations, but many modules remain partial because exact CPython edge behavior is intentionally still tracked.
+- A partial item is not a stub: it must have a declared supported subset and tests.
+- A checked item means implemented enough for the current audit scope and fixtures, not a promise that every CPython implementation detail is identical.
+
+Recent completed batches:
+
+- `eacf098` expanded `time`: constructible/indexable/iterable `struct_time`, `strptime`, and timezone constants.
+- `9c7a42b` expanded `enum`: direct enum `__repr__`/`__str__`, `Flag`/`IntFlag` bitwise operators, inversion, and composite names.
+- `148a008` expanded callable metadata: bound methods, raw `staticmethod`/`classmethod`, native function metadata, and class `__dict__` inspection.
+- `fec3484` expanded `_tokenize`: native COMMENT/NL preservation and Python 3.14 token-number alignment.
+
+Recommended next batch:
+
+- `linecache` plus tokenizer encoding-cookie behavior, because this feeds debugger/source lookup and pure-Python library compatibility.
+- Then `inspect` source/signature gaps that depend on the improved source lookup.
+- Then importlib/resource edge behavior for real stdlib package loading.
+
 ## Syntax Compatibility
 
 ### Module And Statement Syntax
