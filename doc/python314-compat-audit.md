@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` CPython 3.14 metadata/probe batch.
+Last updated after the native `_abc` weakref-backed dump snapshot batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `_abc._get_dump()` to expose CPython-style snapshot sets of
+  callable weak references for the registry, positive cache, and negative cache
+  while keeping internal ABC matching state identity-based.
 - Expanded native `sys` CPython 3.14 metadata/probe coverage with `_git`,
   `_vpath`, `_home`, `float_repr_style`, `getunicodeinternedsize()`,
   `_get_cpu_count_config()`, `is_remote_debug_enabled()`,
@@ -662,8 +665,9 @@ Native or runtime-backed foundation:
   `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,
   positive/negative subclass caches,
-  and negative-cache invalidation after virtual subclass registration; exact CPython
-  weakref-backed cache objects and invalidation internals pending
+  negative-cache invalidation after virtual subclass registration, and CPython-style
+  weakref-backed `_get_dump` snapshot sets; exact CPython weakref lifecycle and
+  invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

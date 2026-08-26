@@ -32,6 +32,45 @@ static constexpr const char* kCacheAttr = "__xlang3_abc_cache__";
 static constexpr const char* kNegativeCacheAttr = "__xlang3_abc_negative_cache__";
 static constexpr const char* kNegativeCacheVersionAttr = "__xlang3_abc_negative_cache_version__";
 
+struct AbcWeakRefState {
+  Value target;
+};
+
+void abc_weakref_state_cleanup(void* data) {
+  delete static_cast<AbcWeakRefState*>(data);
+}
+
+bool abc_weakref_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 0) {
+    error = "weakref object expected no arguments";
+    return false;
+  }
+  auto* state = static_cast<AbcWeakRefState*>(user_data);
+  if (state == nullptr || state->target.tag == ValueTag::Invalid) {
+    value_set_none(out);
+    return true;
+  }
+  value_assign_fast(out, state->target);
+  return true;
+}
+
+Value make_abc_weakref(Runtime& runtime, const Value& target) {
+  auto* state = new AbcWeakRefState();
+  value_assign_fast(state->target, target);
+  return runtime.make_native_function("weakref.ref", abc_weakref_call, state, abc_weakref_state_cleanup);
+}
+
+Value make_abc_weakref_set(Runtime& runtime, const Value& list_value) {
+  std::vector<Value> refs;
+  if (auto* list = value_as_list(list_value)) {
+    refs.reserve(list->items.size());
+    for (const auto& item : list->items) {
+      refs.push_back(make_abc_weakref(runtime, item));
+    }
+  }
+  return Value::set(std::move(refs));
+}
+
 bool ensure_class(Runtime& runtime, const Value& value, const char* name, std::string& error) {
   if (value_as_class(value) != nullptr) {
     return true;
@@ -385,7 +424,6 @@ bool abc_get_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (!registry_list(abc_class, registry, error)) {
     return false;
   }
-  auto* list = value_as_list(registry);
   Value positive_cache;
   Value negative_cache;
   if (!abc_state_list(abc_class, kCacheAttr, positive_cache, error) ||
@@ -393,12 +431,10 @@ bool abc_get_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       !abc_state_list(abc_class, kNegativeCacheAttr, negative_cache, error)) {
     return false;
   }
-  auto* cache_list = value_as_list(positive_cache);
-  auto* negative_list = value_as_list(negative_cache);
   out = Value::tuple({
-      Value::set(list == nullptr ? std::vector<Value>{} : list->items),
-      Value::set(cache_list == nullptr ? std::vector<Value>{} : cache_list->items),
-      Value::set(negative_list == nullptr ? std::vector<Value>{} : negative_list->items),
+      make_abc_weakref_set(runtime, registry),
+      make_abc_weakref_set(runtime, positive_cache),
+      make_abc_weakref_set(runtime, negative_cache),
       Value::int64(abc_negative_cache_version(abc_class))});
   return true;
 }
