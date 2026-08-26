@@ -666,7 +666,7 @@ print(list(counts.elements()))
 dq = deque(StandardIter([1, 2]))
 dq.extend(StandardIter([3]))
 dq.extendleft(StandardIter([0]))
-print(dq.to_list())
+print(list(dq), dq[0], dq[-1], 2 in dq)
 
 ordered = OrderedDict({"a": 1, "b": 2})
 print(list(ordered.keys()), list(ordered.values()), list(ordered.items()))

@@ -326,6 +326,73 @@ bool deque_to_list(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool deque_snapshot_list(const Value& self, Value& out, std::string& error) {
+  auto* state = deque_state(self, error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(state->items.size());
+  for (const auto& item : state->items) {
+    values.push_back(item);
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
+bool deque_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "deque.__iter__() expected no arguments";
+    return false;
+  }
+  Value snapshot;
+  if (!deque_snapshot_list(args[0], snapshot, error)) {
+    return false;
+  }
+  out = Value::sequence_iterator(std::move(snapshot), 0);
+  return true;
+}
+
+bool deque_getitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "deque.__getitem__() expected integer index";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  int64_t index = args[1].as.i64;
+  if (index < 0) {
+    index += static_cast<int64_t>(state->items.size());
+  }
+  if (index < 0 || index >= static_cast<int64_t>(state->items.size())) {
+    error = "deque index out of range";
+    return false;
+  }
+  value_assign_fast(out, state->items[static_cast<size_t>(index)]);
+  return true;
+}
+
+bool deque_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "deque.__contains__() expected value";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  for (const auto& item : state->items) {
+    if (value_key_equal(item, args[1])) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
 Value make_deque_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("_collections.deque.__init__", deque_init)});
@@ -338,6 +405,9 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"extendleft", runtime.make_native_function("_collections.deque.extendleft", deque_extendleft)});
   attrs.push_back({"count", runtime.make_native_function("_collections.deque.count", deque_count)});
   attrs.push_back({"__len__", runtime.make_native_function("_collections.deque.__len__", deque_len)});
+  attrs.push_back({"__iter__", runtime.make_native_function("_collections.deque.__iter__", deque_iter)});
+  attrs.push_back({"__getitem__", runtime.make_native_function("_collections.deque.__getitem__", deque_getitem)});
+  attrs.push_back({"__contains__", runtime.make_native_function("_collections.deque.__contains__", deque_contains)});
   attrs.push_back({"to_list", runtime.make_native_function("_collections.deque.to_list", deque_to_list)});
   return Value::class_object("deque", std::move(attrs));
 }

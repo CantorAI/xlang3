@@ -405,7 +405,8 @@ Native or runtime-backed foundation:
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
-- [~] `_collections`: native `deque` foundation with common mutating methods; iteration/full CPython semantics pending
+- [~] `_collections`: native `deque` foundation with common mutating methods,
+  length, iteration snapshots, indexing, and containment; full CPython semantics pending
 - [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty and catchable empty errors; blocking semantics pending
 
 High-level modules currently backed by native/runtime code:
@@ -500,7 +501,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `importlib`: `import_module`, `invalidate_caches`, `importlib.util.find_spec`/`resolve_name`,
   loader/spec/module creation foundations, and VFS-backed `importlib.resources` read helpers
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
-- [~] `collections`: native `deque`, `defaultdict`, `OrderedDict`, `namedtuple` with `_make`, dict-backed `Counter`, and `ChainMap` foundations; full CPython collection semantics pending
+- [~] `collections`: native `deque` with iteration/index/containment, `defaultdict`,
+  `OrderedDict`, `namedtuple` with `_make`, dict-backed `Counter`, and `ChainMap` foundations;
+  full CPython collection semantics pending
 - [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
 - [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
 - [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, `/` join via native `__truediv__`, and basic path transforms; full pathlib glob/match/resolve/operator edge semantics pending
