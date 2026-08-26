@@ -258,8 +258,10 @@ bool call_class_check_hook(
     const Value& classinfo,
     const char* hook_name,
     const Value& hook_arg,
+    bool& applied,
     bool& out,
     std::string& error) {
+  applied = false;
   Value hook;
   std::string hook_error;
   if (!object_get_attr(classinfo, hook_name, hook, hook_error)) {
@@ -306,6 +308,7 @@ bool call_class_check_hook(
     return true;
   }
 
+  applied = true;
   out = value_truthy(result);
   return true;
 }
@@ -342,14 +345,16 @@ bool class_tuple_matches(
     return false;
   }
 
-  out = class_is_subclass(actual, expected);
-  if (!out) {
-    const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
-    const Value& hook_arg = subclass_check ? actual_type : check_subject;
-    if (!call_class_check_hook(runtime, classinfo, hook_name, hook_arg, out, error)) {
-      return false;
-    }
+  const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
+  const Value& hook_arg = subclass_check ? actual_type : check_subject;
+  bool hook_applied = false;
+  if (!call_class_check_hook(runtime, classinfo, hook_name, hook_arg, hook_applied, out, error)) {
+    return false;
   }
+  if (hook_applied) {
+    return true;
+  }
+  out = class_is_subclass(actual, expected);
   return true;
 }
 

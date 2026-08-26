@@ -313,6 +313,18 @@ try:
 except RuntimeError as err:
     print("abc-cycle", "inheritance cycle" in str(err))
 
+class DirectRejectingABC(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return False
+
+class DirectRejectedConcrete(DirectRejectingABC):
+    pass
+
+print(issubclass(DirectRejectedConcrete, DirectRejectingABC), isinstance(DirectRejectedConcrete(), DirectRejectingABC), _abc._abc_subclasscheck(DirectRejectingABC, DirectRejectedConcrete))
+direct_rejecting_dump = _abc._get_dump(DirectRejectingABC)
+print(len(direct_rejecting_dump[2]) >= 1)
+
 @abc.abstractmethod
 def abstract_fn():
     pass

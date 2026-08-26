@@ -125,6 +125,9 @@ Recent completed batches:
 - Expanded native `abc`: `update_abstractmethods()` now recomputes
   `__abstractmethods__` after post-creation class mutations, returns non-ABC
   objects unchanged, and feeds the existing abstract-instantiation enforcement.
+- Fixed `isinstance`/`issubclass` ABC dispatch ordering so `ABCMeta` hooks run
+  before direct subclass acceptance, including `__subclasshook__` returning
+  `False` for a real subclass.
 - Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
   `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
@@ -556,8 +559,9 @@ Native or runtime-backed foundation:
   `_abc_init` class initialization for the CPython `abc.py` path,
   abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers,
   virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
-  `isinstance`/`issubclass` metaclass hook dispatch, and ABC `__subclasshook__`
-  True/False/`NotImplemented` fallback behavior, positive/negative subclass caches,
+  `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
+  and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,
+  positive/negative subclass caches,
   and negative-cache invalidation after virtual subclass registration; exact CPython
   weakref-backed cache objects, `frozenset` identity for `__abstractmethods__`, and invalidation
   internals pending

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native abc.update_abstractmethods recomputation
+ABCMeta hook dispatch before direct subclass acceptance
 ```
 
 Current next loop:

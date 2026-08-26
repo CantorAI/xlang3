@@ -59,6 +59,8 @@ True True
 True 0 True
 True True 0
 abc-cycle True
+False False False
+True
 True
 classmethod True True AbstractDescriptorProbe
 staticmethod True True static
