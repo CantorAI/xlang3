@@ -387,7 +387,9 @@ Native or runtime-backed foundation:
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/path/import-cache containers, version/platform fields,
   default/filesystem encoding helpers, recursion-limit helpers, `intern`, `getsizeof`, trace/debug hooks, and frame placeholders; full CPython startup flags/config/runtime internals pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
-  `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, and `mktime` placeholder; full calendrical tuple APIs and platform clock exactness pending
+  `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
+  `gmtime`, `mktime`, `strftime`, `asctime`, `ctime`, `struct_time`, and timezone constants;
+  exact platform timezone/DST semantics and tuple-subclass identity remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers, cache-token/register/dump/reset helpers,
   virtual subclass checks, and `isinstance`/`issubclass` metaclass hook dispatch; negative caches,

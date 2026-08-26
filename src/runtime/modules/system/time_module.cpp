@@ -16,14 +16,25 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 
 #include <chrono>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 #include <thread>
 
 namespace xlang3 {
 
 namespace {
+
+struct TimeModuleState {
+  Value struct_time_class;
+};
+
+void time_module_state_cleanup(void* data) {
+  delete static_cast<TimeModuleState*>(data);
+}
 
 bool no_args(uint32_t argc, const char* name, std::string& error) {
   if (argc == 0) {
@@ -55,6 +66,167 @@ Value make_clock_info(Runtime& runtime, bool adjustable, bool monotonic, double 
   object_set_attr(info, "resolution", Value::number(resolution), ignored);
   object_set_attr(info, "implementation", Value::string(implementation), ignored);
   return info;
+}
+
+std::tm tm_from_time_t(std::time_t timestamp, bool utc) {
+  std::tm out{};
+#if defined(_WIN32)
+  if (utc) {
+    gmtime_s(&out, &timestamp);
+  } else {
+    localtime_s(&out, &timestamp);
+  }
+#else
+  if (utc) {
+    gmtime_r(&timestamp, &out);
+  } else {
+    localtime_r(&timestamp, &out);
+  }
+#endif
+  return out;
+}
+
+std::vector<Value> tm_tuple_items(const std::tm& tm) {
+  return {
+      Value::int64(static_cast<int64_t>(tm.tm_year + 1900)),
+      Value::int64(static_cast<int64_t>(tm.tm_mon + 1)),
+      Value::int64(static_cast<int64_t>(tm.tm_mday)),
+      Value::int64(static_cast<int64_t>(tm.tm_hour)),
+      Value::int64(static_cast<int64_t>(tm.tm_min)),
+      Value::int64(static_cast<int64_t>(tm.tm_sec)),
+      Value::int64(static_cast<int64_t>((tm.tm_wday + 6) % 7)),
+      Value::int64(static_cast<int64_t>(tm.tm_yday + 1)),
+      Value::int64(static_cast<int64_t>(tm.tm_isdst)),
+  };
+}
+
+Value make_struct_time(const Value& klass, const std::tm& tm) {
+  static const char* names[] = {
+      "tm_year",
+      "tm_mon",
+      "tm_mday",
+      "tm_hour",
+      "tm_min",
+      "tm_sec",
+      "tm_wday",
+      "tm_yday",
+      "tm_isdst",
+  };
+  auto items = tm_tuple_items(tm);
+  Value instance = Value::instance(klass);
+  std::string ignored;
+  for (size_t i = 0; i < items.size(); ++i) {
+    object_set_attr(instance, names[i], items[i], ignored);
+  }
+  object_set_attr(instance, "n_sequence_fields", Value::int64(9), ignored);
+  object_set_attr(instance, "n_fields", Value::int64(9), ignored);
+  object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
+  object_set_attr(instance, "_tuple", Value::tuple(std::move(items)), ignored);
+  return instance;
+}
+
+bool numeric_time_arg(const Value& value, std::time_t& out, std::string& error) {
+  if (value.tag == ValueTag::Int64) {
+    out = static_cast<std::time_t>(value.as.i64);
+    return true;
+  }
+  if (value.tag == ValueTag::Double) {
+    out = static_cast<std::time_t>(value.as.f64);
+    return true;
+  }
+  error = "timestamp must be int or float";
+  return false;
+}
+
+bool optional_timestamp(const Value* args, uint32_t argc, const char* name, std::time_t& out, std::string& error) {
+  if (argc > 1) {
+    error = std::string(name) + "() expected at most one argument";
+    return false;
+  }
+  if (argc == 0 || args[0].tag == ValueTag::None) {
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    out = static_cast<std::time_t>(std::chrono::duration<double>(now).count());
+    return true;
+  }
+  return numeric_time_arg(args[0], out, error);
+}
+
+bool int_from_value(const Value& value, const char* name, int& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = std::string(name) + " must be int";
+    return false;
+  }
+  out = static_cast<int>(value.as.i64);
+  return true;
+}
+
+bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error) {
+  std::vector<Value> items;
+  if (auto* tuple = value_as_tuple(value)) {
+    items = tuple->items;
+  } else if (auto* list = value_as_list(value)) {
+    items = list->items;
+  } else if (value_as_instance(value) != nullptr) {
+    static const char* names[] = {
+        "tm_year",
+        "tm_mon",
+        "tm_mday",
+        "tm_hour",
+        "tm_min",
+        "tm_sec",
+        "tm_wday",
+        "tm_yday",
+        "tm_isdst",
+    };
+    items.reserve(9);
+    for (const char* name : names) {
+      Value attr;
+      std::string attr_error;
+      if (!object_get_attr(value, name, attr, attr_error)) {
+        error = "time tuple must have 9 elements";
+        return false;
+      }
+      items.push_back(std::move(attr));
+    }
+  } else {
+    error = "time tuple must be tuple, list, or struct_time";
+    return false;
+  }
+  if (items.size() < 9) {
+    error = "time tuple must have 9 elements";
+    return false;
+  }
+  int year = 0;
+  int month = 0;
+  int day = 0;
+  int hour = 0;
+  int minute = 0;
+  int second = 0;
+  int weekday = 0;
+  int yearday = 0;
+  int isdst = 0;
+  if (!int_from_value(items[0], "tm_year", year, error) ||
+      !int_from_value(items[1], "tm_mon", month, error) ||
+      !int_from_value(items[2], "tm_mday", day, error) ||
+      !int_from_value(items[3], "tm_hour", hour, error) ||
+      !int_from_value(items[4], "tm_min", minute, error) ||
+      !int_from_value(items[5], "tm_sec", second, error) ||
+      !int_from_value(items[6], "tm_wday", weekday, error) ||
+      !int_from_value(items[7], "tm_yday", yearday, error) ||
+      !int_from_value(items[8], "tm_isdst", isdst, error)) {
+    return false;
+  }
+  out = std::tm{};
+  out.tm_year = year - 1900;
+  out.tm_mon = month - 1;
+  out.tm_mday = day;
+  out.tm_hour = hour;
+  out.tm_min = minute;
+  out.tm_sec = second;
+  out.tm_wday = (weekday + 1) % 7;
+  out.tm_yday = yearday - 1;
+  out.tm_isdst = isdst;
+  return true;
 }
 
 bool time_time(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -167,18 +339,107 @@ bool time_get_clock_info(Runtime& runtime, const Value* args, uint32_t argc, Val
   return false;
 }
 
-bool time_mktime(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_localtime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  std::time_t timestamp = 0;
+  if (!optional_timestamp(args, argc, "time.localtime", timestamp, error)) {
+    return false;
+  }
+  auto* state = static_cast<TimeModuleState*>(user_data);
+  out = make_struct_time(state->struct_time_class, tm_from_time_t(timestamp, false));
+  return true;
+}
+
+bool time_gmtime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  std::time_t timestamp = 0;
+  if (!optional_timestamp(args, argc, "time.gmtime", timestamp, error)) {
+    return false;
+  }
+  auto* state = static_cast<TimeModuleState*>(user_data);
+  out = make_struct_time(state->struct_time_class, tm_from_time_t(timestamp, true));
+  return true;
+}
+
+bool time_mktime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "time.mktime() expected one time tuple";
     return false;
   }
-  out = Value::number(0.0);
+  std::tm tm{};
+  if (!tm_from_sequence_like(args[0], tm, error)) {
+    return false;
+  }
+  const std::time_t timestamp = std::mktime(&tm);
+  if (timestamp == static_cast<std::time_t>(-1)) {
+    error = "mktime argument out of range";
+    return false;
+  }
+  out = Value::number(static_cast<double>(timestamp));
+  return true;
+}
+
+std::string format_tm(const std::string& format, const std::tm& tm) {
+  std::ostringstream stream;
+  stream << std::put_time(&tm, format.c_str());
+  return stream.str();
+}
+
+bool time_strftime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "time.strftime() expected format and optional time tuple";
+    return false;
+  }
+  std::string format;
+  if (!get_string_arg(args[0], "time.strftime format", format, error)) {
+    return false;
+  }
+  std::tm tm{};
+  if (argc == 2) {
+    if (!tm_from_sequence_like(args[1], tm, error)) {
+      return false;
+    }
+  } else {
+    const auto timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    tm = tm_from_time_t(timestamp, false);
+  }
+  out = Value::string(format_tm(format, tm));
+  return true;
+}
+
+bool time_asctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 1) {
+    error = "time.asctime() expected optional time tuple";
+    return false;
+  }
+  std::tm tm{};
+  if (argc == 1) {
+    if (!tm_from_sequence_like(args[0], tm, error)) {
+      return false;
+    }
+  } else {
+    const auto timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    tm = tm_from_time_t(timestamp, false);
+  }
+  out = Value::string(format_tm("%a %b %d %H:%M:%S %Y", tm));
+  return true;
+}
+
+bool time_ctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  std::time_t timestamp = 0;
+  if (!optional_timestamp(args, argc, "time.ctime", timestamp, error)) {
+    return false;
+  }
+  const std::tm tm = tm_from_time_t(timestamp, false);
+  out = Value::string(format_tm("%a %b %d %H:%M:%S %Y", tm));
   return true;
 }
 
 } // namespace
 
 void register_time_module(Runtime& runtime) {
+  auto* state = new TimeModuleState();
+  state->struct_time_class = Value::class_object("struct_time", {{"__module__", Value::string("time")}});
+  runtime.register_native_package_cleanup(state, time_module_state_cleanup);
+
   NativeModuleBuilder builder(runtime, "time");
   builder.function("time", time_time)
       .function("time_ns", time_time_ns)
@@ -192,7 +453,17 @@ void register_time_module(Runtime& runtime) {
       .function("thread_time_ns", time_thread_time_ns)
       .function("get_clock_info", time_get_clock_info)
       .function("sleep", time_sleep)
-      .function("mktime", time_mktime);
+      .value("localtime", runtime.make_native_function("time.localtime", time_localtime, state))
+      .value("gmtime", runtime.make_native_function("time.gmtime", time_gmtime, state))
+      .function("mktime", time_mktime)
+      .function("strftime", time_strftime)
+      .function("asctime", time_asctime)
+      .function("ctime", time_ctime)
+      .value("struct_time", state->struct_time_class)
+      .value("timezone", Value::int64(0))
+      .value("altzone", Value::int64(0))
+      .value("daylight", Value::int64(0))
+      .value("tzname", Value::tuple({Value::string("UTC"), Value::string("UTC")}));
   runtime.register_module("time", builder.finish());
 }
 
