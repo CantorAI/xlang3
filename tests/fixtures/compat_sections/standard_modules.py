@@ -492,7 +492,7 @@ print(os.path.relpath(__file__, core_fixture_dir).endswith("standard_modules.py"
 print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLANG3_MISSING_VAR") == "$XLANG3_MISSING_VAR")
 print(os.path.realpath("") == os.getcwd(), os.path.abspath("") == os.getcwd())
 mode = os.stat(__file__)[stat.ST_MODE]
-print(stat.S_ISREG(mode), stat.S_ISDIR(mode), (mode & stat.S_IFMT) == stat.S_IFREG)
+print(stat.S_ISREG(mode), stat.S_ISDIR(mode), stat.S_IFMT(mode) == stat.S_IFREG, stat.S_IMODE(mode) >= 0)
 
 # os.scandir behaves as an iterator and context manager.
 scan = os.scandir(compat_fixture_dir)

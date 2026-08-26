@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 
 #include <atomic>
 
@@ -99,6 +100,71 @@ bool imp_is_frozen(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool imp_is_frozen_package(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return imp_is_frozen(runtime, args, argc, out, error, user_data);
+}
+
+bool imp_create_builtin(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_imp.create_builtin() expected spec";
+    return false;
+  }
+  Value name_value;
+  if (!object_get_attr(args[0], "name", name_value, error)) {
+    return false;
+  }
+  std::string name;
+  if (!get_string_arg(name_value, "_imp.create_builtin spec.name", name, error)) {
+    return false;
+  }
+  if (!runtime.has_registered_module(name)) {
+    value_set_none(out);
+    return true;
+  }
+  return runtime.import_module(name, out, error);
+}
+
+bool imp_exec_builtin(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_module(args[0]) == nullptr) {
+    error = "_imp.exec_builtin() expected module";
+    return false;
+  }
+  value_set_int64(out, 0);
+  return true;
+}
+
+bool imp_find_frozen(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_imp.find_frozen() expected name";
+    return false;
+  }
+  std::string ignored;
+  if (!get_string_arg(args[0], "_imp.find_frozen name", ignored, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool imp_init_frozen(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return imp_find_frozen(runtime, args, argc, out, error, user_data);
+}
+
+bool imp_get_frozen_object(Runtime& runtime, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_imp.get_frozen_object() expected name";
+    runtime.raise_class_error("ImportError", error);
+    return false;
+  }
+  std::string name;
+  if (!get_string_arg(args[0], "_imp.get_frozen_object name", name, error)) {
+    return false;
+  }
+  error = "No such frozen object named '" + name + "'";
+  runtime.raise_class_error("ImportError", error);
+  return false;
+}
+
 bool imp_get_magic(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "_imp.get_magic", error)) {
     return false;
@@ -154,6 +220,12 @@ void register_imp_module(Runtime& runtime) {
       .function("lock_held", imp_lock_held)
       .function("is_builtin", imp_is_builtin)
       .function("is_frozen", imp_is_frozen)
+      .function("is_frozen_package", imp_is_frozen_package)
+      .function("create_builtin", imp_create_builtin)
+      .function("exec_builtin", imp_exec_builtin)
+      .function("find_frozen", imp_find_frozen)
+      .function("init_frozen", imp_init_frozen)
+      .function("get_frozen_object", imp_get_frozen_object)
       .function("get_magic", imp_get_magic)
       .function("extension_suffixes", imp_extension_suffixes)
       .function("source_hash", imp_source_hash)

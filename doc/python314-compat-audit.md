@@ -396,8 +396,10 @@ Native or runtime-backed foundation:
   `__subclasshook__`, and exact CPython invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
-- [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, and `S_IS*` helpers
-- [~] `_imp`: import-lock stubs, `is_builtin`, `is_frozen`, `get_magic`, `extension_suffixes`
+- [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable
+  `S_IFMT`/`S_IMODE`, and `S_IS*` helpers
+- [~] `_imp`: import-lock state, `is_builtin`, frozen-probe helpers, registered-module
+  `create_builtin`/`exec_builtin`, `get_magic`, `extension_suffixes`, source-hash, and dynamic-load errors
 - [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek helpers, iterator hooks, and text newline/encoding basics; exact buffering and full CPython IO internals pending
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending

@@ -46,6 +46,24 @@ bool stat_file_type(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool stat_ifmt(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  int64_t mode = 0;
+  if (!stat_mode_arg(args, argc, mode, error, "S_IFMT")) {
+    return false;
+  }
+  value_set_int64(out, mode & 0170000);
+  return true;
+}
+
+bool stat_imode(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  int64_t mode = 0;
+  if (!stat_mode_arg(args, argc, mode, error, "S_IMODE")) {
+    return false;
+  }
+  value_set_int64(out, mode & 07777);
+  return true;
+}
+
 } // namespace
 
 void register_stat_module(Runtime& runtime) {
@@ -60,7 +78,8 @@ void register_stat_module(Runtime& runtime) {
       .value("ST_ATIME", Value::int64(7))
       .value("ST_MTIME", Value::int64(8))
       .value("ST_CTIME", Value::int64(9))
-      .value("S_IFMT", Value::int64(0170000))
+      .value("S_IFMT", runtime.make_native_function("_stat.S_IFMT", stat_ifmt))
+      .value("S_IMODE", runtime.make_native_function("_stat.S_IMODE", stat_imode))
       .value("S_IFDIR", Value::int64(0040000))
       .value("S_IFREG", Value::int64(0100000))
       .value("S_IFLNK", Value::int64(0120000))

@@ -21,11 +21,13 @@ with open(path, "w") as f:
 
 info = os.stat(path)
 mode = info[_stat.ST_MODE]
-print((mode & _stat.S_IFMT) == _stat.S_IFREG)
+print(_stat.S_IFMT(mode) == _stat.S_IFREG, _stat.S_IMODE(mode) >= 0)
 print(info[_stat.ST_SIZE])
 print(_imp.is_builtin("sys"))
 print(_imp.is_builtin("definitely_missing"))
 print(_imp.is_frozen("sys"))
+print(_imp.is_frozen_package("sys"), _imp.find_frozen("sys") is None, _imp.init_frozen("sys") is None)
+print(_imp.create_builtin(os.__spec__) is os, _imp.exec_builtin(os))
 print(len(_imp.get_magic()))
 suffixes = _imp.extension_suffixes()
 print(len(suffixes) > 0)
