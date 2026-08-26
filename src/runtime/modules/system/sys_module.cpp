@@ -73,18 +73,25 @@ bool is_callable_value(const Value& value) {
 Value make_structseq(
     const std::string& type_name,
     const std::vector<std::pair<std::string, Value>>& fields,
-    const std::string& module_name = "sys") {
+    const std::string& module_name = "sys",
+    size_t sequence_fields = std::numeric_limits<size_t>::max()) {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
   Value instance = Value::instance(Value::class_object(type_name, std::move(class_attrs)));
-  std::vector<Value> tuple_items;
-  tuple_items.reserve(fields.size());
-  std::string ignored;
-  for (const auto& field : fields) {
-    object_set_attr(instance, field.first, field.second, ignored);
-    tuple_items.push_back(field.second);
+  if (sequence_fields == std::numeric_limits<size_t>::max() || sequence_fields > fields.size()) {
+    sequence_fields = fields.size();
   }
-  object_set_attr(instance, "n_sequence_fields", Value::int64(static_cast<int64_t>(fields.size())), ignored);
+  std::vector<Value> tuple_items;
+  tuple_items.reserve(sequence_fields);
+  std::string ignored;
+  for (size_t i = 0; i < fields.size(); ++i) {
+    const auto& field = fields[i];
+    object_set_attr(instance, field.first, field.second, ignored);
+    if (i < sequence_fields) {
+      tuple_items.push_back(field.second);
+    }
+  }
+  object_set_attr(instance, "n_sequence_fields", Value::int64(static_cast<int64_t>(sequence_fields)), ignored);
   object_set_attr(instance, "n_fields", Value::int64(static_cast<int64_t>(fields.size())), ignored);
   object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
   object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
@@ -164,7 +171,12 @@ Value make_flags() {
           {"warn_default_encoding", Value::int64(0)},
           {"safe_path", Value::boolean(false)},
           {"int_max_str_digits", Value::int64(0)},
-      });
+          {"gil", Value::int64(1)},
+          {"thread_inherit_context", Value::int64(0)},
+          {"context_aware_warnings", Value::int64(0)},
+      },
+      "sys",
+      18);
 }
 
 Value make_float_info() {

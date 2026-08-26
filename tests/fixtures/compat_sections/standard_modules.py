@@ -561,6 +561,7 @@ print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.std
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
+print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.thread_inherit_context, sys.flags.context_aware_warnings, len(sys.flags))
 print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
 print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe"), sys.prefix != "")
 print("sys" in sys.builtin_module_names, sys.pycache_prefix is None, isinstance(sys.orig_argv, list))

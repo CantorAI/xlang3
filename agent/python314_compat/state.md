@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys runtime-probe metadata for isolated interpreters, stack trampolines, and JIT state
+sys.flags Python 3.14 named-only metadata and sequence-field split
 ```
 
 Current next loop:
