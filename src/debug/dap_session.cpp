@@ -25,6 +25,7 @@ limitations under the License.
 
 #include "json.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <cctype>
 #include <cstdlib>
@@ -618,6 +619,23 @@ Json variables_from_frame_attr(const Value& frame, const char* attr, const DapSe
           entry.second,
           session.register_variable_ref(entry.second)));
     }
+  } else if (auto* module = value_as_module(mapping)) {
+    std::vector<std::pair<std::string, uint32_t>> names;
+    names.reserve(module->name_to_slot.size());
+    for (const auto& entry : module->name_to_slot) {
+      if (!entry.first.empty() && entry.first[0] != '#' && entry.second < module->slots.size() &&
+          module->slots[entry.second].tag != ValueTag::Invalid) {
+        names.push_back(entry);
+      }
+    }
+    std::sort(names.begin(), names.end(), [](const auto& lhs, const auto& rhs) {
+      return lhs.second < rhs.second;
+    });
+    for (const auto& entry : names) {
+      const Value& slot = module->slots[entry.second];
+      variables.push_back(value_to_dap_variable(entry.first, slot, session.register_variable_ref(slot)));
+    }
+    variables.push_back(value_to_dap_variable("__name__", Value::string(module->name), 0));
   }
   return variables;
 }

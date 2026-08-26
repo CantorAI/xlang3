@@ -370,7 +370,7 @@ Section-level fixture coverage:
 - [x] `hasattr`
 - [x] `dir`: module/class/instance basics
 - [x] `vars`: module/class/instance snapshots, including slot-backed instance fields
-- [~] `globals`: active module snapshot; live dict semantics pending
+- [~] `globals`: active live module mapping with subscript get/set/delete, membership, iteration, common dict-style methods, and live `function.__globals__`/frame `f_globals`; exact CPython `dict` identity/type semantics pending
 - [x] `locals`: active frame snapshot plus module-level namespace snapshot
 - [x] `eval`: string/code-object expression basics using current globals
 - [x] `exec`: string/code-object statement basics using current globals

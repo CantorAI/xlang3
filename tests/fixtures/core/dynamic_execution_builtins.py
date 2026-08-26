@@ -31,6 +31,17 @@ def capture(a):
 
 print(capture(7))
 
+# globals() is a live module mapping: writes update later global lookup.
+globals()["g_live"] = 41
+def read_live():
+    return g_live + 1
+print(read_live(), globals().get("g_live"), "g_live" in globals())
+print("__name__" in globals().keys(), globals().setdefault("g_default", 5))
+globals().update({"g_live": 50})
+print(read_live(), globals().pop("g_default"), "g_default" in globals())
+del globals()["g_live"]
+print("g_live" in globals())
+
 try:
     compile("if", "<bad>", "eval")
 except SyntaxError:

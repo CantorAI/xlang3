@@ -41,7 +41,14 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
 
 bool attribute_get(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (value_as_module(object) != nullptr) {
-    return module_get_attr(object, name, out, error);
+    if (module_get_attr(object, name, out, error)) {
+      return true;
+    }
+    if (get_builtin_method(object, name, out)) {
+      error.clear();
+      return true;
+    }
+    return false;
   }
   if (auto* function = value_as_function(object)) {
     if (name == "__annotations__") {

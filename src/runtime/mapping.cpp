@@ -14,9 +14,11 @@ limitations under the License.
 */
 #include "xlang3/mapping.h"
 
+#include "xlang3/module_object.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/value_hash.h"
 
+#include <algorithm>
 #include <vector>
 
 namespace xlang3 {
@@ -172,6 +174,62 @@ DictObject* dict_source_from_view_or_dict(const Value& value, DictIterationKind&
   return nullptr;
 }
 
+bool module_visible_name(const std::string& name) {
+  return !name.empty() && name[0] != '#';
+}
+
+bool module_slot_visible(const ModuleObject& module, const std::string& name, uint32_t slot) {
+  return module_visible_name(name) && slot < module.slots.size() && module.slots[slot].tag != ValueTag::Invalid;
+}
+
+std::vector<std::pair<Value, Value>> module_entries(const ModuleObject& module) {
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(module.name_to_slot.size() + 1);
+  entries.push_back({Value::string("__name__"), Value::string(module.name)});
+  std::vector<std::pair<std::string, uint32_t>> names;
+  names.reserve(module.name_to_slot.size());
+  for (const auto& item : module.name_to_slot) {
+    if (item.first == "__name__" || !module_slot_visible(module, item.first, item.second)) {
+      continue;
+    }
+    names.push_back(item);
+  }
+  std::sort(names.begin(), names.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs.second < rhs.second;
+  });
+  for (const auto& item : names) {
+    entries.push_back({Value::string(item.first), module.slots[item.second]});
+  }
+  return entries;
+}
+
+bool module_entry_at(const ModuleObject& module, uint64_t index, std::pair<Value, Value>& out) {
+  if (index == 0) {
+    out = {Value::string("__name__"), Value::string(module.name)};
+    return true;
+  }
+  uint64_t visible = 1;
+  std::vector<std::pair<std::string, uint32_t>> names;
+  names.reserve(module.name_to_slot.size());
+  for (const auto& item : module.name_to_slot) {
+    if (item.first == "__name__" || !module_slot_visible(module, item.first, item.second)) {
+      continue;
+    }
+    names.push_back(item);
+  }
+  std::sort(names.begin(), names.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs.second < rhs.second;
+  });
+  for (const auto& item : names) {
+    if (visible == index) {
+      out = {Value::string(item.first), module.slots[item.second]};
+      return true;
+    }
+    ++visible;
+  }
+  return false;
+}
+
 } // namespace
 
 Value Value::dict(std::vector<std::pair<Value, Value>> entries) {
@@ -316,72 +374,132 @@ bool mapping_truthy(const Value& value) {
     return true;
   }
   if (auto* view = value_as_dict_view(value)) {
-    auto* dict = value_as_dict(view->source);
-    return dict != nullptr && !dict->entries.empty();
+    if (auto* dict = value_as_dict(view->source)) {
+      return !dict->entries.empty();
+    }
+    if (auto* module = value_as_module(view->source)) {
+      return !module_entries(*module).empty();
+    }
+    return false;
+  }
+  if (auto* module = value_as_module(value)) {
+    return !module_entries(*module).empty();
   }
   return true;
 }
 
+bool mapping_is_mapping(const Value& value) {
+  return value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr;
+}
+
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
   auto* dict = value_as_dict(object);
-  if (dict == nullptr) {
-    error = "object is not a dict";
-    return false;
-  }
   if (!ensure_hashable(key, error)) {
     return false;
   }
-  for (const auto& entry : dict->entries) {
-    if (value_key_equal(entry.first, key)) {
-      value_assign_fast(out, entry.second);
-      return true;
+  if (dict != nullptr) {
+    for (const auto& entry : dict->entries) {
+      if (value_key_equal(entry.first, key)) {
+        value_assign_fast(out, entry.second);
+        return true;
+      }
     }
+    error = "key not found";
+    return false;
   }
-  error = "key not found";
+  if (auto* module = value_as_module(object)) {
+    if (auto* string = value_as_string(key)) {
+      const auto name = string_object_to_string(*string);
+      Value module_value = object;
+      if (module_get_attr(module_value, name, out, error) && out.tag != ValueTag::Invalid) {
+        return true;
+      }
+      error = "key not found";
+      return false;
+    }
+    error = "module globals keys must be strings";
+    return false;
+  }
+  error = "object is not a dict";
   return false;
 }
 
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error) {
   auto* dict = value_as_dict(object);
-  if (dict == nullptr) {
-    error = "object does not support item assignment";
-    return false;
-  }
   if (!ensure_hashable(key, error)) {
     return false;
   }
-  for (auto& entry : dict->entries) {
-    if (value_key_equal(entry.first, key)) {
-      entry.second = item;
-      return true;
+  if (dict != nullptr) {
+    for (auto& entry : dict->entries) {
+      if (value_key_equal(entry.first, key)) {
+        entry.second = item;
+        return true;
+      }
     }
+    dict->entries.push_back(std::make_pair(key, item));
+    return true;
   }
-  dict->entries.push_back(std::make_pair(key, item));
-  return true;
+  if (value_as_module(object) != nullptr) {
+    auto* string = value_as_string(key);
+    if (string == nullptr) {
+      error = "module globals keys must be strings";
+      return false;
+    }
+    return module_set_attr(object, string_object_to_string(*string), item, error);
+  }
+  error = "object does not support item assignment";
+  return false;
 }
 
 bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
   auto* dict = value_as_dict(object);
-  if (dict == nullptr) {
-    error = "object does not support item deletion";
-    return false;
-  }
   if (!ensure_hashable(key, error)) {
     return false;
   }
-  for (auto it = dict->entries.begin(); it != dict->entries.end(); ++it) {
-    if (value_key_equal(it->first, key)) {
-      dict->entries.erase(it);
+  if (dict != nullptr) {
+    for (auto it = dict->entries.begin(); it != dict->entries.end(); ++it) {
+      if (value_key_equal(it->first, key)) {
+        dict->entries.erase(it);
+        return true;
+      }
+    }
+    error = "key not found";
+    return false;
+  }
+  if (auto* module = value_as_module(object)) {
+    auto* string = value_as_string(key);
+    if (string == nullptr) {
+      error = "module globals keys must be strings";
+      return false;
+    }
+    const auto name = string_object_to_string(*string);
+    auto it = module->name_to_slot.find(name);
+    if (name == "__name__") {
+      module->name.clear();
+      if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
+        value_set_invalid(module->slots[it->second]);
+      }
+      module->name_to_slot.erase(name);
+      ++module->version;
       return true;
     }
+    if (it == module->name_to_slot.end() || it->second >= module->slots.size() ||
+        module->slots[it->second].tag == ValueTag::Invalid) {
+      error = "key not found";
+      return false;
+    }
+    value_set_invalid(module->slots[it->second]);
+    module->name_to_slot.erase(it);
+    ++module->version;
+    return true;
   }
-  error = "key not found";
+  error = "object does not support item deletion";
   return false;
 }
 
 bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
   DictIterationKind kind = DictIterationKind::Keys;
-  if (dict_source_from_view_or_dict(object, kind) == nullptr) {
+  if (dict_source_from_view_or_dict(object, kind) == nullptr && value_as_module(object) == nullptr) {
     error = "object is not a dict";
     return false;
   }
@@ -400,16 +518,24 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
     return false;
   }
   auto* dict = value_as_dict(it->source);
-  if (dict == nullptr) {
+  auto* module = value_as_module(it->source);
+  if (dict == nullptr && module == nullptr) {
     error = "dict iterator source is invalid";
     return false;
   }
-  if (it->index >= dict->entries.size()) {
+  std::pair<Value, Value> entry;
+  if (dict != nullptr) {
+    if (it->index >= dict->entries.size()) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    entry = dict->entries[static_cast<size_t>(it->index)];
+  } else if (!module_entry_at(*module, it->index, entry)) {
     done = true;
     value_set_none(out);
     return true;
   }
-  const auto& entry = dict->entries[static_cast<size_t>(it->index)];
   switch (it->kind) {
     case DictIterationKind::Keys:
       value_assign_fast(out, entry.first);
@@ -429,19 +555,48 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
 bool mapping_len(const Value& value, Value& out, std::string& error) {
   DictIterationKind kind = DictIterationKind::Keys;
   auto* dict = dict_source_from_view_or_dict(value, kind);
-  if (dict == nullptr) {
-    error = "object has no len()";
-    return false;
+  if (dict != nullptr) {
+    value_set_int64(out, static_cast<int64_t>(dict->entries.size()));
+    return true;
   }
-  value_set_int64(out, static_cast<int64_t>(dict->entries.size()));
-  return true;
+  if (auto* view = value_as_dict_view(value)) {
+    if (auto* module = value_as_module(view->source)) {
+      value_set_int64(out, static_cast<int64_t>(module_entries(*module).size()));
+      return true;
+    }
+  }
+  if (auto* module = value_as_module(value)) {
+    value_set_int64(out, static_cast<int64_t>(module_entries(*module).size()));
+    return true;
+  }
+  error = "object has no len()";
+  return false;
 }
 
 bool mapping_contains(const Value& container, const Value& item, bool& out, std::string& error) {
   out = false;
   DictIterationKind kind = DictIterationKind::Keys;
   auto* dict = dict_source_from_view_or_dict(container, kind);
+  std::vector<std::pair<Value, Value>> module_entries_storage;
   if (dict == nullptr) {
+    ModuleObject* module = nullptr;
+    if (auto* view = value_as_dict_view(container)) {
+      module = value_as_module(view->source);
+    } else {
+      module = value_as_module(container);
+    }
+    if (module != nullptr) {
+      module_entries_storage = module_entries(*module);
+    } else {
+      error = "object is not a dict view";
+      return false;
+    }
+  }
+  const auto entry_count = dict != nullptr ? dict->entries.size() : module_entries_storage.size();
+  auto entry_at = [&](size_t index) -> const std::pair<Value, Value>& {
+    return dict != nullptr ? dict->entries[index] : module_entries_storage[index];
+  };
+  if (dict == nullptr && module_entries_storage.empty()) {
     error = "object is not a dict view";
     return false;
   }
@@ -453,7 +608,8 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
     if (tuple->items.size() != 2) {
       return true;
     }
-    for (const auto& entry : dict->entries) {
+    for (size_t i = 0; i < entry_count; ++i) {
+      const auto& entry = entry_at(i);
       if (value_key_equal(entry.first, tuple->items[0]) && value_key_equal(entry.second, tuple->items[1])) {
         out = true;
         return true;
@@ -461,7 +617,8 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
     }
     return true;
   }
-  for (const auto& entry : dict->entries) {
+  for (size_t i = 0; i < entry_count; ++i) {
+    const auto& entry = entry_at(i);
     const Value& candidate = kind == DictIterationKind::Keys ? entry.first : entry.second;
     if (value_key_equal(candidate, item)) {
       out = true;
@@ -469,6 +626,70 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
     }
   }
   return true;
+}
+
+bool mapping_clear(Value& value, std::string& error) {
+  if (auto* dict = value_as_dict(value)) {
+    dict->entries.clear();
+    return true;
+  }
+  if (auto* module = value_as_module(value)) {
+    for (auto& slot : module->slots) {
+      value_set_invalid(slot);
+    }
+    module->name_to_slot.clear();
+    module->name.clear();
+    ++module->version;
+    return true;
+  }
+  error = "object does not support clear";
+  return false;
+}
+
+bool mapping_popitem(Value& value, Value& out, std::string& error) {
+  if (auto* dict = value_as_dict(value)) {
+    if (dict->entries.empty()) {
+      error = "popitem(): dictionary is empty";
+      return false;
+    }
+    auto entry = dict->entries.back();
+    dict->entries.pop_back();
+    out = Value::tuple({entry.first, entry.second});
+    return true;
+  }
+  if (auto* module = value_as_module(value)) {
+    auto entries = module_entries(*module);
+    if (entries.empty()) {
+      error = "popitem(): dictionary is empty";
+      return false;
+    }
+    auto entry = entries.back();
+    if (!mapping_delete_item(value, entry.first, error)) {
+      return false;
+    }
+    out = Value::tuple({entry.first, entry.second});
+    return true;
+  }
+  error = "object does not support popitem";
+  return false;
+}
+
+Value mapping_copy(const Value& value) {
+  if (auto* dict = value_as_dict(value)) {
+    return Value::dict(dict->entries);
+  }
+  if (auto* module = value_as_module(value)) {
+    return Value::dict(module_entries(*module));
+  }
+  if (auto* view = value_as_dict_view(value)) {
+    if (auto* dict = value_as_dict(view->source)) {
+      return Value::dict(dict->entries);
+    }
+    if (auto* module = value_as_module(view->source)) {
+      return Value::dict(module_entries(*module));
+    }
+  }
+  return Value::dict({});
 }
 
 } // namespace xlang3

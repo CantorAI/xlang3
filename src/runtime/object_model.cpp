@@ -1168,7 +1168,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__globals__") {
-      out = module_globals_snapshot(function->globals_module);
+      value_assign_fast(out, function->globals_module);
       return true;
     }
     if (name == "__closure__") {
@@ -1352,7 +1352,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_globals") {
-      out = module_globals_snapshot(frame->globals_module);
+      value_assign_fast(out, frame->globals_module);
       return true;
     }
     if (name == "f_builtins") {

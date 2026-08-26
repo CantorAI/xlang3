@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/set_object.h"
@@ -365,7 +366,7 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     out = Value::range_iterator(range->start, range->stop, range->step);
     return true;
   }
-  if (value_as_dict(iterable) != nullptr || value_as_dict_view(iterable) != nullptr) {
+  if (value_as_dict(iterable) != nullptr || value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
     return mapping_get_iter(iterable, out, error);
   }
   if (value_as_set(iterable) != nullptr) {
@@ -521,7 +522,7 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     value_assign_fast(out, list->items[static_cast<size_t>(resolved)]);
     return true;
   }
-  if (value_as_dict(object) != nullptr) {
+  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
     return mapping_get_item(object, index, out, error);
   }
   if (auto* instance = value_as_instance(object)) {
@@ -752,7 +753,7 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
     list->items[static_cast<size_t>(resolved)] = item;
     return true;
   }
-  if (value_as_dict(object) != nullptr) {
+  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
     return mapping_set_item(object, index, item, error);
   }
   if (auto* instance = value_as_instance(object)) {
@@ -935,7 +936,7 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
     list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(resolved));
     return true;
   }
-  if (value_as_dict(object) != nullptr) {
+  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
     return mapping_delete_item(object, index, error);
   }
   if (auto* instance = value_as_instance(object)) {
@@ -1023,7 +1024,7 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     value_set_int64(out, static_cast<int64_t>(view->size));
     return true;
   }
-  if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr) {
+  if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr) {
     return mapping_len(value, out, error);
   }
   if (auto* instance = value_as_instance(value)) {

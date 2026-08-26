@@ -89,6 +89,9 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
     error = "object does not support attribute assignment";
     return false;
   }
+  if (name == "__name__" && value_as_string(value) != nullptr) {
+    module->name = string_object_to_string(*value_as_string(value));
+  }
   auto it = module->name_to_slot.find(name);
   if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
     if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {

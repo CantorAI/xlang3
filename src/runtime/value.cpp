@@ -1849,7 +1849,7 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
       return true;
     }
   }
-  if (value_as_dict_view(container) != nullptr) {
+  if (value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {
     return mapping_contains(container, item, out, error);
   }
   if (auto* set = value_as_set(container)) {

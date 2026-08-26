@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
@@ -40,9 +41,8 @@ bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (!method_check_argc(argc, 1, "dict.keys", error)) {
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.keys target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.keys target is not a mapping";
     return false;
   }
   out = mapping_keys_view(args[0]);
@@ -53,9 +53,8 @@ bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (!method_check_argc(argc, 1, "dict.values", error)) {
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.values target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.values target is not a mapping";
     return false;
   }
   out = mapping_values_view(args[0]);
@@ -66,9 +65,8 @@ bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!method_check_argc(argc, 1, "dict.items", error)) {
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.items target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.items target is not a mapping";
     return false;
   }
   out = mapping_items_view(args[0]);
@@ -80,23 +78,22 @@ bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
     error = "dict.pop expected 2 or 3 arguments, got " + std::to_string(argc);
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.pop target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.pop target is not a mapping";
     return false;
   }
   size_t ignored = 0;
   if (!value_hash_key(args[1], ignored, error)) {
     return false;
   }
-  for (auto it = dict->entries.begin(); it != dict->entries.end(); ++it) {
-    if (value_key_equal(it->first, args[1])) {
-      value_assign_fast(out, it->second);
-      dict->entries.erase(it);
-      return true;
-    }
+  Value target = args[0];
+  if (mapping_get_item(target, args[1], out, error)) {
+    std::string delete_error;
+    mapping_delete_item(target, args[1], delete_error);
+    return true;
   }
   if (argc == 3) {
+    error.clear();
     out = args[2];
     return true;
   }
@@ -108,12 +105,10 @@ bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!method_check_argc(argc, 1, "dict.clear", error)) {
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.clear target is not a dict";
+  Value target = args[0];
+  if (!mapping_clear(target, error)) {
     return false;
   }
-  dict->entries.clear();
   value_set_none(out);
   return true;
 }
@@ -122,12 +117,11 @@ bool dict_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (!method_check_argc(argc, 1, "dict.copy", error)) {
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.copy target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.copy target is not a mapping";
     return false;
   }
-  out = Value::dict(dict->entries);
+  out = mapping_copy(args[0]);
   return true;
 }
 
@@ -136,20 +130,16 @@ bool dict_popitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.popitem target is not a dict";
+  Value target = args[0];
+  if (!mapping_is_mapping(target)) {
+    error = "dict.popitem target is not a mapping";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (dict->entries.empty()) {
-    error = "popitem(): dictionary is empty";
+  if (!mapping_popitem(target, out, error)) {
     runtime.raise_class_error("KeyError", error);
     return false;
   }
-  auto entry = dict->entries.back();
-  dict->entries.pop_back();
-  out = Value::tuple({entry.first, entry.second});
   return true;
 }
 
@@ -158,9 +148,8 @@ bool dict_setdefault_method(Runtime&, const Value* args, uint32_t argc, Value& o
     error = "dict.setdefault expected 2 or 3 arguments, got " + std::to_string(argc);
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.setdefault target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.setdefault target is not a mapping";
     return false;
   }
   Value target = args[0];
@@ -184,6 +173,26 @@ bool update_one_mapping_or_pairs(Value& target, const Value& source, std::string
       }
     }
     return true;
+  }
+  if (value_as_module(source) != nullptr) {
+    Value iterator;
+    if (!mapping_get_iter(source, iterator, error)) {
+      return false;
+    }
+    while (true) {
+      bool done = false;
+      Value key;
+      if (!mapping_iter_next(iterator, done, key, error)) {
+        return false;
+      }
+      if (done) {
+        return true;
+      }
+      Value value;
+      if (!mapping_get_item(source, key, value, error) || !mapping_set_item(target, key, value, error)) {
+        return false;
+      }
+    }
   }
 
   Value iterator;
@@ -230,9 +239,8 @@ bool dict_update_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     error = "dict.update expected at most 1 positional argument, got " + std::to_string(argc - 1);
     return false;
   }
-  auto* dict = value_as_dict(args[0]);
-  if (dict == nullptr) {
-    error = "dict.update target is not a dict";
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.update target is not a mapping";
     return false;
   }
   if (argc == 2) {
@@ -304,7 +312,7 @@ Value make_dict_fromkeys_classmethod() {
 }
 
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
-  if (value_as_dict(object) == nullptr) {
+  if (value_as_dict(object) == nullptr && value_as_module(object) == nullptr) {
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {

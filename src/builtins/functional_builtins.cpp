@@ -1056,7 +1056,7 @@ bool builtin_globals(
     runtime.raise_class_error("RuntimeError", error);
     return false;
   }
-  out = module_attrs_to_dict(*module);
+  value_assign_fast(out, runtime.current_globals_module());
   return true;
 }
 
