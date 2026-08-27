@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -473,6 +474,68 @@ bool abc_meta_subclasscheck(Runtime& runtime, const Value* args, uint32_t argc, 
   return abc_subclasscheck(runtime, args, argc, out, error, user_data);
 }
 
+bool abc_meta_new(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 4) {
+    return abc_type_error(runtime, error, "ABCMeta.__new__() expected cls, name, bases, and namespace");
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    return abc_type_error(runtime, error, "ABCMeta.__new__() name must be a string");
+  }
+  auto* bases = value_as_tuple(args[2]);
+  if (bases == nullptr) {
+    return abc_type_error(runtime, error, "ABCMeta.__new__() bases must be a tuple");
+  }
+  auto* ns = value_as_dict(args[3]);
+  if (ns == nullptr) {
+    return abc_type_error(runtime, error, "ABCMeta.__new__() namespace must be a dict");
+  }
+
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.reserve(ns->entries.size() + 1);
+  bool has_module = false;
+  for (const auto& entry : ns->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key == nullptr) {
+      return abc_type_error(runtime, error, "ABCMeta.__new__() namespace keys must be strings");
+    }
+    std::string key_text = string_object_to_string(*key);
+    if (key_text == "__module__") {
+      has_module = true;
+    }
+    attrs.push_back({std::move(key_text), entry.second});
+  }
+  if (!has_module) {
+    attrs.push_back({"__module__", Value::string("abc")});
+  }
+
+  out = Value::class_object(
+      string_object_to_string(*name),
+      std::move(attrs),
+      Value::invalid(),
+      {},
+      args[0]);
+  for (const auto& base : bases->items) {
+    if (value_as_class(base) == nullptr) {
+      return abc_type_error(runtime, error, "ABCMeta.__new__() bases must be classes");
+    }
+    if (!class_set_base(out, base, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  Value ignored;
+  return abc_init(runtime, &out, 1, ignored, error, nullptr);
+}
+
+bool abc_meta_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 && argc != 4) {
+    return abc_type_error(runtime, error, "ABCMeta.__init__() expected cls, name, bases, and namespace");
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool abc_abstractmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     return abc_type_error(runtime, error, "abc.abstractmethod() expected function");
@@ -535,6 +598,8 @@ void register_abc_module(Runtime& runtime) {
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
   abc_meta_attrs.push_back({"__module__", Value::string("abc")});
+  abc_meta_attrs.push_back({"__new__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__new__", "__new__", abc_meta_new, "Create a new ABC class."))});
+  abc_meta_attrs.push_back({"__init__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__init__", "__init__", abc_meta_init, "Initialize a new ABC class."))});
   abc_meta_attrs.push_back({"register", abc_native_function(runtime, "abc", "ABCMeta.register", "register", abc_meta_register, "Register a virtual subclass of an ABC.")});
   abc_meta_attrs.push_back({
       "__instancecheck__",

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time tuple bool field conversion
+ABCMeta __new__ construction
 ```
 
 Current next loop:

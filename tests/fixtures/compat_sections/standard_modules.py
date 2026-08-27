@@ -412,6 +412,13 @@ except TypeError as err:
     print("abc-direct-init", "abstract class" in str(err), "direct" in str(err))
 direct_init_dump = _abc._get_dump(DirectInitABC)
 print(len(direct_init_dump[0]), len(direct_init_dump[1]), len(direct_init_dump[2]), direct_init_dump[3] == abc.get_cache_token())
+constructed_required = abc.abstractmethod(lambda self: None)
+ConstructedABC = abc.ABCMeta.__new__(abc.ABCMeta, "ConstructedABC", (), {"required": constructed_required})
+print(ConstructedABC.__name__, ConstructedABC.__module__, type(ConstructedABC) is abc.ABCMeta, len(ConstructedABC.__abstractmethods__))
+print(_abc._get_dump(ConstructedABC)[3] == abc.get_cache_token())
+class ConstructedConcrete:
+    pass
+print(ConstructedABC.register(ConstructedConcrete) is ConstructedConcrete, issubclass(ConstructedConcrete, ConstructedABC), _abc._abc_instancecheck(ConstructedABC, ConstructedConcrete()))
 try:
     _abc._abc_init(42)
 except TypeError as err:

@@ -86,6 +86,9 @@ False
 None True 1
 abc-direct-init True True
 0 0 0 True
+ConstructedABC abc True 1
+True
+True True True
 abc-init-type True
 abc-helper-type True
 abc-helper-type True
