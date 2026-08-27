@@ -202,6 +202,14 @@ Value make_weakref_ref(Runtime& runtime, const Value& target) {
   return ref;
 }
 
+bool weakref_get_target(const Value& ref, Value& out) {
+  std::string ignored;
+  if (!object_get_attr(ref, kWeakrefTargetAttr, out, ignored) || out.tag == ValueTag::Invalid) {
+    return false;
+  }
+  return true;
+}
+
 void register_weakref_module(Runtime& runtime) {
   NativeModuleBuilder low_level(runtime, "_weakref");
   add_weakref_exports(low_level, runtime);

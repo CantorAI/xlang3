@@ -38,7 +38,8 @@ Value make_abc_weakref_set(Runtime& runtime, const Value& list_value) {
   if (auto* list = value_as_list(list_value)) {
     refs.reserve(list->items.size());
     for (const auto& item : list->items) {
-      refs.push_back(make_weakref_ref(runtime, item));
+      Value target;
+      refs.push_back(weakref_get_target(item, target) ? item : make_weakref_ref(runtime, item));
     }
   }
   return Value::set(std::move(refs));
@@ -72,25 +73,33 @@ bool registry_list(Value& abc_class, Value& out, std::string& error) {
   return abc_state_list(abc_class, kRegistryAttr, out, error);
 }
 
-bool list_contains_identity(const Value& list_value, const Value& needle) {
+bool abc_entry_matches_target(const Value& entry, const Value& target) {
+  Value ref_target;
+  if (weakref_get_target(entry, ref_target)) {
+    return value_is(ref_target, target);
+  }
+  return value_is(entry, target);
+}
+
+bool abc_list_contains_target(const Value& list_value, const Value& target) {
   auto* list = value_as_list(list_value);
   if (list == nullptr) {
     return false;
   }
   for (const auto& item : list->items) {
-    if (value_is(item, needle)) {
+    if (abc_entry_matches_target(item, target)) {
       return true;
     }
   }
   return false;
 }
 
-bool append_unique_identity(Value& list_value, const Value& item) {
+bool append_unique_abc_ref(Runtime& runtime, Value& list_value, const Value& item) {
   auto* list = value_as_list(list_value);
-  if (list == nullptr || list_contains_identity(list_value, item)) {
+  if (list == nullptr || abc_list_contains_target(list_value, item)) {
     return false;
   }
-  list->items.push_back(item);
+  list->items.push_back(make_weakref_ref(runtime, item));
   return true;
 }
 
@@ -197,7 +206,9 @@ bool registry_contains_registered_base(const Value& abc_class, const Value& subc
     return false;
   }
   for (const auto& item : list->items) {
-    auto* registered = value_as_class(item);
+    Value registered_value;
+    const Value& registered_entry = weakref_get_target(item, registered_value) ? registered_value : item;
+    auto* registered = value_as_class(registered_entry);
     if (registered != nullptr && class_is_subclass(subclass_class, registered)) {
       return true;
     }
@@ -220,7 +231,7 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
   if (!abc_state_list(mutable_abc, kCacheAttr, positive_cache, error)) {
     return false;
   }
-  if (list_contains_identity(positive_cache, subclass)) {
+  if (abc_list_contains_target(positive_cache, subclass)) {
     out = true;
     return true;
   }
@@ -228,7 +239,7 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
   if (!abc_state_list(mutable_abc, kNegativeCacheAttr, negative_cache, error)) {
     return false;
   }
-  if (list_contains_identity(negative_cache, subclass)) {
+  if (abc_list_contains_target(negative_cache, subclass)) {
     out = false;
     return true;
   }
@@ -243,9 +254,9 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
     if (not_implemented == nullptr || !value_is(hook_result, *not_implemented)) {
       out = value_truthy(hook_result);
       if (out) {
-        append_unique_identity(positive_cache, subclass);
+        append_unique_abc_ref(runtime, positive_cache, subclass);
       } else {
-        append_unique_identity(negative_cache, subclass);
+        append_unique_abc_ref(runtime, negative_cache, subclass);
       }
       return true;
     }
@@ -254,9 +265,9 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
   const bool registered_subclass = registry_contains_registered_base(abc_class, subclass);
   out = direct_subclass || registered_subclass;
   if (direct_subclass) {
-    append_unique_identity(positive_cache, subclass);
+    append_unique_abc_ref(runtime, positive_cache, subclass);
   } else if (!registered_subclass) {
-    append_unique_identity(negative_cache, subclass);
+    append_unique_abc_ref(runtime, negative_cache, subclass);
   }
   return true;
 }
@@ -358,8 +369,8 @@ bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   auto* list = value_as_list(registry);
-  if (list != nullptr && !list_contains_identity(registry, args[1])) {
-    list->items.push_back(args[1]);
+  if (list != nullptr && !abc_list_contains_target(registry, args[1])) {
+    list->items.push_back(make_weakref_ref(runtime, args[1]));
     ++g_cache_token;
   }
   value_assign_fast(out, args[1]);

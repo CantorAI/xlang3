@@ -96,6 +96,7 @@ void register_runpy_module(Runtime& runtime);
 void register_importlib_module(Runtime& runtime);
 void register_weakref_module(Runtime& runtime);
 Value make_weakref_ref(Runtime& runtime, const Value& target);
+bool weakref_get_target(const Value& ref, Value& out);
 void register_inspect_module(Runtime& runtime);
 void register_logging_module(Runtime& runtime);
 void register_locale_module(Runtime& runtime);

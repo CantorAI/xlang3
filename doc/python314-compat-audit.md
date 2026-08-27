@@ -69,6 +69,12 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `abc` / `_abc` weakref-backed cache parity: ABC registry,
+  positive-cache, and negative-cache internals now store weakref objects and
+  subclass checks compare through their referents, so repeated `_abc._get_dump()`
+  snapshots reuse stable weakrefs instead of creating new reference objects or
+  inflating `weakref.getweakrefcount()` just from inspection. True weak
+  lifetime cleanup and callbacks remain pending.
 - Expanded native `weakref` visibility for live reference objects:
   `weakref.getweakrefcount()` and `weakref.getweakrefs()` now report created
   `ReferenceType` instances by referent identity, and the Standard Modules
@@ -898,9 +904,10 @@ Native or runtime-backed foundation:
   CPython-style stale `_get_dump` negative-cache snapshots/version metadata until the
   next subclass check, virtual registry matches staying out of the positive cache, `_reset_registry` preserving caches/token,
   and CPython-style weakref-backed `_get_dump` snapshot sets whose entries are
-  callable `weakref.ReferenceType` instances and visible through
-  `weakref.getweakrefcount`/`getweakrefs` for their referents; exact CPython
-  weakref lifecycle cleanup remains pending
+  callable stable `weakref.ReferenceType` instances, visible through
+  `weakref.getweakrefcount`/`getweakrefs` for their referents without repeated
+  dump inspection inflating weakref counts; exact CPython weakref lifecycle
+  cleanup remains pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-weakref live reference visibility
+abc stable weakref-backed cache snapshots
 ```
 
 Current next loop:
