@@ -24,6 +24,11 @@ namespace {
 static constexpr const char* kWeakrefTargetAttr = "__xlang3_weakref_target__";
 static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
 
+std::vector<Value>& weakref_registry() {
+  static auto* refs = new std::vector<Value>();
+  return *refs;
+}
+
 bool weakrefable_target(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return false;
@@ -33,6 +38,22 @@ bool weakrefable_target(const Value& value) {
     return klass == nullptr || klass->allow_weakref;
   }
   return true;
+}
+
+bool weakref_target_matches(const Value& ref, const Value& target) {
+  Value ref_target;
+  std::string ignored;
+  return object_get_attr(ref, kWeakrefTargetAttr, ref_target, ignored) && value_is(ref_target, target);
+}
+
+void register_weakref_instance(const Value& ref) {
+  auto& refs = weakref_registry();
+  for (const auto& existing : refs) {
+    if (value_is(existing, ref)) {
+      return;
+    }
+  }
+  refs.push_back(ref);
 }
 
 bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -66,6 +87,7 @@ bool weakref_reference_init(Runtime&, const Value* args, uint32_t argc, Value& o
   if (!object_set_attr(self, kWeakrefCallbackAttr, argc == 3 ? args[2] : Value::none(), error)) {
     return false;
   }
+  register_weakref_instance(self);
   value_set_none(out);
   return true;
 }
@@ -113,21 +135,33 @@ bool weakref_proxy(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool weakref_getweakrefcount(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool weakref_getweakrefcount(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "weakref.getweakrefcount() expected object";
     return false;
   }
-  value_set_int64(out, 0);
+  int64_t count = 0;
+  for (const auto& ref : weakref_registry()) {
+    if (weakref_target_matches(ref, args[0])) {
+      ++count;
+    }
+  }
+  value_set_int64(out, count);
   return true;
 }
 
-bool weakref_getweakrefs(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool weakref_getweakrefs(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "weakref.getweakrefs() expected object";
     return false;
   }
-  out = Value::list({});
+  std::vector<Value> refs;
+  for (const auto& ref : weakref_registry()) {
+    if (weakref_target_matches(ref, args[0])) {
+      refs.push_back(ref);
+    }
+  }
+  out = Value::list(std::move(refs));
   return true;
 }
 
@@ -164,6 +198,7 @@ Value make_weakref_ref(Runtime& runtime, const Value& target) {
   std::string ignored;
   object_set_attr(ref, kWeakrefTargetAttr, target, ignored);
   object_set_attr(ref, kWeakrefCallbackAttr, Value::none(), ignored);
+  register_weakref_instance(ref);
   return ref;
 }
 

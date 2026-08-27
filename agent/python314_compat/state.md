@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-ABCMeta __new__ construction
+weakref live reference visibility
 ```
 
 Current next loop:

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` format pre-validation batch.
+Last updated after the native weakref live-registry visibility batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `weakref` visibility for live reference objects:
+  `weakref.getweakrefcount()` and `weakref.getweakrefs()` now report created
+  `ReferenceType` instances by referent identity, and the Standard Modules
+  fixture covers `_abc._get_dump()` weakrefs being visible through those
+  helpers. True weak lifetime cleanup and callbacks remain pending.
 - Tightened native `time.strptime` format validation ordering: the parser now
   validates all directives before matching input, so trailing stray `%`
   markers and unsupported directives after an otherwise partial format produce
@@ -893,8 +898,9 @@ Native or runtime-backed foundation:
   CPython-style stale `_get_dump` negative-cache snapshots/version metadata until the
   next subclass check, virtual registry matches staying out of the positive cache, `_reset_registry` preserving caches/token,
   and CPython-style weakref-backed `_get_dump` snapshot sets whose entries are
-  callable `weakref.ReferenceType` instances; exact CPython weakref lifecycle cleanup
-  remains pending
+  callable `weakref.ReferenceType` instances and visible through
+  `weakref.getweakrefcount`/`getweakrefs` for their referents; exact CPython
+  weakref lifecycle cleanup remains pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable

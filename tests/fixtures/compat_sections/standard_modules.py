@@ -258,6 +258,7 @@ print(len(native_dump[1]) == 0, len(native_dump[2]) == 0, native_dump[3] == abc.
 native_registry_ref = next(iter(native_dump[0]))
 print(native_registry_ref() is Concrete, Concrete in native_dump[0], native_registry_ref in native_dump[0])
 print(type(native_registry_ref).__name__, type(native_registry_ref).__module__, weakref.ReferenceType is type(native_registry_ref))
+print(weakref.getweakrefcount(Concrete) >= 1, native_registry_ref in weakref.getweakrefs(Concrete))
 _abc._reset_registry(NativeABC)
 print(issubclass(Concrete, NativeABC), _abc._abc_subclasscheck(NativeABC, Concrete))
 native_dump = _abc._get_dump(NativeABC)
