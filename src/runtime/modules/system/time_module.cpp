@@ -38,6 +38,9 @@ namespace {
 
 struct TimeModuleState {
   Value struct_time_class;
+  std::string standard_timezone_name = "UTC";
+  std::string daylight_timezone_name = "UTC";
+  bool has_daylight_timezone = false;
 };
 
 void time_module_state_cleanup(void* data) {
@@ -391,7 +394,12 @@ bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) 
   return true;
 }
 
-bool parse_timezone_name(const std::string& text, size_t& pos, Value& zone, int& isdst) {
+bool parse_timezone_name(
+    const std::string& text,
+    size_t& pos,
+    Value& zone,
+    int& isdst,
+    const TimeModuleState* state) {
   const std::string tail = ascii_lower(text.substr(pos));
   if (tail.rfind("utc", 0) == 0) {
     pos += 3;
@@ -405,6 +413,22 @@ bool parse_timezone_name(const std::string& text, size_t& pos, Value& zone, int&
     isdst = 0;
     return true;
   }
+  if (state != nullptr) {
+    const std::string standard = ascii_lower(state->standard_timezone_name);
+    if (!standard.empty() && tail.rfind(standard, 0) == 0) {
+      pos += state->standard_timezone_name.size();
+      zone = Value::string(state->standard_timezone_name);
+      isdst = 0;
+      return true;
+    }
+    const std::string daylight = ascii_lower(state->daylight_timezone_name);
+    if (!daylight.empty() && tail.rfind(daylight, 0) == 0) {
+      pos += state->daylight_timezone_name.size();
+      zone = Value::string(state->daylight_timezone_name);
+      isdst = state->has_daylight_timezone ? 1 : 0;
+      return true;
+    }
+  }
   return false;
 }
 
@@ -414,7 +438,8 @@ bool parse_strptime_directives(
     std::tm& tm,
     Value& zone,
     Value& gmtoff,
-    bool& explicit_year) {
+    bool& explicit_year,
+    const TimeModuleState* state = nullptr) {
   size_t text_pos = 0;
   int parsed_yday = -1;
   int parsed_hour12 = -1;
@@ -701,7 +726,7 @@ bool parse_strptime_directives(
         }
         break;
       case 'Z':
-        if (!parse_timezone_name(text, text_pos, zone, tm.tm_isdst)) {
+        if (!parse_timezone_name(text, text_pos, zone, tm.tm_isdst, state)) {
           return false;
         }
         break;
@@ -1472,7 +1497,8 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   Value zone = Value::none();
   Value gmtoff = Value::none();
   bool explicit_year = false;
-  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year)) {
+  auto* state = static_cast<TimeModuleState*>(user_data);
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, state)) {
     std::istringstream stream(text);
     stream >> std::get_time(&tm, format.c_str());
     if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {
@@ -1493,7 +1519,6 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  auto* state = static_cast<TimeModuleState*>(user_data);
   out = make_struct_time(state->struct_time_class, tm, zone, gmtoff);
   return true;
 }
@@ -1654,6 +1679,9 @@ void register_time_module(Runtime& runtime) {
   runtime.register_native_package_cleanup(state, time_module_state_cleanup);
 
   const TimezoneInfo timezone = platform_timezone_info();
+  state->standard_timezone_name = timezone.standard_name;
+  state->daylight_timezone_name = timezone.daylight_name;
+  state->has_daylight_timezone = timezone.daylight != 0;
 
   NativeModuleBuilder builder(runtime, "time");
   builder.function("time", time_time)

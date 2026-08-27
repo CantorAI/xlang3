@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` calendar-date validation batch.
+Last updated after the native `time.strptime` platform `%Z` timezone-name batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: `%Z` now accepts the platform timezone
+  names published through `time.tzname`, preserves the matched `tm_zone`, sets
+  CPython-style `tm_isdst` for standard/daylight names, and leaves
+  `tm_gmtoff` unset for timezone-name-only parses.
 - Tightened native `time.strptime`: parsed calendar dates now reject impossible
   month/day combinations such as February 31, April 31, and explicit
   non-leap-year February 29 with catchable `ValueError`, while preserving
@@ -730,7 +734,7 @@ Native or runtime-backed foundation:
   `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
   directives, `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
-  large offset hours, UTC/GMT `%Z` metadata,
+  large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata,
   C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,

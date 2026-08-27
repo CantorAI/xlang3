@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc/_abc helper arity TypeError validation
+time.strptime platform %Z timezone-name parsing
 ```
 
 Current next loop:
