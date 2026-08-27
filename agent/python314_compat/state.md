@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys structseq repr and frozen stdlib_module_names metadata
+sys startup metadata real_prefix absence
 ```
 
 Current next loop:

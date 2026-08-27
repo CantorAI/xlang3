@@ -140,8 +140,9 @@ Recent completed batches:
 - Expanded native `sys` trace/debug hook coverage with `sys.call_tracing`.
 - Expanded process-published `sys` startup metadata so `sys.executable`,
   `sys._base_executable`, `sys.prefix`, `sys.base_prefix`,
-  `sys.exec_prefix`, `sys.base_exec_prefix`, `sys.real_prefix`, and
-  `sys.orig_argv` stay synchronized after launcher initialization.
+  `sys.exec_prefix`, `sys.base_exec_prefix`, and `sys.orig_argv` stay
+  synchronized after launcher initialization; normal startup now matches
+  CPython 3.14 by leaving legacy virtualenv-only `sys.real_prefix` absent.
   The function now validates the CPython-style `(func, args_tuple)` shape,
   calls through the runtime's normal callable dispatch with tuple unpacking,
   and restores the active trace hook after the call.
@@ -677,7 +678,7 @@ Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields including `_base_executable`,
-  `exec_prefix`, `base_exec_prefix`, and `real_prefix`, structseq-like `version_info`/`flags`/`int_info`/
+  `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors,
   tuple inheritance, sequence iteration, tuple-backed `count`/`index`, CPython-style named-field `repr`,
   and type-level `__match_args__`,

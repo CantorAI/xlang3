@@ -620,7 +620,7 @@ print(isinstance(sys.hash_info, tuple), sys.hash_info.index(sys.hash_info.algori
 print(isinstance(sys.thread_info, tuple), sys.thread_info.index(sys.thread_info.name), sys.thread_info.count(sys.thread_info.name))
 print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe"), sys.prefix != "")
 print("sys" in sys.builtin_module_names, sys.pycache_prefix is None, isinstance(sys.orig_argv, list))
-print(sys.executable == sys._base_executable, sys.prefix == sys.base_prefix == sys.exec_prefix == sys.base_exec_prefix, isinstance(sys.real_prefix, str), len(sys.orig_argv) >= 1, sys.orig_argv[0] == sys.executable)
+print(sys.executable == sys._base_executable, sys.prefix == sys.base_prefix == sys.exec_prefix == sys.base_exec_prefix, not hasattr(sys, "real_prefix"), len(sys.orig_argv) >= 1, sys.orig_argv[0] == sys.executable)
 print(isinstance(sys.warnoptions, list), isinstance(sys._xoptions, dict), isinstance(sys.dont_write_bytecode, bool), sys.api_version > 0, sys.abiflags == "", sys.byteorder in ("little", "big"), sys.platlibdir in ("DLLs", "lib"))
 print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib"), sys._framework == "", sys.winver == "3.14")
 windows_version = sys.getwindowsversion()

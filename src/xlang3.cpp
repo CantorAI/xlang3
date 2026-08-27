@@ -214,7 +214,7 @@ bool publish_process_sys_attrs(xlang3::Runtime& runtime, int argc, char** argv, 
   if (!xlang3::module_set_attr(sys, "base_exec_prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
-  return xlang3::module_set_attr(sys, "real_prefix", xlang3::Value::string(prefix), error);
+  return true;
 }
 
 bool run_source(
