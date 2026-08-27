@@ -1415,9 +1415,6 @@ for bad_strptime_args in [
     ("z", "%z"),
     ("+05:3045", "%z"),
     ("+05:30:45.1234567", "%z"),
-    ("2021 53 1", "%G %V %u"),
-    ("2026 35", "%G %V"),
-    ("2026 35 3", "%Y %V %u"),
     ("Wed Aug 26 01:02:03", "%c"),
     ("Wed Aug6 01:02:03 2026", "%c"),
     ("WedAug 6 01:02:03 2026", "%c"),
@@ -1435,6 +1432,17 @@ for bad_strptime_args in [
         time.strptime(*bad_strptime_args)
     except ValueError as err:
         print("strptime-trailing", "match format" in str(err) or "range" in str(err) or "out of range" in str(err))
+for bad_strptime_iso_args, bad_strptime_iso_text in [
+    (("2026 35 3", "%Y %V %u"), "incompatible with the year directive"),
+    (("35 3", "%V %u"), "ISO week directive"),
+    (("2026 35", "%G %V"), "ISO year directive"),
+    (("2026 239", "%G %j"), "not compatible with ISO year"),
+    (("2021 53 7", "%G %V %u"), "Invalid week: 53"),
+]:
+    try:
+        time.strptime(*bad_strptime_iso_args)
+    except ValueError as err:
+        print("strptime-iso-error", bad_strptime_iso_text in str(err))
 for bad_strptime_directive_args in [
     ("08/26/26", "%D"),
     ("2026-08-26", "%F"),

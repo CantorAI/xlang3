@@ -373,9 +373,11 @@ strptime-trailing True
 strptime-trailing True
 strptime-trailing True
 strptime-trailing True
-strptime-trailing True
-strptime-trailing True
-strptime-trailing True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
 strptime-bad-directive True
 strptime-bad-directive True
 strptime-bad-directive True

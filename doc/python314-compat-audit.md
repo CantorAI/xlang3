@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `abc` / `_abc` metadata parity batch.
+Last updated after the native `time.strptime` ISO directive validation batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime` ISO directive validation: `%V` with `%Y`,
+  `%V` without `%G`, incomplete `%G` triples, `%G` with `%j`, and invalid ISO
+  week 53 now raise catchable `ValueError` with CPython 3.14-style diagnostic
+  text, and the Standard Modules fixture covers those conflict paths.
 - Tightened native `abc` / `_abc` metadata parity: `ABCMeta` and `ABC` now
   expose CPython-style `__module__ == "abc"`, public `abc` helpers and private
   `_abc` helpers now publish simple `__name__`, module-qualified
@@ -840,7 +844,8 @@ Native or runtime-backed foundation:
   of explicitly parsed calendar fields,
   `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
-  directives, `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
+  directives plus CPython-style ISO directive conflict `ValueError` diagnostics,
+  `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
   large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata including lowercase spelling preservation,
   C-locale `%a`/`%A` weekday names, `%b`/`%h`/`%B` month names,
   `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives including single-digit day spacing,
@@ -851,7 +856,7 @@ Native or runtime-backed foundation:
   CPython-style whitespace matching for format and `%c` composite whitespace runs
   including tab/run input and missing-whitespace rejection,
   catchable `ValueError` failures including CPython-style bad-directive and stray-percent rejection,
-  and trailing-input rejection;
+  ISO directive validation failures, and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,

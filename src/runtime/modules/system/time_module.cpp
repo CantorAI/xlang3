@@ -440,6 +440,15 @@ bool parse_timezone_name(
   return false;
 }
 
+enum class StrptimeFailureReason {
+  None,
+  IsoWeekWithCalendarYear,
+  IsoWeekMissingIsoYear,
+  IsoYearIncomplete,
+  IsoYearWithOrdinalDay,
+  InvalidIsoWeek,
+};
+
 bool parse_strptime_directives(
     const std::string& text,
     const std::string& format,
@@ -450,6 +459,7 @@ bool parse_strptime_directives(
     bool& unsupported_directive,
     char& unsupported_directive_char,
     bool& stray_percent,
+    StrptimeFailureReason& failure_reason,
     const TimeModuleState* state = nullptr) {
   size_t text_pos = 0;
   int parsed_yday = -1;
@@ -469,6 +479,7 @@ bool parse_strptime_directives(
   unsupported_directive = false;
   unsupported_directive_char = '\0';
   stray_percent = false;
+  failure_reason = StrptimeFailureReason::None;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
     const char fmt = format[format_pos];
     if (std::isspace(static_cast<unsigned char>(fmt))) {
@@ -848,13 +859,24 @@ bool parse_strptime_directives(
     return false;
   }
   if (parsed_iso_week != -1 && saw_calendar_year) {
+    failure_reason = StrptimeFailureReason::IsoWeekWithCalendarYear;
+    return false;
+  }
+  if (parsed_iso_year != -1 && parsed_yday != -1) {
+    failure_reason = StrptimeFailureReason::IsoYearWithOrdinalDay;
+    return false;
+  }
+  if (parsed_iso_year == -1 && parsed_iso_week != -1) {
+    failure_reason = StrptimeFailureReason::IsoWeekMissingIsoYear;
     return false;
   }
   if (parsed_iso_year != -1 || parsed_iso_week != -1) {
     if (parsed_iso_year == -1 || parsed_iso_week == -1 || parsed_iso_weekday == -1) {
+      failure_reason = StrptimeFailureReason::IsoYearIncomplete;
       return false;
     }
     if (!iso_week_date_to_calendar(parsed_iso_year, parsed_iso_week, parsed_iso_weekday, tm)) {
+      failure_reason = StrptimeFailureReason::InvalidIsoWeek;
       return false;
     }
     saw_month_day = true;
@@ -1630,12 +1652,23 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   bool unsupported_directive = false;
   char unsupported_directive_char = '\0';
   bool stray_percent = false;
+  StrptimeFailureReason failure_reason = StrptimeFailureReason::None;
   auto* state = static_cast<TimeModuleState*>(user_data);
-  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, unsupported_directive_char, stray_percent, state)) {
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, unsupported_directive_char, stray_percent, failure_reason, state)) {
     if (stray_percent) {
       error = "stray % in format '" + format + "'";
     } else if (unsupported_directive) {
       error = std::string("'") + unsupported_directive_char + "' is a bad directive in format '" + format + "'";
+    } else if (failure_reason == StrptimeFailureReason::IsoWeekWithCalendarYear) {
+      error = "ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.";
+    } else if (failure_reason == StrptimeFailureReason::IsoWeekMissingIsoYear) {
+      error = "ISO week directive '%V' must be used with the ISO year directive '%G' and a weekday directive ('%A', '%a', '%w', or '%u').";
+    } else if (failure_reason == StrptimeFailureReason::IsoYearIncomplete) {
+      error = "ISO year directive '%G' must be used with the ISO week directive '%V' and a weekday directive ('%A', '%a', '%w', or '%u').";
+    } else if (failure_reason == StrptimeFailureReason::IsoYearWithOrdinalDay) {
+      error = "Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.";
+    } else if (failure_reason == StrptimeFailureReason::InvalidIsoWeek) {
+      error = "Invalid week: 53";
     } else {
       error = "time data does not match format";
     }
