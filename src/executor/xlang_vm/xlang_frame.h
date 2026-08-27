@@ -163,6 +163,7 @@ struct XlangVMFrame {
   Value trace_function;
   size_t ip = 0;
   uint32_t last_trace_line = 0;
+  uint32_t last_monitoring_line = 0;
   uint32_t last_debug_line = 0;
   bool trace_call_emitted = false;
 
@@ -233,6 +234,7 @@ struct XlangVMFrame {
     value_set_invalid(trace_function);
     ip = 0;
     last_trace_line = 0;
+    last_monitoring_line = 0;
     last_debug_line = 0;
     trace_call_emitted = false;
 

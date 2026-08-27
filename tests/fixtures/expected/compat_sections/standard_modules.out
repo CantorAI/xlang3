@@ -166,6 +166,14 @@ True
 True True
 True monitoring-local monitoring-other
 2 sys_monitoring_local_target True 0 sys_monitoring_local_target True 1 monitoring-local
+True
+True
+True line
+True True True
+True
+True
+True local-line other-line
+True True False
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0

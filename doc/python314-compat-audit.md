@@ -725,7 +725,7 @@ Native or runtime-backed foundation:
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
   C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
   bool-as-int tool/event IDs, single C return/raise callback registration, and catchable validation failures,
-  live global and code-local `PY_START`/`PY_RETURN` callback dispatch with
+  live global and code-local `PY_START`/`PY_RETURN`/`LINE` callback dispatch with
   CPython-style callback arguments, stable code-object local event matching,
   and callback-recursion suppression,
   `_is_immortal` for XLang3 tagged singleton/scalar values,

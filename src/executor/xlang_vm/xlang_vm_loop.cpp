@@ -806,6 +806,12 @@ RuntimeResult Interpreter::run_function(
           }
         }
         const uint32_t source_line = source_line_for_frame(frame);
+        if (source_line != 0 && source_line != frame.last_monitoring_line) {
+          frame.last_monitoring_line = source_line;
+          if (!emit_monitoring_event(frame, kSysMonitoringEventLine, nullptr)) {
+            return result;
+          }
+        }
         if (value_as_function(frame.trace_function) != nullptr && source_line != 0 && source_line != frame.last_trace_line) {
           frame.last_trace_line = source_line;
           if (!emit_trace_event(frame, "line", Value::none())) {
