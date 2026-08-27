@@ -91,15 +91,35 @@ constexpr int64_t kMonitoringEventMask =
     kMonitoringEventReraise | kMonitoringEventCReturn | kMonitoringEventCRaise |
     kMonitoringEventBranch;
 
+struct MonitoringCodeKey {
+  const ir::Module* module = nullptr;
+  uint32_t function_id = 0;
+
+  bool operator==(const MonitoringCodeKey& other) const {
+    return module == other.module && function_id == other.function_id;
+  }
+};
+
+struct MonitoringCodeKeyHash {
+  size_t operator()(const MonitoringCodeKey& key) const {
+    return std::hash<const ir::Module*>{}(key.module) ^
+           (std::hash<uint32_t>{}(key.function_id) + 0x9e3779b9u);
+  }
+};
+
 struct MonitoringToolState {
   Value name = Value::none();
   int64_t events = 0;
-  std::unordered_map<Object*, int64_t> local_events;
+  std::unordered_map<MonitoringCodeKey, int64_t, MonitoringCodeKeyHash> local_events;
   std::unordered_map<int64_t, Value> callbacks;
 };
 
 std::array<MonitoringToolState, kMonitoringToolCount> g_monitoring_tools;
 thread_local bool g_monitoring_dispatch_active = false;
+
+MonitoringCodeKey monitoring_code_key(const CodeObject& code) {
+  return MonitoringCodeKey{code.module.get(), code.function_id};
+}
 
 std::vector<Value>& interned_strings() {
   static auto* table = new std::vector<Value>();
@@ -1953,10 +1973,11 @@ bool sys_monitoring_set_local_events(Runtime& runtime, const Value* args, uint32
     return false;
   }
   auto& local_events = tool.local_events;
+  const MonitoringCodeKey key = monitoring_code_key(*code);
   if (events == 0) {
-    local_events.erase(args[1].as.obj);
+    local_events.erase(key);
   } else {
-    local_events[args[1].as.obj] = events;
+    local_events[key] = events;
   }
   value_set_none(out);
   return true;
@@ -1972,13 +1993,14 @@ bool sys_monitoring_get_local_events(Runtime& runtime, const Value* args, uint32
   if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
     return false;
   }
-  if (value_as_code(args[1]) == nullptr) {
+  auto* code = value_as_code(args[1]);
+  if (code == nullptr) {
     error = "code must be a code object";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   const auto& local_events = g_monitoring_tools[static_cast<size_t>(tool_id)].local_events;
-  const auto found = local_events.find(args[1].as.obj);
+  const auto found = local_events.find(monitoring_code_key(*code));
   value_set_int64(out, found == local_events.end() ? 0 : found->second);
   return true;
 }
@@ -2044,7 +2066,14 @@ bool sys_monitoring_dispatch_event(
   } guard;
 
   for (auto& tool : g_monitoring_tools) {
-    if (tool.name.tag == ValueTag::None || (tool.events & event) == 0) {
+    int64_t enabled_events = tool.events;
+    if (auto* code_object = value_as_code(code)) {
+      const auto local_it = tool.local_events.find(monitoring_code_key(*code_object));
+      if (local_it != tool.local_events.end()) {
+        enabled_events |= local_it->second;
+      }
+    }
+    if (tool.name.tag == ValueTag::None || (enabled_events & event) == 0) {
       continue;
     }
     auto callback_it = tool.callbacks.find(event);

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring live PY_START/PY_RETURN callback dispatch
+sys.monitoring live global and code-local PY_START/PY_RETURN callback dispatch
 ```
 
 Current next loop:
