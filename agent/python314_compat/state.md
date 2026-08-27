@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime CPython-permissive %z offset hours
+sys audit hooks CPython call-time non-callable failure
 ```
 
 Current next loop:

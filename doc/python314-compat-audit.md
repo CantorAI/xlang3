@@ -693,7 +693,7 @@ Native or runtime-backed foundation:
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
-  audit hook dispatch,
+  audit hook dispatch including CPython-style call-time failure for registered non-callable hooks,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing`,

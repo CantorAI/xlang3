@@ -169,6 +169,8 @@ sys-getframe-depth True
 sys-getframemodulename-type True
 sys-gil-args True
 True xlang3.fixture (1, a)
+True
+sys-audit-bad-hook True
 (sys_frame_probe, <module>, __main__, False)
 1 1 True True True
 True True True

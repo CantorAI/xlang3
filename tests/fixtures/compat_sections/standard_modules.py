@@ -695,6 +695,11 @@ def sys_audit_probe(event, args):
     audit_events.append((event, args))
 sys.addaudithook(sys_audit_probe)
 print(sys.audit("xlang3.fixture", 1, "a") is None, audit_events[0][0], audit_events[0][1])
+print(sys.addaudithook(42) is None)
+try:
+    sys.audit("xlang3.fixture.bad-hook")
+except TypeError as err:
+    print("sys-audit-bad-hook", "callable" in str(err) or "call" in str(err))
 import builtins
 def sys_frame_probe():
     frame = sys._getframe()

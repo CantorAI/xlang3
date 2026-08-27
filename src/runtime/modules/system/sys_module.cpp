@@ -1510,11 +1510,6 @@ bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value&
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!is_callable_value(args[0])) {
-    error = "sys.addaudithook expected callable";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
   g_audit_hooks.push_back(args[0]);
   value_set_none(out);
   return true;
