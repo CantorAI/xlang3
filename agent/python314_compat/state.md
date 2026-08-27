@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys/time structseq type metadata exposes CPython 3.14 __match_args__ and descriptors
+time.strptime fills CPython default fields and rejects trailing input
 ```
 
 Current next loop:

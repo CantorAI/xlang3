@@ -107,6 +107,33 @@ std::vector<Value> tm_tuple_items(const std::tm& tm) {
   };
 }
 
+bool is_leap_year(int year) {
+  return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int day_of_year_zero_based(int year, int month_one_based, int day) {
+  static const int days_before_month[] = {
+      0,
+      0,
+      31,
+      59,
+      90,
+      120,
+      151,
+      181,
+      212,
+      243,
+      273,
+      304,
+      334,
+  };
+  int yday = days_before_month[month_one_based] + day - 1;
+  if (month_one_based > 2 && is_leap_year(year)) {
+    ++yday;
+  }
+  return yday;
+}
+
 std::string format_tm(const std::string& format, const std::tm& tm) {
   std::ostringstream stream;
   stream << std::put_time(&tm, format.c_str());
@@ -757,7 +784,7 @@ bool time_strftime(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool time_strptime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 1 || argc > 2) {
     error = "time.strptime() expected string and optional format";
     return false;
@@ -771,14 +798,23 @@ bool time_strptime(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     return false;
   }
   std::tm tm{};
+  tm.tm_year = 0;
+  tm.tm_mon = 0;
+  tm.tm_mday = 1;
   tm.tm_isdst = -1;
   std::istringstream stream(text);
   stream >> std::get_time(&tm, format.c_str());
-  if (stream.fail()) {
+  if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {
     error = "time data does not match format";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
-  std::mktime(&tm);
+  const int parsed_isdst = tm.tm_isdst;
+  std::tm normalized = tm;
+  std::mktime(&normalized);
+  tm.tm_wday = normalized.tm_wday;
+  tm.tm_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+  tm.tm_isdst = parsed_isdst;
   auto* state = static_cast<TimeModuleState*>(user_data);
   out = make_struct_time(state->struct_time_class, tm);
   return true;

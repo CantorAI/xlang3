@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native structseq `__match_args__` metadata batch.
+Last updated after the native `time.strptime` CPython default-field batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: omitted date/time fields now use
+  CPython-style defaults before normalization, weekday/year-day fields are
+  populated consistently for partial formats, parse failures raise catchable
+  `ValueError`, and trailing unconverted input is rejected.
 - Expanded native structseq metadata parity: `sys.version_info`, `sys.flags`,
   `sys.int_info`, `sys.float_info`, `sys.hash_info`, `sys.thread_info`,
   Windows `sys.getwindowsversion()`, `sys.implementation.version`, and
@@ -665,7 +669,9 @@ Native or runtime-backed foundation:
   `tm_zone`/`tm_gmtoff`, constructor dict
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
-  `count`/`index`, CPython-style named-field `__repr__`, and platform-backed timezone constants/names; locale-specific parsing and
+  `count`/`index`, CPython-style named-field `__repr__`, platform-backed timezone constants/names,
+  and `strptime` CPython default-field filling, weekday/year-day normalization,
+  catchable `ValueError` failures, and trailing-input rejection; locale-specific parsing and
   historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
