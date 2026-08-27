@@ -72,6 +72,10 @@ Recent completed batches:
 - Tightened native `sys.getsizeof`: callable `__sizeof__()` results of
   `True`/`False` are now accepted with bool-as-int semantics instead of
   falling through to default handling or raising `TypeError`.
+- Tightened native `time.strptime`: `%f` now accepts CPython-style one- to
+  six-digit fractional seconds and discards the fraction while preserving the
+  normalized `struct_time` fields; missing or trailing fractional input remains
+  a catchable `ValueError`.
 - Tightened native `time.strptime`: `%U`/`%W` week numbers now combine with
   `%w`/`%u` weekday directives to derive CPython-style month/day, weekday, and
   year-day fields for Sunday-first, Monday-first, and ISO weekday inputs.
@@ -705,7 +709,8 @@ Native or runtime-backed foundation:
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
   ordinal-day `%j`, `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
-  catchable `ValueError` failures, and trailing-input rejection;
+  `%f` fractional-second acceptance/discarding, catchable `ValueError` failures,
+  and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,

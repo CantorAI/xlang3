@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.getsizeof accepts bool results from __sizeof__ with CPython-style int semantics
+time.strptime accepts CPython-style %f fractional seconds and returns normalized struct_time fields
 ```
 
 Current next loop:

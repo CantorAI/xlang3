@@ -856,6 +856,8 @@ parsed_short_year_high = time.strptime("69 01 02", "%y %m %d")
 parsed_midnight = time.strptime("12 AM", "%I %p")
 parsed_noon = time.strptime("12 PM", "%I %p")
 parsed_pm_hour = time.strptime("01 pm", "%I %p")
+parsed_fraction_short = time.strptime("2026-08-26 01:02:03.1", "%Y-%m-%d %H:%M:%S.%f")
+parsed_fraction_long = time.strptime("2026-08-26 01:02:03.123456", "%Y-%m-%d %H:%M:%S.%f")
 parsed_week_sunday = time.strptime("2026 35 3", "%Y %U %w")
 parsed_week_monday = time.strptime("2026 34 3", "%Y %W %w")
 parsed_week_iso_day = time.strptime("2026 35 7", "%Y %W %u")
@@ -868,6 +870,7 @@ print(tuple(parsed_yday), parsed_yday.tm_mon, parsed_yday.tm_mday, parsed_yday.t
 print(parsed_offset.tm_zone is None, parsed_offset.tm_gmtoff, parsed_zone.tm_zone, parsed_zone.tm_gmtoff is None, parsed_zone.tm_isdst)
 print(tuple(parsed_short_year_low), tuple(parsed_short_year_high))
 print(parsed_midnight.tm_hour, parsed_noon.tm_hour, parsed_pm_hour.tm_hour, parsed_pm_hour.tm_wday)
+print(tuple(parsed_fraction_short), tuple(parsed_fraction_long))
 print(tuple(parsed_week_sunday), tuple(parsed_week_monday), tuple(parsed_week_iso_day))
 print(tuple(parsed_week_zero_previous), tuple(parsed_week_zero_current), tuple(parsed_week_overflow))
 print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
@@ -893,6 +896,7 @@ for bad_struct_time_args in [
 for bad_strptime_args in [
     ("2026x", "%Y"),
     ("2026 ", "%Y"),
+    ("2026-08-26 01:02:03.", "%Y-%m-%d %H:%M:%S.%f"),
 ]:
     try:
         time.strptime(*bad_strptime_args)

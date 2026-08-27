@@ -191,6 +191,20 @@ bool parse_fixed_digits(const std::string& text, size_t& pos, size_t min_digits,
   return true;
 }
 
+bool consume_fractional_seconds(const std::string& text, size_t& pos) {
+  const size_t start = pos;
+  size_t count = 0;
+  while (pos < text.size() && count < 6 && std::isdigit(static_cast<unsigned char>(text[pos]))) {
+    ++pos;
+    ++count;
+  }
+  if (count == 0) {
+    pos = start;
+    return false;
+  }
+  return true;
+}
+
 bool consume_case_word(const std::string& text, size_t& pos, const std::vector<const char*>& words, int& out) {
   const std::string tail = ascii_lower(text.substr(pos));
   for (size_t i = 0; i < words.size(); ++i) {
@@ -354,6 +368,11 @@ bool parse_strptime_directives(
           return false;
         }
         tm.tm_sec = value;
+        break;
+      case 'f':
+        if (!consume_fractional_seconds(text, text_pos)) {
+          return false;
+        }
         break;
       case 'j':
         if (!parse_fixed_digits(text, text_pos, 1, 3, value)) {

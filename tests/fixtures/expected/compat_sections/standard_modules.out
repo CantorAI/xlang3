@@ -208,6 +208,7 @@ True True True
 True 19800 UTC True 0
 (2068, 1, 2, 0, 0, 0, 0, 2, -1) (1969, 1, 2, 0, 0, 0, 3, 2, -1)
 0 12 13 0
+(2026, 8, 26, 1, 2, 3, 2, 238, -1) (2026, 8, 26, 1, 2, 3, 2, 238, -1)
 (2026, 9, 2, 0, 0, 0, 2, 245, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (2026, 9, 6, 0, 0, 0, 6, 249, -1)
 (2025, 12, 28, 0, 0, 0, 6, 362, -1) (2026, 1, 4, 0, 0, 0, 6, 4, -1) (2027, 1, 4, 0, 0, 0, 0, 369, -1)
 11 True True X 123
@@ -221,6 +222,7 @@ struct-time-index-missing True
 struct-time-extra True
 struct-time-extra True
 struct-time-extra True
+strptime-trailing True
 strptime-trailing True
 strptime-trailing True
 True True True
