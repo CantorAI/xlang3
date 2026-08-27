@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` ordinal-day overflow batch.
+Last updated after the native `time.strptime` calendar-date validation batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: parsed calendar dates now reject impossible
+  month/day combinations such as February 31, April 31, and explicit
+  non-leap-year February 29 with catchable `ValueError`, while preserving
+  CPython 3.14's accepted default-year February 29 behavior.
 - Tightened native `time.strptime`: `%j` ordinal-day parsing now validates the
   CPython 1..366 range and normalizes day 366 in a common year to January 1 of
   the following year while preserving the returned `tm_yday` slot.
@@ -726,7 +730,8 @@ Native or runtime-backed foundation:
   directives, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
   C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
-  offsets, `%f` fractional-second acceptance/discarding, catchable `ValueError` failures,
+  offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
+  catchable `ValueError` failures,
   and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset

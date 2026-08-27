@@ -135,6 +135,27 @@ int day_of_year_zero_based(int year, int month_one_based, int day) {
   return yday;
 }
 
+int days_in_month(int year, int month_one_based) {
+  static const int days_in_month_common[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  if (month_one_based < 1 || month_one_based > 12) {
+    return 0;
+  }
+  if (month_one_based == 2 && is_leap_year(year)) {
+    return 29;
+  }
+  return days_in_month_common[month_one_based - 1];
+}
+
+bool valid_strptime_month_day(const std::tm& tm, bool explicit_year) {
+  const int year = tm.tm_year + 1900;
+  const int month = tm.tm_mon + 1;
+  const int max_day = days_in_month(year, month);
+  if (tm.tm_mday >= 1 && tm.tm_mday <= max_day) {
+    return true;
+  }
+  return !explicit_year && year == 1900 && month == 2 && tm.tm_mday == 29;
+}
+
 bool month_day_from_yday(int year, int yday_one_based, int& month, int& day) {
   if (yday_one_based < 1 || yday_one_based > (is_leap_year(year) ? 366 : 365)) {
     return false;
@@ -239,6 +260,19 @@ std::string ascii_lower(std::string text) {
     ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
   }
   return text;
+}
+
+bool strptime_format_has_explicit_year(const std::string& format) {
+  for (size_t i = 0; i + 1 < format.size(); ++i) {
+    if (format[i] != '%') {
+      continue;
+    }
+    const char directive = format[++i];
+    if (directive == 'Y' || directive == 'y' || directive == 'G' || directive == 'c' || directive == 'x') {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool parse_fixed_digits(const std::string& text, size_t& pos, size_t min_digits, size_t max_digits, int& out) {
@@ -379,7 +413,8 @@ bool parse_strptime_directives(
     const std::string& format,
     std::tm& tm,
     Value& zone,
-    Value& gmtoff) {
+    Value& gmtoff,
+    bool& explicit_year) {
   size_t text_pos = 0;
   int parsed_yday = -1;
   int parsed_hour12 = -1;
@@ -394,6 +429,7 @@ bool parse_strptime_directives(
   bool saw_month_day = false;
   bool saw_weekday = false;
   bool saw_calendar_year = false;
+  explicit_year = false;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
     const char fmt = format[format_pos];
     if (std::isspace(static_cast<unsigned char>(fmt))) {
@@ -426,6 +462,7 @@ bool parse_strptime_directives(
         }
         tm.tm_year = value - 1900;
         saw_calendar_year = true;
+        explicit_year = true;
         break;
       case 'y':
         if (!parse_fixed_digits(text, text_pos, 2, 2, value)) {
@@ -433,12 +470,14 @@ bool parse_strptime_directives(
         }
         tm.tm_year = (value <= 68 ? value + 2000 : value + 1900) - 1900;
         saw_calendar_year = true;
+        explicit_year = true;
         break;
       case 'G':
         if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
           return false;
         }
         parsed_iso_year = value;
+        explicit_year = true;
         break;
       case 'V':
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 53) {
@@ -610,6 +649,7 @@ bool parse_strptime_directives(
         }
         tm.tm_year = (value <= 68 ? value + 2000 : value + 1900) - 1900;
         saw_calendar_year = true;
+        explicit_year = true;
         saw_month_day = true;
         break;
       case 'c':
@@ -653,6 +693,7 @@ bool parse_strptime_directives(
         }
         tm.tm_year = value - 1900;
         saw_calendar_year = true;
+        explicit_year = true;
         break;
       case 'z':
         if (!parse_timezone_offset(text, text_pos, gmtoff)) {
@@ -1430,7 +1471,8 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   tm.tm_isdst = -1;
   Value zone = Value::none();
   Value gmtoff = Value::none();
-  if (!parse_strptime_directives(text, format, tm, zone, gmtoff)) {
+  bool explicit_year = false;
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year)) {
     std::istringstream stream(text);
     stream >> std::get_time(&tm, format.c_str());
     if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {
@@ -1438,12 +1480,18 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       runtime.raise_class_error("ValueError", error);
       return false;
     }
+    explicit_year = strptime_format_has_explicit_year(format);
     const int parsed_isdst = tm.tm_isdst;
     std::tm normalized = tm;
     std::mktime(&normalized);
     tm.tm_wday = normalized.tm_wday;
     tm.tm_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
     tm.tm_isdst = parsed_isdst;
+  }
+  if (!valid_strptime_month_day(tm, explicit_year)) {
+    error = "day is out of range for month";
+    runtime.raise_class_error("ValueError", error);
+    return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
   out = make_struct_time(state->struct_time_class, tm, zone, gmtoff);

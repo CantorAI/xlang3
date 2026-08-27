@@ -877,6 +877,7 @@ parsed_locale_datetime = time.strptime("Wed Aug 26 01:02:03 2026", "%c")
 parsed_locale_date = time.strptime("08/26/26", "%x")
 parsed_locale_time = time.strptime("01:02:03", "%X")
 parsed_space_day = time.strptime(" 6", "%e")
+parsed_default_year_leap_day = time.strptime("02/29", "%m/%d")
 print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
 print(tuple(parsed_year_only), tuple(parsed_month_day), tuple(parsed_clock_only))
 print(tuple(parsed_yday), parsed_yday.tm_mon, parsed_yday.tm_mday, parsed_yday.tm_yday)
@@ -890,6 +891,7 @@ print(tuple(parsed_week_sunday), tuple(parsed_week_monday), tuple(parsed_week_is
 print(tuple(parsed_week_zero_previous), tuple(parsed_week_zero_current), tuple(parsed_week_overflow))
 print(tuple(parsed_iso_week), tuple(parsed_iso_week_name), tuple(parsed_iso_week_53))
 print(tuple(parsed_locale_datetime), tuple(parsed_locale_date), tuple(parsed_locale_time), parsed_space_day.tm_mday)
+print(tuple(parsed_default_year_leap_day), parsed_default_year_leap_day.tm_mon, parsed_default_year_leap_day.tm_mday, parsed_default_year_leap_day.tm_yday)
 print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
 print(constructed_dict_time.tm_zone, constructed_dict_time.tm_gmtoff, len(constructed_dict_time), constructed_dict_time.n_fields)
 print(constructed_time.__repr__(), constructed_zone_time.__repr__() == constructed_dict_time.__repr__())
@@ -922,11 +924,15 @@ for bad_strptime_args in [
     ("2026 35 3", "%Y %V %u"),
     ("Wed Aug 26 01:02:03", "%c"),
     (" 0", "%e"),
+    ("2026-02-31", "%Y-%m-%d"),
+    ("2023-02-29", "%Y-%m-%d"),
+    ("2026-04-31", "%Y-%m-%d"),
+    ("Feb 31", "%b %d"),
 ]:
     try:
         time.strptime(*bad_strptime_args)
     except ValueError as err:
-        print("strptime-trailing", "match format" in str(err))
+        print("strptime-trailing", "match format" in str(err) or "range" in str(err) or "out of range" in str(err))
 print(isinstance(time.timezone, int), isinstance(time.altzone, int), isinstance(time.daylight, int))
 print(len(time.tzname) == 2, isinstance(time.tzname[0], str), isinstance(time.tzname[1], str), time.altzone <= time.timezone if time.daylight else time.altzone == time.timezone)
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())

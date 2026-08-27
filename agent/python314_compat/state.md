@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys startup flags align CPython-default bytecode, hash-randomization, and UTF-8 mode values
+time.strptime rejects invalid parsed calendar dates while preserving default-year February 29
 ```
 
 Current next loop:
