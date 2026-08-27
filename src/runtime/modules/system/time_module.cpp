@@ -565,7 +565,25 @@ bool parse_strptime_directives(
         }
         tm.tm_hour = value;
         break;
+      case 'k':
+        if (text_pos < text.size() && text[text_pos] == ' ') {
+          ++text_pos;
+        }
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+          return false;
+        }
+        tm.tm_hour = value;
+        break;
       case 'I':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+          return false;
+        }
+        parsed_hour12 = value;
+        break;
+      case 'l':
+        if (text_pos < text.size() && text[text_pos] == ' ') {
+          ++text_pos;
+        }
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
           return false;
         }
@@ -573,6 +591,12 @@ bool parse_strptime_directives(
         break;
       case 'p':
         if (!consume_case_word(text, text_pos, {"AM", "PM"}, value)) {
+          return false;
+        }
+        parsed_meridiem = value;
+        break;
+      case 'P':
+        if (!consume_case_word(text, text_pos, {"am", "pm"}, value)) {
           return false;
         }
         parsed_meridiem = value;

@@ -817,7 +817,8 @@ Native or runtime-backed foundation:
   large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata including lowercase spelling preservation,
   C-locale `%a`/`%A` weekday names, `%b`/`%h`/`%B` month names,
   `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives including single-digit day spacing,
-  and space-padded `%d`/`%e` days,
+  space-padded `%d`/`%e` days, and CPython 3.14 `%k`/`%l` blank-padded
+  24-hour/12-hour clocks plus lowercase `%P` AM/PM handling,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
   CPython-style whitespace matching for format and `%c` composite whitespace runs

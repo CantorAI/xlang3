@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.struct_time.index bool-as-int bounds
+time.strptime blank-padded hour directives
 ```
 
 Current next loop:
