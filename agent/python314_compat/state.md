@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime accepts CPython-style %z compact/fractional offset seconds and rejects malformed offset spellings
+time.strptime accepts CPython-style ISO week %G/%V parsing with weekday-derived calendar dates
 ```
 
 Current next loop:

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.getsizeof` bool-return parity batch.
+Last updated after the native `time.strptime` ISO week parsing batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: ISO week parsing now accepts CPython-style
+  `%G` ISO years with `%V` ISO week numbers and weekday directives, derives
+  the corresponding calendar date/year-day fields, and rejects invalid week 53
+  or incompatible calendar-year combinations with catchable `ValueError`.
 - Tightened native `sys.getsizeof`: callable `__sizeof__()` results of
   `True`/`False` are now accepted with bool-as-int semantics instead of
   falling through to default handling or raising `TypeError`.
@@ -708,7 +712,8 @@ Native or runtime-backed foundation:
   CPython default-field filling, weekday/year-day normalization,
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
   ordinal-day `%j`, `%U`/`%W` week-number date derivation with `%w`/`%u`
-  weekdays, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
+  weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
+  directives, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, catchable `ValueError` failures,
   and trailing-input rejection;

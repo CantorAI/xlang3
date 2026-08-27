@@ -156,6 +156,40 @@ bool month_day_from_yday(int year, int yday_one_based, int& month, int& day) {
   return false;
 }
 
+int days_in_year(int year) {
+  return is_leap_year(year) ? 366 : 365;
+}
+
+int ordinal_from_date(int year, int month_one_based, int day) {
+  int ordinal = 0;
+  if (year >= 1900) {
+    for (int current = 1900; current < year; ++current) {
+      ordinal += days_in_year(current);
+    }
+  } else {
+    for (int current = year; current < 1900; ++current) {
+      ordinal -= days_in_year(current);
+    }
+  }
+  return ordinal + day_of_year_zero_based(year, month_one_based, day);
+}
+
+void date_from_ordinal(int ordinal, int& year, int& month, int& day) {
+  year = 1900;
+  if (ordinal >= 0) {
+    while (ordinal >= days_in_year(year)) {
+      ordinal -= days_in_year(year);
+      ++year;
+    }
+  } else {
+    do {
+      --year;
+      ordinal += days_in_year(year);
+    } while (ordinal < 0);
+  }
+  month_day_from_yday(year, ordinal + 1, month, day);
+}
+
 int c_weekday_from_date(int year, int month_one_based, int day) {
   static const int month_offsets[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
   if (month_one_based < 1 || month_one_based > 12) {
@@ -165,6 +199,39 @@ int c_weekday_from_date(int year, int month_one_based, int day) {
     --year;
   }
   return (year + year / 4 - year / 100 + year / 400 + month_offsets[month_one_based - 1] + day) % 7;
+}
+
+bool iso_week_date_to_calendar(int iso_year, int iso_week, int iso_weekday, std::tm& tm) {
+  if (iso_week < 1 || iso_week > 53 || iso_weekday < 1 || iso_weekday > 7) {
+    return false;
+  }
+  const int jan4_ordinal = ordinal_from_date(iso_year, 1, 4);
+  const int jan4_monday_weekday = (c_weekday_from_date(iso_year, 1, 4) + 6) % 7;
+  const int week1_monday_ordinal = jan4_ordinal - jan4_monday_weekday;
+  const int target_ordinal = week1_monday_ordinal + (iso_week - 1) * 7 + (iso_weekday - 1);
+  int year = 0;
+  int month = 0;
+  int day = 0;
+  date_from_ordinal(target_ordinal, year, month, day);
+  const int target_iso_year = [&]() {
+    const int weekday_monday = (c_weekday_from_date(year, month, day) + 6) % 7;
+    int thursday_year = 0;
+    int thursday_month = 0;
+    int thursday_day = 0;
+    date_from_ordinal(target_ordinal + (3 - weekday_monday), thursday_year, thursday_month, thursday_day);
+    return thursday_year;
+  }();
+  if (target_iso_year != iso_year) {
+    return false;
+  }
+  tm.tm_year = year - 1900;
+  tm.tm_mon = month - 1;
+  tm.tm_mday = day;
+  return true;
+}
+
+int iso_weekday_from_monday_weekday(int monday_weekday) {
+  return monday_weekday == 6 ? 7 : monday_weekday + 1;
 }
 
 std::string ascii_lower(std::string text) {
@@ -306,8 +373,12 @@ bool parse_strptime_directives(
   int parsed_week_monday = -1;
   int parsed_weekday_sunday = -1;
   int parsed_weekday_monday = -1;
+  int parsed_iso_year = -1;
+  int parsed_iso_week = -1;
+  int parsed_iso_weekday = -1;
   bool saw_month_day = false;
   bool saw_weekday = false;
+  bool saw_calendar_year = false;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
     const char fmt = format[format_pos];
     if (std::isspace(static_cast<unsigned char>(fmt))) {
@@ -339,12 +410,26 @@ bool parse_strptime_directives(
           return false;
         }
         tm.tm_year = value - 1900;
+        saw_calendar_year = true;
         break;
       case 'y':
         if (!parse_fixed_digits(text, text_pos, 2, 2, value)) {
           return false;
         }
         tm.tm_year = (value <= 68 ? value + 2000 : value + 1900) - 1900;
+        saw_calendar_year = true;
+        break;
+      case 'G':
+        if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
+          return false;
+        }
+        parsed_iso_year = value;
+        break;
+      case 'V':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 53) {
+          return false;
+        }
+        parsed_iso_week = value;
         break;
       case 'm':
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
@@ -419,6 +504,7 @@ bool parse_strptime_directives(
         }
         parsed_weekday_sunday = value;
         parsed_weekday_monday = value == 0 ? 6 : value - 1;
+        parsed_iso_weekday = iso_weekday_from_monday_weekday(parsed_weekday_monday);
         tm.tm_wday = value;
         saw_weekday = true;
         break;
@@ -428,6 +514,7 @@ bool parse_strptime_directives(
         }
         parsed_weekday_sunday = value == 7 ? 0 : value;
         parsed_weekday_monday = value - 1;
+        parsed_iso_weekday = value;
         tm.tm_wday = value == 7 ? 0 : value;
         saw_weekday = true;
         break;
@@ -438,6 +525,7 @@ bool parse_strptime_directives(
         tm.tm_wday = (value + 1) % 7;
         parsed_weekday_sunday = tm.tm_wday;
         parsed_weekday_monday = value;
+        parsed_iso_weekday = value + 1;
         saw_weekday = true;
         break;
       case 'A':
@@ -447,6 +535,7 @@ bool parse_strptime_directives(
         tm.tm_wday = (value + 1) % 7;
         parsed_weekday_sunday = tm.tm_wday;
         parsed_weekday_monday = value;
+        parsed_iso_weekday = value + 1;
         saw_weekday = true;
         break;
       case 'b':
@@ -480,6 +569,19 @@ bool parse_strptime_directives(
   }
   if (text_pos != text.size()) {
     return false;
+  }
+  if (parsed_iso_week != -1 && saw_calendar_year) {
+    return false;
+  }
+  if (parsed_iso_year != -1 || parsed_iso_week != -1) {
+    if (parsed_iso_year == -1 || parsed_iso_week == -1 || parsed_iso_weekday == -1) {
+      return false;
+    }
+    if (!iso_week_date_to_calendar(parsed_iso_year, parsed_iso_week, parsed_iso_weekday, tm)) {
+      return false;
+    }
+    saw_month_day = true;
+    parsed_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday) + 1;
   }
   if (parsed_yday != -1 && !saw_month_day) {
     int month = 0;
