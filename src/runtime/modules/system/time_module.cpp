@@ -447,6 +447,7 @@ enum class StrptimeFailureReason {
   IsoYearIncomplete,
   IsoYearWithOrdinalDay,
   InvalidIsoWeek,
+  YearOutOfRange,
 };
 
 bool parse_strptime_directives(
@@ -518,6 +519,10 @@ bool parse_strptime_directives(
         if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
           return false;
         }
+        if (value < 1) {
+          failure_reason = StrptimeFailureReason::YearOutOfRange;
+          return false;
+        }
         tm.tm_year = value - 1900;
         saw_calendar_year = true;
         explicit_year = true;
@@ -532,6 +537,10 @@ bool parse_strptime_directives(
         break;
       case 'G':
         if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
+          return false;
+        }
+        if (value < 1) {
+          failure_reason = StrptimeFailureReason::YearOutOfRange;
           return false;
         }
         parsed_iso_year = value;
@@ -1669,6 +1678,8 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       error = "Day of the year directive '%j' is not compatible with ISO year directive '%G'. Use '%Y' instead.";
     } else if (failure_reason == StrptimeFailureReason::InvalidIsoWeek) {
       error = "Invalid week: 53";
+    } else if (failure_reason == StrptimeFailureReason::YearOutOfRange) {
+      error = "year must be in 1..9999, not 0";
     } else {
       error = "time data does not match format";
     }

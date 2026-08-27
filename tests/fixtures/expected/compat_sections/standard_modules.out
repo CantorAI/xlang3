@@ -378,6 +378,8 @@ strptime-iso-error True
 strptime-iso-error True
 strptime-iso-error True
 strptime-iso-error True
+strptime-iso-error True
+strptime-year-range True
 strptime-bad-directive True
 strptime-bad-directive True
 strptime-bad-directive True

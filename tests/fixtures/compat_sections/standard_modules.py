@@ -1438,11 +1438,16 @@ for bad_strptime_iso_args, bad_strptime_iso_text in [
     (("2026 35", "%G %V"), "ISO year directive"),
     (("2026 239", "%G %j"), "not compatible with ISO year"),
     (("2021 53 7", "%G %V %u"), "Invalid week: 53"),
+    (("0000 01 1", "%G %V %u"), "year must be in 1..9999"),
 ]:
     try:
         time.strptime(*bad_strptime_iso_args)
     except ValueError as err:
         print("strptime-iso-error", bad_strptime_iso_text in str(err))
+try:
+    time.strptime("0000-01-01", "%Y-%m-%d")
+except ValueError as err:
+    print("strptime-year-range", "year must be in 1..9999" in str(err))
 for bad_strptime_directive_args in [
     ("08/26/26", "%D"),
     ("2026-08-26", "%F"),

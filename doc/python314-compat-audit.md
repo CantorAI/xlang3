@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` ISO directive validation batch.
+Last updated after the native `time.strptime` zero-year validation batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime` year-range validation: `%Y` calendar years
+  and `%G` ISO years now reject `0000` with CPython 3.14-style catchable
+  `ValueError` diagnostics, and the Standard Modules fixture covers both
+  paths.
 - Tightened native `time.strptime` ISO directive validation: `%V` with `%Y`,
   `%V` without `%G`, incomplete `%G` triples, `%G` with `%j`, and invalid ISO
   week 53 now raise catchable `ValueError` with CPython 3.14-style diagnostic
@@ -856,7 +860,7 @@ Native or runtime-backed foundation:
   CPython-style whitespace matching for format and `%c` composite whitespace runs
   including tab/run input and missing-whitespace rejection,
   catchable `ValueError` failures including CPython-style bad-directive and stray-percent rejection,
-  ISO directive validation failures, and trailing-input rejection;
+  ISO directive validation failures, `%Y`/`%G` zero-year range rejection, and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
