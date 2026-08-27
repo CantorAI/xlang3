@@ -913,8 +913,9 @@ Native or runtime-backed foundation:
   and CPython-style weakref-backed `_get_dump` snapshot sets whose entries are
   callable stable `weakref.ReferenceType` instances, visible through
   `weakref.getweakrefcount`/`getweakrefs` for their referents without repeated
-  dump inspection inflating weakref counts; exact CPython weakref lifecycle
-  cleanup remains pending
+  dump inspection inflating weakref counts, with weakref targets kept out of
+  Python-visible object attributes; exact CPython weakref lifecycle cleanup
+  remains pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable
@@ -925,7 +926,7 @@ Native or runtime-backed foundation:
 - [~] `_socket`: constants and socket object lifecycle facade; native networking pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
-- [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade; true weak lifetime/callback semantics pending
+- [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade, and non-public target storage for `ReferenceType` instances; true weak lifetime/callback semantics pending
 - [~] `_collections`: native `deque` foundation with common mutating methods,
   length, iteration snapshots, indexing, and containment; full CPython semantics pending
 - [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty and catchable empty errors; blocking semantics pending

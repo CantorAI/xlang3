@@ -39,7 +39,11 @@ Value make_abc_weakref_set(Runtime& runtime, const Value& list_value) {
     refs.reserve(list->items.size());
     for (const auto& item : list->items) {
       Value target;
-      refs.push_back(weakref_get_target(item, target) ? item : make_weakref_ref(runtime, item));
+      if (weakref_get_target(item, target)) {
+        refs.push_back(item);
+      } else if (value_as_class(item) != nullptr) {
+        refs.push_back(make_weakref_ref(runtime, item));
+      }
     }
   }
   return Value::set(std::move(refs));

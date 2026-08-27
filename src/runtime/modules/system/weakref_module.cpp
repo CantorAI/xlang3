@@ -21,11 +21,15 @@ namespace xlang3 {
 
 namespace {
 
-static constexpr const char* kWeakrefTargetAttr = "__xlang3_weakref_target__";
 static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
 
-std::vector<Value>& weakref_registry() {
-  static auto* refs = new std::vector<Value>();
+struct WeakrefEntry {
+  Value ref;
+  Object* target = nullptr;
+};
+
+std::vector<WeakrefEntry>& weakref_registry() {
+  static auto* refs = new std::vector<WeakrefEntry>();
   return *refs;
 }
 
@@ -42,18 +46,30 @@ bool weakrefable_target(const Value& value) {
 
 bool weakref_target_matches(const Value& ref, const Value& target) {
   Value ref_target;
-  std::string ignored;
-  return object_get_attr(ref, kWeakrefTargetAttr, ref_target, ignored) && value_is(ref_target, target);
+  return weakref_get_target(ref, ref_target) && value_is(ref_target, target);
 }
 
-void register_weakref_instance(const Value& ref) {
+bool weakref_target_pointer(const Value& ref, Object*& out) {
+  for (const auto& entry : weakref_registry()) {
+    if (value_is(entry.ref, ref) && entry.target != nullptr) {
+      out = entry.target;
+      return true;
+    }
+  }
+  out = nullptr;
+  return false;
+}
+
+void register_weakref_instance(const Value& ref, const Value& target) {
   auto& refs = weakref_registry();
-  for (const auto& existing : refs) {
-    if (value_is(existing, ref)) {
+  Object* target_pointer = target.tag == ValueTag::Object ? target.as.obj : nullptr;
+  for (auto& existing : refs) {
+    if (value_is(existing.ref, ref)) {
+      existing.target = target_pointer;
       return;
     }
   }
-  refs.push_back(ref);
+  refs.push_back({ref, target_pointer});
 }
 
 bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -62,8 +78,7 @@ bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& o
     return false;
   }
   Value target;
-  std::string ignored;
-  if (!object_get_attr(args[0], kWeakrefTargetAttr, target, ignored) || target.tag == ValueTag::Invalid) {
+  if (!weakref_get_target(args[0], target)) {
     value_set_none(out);
     return true;
   }
@@ -81,13 +96,10 @@ bool weakref_reference_init(Runtime&, const Value* args, uint32_t argc, Value& o
     return false;
   }
   Value self = args[0];
-  if (!object_set_attr(self, kWeakrefTargetAttr, args[1], error)) {
-    return false;
-  }
   if (!object_set_attr(self, kWeakrefCallbackAttr, argc == 3 ? args[2] : Value::none(), error)) {
     return false;
   }
-  register_weakref_instance(self);
+  register_weakref_instance(self, args[1]);
   value_set_none(out);
   return true;
 }
@@ -141,9 +153,11 @@ bool weakref_getweakrefcount(Runtime&, const Value* args, uint32_t argc, Value& 
     return false;
   }
   int64_t count = 0;
-  for (const auto& ref : weakref_registry()) {
-    if (weakref_target_matches(ref, args[0])) {
-      ++count;
+  if (args[0].tag == ValueTag::Object) {
+    for (const auto& entry : weakref_registry()) {
+      if (entry.target != nullptr && entry.target == args[0].as.obj) {
+        ++count;
+      }
     }
   }
   value_set_int64(out, count);
@@ -156,9 +170,11 @@ bool weakref_getweakrefs(Runtime&, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   std::vector<Value> refs;
-  for (const auto& ref : weakref_registry()) {
-    if (weakref_target_matches(ref, args[0])) {
-      refs.push_back(ref);
+  if (args[0].tag == ValueTag::Object) {
+    for (const auto& entry : weakref_registry()) {
+      if (entry.target != nullptr && entry.target == args[0].as.obj) {
+        refs.push_back(entry.ref);
+      }
     }
   }
   out = Value::list(std::move(refs));
@@ -196,18 +212,33 @@ void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
 Value make_weakref_ref(Runtime& runtime, const Value& target) {
   Value ref = Value::instance(weakref_reference_type(runtime));
   std::string ignored;
-  object_set_attr(ref, kWeakrefTargetAttr, target, ignored);
   object_set_attr(ref, kWeakrefCallbackAttr, Value::none(), ignored);
-  register_weakref_instance(ref);
+  register_weakref_instance(ref, target);
   return ref;
 }
 
 bool weakref_get_target(const Value& ref, Value& out) {
-  std::string ignored;
-  if (!object_get_attr(ref, kWeakrefTargetAttr, out, ignored) || out.tag == ValueTag::Invalid) {
+  Object* target = nullptr;
+  if (!weakref_target_pointer(ref, target)) {
     return false;
   }
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = target;
+  value_assign_fast(out, borrowed);
   return true;
+}
+
+void weakref_invalidate_target(Object* target) {
+  if (target == nullptr) {
+    return;
+  }
+  for (auto& entry : weakref_registry()) {
+    if (entry.target == target) {
+      entry.target = nullptr;
+    }
+  }
 }
 
 void register_weakref_module(Runtime& runtime) {

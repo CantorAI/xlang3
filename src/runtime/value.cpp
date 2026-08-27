@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/value.h"
 
+#include "xlang3/builtins.h"
 #include "xlang3/generator.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/ir.h"
@@ -834,6 +835,7 @@ void release(const Value& value) {
     return;
   }
   xlang_perf_count_object_final_release(value.as.obj->kind);
+  weakref_invalidate_target(value.as.obj);
   switch (value.as.obj->kind) {
     case ObjectKind::String:
       recycle_string_object(as_string(value.as.obj));

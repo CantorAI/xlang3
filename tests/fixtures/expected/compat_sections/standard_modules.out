@@ -50,6 +50,7 @@ True True True
 True True True
 True False True
 ReferenceType weakref True
+False False
 True True
 True True True
 False False
