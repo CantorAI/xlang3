@@ -285,6 +285,21 @@ bool consume_case_word(const std::string& text, size_t& pos, const std::vector<c
   return false;
 }
 
+bool consume_strptime_spaces(const std::string& text, size_t& pos) {
+  while (pos < text.size() && std::isspace(static_cast<unsigned char>(text[pos]))) {
+    ++pos;
+  }
+  return true;
+}
+
+bool consume_strptime_literal(const std::string& text, size_t& pos, char expected) {
+  if (pos >= text.size() || text[pos] != expected) {
+    return false;
+  }
+  ++pos;
+  return true;
+}
+
 bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) {
   if (pos < text.size() && text[pos] == 'Z') {
     ++pos;
@@ -445,6 +460,16 @@ bool parse_strptime_directives(
         tm.tm_mday = value;
         saw_month_day = true;
         break;
+      case 'e':
+        if (text_pos < text.size() && text[text_pos] == ' ') {
+          ++text_pos;
+        }
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+          return false;
+        }
+        tm.tm_mday = value;
+        saw_month_day = true;
+        break;
       case 'H':
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
@@ -552,6 +577,82 @@ bool parse_strptime_directives(
         }
         tm.tm_mon = value;
         saw_month_day = true;
+        break;
+      case 'X':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+          return false;
+        }
+        tm.tm_hour = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+          return false;
+        }
+        tm.tm_min = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+          return false;
+        }
+        tm.tm_sec = value;
+        break;
+      case 'x':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+          return false;
+        }
+        tm.tm_mon = value - 1;
+        if (!consume_strptime_literal(text, text_pos, '/') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+          return false;
+        }
+        tm.tm_mday = value;
+        if (!consume_strptime_literal(text, text_pos, '/') ||
+            !parse_fixed_digits(text, text_pos, 2, 2, value)) {
+          return false;
+        }
+        tm.tm_year = (value <= 68 ? value + 2000 : value + 1900) - 1900;
+        saw_calendar_year = true;
+        saw_month_day = true;
+        break;
+      case 'c':
+        if (!consume_case_word(text, text_pos, {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}, value)) {
+          return false;
+        }
+        tm.tm_wday = (value + 1) % 7;
+        parsed_weekday_sunday = tm.tm_wday;
+        parsed_weekday_monday = value;
+        parsed_iso_weekday = value + 1;
+        saw_weekday = true;
+        consume_strptime_spaces(text, text_pos);
+        if (!consume_case_word(text, text_pos, {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}, value)) {
+          return false;
+        }
+        tm.tm_mon = value;
+        saw_month_day = true;
+        consume_strptime_spaces(text, text_pos);
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+          return false;
+        }
+        tm.tm_mday = value;
+        consume_strptime_spaces(text, text_pos);
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+          return false;
+        }
+        tm.tm_hour = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+          return false;
+        }
+        tm.tm_min = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+          return false;
+        }
+        tm.tm_sec = value;
+        consume_strptime_spaces(text, text_pos);
+        if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
+          return false;
+        }
+        tm.tm_year = value - 1900;
+        saw_calendar_year = true;
         break;
       case 'z':
         if (!parse_timezone_offset(text, text_pos, gmtoff)) {

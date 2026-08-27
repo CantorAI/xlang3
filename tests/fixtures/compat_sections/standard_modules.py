@@ -870,6 +870,10 @@ parsed_week_overflow = time.strptime("2026 53 1", "%Y %W %w")
 parsed_iso_week = time.strptime("2026 35 3", "%G %V %u")
 parsed_iso_week_name = time.strptime("Wednesday 2026 35", "%A %G %V")
 parsed_iso_week_53 = time.strptime("2020 53 7", "%G %V %u")
+parsed_locale_datetime = time.strptime("Wed Aug 26 01:02:03 2026", "%c")
+parsed_locale_date = time.strptime("08/26/26", "%x")
+parsed_locale_time = time.strptime("01:02:03", "%X")
+parsed_space_day = time.strptime(" 6", "%e")
 print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
 print(tuple(parsed_year_only), tuple(parsed_month_day), tuple(parsed_clock_only))
 print(tuple(parsed_yday), parsed_yday.tm_mon, parsed_yday.tm_mday, parsed_yday.tm_yday)
@@ -881,6 +885,7 @@ print(tuple(parsed_fraction_short), tuple(parsed_fraction_long))
 print(tuple(parsed_week_sunday), tuple(parsed_week_monday), tuple(parsed_week_iso_day))
 print(tuple(parsed_week_zero_previous), tuple(parsed_week_zero_current), tuple(parsed_week_overflow))
 print(tuple(parsed_iso_week), tuple(parsed_iso_week_name), tuple(parsed_iso_week_53))
+print(tuple(parsed_locale_datetime), tuple(parsed_locale_date), tuple(parsed_locale_time), parsed_space_day.tm_mday)
 print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
 print(constructed_dict_time.tm_zone, constructed_dict_time.tm_gmtoff, len(constructed_dict_time), constructed_dict_time.n_fields)
 print(constructed_time.__repr__(), constructed_zone_time.__repr__() == constructed_dict_time.__repr__())
@@ -911,6 +916,8 @@ for bad_strptime_args in [
     ("2021 53 1", "%G %V %u"),
     ("2026 35", "%G %V"),
     ("2026 35 3", "%Y %V %u"),
+    ("Wed Aug 26 01:02:03", "%c"),
+    (" 0", "%e"),
 ]:
     try:
         time.strptime(*bad_strptime_args)

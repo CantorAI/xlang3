@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` ISO week parsing batch.
+Last updated after the native `time.strptime` C-locale directive batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `time.strptime`: C-locale composite directives `%c`, `%x`,
+  and `%X`, plus space-padded day `%e`, now parse into CPython-style
+  normalized `struct_time` fields for covered formats, with missing `%c` year
+  and invalid `%e` day failures remaining catchable `ValueError`.
 - Tightened native `time.strptime`: ISO week parsing now accepts CPython-style
   `%G` ISO years with `%V` ISO week numbers and weekday directives, derives
   the corresponding calendar date/year-day fields, and rejects invalid week 53
@@ -714,6 +718,7 @@ Native or runtime-backed foundation:
   ordinal-day `%j`, `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
   directives, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
+  C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, catchable `ValueError` failures,
   and trailing-input rejection;
