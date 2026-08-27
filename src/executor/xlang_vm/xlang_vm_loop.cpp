@@ -769,6 +769,13 @@ RuntimeResult Interpreter::run_function(
   };
 
   if (has_generator_resume_exception) {
+    if (frame_count != 0 &&
+        !emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventPyThrow, &generator_resume_exception)) {
+      if (generator != nullptr) {
+        generator->done = true;
+      }
+      return result;
+    }
     if (!dispatch_exception(std::move(generator_resume_exception))) {
       if (generator != nullptr) {
         generator->done = true;

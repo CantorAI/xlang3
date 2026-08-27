@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc stable weakref-backed cache snapshots
+sys.monitoring generator PY_THROW dispatch
 ```
 
 Current next loop:

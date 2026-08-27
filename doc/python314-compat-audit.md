@@ -820,6 +820,8 @@ Native or runtime-backed foundation:
   `BRANCH_RIGHT` dispatch with CPython-style destination-offset callback arguments,
   live generator `PY_YIELD`/`PY_RESUME` dispatch with CPython-style callback
   arguments and generator return propagation through `StopIteration.value`,
+  live generator `PY_THROW` dispatch for `generator.throw()` exception injection
+  with CPython-style callback arguments and code-local event masks,
   and live caught-exception `RAISE`/`EXCEPTION_HANDLED`
   dispatch with CPython-style callback arguments, live `PY_UNWIND` dispatch when
   exceptions leave unhandled Python frames with CPython-style callback arguments,
@@ -848,7 +850,7 @@ Native or runtime-backed foundation:
   `TypeError` validation;
   full CPython startup flags/config/runtime internals, remaining CPython profile edge
   cases outside the covered Python and native C call/return/exception matrix, and remaining live PEP 669
-  event coverage beyond instruction/call/line/return/generator-resume-yield/caught-exception/unwind/reraise paths pending
+  event coverage beyond instruction/call/line/return/generator-resume-yield/throw/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `sleep` bool-as-int zero-delay handling, `asctime`/`ctime` CPython-style C-locale

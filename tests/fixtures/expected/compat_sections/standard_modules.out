@@ -182,6 +182,14 @@ True monitoring-yield
 monitoring-generator-stop monitoring-return
 2 (sys_monitoring_generator_target, True, 1, monitoring-yield) (sys_monitoring_generator_target, True, 0, None)
 True
+True
+throw-start True monitoring-throw
+1 (sys_monitoring_throw_target, True, ValueError, monitoring-throw)
+True
+True
+local-throw-start other-throw-start True local-monitoring-throw other-monitoring-throw
+1 (sys_monitoring_local_throw_target, True, ValueError, local-monitoring-throw)
+True
 True True
 True monitoring-local monitoring-other
 2 sys_monitoring_local_target True 0 sys_monitoring_local_target True 1 monitoring-local

@@ -739,6 +739,47 @@ except StopIteration as err:
 sys.monitoring.set_events(monitoring_tool_id, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(len(monitoring_generator_events), monitoring_generator_events[0], monitoring_generator_events[1])
+monitoring_throw_events = []
+def sys_monitoring_throw_callback(code, instruction_offset, exception):
+    monitoring_throw_events.append((code.co_name, isinstance(instruction_offset, int), type(exception).__name__, str(exception)))
+
+def sys_monitoring_throw_target():
+    try:
+        yield "throw-start"
+    except ValueError as err:
+        yield str(err)
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-throw") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_THROW, sys_monitoring_throw_callback) is None)
+monitoring_throw_generator = sys_monitoring_throw_target()
+print(next(monitoring_throw_generator), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.PY_THROW) is None, monitoring_throw_generator.throw(ValueError("monitoring-throw")))
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_throw_events), monitoring_throw_events[0])
+monitoring_local_throw_events = []
+def sys_monitoring_local_throw_callback(code, instruction_offset, exception):
+    monitoring_local_throw_events.append((code.co_name, isinstance(instruction_offset, int), type(exception).__name__, str(exception)))
+
+def sys_monitoring_local_throw_target():
+    try:
+        yield "local-throw-start"
+    except ValueError as err:
+        yield str(err)
+
+def sys_monitoring_local_throw_other():
+    try:
+        yield "other-throw-start"
+    except ValueError as err:
+        yield str(err)
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-local-throw") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_THROW, sys_monitoring_local_throw_callback) is None)
+monitoring_local_throw_generator = sys_monitoring_local_throw_target()
+monitoring_local_throw_other_generator = sys_monitoring_local_throw_other()
+print(next(monitoring_local_throw_generator), next(monitoring_local_throw_other_generator), sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_throw_target.__code__, monitoring_events.PY_THROW) is None, monitoring_local_throw_generator.throw(ValueError("local-monitoring-throw")), monitoring_local_throw_other_generator.throw(ValueError("other-monitoring-throw")))
+sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_throw_target.__code__, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_local_throw_events), monitoring_local_throw_events[0])
 monitoring_local_events = []
 def sys_monitoring_local_callback(code, instruction_offset, *args):
     monitoring_local_events.append((code.co_name, isinstance(instruction_offset, int), len(args), args[0] if args else None))
