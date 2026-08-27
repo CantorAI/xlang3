@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime rejects invalid parsed calendar dates while preserving default-year February 29
+sys structseq repr and frozen stdlib_module_names metadata
 ```
 
 Current next loop:

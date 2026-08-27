@@ -21,11 +21,13 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
 
 #include "../thread/thread_objects.h"
 #include "runtime/memory/x3_runtime_memory.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
@@ -166,16 +168,103 @@ bool sys_structseq_index(Runtime& runtime, const Value* args, uint32_t argc, Val
   return false;
 }
 
+std::string sys_structseq_field_repr(const Value& value) {
+  if (auto* string = value_as_string(value)) {
+    std::string text = "'";
+    const std::string raw = string_object_to_string(*string);
+    for (char ch : raw) {
+      if (ch == '\'' || ch == '\\') {
+        text.push_back('\\');
+      }
+      if (ch == '\n') {
+        text += "\\n";
+      } else if (ch == '\r') {
+        text += "\\r";
+      } else if (ch == '\t') {
+        text += "\\t";
+      } else {
+        text.push_back(ch);
+      }
+    }
+    text.push_back('\'');
+    return text;
+  }
+  return value_to_string(value);
+}
+
+bool sys_structseq_repr_text(const Value& self, std::string& text, std::string& error) {
+  TupleObject* tuple = nullptr;
+  if (!sys_structseq_tuple_storage(self, "sys structseq __repr__", tuple, error)) {
+    return false;
+  }
+  Value repr_name_value;
+  if (!object_get_attr(self, "_repr_name", repr_name_value, error) || value_as_string(repr_name_value) == nullptr) {
+    error = "sys structseq __repr__ target has no repr name";
+    return false;
+  }
+  Value names_value;
+  TupleObject* names = nullptr;
+  if (!object_get_attr(self, "_field_names", names_value, error) ||
+      (names = value_as_tuple(names_value)) == nullptr) {
+    error = "sys structseq __repr__ target has no field names";
+    return false;
+  }
+
+  text = string_object_to_string(*value_as_string(repr_name_value));
+  text += "(";
+  const size_t count = (std::min)(tuple->items.size(), names->items.size());
+  for (size_t i = 0; i < count; ++i) {
+    auto* name = value_as_string(names->items[i]);
+    if (name == nullptr) {
+      error = "sys structseq __repr__ field name must be string";
+      return false;
+    }
+    if (i != 0) {
+      text += ", ";
+    }
+    text += string_object_to_string(*name);
+    text += "=";
+    text += sys_structseq_field_repr(tuple->items[i]);
+  }
+  text += ")";
+  return true;
+}
+
+bool sys_structseq_update_string_value(Value& self, std::string& error) {
+  std::string text;
+  if (!sys_structseq_repr_text(self, text, error)) {
+    return false;
+  }
+  std::string ignored;
+  object_set_attr(self, "__xlang3_string_value__", Value::string(std::move(text)), ignored);
+  return true;
+}
+
+bool sys_structseq_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys structseq __repr__ expected no arguments";
+    return false;
+  }
+  std::string text;
+  if (!sys_structseq_repr_text(args[0], text, error)) {
+    return false;
+  }
+  out = Value::string(std::move(text));
+  return true;
+}
+
 Value make_structseq(
     Runtime& runtime,
     const std::string& type_name,
     const std::vector<std::pair<std::string, Value>>& fields,
     const std::string& module_name = "sys",
-    size_t sequence_fields = std::numeric_limits<size_t>::max()) {
+    size_t sequence_fields = std::numeric_limits<size_t>::max(),
+    const std::string& repr_name = "") {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
   class_attrs.push_back({"count", runtime.make_native_function(type_name + ".count", sys_structseq_count)});
   class_attrs.push_back({"index", runtime.make_native_function(type_name + ".index", sys_structseq_index)});
+  class_attrs.push_back({"__repr__", runtime.make_native_function(type_name + ".__repr__", sys_structseq_repr)});
   if (sequence_fields == std::numeric_limits<size_t>::max() || sequence_fields > fields.size()) {
     sequence_fields = fields.size();
   }
@@ -197,19 +286,27 @@ Value make_structseq(
       std::move(class_attrs),
       tuple_base != nullptr ? *tuple_base : Value::invalid()));
   std::vector<Value> tuple_items;
+  std::vector<Value> field_names;
   tuple_items.reserve(sequence_fields);
+  field_names.reserve(sequence_fields);
   std::string ignored;
   for (size_t i = 0; i < fields.size(); ++i) {
     const auto& field = fields[i];
     object_set_attr(instance, field.first, field.second, ignored);
     if (i < sequence_fields) {
       tuple_items.push_back(field.second);
+      field_names.push_back(Value::string(field.first));
     }
   }
   object_set_attr(instance, "n_sequence_fields", Value::int64(static_cast<int64_t>(sequence_fields)), ignored);
   object_set_attr(instance, "n_fields", Value::int64(static_cast<int64_t>(fields.size())), ignored);
   object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
   object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
+  object_set_attr(instance, "_field_names", Value::tuple(std::move(field_names)), ignored);
+  const std::string actual_repr_name =
+      repr_name.empty() ? (module_name.empty() ? type_name : module_name + "." + type_name) : repr_name;
+  object_set_attr(instance, "_repr_name", Value::string(actual_repr_name), ignored);
+  sys_structseq_update_string_value(instance, ignored);
   return instance;
 }
 
@@ -367,7 +464,9 @@ Value make_asyncgen_hooks(Runtime& runtime) {
           {"firstiter", g_asyncgen_firstiter},
           {"finalizer", g_asyncgen_finalizer},
       },
-      "builtins");
+      "builtins",
+      std::numeric_limits<size_t>::max(),
+      "asyncgen_hooks");
 }
 
 #if defined(_WIN32)
@@ -392,7 +491,10 @@ Value make_windows_version(Runtime& runtime) {
           {"suite_mask", Value::int64(0)},
           {"product_type", Value::int64(0)},
           {"platform_version", Value::tuple({Value::int64(major), Value::int64(minor), Value::int64(build)})},
-      });
+      },
+      "sys",
+      5,
+      "sys.getwindowsversion");
 }
 #endif
 
@@ -479,7 +581,7 @@ Value make_stdlib_module_names() {
   for (const char* name : kNames) {
     names.push_back(Value::string(name));
   }
-  return Value::set(std::move(names));
+  return Value::frozenset(std::move(names));
 }
 
 bool bytes_or_string_text(const Value& value, std::string& out) {
@@ -1525,6 +1627,7 @@ bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t ar
       if (object_get_attr(flags, "_tuple", tuple_value, ignored)) {
         if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && tuple->items.size() > 17) {
           tuple->items[17] = Value::int64(g_int_max_str_digits);
+          sys_structseq_update_string_value(flags, ignored);
         }
       }
     }
