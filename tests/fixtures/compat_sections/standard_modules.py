@@ -559,6 +559,27 @@ class SysSizeDefaultProbe:
     __sizeof__ = 42
 
 print(sys.getsizeof(SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), 99))
+class SysSizeNegativeProbe:
+    def __sizeof__(self):
+        return -1
+
+class SysSizeTypeErrorProbe:
+    def __sizeof__(self):
+        raise TypeError("bad-size")
+
+class SysSizeValueErrorProbe:
+    def __sizeof__(self):
+        raise ValueError("bad-size")
+
+try:
+    sys.getsizeof(SysSizeNegativeProbe(), 99)
+except ValueError as err:
+    print("sys-getsizeof-negative", ">= 0" in str(err))
+print(sys.getsizeof(SysSizeTypeErrorProbe(), 99), sys.getsizeof(SysSizeDefaultProbe(), 101))
+try:
+    sys.getsizeof(SysSizeValueErrorProbe(), 99)
+except ValueError as err:
+    print("sys-getsizeof-reraises", "bad-size" in str(err))
 sys_intern_prefix = "xlang"
 sys_intern_dynamic = sys_intern_prefix + "3"
 sys_intern_canonical = sys.intern(sys_intern_dynamic)

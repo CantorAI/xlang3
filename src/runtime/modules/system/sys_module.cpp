@@ -1223,11 +1223,32 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     }
     Value size;
     if (!runtime_call_callable(runtime, sizeof_method, nullptr, 0, size, error)) {
+      if (argc == 2) {
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          Value exception_type = runtime.exception_type(pending);
+          auto* klass = value_as_class(exception_type);
+          if (klass != nullptr && klass->name == "TypeError") {
+            value_assign_fast(out, args[1]);
+            return true;
+          }
+          runtime.set_pending_exception(std::move(pending));
+        }
+      }
       return false;
     }
     if (size.tag != ValueTag::Int64) {
+      if (argc == 2) {
+        value_assign_fast(out, args[1]);
+        return true;
+      }
       error = "__sizeof__() should return int";
       runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (size.as.i64 < 0) {
+      error = "__sizeof__() should return >= 0";
+      runtime.raise_class_error("ValueError", error);
       return false;
     }
     value_assign_fast(out, size);

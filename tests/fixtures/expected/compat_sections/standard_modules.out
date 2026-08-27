@@ -113,6 +113,9 @@ True True 127
 utf-8 utf-8 surrogatepass True
 True True True True True
 123 99
+sys-getsizeof-negative True
+99 101
+sys-getsizeof-reraises True
 True True True
 True True True True True True True
 sys-is-interned-type True

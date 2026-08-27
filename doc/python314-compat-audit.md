@@ -655,7 +655,8 @@ Native or runtime-backed foundation:
   CPython-style arity/type/immutable-type errors,
   `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
-  protocol/default handling, `getrefcount`,
+  protocol/default handling including TypeError default fallback and negative-result
+  `ValueError`, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime ordinal-day and timezone metadata parsing matches covered CPython 3.14 probes
+sys.getsizeof __sizeof__ TypeError default fallback and negative-result ValueError match covered CPython 3.14 probes
 ```
 
 Current next loop:
