@@ -291,7 +291,7 @@ True True True
 True True True
 asyncgen-hooks True True
 asyncgen-hooks True True
-sys-noarg-typeerrors 25 25
+sys-noarg-typeerrors 26 26
 True True
 True
 5

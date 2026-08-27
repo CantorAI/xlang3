@@ -1727,9 +1727,7 @@ bool sys_is_remote_debug_enabled(Runtime& runtime, const Value*, uint32_t argc, 
 
 bool sys_is_gil_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._is_gil_enabled expected 0 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._is_gil_enabled");
   }
   out = Value::boolean(true);
   return true;

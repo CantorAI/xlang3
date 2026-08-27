@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys._debugmallocstats` stderr-routing batch.
+Last updated after the native `sys._is_gil_enabled` no-argument validation batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys._is_gil_enabled`: the probe now uses the shared
+  CPython-style sys no-argument TypeError path while preserving the enabled
+  boolean result, and the Standard Modules fixture covers it with the runtime
+  no-argument probe matrix.
 - Tightened native `sys._debugmallocstats`: allocator diagnostics now route
   through the active `sys.stderr.write` stream before returning `None`, so
   redirected stderr observes the CPython-style diagnostics path while the
@@ -798,7 +802,8 @@ Native or runtime-backed foundation:
   and frame placeholders with populated
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
-  `_is_gil_enabled` enabled result with catchable argument errors;
+  `_is_gil_enabled` enabled result with shared CPython-style no-argument
+  `TypeError` validation;
   full CPython startup flags/config/runtime internals, remaining CPython profile edge
   cases outside the covered Python and native C call/return/exception matrix, and remaining live PEP 669
   event coverage beyond instruction/call/line/return/generator-resume-yield/caught-exception/unwind/reraise paths pending

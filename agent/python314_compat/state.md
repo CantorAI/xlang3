@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._debugmallocstats stderr routing
+sys._is_gil_enabled no-argument validation
 ```
 
 Current next loop:

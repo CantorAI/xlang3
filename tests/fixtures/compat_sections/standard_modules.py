@@ -1186,6 +1186,7 @@ sys_noarg_typeerror_probes = [
     sys.get_int_max_str_digits,
     sys.is_finalizing,
     sys.is_remote_debug_enabled,
+    sys._is_gil_enabled,
     sys.deactivate_stack_trampoline,
     sys.is_stack_trampoline_active,
     sys._jit.is_available,
