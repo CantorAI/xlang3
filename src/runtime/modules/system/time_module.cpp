@@ -899,6 +899,20 @@ std::string format_tm(const std::string& format, const std::tm& tm) {
   return stream.str();
 }
 
+std::string format_asctime_tm(const std::tm& tm) {
+  static constexpr const char* kWeekdays[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+  static constexpr const char* kMonths[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  const int wday = tm.tm_wday >= 0 && tm.tm_wday < 7 ? tm.tm_wday : 0;
+  const int month = tm.tm_mon >= 0 && tm.tm_mon < 12 ? tm.tm_mon : 0;
+  std::ostringstream stream;
+  stream << kWeekdays[wday] << ' ' << kMonths[month] << ' '
+         << std::setw(2) << tm.tm_mday << ' '
+         << std::setfill('0') << std::setw(2) << tm.tm_hour << ':'
+         << std::setw(2) << tm.tm_min << ':' << std::setw(2) << tm.tm_sec
+         << std::setfill(' ') << ' ' << (tm.tm_year + 1900);
+  return stream.str();
+}
+
 void set_struct_time_metadata(Value& instance, std::vector<Value> tuple_items, const Value& zone, const Value& gmtoff) {
   std::string ignored;
   object_set_attr(instance, "n_sequence_fields", Value::int64(9), ignored);
@@ -1606,7 +1620,7 @@ bool time_asctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
     const auto timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     tm = tm_from_time_t(timestamp, false);
   }
-  out = Value::string(format_tm("%a %b %d %H:%M:%S %Y", tm));
+  out = Value::string(format_asctime_tm(tm));
   return true;
 }
 
@@ -1616,7 +1630,7 @@ bool time_ctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
     return false;
   }
   const std::tm tm = tm_from_time_t(timestamp, false);
-  out = Value::string(format_tm("%a %b %d %H:%M:%S %Y", tm));
+  out = Value::string(format_asctime_tm(tm));
   return true;
 }
 

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.monitoring` C-call event dispatch batch.
+Last updated after the native `time.asctime` / `time.ctime` day-spacing batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.asctime` / `time.ctime`: both now use a
+  CPython-style C-locale asctime formatter with space-padded single-digit
+  month days, while preserving two-digit days, and the Standard Modules
+  fixture covers both forms.
 - Expanded live native `sys.monitoring` PEP 669 coverage: native callable
   dispatch now emits `CALL` plus the `C_RETURN`/`C_RAISE` companion callbacks
   controlled by the active `CALL` mask, with callback-recursion suppression
@@ -756,7 +760,8 @@ Native or runtime-backed foundation:
   event coverage beyond instruction/call/line/return/caught-exception paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
-  `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
+  `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`/`ctime` CPython-style C-locale
+  formatting including space-padded single-digit month days, constructible/indexable/iterable
   `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
   `n_unnamed_fields`, type-level `__match_args__`, and named/member fields for sequence slots plus
   `tm_zone`/`tm_gmtoff`, constructor dict

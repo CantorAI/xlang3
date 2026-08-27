@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring global and code-local INSTRUCTION event dispatch
+time.asctime/ctime CPython-style single-digit day spacing
 ```
 
 Current next loop:
