@@ -978,7 +978,9 @@ bool sys_frame_at_depth(
       return false;
     }
     if (depth < 0) {
-      depth = 0;
+      error = "call stack is not deep enough";
+      runtime.raise_class_error("ValueError", error);
+      return false;
     }
   }
   out = runtime.current_frame_snapshot();

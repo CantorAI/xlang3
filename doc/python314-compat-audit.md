@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native weakref live-registry visibility batch.
+Last updated after the sys frame negative-depth parity batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys._getframe` and `sys._getframemodulename` depth
+  validation: negative integer depths now raise catchable `ValueError` with
+  the same too-shallow-stack path as CPython instead of being clamped to the
+  current frame, while bool-as-int depths remain covered.
 - Tightened native `abc.abstractmethod` error parity: failed
   `__isabstractmethod__` writes now raise catchable `AttributeError` instead
   of silently returning immutable or read-only descriptor targets, and the

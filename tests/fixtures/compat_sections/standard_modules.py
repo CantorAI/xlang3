@@ -1112,9 +1112,14 @@ except TypeError as err:
     print("call-tracing-type", "tuple" in str(err))
 print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == True)
 def sys_frame_module_probe():
-    return sys._getframemodulename(1), sys._getframemodulename(-1)
-print(sys_frame_module_probe(), sys._getframemodulename(9999) is None, sys._getframe(-1).f_globals["__name__"])
+    return sys._getframemodulename(1)
+print(sys_frame_module_probe(), sys._getframemodulename(9999) is None)
 print(sys._getframemodulename(False) == "__main__", sys._getframemodulename(True) is None)
+for sys_negative_frame_probe in (sys._getframe, sys._getframemodulename):
+    try:
+        sys_negative_frame_probe(-1)
+    except ValueError as err:
+        print("sys-frame-negative-depth", "not deep enough" in str(err))
 try:
     sys._getframe(True)
 except ValueError as err:

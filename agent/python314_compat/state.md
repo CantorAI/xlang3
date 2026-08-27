@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-ABC/_weakref non-public weakref target storage
+sys frame negative-depth parity
 ```
 
 Current next loop:
