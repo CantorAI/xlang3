@@ -641,6 +641,21 @@ try:
 except TypeError as err:
     print("call-tracing-type", "tuple" in str(err))
 print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == False)
+def sys_frame_module_probe():
+    return sys._getframemodulename(1), sys._getframemodulename(-1)
+print(sys_frame_module_probe(), sys._getframemodulename(9999) is None, sys._getframe(-1).f_globals["__name__"])
+try:
+    sys._getframe(9999)
+except ValueError as err:
+    print("sys-getframe-depth", "not deep enough" in str(err))
+try:
+    sys._getframemodulename("x")
+except TypeError as err:
+    print("sys-getframemodulename-type", "int" in str(err) or "integer" in str(err))
+try:
+    sys._is_gil_enabled(1)
+except TypeError as err:
+    print("sys-gil-args", "argument" in str(err))
 audit_events = []
 def sys_audit_probe(event, args):
     audit_events.append((event, args))

@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` CPython default-field batch.
+Last updated after the native `sys` frame-module depth/probe batch.
 
 Current checklist count:
 
@@ -69,6 +69,13 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys` CPython 3.14 frame/probe parity:
+  `sys._getframe()` now treats negative depths as the current frame while
+  still raising catchable `ValueError` for too-shallow positive depths,
+  `sys._getframemodulename()` returns the active module name for current,
+  caller, and negative-depth probes and returns `None` when the requested
+  frame is unavailable, and `sys._is_gil_enabled()` argument errors are now
+  catchable `TypeError`.
 - Tightened native `time.strptime`: omitted date/time fields now use
   CPython-style defaults before normalization, weekday/year-day fields are
   populated consistently for partial formats, parse failures raise catchable
@@ -659,7 +666,9 @@ Native or runtime-backed foundation:
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
   and `context_aware_warnings`, and frame placeholders with populated
-  `f_builtins`; full CPython startup flags/config/runtime internals
+  `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
+  too-shallow-stack behavior, and catchable `_is_gil_enabled` argument errors;
+  full CPython startup flags/config/runtime internals
   pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

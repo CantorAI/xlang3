@@ -777,7 +777,14 @@ bool sys_call_tracing(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return ok;
 }
 
-bool sys_frame_at_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, const char* name) {
+bool sys_frame_at_depth(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    const char* name,
+    bool none_when_too_deep = false) {
   if (argc > 1) {
     error = std::string(name) + " expected at most 1 argument";
     runtime.raise_class_error("TypeError", error);
@@ -792,20 +799,26 @@ bool sys_frame_at_depth(Runtime& runtime, const Value* args, uint32_t argc, Valu
     }
     depth = args[0].as.i64;
     if (depth < 0) {
-      error = "call stack is not deep enough";
-      runtime.raise_class_error("ValueError", error);
-      return false;
+      depth = 0;
     }
   }
   out = runtime.current_frame_snapshot();
   for (int64_t i = 0; i < depth; ++i) {
     if (out.tag == ValueTag::None) {
+      if (none_when_too_deep) {
+        value_set_none(out);
+        return true;
+      }
       error = "call stack is not deep enough";
       runtime.raise_class_error("ValueError", error);
       return false;
     }
     Value back;
     if (!object_get_attr(out, "f_back", back, error) || back.tag == ValueTag::None) {
+      if (none_when_too_deep) {
+        value_set_none(out);
+        return true;
+      }
       error = "call stack is not deep enough";
       runtime.raise_class_error("ValueError", error);
       return false;
@@ -821,7 +834,7 @@ bool sys_getframe(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 
 bool sys_getframemodulename(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   Value frame;
-  if (!sys_frame_at_depth(runtime, args, argc, frame, error, "sys._getframemodulename")) {
+  if (!sys_frame_at_depth(runtime, args, argc, frame, error, "sys._getframemodulename", true)) {
     return false;
   }
   auto* frame_object = value_as_frame(frame);
@@ -1465,9 +1478,10 @@ bool sys_is_remote_debug_enabled(Runtime&, const Value*, uint32_t argc, Value& o
   return true;
 }
 
-bool sys_is_gil_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_is_gil_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "sys._is_gil_enabled expected 0 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   out = Value::boolean(false);
