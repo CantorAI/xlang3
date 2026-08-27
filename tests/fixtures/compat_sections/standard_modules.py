@@ -873,6 +873,27 @@ print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.RAISE | mo
 sys.monitoring.set_events(monitoring_tool_id, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(len(monitoring_exception_events), monitoring_exception_events[0], monitoring_exception_events[1])
+monitoring_reraise_events = []
+def sys_monitoring_reraise_callback(code, instruction_offset, exception):
+    monitoring_reraise_events.append((code.co_name, isinstance(instruction_offset, int), type(exception).__name__, str(exception)))
+
+def sys_monitoring_reraise_target():
+    try:
+        raise ValueError("monitoring-reraise")
+    except ValueError:
+        raise
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-reraise") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.RERAISE, sys_monitoring_reraise_callback) is None)
+sys.monitoring.set_events(monitoring_tool_id, monitoring_events.RERAISE)
+try:
+    sys_monitoring_reraise_target()
+except ValueError:
+    pass
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.RERAISE, None)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_reraise_events) >= 1, monitoring_reraise_events[0])
 monitoring_unwind_events = []
 def sys_monitoring_unwind_callback(code, instruction_offset, exception):
     monitoring_unwind_events.append((code.co_name, isinstance(instruction_offset, int), type(exception).__name__, str(exception)))

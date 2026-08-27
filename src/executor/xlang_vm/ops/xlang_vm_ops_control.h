@@ -176,14 +176,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_exception_cause(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseExceptionValue, typename RaiseRuntimeError>
+template <typename RaiseExceptionValue, typename RaiseRuntimeError, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow reraise(
     Value& current_exception,
     RaiseExceptionValue&& raise_exception_value,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    EmitMonitoringEvent&& emit_monitoring_event) {
   if (current_exception.tag == ValueTag::Invalid) {
     return raise_runtime_error("No active exception to reraise") ? XlangVMOpFlow::ContinueLoop
                                                                 : XlangVMOpFlow::ReturnResult;
+  }
+  if (!emit_monitoring_event(kSysMonitoringEventReraise, &current_exception)) {
+    return XlangVMOpFlow::ReturnResult;
   }
   return raise_exception_value(current_exception) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }

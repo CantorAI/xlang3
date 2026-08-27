@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring clear_tool_id CPython 3.14 lifecycle semantics
+sys.monitoring live RERAISE dispatch for bare raise in active handlers
 ```
 
 Current next loop:
