@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` ordinal-day/timezone batch.
+Last updated after the native `time.strptime` short-year and AM/PM batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: `%y` now uses CPython's 1969/2068
+  two-digit-year pivot, `%I`/`%p` parse 12-hour clocks with AM/PM
+  normalization, and these formats use the runtime parser's CPython-style
+  weekday/year-day derivation instead of platform `std::get_time` leftovers.
 - Tightened native `time.strptime`: ordinal-day `%j` parsing now derives
   CPython-style month/day/year-day fields, `%z` preserves parsed UTC offsets
   in `tm_gmtoff`, and `%Z` recognizes UTC/GMT-style zone names with
@@ -690,6 +694,7 @@ Native or runtime-backed foundation:
   `count`/`index`, CPython-style named-field `__repr__`, platform-backed timezone constants/names,
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,
+  two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
   ordinal-day `%j`, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z`
   metadata, catchable `ValueError` failures, and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending

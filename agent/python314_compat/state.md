@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time gmtime/localtime/ctime bool timestamp conversion matches CPython 3.14 epoch-second semantics
+time.strptime %y short-year pivot and %I/%p AM/PM parsing match CPython 3.14
 ```
 
 Current next loop:

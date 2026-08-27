@@ -265,6 +265,8 @@ bool parse_strptime_directives(
     Value& gmtoff) {
   size_t text_pos = 0;
   int parsed_yday = -1;
+  int parsed_hour12 = -1;
+  int parsed_meridiem = -1;
   bool saw_month_day = false;
   bool saw_weekday = false;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
@@ -299,6 +301,12 @@ bool parse_strptime_directives(
         }
         tm.tm_year = value - 1900;
         break;
+      case 'y':
+        if (!parse_fixed_digits(text, text_pos, 2, 2, value)) {
+          return false;
+        }
+        tm.tm_year = (value <= 68 ? value + 2000 : value + 1900) - 1900;
+        break;
       case 'm':
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
           return false;
@@ -318,6 +326,18 @@ bool parse_strptime_directives(
           return false;
         }
         tm.tm_hour = value;
+        break;
+      case 'I':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+          return false;
+        }
+        parsed_hour12 = value;
+        break;
+      case 'p':
+        if (!consume_case_word(text, text_pos, {"AM", "PM"}, value)) {
+          return false;
+        }
+        parsed_meridiem = value;
         break;
       case 'M':
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
@@ -391,6 +411,12 @@ bool parse_strptime_directives(
     }
     tm.tm_mon = month - 1;
     tm.tm_mday = day;
+  }
+  if (parsed_hour12 != -1) {
+    tm.tm_hour = parsed_hour12 % 12;
+    if (parsed_meridiem == 1) {
+      tm.tm_hour += 12;
+    }
   }
   if (!saw_weekday) {
     tm.tm_wday = c_weekday_from_date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
