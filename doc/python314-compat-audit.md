@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` C-locale directive batch.
+Last updated after the native `time.strptime` ordinal-day overflow batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: `%j` ordinal-day parsing now validates the
+  CPython 1..366 range and normalizes day 366 in a common year to January 1 of
+  the following year while preserving the returned `tm_yday` slot.
 - Expanded native `time.strptime`: C-locale composite directives `%c`, `%x`,
   and `%X`, plus space-padded day `%e`, now parse into CPython-style
   normalized `struct_time` fields for covered formats, with missing `%c` year
@@ -715,7 +718,8 @@ Native or runtime-backed foundation:
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
-  ordinal-day `%j`, `%U`/`%W` week-number date derivation with `%w`/`%u`
+  ordinal-day `%j` including CPython-style common-year 366 overflow,
+  `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
   directives, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
   C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,

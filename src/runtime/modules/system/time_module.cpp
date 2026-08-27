@@ -506,7 +506,7 @@ bool parse_strptime_directives(
         }
         break;
       case 'j':
-        if (!parse_fixed_digits(text, text_pos, 1, 3, value)) {
+        if (!parse_fixed_digits(text, text_pos, 1, 3, value) || value < 1 || value > 366) {
           return false;
         }
         parsed_yday = value;
@@ -687,8 +687,14 @@ bool parse_strptime_directives(
   if (parsed_yday != -1 && !saw_month_day) {
     int month = 0;
     int day = 0;
-    if (!month_day_from_yday(tm.tm_year + 1900, parsed_yday, month, day)) {
-      return false;
+    const int year = tm.tm_year + 1900;
+    if (!month_day_from_yday(year, parsed_yday, month, day)) {
+      if (parsed_yday != 366 || is_leap_year(year)) {
+        return false;
+      }
+      tm.tm_year = year + 1 - 1900;
+      month = 1;
+      day = 1;
     }
     tm.tm_mon = month - 1;
     tm.tm_mday = day;

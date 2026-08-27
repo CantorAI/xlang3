@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime accepts C-locale %c/%x/%X composites and space-padded %e days
+time.strptime normalizes %j day 366 common-year overflow like CPython
 ```
 
 Current next loop:
