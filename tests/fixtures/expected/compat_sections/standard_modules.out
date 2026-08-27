@@ -141,12 +141,14 @@ False False False False False
 0 1 2 5 0 32 16 262144
 True True fixture-monitor
 0 True 48
+monitoring-c-event True
 0 True 32
 True True
 True True True True 0 32
 monitoring-tool-id True
 monitoring-tool-name True
 monitoring-unused-tool True
+monitoring-unused-local-tool True
 monitoring-event-set True
 monitoring-code-type True
 monitoring-callback-event True

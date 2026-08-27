@@ -633,6 +633,10 @@ monitoring_code = (lambda: None).__code__
 print(sys.monitoring.DEBUGGER_ID, sys.monitoring.COVERAGE_ID, sys.monitoring.PROFILER_ID, sys.monitoring.OPTIMIZER_ID, monitoring_events.NO_EVENTS, monitoring_events.LINE, monitoring_events.CALL, monitoring_events.BRANCH)
 print(sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor") is None, sys.monitoring.get_tool(monitoring_tool_id))
 print(sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL) is None, sys.monitoring.get_events(monitoring_tool_id))
+try:
+    sys.monitoring.set_events(monitoring_tool_id, monitoring_events.C_RETURN)
+except ValueError as err:
+    print("monitoring-c-event", "independently" in str(err))
 print(sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code), sys.monitoring.set_local_events(monitoring_tool_id, monitoring_code, monitoring_events.LINE) is None, sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code))
 def sys_monitoring_callback_probe(*args):
     return None
@@ -650,6 +654,10 @@ try:
     sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE)
 except ValueError as err:
     print("monitoring-unused-tool", "not in use" in str(err))
+try:
+    sys.monitoring.set_local_events(monitoring_tool_id, monitoring_code, monitoring_events.LINE)
+except ValueError as err:
+    print("monitoring-unused-local-tool", "not in use" in str(err))
 try:
     sys.monitoring.set_events(monitoring_tool_id, -1)
 except ValueError as err:

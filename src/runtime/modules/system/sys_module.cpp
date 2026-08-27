@@ -1791,6 +1791,12 @@ bool monitoring_event_set(Runtime& runtime, const Value& value, int64_t& out, st
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  const int64_t c_events = kMonitoringEventCReturn | kMonitoringEventCRaise;
+  if ((value.as.i64 & c_events) != 0 && (value.as.i64 & c_events) != c_events) {
+    error = "cannot set C_RETURN or C_RAISE events independently";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   out = value.as.i64;
   return true;
 }
@@ -1923,10 +1929,16 @@ bool sys_monitoring_set_local_events(Runtime& runtime, const Value* args, uint32
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
+  if (tool.name.tag == ValueTag::None) {
+    error = "tool " + std::to_string(tool_id) + " is not in use";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   if (!monitoring_event_set(runtime, args[2], events, error)) {
     return false;
   }
-  auto& local_events = g_monitoring_tools[static_cast<size_t>(tool_id)].local_events;
+  auto& local_events = tool.local_events;
   if (events == 0) {
     local_events.erase(args[1].as.obj);
   } else {
