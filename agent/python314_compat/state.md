@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-catchable TypeError arity failures for sys no-argument runtime probes
+time.strptime CPython edge handling for %j calendar override, lowercase %Z spelling, and space-padded %d
 ```
 
 Current next loop:

@@ -400,16 +400,17 @@ bool parse_timezone_name(
     Value& zone,
     int& isdst,
     const TimeModuleState* state) {
+  const size_t start = pos;
   const std::string tail = ascii_lower(text.substr(pos));
   if (tail.rfind("utc", 0) == 0) {
     pos += 3;
-    zone = Value::string("UTC");
+    zone = Value::string(text.substr(start, 3));
     isdst = 0;
     return true;
   }
   if (tail.rfind("gmt", 0) == 0) {
     pos += 3;
-    zone = Value::string("GMT");
+    zone = Value::string(text.substr(start, 3));
     isdst = 0;
     return true;
   }
@@ -417,14 +418,14 @@ bool parse_timezone_name(
     const std::string standard = ascii_lower(state->standard_timezone_name);
     if (!standard.empty() && tail.rfind(standard, 0) == 0) {
       pos += state->standard_timezone_name.size();
-      zone = Value::string(state->standard_timezone_name);
+      zone = Value::string(text.substr(start, state->standard_timezone_name.size()));
       isdst = 0;
       return true;
     }
     const std::string daylight = ascii_lower(state->daylight_timezone_name);
     if (!daylight.empty() && tail.rfind(daylight, 0) == 0) {
       pos += state->daylight_timezone_name.size();
-      zone = Value::string(state->daylight_timezone_name);
+      zone = Value::string(text.substr(start, state->daylight_timezone_name.size()));
       isdst = state->has_daylight_timezone ? 1 : 0;
       return true;
     }
@@ -527,6 +528,9 @@ bool parse_strptime_directives(
         saw_month_day = true;
         break;
       case 'd':
+        if (text_pos < text.size() && text[text_pos] == ' ') {
+          ++text_pos;
+        }
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
           return false;
         }
@@ -811,7 +815,7 @@ bool parse_strptime_directives(
     saw_month_day = true;
     parsed_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday) + 1;
   }
-  if (parsed_yday != -1 && !saw_month_day) {
+  if (parsed_yday != -1) {
     int month = 0;
     int day = 0;
     const int year = tm.tm_year + 1900;

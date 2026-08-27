@@ -742,12 +742,13 @@ Native or runtime-backed foundation:
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
-  ordinal-day `%j` including CPython-style common-year 366 overflow,
+  ordinal-day `%j` including CPython-style common-year 366 overflow and override
+  of explicitly parsed calendar fields,
   `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
   directives, `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
-  large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata,
-  C-locale `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives and space-padded `%e` days,
+  large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata including lowercase spelling preservation,
+  C-locale `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives and space-padded `%d`/`%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
   CPython-style whitespace matching for format whitespace runs including tab/run input and
