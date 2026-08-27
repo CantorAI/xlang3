@@ -630,6 +630,7 @@ print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.std
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
+print((sys.platform == "win32" and not hasattr(sys.implementation, "_multiarch")) or (sys.platform != "win32" and hasattr(sys.implementation, "_multiarch")))
 print(sys._jit.__doc__ == "Utilities for observing just-in-time compilation.")
 monitoring_events = sys.monitoring.events
 monitoring_tool_id = 3

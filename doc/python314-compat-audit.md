@@ -764,7 +764,8 @@ Native or runtime-backed foundation:
   suppression, native/C `c_call`/`c_return`/`c_exception` profile events with
   current-frame arguments for covered native callable paths, plus
   `threading.setprofile` inheritance for new threads,
-  `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
+  `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
+  absence while preserving non-Windows `_multiarch`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
   global/local event masks, callback replacement, restart/all-events

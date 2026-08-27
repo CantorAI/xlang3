@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._is_gil_enabled no-argument validation
+sys.implementation _multiarch platform metadata
 ```
 
 Current next loop:

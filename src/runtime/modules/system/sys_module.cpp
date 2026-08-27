@@ -2392,7 +2392,9 @@ void register_sys_module(Runtime& runtime) {
   object_set_attr(implementation, "version", make_version_info(runtime), error);
   object_set_attr(implementation, "cache_tag", Value::string("xlang3-314"), error);
   object_set_attr(implementation, "hexversion", Value::int64(0x030e07f0), error);
+#if !defined(_WIN32)
   object_set_attr(implementation, "_multiarch", Value::string(""), error);
+#endif
   object_set_attr(implementation, "supports_isolated_interpreters", Value::boolean(false), error);
   const std::string exe = executable_path();
   const std::string prefix = runtime_prefix(runtime);
