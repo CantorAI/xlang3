@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-weakref.ReferenceType-backed _abc dump snapshots
+catchable TypeError arity failures for sys no-argument runtime probes
 ```
 
 Current next loop:

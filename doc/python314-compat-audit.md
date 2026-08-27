@@ -717,6 +717,8 @@ Native or runtime-backed foundation:
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   async-generator hook configuration with structseq-like `asyncgen_hooks` including CPython-style
   `builtins` type-module metadata,
+  catchable `TypeError` arity failures for no-argument runtime/config/frame/cache/JIT
+  probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,

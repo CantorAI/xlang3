@@ -78,6 +78,12 @@ bool is_callable_value(const Value& value) {
          }();
 }
 
+bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const char* name) {
+  error = std::string(name) + " expected 0 arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 Value make_member_descriptor(const std::string& name) {
   Value descriptor = Value::instance(Value::class_object("member_descriptor", {}));
   std::string ignored;
@@ -958,8 +964,7 @@ bool sys_getframemodulename(Runtime& runtime, const Value* args, uint32_t argc, 
 
 bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._current_frames expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._current_frames");
   }
   out = runtime.current_frame_snapshots(xlang_thread_active_idents());
   return true;
@@ -967,26 +972,23 @@ bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& ou
 
 bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._current_exceptions expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._current_exceptions");
   }
   out = runtime.current_exception_snapshots(xlang_thread_active_idents());
   return true;
 }
 
-bool sys_get_cpu_count_config(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_get_cpu_count_config(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._get_cpu_count_config expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._get_cpu_count_config");
   }
   value_set_int64(out, -1);
   return true;
 }
 
-bool sys_clear_internal_caches(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_clear_internal_caches(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._clear_internal_caches expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._clear_internal_caches");
   }
   value_set_none(out);
   return true;
@@ -1061,10 +1063,9 @@ bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args
   return true;
 }
 
-bool sys_get_coroutine_origin_tracking_depth(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_get_coroutine_origin_tracking_depth(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.get_coroutine_origin_tracking_depth expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.get_coroutine_origin_tracking_depth");
   }
   value_set_int64(out, g_coroutine_origin_tracking_depth);
   return true;
@@ -1081,8 +1082,7 @@ bool validate_asyncgen_hook(Runtime& runtime, const Value& hook, const char* nam
 
 bool sys_get_asyncgen_hooks(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.get_asyncgen_hooks expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.get_asyncgen_hooks");
   }
   out = make_asyncgen_hooks(runtime);
   return true;
@@ -1166,37 +1166,33 @@ bool sys_set_asyncgen_hooks_kw(
   return sys_set_asyncgen_hooks_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
-bool sys_getdefaultencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getdefaultencoding(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getdefaultencoding expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getdefaultencoding");
   }
   out = Value::string("utf-8");
   return true;
 }
 
-bool sys_getfilesystemencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getfilesystemencoding(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getfilesystemencoding expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getfilesystemencoding");
   }
   out = Value::string(g_filesystem_encoding);
   return true;
 }
 
-bool sys_getfilesystemencodeerrors(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getfilesystemencodeerrors(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getfilesystemencodeerrors expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getfilesystemencodeerrors");
   }
   out = Value::string(g_filesystem_encode_errors);
   return true;
 }
 
-bool sys_getrecursionlimit(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getrecursionlimit(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getrecursionlimit expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getrecursionlimit");
   }
   value_set_int64(out, g_recursion_limit);
   return true;
@@ -1386,10 +1382,9 @@ uint64_t live_block_count(const memory::X3MemoryCounter& counter) {
   return counter.alloc_count >= counter.free_count ? counter.alloc_count - counter.free_count : 0;
 }
 
-bool sys_getallocatedblocks(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getallocatedblocks(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getallocatedblocks expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getallocatedblocks");
   }
   const auto& object_stats = memory::x3_thread_object_pools().stats();
   const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
@@ -1577,10 +1572,9 @@ bool sys_setprofileallthreads(Runtime& runtime, const Value* args, uint32_t argc
 
 double g_switch_interval = 0.005;
 
-bool sys_getswitchinterval(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_getswitchinterval(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getswitchinterval expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getswitchinterval");
   }
   out = Value::number(g_switch_interval);
   return true;
@@ -1603,10 +1597,9 @@ bool sys_setswitchinterval(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
-bool sys_get_int_max_str_digits(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_get_int_max_str_digits(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.get_int_max_str_digits expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.get_int_max_str_digits");
   }
   value_set_int64(out, g_int_max_str_digits);
   return true;
@@ -1644,19 +1637,17 @@ bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t ar
   return true;
 }
 
-bool sys_is_finalizing(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_is_finalizing(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.is_finalizing expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.is_finalizing");
   }
   out = Value::boolean(false);
   return true;
 }
 
-bool sys_is_remote_debug_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_is_remote_debug_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.is_remote_debug_enabled expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.is_remote_debug_enabled");
   }
   out = Value::boolean(false);
   return true;
@@ -1684,46 +1675,41 @@ bool sys_activate_stack_trampoline(Runtime& runtime, const Value* args, uint32_t
   return false;
 }
 
-bool sys_deactivate_stack_trampoline(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_deactivate_stack_trampoline(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.deactivate_stack_trampoline expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.deactivate_stack_trampoline");
   }
   value_set_none(out);
   return true;
 }
 
-bool sys_is_stack_trampoline_active(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_is_stack_trampoline_active(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.is_stack_trampoline_active expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.is_stack_trampoline_active");
   }
   out = Value::boolean(false);
   return true;
 }
 
-bool sys_jit_is_available(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_jit_is_available(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._jit.is_available expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_available");
   }
   out = Value::boolean(false);
   return true;
 }
 
-bool sys_jit_is_enabled(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_jit_is_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._jit.is_enabled expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_enabled");
   }
   out = Value::boolean(false);
   return true;
 }
 
-bool sys_jit_is_active(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_jit_is_active(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._jit.is_active expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_active");
   }
   out = Value::boolean(false);
   return true;
@@ -1732,17 +1718,15 @@ bool sys_jit_is_active(Runtime&, const Value*, uint32_t argc, Value& out, std::s
 #if defined(_WIN32)
 bool sys_getwindowsversion(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getwindowsversion expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getwindowsversion");
   }
   out = make_windows_version(runtime);
   return true;
 }
 
-bool sys_enablelegacywindowsfsencoding(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_enablelegacywindowsfsencoding(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._enablelegacywindowsfsencoding expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._enablelegacywindowsfsencoding");
   }
   g_filesystem_encoding = "mbcs";
   g_filesystem_encode_errors = "replace";
@@ -1751,10 +1735,9 @@ bool sys_enablelegacywindowsfsencoding(Runtime&, const Value*, uint32_t argc, Va
 }
 #endif
 
-bool sys_debugmallocstats(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_debugmallocstats(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._debugmallocstats expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._debugmallocstats");
   }
   const auto& object_stats = memory::x3_thread_object_pools().stats();
   const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
@@ -1767,10 +1750,9 @@ bool sys_debugmallocstats(Runtime&, const Value*, uint32_t argc, Value& out, std
   return true;
 }
 
-bool sys_dump_tracelets(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_dump_tracelets(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys._dump_tracelets expected 0 arguments";
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys._dump_tracelets");
   }
   value_set_none(out);
   return true;

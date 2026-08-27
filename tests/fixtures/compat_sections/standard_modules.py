@@ -812,6 +812,43 @@ try:
     sys.set_asyncgen_hooks(None, 42)
 except TypeError as err:
     print("asyncgen-hooks", "finalizer" in str(err), "callable" in str(err))
+sys_noarg_typeerror_probes = [
+    sys._current_frames,
+    sys._current_exceptions,
+    sys._get_cpu_count_config,
+    sys._clear_internal_caches,
+    sys._clear_type_cache,
+    sys.getdefaultencoding,
+    sys.getfilesystemencoding,
+    sys.getfilesystemencodeerrors,
+    sys.getrecursionlimit,
+    sys.getallocatedblocks,
+    sys.getswitchinterval,
+    sys.get_int_max_str_digits,
+    sys.is_finalizing,
+    sys.is_remote_debug_enabled,
+    sys.deactivate_stack_trampoline,
+    sys.is_stack_trampoline_active,
+    sys._jit.is_available,
+    sys._jit.is_enabled,
+    sys._jit.is_active,
+    sys._debugmallocstats,
+    sys._dump_tracelets,
+    sys.get_coroutine_origin_tracking_depth,
+    sys.get_asyncgen_hooks,
+]
+if hasattr(sys, "getwindowsversion"):
+    sys_noarg_typeerror_probes.append(sys.getwindowsversion)
+if hasattr(sys, "_enablelegacywindowsfsencoding"):
+    sys_noarg_typeerror_probes.append(sys._enablelegacywindowsfsencoding)
+sys_noarg_typeerror_count = 0
+for sys_noarg_typeerror_probe in sys_noarg_typeerror_probes:
+    try:
+        sys_noarg_typeerror_probe(1)
+    except TypeError as err:
+        if "argument" in str(err) or "expected 0" in str(err) or "takes no arguments" in str(err):
+            sys_noarg_typeerror_count += 1
+print("sys-noarg-typeerrors", sys_noarg_typeerror_count, len(sys_noarg_typeerror_probes))
 try:
     raise RuntimeError("active")
 except RuntimeError as err:
