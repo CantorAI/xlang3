@@ -1732,8 +1732,13 @@ XLANG3_HOT_INLINE bool call_native_function(
   }
   Value callable = Value::string(native->name);
   Value code = Value::none();
+  Value profile_frame = runtime.current_frame_snapshot();
   if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable, error)) {
     if (raise_runtime_error(error.empty() ? "monitoring callback failed" : error)) return false;
+    return false;
+  }
+  if (!runtime.emit_profile_event_for_frame(profile_frame, "c_call", callable, error)) {
+    if (raise_runtime_error(error.empty() ? "profile callback failed" : error)) return false;
     return false;
   }
   bool ok = false;
@@ -1778,6 +1783,8 @@ XLANG3_HOT_INLINE bool call_native_function(
   if (!ok) {
     std::string monitoring_error;
     (void)sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCRaise, code, -1, &callable, monitoring_error);
+    std::string profile_error;
+    (void)runtime.emit_profile_event_for_frame(profile_frame, "c_exception", callable, profile_error);
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       if (raise_exception_value(std::move(pending))) return false;
@@ -1786,7 +1793,15 @@ XLANG3_HOT_INLINE bool call_native_function(
     if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
     return false;
   }
-  return sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable, error);
+  if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable, error)) {
+    if (raise_runtime_error(error.empty() ? "monitoring callback failed" : error)) return false;
+    return false;
+  }
+  if (!runtime.emit_profile_event_for_frame(profile_frame, "c_return", callable, error)) {
+    if (raise_runtime_error(error.empty() ? "profile callback failed" : error)) return false;
+    return false;
+  }
+  return true;
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
@@ -1822,6 +1837,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     native_args = materialize_native_args(values, native_call_args);
   }
   Value callable = Value::string(native->name);
+  Value profile_frame = runtime.current_frame_snapshot();
   if (monitoring_code != nullptr) {
     std::string monitoring_error;
     if (!sys_monitoring_dispatch_event(
@@ -1834,6 +1850,10 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
       if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
       return false;
     }
+  }
+  if (!runtime.emit_profile_event_for_frame(profile_frame, "c_call", callable, error)) {
+    if (raise_runtime_error(error.empty() ? "profile callback failed" : error)) return false;
+    return false;
   }
   bool ok = false;
   if (use_fast && !native->fast_releases_vm_lock) {
@@ -1901,6 +1921,8 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
         return false;
       }
     }
+    std::string profile_error;
+    (void)runtime.emit_profile_event_for_frame(profile_frame, "c_exception", callable, profile_error);
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       if (raise_exception_value(std::move(pending))) return false;
@@ -1921,6 +1943,10 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
       if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
       return false;
     }
+  }
+  if (!runtime.emit_profile_event_for_frame(profile_frame, "c_return", callable, error)) {
+    if (raise_runtime_error(error.empty() ? "profile callback failed" : error)) return false;
+    return false;
   }
   return true;
 }

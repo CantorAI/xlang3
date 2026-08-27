@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.setprofile` live dispatch batch.
+Last updated after the native `sys.setprofile` C event dispatch batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys.setprofile` live dispatch for native/C call paths:
+  native callable wrappers now emit CPython-style `c_call`, `c_return`, and
+  `c_exception` events with the current Python frame captured at native-call
+  entry, preserving callback-recursion suppression across the event callback.
 - Expanded native `sys.setprofile` / `_setprofileallthreads` from stored hook
   metadata into live VM dispatch for Python `call`, `return`, and `exception`
   events using current frame snapshots, with recursion suppression while a
@@ -749,7 +753,9 @@ Native or runtime-backed foundation:
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing`, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
   `call`/`return`/`exception` events with current frame arguments and callback-recursion
-  suppression, plus `threading.setprofile` inheritance for new threads,
+  suppression, native/C `c_call`/`c_return`/`c_exception` profile events with
+  current-frame arguments for covered native callable paths, plus
+  `threading.setprofile` inheritance for new threads,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
@@ -787,8 +793,8 @@ Native or runtime-backed foundation:
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
   `_is_gil_enabled` enabled result with catchable argument errors;
-  full CPython startup flags/config/runtime internals, full CPython profile event
-  matrix including C call/return/exception events, and remaining live PEP 669
+  full CPython startup flags/config/runtime internals, remaining CPython profile edge
+  cases outside the covered Python and native C call/return/exception matrix, and remaining live PEP 669
   event coverage beyond instruction/call/line/return/generator-resume-yield/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

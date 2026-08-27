@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/ir.h"
 #if !defined(XLANG3_EMBEDDED)
 #include "xlang3/import_loader.h"
@@ -470,6 +471,32 @@ bool Runtime::profile_dispatch_active() const {
 
 void Runtime::set_profile_dispatch_active(bool active) {
   current_frame_state(*this).profile_dispatch_active = active;
+}
+
+bool Runtime::emit_profile_event(const char* event_name, const Value& arg, std::string& error) {
+  return emit_profile_event_for_frame(current_frame_snapshot(), event_name, arg, error);
+}
+
+bool Runtime::emit_profile_event_for_frame(const Value& frame, const char* event_name, const Value& arg, std::string& error) {
+  const Value& hook = profile_function();
+  if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || profile_dispatch_active()) {
+    return true;
+  }
+  if (frame.tag == ValueTag::None) {
+    return true;
+  }
+  Value profile_args[3] = {
+      frame,
+      Value::string(event_name == nullptr ? "" : event_name),
+      arg,
+  };
+  set_profile_dispatch_active(true);
+  struct ProfileDispatchGuard {
+    Runtime& runtime;
+    ~ProfileDispatchGuard() { runtime.set_profile_dispatch_active(false); }
+  } guard{*this};
+  Value ignored;
+  return runtime_call_callable(*this, hook, profile_args, 3, ignored, error);
 }
 
 void Runtime::set_thread_profile_function(Value profile_function) {

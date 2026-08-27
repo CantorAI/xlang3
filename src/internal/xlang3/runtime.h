@@ -163,6 +163,8 @@ public:
   const Value& profile_function() const;
   bool profile_dispatch_active() const;
   void set_profile_dispatch_active(bool active);
+  bool emit_profile_event(const char* event_name, const Value& arg, std::string& error);
+  bool emit_profile_event_for_frame(const Value& frame, const char* event_name, const Value& arg, std::string& error);
   void set_thread_profile_function(Value profile_function);
   const Value& thread_profile_function() const { return thread_profile_function_; }
   void set_current_frame(

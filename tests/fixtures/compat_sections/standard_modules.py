@@ -1000,6 +1000,24 @@ print(
     ("sys_profile_target", "exception", "ValueError") in sys_profile_events,
     not any(item[0] == "sys_profile_callback_helper" for item in sys_profile_events),
 )
+sys_profile_c_events = []
+def sys_profile_c_probe(frame, event, arg):
+    if frame.f_code.co_name == "sys_profile_c_target" and event.startswith("c_"):
+        sys_profile_c_events.append((event, str(arg)))
+def sys_profile_c_target():
+    eval("1 + 2")
+    try:
+        eval("chr(-1)")
+    except ValueError:
+        pass
+sys.setprofile(sys_profile_c_probe)
+sys_profile_c_target()
+sys.setprofile(None)
+print(
+    any(event == "c_call" for event, _ in sys_profile_c_events),
+    any(event == "c_return" for event, _ in sys_profile_c_events),
+    any(event == "c_exception" for event, _ in sys_profile_c_events),
+)
 threading_profile_events = []
 threading_profile_ident = []
 def threading_profile_probe(frame, event, arg):

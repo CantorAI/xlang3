@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.setprofile live Python call/return/exception dispatch with threading inheritance
+sys.setprofile live Python and native C call/return/exception dispatch
 ```
 
 Current next loop:
