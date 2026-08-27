@@ -682,6 +682,19 @@ try:
     sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL, None)
 except ValueError as err:
     print("monitoring-callback-event", "one event" in str(err))
+monitoring_live_events = []
+def sys_monitoring_live_callback(code, instruction_offset, *args):
+    monitoring_live_events.append((code.co_name, isinstance(instruction_offset, int), len(args), args[0] if args else None))
+
+def sys_monitoring_live_target():
+    return "monitoring-live"
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-live") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_START, sys_monitoring_live_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_RETURN, sys_monitoring_live_callback) is None)
+print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.PY_START | monitoring_events.PY_RETURN) is None, sys_monitoring_live_target())
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(monitoring_live_events[0][0], monitoring_live_events[0][1], monitoring_live_events[0][2], monitoring_live_events[1][0], monitoring_live_events[1][1], monitoring_live_events[1][2], monitoring_live_events[1][3])
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
 print(repr(sys.version_info), repr(sys.flags).startswith("sys.flags("), "gil=" not in repr(sys.flags), repr(sys.hash_info).startswith("sys.hash_info("))
 print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_randomization, sys.flags.utf8_mode)

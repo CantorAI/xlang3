@@ -99,6 +99,7 @@ struct MonitoringToolState {
 };
 
 std::array<MonitoringToolState, kMonitoringToolCount> g_monitoring_tools;
+thread_local bool g_monitoring_dispatch_active = false;
 
 std::vector<Value>& interned_strings() {
   static auto* table = new std::vector<Value>();
@@ -2024,6 +2025,47 @@ bool sys_monitoring_all_events(Runtime& runtime, const Value*, uint32_t argc, Va
   out = Value::dict({});
   return true;
 }
+
+} // namespace
+
+bool sys_monitoring_dispatch_event(
+    Runtime& runtime,
+    int64_t event,
+    const Value& code,
+    int64_t instruction_offset,
+    const Value* arg,
+    std::string& error) {
+  if (g_monitoring_dispatch_active) {
+    return true;
+  }
+  g_monitoring_dispatch_active = true;
+  struct DispatchGuard {
+    ~DispatchGuard() { g_monitoring_dispatch_active = false; }
+  } guard;
+
+  for (auto& tool : g_monitoring_tools) {
+    if (tool.name.tag == ValueTag::None || (tool.events & event) == 0) {
+      continue;
+    }
+    auto callback_it = tool.callbacks.find(event);
+    if (callback_it == tool.callbacks.end() || callback_it->second.tag == ValueTag::None) {
+      continue;
+    }
+    Value callback_args_storage[3] = {
+        code,
+        Value::int64(instruction_offset),
+        arg != nullptr ? *arg : Value::none(),
+    };
+    Value ignored;
+    const uint32_t callback_argc = arg != nullptr ? 3u : 2u;
+    if (!runtime_call_callable(runtime, callback_it->second, callback_args_storage, callback_argc, ignored, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+namespace {
 
 Value make_monitoring_events() {
   Value events = Value::instance(Value::class_object(

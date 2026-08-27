@@ -516,6 +516,37 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
+    runtime_.set_current_frame(
+        &monitoring_frame.module_owner,
+        monitoring_frame.function_id,
+        &monitoring_frame.globals_module,
+        static_cast<uint32_t>(monitoring_frame.ip));
+    runtime_.set_current_globals_module(monitoring_frame.globals_module);
+    runtime_.set_current_frame_locals(
+        &monitoring_frame.fn->locals,
+        monitoring_frame.locals.value_data(),
+        monitoring_frame.locals.size());
+
+    Value code = Value::none();
+    Value frame = runtime_.current_frame_snapshot();
+    std::string attr_error;
+    (void)object_get_attr(frame, "f_code", code, attr_error);
+
+    std::string monitoring_error;
+    if (!sys_monitoring_dispatch_event(
+            runtime_,
+            event,
+            code,
+            static_cast<int64_t>(monitoring_frame.ip),
+            arg,
+            monitoring_error)) {
+      result.errors.push_back(monitoring_error);
+      return false;
+    }
+    return true;
+  };
+
   auto pause_debug_execution = [&](RuntimePauseReason reason, uint32_t source_line) -> bool {
     refresh_runtime_frame_views();
     auto& paused_frame = frames[frame_count - 1];
@@ -564,6 +595,9 @@ RuntimeResult Interpreter::run_function(
 
   auto finish_frame = [&](const Value& return_value) -> bool {
     VMFrame& finished = frames[frame_count - 1];
+    if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &return_value)) {
+      return false;
+    }
     if (!emit_trace_event(finished, "return", return_value)) {
       return false;
     }
@@ -764,6 +798,9 @@ RuntimeResult Interpreter::run_function(
       if (!runtime_.trace_dispatch_active()) {
         if (!frame.trace_call_emitted) {
           frame.trace_call_emitted = true;
+          if (!emit_monitoring_event(frame, kSysMonitoringEventPyStart, nullptr)) {
+            return result;
+          }
           if (!emit_trace_event(frame, "call", Value::none())) {
             return result;
           }

@@ -158,6 +158,10 @@ monitoring-unused-local-tool True
 monitoring-event-set True
 monitoring-code-type True
 monitoring-callback-event True
+True
+True True
+True monitoring-live
+sys_monitoring_live_target True 0 sys_monitoring_live_target True 1 monitoring-live
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0

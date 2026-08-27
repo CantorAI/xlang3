@@ -29,6 +29,15 @@ void register_raw_block_builtins(Runtime& runtime);
 void register_builtin_modules(Runtime& runtime);
 void register_math_module(Runtime& runtime);
 void register_sys_module(Runtime& runtime);
+constexpr int64_t kSysMonitoringEventPyStart = 1;
+constexpr int64_t kSysMonitoringEventPyReturn = 4;
+bool sys_monitoring_dispatch_event(
+    Runtime& runtime,
+    int64_t event,
+    const Value& code,
+    int64_t instruction_offset,
+    const Value* arg,
+    std::string& error);
 void register_time_module(Runtime& runtime);
 void register_abc_module(Runtime& runtime);
 void register_argparse_module(Runtime& runtime);
