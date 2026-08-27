@@ -693,6 +693,9 @@ RuntimeResult Interpreter::run_function(
         frames[frame_count - 1].ip = handler.ip;
         return true;
       }
+      if (!emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventPyUnwind, &current_exception)) {
+        return false;
+      }
       --frame_count;
     }
     const std::string exception_text = value_to_string(current_exception);

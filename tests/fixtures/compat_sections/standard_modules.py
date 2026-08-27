@@ -806,6 +806,27 @@ print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.RAISE | mo
 sys.monitoring.set_events(monitoring_tool_id, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(len(monitoring_exception_events), monitoring_exception_events[0], monitoring_exception_events[1])
+monitoring_unwind_events = []
+def sys_monitoring_unwind_callback(code, instruction_offset, exception):
+    monitoring_unwind_events.append((code.co_name, isinstance(instruction_offset, int), type(exception).__name__, str(exception)))
+
+def sys_monitoring_unwind_inner():
+    raise ValueError("monitoring-unwind")
+
+def sys_monitoring_unwind_outer():
+    sys_monitoring_unwind_inner()
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-unwind") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_UNWIND, sys_monitoring_unwind_callback) is None)
+sys.monitoring.set_events(monitoring_tool_id, monitoring_events.PY_UNWIND)
+try:
+    sys_monitoring_unwind_outer()
+except ValueError:
+    pass
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_UNWIND, None)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_unwind_events), monitoring_unwind_events[0], monitoring_unwind_events[1])
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
 print(repr(sys.version_info), repr(sys.flags).startswith("sys.flags("), "gil=" not in repr(sys.flags), repr(sys.hash_info).startswith("sys.hash_info("))
 print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_randomization, sys.flags.utf8_mode)

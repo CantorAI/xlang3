@@ -190,6 +190,9 @@ True
 True True
 True monitoring-caught
 2 (sys_monitoring_exception_target, True, ValueError, monitoring-boom) (sys_monitoring_exception_target, True, ValueError, monitoring-boom)
+True
+True
+2 (sys_monitoring_unwind_inner, True, ValueError, monitoring-unwind) (sys_monitoring_unwind_outer, True, ValueError, monitoring-unwind)
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0

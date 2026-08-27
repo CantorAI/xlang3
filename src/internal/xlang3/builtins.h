@@ -36,6 +36,7 @@ constexpr int64_t kSysMonitoringEventLine = 32;
 constexpr int64_t kSysMonitoringEventInstruction = 64;
 constexpr int64_t kSysMonitoringEventRaise = 2048;
 constexpr int64_t kSysMonitoringEventExceptionHandled = 4096;
+constexpr int64_t kSysMonitoringEventPyUnwind = 8192;
 constexpr int64_t kSysMonitoringEventCReturn = 65536;
 constexpr int64_t kSysMonitoringEventCRaise = 131072;
 bool sys_monitoring_dispatch_event(

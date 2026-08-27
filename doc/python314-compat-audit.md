@@ -737,7 +737,8 @@ Native or runtime-backed foundation:
   CPython-style callback arguments, live native `CALL` plus companion `C_RETURN`/`C_RAISE`
   dispatch for successful and failing native call paths, stable code-object local event matching,
   callback-recursion suppression, and live caught-exception `RAISE`/`EXCEPTION_HANDLED`
-  dispatch with CPython-style callback arguments,
+  dispatch with CPython-style callback arguments, live `PY_UNWIND` dispatch when
+  exceptions leave unhandled Python frames with CPython-style callback arguments,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
@@ -757,7 +758,7 @@ Native or runtime-backed foundation:
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
   `_is_gil_enabled` enabled result with catchable argument errors;
   full CPython startup flags/config/runtime internals and remaining live PEP 669
-  event coverage beyond instruction/call/line/return/caught-exception paths pending
+  event coverage beyond instruction/call/line/return/caught-exception/unwind paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`/`ctime` CPython-style C-locale

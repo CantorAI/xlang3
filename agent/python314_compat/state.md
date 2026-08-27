@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime CPython-style composite whitespace matching
+sys.monitoring live PY_UNWIND dispatch for unhandled Python frame unwinds
 ```
 
 Current next loop:
