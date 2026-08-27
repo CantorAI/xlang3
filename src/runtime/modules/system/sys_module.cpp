@@ -1792,7 +1792,7 @@ bool monitoring_event_set(Runtime& runtime, const Value& value, int64_t& out, st
     return false;
   }
   const int64_t c_events = kMonitoringEventCReturn | kMonitoringEventCRaise;
-  if ((value.as.i64 & c_events) != 0 && (value.as.i64 & c_events) != c_events) {
+  if ((value.as.i64 & c_events) != 0) {
     error = "cannot set C_RETURN or C_RAISE events independently";
     runtime.raise_class_error("ValueError", error);
     return false;

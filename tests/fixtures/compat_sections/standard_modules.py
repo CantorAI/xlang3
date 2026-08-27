@@ -638,7 +638,15 @@ try:
     sys.monitoring.set_events(monitoring_tool_id, monitoring_events.C_RETURN)
 except ValueError as err:
     print("monitoring-c-event", "independently" in str(err))
+try:
+    sys.monitoring.set_events(monitoring_tool_id, monitoring_events.C_RETURN | monitoring_events.C_RAISE)
+except ValueError as err:
+    print("monitoring-c-event-pair", "independently" in str(err))
 print(sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code), sys.monitoring.set_local_events(monitoring_tool_id, monitoring_code, monitoring_events.LINE) is None, sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code))
+try:
+    sys.monitoring.set_local_events(monitoring_tool_id, monitoring_code, monitoring_events.C_RETURN | monitoring_events.C_RAISE)
+except ValueError as err:
+    print("monitoring-local-c-event-pair", "independently" in str(err))
 def sys_monitoring_callback_probe(*args):
     return None
 print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, sys_monitoring_callback_probe) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, None) is sys_monitoring_callback_probe)

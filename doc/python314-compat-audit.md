@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys.monitoring` event-set validation: global and local
+  event masks now reject any `C_RETURN`/`C_RAISE` request, including the paired
+  mask, matching CPython 3.14's static validation while live PEP 669 dispatch
+  remains pending.
 - Expanded native `sys` CPython 3.14 startup metadata: `sys.__doc__` is now
   published as real module documentation, and `sys.__interactivehook__` plus
   `sys._baserepl` are exposed as callable no-op hooks with catchable
@@ -719,7 +723,7 @@ Native or runtime-backed foundation:
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing, global/local event masks, callback replacement, restart/all-events
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
-  C return/raise event-set validation, inactive-tool local-event rejection,
+  C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
   and catchable validation failures,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,

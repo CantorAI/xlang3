@@ -143,7 +143,9 @@ SimpleNamespace types True True True
 True True fixture-monitor
 0 True 48
 monitoring-c-event True
+monitoring-c-event-pair True
 0 True 32
+monitoring-local-c-event-pair True
 True True
 True True True True 0 32
 monitoring-tool-id True
