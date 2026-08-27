@@ -302,7 +302,10 @@ later_dump = _abc._get_dump(LaterRegisteredABC)
 print(len(later_dump[2]) >= 1, later_dump[3] == abc.get_cache_token())
 LaterRegisteredABC.register(LaterConcrete)
 later_dump = _abc._get_dump(LaterRegisteredABC)
-print(issubclass(LaterConcrete, LaterRegisteredABC), len(later_dump[2]), later_dump[3] == abc.get_cache_token())
+print(len(later_dump[2]) >= 1, later_dump[3] < abc.get_cache_token())
+print(issubclass(LaterConcrete, LaterRegisteredABC))
+later_dump = _abc._get_dump(LaterRegisteredABC)
+print(len(later_dump[2]), later_dump[3] == abc.get_cache_token())
 
 class DirectABC(metaclass=abc.ABCMeta):
     pass

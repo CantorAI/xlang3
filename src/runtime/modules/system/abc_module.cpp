@@ -400,7 +400,6 @@ bool abc_get_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   Value positive_cache;
   Value negative_cache;
   if (!abc_state_list(abc_class, kCacheAttr, positive_cache, error) ||
-      !clear_stale_negative_cache(abc_class, error) ||
       !abc_state_list(abc_class, kNegativeCacheAttr, negative_cache, error)) {
     return false;
   }

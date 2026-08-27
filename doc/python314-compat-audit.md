@@ -806,11 +806,12 @@ Native or runtime-backed foundation:
   `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,
   positive/negative subclass caches,
-  negative-cache invalidation after virtual subclass registration, virtual registry
-  matches staying out of the positive cache, `_reset_registry` preserving caches/token,
+  negative-cache invalidation after virtual subclass registration including
+  CPython-style stale `_get_dump` negative-cache snapshots/version metadata until the
+  next subclass check, virtual registry matches staying out of the positive cache, `_reset_registry` preserving caches/token,
   and CPython-style weakref-backed `_get_dump` snapshot sets whose entries are
-  callable `weakref.ReferenceType` instances; exact CPython weakref lifecycle and
-  invalidation internals pending
+  callable `weakref.ReferenceType` instances; exact CPython weakref lifecycle cleanup
+  remains pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform
 - [~] `_stat`: stat tuple indexes, common file mode constants, permission bits, callable
