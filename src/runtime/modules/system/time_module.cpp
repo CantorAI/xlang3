@@ -1802,6 +1802,7 @@ void register_time_module(Runtime& runtime) {
       .function("asctime", time_asctime)
       .function("ctime", time_ctime)
       .value("struct_time", state->struct_time_class)
+      .value("_STRUCT_TM_ITEMS", Value::int64(11))
       .value("timezone", Value::int64(timezone.timezone))
       .value("altzone", Value::int64(timezone.altzone))
       .value("daylight", Value::int64(timezone.daylight))

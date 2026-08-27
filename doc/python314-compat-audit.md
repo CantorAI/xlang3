@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.monitoring` generator resume/yield dispatch batch.
+Last updated after the native `time._STRUCT_TM_ITEMS` metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `time` CPython 3.14 metadata: the module now publishes
+  `_STRUCT_TM_ITEMS == 11`, matching the extended `struct_time` field count
+  and the existing tuple-backed `struct_time` type metadata.
 - Expanded live native `sys.monitoring` PEP 669 coverage for generators: VM
   generator suspension now emits `PY_YIELD` with the yielded value, generator
   continuation now emits `PY_RESUME`, and generator completion now preserves
@@ -781,8 +784,8 @@ Native or runtime-backed foundation:
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, constructible/indexable/iterable
   `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
-  `n_unnamed_fields`, type-level `__match_args__`, and named/member fields for sequence slots plus
-  `tm_zone`/`tm_gmtoff`, constructor dict
+  `n_unnamed_fields`, module-level `_STRUCT_TM_ITEMS`, type-level `__match_args__`,
+  and named/member fields for sequence slots plus `tm_zone`/`tm_gmtoff`, constructor dict
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index`, CPython-style named-field `__repr__`, platform-backed timezone constants/names,
