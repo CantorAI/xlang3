@@ -770,12 +770,14 @@ Native or runtime-backed foundation:
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
   directives, `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
   large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata including lowercase spelling preservation,
-  C-locale `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives and space-padded `%d`/`%e` days,
+  C-locale `%a`/`%A` weekday names, `%b`/`%h`/`%B` month names,
+  `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives including single-digit day spacing,
+  and space-padded `%d`/`%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
   CPython-style whitespace matching for format whitespace runs including tab/run input and
   missing-whitespace rejection,
-  catchable `ValueError` failures,
+  catchable `ValueError` failures including CPython-style bad-directive and stray-percent rejection,
   and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset

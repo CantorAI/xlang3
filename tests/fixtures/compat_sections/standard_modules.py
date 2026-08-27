@@ -1081,6 +1081,8 @@ parsed_iso_week = time.strptime("2026 35 3", "%G %V %u")
 parsed_iso_week_name = time.strptime("Wednesday 2026 35", "%A %G %V")
 parsed_iso_week_53 = time.strptime("2020 53 7", "%G %V %u")
 parsed_locale_datetime = time.strptime("Wed Aug 26 01:02:03 2026", "%c")
+parsed_locale_datetime_spaced_day = time.strptime("Wed Aug  6 01:02:03 2026", "%c")
+parsed_locale_full_names = time.strptime("wednesday august 26 2026", "%A %B %d %Y")
 parsed_locale_date = time.strptime("08/26/26", "%x")
 parsed_locale_time = time.strptime("01:02:03", "%X")
 parsed_locale_hour_minute = time.strptime("1:02", "%R")
@@ -1110,6 +1112,7 @@ print(tuple(parsed_week_sunday), tuple(parsed_week_monday), tuple(parsed_week_is
 print(tuple(parsed_week_zero_previous), tuple(parsed_week_zero_current), tuple(parsed_week_overflow))
 print(tuple(parsed_iso_week), tuple(parsed_iso_week_name), tuple(parsed_iso_week_53))
 print(tuple(parsed_locale_datetime), tuple(parsed_locale_date), tuple(parsed_locale_time), parsed_space_day.tm_mday, parsed_space_padded_day.tm_mday)
+print(tuple(parsed_locale_datetime_spaced_day), tuple(parsed_locale_full_names))
 print(tuple(parsed_locale_hour_minute), tuple(parsed_locale_time_seconds), parsed_locale_12hour_pm.tm_hour, parsed_locale_12hour_midnight.tm_hour)
 print(tuple(parsed_default_year_leap_day), parsed_default_year_leap_day.tm_mon, parsed_default_year_leap_day.tm_mday, parsed_default_year_leap_day.tm_yday)
 print(tuple(parsed_whitespace_run)[:3], tuple(parsed_whitespace_format_run)[:3])
@@ -1158,6 +1161,16 @@ for bad_strptime_args in [
         time.strptime(*bad_strptime_args)
     except ValueError as err:
         print("strptime-trailing", "match format" in str(err) or "range" in str(err) or "out of range" in str(err))
+for bad_strptime_directive_args in [
+    ("08/26/26", "%D"),
+    ("2026-08-26", "%F"),
+    ("x", "%Q"),
+    ("x", "%"),
+]:
+    try:
+        time.strptime(*bad_strptime_directive_args)
+    except ValueError as err:
+        print("strptime-bad-directive", "bad directive" in str(err) or "stray %" in str(err))
 print(isinstance(time.timezone, int), isinstance(time.altzone, int), isinstance(time.daylight, int))
 print(len(time.tzname) == 2, isinstance(time.tzname[0], str), isinstance(time.tzname[1], str), time.altzone <= time.timezone if time.daylight else time.altzone == time.timezone)
 print("stdlib" in sysconfig.get_path_names(), "purelib" in sysconfig.get_paths(), sysconfig.get_python_version())

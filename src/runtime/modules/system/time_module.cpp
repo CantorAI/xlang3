@@ -441,6 +441,8 @@ bool parse_strptime_directives(
     Value& gmtoff,
     bool& explicit_year,
     bool& unsupported_directive,
+    char& unsupported_directive_char,
+    bool& stray_percent,
     const TimeModuleState* state = nullptr) {
   size_t text_pos = 0;
   int parsed_yday = -1;
@@ -458,6 +460,8 @@ bool parse_strptime_directives(
   bool saw_calendar_year = false;
   explicit_year = false;
   unsupported_directive = false;
+  unsupported_directive_char = '\0';
+  stray_percent = false;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
     const char fmt = format[format_pos];
     if (std::isspace(static_cast<unsigned char>(fmt))) {
@@ -481,6 +485,7 @@ bool parse_strptime_directives(
       continue;
     }
     if (++format_pos >= format.size()) {
+      stray_percent = true;
       return false;
     }
     int value = 0;
@@ -796,6 +801,7 @@ bool parse_strptime_directives(
         break;
       default:
         unsupported_directive = true;
+        unsupported_directive_char = format[format_pos];
         return false;
     }
   }
@@ -1563,27 +1569,19 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   Value gmtoff = Value::none();
   bool explicit_year = false;
   bool unsupported_directive = false;
+  char unsupported_directive_char = '\0';
+  bool stray_percent = false;
   auto* state = static_cast<TimeModuleState*>(user_data);
-  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, state)) {
-    if (!unsupported_directive) {
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, unsupported_directive_char, stray_percent, state)) {
+    if (stray_percent) {
+      error = "stray % in format '" + format + "'";
+    } else if (unsupported_directive) {
+      error = std::string("'") + unsupported_directive_char + "' is a bad directive in format '" + format + "'";
+    } else {
       error = "time data does not match format";
-      runtime.raise_class_error("ValueError", error);
-      return false;
     }
-    std::istringstream stream(text);
-    stream >> std::get_time(&tm, format.c_str());
-    if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {
-      error = "time data does not match format";
-      runtime.raise_class_error("ValueError", error);
-      return false;
-    }
-    explicit_year = strptime_format_has_explicit_year(format);
-    const int parsed_isdst = tm.tm_isdst;
-    std::tm normalized = tm;
-    std::mktime(&normalized);
-    tm.tm_wday = normalized.tm_wday;
-    tm.tm_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-    tm.tm_isdst = parsed_isdst;
+    runtime.raise_class_error("ValueError", error);
+    return false;
   }
   if (!valid_strptime_month_day(tm, explicit_year)) {
     error = "day is out of range for month";

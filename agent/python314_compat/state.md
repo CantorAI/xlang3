@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring live native CALL/C_RETURN/C_RAISE callback dispatch
+time.strptime CPython directive-set rejection and C-locale name spacing
 ```
 
 Current next loop:
