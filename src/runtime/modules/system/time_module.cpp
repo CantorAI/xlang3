@@ -329,6 +329,13 @@ bool consume_strptime_spaces(const std::string& text, size_t& pos) {
   return true;
 }
 
+bool consume_required_strptime_spaces(const std::string& text, size_t& pos) {
+  if (pos >= text.size() || !std::isspace(static_cast<unsigned char>(text[pos]))) {
+    return false;
+  }
+  return consume_strptime_spaces(text, pos);
+}
+
 bool consume_strptime_literal(const std::string& text, size_t& pos, char expected) {
   if (pos >= text.size() || text[pos] != expected) {
     return false;
@@ -755,18 +762,24 @@ bool parse_strptime_directives(
         parsed_weekday_monday = value;
         parsed_iso_weekday = value + 1;
         saw_weekday = true;
-        consume_strptime_spaces(text, text_pos);
+        if (!consume_required_strptime_spaces(text, text_pos)) {
+          return false;
+        }
         if (!consume_case_word(text, text_pos, {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}, value)) {
           return false;
         }
         tm.tm_mon = value;
         saw_month_day = true;
-        consume_strptime_spaces(text, text_pos);
+        if (!consume_required_strptime_spaces(text, text_pos)) {
+          return false;
+        }
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
           return false;
         }
         tm.tm_mday = value;
-        consume_strptime_spaces(text, text_pos);
+        if (!consume_required_strptime_spaces(text, text_pos)) {
+          return false;
+        }
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
         }
@@ -781,7 +794,9 @@ bool parse_strptime_directives(
           return false;
         }
         tm.tm_sec = value;
-        consume_strptime_spaces(text, text_pos);
+        if (!consume_required_strptime_spaces(text, text_pos)) {
+          return false;
+        }
         if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
           return false;
         }

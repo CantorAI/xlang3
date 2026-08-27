@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.asctime/ctime CPython-style single-digit day spacing
+time.strptime CPython-style composite whitespace matching
 ```
 
 Current next loop:

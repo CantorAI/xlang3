@@ -782,8 +782,8 @@ Native or runtime-backed foundation:
   and space-padded `%d`/`%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
-  CPython-style whitespace matching for format whitespace runs including tab/run input and
-  missing-whitespace rejection,
+  CPython-style whitespace matching for format and `%c` composite whitespace runs
+  including tab/run input and missing-whitespace rejection,
   catchable `ValueError` failures including CPython-style bad-directive and stray-percent rejection,
   and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
