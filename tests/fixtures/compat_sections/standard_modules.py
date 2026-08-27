@@ -581,8 +581,10 @@ print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
 print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.thread_inherit_context, sys.flags.context_aware_warnings, len(sys.flags))
 print(type(sys.version_info).n_fields, type(sys.version_info).major.__name__, type(sys.flags).n_fields, type(sys.flags).gil.__name__)
+print(type(sys.version_info).__match_args__, type(sys.flags).__match_args__[-1], len(type(sys.flags).__match_args__), "gil" not in type(sys.flags).__match_args__)
 print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
 print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sys.thread_info).n_sequence_fields, type(sys.thread_info).name.__name__)
+print(type(sys.float_info).__match_args__[0], type(sys.hash_info).__match_args__[-1], type(sys.thread_info).__match_args__)
 print(isinstance(sys.version_info, tuple), sys.version_info.count(3), sys.version_info.index("final"), list(sys.version_info)[0])
 print(isinstance(sys.flags, tuple), sys.flags.count(sys.flags.gil) >= 1, sys.flags.index(sys.flags.int_max_str_digits), sys.flags.n_fields > len(sys.flags))
 print(isinstance(sys.float_info, tuple), sys.float_info.count(sys.float_info.radix), sys.float_info.index(sys.float_info.radix), list(sys.float_info)[-1])
@@ -704,6 +706,7 @@ except ValueError as err:
     print("coroutine-origin-depth", "non-negative" in str(err))
 asyncgen_hooks = sys.get_asyncgen_hooks()
 print(type(asyncgen_hooks).__name__, len(asyncgen_hooks), asyncgen_hooks.firstiter is None, asyncgen_hooks.finalizer is None)
+print(type(asyncgen_hooks).__module__, type(asyncgen_hooks).__match_args__)
 print(isinstance(asyncgen_hooks, tuple), asyncgen_hooks.count(None), asyncgen_hooks.index(None))
 def asyncgen_firstiter_probe(generator):
     return None
@@ -774,6 +777,7 @@ print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isi
 print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
 print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC", epoch_utc.tm_gmtoff == 0)
 print(time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct_time.n_unnamed_fields, time.struct_time.tm_zone is not None, time.struct_time.tm_gmtoff is not None)
+print(time.struct_time.__match_args__, time.struct_time.tm_year.__name__, time.struct_time.tm_isdst.__name__)
 constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123))
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})

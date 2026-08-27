@@ -182,9 +182,15 @@ Value make_structseq(
   class_attrs.push_back({"n_sequence_fields", Value::int64(static_cast<int64_t>(sequence_fields))});
   class_attrs.push_back({"n_fields", Value::int64(static_cast<int64_t>(fields.size()))});
   class_attrs.push_back({"n_unnamed_fields", Value::int64(0)});
+  std::vector<Value> match_args;
+  match_args.reserve(sequence_fields);
   for (const auto& field : fields) {
     class_attrs.push_back({field.first, make_member_descriptor(field.first)});
+    if (match_args.size() < sequence_fields) {
+      match_args.push_back(Value::string(field.first));
+    }
   }
+  class_attrs.push_back({"__match_args__", Value::tuple(std::move(match_args))});
   const Value* tuple_base = runtime.find_builtin("tuple");
   Value instance = Value::instance(Value::class_object(
       type_name,
@@ -360,7 +366,8 @@ Value make_asyncgen_hooks(Runtime& runtime) {
       {
           {"firstiter", g_asyncgen_firstiter},
           {"finalizer", g_asyncgen_finalizer},
-      });
+      },
+      "builtins");
 }
 
 #if defined(_WIN32)

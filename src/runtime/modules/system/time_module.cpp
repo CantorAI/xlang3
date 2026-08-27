@@ -165,6 +165,20 @@ Value make_member_descriptor(const std::string& name) {
   return descriptor;
 }
 
+Value struct_time_match_args() {
+  return Value::tuple({
+      Value::string("tm_year"),
+      Value::string("tm_mon"),
+      Value::string("tm_mday"),
+      Value::string("tm_hour"),
+      Value::string("tm_min"),
+      Value::string("tm_sec"),
+      Value::string("tm_wday"),
+      Value::string("tm_yday"),
+      Value::string("tm_isdst"),
+  });
+}
+
 Value make_struct_time_from_timestamp(const Value& klass, std::time_t timestamp, bool utc) {
   const std::tm tm = tm_from_time_t(timestamp, utc);
   if (utc) {
@@ -909,8 +923,18 @@ void register_time_module(Runtime& runtime) {
           {"n_sequence_fields", Value::int64(9)},
           {"n_fields", Value::int64(11)},
           {"n_unnamed_fields", Value::int64(0)},
+          {"tm_year", make_member_descriptor("tm_year")},
+          {"tm_mon", make_member_descriptor("tm_mon")},
+          {"tm_mday", make_member_descriptor("tm_mday")},
+          {"tm_hour", make_member_descriptor("tm_hour")},
+          {"tm_min", make_member_descriptor("tm_min")},
+          {"tm_sec", make_member_descriptor("tm_sec")},
+          {"tm_wday", make_member_descriptor("tm_wday")},
+          {"tm_yday", make_member_descriptor("tm_yday")},
+          {"tm_isdst", make_member_descriptor("tm_isdst")},
           {"tm_zone", make_member_descriptor("tm_zone")},
           {"tm_gmtoff", make_member_descriptor("tm_gmtoff")},
+          {"__match_args__", struct_time_match_args()},
       },
       tuple_base != nullptr ? *tuple_base : Value::invalid());
   runtime.register_native_package_cleanup(state, time_module_state_cleanup);

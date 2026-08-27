@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-_abc virtual registry matches and reset_registry cache behavior match CPython 3.14
+sys/time structseq type metadata exposes CPython 3.14 __match_args__ and descriptors
 ```
 
 Current next loop:

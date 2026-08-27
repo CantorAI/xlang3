@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `_abc` weakref-backed dump snapshot batch.
+Last updated after the native structseq `__match_args__` metadata batch.
 
 Current checklist count:
 
@@ -69,6 +69,13 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native structseq metadata parity: `sys.version_info`, `sys.flags`,
+  `sys.int_info`, `sys.float_info`, `sys.hash_info`, `sys.thread_info`,
+  Windows `sys.getwindowsversion()`, `sys.implementation.version`, and
+  `sys.get_asyncgen_hooks()` result types now expose CPython-style
+  `__match_args__`, with `asyncgen_hooks.__module__` matching CPython's
+  `builtins`; `time.struct_time` now exposes `__match_args__` and type-level
+  member descriptors for the nine sequence fields.
 - Tightened native `_abc` cache parity: virtual registry matches no longer
   enter the positive subclass cache, and `_reset_registry()` now preserves
   positive/negative caches plus the cache token like CPython 3.14.
@@ -624,7 +631,7 @@ Native or runtime-backed foundation:
   version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and `real_prefix`, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors,
-  tuple inheritance, sequence iteration, and tuple-backed `count`/`index`,
+  tuple inheritance, sequence iteration, tuple-backed `count`/`index`, and type-level `__match_args__`,
   `implementation` metadata, `builtin_module_names`,
   CPython 3.14 top-level `stdlib_module_names`, `_git`/`_vpath`/`_home`
   metadata, `float_repr_style`, `getunicodeinternedsize`,
@@ -642,7 +649,8 @@ Native or runtime-backed foundation:
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
-  async-generator hook configuration with structseq-like `asyncgen_hooks`,
+  async-generator hook configuration with structseq-like `asyncgen_hooks` including CPython-style
+  `builtins` type-module metadata,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
@@ -653,7 +661,8 @@ Native or runtime-backed foundation:
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable
   `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
-  `n_unnamed_fields` plus `tm_zone`/`tm_gmtoff` named/member fields, constructor dict
+  `n_unnamed_fields`, type-level `__match_args__`, and named/member fields for sequence slots plus
+  `tm_zone`/`tm_gmtoff`, constructor dict
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index`, CPython-style named-field `__repr__`, and platform-backed timezone constants/names; locale-specific parsing and
