@@ -348,6 +348,11 @@ def abstract_fn():
     pass
 
 print(abstract_fn.__isabstractmethod__)
+for abstract_target in (42, property(lambda self: 1)):
+    try:
+        abc.abstractmethod(abstract_target)
+    except AttributeError as err:
+        print("abc-abstractmethod-attr", "__isabstractmethod__" in str(err) or "attribute assignment" in str(err))
 
 class AbstractDescriptorProbe:
     @abc.abstractclassmethod

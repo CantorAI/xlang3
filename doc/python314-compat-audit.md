@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `abc.abstractmethod` error parity: failed
+  `__isabstractmethod__` writes now raise catchable `AttributeError` instead
+  of silently returning immutable or read-only descriptor targets, and the
+  Standard Modules fixture covers scalar and `property` targets.
 - Tightened native `abc` / `_abc` weakref-backed cache parity: ABC registry,
   positive-cache, and negative-cache internals now store weakref objects and
   subclass checks compare through their referents, so repeated `_abc._get_dump()`
@@ -889,7 +893,8 @@ Native or runtime-backed foundation:
   ISO directive validation failures, `%Y`/`%G` zero-year range rejection, and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
-- [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
+- [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers including
+  CPython-style `AttributeError` propagation for failed marker writes, and abstract descriptor decorators,
   CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,

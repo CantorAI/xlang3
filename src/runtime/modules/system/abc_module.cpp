@@ -552,8 +552,10 @@ bool abc_abstractmethod(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return abc_type_error(runtime, error, "abc.abstractmethod() expected function");
   }
   Value target = args[0];
-  std::string ignored;
-  object_set_attr(target, "__isabstractmethod__", Value::boolean(true), ignored);
+  if (!object_set_attr(target, "__isabstractmethod__", Value::boolean(true), error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
   value_assign_fast(out, args[0]);
   return true;
 }
