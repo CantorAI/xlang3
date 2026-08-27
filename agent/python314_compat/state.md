@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.setprofile live Python and native C call/return/exception dispatch
+time.struct_time.index bool-as-int bounds
 ```
 
 Current next loop:

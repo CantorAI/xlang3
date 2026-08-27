@@ -1351,6 +1351,7 @@ print("tm_wday='weekday'" in constructed_string_field_time.__repr__())
 print(tuple(constructed_preserved_time)[6:9], constructed_preserved_time.tm_wday, constructed_preserved_time.tm_yday)
 print(constructed_string_field_time.tm_wday, tuple(constructed_string_field_time)[6])
 print(isinstance(constructed_time, tuple), constructed_time.count(2026), constructed_time.count(2), constructed_time.index(238), constructed_time.index(2, 6))
+print(constructed_time.index(2026, False, True), constructed_time.index(8, True, 9))
 try:
     constructed_time.index("missing")
 except ValueError as err:

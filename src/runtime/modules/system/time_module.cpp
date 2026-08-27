@@ -1056,11 +1056,15 @@ bool struct_time_tuple_storage(const Value& self, const char* method, TupleObjec
 }
 
 bool normalize_struct_time_bound(const Value& value, size_t size, size_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  int64_t index = 0;
+  if (value.tag == ValueTag::Bool) {
+    index = value.as.b ? 1 : 0;
+  } else if (value.tag == ValueTag::Int64) {
+    index = value.as.i64;
+  } else {
     error = "time.struct_time.index bounds must be int";
     return false;
   }
-  int64_t index = value.as.i64;
   if (index < 0) {
     index += static_cast<int64_t>(size);
   }
