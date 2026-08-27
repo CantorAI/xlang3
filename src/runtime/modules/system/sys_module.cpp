@@ -1655,7 +1655,7 @@ bool sys_is_gil_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& ou
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::boolean(false);
+  out = Value::boolean(true);
   return true;
 }
 

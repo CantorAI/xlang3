@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime C-locale time composites
+sys._is_gil_enabled CPython-default enabled result
 ```
 
 Current next loop:

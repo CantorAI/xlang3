@@ -719,8 +719,8 @@ Native or runtime-backed foundation:
   `sys.flags.dont_write_bytecode`/`hash_randomization`/`utf8_mode` startup values,
   and frame placeholders with populated
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
-  bool-depth handling plus too-shallow-stack behavior, and catchable
-  `_is_gil_enabled` argument errors;
+  bool-depth handling plus too-shallow-stack behavior, and CPython-default
+  `_is_gil_enabled` enabled result with catchable argument errors;
   full CPython startup flags/config/runtime internals
   pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
