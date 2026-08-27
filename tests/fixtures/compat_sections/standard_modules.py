@@ -729,6 +729,8 @@ print(len(current_frames), len(current_exceptions), current_thread_id in current
 print(sys._getframe().f_builtins["len"] is builtins.len, "Exception" in sys._getframe().f_builtins, current_frames[current_thread_id].f_builtins["print"] is builtins.print)
 print(current_thread_id == threading.get_ident(), "sys" in sys.stdlib_module_names, "threading" in sys.stdlib_module_names, len(sys.stdlib_module_names) > len(sys.builtin_module_names))
 print(isinstance(sys.stdlib_module_names, frozenset), "asyncio" in sys.stdlib_module_names, "email" in sys.stdlib_module_names, "encodings" in sys.stdlib_module_names, "tomllib" in sys.stdlib_module_names, "site-packages" in sys.stdlib_module_names)
+os.environ["PYTHONBREAKPOINT"] = "0"
+print(sys.breakpointhook() is None, sys.breakpointhook(1, label="fixture") is None, sys.__breakpointhook__(flag=True) is None)
 sys_frame_thread_ready = threading.Event()
 sys_frame_thread_release = threading.Event()
 sys_frame_thread_ident = []

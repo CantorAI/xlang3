@@ -1504,6 +1504,19 @@ bool sys_breakpointhook(Runtime&, const Value*, uint32_t, Value& out, std::strin
   return true;
 }
 
+bool sys_breakpointhook_kw(
+    Runtime&,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value& out,
+    std::string&,
+    void*) {
+  value_set_none(out);
+  return true;
+}
+
 bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys.addaudithook expected 1 argument";
@@ -1982,8 +1995,16 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "__excepthook__", runtime.make_native_function("sys.__excepthook__", sys_excepthook), error);
   module_set_attr(sys, "unraisablehook", runtime.make_native_function("sys.unraisablehook", sys_unraisablehook), error);
   module_set_attr(sys, "__unraisablehook__", runtime.make_native_function("sys.__unraisablehook__", sys_unraisablehook), error);
-  module_set_attr(sys, "breakpointhook", runtime.make_native_function("sys.breakpointhook", sys_breakpointhook), error);
-  module_set_attr(sys, "__breakpointhook__", runtime.make_native_function("sys.__breakpointhook__", sys_breakpointhook), error);
+  module_set_attr(
+      sys,
+      "breakpointhook",
+      runtime.make_native_function("sys.breakpointhook", sys_breakpointhook, nullptr, nullptr, nullptr, false, sys_breakpointhook_kw),
+      error);
+  module_set_attr(
+      sys,
+      "__breakpointhook__",
+      runtime.make_native_function("sys.__breakpointhook__", sys_breakpointhook, nullptr, nullptr, nullptr, false, sys_breakpointhook_kw),
+      error);
   module_set_attr(sys, "addaudithook", runtime.make_native_function("sys.addaudithook", sys_addaudithook), error);
   module_set_attr(sys, "audit", runtime.make_native_function("sys.audit", sys_audit), error);
   module_set_attr(sys, "getdefaultencoding", runtime.make_native_function("sys.getdefaultencoding", sys_getdefaultencoding), error);

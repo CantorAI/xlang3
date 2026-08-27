@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` platform `%Z` timezone-name batch.
+Last updated after the native `sys.breakpointhook` keyword-call no-op batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys.breakpointhook` / `sys.__breakpointhook__`: both
+  aliases now accept keyword calls through the native keyword-call path, so
+  the `PYTHONBREAKPOINT=0` no-op compatibility path used by tooling handles
+  positional and keyword arguments without rejecting the call shape.
 - Tightened native `time.strptime`: C-locale `%R`, `%T`, and `%r`
   composite time directives now parse through the runtime parser instead of
   platform fallback, including CPython-style 12-hour `%r` AM/PM validation and
@@ -702,6 +706,7 @@ Native or runtime-backed foundation:
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
+  `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered non-callable hooks,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
