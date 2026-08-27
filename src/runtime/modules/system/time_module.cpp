@@ -1038,6 +1038,43 @@ bool parse_strptime_directives(
   return true;
 }
 
+bool normalize_strftime_format(const std::string& format, std::string& out, std::string& error) {
+  out.clear();
+  out.reserve(format.size());
+  for (size_t i = 0; i < format.size(); ++i) {
+    if (format[i] != '%') {
+      out.push_back(format[i]);
+      continue;
+    }
+    if (++i >= format.size()) {
+      error = "Invalid format string";
+      return false;
+    }
+    const char directive = format[i];
+    switch (directive) {
+      case 'c':
+        out += "%a %b %e %H:%M:%S %Y";
+        break;
+      case 'r':
+        out += "%I:%M:%S %p";
+        break;
+#if defined(_WIN32)
+      case 'k':
+      case 'l':
+      case 'P':
+      case 'q':
+        error = "Invalid format string";
+        return false;
+#endif
+      default:
+        out.push_back('%');
+        out.push_back(directive);
+        break;
+    }
+  }
+  return true;
+}
+
 std::string format_tm(const std::string& format, const std::tm& tm) {
   std::ostringstream stream;
   stream << std::put_time(&tm, format.c_str());
@@ -1694,7 +1731,7 @@ bool time_mktime(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool time_strftime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "time.strftime() expected format and optional time tuple";
     return false;
@@ -1712,7 +1749,12 @@ bool time_strftime(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     const auto timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     tm = tm_from_time_t(timestamp, false);
   }
-  out = Value::string(format_tm(format, tm));
+  std::string normalized_format;
+  if (!normalize_strftime_format(format, normalized_format, error)) {
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = Value::string(format_tm(normalized_format, tm));
   return true;
 }
 
