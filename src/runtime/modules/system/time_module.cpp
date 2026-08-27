@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <chrono>
+#include <cctype>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -132,6 +133,270 @@ int day_of_year_zero_based(int year, int month_one_based, int day) {
     ++yday;
   }
   return yday;
+}
+
+bool month_day_from_yday(int year, int yday_one_based, int& month, int& day) {
+  if (yday_one_based < 1 || yday_one_based > (is_leap_year(year) ? 366 : 365)) {
+    return false;
+  }
+  static const int days_in_month_common[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  int remaining = yday_one_based;
+  for (int index = 0; index < 12; ++index) {
+    int days = days_in_month_common[index];
+    if (index == 1 && is_leap_year(year)) {
+      ++days;
+    }
+    if (remaining <= days) {
+      month = index + 1;
+      day = remaining;
+      return true;
+    }
+    remaining -= days;
+  }
+  return false;
+}
+
+int c_weekday_from_date(int year, int month_one_based, int day) {
+  static const int month_offsets[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+  if (month_one_based < 1 || month_one_based > 12) {
+    return 0;
+  }
+  if (month_one_based < 3) {
+    --year;
+  }
+  return (year + year / 4 - year / 100 + year / 400 + month_offsets[month_one_based - 1] + day) % 7;
+}
+
+std::string ascii_lower(std::string text) {
+  for (char& ch : text) {
+    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  }
+  return text;
+}
+
+bool parse_fixed_digits(const std::string& text, size_t& pos, size_t min_digits, size_t max_digits, int& out) {
+  const size_t start = pos;
+  int value = 0;
+  size_t count = 0;
+  while (pos < text.size() && count < max_digits && std::isdigit(static_cast<unsigned char>(text[pos]))) {
+    value = value * 10 + (text[pos] - '0');
+    ++pos;
+    ++count;
+  }
+  if (count < min_digits) {
+    pos = start;
+    return false;
+  }
+  out = value;
+  return true;
+}
+
+bool consume_case_word(const std::string& text, size_t& pos, const std::vector<const char*>& words, int& out) {
+  const std::string tail = ascii_lower(text.substr(pos));
+  for (size_t i = 0; i < words.size(); ++i) {
+    const std::string word = ascii_lower(words[i]);
+    if (tail.rfind(word, 0) == 0) {
+      pos += word.size();
+      out = static_cast<int>(i);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) {
+  if (pos < text.size() && (text[pos] == 'Z' || text[pos] == 'z')) {
+    ++pos;
+    gmtoff = Value::int64(0);
+    return true;
+  }
+  if (pos >= text.size() || (text[pos] != '+' && text[pos] != '-')) {
+    return false;
+  }
+  const int sign = text[pos] == '-' ? -1 : 1;
+  ++pos;
+  int hour = 0;
+  int minute = 0;
+  if (!parse_fixed_digits(text, pos, 2, 2, hour)) {
+    return false;
+  }
+  if (pos < text.size() && text[pos] == ':') {
+    ++pos;
+  }
+  if (!parse_fixed_digits(text, pos, 2, 2, minute)) {
+    return false;
+  }
+  int second = 0;
+  if (pos < text.size() && text[pos] == ':') {
+    ++pos;
+    if (!parse_fixed_digits(text, pos, 2, 2, second)) {
+      return false;
+    }
+  }
+  if (hour > 23 || minute > 59 || second > 59) {
+    return false;
+  }
+  gmtoff = Value::int64(sign * static_cast<int64_t>(hour * 3600 + minute * 60 + second));
+  return true;
+}
+
+bool parse_timezone_name(const std::string& text, size_t& pos, Value& zone, int& isdst) {
+  const std::string tail = ascii_lower(text.substr(pos));
+  if (tail.rfind("utc", 0) == 0) {
+    pos += 3;
+    zone = Value::string("UTC");
+    isdst = 0;
+    return true;
+  }
+  if (tail.rfind("gmt", 0) == 0) {
+    pos += 3;
+    zone = Value::string("GMT");
+    isdst = 0;
+    return true;
+  }
+  return false;
+}
+
+bool parse_strptime_directives(
+    const std::string& text,
+    const std::string& format,
+    std::tm& tm,
+    Value& zone,
+    Value& gmtoff) {
+  size_t text_pos = 0;
+  int parsed_yday = -1;
+  bool saw_month_day = false;
+  bool saw_weekday = false;
+  for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
+    const char fmt = format[format_pos];
+    if (std::isspace(static_cast<unsigned char>(fmt))) {
+      while (text_pos < text.size() && std::isspace(static_cast<unsigned char>(text[text_pos]))) {
+        ++text_pos;
+      }
+      continue;
+    }
+    if (fmt != '%') {
+      if (text_pos >= text.size() || text[text_pos] != fmt) {
+        return false;
+      }
+      ++text_pos;
+      continue;
+    }
+    if (++format_pos >= format.size()) {
+      return false;
+    }
+    int value = 0;
+    switch (format[format_pos]) {
+      case '%':
+        if (text_pos >= text.size() || text[text_pos] != '%') {
+          return false;
+        }
+        ++text_pos;
+        break;
+      case 'Y':
+        if (!parse_fixed_digits(text, text_pos, 4, 4, value)) {
+          return false;
+        }
+        tm.tm_year = value - 1900;
+        break;
+      case 'm':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+          return false;
+        }
+        tm.tm_mon = value - 1;
+        saw_month_day = true;
+        break;
+      case 'd':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+          return false;
+        }
+        tm.tm_mday = value;
+        saw_month_day = true;
+        break;
+      case 'H':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+          return false;
+        }
+        tm.tm_hour = value;
+        break;
+      case 'M':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+          return false;
+        }
+        tm.tm_min = value;
+        break;
+      case 'S':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+          return false;
+        }
+        tm.tm_sec = value;
+        break;
+      case 'j':
+        if (!parse_fixed_digits(text, text_pos, 1, 3, value)) {
+          return false;
+        }
+        parsed_yday = value;
+        break;
+      case 'a':
+        if (!consume_case_word(text, text_pos, {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}, value)) {
+          return false;
+        }
+        tm.tm_wday = (value + 1) % 7;
+        saw_weekday = true;
+        break;
+      case 'A':
+        if (!consume_case_word(text, text_pos, {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, value)) {
+          return false;
+        }
+        tm.tm_wday = (value + 1) % 7;
+        saw_weekday = true;
+        break;
+      case 'b':
+      case 'h':
+        if (!consume_case_word(text, text_pos, {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}, value)) {
+          return false;
+        }
+        tm.tm_mon = value;
+        saw_month_day = true;
+        break;
+      case 'B':
+        if (!consume_case_word(text, text_pos, {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}, value)) {
+          return false;
+        }
+        tm.tm_mon = value;
+        saw_month_day = true;
+        break;
+      case 'z':
+        if (!parse_timezone_offset(text, text_pos, gmtoff)) {
+          return false;
+        }
+        break;
+      case 'Z':
+        if (!parse_timezone_name(text, text_pos, zone, tm.tm_isdst)) {
+          return false;
+        }
+        break;
+      default:
+        return false;
+    }
+  }
+  if (text_pos != text.size()) {
+    return false;
+  }
+  if (parsed_yday != -1 && !saw_month_day) {
+    int month = 0;
+    int day = 0;
+    if (!month_day_from_yday(tm.tm_year + 1900, parsed_yday, month, day)) {
+      return false;
+    }
+    tm.tm_mon = month - 1;
+    tm.tm_mday = day;
+  }
+  if (!saw_weekday) {
+    tm.tm_wday = c_weekday_from_date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+  }
+  tm.tm_yday = parsed_yday != -1 ? parsed_yday - 1 : day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+  return true;
 }
 
 std::string format_tm(const std::string& format, const std::tm& tm) {
@@ -802,21 +1067,25 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   tm.tm_mon = 0;
   tm.tm_mday = 1;
   tm.tm_isdst = -1;
-  std::istringstream stream(text);
-  stream >> std::get_time(&tm, format.c_str());
-  if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {
-    error = "time data does not match format";
-    runtime.raise_class_error("ValueError", error);
-    return false;
+  Value zone = Value::none();
+  Value gmtoff = Value::none();
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff)) {
+    std::istringstream stream(text);
+    stream >> std::get_time(&tm, format.c_str());
+    if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {
+      error = "time data does not match format";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    const int parsed_isdst = tm.tm_isdst;
+    std::tm normalized = tm;
+    std::mktime(&normalized);
+    tm.tm_wday = normalized.tm_wday;
+    tm.tm_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+    tm.tm_isdst = parsed_isdst;
   }
-  const int parsed_isdst = tm.tm_isdst;
-  std::tm normalized = tm;
-  std::mktime(&normalized);
-  tm.tm_wday = normalized.tm_wday;
-  tm.tm_yday = day_of_year_zero_based(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
-  tm.tm_isdst = parsed_isdst;
   auto* state = static_cast<TimeModuleState*>(user_data);
-  out = make_struct_time(state->struct_time_class, tm);
+  out = make_struct_time(state->struct_time_class, tm, zone, gmtoff);
   return true;
 }
 

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys _clear_type_descriptors argument/type probes match CPython 3.14 edge behavior
+time.strptime ordinal-day and timezone metadata parsing matches covered CPython 3.14 probes
 ```
 
 Current next loop:

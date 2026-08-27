@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` frame-module depth/probe batch.
+Last updated after the native `time.strptime` ordinal-day/timezone batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: ordinal-day `%j` parsing now derives
+  CPython-style month/day/year-day fields, `%z` preserves parsed UTC offsets
+  in `tm_gmtoff`, and `%Z` recognizes UTC/GMT-style zone names with
+  CPython-style `tm_zone`/`tm_isdst` metadata.
 - Tightened native `sys` CPython 3.14 frame/probe parity:
   `sys._getframe()` now treats negative depths as the current frame while
   still raising catchable `ValueError` for too-shallow positive depths,
@@ -681,8 +685,9 @@ Native or runtime-backed foundation:
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index`, CPython-style named-field `__repr__`, platform-backed timezone constants/names,
   and `strptime` CPython default-field filling, weekday/year-day normalization,
-  catchable `ValueError` failures, and trailing-input rejection; locale-specific parsing and
-  historical DST edge behavior remain pending
+  ordinal-day `%j`, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z`
+  metadata, catchable `ValueError` failures, and trailing-input rejection;
+  broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
