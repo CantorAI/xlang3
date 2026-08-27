@@ -121,6 +121,9 @@ GetPassWarning True True
 1234.5 1234.5 1234 1234.5
 True True 127
 utf-8 utf-8 surrogatepass True
+sys True True True True True True
+sys-startup-hook-args True
+sys-startup-hook-args True
 True True True True True
 123 99
 sys-getsizeof-negative True

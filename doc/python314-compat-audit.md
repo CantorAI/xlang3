@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys` CPython 3.14 startup metadata: `sys.__doc__` is now
+  published as real module documentation, and `sys.__interactivehook__` plus
+  `sys._baserepl` are exposed as callable no-op hooks with catchable
+  no-argument arity validation.
 - Tightened native `sys.breakpointhook` / `sys.__breakpointhook__`: both
   aliases now accept keyword calls through the native keyword-call path, so
   the `PYTHONBREAKPOINT=0` no-op compatibility path used by tooling handles
@@ -724,6 +728,8 @@ Native or runtime-backed foundation:
   probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
+  CPython 3.14 startup metadata/hooks including `__doc__`,
+  `__interactivehook__`, and `_baserepl`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
   and `context_aware_warnings`, CPython-default `sys.dont_write_bytecode` plus
   `sys.flags.dont_write_bytecode`/`hash_randomization`/`utf8_mode` startup values,

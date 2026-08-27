@@ -123,6 +123,15 @@ bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const ch
   return false;
 }
 
+bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  const char* name = static_cast<const char*>(user_data);
+  if (argc != 0) {
+    return raise_sys_no_args_type_error(runtime, error, name);
+  }
+  value_set_none(out);
+  return true;
+}
+
 Value make_member_descriptor(const std::string& name) {
   Value descriptor = Value::instance(Value::class_object("member_descriptor", {}));
   std::string ignored;
@@ -2191,6 +2200,13 @@ void register_sys_module(Runtime& runtime) {
   Value modules_ref;
   value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
   module_set_attr(sys, "modules", modules_ref, error);
+  module_set_attr(sys, "__doc__", Value::string("This module provides access to XLang3 runtime internals exposed with CPython-compatible sys APIs."), error);
+  module_set_attr(
+      sys,
+      "__interactivehook__",
+      runtime.make_native_function("site.register_readline", sys_noop_hook, const_cast<char*>("site.register_readline")),
+      error);
+  module_set_attr(sys, "_baserepl", runtime.make_native_function("sys._baserepl", sys_noop_hook, const_cast<char*>("sys._baserepl")), error);
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);
   module_set_attr(sys, "version_info", make_version_info(runtime), error);

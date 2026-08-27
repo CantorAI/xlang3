@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring CPython 3.14 configuration surface with stateful tool/event/callback handling
+sys CPython 3.14 startup metadata and no-op startup hooks
 ```
 
 Current next loop:

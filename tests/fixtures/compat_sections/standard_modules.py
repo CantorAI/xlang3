@@ -567,6 +567,12 @@ old_recursion_limit = sys.getrecursionlimit()
 sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
+print(sys.__name__, isinstance(sys.__doc__, str), len(sys.__doc__) > 0, callable(sys.__interactivehook__), sys.__interactivehook__() is None, callable(sys._baserepl), sys._baserepl() is None)
+for sys_startup_hook_probe in (sys.__interactivehook__, sys._baserepl):
+    try:
+        sys_startup_hook_probe(1)
+    except TypeError as err:
+        print("sys-startup-hook-args", "argument" in str(err) or "takes no arguments" in str(err))
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
 class SysSizeProbe:
     def __sizeof__(self):
