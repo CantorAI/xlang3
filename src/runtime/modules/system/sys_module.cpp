@@ -2013,7 +2013,9 @@ bool sys_monitoring_all_events(Runtime& runtime, const Value*, uint32_t argc, Va
 }
 
 Value make_monitoring_events() {
-  Value events = Value::instance(Value::class_object("SimpleNamespace", {}));
+  Value events = Value::instance(Value::class_object(
+      "SimpleNamespace",
+      {{"__module__", Value::string("types")}}));
   std::string ignored;
   object_set_attr(events, "PY_START", Value::int64(kMonitoringEventPyStart), ignored);
   object_set_attr(events, "PY_RESUME", Value::int64(kMonitoringEventPyResume), ignored);
@@ -2035,6 +2037,16 @@ Value make_monitoring_events() {
   object_set_attr(events, "C_RAISE", Value::int64(kMonitoringEventCRaise), ignored);
   object_set_attr(events, "BRANCH", Value::int64(kMonitoringEventBranch), ignored);
   object_set_attr(events, "NO_EVENTS", Value::int64(0), ignored);
+  object_set_attr(
+      events,
+      "__xlang3_string_value__",
+      Value::string(
+          "namespace(PY_START=1, PY_RESUME=2, PY_RETURN=4, PY_YIELD=8, CALL=16, "
+          "LINE=32, INSTRUCTION=64, JUMP=128, BRANCH_LEFT=256, BRANCH_RIGHT=512, "
+          "STOP_ITERATION=1024, RAISE=2048, EXCEPTION_HANDLED=4096, PY_UNWIND=8192, "
+          "PY_THROW=16384, RERAISE=32768, C_RETURN=65536, C_RAISE=131072, "
+          "BRANCH=262144, NO_EVENTS=0)"),
+      ignored);
   return events;
 }
 

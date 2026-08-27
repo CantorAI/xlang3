@@ -631,6 +631,7 @@ monitoring_events = sys.monitoring.events
 monitoring_tool_id = 3
 monitoring_code = (lambda: None).__code__
 print(sys.monitoring.DEBUGGER_ID, sys.monitoring.COVERAGE_ID, sys.monitoring.PROFILER_ID, sys.monitoring.OPTIMIZER_ID, monitoring_events.NO_EVENTS, monitoring_events.LINE, monitoring_events.CALL, monitoring_events.BRANCH)
+print(type(monitoring_events).__name__, type(monitoring_events).__module__, repr(monitoring_events).startswith("namespace(PY_START=1"), "C_RAISE=131072" in repr(monitoring_events), repr(monitoring_events).endswith("NO_EVENTS=0)"))
 print(sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor") is None, sys.monitoring.get_tool(monitoring_tool_id))
 print(sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL) is None, sys.monitoring.get_events(monitoring_tool_id))
 try:

@@ -718,7 +718,8 @@ Native or runtime-backed foundation:
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing, global/local event masks, callback replacement, restart/all-events
-  helpers, C return/raise event-set validation, inactive-tool local-event rejection,
+  helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
+  C return/raise event-set validation, inactive-tool local-event rejection,
   and catchable validation failures,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
