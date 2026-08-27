@@ -297,7 +297,13 @@ sys-noarg-typeerrors 26 26
 True True
 True
 5
-1 42 1 True True
+2 42 'hook\ntext' 2 True True True
+sys-hook-type True
+sys-hook-type True
+sys-hook-type True
+sys-hook-type True
+sys-hook-type True
+sys-hook-type True
 True True True True True
 True False True True
 True True True True

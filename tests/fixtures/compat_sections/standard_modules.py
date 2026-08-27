@@ -1241,8 +1241,12 @@ try:
     sys.stdout = sys_hook_stdout
     sys.stderr = sys_hook_stderr
     sys.displayhook(42)
+    sys.__displayhook__("hook\ntext")
     sys.displayhook(None)
     sys.excepthook(ValueError, ValueError("hooked"), None)
+    sys.__excepthook__(RuntimeError, RuntimeError("defaulted"), None)
+    sys.unraisablehook(object())
+    sys.__unraisablehook__(object())
 finally:
     sys.stdout = saved_stdout
     sys.stderr = saved_stderr
@@ -1250,10 +1254,24 @@ finally:
 print(
     len(sys_hook_stdout.items),
     sys_hook_stdout.items[0].strip(),
+    sys_hook_stdout.items[1].strip(),
     len(sys_hook_stderr.items),
     "ValueError: hooked" in sys_hook_stderr.items[0],
+    "RuntimeError: defaulted" in sys_hook_stderr.items[1],
     builtins._ is saved_builtin_underscore,
 )
+for sys_hook_bad_call in [
+    lambda: sys.displayhook(),
+    lambda: sys.__displayhook__(),
+    lambda: sys.excepthook(ValueError),
+    lambda: sys.__excepthook__(ValueError),
+    lambda: sys.unraisablehook(),
+    lambda: sys.__unraisablehook__(),
+]:
+    try:
+        sys_hook_bad_call()
+    except TypeError as err:
+        print("sys-hook-type", "expected" in str(err))
 sys_debugmalloc_stderr = SysHookCapture()
 try:
     sys.stderr = sys_debugmalloc_stderr

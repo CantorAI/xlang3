@@ -1522,14 +1522,43 @@ bool sys_set_builtin_underscore(Runtime& runtime, const Value& value, std::strin
   return module_set_attr(builtins, "_", value, error);
 }
 
+std::string sys_displayhook_repr(const Value& value) {
+  if (auto* string = value_as_string(value)) {
+    std::string text = "'";
+    for (const unsigned char ch : string_object_view(*string)) {
+      if (ch == '\\' || ch == '\'') {
+        text.push_back('\\');
+        text.push_back(static_cast<char>(ch));
+      } else if (ch == '\n') {
+        text += "\\n";
+      } else if (ch == '\r') {
+        text += "\\r";
+      } else if (ch == '\t') {
+        text += "\\t";
+      } else if (ch >= 32 && ch < 127) {
+        text.push_back(static_cast<char>(ch));
+      } else {
+        constexpr char hex[] = "0123456789abcdef";
+        text += "\\x";
+        text.push_back(hex[ch >> 4]);
+        text.push_back(hex[ch & 0xf]);
+      }
+    }
+    text.push_back('\'');
+    return text;
+  }
+  return value_to_string(value);
+}
+
 bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys.displayhook expected one argument";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (args[0].tag != ValueTag::None) {
     if (!sys_set_builtin_underscore(runtime, Value::none(), error) ||
-        !sys_write_stream(runtime, "stdout", value_to_string(args[0]) + "\n", error) ||
+        !sys_write_stream(runtime, "stdout", sys_displayhook_repr(args[0]) + "\n", error) ||
         !sys_set_builtin_underscore(runtime, args[0], error)) {
       return false;
     }
@@ -1541,6 +1570,7 @@ bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& 
 bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
     error = "sys.excepthook expected type, value, traceback";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const std::string type_name = sys_exception_type_name(args[0]);
@@ -1553,9 +1583,10 @@ bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool sys_unraisablehook(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_unraisablehook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys.unraisablehook expected one argument";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   value_set_none(out);

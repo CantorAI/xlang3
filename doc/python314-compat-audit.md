@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.implementation` namespace repr metadata batch.
+Last updated after the native `sys` display/exception hook parity batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys` display/exception hook parity: `sys.displayhook` and
+  `sys.__displayhook__` now render string values with CPython-style repr text,
+  the default hook aliases are covered, and display/exception/unraisable hook
+  arity failures now raise catchable `TypeError`.
 - Tightened native `sys.implementation` metadata presentation: the runtime now
   publishes a CPython-style namespace repr string for the existing
   implementation fields, and the Standard Modules fixture covers the
@@ -758,7 +762,9 @@ Native or runtime-backed foundation:
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount`,
-  `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
+  `getallocatedblocks`, `exit`, display/exception hooks with stdio routing,
+  `builtins._`, default hook aliases, CPython-style displayhook string repr,
+  and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered non-callable hooks,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
