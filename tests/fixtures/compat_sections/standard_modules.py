@@ -634,6 +634,8 @@ print(sys.monitoring.DEBUGGER_ID, sys.monitoring.COVERAGE_ID, sys.monitoring.PRO
 print(type(monitoring_events).__name__, type(monitoring_events).__module__, repr(monitoring_events).startswith("namespace(PY_START=1"), "C_RAISE=131072" in repr(monitoring_events), repr(monitoring_events).endswith("NO_EVENTS=0)"))
 print(sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor") is None, sys.monitoring.get_tool(monitoring_tool_id))
 print(sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL) is None, sys.monitoring.get_events(monitoring_tool_id))
+print(sys.monitoring.get_tool(True) is None, sys.monitoring.use_tool_id(True, "fixture-monitor-bool") is None, sys.monitoring.get_tool(1))
+print(sys.monitoring.set_events(True, True) is None, sys.monitoring.get_events(1), sys.monitoring.free_tool_id(True) is None, sys.monitoring.get_tool(1) is None)
 try:
     sys.monitoring.set_events(monitoring_tool_id, monitoring_events.C_RETURN)
 except ValueError as err:
@@ -650,6 +652,7 @@ except ValueError as err:
 def sys_monitoring_callback_probe(*args):
     return None
 print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, sys_monitoring_callback_probe) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, None) is sys_monitoring_callback_probe)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RETURN, sys_monitoring_callback_probe) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RETURN, None) is sys_monitoring_callback_probe)
 print(sys.monitoring.restart_events() is None, isinstance(sys.monitoring._all_events(), dict), sys.monitoring.free_tool_id(monitoring_tool_id) is None, sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code))
 try:
     sys.monitoring.get_tool(99)

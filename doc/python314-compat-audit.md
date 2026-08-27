@@ -724,7 +724,7 @@ Native or runtime-backed foundation:
   tool-name reservation/freeing, global/local event masks, callback replacement, restart/all-events
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
   C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
-  and catchable validation failures,
+  bool-as-int tool/event IDs, single C return/raise callback registration, and catchable validation failures,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,

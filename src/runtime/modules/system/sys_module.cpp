@@ -1764,45 +1764,58 @@ bool sys_jit_is_active(Runtime& runtime, const Value*, uint32_t argc, Value& out
 }
 
 bool monitoring_tool_id(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+  } else if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+  } else {
     error = "object cannot be interpreted as an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (value.as.i64 < 0 || value.as.i64 >= kMonitoringToolCount) {
-    error = "invalid tool " + std::to_string(value.as.i64) + " (must be between 0 and 5)";
+  if (out < 0 || out >= kMonitoringToolCount) {
+    error = "invalid tool " + std::to_string(out) + " (must be between 0 and 5)";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  out = value.as.i64;
   return true;
 }
 
-bool monitoring_event_set(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+bool monitoring_event_value(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+  } else if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+  } else {
     error = "object cannot be interpreted as an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (value.as.i64 < 0 || (value.as.i64 & ~kMonitoringEventMask) != 0) {
+  if (out < 0 || (out & ~kMonitoringEventMask) != 0) {
     std::ostringstream stream;
-    stream << "invalid event set 0x" << std::hex << static_cast<uint64_t>(value.as.i64);
+    stream << "invalid event set 0x" << std::hex << static_cast<uint64_t>(out);
     error = stream.str();
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  return true;
+}
+
+bool monitoring_event_set(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (!monitoring_event_value(runtime, value, out, error)) {
+    return false;
+  }
   const int64_t c_events = kMonitoringEventCReturn | kMonitoringEventCRaise;
-  if ((value.as.i64 & c_events) != 0) {
+  if ((out & c_events) != 0) {
     error = "cannot set C_RETURN or C_RAISE events independently";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  out = value.as.i64;
   return true;
 }
 
 bool monitoring_single_event(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
-  if (!monitoring_event_set(runtime, value, out, error)) {
+  if (!monitoring_event_value(runtime, value, out, error)) {
     return false;
   }
   if (out == 0 || (out & (out - 1)) != 0) {
