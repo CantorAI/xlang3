@@ -184,6 +184,14 @@ True 7 8
 True True False
 True
 True True True
+True left right 1
+True True True
+True
+True True
+True local-left local-right other-left
+True False
+True
+True True True
 True fixture-monitor-c
 True True
 True

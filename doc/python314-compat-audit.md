@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.asctime` / `time.ctime` day-spacing batch.
+Last updated after the native `sys.monitoring` branch/jump dispatch batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded live native `sys.monitoring` PEP 669 coverage: VM control-flow
+  execution now emits global and code-local `JUMP`, `BRANCH_LEFT`, and
+  `BRANCH_RIGHT` callbacks with CPython-style `(code, instruction_offset,
+  destination_offset)` arguments for unconditional jumps and conditional
+  branch outcomes.
 - Tightened native `time.asctime` / `time.ctime`: both now use a
   CPython-style C-locale asctime formatter with space-padded single-digit
   month days, while preserving two-digit days, and the Standard Modules
@@ -736,7 +741,9 @@ Native or runtime-backed foundation:
   live global and code-local `PY_START`/`PY_RETURN`/`LINE`/`INSTRUCTION` callback dispatch with
   CPython-style callback arguments, live native `CALL` plus companion `C_RETURN`/`C_RAISE`
   dispatch for successful and failing native call paths, stable code-object local event matching,
-  callback-recursion suppression, and live caught-exception `RAISE`/`EXCEPTION_HANDLED`
+  callback-recursion suppression, live global and code-local `JUMP`/`BRANCH_LEFT`/
+  `BRANCH_RIGHT` dispatch with CPython-style destination-offset callback arguments,
+  and live caught-exception `RAISE`/`EXCEPTION_HANDLED`
   dispatch with CPython-style callback arguments, live `PY_UNWIND` dispatch when
   exceptions leave unhandled Python frames with CPython-style callback arguments,
   `_is_immortal` for XLang3 tagged singleton/scalar values,

@@ -776,6 +776,47 @@ print(sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_i
 sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_instruction_target.__code__, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(len(monitoring_local_instruction_events) >= 2, "sys_monitoring_local_instruction_target" in monitoring_local_instruction_events, "sys_monitoring_local_instruction_other" in monitoring_local_instruction_events)
+monitoring_branch_events = []
+def sys_monitoring_branch_callback(code, instruction_offset, destination_offset):
+    monitoring_branch_events.append((code.co_name, isinstance(instruction_offset, int), isinstance(destination_offset, int), destination_offset != instruction_offset))
+
+def sys_monitoring_branch_target(flag):
+    if flag:
+        return "left"
+    return "right"
+
+def sys_monitoring_jump_target():
+    total = 0
+    while total < 1:
+        total += 1
+    return total
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-branch") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.BRANCH_LEFT, sys_monitoring_branch_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.BRANCH_RIGHT, sys_monitoring_branch_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.JUMP, sys_monitoring_branch_callback) is None)
+print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.BRANCH_LEFT | monitoring_events.BRANCH_RIGHT | monitoring_events.JUMP) is None, sys_monitoring_branch_target(True), sys_monitoring_branch_target(False), sys_monitoring_jump_target())
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(any(event[0] == "sys_monitoring_branch_target" and event[1] and event[2] and event[3] for event in monitoring_branch_events), any(event[0] == "sys_monitoring_jump_target" and event[1] and event[2] and event[3] for event in monitoring_branch_events), len(monitoring_branch_events) >= 4)
+monitoring_local_branch_events = []
+def sys_monitoring_local_branch_callback(code, instruction_offset, destination_offset):
+    monitoring_local_branch_events.append(code.co_name)
+
+def sys_monitoring_local_branch_target(flag):
+    if flag:
+        return "local-left"
+    return "local-right"
+
+def sys_monitoring_local_branch_other(flag):
+    if flag:
+        return "other-left"
+    return "other-right"
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-local-branch") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.BRANCH_LEFT, sys_monitoring_local_branch_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.BRANCH_RIGHT, sys_monitoring_local_branch_callback) is None)
+print(sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_branch_target.__code__, monitoring_events.BRANCH_LEFT | monitoring_events.BRANCH_RIGHT) is None, sys_monitoring_local_branch_target(True), sys_monitoring_local_branch_target(False), sys_monitoring_local_branch_other(True))
+sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_branch_target.__code__, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(monitoring_local_branch_events.count("sys_monitoring_local_branch_target") >= 2, "sys_monitoring_local_branch_other" in monitoring_local_branch_events)
 monitoring_c_events = []
 def sys_monitoring_c_callback(code, instruction_offset, callable):
     monitoring_c_events.append((getattr(code, "co_name", None), isinstance(instruction_offset, int), callable))

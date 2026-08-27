@@ -18,6 +18,7 @@ limitations under the License.
 #include "../xlang_vm_arithmetic.h"
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang3/builtins.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 
@@ -27,31 +28,50 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
-XLANG3_HOT_INLINE XlangVMOpFlow jump(const ir::Instr& in, size_t& ip) {
+template <typename EmitMonitoringEvent>
+XLANG3_HOT_INLINE XlangVMOpFlow jump(
+    const ir::Instr& in,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event) {
+  Value destination = Value::int64(static_cast<int64_t>(in.dst));
+  if (!emit_monitoring_event(kSysMonitoringEventJump, &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
   ip = in.dst;
   return XlangVMOpFlow::ContinueLoop;
 }
 
+template <typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false(
     const ir::Instr& in,
     const ir::Module& module,
     XlangVMSmallRegisterBuffer& regs,
-    size_t& ip) {
-  if (!xlang_vm_truthy(module, regs[in.a])) {
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event) {
+  const bool condition = xlang_vm_truthy(module, regs[in.a]);
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
     ip = in.dst;
     return XlangVMOpFlow::ContinueLoop;
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_const_false(
     const ir::Instr& in,
     const ir::Function& fn,
     XlangVMSmallValueBuffer& locals,
     size_t& ip,
     RuntimeResult& result,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    EmitMonitoringEvent&& emit_monitoring_event) {
   if (in.a >= locals.size() || in.b >= fn.constants.size()) {
     result.errors.push_back("invalid local const jump");
     return XlangVMOpFlow::ReturnResult;
@@ -64,7 +84,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_const_false(
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
-  if (!value_truthy(compare_result)) {
+  const bool condition = value_truthy(compare_result);
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
     ip = in.dst;
     return XlangVMOpFlow::ContinueLoop;
   }
