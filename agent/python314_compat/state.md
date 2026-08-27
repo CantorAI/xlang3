@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.getsizeof __sizeof__ TypeError default fallback and negative-result ValueError match covered CPython 3.14 probes
+time gmtime/localtime/ctime bool timestamp conversion matches CPython 3.14 epoch-second semantics
 ```
 
 Current next loop:

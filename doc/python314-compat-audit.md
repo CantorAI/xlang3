@@ -235,6 +235,9 @@ Recent completed batches:
 - Expanded native `abc`: `update_abstractmethods()` now recomputes
   `__abstractmethods__` after post-creation class mutations, returns non-ABC
   objects unchanged, and feeds the existing abstract-instantiation enforcement.
+- Expanded native `time` timestamp conversion: `gmtime`, `localtime`, and
+  `ctime` now accept bool timestamp arguments with CPython-compatible
+  `False`/`True` conversion to epoch seconds `0`/`1`.
 - Fixed `isinstance`/`issubclass` ABC dispatch ordering so `ABCMeta` hooks run
   before direct subclass acceptance, including `__subclasshook__` returning
   `False` for a real subclass.
@@ -685,7 +688,8 @@ Native or runtime-backed foundation:
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index`, CPython-style named-field `__repr__`, platform-backed timezone constants/names,
-  and `strptime` CPython default-field filling, weekday/year-day normalization,
+  bool timestamp arguments for `gmtime`/`localtime`/`ctime`, and `strptime`
+  CPython default-field filling, weekday/year-day normalization,
   ordinal-day `%j`, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z`
   metadata, catchable `ValueError` failures, and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending

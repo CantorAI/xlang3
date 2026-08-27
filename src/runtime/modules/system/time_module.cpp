@@ -484,6 +484,10 @@ Value make_struct_time_from_timestamp(const Value& klass, std::time_t timestamp,
 }
 
 bool numeric_time_arg(const Value& value, std::time_t& out, std::string& error) {
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? static_cast<std::time_t>(1) : static_cast<std::time_t>(0);
+    return true;
+  }
   if (value.tag == ValueTag::Int64) {
     out = static_cast<std::time_t>(value.as.i64);
     return true;
