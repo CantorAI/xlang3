@@ -406,6 +406,12 @@ bool consume_strptime_literal(const std::string& text, size_t& pos, char expecte
   return true;
 }
 
+void consume_optional_strptime_hour_space(const std::string& text, size_t& pos) {
+  if (pos < text.size() && text[pos] == ' ') {
+    ++pos;
+  }
+}
+
 bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) {
   if (pos < text.size() && text[pos] == 'Z') {
     ++pos;
@@ -642,6 +648,7 @@ bool parse_strptime_directives(
         saw_month_day = true;
         break;
       case 'H':
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
         }
@@ -657,6 +664,7 @@ bool parse_strptime_directives(
         tm.tm_hour = value;
         break;
       case 'I':
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
           return false;
         }
@@ -774,6 +782,7 @@ bool parse_strptime_directives(
         saw_month_day = true;
         break;
       case 'X':
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
         }
@@ -790,6 +799,7 @@ bool parse_strptime_directives(
         tm.tm_sec = value;
         break;
       case 'R':
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
         }
@@ -801,6 +811,7 @@ bool parse_strptime_directives(
         tm.tm_min = value;
         break;
       case 'T':
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
         }
@@ -817,6 +828,7 @@ bool parse_strptime_directives(
         tm.tm_sec = value;
         break;
       case 'r':
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
           return false;
         }
@@ -886,6 +898,7 @@ bool parse_strptime_directives(
         if (!consume_required_strptime_spaces(text, text_pos)) {
           return false;
         }
+        consume_optional_strptime_hour_space(text, text_pos);
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
           return false;
         }

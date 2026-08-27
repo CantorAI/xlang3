@@ -862,7 +862,9 @@ Native or runtime-backed foundation:
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
   CPython-style whitespace matching for format and `%c` composite whitespace runs
-  including tab/run input and missing-whitespace rejection,
+  including tab/run input and missing-whitespace rejection, single-space-padded
+  hour acceptance for `%H`/`%I` and `%X`/`%R`/`%T`/`%r`/`%c` hour fields with
+  two-space mismatch rejection,
   catchable `ValueError` failures including CPython-style format pre-validation
   ordering for bad-directive and stray-percent rejection,
   ISO directive validation failures, `%Y`/`%G` zero-year range rejection, and trailing-input rejection;

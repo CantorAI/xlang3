@@ -1356,6 +1356,13 @@ parsed_locale_hour_minute = time.strptime("1:02", "%R")
 parsed_locale_time_seconds = time.strptime("1:02:03", "%T")
 parsed_locale_12hour_pm = time.strptime("01:02:03 PM", "%r")
 parsed_locale_12hour_midnight = time.strptime("12:00:00 AM", "%r")
+parsed_blank_hour = time.strptime(" 1", "%H")
+parsed_blank_12hour = time.strptime(" 1", "%I")
+parsed_blank_locale_time = time.strptime(" 1:02:03", "%X")
+parsed_blank_locale_hour_minute = time.strptime(" 1:02", "%R")
+parsed_blank_locale_time_seconds = time.strptime(" 1:02:03", "%T")
+parsed_blank_locale_12hour = time.strptime(" 1:02:03 PM", "%r")
+parsed_blank_locale_datetime = time.strptime("Wed Aug  6  1:02:03 2026", "%c")
 parsed_space_day = time.strptime(" 6", "%e")
 parsed_space_padded_day = time.strptime(" 7", "%d")
 parsed_default_year_leap_day = time.strptime("02/29", "%m/%d")
@@ -1384,6 +1391,7 @@ print(tuple(parsed_iso_week), tuple(parsed_iso_week_name), tuple(parsed_iso_week
 print(tuple(parsed_locale_datetime), tuple(parsed_locale_date), tuple(parsed_locale_time), parsed_space_day.tm_mday, parsed_space_padded_day.tm_mday)
 print(tuple(parsed_locale_datetime_spaced_day), tuple(parsed_locale_full_names))
 print(tuple(parsed_locale_hour_minute), tuple(parsed_locale_time_seconds), parsed_locale_12hour_pm.tm_hour, parsed_locale_12hour_midnight.tm_hour)
+print(parsed_blank_hour.tm_hour, parsed_blank_12hour.tm_hour, parsed_blank_locale_time.tm_hour, parsed_blank_locale_hour_minute.tm_hour, parsed_blank_locale_time_seconds.tm_hour, parsed_blank_locale_12hour.tm_hour, parsed_blank_locale_datetime.tm_hour)
 print(tuple(parsed_default_year_leap_day), parsed_default_year_leap_day.tm_mon, parsed_default_year_leap_day.tm_mday, parsed_default_year_leap_day.tm_yday)
 print(tuple(parsed_whitespace_run)[:3], tuple(parsed_whitespace_format_run)[:3])
 print(tuple(parsed_whitespace_tab_run)[:3], tuple(parsed_locale_datetime_tab_day)[:3])
@@ -1425,6 +1433,11 @@ for bad_strptime_args in [
     ("2026-04-31", "%Y-%m-%d"),
     ("Feb 31", "%b %d"),
     ("  7", "%d"),
+    ("  1", "%H"),
+    ("  1", "%I"),
+    ("  1:02:03", "%X"),
+    ("  1:02", "%R"),
+    ("  1:02:03 PM", "%r"),
     ("13:02:03 PM", "%r"),
     ("01:02:03PM", "%r"),
 ]:

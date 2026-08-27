@@ -340,6 +340,7 @@ True True True
 (2026, 8, 26, 1, 2, 3, 2, 238, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1) 6 7
 (2026, 8, 6, 1, 2, 3, 2, 218, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1)
 (1900, 1, 1, 1, 2, 0, 0, 1, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1) 13 0
+1 1 1 1 1 13 1
 (1900, 2, 29, 0, 0, 0, 3, 60, -1) 2 29 60
 (2026, 8, 26) (2026, 8, 26)
 (2026, 8, 26) (2026, 8, 6)
@@ -355,6 +356,11 @@ struct-time-index-missing True
 struct-time-extra True
 struct-time-extra True
 struct-time-extra True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
 strptime-trailing True
 strptime-trailing True
 strptime-trailing True
