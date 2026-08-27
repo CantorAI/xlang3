@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime accepts CPython-style %f fractional seconds and returns normalized struct_time fields
+time.strptime accepts CPython-style %z compact/fractional offset seconds and rejects malformed offset spellings
 ```
 
 Current next loop:

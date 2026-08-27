@@ -850,6 +850,9 @@ parsed_month_day = time.strptime("08-26", "%m-%d")
 parsed_clock_only = time.strptime("01:02:03", "%H:%M:%S")
 parsed_yday = time.strptime("2026 239", "%Y %j")
 parsed_offset = time.strptime("+05:30", "%z")
+parsed_offset_compact_seconds = time.strptime("+053045", "%z")
+parsed_offset_fractional_seconds = time.strptime("+05:30:45.123456", "%z")
+parsed_offset_zulu = time.strptime("Z", "%z")
 parsed_zone = time.strptime("UTC", "%Z")
 parsed_short_year_low = time.strptime("68 01 02", "%y %m %d")
 parsed_short_year_high = time.strptime("69 01 02", "%y %m %d")
@@ -868,6 +871,7 @@ print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed
 print(tuple(parsed_year_only), tuple(parsed_month_day), tuple(parsed_clock_only))
 print(tuple(parsed_yday), parsed_yday.tm_mon, parsed_yday.tm_mday, parsed_yday.tm_yday)
 print(parsed_offset.tm_zone is None, parsed_offset.tm_gmtoff, parsed_zone.tm_zone, parsed_zone.tm_gmtoff is None, parsed_zone.tm_isdst)
+print(parsed_offset_compact_seconds.tm_gmtoff, parsed_offset_fractional_seconds.tm_gmtoff, parsed_offset_zulu.tm_gmtoff)
 print(tuple(parsed_short_year_low), tuple(parsed_short_year_high))
 print(parsed_midnight.tm_hour, parsed_noon.tm_hour, parsed_pm_hour.tm_hour, parsed_pm_hour.tm_wday)
 print(tuple(parsed_fraction_short), tuple(parsed_fraction_long))
@@ -897,6 +901,9 @@ for bad_strptime_args in [
     ("2026x", "%Y"),
     ("2026 ", "%Y"),
     ("2026-08-26 01:02:03.", "%Y-%m-%d %H:%M:%S.%f"),
+    ("z", "%z"),
+    ("+05:3045", "%z"),
+    ("+05:30:45.1234567", "%z"),
 ]:
     try:
         time.strptime(*bad_strptime_args)

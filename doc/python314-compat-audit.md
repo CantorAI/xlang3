@@ -709,7 +709,8 @@ Native or runtime-backed foundation:
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
   ordinal-day `%j`, `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
-  `%f` fractional-second acceptance/discarding, catchable `ValueError` failures,
+  `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
+  offsets, `%f` fractional-second acceptance/discarding, catchable `ValueError` failures,
   and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset

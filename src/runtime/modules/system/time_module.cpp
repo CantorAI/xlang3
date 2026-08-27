@@ -219,7 +219,7 @@ bool consume_case_word(const std::string& text, size_t& pos, const std::vector<c
 }
 
 bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) {
-  if (pos < text.size() && (text[pos] == 'Z' || text[pos] == 'z')) {
+  if (pos < text.size() && text[pos] == 'Z') {
     ++pos;
     gmtoff = Value::int64(0);
     return true;
@@ -234,6 +234,7 @@ bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) 
   if (!parse_fixed_digits(text, pos, 2, 2, hour)) {
     return false;
   }
+  const bool minute_has_colon = pos < text.size() && text[pos] == ':';
   if (pos < text.size() && text[pos] == ':') {
     ++pos;
   }
@@ -241,10 +242,30 @@ bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) 
     return false;
   }
   int second = 0;
-  if (pos < text.size() && text[pos] == ':') {
-    ++pos;
+  if (pos < text.size() && (std::isdigit(static_cast<unsigned char>(text[pos])) || text[pos] == ':')) {
+    const bool second_has_colon = text[pos] == ':';
+    if (second_has_colon != minute_has_colon) {
+      return false;
+    }
+    if (second_has_colon) {
+      ++pos;
+    }
     if (!parse_fixed_digits(text, pos, 2, 2, second)) {
       return false;
+    }
+    if (pos < text.size() && text[pos] == '.') {
+      ++pos;
+      size_t fraction_digits = 0;
+      while (pos < text.size() && fraction_digits < 6 && std::isdigit(static_cast<unsigned char>(text[pos]))) {
+        ++pos;
+        ++fraction_digits;
+      }
+      if (fraction_digits == 0) {
+        return false;
+      }
+      if (pos < text.size() && std::isdigit(static_cast<unsigned char>(text[pos]))) {
+        return false;
+      }
     }
   }
   if (hour > 23 || minute > 59 || second > 59) {
