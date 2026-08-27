@@ -654,6 +654,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
                  ? XlangVMOpFlow::ContinueLoop
                  : XlangVMOpFlow::ReturnResult;
     }
+    if (error == "index out of range") {
+      return raise_exception_value(runtime.make_exception("IndexError", error)) ? XlangVMOpFlow::ContinueLoop
+                                                                                : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   xlang_vm_cache_note_hit(cache);

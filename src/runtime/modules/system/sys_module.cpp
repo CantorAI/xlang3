@@ -190,11 +190,11 @@ bool sys_structseq_count(Runtime&, const Value* args, uint32_t argc, Value& out,
 }
 
 bool sys_structseq_bound(const Value& value, size_t size, size_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  if (value.tag != ValueTag::Int64 && value.tag != ValueTag::Bool) {
     error = "sys structseq index bounds must be int";
     return false;
   }
-  int64_t index = value.as.i64;
+  int64_t index = value.tag == ValueTag::Bool ? (value.as.b ? 1 : 0) : value.as.i64;
   if (index < 0) {
     index += static_cast<int64_t>(size);
   }

@@ -784,6 +784,11 @@ print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sy
 print(type(sys.float_info).__match_args__[0], type(sys.hash_info).__match_args__[-1], type(sys.thread_info).__match_args__)
 print(isinstance(sys.version_info, tuple), sys.version_info.count(3), sys.version_info.index("final"), list(sys.version_info)[0])
 print(isinstance(sys.flags, tuple), sys.flags.count(sys.flags.gil) >= 1, sys.flags.index(sys.flags.int_max_str_digits), sys.flags.n_fields > len(sys.flags))
+print(sys.flags.index(0, True), sys.flags.index(sys.flags.int_max_str_digits, False), sys.flags[-1])
+try:
+    sys.flags[len(sys.flags)]
+except IndexError as err:
+    print("sys-flags-index-error", "range" in str(err) or "out of range" in str(err))
 print(isinstance(sys.float_info, tuple), sys.float_info.count(sys.float_info.radix), sys.float_info.index(sys.float_info.radix), list(sys.float_info)[-1])
 print(isinstance(sys.hash_info, tuple), sys.hash_info.index(sys.hash_info.algorithm), sys.hash_info.count(sys.hash_info.cutoff) >= 1)
 print(isinstance(sys.thread_info, tuple), sys.thread_info.index(sys.thread_info.name), sys.thread_info.count(sys.thread_info.name))

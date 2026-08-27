@@ -1,14 +1,14 @@
 before fail
 caught from function
 enter suppress
-<class 'RuntimeError'>
+<class 'IndexError'>
 index out of range
 None
 exit suppress
 after suppress
 enter propagate
 before fail
-<class 'RuntimeError'>
+<class 'IndexError'>
 index out of range
 None
 exit propagate

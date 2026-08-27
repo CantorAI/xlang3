@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring RAISE and EXCEPTION_HANDLED caught-exception dispatch
+CPython-style sequence IndexError and sys structseq bool-bound indexing
 ```
 
 Current next loop:

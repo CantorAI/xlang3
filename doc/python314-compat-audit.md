@@ -704,7 +704,8 @@ Native or runtime-backed foundation:
   version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors,
-  tuple inheritance, sequence iteration, tuple-backed `count`/`index`, CPython-style named-field `repr`,
+  tuple inheritance, sequence iteration, tuple-backed `count`/`index` including bool-as-int
+  start/stop bounds and CPython-style out-of-range `IndexError`, CPython-style named-field `repr`,
   and type-level `__match_args__`,
   `implementation` metadata, `builtin_module_names`,
   CPython 3.14 top-level frozen `stdlib_module_names`, `_git`/`_vpath`/`_home`
