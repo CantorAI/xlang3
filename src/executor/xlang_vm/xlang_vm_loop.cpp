@@ -819,6 +819,12 @@ RuntimeResult Interpreter::run_function(
             return result;
           }
         }
+        if (resumed_generator) {
+          resumed_generator = false;
+          if (!emit_monitoring_event(frame, kSysMonitoringEventPyResume, nullptr)) {
+            return result;
+          }
+        }
         const uint32_t source_line = source_line_for_frame(frame);
         if (source_line != 0 && source_line != frame.last_monitoring_line) {
           frame.last_monitoring_line = source_line;

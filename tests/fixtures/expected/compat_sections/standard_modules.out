@@ -166,6 +166,11 @@ True monitoring-live
 sys_monitoring_live_target True 0 sys_monitoring_live_target True 1 monitoring-live
 True
 True True
+True monitoring-yield
+monitoring-generator-stop monitoring-return
+2 (sys_monitoring_generator_target, True, 1, monitoring-yield) (sys_monitoring_generator_target, True, 0, None)
+True
+True True
 True monitoring-local monitoring-other
 2 sys_monitoring_local_target True 0 sys_monitoring_local_target True 1 monitoring-local
 True

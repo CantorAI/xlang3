@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.monitoring` branch/jump dispatch batch.
+Last updated after the native `sys.monitoring` generator resume/yield dispatch batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded live native `sys.monitoring` PEP 669 coverage for generators: VM
+  generator suspension now emits `PY_YIELD` with the yielded value, generator
+  continuation now emits `PY_RESUME`, and generator completion now preserves
+  the return value on `StopIteration.value`/`args` for `next()` and generator
+  method paths.
 - Expanded live native `sys.monitoring` PEP 669 coverage: VM control-flow
   execution now emits global and code-local `JUMP`, `BRANCH_LEFT`, and
   `BRANCH_RIGHT` callbacks with CPython-style `(code, instruction_offset,
@@ -743,6 +748,8 @@ Native or runtime-backed foundation:
   dispatch for successful and failing native call paths, stable code-object local event matching,
   callback-recursion suppression, live global and code-local `JUMP`/`BRANCH_LEFT`/
   `BRANCH_RIGHT` dispatch with CPython-style destination-offset callback arguments,
+  live generator `PY_YIELD`/`PY_RESUME` dispatch with CPython-style callback
+  arguments and generator return propagation through `StopIteration.value`,
   and live caught-exception `RAISE`/`EXCEPTION_HANDLED`
   dispatch with CPython-style callback arguments, live `PY_UNWIND` dispatch when
   exceptions leave unhandled Python frames with CPython-style callback arguments,
@@ -765,7 +772,7 @@ Native or runtime-backed foundation:
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
   `_is_gil_enabled` enabled result with catchable argument errors;
   full CPython startup flags/config/runtime internals and remaining live PEP 669
-  event coverage beyond instruction/call/line/return/caught-exception/unwind paths pending
+  event coverage beyond instruction/call/line/return/generator-resume-yield/caught-exception/unwind paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`/`ctime` CPython-style C-locale

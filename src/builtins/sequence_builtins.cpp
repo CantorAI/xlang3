@@ -50,6 +50,19 @@ bool pending_exception_is(Runtime& runtime, const Value& exception, const char* 
   return klass != nullptr && klass->name == class_name;
 }
 
+void raise_stop_iteration_with_value(Runtime& runtime, const Value& return_value) {
+  Value exception = runtime.make_exception("StopIteration", "");
+  std::string ignored;
+  object_set_attr(exception, "value", return_value, ignored);
+  if (return_value.tag == ValueTag::None) {
+    object_set_attr(exception, "args", Value::tuple({}), ignored);
+  } else {
+    object_set_attr(exception, "args", Value::tuple({return_value}), ignored);
+    object_set_attr(exception, "message", return_value, ignored);
+  }
+  runtime.set_pending_exception(std::move(exception));
+}
+
 bool builtin_range(
     Runtime& runtime,
     const Value* args,
@@ -180,7 +193,7 @@ bool builtin_next(
       return true;
     }
     error = "";
-    runtime.raise_class_error("StopIteration", error);
+    raise_stop_iteration_with_value(runtime, out);
     return false;
   }
   return true;

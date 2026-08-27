@@ -216,15 +216,17 @@ XLANG3_HOT_INLINE void match_exception(
   value_set_bool(regs[in.dst], exception_matches(regs[in.a]));
 }
 
-template <typename RaiseRuntimeError>
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip,
+    VMFrame& frame,
     std::vector<VMFrame>& frames,
     size_t frame_count,
     GeneratorObject* generator,
     RuntimeResult& result,
+    EmitMonitoringEvent&& emit_monitoring_event,
     RaiseRuntimeError&& raise_runtime_error) {
   if (generator == nullptr) {
     return raise_runtime_error("yield used outside generator") ? XlangVMOpFlow::ContinueLoop
@@ -233,6 +235,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
 
   Value yielded_value;
   value_assign_fast(yielded_value, regs[in.a]);
+  if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_value)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
   ++ip;
 
   auto* state = new GeneratorVMState();

@@ -108,7 +108,7 @@ XLANG3_VM_FAST(ClearException, xlang3::xlang_vm::ops::clear_exception(runtime_, 
 XLANG3_VM_FAST(LoadException, xlang3::xlang_vm::ops::load_exception(in, regs, current_exception))
 XLANG3_VM_FAST(LoadExceptionType, xlang3::xlang_vm::ops::load_exception_type(in, runtime_, regs, current_exception))
 XLANG3_VM_FAST(MatchException, xlang3::xlang_vm::ops::match_exception(in, regs, exception_matches))
-XLANG3_VM_FLOW(Yield, xlang3::xlang_vm::ops::yield_op(in, regs, ip, frames, frame_count, generator, result, raise_runtime_error))
+XLANG3_VM_FLOW(Yield, xlang3::xlang_vm::ops::yield_op(in, regs, ip, frame, frames, frame_count, generator, result, emit_monitoring_event, raise_runtime_error))
 XLANG3_VM_FLOW(Return, xlang3::xlang_vm::ops::return_op(in, regs, generator, result, finish_frame))
 XLANG3_VM_FLOW(Await, xlang3::xlang_vm::ops::await_op(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(YieldFrom, xlang3::xlang_vm::ops::yield_from(raise_runtime_error))

@@ -50,6 +50,19 @@ void make_async_generator_awaitable(
   out.as.obj = &obj->header;
 }
 
+void raise_stop_iteration_with_value(Runtime& runtime, const Value& return_value) {
+  Value exception = runtime.make_exception("StopIteration", "");
+  std::string ignored;
+  object_set_attr(exception, "value", return_value, ignored);
+  if (return_value.tag == ValueTag::None) {
+    object_set_attr(exception, "args", Value::tuple({}), ignored);
+  } else {
+    object_set_attr(exception, "args", Value::tuple({return_value}), ignored);
+    object_set_attr(exception, "message", return_value, ignored);
+  }
+  runtime.set_pending_exception(std::move(exception));
+}
+
 } // namespace
 
 Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async, bool is_coroutine) {
@@ -299,7 +312,7 @@ bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, V
   }
   if (done) {
     error.clear();
-    runtime.raise_class_error("StopIteration", error);
+    raise_stop_iteration_with_value(runtime, out);
     return false;
   }
   return true;
@@ -318,7 +331,7 @@ bool generator_next_method(Runtime& runtime, const Value* args, uint32_t argc, V
   }
   if (done) {
     error.clear();
-    runtime.raise_class_error("StopIteration", error);
+    raise_stop_iteration_with_value(runtime, out);
     return false;
   }
   return true;

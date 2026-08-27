@@ -698,6 +698,25 @@ print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.PY_START |
 sys.monitoring.set_events(monitoring_tool_id, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(monitoring_live_events[0][0], monitoring_live_events[0][1], monitoring_live_events[0][2], monitoring_live_events[1][0], monitoring_live_events[1][1], monitoring_live_events[1][2], monitoring_live_events[1][3])
+monitoring_generator_events = []
+def sys_monitoring_generator_callback(code, instruction_offset, *args):
+    monitoring_generator_events.append((code.co_name, isinstance(instruction_offset, int), len(args), args[0] if args else None))
+
+def sys_monitoring_generator_target():
+    yield "monitoring-yield"
+    return "monitoring-return"
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-generator") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_RESUME, sys_monitoring_generator_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.PY_YIELD, sys_monitoring_generator_callback) is None)
+monitoring_generator = sys_monitoring_generator_target()
+print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.PY_RESUME | monitoring_events.PY_YIELD) is None, next(monitoring_generator))
+try:
+    next(monitoring_generator)
+except StopIteration as err:
+    print("monitoring-generator-stop", err.value)
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_generator_events), monitoring_generator_events[0], monitoring_generator_events[1])
 monitoring_local_events = []
 def sys_monitoring_local_callback(code, instruction_offset, *args):
     monitoring_local_events.append((code.co_name, isinstance(instruction_offset, int), len(args), args[0] if args else None))

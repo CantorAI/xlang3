@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring live branch/jump dispatch for VM control flow
+sys.monitoring live generator resume/yield dispatch and StopIteration.value propagation
 ```
 
 Current next loop:
