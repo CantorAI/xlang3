@@ -825,7 +825,7 @@ Native or runtime-backed foundation:
   event coverage beyond instruction/call/line/return/generator-resume-yield/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
-  `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`/`ctime` CPython-style C-locale
+  `gmtime`, `mktime`, `strftime`, `strptime`, `sleep` bool-as-int zero-delay handling, `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, constructible/indexable/iterable
   `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
   `n_unnamed_fields`, module-level `_STRUCT_TM_ITEMS`, type-level `__match_args__`,

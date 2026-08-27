@@ -1291,6 +1291,7 @@ print(
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
 print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() >= 0, time.thread_time_ns() >= 0)
+print(time.sleep(False) is None)
 epoch_utc = time.gmtime(0)
 print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_mon, epoch_utc.tm_mday, time.strftime("%Y", epoch_utc))
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))

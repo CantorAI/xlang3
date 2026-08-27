@@ -1476,7 +1476,9 @@ bool time_sleep(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
     return false;
   }
   double seconds = 0.0;
-  if (args[0].tag == ValueTag::Int64) {
+  if (args[0].tag == ValueTag::Bool) {
+    seconds = args[0].as.b ? 1.0 : 0.0;
+  } else if (args[0].tag == ValueTag::Int64) {
     seconds = static_cast<double>(args[0].as.i64);
   } else if (args[0].tag == ValueTag::Double) {
     seconds = args[0].as.f64;
