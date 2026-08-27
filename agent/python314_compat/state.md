@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime CPython edge handling for %j calendar override, lowercase %Z spelling, and space-padded %d
+sys.monitoring CPython 3.14 configuration surface with stateful tool/event/callback handling
 ```
 
 Current next loop:

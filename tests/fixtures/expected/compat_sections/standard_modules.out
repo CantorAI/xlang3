@@ -135,6 +135,18 @@ True True True
 True False True 2 False False True False
 3 14 7 xlang3-314
 False False False False False
+0 1 2 5 0 32 16 262144
+True True fixture-monitor
+0 True 48
+0 True 32
+True True
+True True True True 0 32
+monitoring-tool-id True
+monitoring-tool-name True
+monitoring-unused-tool True
+monitoring-event-set True
+monitoring-code-type True
+monitoring-callback-event True
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0

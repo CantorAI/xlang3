@@ -28,6 +28,7 @@ limitations under the License.
 #include "runtime/memory/x3_runtime_memory.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
@@ -35,6 +36,7 @@ limitations under the License.
 #include <limits>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -60,6 +62,43 @@ Value g_asyncgen_firstiter = Value::none();
 Value g_asyncgen_finalizer = Value::none();
 std::string g_filesystem_encoding = "utf-8";
 std::string g_filesystem_encode_errors = "surrogatepass";
+constexpr int64_t kMonitoringToolCount = 6;
+constexpr int64_t kMonitoringEventPyStart = 1;
+constexpr int64_t kMonitoringEventPyResume = 2;
+constexpr int64_t kMonitoringEventPyReturn = 4;
+constexpr int64_t kMonitoringEventPyYield = 8;
+constexpr int64_t kMonitoringEventCall = 16;
+constexpr int64_t kMonitoringEventLine = 32;
+constexpr int64_t kMonitoringEventInstruction = 64;
+constexpr int64_t kMonitoringEventJump = 128;
+constexpr int64_t kMonitoringEventBranchLeft = 256;
+constexpr int64_t kMonitoringEventBranchRight = 512;
+constexpr int64_t kMonitoringEventStopIteration = 1024;
+constexpr int64_t kMonitoringEventRaise = 2048;
+constexpr int64_t kMonitoringEventExceptionHandled = 4096;
+constexpr int64_t kMonitoringEventPyUnwind = 8192;
+constexpr int64_t kMonitoringEventPyThrow = 16384;
+constexpr int64_t kMonitoringEventReraise = 32768;
+constexpr int64_t kMonitoringEventCReturn = 65536;
+constexpr int64_t kMonitoringEventCRaise = 131072;
+constexpr int64_t kMonitoringEventBranch = 262144;
+constexpr int64_t kMonitoringEventMask =
+    kMonitoringEventPyStart | kMonitoringEventPyResume | kMonitoringEventPyReturn |
+    kMonitoringEventPyYield | kMonitoringEventCall | kMonitoringEventLine |
+    kMonitoringEventInstruction | kMonitoringEventJump | kMonitoringEventBranchLeft |
+    kMonitoringEventBranchRight | kMonitoringEventStopIteration | kMonitoringEventRaise |
+    kMonitoringEventExceptionHandled | kMonitoringEventPyUnwind | kMonitoringEventPyThrow |
+    kMonitoringEventReraise | kMonitoringEventCReturn | kMonitoringEventCRaise |
+    kMonitoringEventBranch;
+
+struct MonitoringToolState {
+  Value name = Value::none();
+  int64_t events = 0;
+  std::unordered_map<Object*, int64_t> local_events;
+  std::unordered_map<int64_t, Value> callbacks;
+};
+
+std::array<MonitoringToolState, kMonitoringToolCount> g_monitoring_tools;
 
 std::vector<Value>& interned_strings() {
   static auto* table = new std::vector<Value>();
@@ -1715,6 +1754,269 @@ bool sys_jit_is_active(Runtime& runtime, const Value*, uint32_t argc, Value& out
   return true;
 }
 
+bool monitoring_tool_id(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = "object cannot be interpreted as an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value.as.i64 < 0 || value.as.i64 >= kMonitoringToolCount) {
+    error = "invalid tool " + std::to_string(value.as.i64) + " (must be between 0 and 5)";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = value.as.i64;
+  return true;
+}
+
+bool monitoring_event_set(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (value.tag != ValueTag::Int64) {
+    error = "object cannot be interpreted as an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value.as.i64 < 0 || (value.as.i64 & ~kMonitoringEventMask) != 0) {
+    std::ostringstream stream;
+    stream << "invalid event set 0x" << std::hex << static_cast<uint64_t>(value.as.i64);
+    error = stream.str();
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = value.as.i64;
+  return true;
+}
+
+bool monitoring_single_event(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (!monitoring_event_set(runtime, value, out, error)) {
+    return false;
+  }
+  if (out == 0 || (out & (out - 1)) != 0) {
+    error = "The callback can only be set for one event at a time";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  return true;
+}
+
+bool sys_monitoring_use_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "sys.monitoring.use_tool_id expected tool_id and name";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  if (value_as_string(args[1]) == nullptr) {
+    error = "tool name must be a str";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
+  if (tool.name.tag != ValueTag::None) {
+    error = "tool " + std::to_string(tool_id) + " is already in use";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  tool.name = args[1];
+  value_set_none(out);
+  return true;
+}
+
+bool sys_monitoring_free_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.monitoring.free_tool_id expected tool_id";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
+  tool.name = Value::none();
+  tool.events = 0;
+  tool.callbacks.clear();
+  value_set_none(out);
+  return true;
+}
+
+bool sys_monitoring_clear_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return sys_monitoring_free_tool_id(runtime, args, argc, out, error, nullptr);
+}
+
+bool sys_monitoring_get_tool(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.monitoring.get_tool expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  out = g_monitoring_tools[static_cast<size_t>(tool_id)].name;
+  return true;
+}
+
+bool sys_monitoring_set_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "sys.monitoring.set_events expected tool_id and event_set";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  int64_t events = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error) ||
+      !monitoring_event_set(runtime, args[1], events, error)) {
+    return false;
+  }
+  auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
+  if (tool.name.tag == ValueTag::None) {
+    error = "tool " + std::to_string(tool_id) + " is not in use";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  tool.events = events;
+  value_set_none(out);
+  return true;
+}
+
+bool sys_monitoring_get_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "sys.monitoring.get_events expected tool_id";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  value_set_int64(out, g_monitoring_tools[static_cast<size_t>(tool_id)].events);
+  return true;
+}
+
+bool sys_monitoring_set_local_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "sys.monitoring.set_local_events expected tool_id, code, and event_set";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  int64_t events = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  auto* code = value_as_code(args[1]);
+  if (code == nullptr) {
+    error = "code must be a code object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!monitoring_event_set(runtime, args[2], events, error)) {
+    return false;
+  }
+  auto& local_events = g_monitoring_tools[static_cast<size_t>(tool_id)].local_events;
+  if (events == 0) {
+    local_events.erase(args[1].as.obj);
+  } else {
+    local_events[args[1].as.obj] = events;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_monitoring_get_local_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "sys.monitoring.get_local_events expected tool_id and code";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  if (value_as_code(args[1]) == nullptr) {
+    error = "code must be a code object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto& local_events = g_monitoring_tools[static_cast<size_t>(tool_id)].local_events;
+  const auto found = local_events.find(args[1].as.obj);
+  value_set_int64(out, found == local_events.end() ? 0 : found->second);
+  return true;
+}
+
+bool sys_monitoring_register_callback(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "sys.monitoring.register_callback expected tool_id, event, and func";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  int64_t event = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error) ||
+      !monitoring_single_event(runtime, args[1], event, error)) {
+    return false;
+  }
+  auto& callbacks = g_monitoring_tools[static_cast<size_t>(tool_id)].callbacks;
+  const auto found = callbacks.find(event);
+  if (found == callbacks.end()) {
+    value_set_none(out);
+  } else {
+    out = found->second;
+  }
+  if (args[2].tag == ValueTag::None) {
+    callbacks.erase(event);
+  } else {
+    callbacks[event] = args[2];
+  }
+  return true;
+}
+
+bool sys_monitoring_restart_events(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    return raise_sys_no_args_type_error(runtime, error, "sys.monitoring.restart_events");
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_monitoring_all_events(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    return raise_sys_no_args_type_error(runtime, error, "sys.monitoring._all_events");
+  }
+  out = Value::dict({});
+  return true;
+}
+
+Value make_monitoring_events() {
+  Value events = Value::instance(Value::class_object("SimpleNamespace", {}));
+  std::string ignored;
+  object_set_attr(events, "PY_START", Value::int64(kMonitoringEventPyStart), ignored);
+  object_set_attr(events, "PY_RESUME", Value::int64(kMonitoringEventPyResume), ignored);
+  object_set_attr(events, "PY_RETURN", Value::int64(kMonitoringEventPyReturn), ignored);
+  object_set_attr(events, "PY_YIELD", Value::int64(kMonitoringEventPyYield), ignored);
+  object_set_attr(events, "CALL", Value::int64(kMonitoringEventCall), ignored);
+  object_set_attr(events, "LINE", Value::int64(kMonitoringEventLine), ignored);
+  object_set_attr(events, "INSTRUCTION", Value::int64(kMonitoringEventInstruction), ignored);
+  object_set_attr(events, "JUMP", Value::int64(kMonitoringEventJump), ignored);
+  object_set_attr(events, "BRANCH_LEFT", Value::int64(kMonitoringEventBranchLeft), ignored);
+  object_set_attr(events, "BRANCH_RIGHT", Value::int64(kMonitoringEventBranchRight), ignored);
+  object_set_attr(events, "STOP_ITERATION", Value::int64(kMonitoringEventStopIteration), ignored);
+  object_set_attr(events, "RAISE", Value::int64(kMonitoringEventRaise), ignored);
+  object_set_attr(events, "EXCEPTION_HANDLED", Value::int64(kMonitoringEventExceptionHandled), ignored);
+  object_set_attr(events, "PY_UNWIND", Value::int64(kMonitoringEventPyUnwind), ignored);
+  object_set_attr(events, "PY_THROW", Value::int64(kMonitoringEventPyThrow), ignored);
+  object_set_attr(events, "RERAISE", Value::int64(kMonitoringEventReraise), ignored);
+  object_set_attr(events, "C_RETURN", Value::int64(kMonitoringEventCReturn), ignored);
+  object_set_attr(events, "C_RAISE", Value::int64(kMonitoringEventCRaise), ignored);
+  object_set_attr(events, "BRANCH", Value::int64(kMonitoringEventBranch), ignored);
+  object_set_attr(events, "NO_EVENTS", Value::int64(0), ignored);
+  return events;
+}
+
 #if defined(_WIN32)
 bool sys_getwindowsversion(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
@@ -2027,6 +2329,28 @@ void register_sys_module(Runtime& runtime) {
   Value jit_module = jit_builder.finish();
   module_set_attr(sys, "_jit", jit_module, error);
   runtime.register_module("sys._jit", jit_module);
+  NativeModuleBuilder monitoring_builder(runtime, "sys.monitoring");
+  monitoring_builder.value("DEBUGGER_ID", Value::int64(0))
+      .value("COVERAGE_ID", Value::int64(1))
+      .value("PROFILER_ID", Value::int64(2))
+      .value("OPTIMIZER_ID", Value::int64(5))
+      .value("MISSING", Value::instance(Value::class_object("object", {})))
+      .value("DISABLE", Value::instance(Value::class_object("object", {})))
+      .value("events", make_monitoring_events())
+      .function("use_tool_id", sys_monitoring_use_tool_id)
+      .function("free_tool_id", sys_monitoring_free_tool_id)
+      .function("clear_tool_id", sys_monitoring_clear_tool_id)
+      .function("get_tool", sys_monitoring_get_tool)
+      .function("set_events", sys_monitoring_set_events)
+      .function("get_events", sys_monitoring_get_events)
+      .function("set_local_events", sys_monitoring_set_local_events)
+      .function("get_local_events", sys_monitoring_get_local_events)
+      .function("register_callback", sys_monitoring_register_callback)
+      .function("restart_events", sys_monitoring_restart_events)
+      .function("_all_events", sys_monitoring_all_events);
+  Value monitoring_module = monitoring_builder.finish();
+  module_set_attr(sys, "monitoring", monitoring_module, error);
+  runtime.register_module("sys.monitoring", monitoring_module);
 #if defined(_WIN32)
   module_set_attr(sys, "winver", Value::string("3.14"), error);
   module_set_attr(sys, "dllhandle", Value::int64(reinterpret_cast<int64_t>(GetModuleHandleW(nullptr))), error);

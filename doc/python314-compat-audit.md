@@ -712,6 +712,9 @@ Native or runtime-backed foundation:
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing`,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
+  `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
+  tool-name reservation/freeing, global/local event masks, callback replacement, restart/all-events
+  helpers, and catchable validation failures,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
@@ -728,7 +731,7 @@ Native or runtime-backed foundation:
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
   `_is_gil_enabled` enabled result with catchable argument errors;
-  full CPython startup flags/config/runtime internals
+  full CPython startup flags/config/runtime internals and live PEP 669 event dispatch
   pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

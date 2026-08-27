@@ -621,6 +621,41 @@ print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.std
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
+monitoring_events = sys.monitoring.events
+monitoring_tool_id = 3
+monitoring_code = (lambda: None).__code__
+print(sys.monitoring.DEBUGGER_ID, sys.monitoring.COVERAGE_ID, sys.monitoring.PROFILER_ID, sys.monitoring.OPTIMIZER_ID, monitoring_events.NO_EVENTS, monitoring_events.LINE, monitoring_events.CALL, monitoring_events.BRANCH)
+print(sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor") is None, sys.monitoring.get_tool(monitoring_tool_id))
+print(sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL) is None, sys.monitoring.get_events(monitoring_tool_id))
+print(sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code), sys.monitoring.set_local_events(monitoring_tool_id, monitoring_code, monitoring_events.LINE) is None, sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code))
+def sys_monitoring_callback_probe(*args):
+    return None
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, sys_monitoring_callback_probe) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, None) is sys_monitoring_callback_probe)
+print(sys.monitoring.restart_events() is None, isinstance(sys.monitoring._all_events(), dict), sys.monitoring.free_tool_id(monitoring_tool_id) is None, sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code))
+try:
+    sys.monitoring.get_tool(99)
+except ValueError as err:
+    print("monitoring-tool-id", "between 0 and 5" in str(err))
+try:
+    sys.monitoring.use_tool_id(monitoring_tool_id, 42)
+except ValueError as err:
+    print("monitoring-tool-name", "str" in str(err))
+try:
+    sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE)
+except ValueError as err:
+    print("monitoring-unused-tool", "not in use" in str(err))
+try:
+    sys.monitoring.set_events(monitoring_tool_id, -1)
+except ValueError as err:
+    print("monitoring-event-set", "invalid event set" in str(err))
+try:
+    sys.monitoring.set_local_events(monitoring_tool_id, 42, monitoring_events.LINE)
+except TypeError as err:
+    print("monitoring-code-type", "code" in str(err))
+try:
+    sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL, None)
+except ValueError as err:
+    print("monitoring-callback-event", "one event" in str(err))
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
 print(repr(sys.version_info), repr(sys.flags).startswith("sys.flags("), "gil=" not in repr(sys.flags), repr(sys.hash_info).startswith("sys.hash_info("))
 print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_randomization, sys.flags.utf8_mode)
