@@ -903,6 +903,10 @@ parsed_iso_week_53 = time.strptime("2020 53 7", "%G %V %u")
 parsed_locale_datetime = time.strptime("Wed Aug 26 01:02:03 2026", "%c")
 parsed_locale_date = time.strptime("08/26/26", "%x")
 parsed_locale_time = time.strptime("01:02:03", "%X")
+parsed_locale_hour_minute = time.strptime("1:02", "%R")
+parsed_locale_time_seconds = time.strptime("1:02:03", "%T")
+parsed_locale_12hour_pm = time.strptime("01:02:03 PM", "%r")
+parsed_locale_12hour_midnight = time.strptime("12:00:00 AM", "%r")
 parsed_space_day = time.strptime(" 6", "%e")
 parsed_default_year_leap_day = time.strptime("02/29", "%m/%d")
 parsed_whitespace_run = time.strptime("2026   08\t26", "%Y %m %d")
@@ -923,6 +927,7 @@ print(tuple(parsed_week_sunday), tuple(parsed_week_monday), tuple(parsed_week_is
 print(tuple(parsed_week_zero_previous), tuple(parsed_week_zero_current), tuple(parsed_week_overflow))
 print(tuple(parsed_iso_week), tuple(parsed_iso_week_name), tuple(parsed_iso_week_53))
 print(tuple(parsed_locale_datetime), tuple(parsed_locale_date), tuple(parsed_locale_time), parsed_space_day.tm_mday)
+print(tuple(parsed_locale_hour_minute), tuple(parsed_locale_time_seconds), parsed_locale_12hour_pm.tm_hour, parsed_locale_12hour_midnight.tm_hour)
 print(tuple(parsed_default_year_leap_day), parsed_default_year_leap_day.tm_mon, parsed_default_year_leap_day.tm_mday, parsed_default_year_leap_day.tm_yday)
 print(tuple(parsed_whitespace_run)[:3], tuple(parsed_whitespace_format_run)[:3])
 print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
@@ -962,6 +967,8 @@ for bad_strptime_args in [
     ("2023-02-29", "%Y-%m-%d"),
     ("2026-04-31", "%Y-%m-%d"),
     ("Feb 31", "%b %d"),
+    ("13:02:03 PM", "%r"),
+    ("01:02:03PM", "%r"),
 ]:
     try:
         time.strptime(*bad_strptime_args)

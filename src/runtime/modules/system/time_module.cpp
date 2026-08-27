@@ -667,6 +667,57 @@ bool parse_strptime_directives(
         }
         tm.tm_sec = value;
         break;
+      case 'R':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+          return false;
+        }
+        tm.tm_hour = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+          return false;
+        }
+        tm.tm_min = value;
+        break;
+      case 'T':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+          return false;
+        }
+        tm.tm_hour = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+          return false;
+        }
+        tm.tm_min = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+          return false;
+        }
+        tm.tm_sec = value;
+        break;
+      case 'r':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+          return false;
+        }
+        parsed_hour12 = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+          return false;
+        }
+        tm.tm_min = value;
+        if (!consume_strptime_literal(text, text_pos, ':') ||
+            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+          return false;
+        }
+        tm.tm_sec = value;
+        if (text_pos >= text.size() || !std::isspace(static_cast<unsigned char>(text[text_pos]))) {
+          return false;
+        }
+        consume_strptime_spaces(text, text_pos);
+        if (!consume_case_word(text, text_pos, {"AM", "PM"}, value)) {
+          return false;
+        }
+        parsed_meridiem = value;
+        break;
       case 'x':
         if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
           return false;

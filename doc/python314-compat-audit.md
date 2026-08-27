@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: C-locale `%R`, `%T`, and `%r`
+  composite time directives now parse through the runtime parser instead of
+  platform fallback, including CPython-style 12-hour `%r` AM/PM validation and
+  whitespace rejection for malformed inputs such as `13:02:03 PM` and
+  missing-space meridiem forms.
 - Tightened native `time.strptime`: `%Z` now accepts the platform timezone
   names published through `time.tzname`, preserves the matched `tm_zone`, sets
   CPython-style `tm_isdst` for standard/daylight names, and leaves
@@ -735,7 +740,7 @@ Native or runtime-backed foundation:
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
   directives, `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
   large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata,
-  C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,
+  C-locale `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives and space-padded `%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
   CPython-style whitespace matching for format whitespace runs including tab/run input and
