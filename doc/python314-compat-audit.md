@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys` display/exception hook parity batch.
+Last updated after the native `abc` / `_abc` metadata parity batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `abc` / `_abc` metadata parity: `ABCMeta` and `ABC` now
+  expose CPython-style `__module__ == "abc"`, public `abc` helpers and private
+  `_abc` helpers now publish simple `__name__`, module-qualified
+  `__module__`, and non-empty `__doc__` metadata through native callable
+  dictionaries, and `_abc.__doc__` is present.
 - Tightened native `sys` display/exception hook parity: `sys.displayhook` and
   `sys.__displayhook__` now render string values with CPython-style repr text,
   the default hook aliases are covered, and display/exception/unraisable hook
@@ -850,6 +855,7 @@ Native or runtime-backed foundation:
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,
+  CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
   `_abc_init` class initialization for the CPython `abc.py` path,

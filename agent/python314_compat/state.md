@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys display/exception hook parity
+abc/_abc metadata parity
 ```
 
 Current next loop:

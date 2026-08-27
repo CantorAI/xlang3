@@ -265,6 +265,24 @@ bool abc_return_none(Runtime&, const Value*, uint32_t, Value& out, std::string&,
   return true;
 }
 
+Value abc_native_function(
+    Runtime& runtime,
+    const std::string& module_name,
+    const std::string& qualified_name,
+    const std::string& function_name,
+    NativeFunctionCallback callback,
+    const std::string& doc) {
+  Value function = runtime.make_native_function(qualified_name, callback);
+  if (auto* native = value_as_native_function(function)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__module__"), Value::string(module_name)},
+        {Value::string("__name__"), Value::string(function_name)},
+        {Value::string("__doc__"), Value::string(doc)},
+    }));
+  }
+  return function;
+}
+
 bool abc_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     return abc_type_error(runtime, error, "_abc._abc_init() expected class");
@@ -494,20 +512,36 @@ bool abc_abstractproperty(Runtime& runtime, const Value* args, uint32_t argc, Va
 
 void register_abc_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_abc");
-  builder.function("get_cache_token", abc_get_cache_token)
-      .function("_abc_init", abc_init)
-      .function("_abc_register", abc_register)
-      .function("_abc_instancecheck", abc_instancecheck)
-      .function("_abc_subclasscheck", abc_subclasscheck)
-      .function("_get_dump", abc_get_dump)
-      .function("_reset_registry", abc_reset_registry)
-      .function("_reset_caches", abc_reset_caches);
+  builder.value("__doc__", Value::string("Module contains fast helpers for abc.py."))
+      .value(
+          "get_cache_token",
+          abc_native_function(runtime, "_abc", "_abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token."))
+      .value("_abc_init", abc_native_function(runtime, "_abc", "_abc._abc_init", "_abc_init", abc_init, "Internal ABC class initialization."))
+      .value(
+          "_abc_register",
+          abc_native_function(runtime, "_abc", "_abc._abc_register", "_abc_register", abc_register, "Register a virtual subclass of an ABC."))
+      .value(
+          "_abc_instancecheck",
+          abc_native_function(runtime, "_abc", "_abc._abc_instancecheck", "_abc_instancecheck", abc_instancecheck, "Internal ABC instance check."))
+      .value(
+          "_abc_subclasscheck",
+          abc_native_function(runtime, "_abc", "_abc._abc_subclasscheck", "_abc_subclasscheck", abc_subclasscheck, "Internal ABC subclass check."))
+      .value("_get_dump", abc_native_function(runtime, "_abc", "_abc._get_dump", "_get_dump", abc_get_dump, "Return ABC registry and cache snapshots."))
+      .value(
+          "_reset_registry",
+          abc_native_function(runtime, "_abc", "_abc._reset_registry", "_reset_registry", abc_reset_registry, "Clear the ABC registry."))
+      .value("_reset_caches", abc_native_function(runtime, "_abc", "_abc._reset_caches", "_reset_caches", abc_reset_caches, "Clear ABC caches."));
   runtime.register_module("_abc", builder.finish());
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
-  abc_meta_attrs.push_back({"register", runtime.make_native_function("ABCMeta.register", abc_meta_register)});
-  abc_meta_attrs.push_back({"__instancecheck__", runtime.make_native_function("ABCMeta.__instancecheck__", abc_meta_instancecheck)});
-  abc_meta_attrs.push_back({"__subclasscheck__", runtime.make_native_function("ABCMeta.__subclasscheck__", abc_meta_subclasscheck)});
+  abc_meta_attrs.push_back({"__module__", Value::string("abc")});
+  abc_meta_attrs.push_back({"register", abc_native_function(runtime, "abc", "ABCMeta.register", "register", abc_meta_register, "Register a virtual subclass of an ABC.")});
+  abc_meta_attrs.push_back({
+      "__instancecheck__",
+      abc_native_function(runtime, "abc", "ABCMeta.__instancecheck__", "__instancecheck__", abc_meta_instancecheck, "Override isinstance(instance, cls).")});
+  abc_meta_attrs.push_back({
+      "__subclasscheck__",
+      abc_native_function(runtime, "abc", "ABCMeta.__subclasscheck__", "__subclasscheck__", abc_meta_subclasscheck, "Override issubclass(subclass, cls).")});
   const Value* type_base = runtime.find_builtin("type");
   Value abc_meta = Value::class_object(
       "ABCMeta",
@@ -515,7 +549,7 @@ void register_abc_module(Runtime& runtime) {
       type_base != nullptr ? *type_base : Value::invalid(),
       {},
       type_base != nullptr ? *type_base : Value::invalid());
-  Value abc_class = Value::class_object("ABC", {}, Value::invalid(), {}, abc_meta);
+  Value abc_class = Value::class_object("ABC", {{"__module__", Value::string("abc")}}, Value::invalid(), {}, abc_meta);
   std::string error;
   object_set_attr(abc_class, kRegistryAttr, Value::list({}), error);
   object_set_attr(abc_class, kCacheAttr, Value::list({}), error);
@@ -524,12 +558,22 @@ void register_abc_module(Runtime& runtime) {
   NativeModuleBuilder public_builder(runtime, "abc");
   public_builder.value("ABCMeta", abc_meta)
       .value("ABC", abc_class)
-      .function("get_cache_token", abc_get_cache_token)
-      .function("abstractmethod", abc_abstractmethod)
-      .function("update_abstractmethods", abc_update_abstractmethods)
-      .function("abstractclassmethod", abc_abstractclassmethod)
-      .function("abstractstaticmethod", abc_abstractstaticmethod)
-      .function("abstractproperty", abc_abstractproperty);
+      .value(
+          "get_cache_token",
+          abc_native_function(runtime, "abc", "abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token."))
+      .value("abstractmethod", abc_native_function(runtime, "abc", "abc.abstractmethod", "abstractmethod", abc_abstractmethod, "A decorator indicating abstract methods."))
+      .value(
+          "update_abstractmethods",
+          abc_native_function(runtime, "abc", "abc.update_abstractmethods", "update_abstractmethods", abc_update_abstractmethods, "Recalculate abstract methods."))
+      .value(
+          "abstractclassmethod",
+          abc_native_function(runtime, "abc", "abc.abstractclassmethod", "abstractclassmethod", abc_abstractclassmethod, "A decorator indicating abstract classmethods."))
+      .value(
+          "abstractstaticmethod",
+          abc_native_function(runtime, "abc", "abc.abstractstaticmethod", "abstractstaticmethod", abc_abstractstaticmethod, "A decorator indicating abstract staticmethods."))
+      .value(
+          "abstractproperty",
+          abc_native_function(runtime, "abc", "abc.abstractproperty", "abstractproperty", abc_abstractproperty, "A decorator indicating abstract properties."));
   runtime.register_module("abc", public_builder.finish());
 }
 
