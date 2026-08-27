@@ -891,8 +891,53 @@ bool sys_clear_type_cache(Runtime& runtime, const Value* args, uint32_t argc, Va
   return sys_clear_internal_caches(runtime, args, argc, out, error, user_data);
 }
 
+bool sys_clear_type_descriptors_immutable_type(const ClassObject& klass) {
+  static constexpr const char* kImmutableTypeNames[] = {
+      "BaseException",
+      "BaseExceptionGroup",
+      "Exception",
+      "bool",
+      "bytes",
+      "complex",
+      "dict",
+      "float",
+      "frozenset",
+      "int",
+      "list",
+      "object",
+      "set",
+      "str",
+      "tuple",
+      "type",
+  };
+  for (const char* name : kImmutableTypeNames) {
+    if (klass.name == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool sys_clear_type_descriptors(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return sys_clear_internal_caches(runtime, args, argc, out, error, user_data);
+  (void)user_data;
+  if (argc != 1) {
+    error = "sys._clear_type_descriptors expected exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* klass = value_as_class(args[0]);
+  if (klass == nullptr) {
+    error = "_clear_type_descriptors() argument must be type";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (sys_clear_type_descriptors_immutable_type(*klass)) {
+    error = "argument is immutable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys frame-module depth probes match CPython 3.14 edge behavior
+sys _clear_type_descriptors argument/type probes match CPython 3.14 edge behavior
 ```
 
 Current next loop:

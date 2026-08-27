@@ -168,6 +168,9 @@ True True True True False
 True True True True
 True True True True
 True True True True -1 False 0
+sys-clear-type-descriptors-arity True
+sys-clear-type-descriptors-type True
+sys-clear-type-descriptors-immutable True
 2
 0
 coroutine-origin-depth True

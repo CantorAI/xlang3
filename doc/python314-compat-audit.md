@@ -647,7 +647,8 @@ Native or runtime-backed foundation:
   CPython 3.14 top-level `stdlib_module_names`, `_git`/`_vpath`/`_home`
   metadata, `float_repr_style`, `getunicodeinternedsize`,
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
-  `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors`,
+  `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
+  CPython-style arity/type/immutable-type errors,
   `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling, `getrefcount`,

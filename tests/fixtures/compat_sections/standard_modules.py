@@ -710,7 +710,21 @@ multi_thread_exceptions = sys._current_exceptions()
 print(len(multi_thread_exceptions) >= 2, threading.get_ident() in multi_thread_exceptions, sys_exception_thread_ident[0] in multi_thread_exceptions, multi_thread_exceptions[sys_exception_thread_ident[0]] is sys_exception_thread_error[0])
 sys_exception_thread_release.set()
 sys_exception_thread.join()
-print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors() is None, sys._dump_tracelets() is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
+class SysClearDescriptorsProbe:
+    pass
+print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors(SysClearDescriptorsProbe) is None, sys._dump_tracelets() is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
+try:
+    sys._clear_type_descriptors()
+except TypeError as err:
+    print("sys-clear-type-descriptors-arity", "argument" in str(err))
+try:
+    sys._clear_type_descriptors(42)
+except TypeError as err:
+    print("sys-clear-type-descriptors-type", "type" in str(err))
+try:
+    sys._clear_type_descriptors(int)
+except TypeError as err:
+    print("sys-clear-type-descriptors-immutable", "immutable" in str(err))
 sys.set_coroutine_origin_tracking_depth(2)
 print(sys.get_coroutine_origin_tracking_depth())
 sys.set_coroutine_origin_tracking_depth(0)
