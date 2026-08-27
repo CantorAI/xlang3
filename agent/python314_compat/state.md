@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime %y short-year pivot and %I/%p AM/PM parsing match CPython 3.14
+time.strptime %U/%W week-number parsing with %w/%u weekdays matches CPython 3.14
 ```
 
 Current next loop:

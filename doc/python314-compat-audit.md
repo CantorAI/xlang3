@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` short-year and AM/PM batch.
+Last updated after the native `time.strptime` week-number directive batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `time.strptime`: `%U`/`%W` week numbers now combine with
+  `%w`/`%u` weekday directives to derive CPython-style month/day, weekday, and
+  year-day fields for Sunday-first, Monday-first, and ISO weekday inputs.
 - Tightened native `time.strptime`: `%y` now uses CPython's 1969/2068
   two-digit-year pivot, `%I`/`%p` parse 12-hour clocks with AM/PM
   normalization, and these formats use the runtime parser's CPython-style
@@ -695,8 +698,9 @@ Native or runtime-backed foundation:
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
-  ordinal-day `%j`, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z`
-  metadata, catchable `ValueError` failures, and trailing-input rejection;
+  ordinal-day `%j`, `%U`/`%W` week-number date derivation with `%w`/`%u`
+  weekdays, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
+  catchable `ValueError` failures, and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers and abstract descriptor decorators,

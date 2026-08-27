@@ -267,6 +267,10 @@ bool parse_strptime_directives(
   int parsed_yday = -1;
   int parsed_hour12 = -1;
   int parsed_meridiem = -1;
+  int parsed_week_sunday = -1;
+  int parsed_week_monday = -1;
+  int parsed_weekday_sunday = -1;
+  int parsed_weekday_monday = -1;
   bool saw_month_day = false;
   bool saw_weekday = false;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
@@ -357,11 +361,43 @@ bool parse_strptime_directives(
         }
         parsed_yday = value;
         break;
+      case 'U':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 53) {
+          return false;
+        }
+        parsed_week_sunday = value;
+        break;
+      case 'W':
+        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 53) {
+          return false;
+        }
+        parsed_week_monday = value;
+        break;
+      case 'w':
+        if (!parse_fixed_digits(text, text_pos, 1, 1, value) || value > 6) {
+          return false;
+        }
+        parsed_weekday_sunday = value;
+        parsed_weekday_monday = value == 0 ? 6 : value - 1;
+        tm.tm_wday = value;
+        saw_weekday = true;
+        break;
+      case 'u':
+        if (!parse_fixed_digits(text, text_pos, 1, 1, value) || value < 1 || value > 7) {
+          return false;
+        }
+        parsed_weekday_sunday = value == 7 ? 0 : value;
+        parsed_weekday_monday = value - 1;
+        tm.tm_wday = value == 7 ? 0 : value;
+        saw_weekday = true;
+        break;
       case 'a':
         if (!consume_case_word(text, text_pos, {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}, value)) {
           return false;
         }
         tm.tm_wday = (value + 1) % 7;
+        parsed_weekday_sunday = tm.tm_wday;
+        parsed_weekday_monday = value;
         saw_weekday = true;
         break;
       case 'A':
@@ -369,6 +405,8 @@ bool parse_strptime_directives(
           return false;
         }
         tm.tm_wday = (value + 1) % 7;
+        parsed_weekday_sunday = tm.tm_wday;
+        parsed_weekday_monday = value;
         saw_weekday = true;
         break;
       case 'b':
@@ -408,6 +446,50 @@ bool parse_strptime_directives(
     int day = 0;
     if (!month_day_from_yday(tm.tm_year + 1900, parsed_yday, month, day)) {
       return false;
+    }
+    tm.tm_mon = month - 1;
+    tm.tm_mday = day;
+  }
+  if (!saw_month_day && parsed_yday == -1 &&
+      ((parsed_week_sunday != -1 && parsed_weekday_sunday != -1) ||
+       (parsed_week_monday != -1 && parsed_weekday_monday != -1))) {
+    const int year = tm.tm_year + 1900;
+    const int jan1_c_weekday = c_weekday_from_date(year, 1, 1);
+    int yday = 0;
+    if (parsed_week_sunday != -1 && parsed_weekday_sunday != -1) {
+      const int first_sunday = (7 - jan1_c_weekday) % 7;
+      yday = parsed_week_sunday == 0
+          ? parsed_weekday_sunday - jan1_c_weekday
+          : first_sunday + (parsed_week_sunday - 1) * 7 + parsed_weekday_sunday;
+    } else {
+      const int jan1_monday_weekday = (jan1_c_weekday + 6) % 7;
+      const int first_monday = (7 - jan1_monday_weekday) % 7;
+      yday = parsed_week_monday == 0
+          ? parsed_weekday_monday - jan1_monday_weekday
+          : first_monday + (parsed_week_monday - 1) * 7 + parsed_weekday_monday;
+    }
+    int month = 0;
+    int day = 0;
+    const int year_days = is_leap_year(year) ? 366 : 365;
+    if (yday < 0) {
+      const int previous_year = year - 1;
+      const int previous_year_days = is_leap_year(previous_year) ? 366 : 365;
+      if (!month_day_from_yday(previous_year, previous_year_days + yday + 1, month, day)) {
+        return false;
+      }
+      tm.tm_year = previous_year - 1900;
+      parsed_yday = previous_year_days + yday + 1;
+    } else if (yday >= year_days) {
+      if (!month_day_from_yday(year + 1, yday - year_days + 1, month, day)) {
+        return false;
+      }
+      tm.tm_year = year + 1 - 1900;
+      parsed_yday = yday + 1;
+    } else {
+      if (!month_day_from_yday(year, yday + 1, month, day)) {
+        return false;
+      }
+      parsed_yday = yday + 1;
     }
     tm.tm_mon = month - 1;
     tm.tm_mday = day;
