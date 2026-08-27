@@ -70,9 +70,10 @@ What this means:
 Recent completed batches:
 
 - Tightened native `sys._getframe` and `sys._getframemodulename` depth
-  validation: negative integer depths now raise catchable `ValueError` with
-  the same too-shallow-stack path as CPython instead of being clamped to the
-  current frame, while bool-as-int depths remain covered.
+  validation: negative integer depths now resolve to the current frame/module
+  like CPython 3.14, while bool-as-int depths keep the covered zero/one-depth
+  behavior and too-shallow positive depths keep their catchable error/`None`
+  paths.
 - Tightened native `abc.abstractmethod` error parity: failed
   `__isabstractmethod__` writes now raise catchable `AttributeError` instead
   of silently returning immutable or read-only descriptor targets, and the

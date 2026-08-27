@@ -1115,11 +1115,8 @@ def sys_frame_module_probe():
     return sys._getframemodulename(1)
 print(sys_frame_module_probe(), sys._getframemodulename(9999) is None)
 print(sys._getframemodulename(False) == "__main__", sys._getframemodulename(True) is None)
-for sys_negative_frame_probe in (sys._getframe, sys._getframemodulename):
-    try:
-        sys_negative_frame_probe(-1)
-    except ValueError as err:
-        print("sys-frame-negative-depth", "not deep enough" in str(err))
+print(sys._getframe(-1).f_code.co_name == "<module>", sys._getframe(-2).f_globals["__name__"] == "__main__")
+print(sys._getframemodulename(-1) == "__main__", sys._getframemodulename(-2) == "__main__")
 try:
     sys._getframe(True)
 except ValueError as err:
