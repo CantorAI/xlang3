@@ -1297,6 +1297,8 @@ print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_m
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))
 print(time.gmtime(True).tm_sec, time.gmtime(False).tm_sec, time.localtime(True).tm_sec, time.localtime(False).tm_sec, isinstance(time.ctime(True), str), isinstance(time.ctime(False), str))
 print(time.asctime((2026, 8, 6, 1, 2, 3, 2, 218, -1)), time.asctime((2026, 8, 16, 1, 2, 3, 6, 228, -1)))
+bool_time_tuple = (2026, True, True, False, True, False, 2, True, -1)
+print(time.asctime(bool_time_tuple), time.strftime("%Y %m %d %H %M %S %j", bool_time_tuple), time.mktime((1970, True, True, False, False, False, 3, True, -1)) == time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1)))
 # time structseq behavior and parsing.
 print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
 print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC", epoch_utc.tm_gmtoff == 0)

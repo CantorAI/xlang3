@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime single-space hour padding
+time tuple bool field conversion
 ```
 
 Current next loop:

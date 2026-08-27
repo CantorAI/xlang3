@@ -1167,6 +1167,10 @@ bool optional_timestamp(const Value* args, uint32_t argc, const char* name, std:
 }
 
 bool int_from_value(const Value& value, const char* name, int& out, std::string& error) {
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
   if (value.tag != ValueTag::Int64) {
     error = std::string(name) + " must be int";
     return false;

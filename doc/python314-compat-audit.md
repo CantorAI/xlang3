@@ -114,6 +114,9 @@ Recent completed batches:
 - Expanded native `time` CPython 3.14 metadata: the module now publishes
   `_STRUCT_TM_ITEMS == 11`, matching the extended `struct_time` field count
   and the existing tuple-backed `struct_time` type metadata.
+- Tightened native `time` tuple conversion parity: `asctime`, `strftime`, and
+  `mktime` now accept bool fields as integer values when consuming time tuples,
+  matching CPython's `bool`-as-`int` behavior.
 - Expanded live native `sys.monitoring` PEP 669 coverage for generators: VM
   generator suspension now emits `PY_YIELD` with the yielded value, generator
   continuation now emits `PY_RESUME`, and generator completion now preserves
@@ -845,7 +848,8 @@ Native or runtime-backed foundation:
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index` including bool-as-int start/stop bounds, CPython-style named-field `__repr__`, platform-backed timezone constants/names,
-  bool timestamp arguments for `gmtime`/`localtime`/`ctime`, and `strptime`
+  bool timestamp arguments for `gmtime`/`localtime`/`ctime`, bool fields in
+  time tuples consumed by `asctime`/`strftime`/`mktime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,
   two-digit-year `%y` pivoting, 12-hour `%I`/`%p` AM/PM normalization,
   ordinal-day `%j` including CPython-style common-year 366 overflow and override
