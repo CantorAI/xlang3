@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.setprofile` C event dispatch batch.
+Last updated after the native `sys._debugmallocstats` stderr-routing batch.
 
 Current checklist count:
 
@@ -69,6 +69,10 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys._debugmallocstats`: allocator diagnostics now route
+  through the active `sys.stderr.write` stream before returning `None`, so
+  redirected stderr observes the CPython-style diagnostics path while the
+  existing allocator counters remain runtime-backed.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -783,7 +787,8 @@ Native or runtime-backed foundation:
   catchable `TypeError` arity failures for no-argument runtime/config/frame/cache/JIT
   probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
-  stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
+  stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`
+  with active `sys.stderr` routing,
   CPython 3.14 startup metadata/hooks including `__doc__`,
   `__interactivehook__`, `_baserepl`, and CPython-normal Windows `abiflags`
   absence while preserving non-Windows `abiflags`,

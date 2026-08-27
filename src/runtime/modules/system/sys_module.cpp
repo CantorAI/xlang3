@@ -2178,10 +2178,14 @@ bool sys_debugmallocstats(Runtime& runtime, const Value*, uint32_t argc, Value& 
   const auto& object_stats = memory::x3_thread_object_pools().stats();
   const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
   const auto& large_stats = memory::x3_thread_buckets().large_stats();
-  std::cerr << "XLang3 allocator stats\n"
-            << "object_blocks=" << live_block_count(object_stats) << "\n"
-            << "bucket_blocks=" << live_block_count(bucket_stats) << "\n"
-            << "large_blocks=" << live_block_count(large_stats) << "\n";
+  std::ostringstream stats;
+  stats << "XLang3 allocator stats\n"
+        << "object_blocks=" << live_block_count(object_stats) << "\n"
+        << "bucket_blocks=" << live_block_count(bucket_stats) << "\n"
+        << "large_blocks=" << live_block_count(large_stats) << "\n";
+  if (!sys_write_stream(runtime, "stderr", stats.str(), error)) {
+    return false;
+  }
   value_set_none(out);
   return true;
 }

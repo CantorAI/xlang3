@@ -1250,6 +1250,19 @@ print(
     "ValueError: hooked" in sys_hook_stderr.items[0],
     builtins._ is saved_builtin_underscore,
 )
+sys_debugmalloc_stderr = SysHookCapture()
+try:
+    sys.stderr = sys_debugmalloc_stderr
+    debugmalloc_result = sys._debugmallocstats()
+finally:
+    sys.stderr = saved_stderr
+print(
+    debugmalloc_result is None,
+    len(sys_debugmalloc_stderr.items) == 1,
+    sys_debugmalloc_stderr.items[0].startswith("XLang3 allocator stats\nobject_blocks="),
+    "bucket_blocks=" in sys_debugmalloc_stderr.items[0],
+    "large_blocks=" in sys_debugmalloc_stderr.items[0],
+)
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
 print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() >= 0, time.thread_time_ns() >= 0)

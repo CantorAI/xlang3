@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime blank-padded hour directives
+sys._debugmallocstats stderr routing
 ```
 
 Current next loop:
