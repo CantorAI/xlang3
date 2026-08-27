@@ -249,6 +249,10 @@ True 4300 4300 4300 640
 int-max-str-digits True True
 True False
 True True True
+profile-return
+True True True True
+True
+True True True
 True 7 True
 True True True
 call-tracing-type True

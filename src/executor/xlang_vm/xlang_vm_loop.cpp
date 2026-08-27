@@ -481,6 +481,39 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto emit_profile_event = [&](VMFrame& profile_frame, const char* event_name, const Value& arg) -> bool {
+    const Value& hook = runtime_.profile_function();
+    if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || runtime_.profile_dispatch_active()) {
+      return true;
+    }
+    runtime_.set_current_frame(
+        &profile_frame.module_owner,
+        profile_frame.function_id,
+        &profile_frame.globals_module,
+        static_cast<uint32_t>(profile_frame.ip));
+    runtime_.set_current_globals_module(profile_frame.globals_module);
+    runtime_.set_current_frame_locals(&profile_frame.fn->locals, profile_frame.locals.value_data(), profile_frame.locals.size());
+
+    Value profile_args_storage[3] = {
+        runtime_.current_frame_snapshot(),
+        Value::string(event_name),
+        arg,
+    };
+
+    runtime_.set_profile_dispatch_active(true);
+    struct ProfileDispatchGuard {
+      Runtime& runtime;
+      ~ProfileDispatchGuard() { runtime.set_profile_dispatch_active(false); }
+    } profile_guard{runtime_};
+    Value ignored;
+    std::string profile_error;
+    if (!runtime_call_callable(runtime_, hook, profile_args_storage, 3, ignored, profile_error)) {
+      result.errors.push_back(profile_error.empty() ? "profile callback failed" : profile_error);
+      return false;
+    }
+    return true;
+  };
+
   auto emit_debug_event = [&](VMFrame& debug_frame, const char* event_name) -> bool {
     auto* hook_fn = value_as_function(runtime_.debug_hook());
     if (hook_fn == nullptr || runtime_.debug_dispatch_active()) {
@@ -601,6 +634,9 @@ RuntimeResult Interpreter::run_function(
     if (!emit_trace_event(finished, "return", return_value)) {
       return false;
     }
+    if (!emit_profile_event(finished, "return", return_value)) {
+      return false;
+    }
     const uint32_t return_dst = finished.return_dst;
     const bool has_caller = finished.has_caller;
     const FrameReturnMode return_mode = finished.return_mode;
@@ -665,6 +701,9 @@ RuntimeResult Interpreter::run_function(
       Value traceback = make_traceback_from_frames();
       Value event_arg = Value::tuple({exception_type, exception, traceback});
       if (!emit_trace_event(frames[frame_count - 1], "exception", event_arg)) {
+        return false;
+      }
+      if (!emit_profile_event(frames[frame_count - 1], "exception", event_arg)) {
         return false;
       }
     }
@@ -816,6 +855,9 @@ RuntimeResult Interpreter::run_function(
             return result;
           }
           if (!emit_trace_event(frame, "call", Value::none())) {
+            return result;
+          }
+          if (!emit_profile_event(frame, "call", Value::none())) {
             return result;
           }
         }

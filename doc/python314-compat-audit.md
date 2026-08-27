@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time._STRUCT_TM_ITEMS` metadata batch.
+Last updated after the native `sys.setprofile` live dispatch batch.
 
 Current checklist count:
 
@@ -69,6 +69,11 @@ What this means:
 
 Recent completed batches:
 
+- Expanded native `sys.setprofile` / `_setprofileallthreads` from stored hook
+  metadata into live VM dispatch for Python `call`, `return`, and `exception`
+  events using current frame snapshots, with recursion suppression while a
+  profile callback is running; `threading.setprofile` / `getprofile` now
+  preserve the hook for new `threading.Thread` workers.
 - Expanded native `time` CPython 3.14 metadata: the module now publishes
   `_STRUCT_TM_ITEMS == 11`, matching the extended `struct_time` field count
   and the existing tuple-backed `struct_time` type metadata.
@@ -742,7 +747,9 @@ Native or runtime-backed foundation:
   audit hook dispatch including CPython-style call-time failure for registered non-callable hooks,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
-  `call_tracing`,
+  `call_tracing`, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
+  `call`/`return`/`exception` events with current frame arguments and callback-recursion
+  suppression, plus `threading.setprofile` inheritance for new threads,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
@@ -780,7 +787,8 @@ Native or runtime-backed foundation:
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
   `_is_gil_enabled` enabled result with catchable argument errors;
-  full CPython startup flags/config/runtime internals and remaining live PEP 669
+  full CPython startup flags/config/runtime internals, full CPython profile event
+  matrix including C call/return/exception events, and remaining live PEP 669
   event coverage beyond instruction/call/line/return/generator-resume-yield/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,

@@ -57,6 +57,8 @@ struct RuntimeCurrentFrameState {
   size_t local_count = 0;
   Value trace_function;
   bool trace_dispatch_active = false;
+  Value profile_function;
+  bool profile_dispatch_active = false;
 };
 
 thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
@@ -344,6 +346,8 @@ Runtime::~Runtime() {
   value_set_invalid(current_globals_module_);
   value_set_invalid(trace_function_);
   value_set_invalid(thread_trace_function_);
+  value_set_invalid(profile_function_);
+  value_set_invalid(thread_profile_function_);
   value_set_invalid(debug_hook_);
   clear_current_frame();
   clear_runtime_frame_states(*this);
@@ -449,6 +453,27 @@ void Runtime::set_trace_dispatch_active(bool active) {
 
 void Runtime::set_thread_trace_function(Value trace_function) {
   thread_trace_function_ = trace_function;
+}
+
+void Runtime::set_profile_function(Value profile_function) {
+  current_frame_state(*this).profile_function = std::move(profile_function);
+}
+
+const Value& Runtime::profile_function() const {
+  const auto& state = current_frame_state(*this);
+  return state.profile_function.tag == ValueTag::Invalid ? profile_function_ : state.profile_function;
+}
+
+bool Runtime::profile_dispatch_active() const {
+  return current_frame_state(*this).profile_dispatch_active;
+}
+
+void Runtime::set_profile_dispatch_active(bool active) {
+  current_frame_state(*this).profile_dispatch_active = active;
+}
+
+void Runtime::set_thread_profile_function(Value profile_function) {
+  thread_profile_function_ = profile_function;
 }
 
 void Runtime::refresh_debug_poll_needed() {

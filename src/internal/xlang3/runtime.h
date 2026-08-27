@@ -159,6 +159,12 @@ public:
   void set_trace_dispatch_active(bool active);
   void set_thread_trace_function(Value trace_function);
   const Value& thread_trace_function() const { return thread_trace_function_; }
+  void set_profile_function(Value profile_function);
+  const Value& profile_function() const;
+  bool profile_dispatch_active() const;
+  void set_profile_dispatch_active(bool active);
+  void set_thread_profile_function(Value profile_function);
+  const Value& thread_profile_function() const { return thread_profile_function_; }
   void set_current_frame(
       const std::shared_ptr<const ir::Module>* module_owner,
       uint32_t function_id,
@@ -209,6 +215,8 @@ private:
   Value current_globals_module_;
   Value trace_function_;
   Value thread_trace_function_;
+  Value profile_function_;
+  Value thread_profile_function_;
   Value debug_hook_;
   bool debug_dispatch_active_ = false;
   bool debug_poll_needed_ = false;

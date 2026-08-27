@@ -972,6 +972,48 @@ print(sys.getprofile() is sys_profile_probe, sys.is_finalizing())
 sys.setprofile(None)
 sys._setprofileallthreads(sys_profile_probe)
 print(sys.getprofile() is sys_profile_probe, sys._setprofileallthreads(None) is None, sys.getprofile() is None)
+sys_profile_events = []
+def sys_profile_callback_helper():
+    sys_profile_events.append(("callback-helper", None, None))
+def sys_profile_dispatch_probe(frame, event, arg):
+    name = frame.f_code.co_name
+    if name in ("sys_profile_target", "sys_profile_callback_helper"):
+        if event == "exception":
+            sys_profile_events.append((name, event, arg[0].__name__))
+        else:
+            sys_profile_events.append((name, event, arg))
+    sys_profile_callback_helper()
+def sys_profile_target(should_return):
+    if should_return:
+        return "profile-return"
+    raise ValueError("profile-exception")
+sys.setprofile(sys_profile_dispatch_probe)
+print(sys_profile_target(True))
+try:
+    sys_profile_target(False)
+except ValueError:
+    pass
+sys.setprofile(None)
+print(
+    ("sys_profile_target", "call", None) in sys_profile_events,
+    ("sys_profile_target", "return", "profile-return") in sys_profile_events,
+    ("sys_profile_target", "exception", "ValueError") in sys_profile_events,
+    not any(item[0] == "sys_profile_callback_helper" for item in sys_profile_events),
+)
+threading_profile_events = []
+threading_profile_ident = []
+def threading_profile_probe(frame, event, arg):
+    if frame.f_code.co_name == "threading_profile_worker" and event == "call":
+        threading_profile_events.append((threading.get_ident(), arg))
+def threading_profile_worker():
+    threading_profile_ident.append(threading.get_ident())
+threading.setprofile(threading_profile_probe)
+print(threading.getprofile() is threading_profile_probe)
+threading_profile_thread = threading.Thread(target=threading_profile_worker)
+threading_profile_thread.start()
+threading_profile_thread.join()
+threading.setprofile(None)
+print(len(threading_profile_events) >= 1, threading_profile_events[0][0] == threading_profile_ident[0], threading.getprofile() is None)
 def sys_trace_probe(frame, event, arg):
     return sys_trace_probe
 def sys_call_tracing_probe(left, right):

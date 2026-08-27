@@ -55,7 +55,6 @@ int g_recursion_limit = 1000;
 constexpr int64_t kDefaultIntMaxStrDigits = 4300;
 constexpr int64_t kIntStrDigitsCheckThreshold = 640;
 int64_t g_int_max_str_digits = kDefaultIntMaxStrDigits;
-Value g_profile_function = Value::none();
 std::vector<Value> g_audit_hooks;
 thread_local int64_t g_coroutine_origin_tracking_depth = 0;
 Value g_asyncgen_firstiter = Value::none();
@@ -1620,7 +1619,7 @@ bool sys_setprofile(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_assign_fast(g_profile_function, args[0]);
+  runtime.set_profile_function(args[0]);
   value_set_none(out);
   return true;
 }
@@ -1631,7 +1630,11 @@ bool sys_getprofile(Runtime& runtime, const Value*, uint32_t argc, Value& out, s
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_assign_fast(out, g_profile_function);
+  if (runtime.profile_function().tag == ValueTag::Invalid) {
+    value_set_none(out);
+  } else {
+    value_assign_fast(out, runtime.profile_function());
+  }
   return true;
 }
 

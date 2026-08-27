@@ -184,12 +184,38 @@ bool threading_gettrace(
   return true;
 }
 
-bool threading_setprofile(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool threading_setprofile(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
   if (argc != 1) {
     error = "threading.setprofile() expected one argument";
     return false;
   }
+  runtime.set_thread_profile_function(args[0]);
   value_set_none(out);
+  return true;
+}
+
+bool threading_getprofile(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 0) {
+    error = "threading.getprofile() expected no arguments";
+    return false;
+  }
+  if (runtime.thread_profile_function().tag == ValueTag::Invalid) {
+    value_set_none(out);
+  } else {
+    value_assign_fast(out, runtime.thread_profile_function());
+  }
   return true;
 }
 
@@ -536,7 +562,8 @@ void register_thread_modules(Runtime& runtime) {
       .function("active_count", threading_active_count)
       .function("settrace", threading_settrace)
       .function("gettrace", threading_gettrace)
-      .function("setprofile", threading_setprofile);
+      .function("setprofile", threading_setprofile)
+      .function("getprofile", threading_getprofile);
   runtime.register_module("threading", builder.finish());
 }
 

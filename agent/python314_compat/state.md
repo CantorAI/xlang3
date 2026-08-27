@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring live RERAISE dispatch for bare raise in active handlers
+sys.setprofile live Python call/return/exception dispatch with threading inheritance
 ```
 
 Current next loop:

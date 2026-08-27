@@ -866,6 +866,10 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
         state->runtime->thread_trace_function().tag != ValueTag::None) {
       state->runtime->set_trace_function(state->runtime->thread_trace_function());
     }
+    if (state->runtime->thread_profile_function().tag != ValueTag::Invalid &&
+        state->runtime->thread_profile_function().tag != ValueTag::None) {
+      state->runtime->set_profile_function(state->runtime->thread_profile_function());
+    }
     Interpreter interpreter(*state->runtime);
     CallArgsView call_args;
     call_args.leading = state->args.empty() ? nullptr : state->args.data();
@@ -962,6 +966,10 @@ bool xlang_thread_start_detached(
     if (state->runtime->thread_trace_function().tag != ValueTag::Invalid &&
         state->runtime->thread_trace_function().tag != ValueTag::None) {
       state->runtime->set_trace_function(state->runtime->thread_trace_function());
+    }
+    if (state->runtime->thread_profile_function().tag != ValueTag::Invalid &&
+        state->runtime->thread_profile_function().tag != ValueTag::None) {
+      state->runtime->set_profile_function(state->runtime->thread_profile_function());
     }
     Interpreter interpreter(*state->runtime);
     CallArgsView call_args;
