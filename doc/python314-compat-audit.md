@@ -742,7 +742,8 @@ Native or runtime-backed foundation:
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
   `_abc_init` class initialization for the CPython `abc.py` path,
-  abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers,
+  abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers
+  with catchable `TypeError` argument validation,
   virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
   `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,

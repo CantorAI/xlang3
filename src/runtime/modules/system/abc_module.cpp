@@ -80,6 +80,12 @@ bool ensure_class(Runtime& runtime, const Value& value, const char* name, std::s
   return false;
 }
 
+bool abc_type_error(Runtime& runtime, std::string& error, std::string message) {
+  error = std::move(message);
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool abc_state_list(Value& abc_class, const char* attr, Value& out, std::string& error) {
   std::string ignored;
   if (object_get_attr(abc_class, attr, out, ignored) && value_as_list(out) != nullptr) {
@@ -289,8 +295,7 @@ bool abc_return_none(Runtime&, const Value*, uint32_t, Value& out, std::string&,
 
 bool abc_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "_abc._abc_init() expected class";
-    return false;
+    return abc_type_error(runtime, error, "_abc._abc_init() expected class");
   }
   if (!ensure_class(runtime, args[0], "_abc._abc_init() class", error)) {
     return false;
@@ -309,19 +314,17 @@ bool abc_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool abc_get_cache_token(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool abc_get_cache_token(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "_abc.get_cache_token() expected no arguments";
-    return false;
+    return abc_type_error(runtime, error, "_abc.get_cache_token() expected no arguments");
   }
   out = Value::int64(g_cache_token);
   return true;
 }
 
-bool abc_update_abstractmethods(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool abc_update_abstractmethods(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "abc.update_abstractmethods() expected class";
-    return false;
+    return abc_type_error(runtime, error, "abc.update_abstractmethods() expected class");
   }
   value_assign_fast(out, args[0]);
   auto* klass = value_as_class(args[0]);
@@ -339,8 +342,7 @@ bool abc_update_abstractmethods(Runtime&, const Value* args, uint32_t argc, Valu
 
 bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "_abc._abc_register() expected class and subclass";
-    return false;
+    return abc_type_error(runtime, error, "_abc._abc_register() expected class and subclass");
   }
   if (!ensure_class(runtime, args[0], "_abc._abc_register() class", error) ||
       !ensure_class(runtime, args[1], "_abc._abc_register() subclass", error)) {
@@ -375,8 +377,7 @@ bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 
 bool abc_subclasscheck(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "_abc._abc_subclasscheck() expected class and subclass";
-    return false;
+    return abc_type_error(runtime, error, "_abc._abc_subclasscheck() expected class and subclass");
   }
   if (!ensure_class(runtime, args[0], "_abc._abc_subclasscheck() class", error) ||
       !ensure_class(runtime, args[1], "_abc._abc_subclasscheck() subclass", error)) {
@@ -392,8 +393,7 @@ bool abc_subclasscheck(Runtime& runtime, const Value* args, uint32_t argc, Value
 
 bool abc_instancecheck(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "_abc._abc_instancecheck() expected class and instance";
-    return false;
+    return abc_type_error(runtime, error, "_abc._abc_instancecheck() expected class and instance");
   }
   if (!ensure_class(runtime, args[0], "_abc._abc_instancecheck() class", error)) {
     return false;
@@ -415,8 +415,7 @@ bool abc_instancecheck(Runtime& runtime, const Value* args, uint32_t argc, Value
 
 bool abc_get_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "_abc._get_dump() expected class";
-    return false;
+    return abc_type_error(runtime, error, "_abc._get_dump() expected class");
   }
   if (!ensure_class(runtime, args[0], "_abc._get_dump() class", error)) {
     return false;
@@ -443,8 +442,7 @@ bool abc_get_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 
 bool abc_reset_registry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "_abc._reset_registry() expected class";
-    return false;
+    return abc_type_error(runtime, error, "_abc._reset_registry() expected class");
   }
   if (!ensure_class(runtime, args[0], "_abc._reset_registry() class", error)) {
     return false;
@@ -459,8 +457,7 @@ bool abc_reset_registry(Runtime& runtime, const Value* args, uint32_t argc, Valu
 
 bool abc_reset_caches(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "_abc._reset_caches() expected class";
-    return false;
+    return abc_type_error(runtime, error, "_abc._reset_caches() expected class");
   }
   if (!ensure_class(runtime, args[0], "_abc._reset_caches() class", error)) {
     return false;
@@ -487,10 +484,9 @@ bool abc_meta_subclasscheck(Runtime& runtime, const Value* args, uint32_t argc, 
   return abc_subclasscheck(runtime, args, argc, out, error, user_data);
 }
 
-bool abc_abstractmethod(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool abc_abstractmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "abc.abstractmethod() expected function";
-    return false;
+    return abc_type_error(runtime, error, "abc.abstractmethod() expected function");
   }
   Value target = args[0];
   std::string ignored;

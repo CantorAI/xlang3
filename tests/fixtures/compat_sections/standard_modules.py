@@ -408,6 +408,21 @@ try:
     _abc._abc_init(42)
 except TypeError as err:
     print("abc-init-type", "class" in str(err))
+for abc_bad_call in [
+    lambda: abc.get_cache_token(1),
+    lambda: _abc._abc_register(NativeABC),
+    lambda: _abc._abc_subclasscheck(NativeABC),
+    lambda: _abc._abc_instancecheck(NativeABC),
+    lambda: _abc._get_dump(),
+    lambda: _abc._reset_registry(),
+    lambda: _abc._reset_caches(),
+    lambda: abc.update_abstractmethods(),
+    lambda: abc.abstractmethod(),
+]:
+    try:
+        abc_bad_call()
+    except TypeError as err:
+        print("abc-helper-type", "expected" in str(err) or "arguments" in str(err))
 
 # numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
 import numbers
