@@ -2073,7 +2073,8 @@ bool sys_monitoring_dispatch_event(
         enabled_events |= local_it->second;
       }
     }
-    if (tool.name.tag == ValueTag::None || (enabled_events & event) == 0) {
+    const bool c_call_result_event = event == kMonitoringEventCReturn || event == kMonitoringEventCRaise;
+    if (tool.name.tag == ValueTag::None || ((enabled_events & event) == 0 && !(c_call_result_event && (enabled_events & kMonitoringEventCall) != 0))) {
       continue;
     }
     auto callback_it = tool.callbacks.find(event);

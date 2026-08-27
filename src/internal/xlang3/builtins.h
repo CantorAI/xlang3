@@ -31,7 +31,10 @@ void register_math_module(Runtime& runtime);
 void register_sys_module(Runtime& runtime);
 constexpr int64_t kSysMonitoringEventPyStart = 1;
 constexpr int64_t kSysMonitoringEventPyReturn = 4;
+constexpr int64_t kSysMonitoringEventCall = 16;
 constexpr int64_t kSysMonitoringEventLine = 32;
+constexpr int64_t kSysMonitoringEventCReturn = 65536;
+constexpr int64_t kSysMonitoringEventCRaise = 131072;
 bool sys_monitoring_dispatch_event(
     Runtime& runtime,
     int64_t event,

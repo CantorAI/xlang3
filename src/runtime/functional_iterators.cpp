@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/functional_iterators.h"
 
+#include "xlang3/builtins.h"
 #include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/attribute.h"
@@ -193,7 +194,17 @@ bool runtime_call_callable(
     if (native->callback == nullptr) {
       return raise_type_error(runtime, "native callable does not support this call path", error);
     }
-    return native->callback(runtime, args, argc, out, error, native->user_data);
+    Value callable_name = Value::string(native->name);
+    Value code = Value::none();
+    if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable_name, error)) {
+      return false;
+    }
+    if (!native->callback(runtime, args, argc, out, error, native->user_data)) {
+      std::string monitoring_error;
+      (void)sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCRaise, code, -1, &callable_name, monitoring_error);
+      return false;
+    }
+    return sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable_name, error);
   }
 
   if (auto* function = value_as_function(callable)) {

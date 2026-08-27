@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
+#include "xlang3/builtins.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -35,6 +36,23 @@ limitations under the License.
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+XLANG3_HOT_INLINE Value monitoring_code_object_for_function(
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    const ir::Function& fn) {
+  if (module_owner == nullptr) {
+    return Value::none();
+  }
+  uint32_t function_id = module.entry;
+  for (uint32_t index = 0; index < module.functions.size(); ++index) {
+    if (&module.functions[index] == &fn) {
+      function_id = index;
+      break;
+    }
+  }
+  return Value::code(module_owner, function_id);
+}
 
 XLANG3_HOT_INLINE const Value* materialize_native_args(
     CallArgsView values,
@@ -1013,6 +1031,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
   call_args.kw_star_arg = spec.kw_star_arg;
   const auto& callee = regs[in.a];
   bool pushed_frame = false;
+  Value monitoring_code = monitoring_code_object_for_function(module, module_owner, fn);
 
   std::vector<NativeKeywordArg> native_keyword_args;
 
@@ -1020,7 +1039,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     CallArgsView bound_args = call_args;
     bound_args.leading = &bound->self;
     bound_args.leading_count = 1;
-    if (!xlang3::xlang_vm::ops::call_callable_value_ex(runtime, bound->function, bound_args, module, module_owner, in.dst, ip, native_call_args, native_keyword_args, execution_lock, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value)) {
+    if (!xlang3::xlang_vm::ops::call_callable_value_ex(runtime, bound->function, bound_args, module, module_owner, in.dst, ip, native_call_args, native_keyword_args, execution_lock, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value, &monitoring_code, static_cast<int64_t>(ip))) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
       return XlangVMOpFlow::ContinueLoop;
     }
@@ -1032,7 +1051,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* native = value_as_native_function(callee)) {
-    if (!xlang3::xlang_vm::ops::call_native_function_ex(runtime, native, call_args, native_call_args, native_keyword_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
+    if (!xlang3::xlang_vm::ops::call_native_function_ex(runtime, native, call_args, native_call_args, native_keyword_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value, &monitoring_code, static_cast<int64_t>(ip))) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
       return XlangVMOpFlow::ContinueLoop;
     }
@@ -1711,6 +1730,12 @@ XLANG3_HOT_INLINE bool call_native_function(
   if (!use_fast) {
     native_args = materialize_native_args(values, native_call_args);
   }
+  Value callable = Value::string(native->name);
+  Value code = Value::none();
+  if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable, error)) {
+    if (raise_runtime_error(error.empty() ? "monitoring callback failed" : error)) return false;
+    return false;
+  }
   bool ok = false;
   if (use_fast && !native->fast_releases_vm_lock) {
     ok = native->fast_callback(
@@ -1751,6 +1776,8 @@ XLANG3_HOT_INLINE bool call_native_function(
     }
   }
   if (!ok) {
+    std::string monitoring_error;
+    (void)sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCRaise, code, -1, &callable, monitoring_error);
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       if (raise_exception_value(std::move(pending))) return false;
@@ -1759,7 +1786,7 @@ XLANG3_HOT_INLINE bool call_native_function(
     if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
     return false;
   }
-  return true;
+  return sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable, error);
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
@@ -1772,7 +1799,9 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     XlangRuntimeExecutionGuard& execution_lock,
     Value& out,
     RaiseRuntimeError&& raise_runtime_error,
-    RaiseExceptionValue&& raise_exception_value) {
+    RaiseExceptionValue&& raise_exception_value,
+    const Value* monitoring_code = nullptr,
+    int64_t monitoring_instruction_offset = -1) {
   std::string error;
   bool has_materialized_keywords = false;
   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
@@ -1791,6 +1820,20 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     }
   } else if (!use_fast) {
     native_args = materialize_native_args(values, native_call_args);
+  }
+  Value callable = Value::string(native->name);
+  if (monitoring_code != nullptr) {
+    std::string monitoring_error;
+    if (!sys_monitoring_dispatch_event(
+            runtime,
+            kSysMonitoringEventCall,
+            *monitoring_code,
+            monitoring_instruction_offset,
+            &callable,
+            monitoring_error)) {
+      if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
+      return false;
+    }
   }
   bool ok = false;
   if (use_fast && !native->fast_releases_vm_lock) {
@@ -1845,6 +1888,19 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     }
   }
   if (!ok) {
+    if (monitoring_code != nullptr) {
+      std::string monitoring_error;
+      if (!sys_monitoring_dispatch_event(
+              runtime,
+              kSysMonitoringEventCRaise,
+              *monitoring_code,
+              monitoring_instruction_offset,
+              &callable,
+              monitoring_error)) {
+        if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
+        return false;
+      }
+    }
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       if (raise_exception_value(std::move(pending))) return false;
@@ -1852,6 +1908,19 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     }
     if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
     return false;
+  }
+  if (monitoring_code != nullptr) {
+    std::string monitoring_error;
+    if (!sys_monitoring_dispatch_event(
+            runtime,
+            kSysMonitoringEventCReturn,
+            *monitoring_code,
+            monitoring_instruction_offset,
+            &callable,
+            monitoring_error)) {
+      if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
+      return false;
+    }
   }
   return true;
 }
@@ -2021,7 +2090,9 @@ XLANG3_HOT_INLINE bool call_callable_value_ex(
     MakeGeneratorIfNeeded&& make_generator_if_needed,
     PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
-    RaiseExceptionValue&& raise_exception_value) {
+    RaiseExceptionValue&& raise_exception_value,
+    const Value* monitoring_code = nullptr,
+    int64_t monitoring_instruction_offset = -1) {
   if (auto* bound = value_as_bound_method(function_value)) {
     CallArgsView bound_args = values;
     bound_args.leading = &bound->self;
@@ -2042,11 +2113,13 @@ XLANG3_HOT_INLINE bool call_callable_value_ex(
         make_generator_if_needed,
         push_frame,
         raise_runtime_error,
-        raise_exception_value);
+        raise_exception_value,
+        monitoring_code,
+        monitoring_instruction_offset);
   }
   if (auto* native = value_as_native_function(function_value)) {
     return call_native_function_ex(runtime, native, values, native_call_args, native_keyword_args, execution_lock, out,
-                                   raise_runtime_error, raise_exception_value);
+                                   raise_runtime_error, raise_exception_value, monitoring_code, monitoring_instruction_offset);
   }
   if (auto* fn_obj = value_as_function(function_value)) {
     return call_user_function(fn_obj, values, module, module_owner, return_dst, ip, out, pushed_frame,
@@ -2103,9 +2176,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
     return native_call_args.data();
   };
 
+  auto dispatch_native_monitoring_event = [&](int64_t event, const Value& callable) -> bool {
+    std::string monitoring_error;
+    Value code = monitoring_code_object_for_function(module, module_owner, fn);
+    if (!sys_monitoring_dispatch_event(runtime, event, code, static_cast<int64_t>(ip), &callable, monitoring_error)) {
+      return raise_runtime_error(monitoring_error) ? false : false;
+    }
+    return true;
+  };
+
   auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
     std::string error;
     Value native_result;
+    Value callable = Value::string(native->name);
+    if (!dispatch_native_monitoring_event(kSysMonitoringEventCall, callable)) {
+      return false;
+    }
     const bool use_fast = native->fast_callback != nullptr;
     xlang_perf_count_native_call(use_fast);
     const Value* native_args = nullptr;
@@ -2148,6 +2234,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
       execution_lock.lock();
     }
     if (!ok) {
+      if (!dispatch_native_monitoring_event(kSysMonitoringEventCRaise, callable)) {
+        return false;
+      }
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         if (raise_exception_value(std::move(pending))) return false;
@@ -2157,12 +2246,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
       return false;
     }
     out = std::move(native_result);
+    if (!dispatch_native_monitoring_event(kSysMonitoringEventCReturn, callable)) {
+      return false;
+    }
     return true;
   };
 
   auto call_cached_fast_function = [&](const CallSiteCache& cache, CallArgsView values, Value& out) -> bool {
     std::string error;
     Value native_result;
+    Value callable = cache.native != nullptr ? Value::string(cache.native->name) : Value::none();
+    if (!dispatch_native_monitoring_event(kSysMonitoringEventCall, callable)) {
+      return false;
+    }
     bool ok = false;
     xlang_perf_count_cached_native_fast_call();
     if (!cache.fast_releases_vm_lock) {
@@ -2191,6 +2287,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
       execution_lock.lock();
     }
     if (!ok) {
+      if (!dispatch_native_monitoring_event(kSysMonitoringEventCRaise, callable)) {
+        return false;
+      }
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         if (raise_exception_value(std::move(pending))) return false;
@@ -2200,6 +2299,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
       return false;
     }
     out = std::move(native_result);
+    if (!dispatch_native_monitoring_event(kSysMonitoringEventCReturn, callable)) {
+      return false;
+    }
     return true;
   };
 

@@ -743,6 +743,20 @@ print(sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_l
 sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_line_target.__code__, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(len(monitoring_local_line_events) >= 1, "sys_monitoring_local_line_target" in monitoring_local_line_events, "sys_monitoring_local_line_other" in monitoring_local_line_events)
+monitoring_c_events = []
+def sys_monitoring_c_callback(code, instruction_offset, callable):
+    monitoring_c_events.append((getattr(code, "co_name", None), isinstance(instruction_offset, int), callable))
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-c") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.CALL, sys_monitoring_c_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RETURN, sys_monitoring_c_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RAISE, sys_monitoring_c_callback) is None)
+print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.CALL) is None, sys.monitoring.get_tool(monitoring_tool_id))
+try:
+    sys.monitoring.get_tool(99)
+except ValueError:
+    pass
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(any(event[1] and event[2] == "sys.monitoring.get_tool" for event in monitoring_c_events), len([event for event in monitoring_c_events if event[2] == "sys.monitoring.get_tool"]) >= 4)
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
 print(repr(sys.version_info), repr(sys.flags).startswith("sys.flags("), "gil=" not in repr(sys.flags), repr(sys.hash_info).startswith("sys.hash_info("))
 print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_randomization, sys.flags.utf8_mode)

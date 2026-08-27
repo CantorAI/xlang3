@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `sys.breakpointhook` keyword-call no-op batch.
+Last updated after the native `sys.monitoring` C-call event dispatch batch.
 
 Current checklist count:
 
@@ -69,10 +69,13 @@ What this means:
 
 Recent completed batches:
 
+- Expanded live native `sys.monitoring` PEP 669 coverage: native callable
+  dispatch now emits `CALL` plus the `C_RETURN`/`C_RAISE` companion callbacks
+  controlled by the active `CALL` mask, with callback-recursion suppression
+  preserved and fixture coverage for successful and failing native calls.
 - Tightened native `sys.monitoring` event-set validation: global and local
   event masks now reject any `C_RETURN`/`C_RAISE` request, including the paired
-  mask, matching CPython 3.14's static validation while live PEP 669 dispatch
-  remains pending.
+  mask, matching CPython 3.14's static validation.
 - Expanded native `sys` CPython 3.14 startup metadata: `sys.__doc__` is now
   published as real module documentation, and `sys.__interactivehook__` plus
   `sys._baserepl` are exposed as callable no-op hooks with catchable
@@ -726,7 +729,8 @@ Native or runtime-backed foundation:
   C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
   bool-as-int tool/event IDs, single C return/raise callback registration, and catchable validation failures,
   live global and code-local `PY_START`/`PY_RETURN`/`LINE` callback dispatch with
-  CPython-style callback arguments, stable code-object local event matching,
+  CPython-style callback arguments, live native `CALL` plus companion `C_RETURN`/`C_RAISE`
+  dispatch for successful and failing native call paths, stable code-object local event matching,
   and callback-recursion suppression,
   `_is_immortal` for XLang3 tagged singleton/scalar values,
   live-thread-id-keyed `_current_frames` snapshots,
