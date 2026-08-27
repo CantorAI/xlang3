@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime normalizes %j day 366 common-year overflow like CPython
+sys startup flags align CPython-default bytecode, hash-randomization, and UTF-8 mode values
 ```
 
 Current next loop:

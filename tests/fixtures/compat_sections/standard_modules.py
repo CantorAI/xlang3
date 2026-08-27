@@ -605,6 +605,7 @@ print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.std
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print(sys.flags.optimize, sys.flags.utf8_mode, sys.flags.safe_path, len(sys.flags) > 10)
+print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_randomization, sys.flags.utf8_mode)
 print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.thread_inherit_context, sys.flags.context_aware_warnings, len(sys.flags))
 print(type(sys.version_info).n_fields, type(sys.version_info).major.__name__, type(sys.flags).n_fields, type(sys.flags).gil.__name__)
 print(type(sys.version_info).__match_args__, type(sys.flags).__match_args__[-1], len(type(sys.flags).__match_args__), "gil" not in type(sys.flags).__match_args__)

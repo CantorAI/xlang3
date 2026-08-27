@@ -700,7 +700,9 @@ Native or runtime-backed foundation:
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
-  and `context_aware_warnings`, and frame placeholders with populated
+  and `context_aware_warnings`, CPython-default `sys.dont_write_bytecode` plus
+  `sys.flags.dont_write_bytecode`/`hash_randomization`/`utf8_mode` startup values,
+  and frame placeholders with populated
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
   bool-depth handling plus too-shallow-stack behavior, and catchable
   `_is_gil_enabled` argument errors;

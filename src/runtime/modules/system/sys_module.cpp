@@ -274,17 +274,17 @@ Value make_flags(Runtime& runtime) {
           {"inspect", Value::int64(0)},
           {"interactive", Value::int64(0)},
           {"optimize", Value::int64(0)},
-          {"dont_write_bytecode", Value::int64(1)},
+          {"dont_write_bytecode", Value::int64(0)},
           {"no_user_site", Value::int64(0)},
           {"no_site", Value::int64(0)},
           {"ignore_environment", Value::int64(0)},
           {"verbose", Value::int64(0)},
           {"bytes_warning", Value::int64(0)},
           {"quiet", Value::int64(0)},
-          {"hash_randomization", Value::int64(0)},
+          {"hash_randomization", Value::int64(1)},
           {"isolated", Value::int64(0)},
           {"dev_mode", Value::boolean(false)},
-          {"utf8_mode", Value::int64(1)},
+          {"utf8_mode", Value::int64(0)},
           {"warn_default_encoding", Value::int64(0)},
           {"safe_path", Value::boolean(false)},
           {"int_max_str_digits", Value::int64(g_int_max_str_digits)},
@@ -1822,7 +1822,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "maxsize", Value::int64(std::numeric_limits<int64_t>::max()), error);
   module_set_attr(sys, "maxunicode", Value::int64(0x10ffff), error);
   module_set_attr(sys, "byteorder", Value::string("little"), error);
-  module_set_attr(sys, "dont_write_bytecode", Value::boolean(true), error);
+  module_set_attr(sys, "dont_write_bytecode", Value::boolean(false), error);
   module_set_attr(sys, "flags", make_flags(runtime), error);
   module_set_attr(sys, "int_info", make_int_info(runtime), error);
   module_set_attr(sys, "float_info", make_float_info(runtime), error);
