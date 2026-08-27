@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring live generator resume/yield dispatch and StopIteration.value propagation
+sys._jit CPython 3.14 module doc metadata
 ```
 
 Current next loop:

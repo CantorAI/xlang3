@@ -94,6 +94,9 @@ Recent completed batches:
   published as real module documentation, and `sys.__interactivehook__` plus
   `sys._baserepl` are exposed as callable no-op hooks with catchable
   no-argument arity validation.
+- Expanded native `sys._jit` CPython 3.14 metadata: the runtime JIT probe
+  module now exposes the CPython module docstring alongside the existing
+  inactive/unavailable state probes, with Standard Modules fixture coverage.
 - Tightened native `sys.breakpointhook` / `sys.__breakpointhook__`: both
   aliases now accept keyword calls through the native keyword-call path, so
   the `PYTHONBREAKPOINT=0` no-op compatibility path used by tooling handles
@@ -737,7 +740,7 @@ Native or runtime-backed foundation:
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing`,
-  `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` state probes,
+  `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing, global/local event masks, callback replacement, restart/all-events
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,

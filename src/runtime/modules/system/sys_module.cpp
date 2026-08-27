@@ -2448,7 +2448,8 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_debugmallocstats", runtime.make_native_function("sys._debugmallocstats", sys_debugmallocstats), error);
   module_set_attr(sys, "_dump_tracelets", runtime.make_native_function("sys._dump_tracelets", sys_dump_tracelets), error);
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
-  jit_builder.function("is_available", sys_jit_is_available)
+  jit_builder.value("__doc__", Value::string("Utilities for observing just-in-time compilation."))
+      .function("is_available", sys_jit_is_available)
       .function("is_enabled", sys_jit_is_enabled)
       .function("is_active", sys_jit_is_active);
   Value jit_module = jit_builder.finish();
