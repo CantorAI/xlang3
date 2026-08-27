@@ -905,6 +905,8 @@ parsed_locale_date = time.strptime("08/26/26", "%x")
 parsed_locale_time = time.strptime("01:02:03", "%X")
 parsed_space_day = time.strptime(" 6", "%e")
 parsed_default_year_leap_day = time.strptime("02/29", "%m/%d")
+parsed_whitespace_run = time.strptime("2026   08\t26", "%Y %m %d")
+parsed_whitespace_format_run = time.strptime("2026 08 26", "%Y   %m\t%d")
 print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
 print(tuple(parsed_year_only), tuple(parsed_month_day), tuple(parsed_clock_only))
 print(tuple(parsed_yday), parsed_yday.tm_mon, parsed_yday.tm_mday, parsed_yday.tm_yday)
@@ -922,6 +924,7 @@ print(tuple(parsed_week_zero_previous), tuple(parsed_week_zero_current), tuple(p
 print(tuple(parsed_iso_week), tuple(parsed_iso_week_name), tuple(parsed_iso_week_53))
 print(tuple(parsed_locale_datetime), tuple(parsed_locale_date), tuple(parsed_locale_time), parsed_space_day.tm_mday)
 print(tuple(parsed_default_year_leap_day), parsed_default_year_leap_day.tm_mon, parsed_default_year_leap_day.tm_mday, parsed_default_year_leap_day.tm_yday)
+print(tuple(parsed_whitespace_run)[:3], tuple(parsed_whitespace_format_run)[:3])
 print(constructed_time.n_fields, constructed_time.tm_zone is None, constructed_time.tm_gmtoff is None, constructed_zone_time.tm_zone, constructed_zone_time.tm_gmtoff)
 print(constructed_dict_time.tm_zone, constructed_dict_time.tm_gmtoff, len(constructed_dict_time), constructed_dict_time.n_fields)
 print(constructed_time.__repr__(), constructed_zone_time.__repr__() == constructed_dict_time.__repr__())
@@ -953,6 +956,7 @@ for bad_strptime_args in [
     ("2026 35", "%G %V"),
     ("2026 35 3", "%Y %V %u"),
     ("Wed Aug 26 01:02:03", "%c"),
+    ("20260826", "%Y %m %d"),
     (" 0", "%e"),
     ("2026-02-31", "%Y-%m-%d"),
     ("2023-02-29", "%Y-%m-%d"),

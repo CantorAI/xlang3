@@ -439,6 +439,7 @@ bool parse_strptime_directives(
     Value& zone,
     Value& gmtoff,
     bool& explicit_year,
+    bool& unsupported_directive,
     const TimeModuleState* state = nullptr) {
   size_t text_pos = 0;
   int parsed_yday = -1;
@@ -455,11 +456,19 @@ bool parse_strptime_directives(
   bool saw_weekday = false;
   bool saw_calendar_year = false;
   explicit_year = false;
+  unsupported_directive = false;
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
     const char fmt = format[format_pos];
     if (std::isspace(static_cast<unsigned char>(fmt))) {
-      while (text_pos < text.size() && std::isspace(static_cast<unsigned char>(text[text_pos]))) {
+      if (text_pos >= text.size() || !std::isspace(static_cast<unsigned char>(text[text_pos]))) {
+        return false;
+      }
+      do {
         ++text_pos;
+      } while (text_pos < text.size() && std::isspace(static_cast<unsigned char>(text[text_pos])));
+      while (format_pos + 1 < format.size() &&
+             std::isspace(static_cast<unsigned char>(format[format_pos + 1]))) {
+        ++format_pos;
       }
       continue;
     }
@@ -731,6 +740,7 @@ bool parse_strptime_directives(
         }
         break;
       default:
+        unsupported_directive = true;
         return false;
     }
   }
@@ -1497,8 +1507,14 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   Value zone = Value::none();
   Value gmtoff = Value::none();
   bool explicit_year = false;
+  bool unsupported_directive = false;
   auto* state = static_cast<TimeModuleState*>(user_data);
-  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, state)) {
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, state)) {
+    if (!unsupported_directive) {
+      error = "time data does not match format";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
     std::istringstream stream(text);
     stream >> std::get_time(&tm, format.c_str());
     if (stream.fail() || stream.peek() != std::char_traits<char>::eof()) {

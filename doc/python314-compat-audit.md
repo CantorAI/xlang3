@@ -738,6 +738,8 @@ Native or runtime-backed foundation:
   C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
+  CPython-style whitespace matching for format whitespace runs including tab/run input and
+  missing-whitespace rejection,
   catchable `ValueError` failures,
   and trailing-input rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending

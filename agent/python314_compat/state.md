@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime platform %Z timezone-name parsing
+time.strptime CPython whitespace matching
 ```
 
 Current next loop:
