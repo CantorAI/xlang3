@@ -729,7 +729,8 @@ Native or runtime-backed foundation:
   ordinal-day `%j` including CPython-style common-year 366 overflow,
   `%U`/`%W` week-number date derivation with `%w`/`%u`
   weekdays, ISO week `%G`/`%V` date derivation with numeric and named weekday
-  directives, `%z` UTC offsets through `tm_gmtoff`, UTC/GMT `%Z` metadata,
+  directives, `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
+  large offset hours, UTC/GMT `%Z` metadata,
   C-locale `%c`/`%x`/`%X` composite directives and space-padded `%e` days,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
   offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,

@@ -384,7 +384,7 @@ bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) 
       }
     }
   }
-  if (hour > 23 || minute > 59 || second > 59) {
+  if (minute > 59 || second > 59) {
     return false;
   }
   gmtoff = Value::int64(sign * static_cast<int64_t>(hour * 3600 + minute * 60 + second));
