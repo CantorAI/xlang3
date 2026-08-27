@@ -745,7 +745,8 @@ Native or runtime-backed foundation:
   `call_tracing`,
   `implementation.supports_isolated_interpreters`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
-  tool-name reservation/freeing, global/local event masks, callback replacement, restart/all-events
+  tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
+  global/local event masks, callback replacement, restart/all-events
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
   C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
   bool-as-int tool/event IDs, single C return/raise callback registration, and catchable validation failures,

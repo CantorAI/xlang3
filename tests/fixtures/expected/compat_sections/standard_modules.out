@@ -154,6 +154,8 @@ monitoring-local-c-event-pair True
 True True
 True True
 True True True True 0 32
+True True True
+True fixture-monitor-clear 0 32 True
 monitoring-tool-id True
 monitoring-tool-name True
 monitoring-unused-tool True

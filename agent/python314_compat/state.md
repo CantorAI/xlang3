@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time._STRUCT_TM_ITEMS CPython 3.14 metadata
+sys.monitoring clear_tool_id CPython 3.14 lifecycle semantics
 ```
 
 Current next loop:

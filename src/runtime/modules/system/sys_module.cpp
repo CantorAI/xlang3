@@ -1892,7 +1892,20 @@ bool sys_monitoring_free_tool_id(Runtime& runtime, const Value* args, uint32_t a
 }
 
 bool sys_monitoring_clear_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return sys_monitoring_free_tool_id(runtime, args, argc, out, error, nullptr);
+  if (argc != 1) {
+    error = "sys.monitoring.clear_tool_id expected tool_id";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t tool_id = 0;
+  if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
+    return false;
+  }
+  auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
+  tool.events = 0;
+  tool.callbacks.clear();
+  value_set_none(out);
+  return true;
 }
 
 bool sys_monitoring_get_tool(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

@@ -658,6 +658,9 @@ def sys_monitoring_callback_probe(*args):
 print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, sys_monitoring_callback_probe) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, None) is sys_monitoring_callback_probe)
 print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RETURN, sys_monitoring_callback_probe) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RETURN, None) is sys_monitoring_callback_probe)
 print(sys.monitoring.restart_events() is None, isinstance(sys.monitoring._all_events(), dict), sys.monitoring.free_tool_id(monitoring_tool_id) is None, sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code))
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-clear") is None, sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, sys_monitoring_callback_probe) is None)
+print(sys.monitoring.clear_tool_id(monitoring_tool_id) is None, sys.monitoring.get_tool(monitoring_tool_id), sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.get_local_events(monitoring_tool_id, monitoring_code), sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE, None) is None)
+sys.monitoring.free_tool_id(monitoring_tool_id)
 try:
     sys.monitoring.get_tool(99)
 except ValueError as err:
