@@ -175,6 +175,14 @@ True
 True local-line other-line
 True True False
 True
+True
+True 5
+True True True
+True
+True
+True 7 8
+True True False
+True
 True True True
 True fixture-monitor-c
 True True

@@ -831,6 +831,11 @@ RuntimeResult Interpreter::run_function(
         }
       }
       const auto& in = fn.code[ip];
+      if (!runtime_.trace_dispatch_active()) {
+        if (!emit_monitoring_event(frame, kSysMonitoringEventInstruction, nullptr)) {
+          return result;
+        }
+      }
       if ((++execution_lock_ticks & 0x3ffu) == 0) {
         execution_lock.unlock();
         std::this_thread::yield();

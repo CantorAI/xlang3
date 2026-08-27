@@ -33,6 +33,7 @@ constexpr int64_t kSysMonitoringEventPyStart = 1;
 constexpr int64_t kSysMonitoringEventPyReturn = 4;
 constexpr int64_t kSysMonitoringEventCall = 16;
 constexpr int64_t kSysMonitoringEventLine = 32;
+constexpr int64_t kSysMonitoringEventInstruction = 64;
 constexpr int64_t kSysMonitoringEventRaise = 2048;
 constexpr int64_t kSysMonitoringEventExceptionHandled = 4096;
 constexpr int64_t kSysMonitoringEventCReturn = 65536;

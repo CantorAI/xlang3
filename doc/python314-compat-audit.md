@@ -729,7 +729,7 @@ Native or runtime-backed foundation:
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
   C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
   bool-as-int tool/event IDs, single C return/raise callback registration, and catchable validation failures,
-  live global and code-local `PY_START`/`PY_RETURN`/`LINE` callback dispatch with
+  live global and code-local `PY_START`/`PY_RETURN`/`LINE`/`INSTRUCTION` callback dispatch with
   CPython-style callback arguments, live native `CALL` plus companion `C_RETURN`/`C_RAISE`
   dispatch for successful and failing native call paths, stable code-object local event matching,
   callback-recursion suppression, and live caught-exception `RAISE`/`EXCEPTION_HANDLED`
@@ -753,7 +753,7 @@ Native or runtime-backed foundation:
   bool-depth handling plus too-shallow-stack behavior, and CPython-default
   `_is_gil_enabled` enabled result with catchable argument errors;
   full CPython startup flags/config/runtime internals and remaining live PEP 669
-  event coverage beyond call/line/return/caught-exception paths pending
+  event coverage beyond instruction/call/line/return/caught-exception paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns`, `get_clock_info`, `sleep`, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`, `ctime`, constructible/indexable/iterable

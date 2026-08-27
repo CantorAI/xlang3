@@ -743,6 +743,39 @@ print(sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_l
 sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_line_target.__code__, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(len(monitoring_local_line_events) >= 1, "sys_monitoring_local_line_target" in monitoring_local_line_events, "sys_monitoring_local_line_other" in monitoring_local_line_events)
+monitoring_instruction_events = []
+def sys_monitoring_instruction_callback(code, instruction_offset):
+    monitoring_instruction_events.append((code.co_name, isinstance(instruction_offset, int), instruction_offset >= 0))
+
+def sys_monitoring_instruction_target():
+    left = 2
+    right = 3
+    return left + right
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-instruction") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.INSTRUCTION, sys_monitoring_instruction_callback) is None)
+print(sys.monitoring.set_events(monitoring_tool_id, monitoring_events.INSTRUCTION) is None, sys_monitoring_instruction_target())
+sys.monitoring.set_events(monitoring_tool_id, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_instruction_events) >= 3, "sys_monitoring_instruction_target" in [event[0] for event in monitoring_instruction_events], all(event[1] and event[2] for event in monitoring_instruction_events))
+monitoring_local_instruction_events = []
+def sys_monitoring_local_instruction_callback(code, instruction_offset):
+    monitoring_local_instruction_events.append(code.co_name)
+
+def sys_monitoring_local_instruction_target():
+    value = 7
+    return value
+
+def sys_monitoring_local_instruction_other():
+    value = 8
+    return value
+
+print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-local-instruction") is None)
+print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.INSTRUCTION, sys_monitoring_local_instruction_callback) is None)
+print(sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_instruction_target.__code__, monitoring_events.INSTRUCTION) is None, sys_monitoring_local_instruction_target(), sys_monitoring_local_instruction_other())
+sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_instruction_target.__code__, 0)
+sys.monitoring.free_tool_id(monitoring_tool_id)
+print(len(monitoring_local_instruction_events) >= 2, "sys_monitoring_local_instruction_target" in monitoring_local_instruction_events, "sys_monitoring_local_instruction_other" in monitoring_local_instruction_events)
 monitoring_c_events = []
 def sys_monitoring_c_callback(code, instruction_offset, callable):
     monitoring_c_events.append((getattr(code, "co_name", None), isinstance(instruction_offset, int), callable))
