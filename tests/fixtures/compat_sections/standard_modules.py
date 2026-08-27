@@ -629,6 +629,8 @@ print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getall
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
+implementation_repr = repr(sys.implementation)
+print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xlang3-314'" in implementation_repr, "version=sys.version_info(" in implementation_repr, "supports_isolated_interpreters=False" in implementation_repr)
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print((sys.platform == "win32" and not hasattr(sys.implementation, "_multiarch")) or (sys.platform != "win32" and hasattr(sys.implementation, "_multiarch")))
 print(sys._jit.__doc__ == "Utilities for observing just-in-time compilation.")

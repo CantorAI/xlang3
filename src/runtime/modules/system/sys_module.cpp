@@ -2396,6 +2396,17 @@ void register_sys_module(Runtime& runtime) {
   object_set_attr(implementation, "_multiarch", Value::string(""), error);
 #endif
   object_set_attr(implementation, "supports_isolated_interpreters", Value::boolean(false), error);
+  Value implementation_version;
+  object_get_attr(implementation, "version", implementation_version, error);
+  std::string implementation_repr =
+      "namespace(name='xlang3', cache_tag='xlang3-314', version=" +
+      value_to_string(implementation_version) +
+      ", hexversion=51251184, supports_isolated_interpreters=False";
+#if !defined(_WIN32)
+  implementation_repr += ", _multiarch=''";
+#endif
+  implementation_repr += ")";
+  object_set_attr(implementation, "__xlang3_string_value__", Value::string(std::move(implementation_repr)), error);
   const std::string exe = executable_path();
   const std::string prefix = runtime_prefix(runtime);
   const std::string stdlib_dir = runtime_stdlib_dir(runtime);

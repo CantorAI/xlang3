@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.implementation _multiarch platform metadata
+sys.implementation namespace repr metadata
 ```
 
 Current next loop:
