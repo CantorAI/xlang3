@@ -785,7 +785,8 @@ Native or runtime-backed foundation:
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`,
   CPython 3.14 startup metadata/hooks including `__doc__`,
-  `__interactivehook__`, and `_baserepl`,
+  `__interactivehook__`, `_baserepl`, and CPython-normal Windows `abiflags`
+  absence while preserving non-Windows `abiflags`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
   and `context_aware_warnings`, CPython-default `sys.dont_write_bytecode` plus
   `sys.flags.dont_write_bytecode`/`hash_randomization`/`utf8_mode` startup values,

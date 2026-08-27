@@ -2338,7 +2338,9 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "version", Value::string("3.14.7 (XLang3)"), error);
   module_set_attr(sys, "hexversion", Value::int64(0x030e07f0), error);
   module_set_attr(sys, "api_version", Value::int64(1013), error);
+#if !defined(_WIN32)
   module_set_attr(sys, "abiflags", Value::string(""), error);
+#endif
   module_set_attr(sys, "_git", Value::tuple({Value::string("XLang3"), Value::string(""), Value::string("")}), error);
   module_set_attr(sys, "_vpath", Value::string(""), error);
   module_set_attr(sys, "_home", Value::none(), error);
