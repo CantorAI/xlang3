@@ -766,8 +766,8 @@ Native or runtime-backed foundation:
   positive/negative subclass caches,
   negative-cache invalidation after virtual subclass registration, virtual registry
   matches staying out of the positive cache, `_reset_registry` preserving caches/token,
-  and CPython-style
-  weakref-backed `_get_dump` snapshot sets; exact CPython weakref lifecycle and
+  and CPython-style weakref-backed `_get_dump` snapshot sets whose entries are
+  callable `weakref.ReferenceType` instances; exact CPython weakref lifecycle and
   invalidation internals pending
 - [~] `atexit`: native callback registry with `register`, `unregister`, `_run_exitfuncs`, LIFO execution, positional args, keyword args, and callable-instance callbacks; full shutdown reporting pending
 - [~] `nt` / `posix`: alias to the native `os` module foundation on the host platform

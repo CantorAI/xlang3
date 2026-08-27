@@ -238,6 +238,7 @@ print(collector.names)
 # abc/_abc: native ABCMeta register/check helpers feed normal isinstance/issubclass.
 import abc
 import _abc
+import weakref
 
 class NativeABC(metaclass=abc.ABCMeta):
     pass
@@ -253,6 +254,7 @@ native_dump = _abc._get_dump(NativeABC)
 print(len(native_dump[1]) == 0, len(native_dump[2]) == 0, native_dump[3] == abc.get_cache_token())
 native_registry_ref = next(iter(native_dump[0]))
 print(native_registry_ref() is Concrete, Concrete in native_dump[0], native_registry_ref in native_dump[0])
+print(type(native_registry_ref).__name__, type(native_registry_ref).__module__, weakref.ReferenceType is type(native_registry_ref))
 _abc._reset_registry(NativeABC)
 print(issubclass(Concrete, NativeABC), _abc._abc_subclasscheck(NativeABC, Concrete))
 native_dump = _abc._get_dump(NativeABC)

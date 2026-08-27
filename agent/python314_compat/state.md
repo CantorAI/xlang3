@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.breakpointhook keyword-call no-op path
+weakref.ReferenceType-backed _abc dump snapshots
 ```
 
 Current next loop:

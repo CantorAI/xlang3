@@ -47,6 +47,7 @@ True True
 True True True
 True True True
 True False True
+ReferenceType weakref True
 False False
 0 0 True
 0 0 0 True

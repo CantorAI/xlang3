@@ -32,40 +32,12 @@ static constexpr const char* kCacheAttr = "__xlang3_abc_cache__";
 static constexpr const char* kNegativeCacheAttr = "__xlang3_abc_negative_cache__";
 static constexpr const char* kNegativeCacheVersionAttr = "__xlang3_abc_negative_cache_version__";
 
-struct AbcWeakRefState {
-  Value target;
-};
-
-void abc_weakref_state_cleanup(void* data) {
-  delete static_cast<AbcWeakRefState*>(data);
-}
-
-bool abc_weakref_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 0) {
-    error = "weakref object expected no arguments";
-    return false;
-  }
-  auto* state = static_cast<AbcWeakRefState*>(user_data);
-  if (state == nullptr || state->target.tag == ValueTag::Invalid) {
-    value_set_none(out);
-    return true;
-  }
-  value_assign_fast(out, state->target);
-  return true;
-}
-
-Value make_abc_weakref(Runtime& runtime, const Value& target) {
-  auto* state = new AbcWeakRefState();
-  value_assign_fast(state->target, target);
-  return runtime.make_native_function("weakref.ref", abc_weakref_call, state, abc_weakref_state_cleanup);
-}
-
 Value make_abc_weakref_set(Runtime& runtime, const Value& list_value) {
   std::vector<Value> refs;
   if (auto* list = value_as_list(list_value)) {
     refs.reserve(list->items.size());
     for (const auto& item : list->items) {
-      refs.push_back(make_abc_weakref(runtime, item));
+      refs.push_back(make_weakref_ref(runtime, item));
     }
   }
   return Value::set(std::move(refs));

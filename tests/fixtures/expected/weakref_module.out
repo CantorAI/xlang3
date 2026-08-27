@@ -1,4 +1,5 @@
 box
+ReferenceType weakref True
 box
 0
 []

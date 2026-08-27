@@ -21,14 +21,8 @@ namespace xlang3 {
 
 namespace {
 
-struct WeakRefState {
-  Value target;
-  Value callback;
-};
-
-void weakref_state_cleanup(void* data) {
-  delete static_cast<WeakRefState*>(data);
-}
+static constexpr const char* kWeakrefTargetAttr = "__xlang3_weakref_target__";
+static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
 
 bool weakrefable_target(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
@@ -41,18 +35,52 @@ bool weakrefable_target(const Value& value) {
   return true;
 }
 
-bool weakref_reference_call(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 0) {
+bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
     error = "weakref object expected no arguments";
     return false;
   }
-  auto* state = static_cast<WeakRefState*>(user_data);
-  if (state == nullptr || state->target.tag == ValueTag::Invalid) {
+  Value target;
+  std::string ignored;
+  if (!object_get_attr(args[0], kWeakrefTargetAttr, target, ignored) || target.tag == ValueTag::Invalid) {
     value_set_none(out);
     return true;
   }
-  value_assign_fast(out, state->target);
+  value_assign_fast(out, target);
   return true;
+}
+
+bool weakref_reference_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "weakref.ReferenceType() expected object and optional callback";
+    return false;
+  }
+  if (!weakrefable_target(args[1])) {
+    error = "cannot create weak reference to object";
+    return false;
+  }
+  Value self = args[0];
+  if (!object_set_attr(self, kWeakrefTargetAttr, args[1], error)) {
+    return false;
+  }
+  if (!object_set_attr(self, kWeakrefCallbackAttr, argc == 3 ? args[2] : Value::none(), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+Value weakref_reference_type(Runtime& runtime) {
+  static Value reference_type = Value::invalid();
+  if (reference_type.tag != ValueTag::Invalid) {
+    return reference_type;
+  }
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("weakref")});
+  attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
+  attrs.push_back({"__call__", runtime.make_native_function("weakref.ReferenceType.__call__", weakref_reference_call)});
+  reference_type = Value::class_object("ReferenceType", std::move(attrs));
+  return reference_type;
 }
 
 bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -64,15 +92,12 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     error = "cannot create weak reference to object";
     return false;
   }
-  auto* state = new WeakRefState();
-  value_assign_fast(state->target, args[0]);
+  out = make_weakref_ref(runtime, args[0]);
   if (argc == 2) {
-    value_assign_fast(state->callback, args[1]);
+    return object_set_attr(out, kWeakrefCallbackAttr, args[1], error);
   } else {
-    value_set_none(state->callback);
+    return object_set_attr(out, kWeakrefCallbackAttr, Value::none(), error);
   }
-  out = runtime.make_native_function("weakref.ref", weakref_reference_call, state, weakref_state_cleanup);
-  return true;
 }
 
 bool weakref_proxy(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -124,7 +149,7 @@ void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
   Value ref_factory = runtime.make_native_function("weakref.ref", weakref_ref);
   Value proxy_factory = runtime.make_native_function("weakref.proxy", weakref_proxy);
   builder.value("ref", ref_factory)
-      .value("ReferenceType", std::move(ref_factory))
+      .value("ReferenceType", weakref_reference_type(runtime))
       .value("proxy", proxy_factory)
       .value("ProxyType", proxy_factory)
       .value("CallableProxyType", std::move(proxy_factory))
@@ -133,6 +158,14 @@ void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
 }
 
 } // namespace
+
+Value make_weakref_ref(Runtime& runtime, const Value& target) {
+  Value ref = Value::instance(weakref_reference_type(runtime));
+  std::string ignored;
+  object_set_attr(ref, kWeakrefTargetAttr, target, ignored);
+  object_set_attr(ref, kWeakrefCallbackAttr, Value::none(), ignored);
+  return ref;
+}
 
 void register_weakref_module(Runtime& runtime) {
   NativeModuleBuilder low_level(runtime, "_weakref");
