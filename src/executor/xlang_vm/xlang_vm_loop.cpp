@@ -656,6 +656,11 @@ RuntimeResult Interpreter::run_function(
       object_set_attr(exception, "__traceback__", traceback, ignored);
     }
     if (frame_count != 0) {
+      if (!emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventRaise, &exception)) {
+        return false;
+      }
+    }
+    if (frame_count != 0) {
       Value exception_type = runtime_.exception_type(exception);
       Value traceback = make_traceback_from_frames();
       Value event_arg = Value::tuple({exception_type, exception, traceback});
@@ -679,6 +684,12 @@ RuntimeResult Interpreter::run_function(
       if (!handlers.empty()) {
         const auto handler = handlers.back();
         handlers.pop_back();
+        if (!emit_monitoring_event(
+                frames[frame_count - 1],
+                kSysMonitoringEventExceptionHandled,
+                &current_exception)) {
+          return false;
+        }
         frames[frame_count - 1].ip = handler.ip;
         return true;
       }

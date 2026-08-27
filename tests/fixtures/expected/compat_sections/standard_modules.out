@@ -178,6 +178,10 @@ True
 True True True
 True fixture-monitor-c
 True True
+True
+True True
+True monitoring-caught
+2 (sys_monitoring_exception_target, True, ValueError, monitoring-boom) (sys_monitoring_exception_target, True, ValueError, monitoring-boom)
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0
