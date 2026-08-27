@@ -159,6 +159,8 @@ True True True
 call-tracing-type True
 True True True
 (__main__, __main__) True __main__
+True True
+sys-getframe-bool-depth True
 sys-getframe-depth True
 sys-getframemodulename-type True
 sys-gil-args True

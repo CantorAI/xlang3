@@ -82,11 +82,12 @@ Recent completed batches:
   CPython-style `tm_zone`/`tm_isdst` metadata.
 - Tightened native `sys` CPython 3.14 frame/probe parity:
   `sys._getframe()` now treats negative depths as the current frame while
+  accepting bool depths with normal `int` semantics, and
   still raising catchable `ValueError` for too-shallow positive depths,
   `sys._getframemodulename()` returns the active module name for current,
-  caller, and negative-depth probes and returns `None` when the requested
-  frame is unavailable, and `sys._is_gil_enabled()` argument errors are now
-  catchable `TypeError`.
+  caller, negative-depth, and bool-depth probes and returns `None` when the
+  requested frame is unavailable, and `sys._is_gil_enabled()` argument errors
+  are now catchable `TypeError`.
 - Tightened native `time.strptime`: omitted date/time fields now use
   CPython-style defaults before normalization, weekday/year-day fields are
   populated consistently for partial formats, parse failures raise catchable
@@ -683,7 +684,8 @@ Native or runtime-backed foundation:
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
   and `context_aware_warnings`, and frame placeholders with populated
   `f_builtins`, `_getframemodulename` with CPython-style negative-depth and
-  too-shallow-stack behavior, and catchable `_is_gil_enabled` argument errors;
+  bool-depth handling plus too-shallow-stack behavior, and catchable
+  `_is_gil_enabled` argument errors;
   full CPython startup flags/config/runtime internals
   pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,

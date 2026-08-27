@@ -792,12 +792,15 @@ bool sys_frame_at_depth(
   }
   int64_t depth = 0;
   if (argc == 1) {
-    if (args[0].tag != ValueTag::Int64) {
+    if (args[0].tag == ValueTag::Bool) {
+      depth = args[0].as.b ? 1 : 0;
+    } else if (args[0].tag == ValueTag::Int64) {
+      depth = args[0].as.i64;
+    } else {
       error = std::string(name) + " depth must be int";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    depth = args[0].as.i64;
     if (depth < 0) {
       depth = 0;
     }
