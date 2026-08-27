@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time.strptime zero-year validation
+time.strptime format pre-validation
 ```
 
 Current next loop:

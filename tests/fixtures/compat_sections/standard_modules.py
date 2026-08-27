@@ -1453,6 +1453,8 @@ for bad_strptime_directive_args in [
     ("2026-08-26", "%F"),
     ("x", "%Q"),
     ("x", "%"),
+    ("2026", "%Y %"),
+    ("2026", "%Y %Q"),
 ]:
     try:
         time.strptime(*bad_strptime_directive_args)

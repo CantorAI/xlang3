@@ -278,6 +278,68 @@ bool strptime_format_has_explicit_year(const std::string& format) {
   return false;
 }
 
+bool validate_strptime_format_directives(
+    const std::string& format,
+    bool& unsupported_directive,
+    char& unsupported_directive_char,
+    bool& stray_percent) {
+  unsupported_directive = false;
+  unsupported_directive_char = '\0';
+  stray_percent = false;
+  for (size_t i = 0; i < format.size(); ++i) {
+    if (format[i] != '%') {
+      continue;
+    }
+    if (++i >= format.size()) {
+      stray_percent = true;
+      return false;
+    }
+    switch (format[i]) {
+      case '%':
+      case 'Y':
+      case 'y':
+      case 'G':
+      case 'V':
+      case 'm':
+      case 'd':
+      case 'e':
+      case 'H':
+      case 'k':
+      case 'I':
+      case 'l':
+      case 'p':
+      case 'P':
+      case 'M':
+      case 'S':
+      case 'f':
+      case 'j':
+      case 'U':
+      case 'W':
+      case 'w':
+      case 'u':
+      case 'a':
+      case 'A':
+      case 'b':
+      case 'h':
+      case 'B':
+      case 'X':
+      case 'R':
+      case 'T':
+      case 'r':
+      case 'x':
+      case 'c':
+      case 'z':
+      case 'Z':
+        break;
+      default:
+        unsupported_directive = true;
+        unsupported_directive_char = format[i];
+        return false;
+    }
+  }
+  return true;
+}
+
 bool parse_fixed_digits(const std::string& text, size_t& pos, size_t min_digits, size_t max_digits, int& out) {
   const size_t start = pos;
   int value = 0;
@@ -1662,6 +1724,15 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   char unsupported_directive_char = '\0';
   bool stray_percent = false;
   StrptimeFailureReason failure_reason = StrptimeFailureReason::None;
+  if (!validate_strptime_format_directives(format, unsupported_directive, unsupported_directive_char, stray_percent)) {
+    if (stray_percent) {
+      error = "stray % in format '" + format + "'";
+    } else {
+      error = std::string("'") + unsupported_directive_char + "' is a bad directive in format '" + format + "'";
+    }
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   auto* state = static_cast<TimeModuleState*>(user_data);
   if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, unsupported_directive_char, stray_percent, failure_reason, state)) {
     if (stray_percent) {

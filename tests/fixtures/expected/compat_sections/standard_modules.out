@@ -384,6 +384,8 @@ strptime-bad-directive True
 strptime-bad-directive True
 strptime-bad-directive True
 strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
 True True True
 True True True True
 True True 3.14
