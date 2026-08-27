@@ -1240,6 +1240,10 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       }
       return false;
     }
+    if (size.tag == ValueTag::Bool) {
+      value_set_int64(out, size.as.b ? 1 : 0);
+      return true;
+    }
     if (size.tag != ValueTag::Int64) {
       if (argc == 2) {
         value_assign_fast(out, args[1]);

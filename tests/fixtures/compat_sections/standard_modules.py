@@ -571,10 +571,15 @@ class SysSizeValueErrorProbe:
     def __sizeof__(self):
         raise ValueError("bad-size")
 
+class SysSizeBoolProbe:
+    def __sizeof__(self):
+        return True
+
 try:
     sys.getsizeof(SysSizeNegativeProbe(), 99)
 except ValueError as err:
     print("sys-getsizeof-negative", ">= 0" in str(err))
+print(sys.getsizeof(SysSizeBoolProbe()), sys.getsizeof(SysSizeBoolProbe(), 99))
 print(sys.getsizeof(SysSizeTypeErrorProbe(), 99), sys.getsizeof(SysSizeDefaultProbe(), 101))
 try:
     sys.getsizeof(SysSizeValueErrorProbe(), 99)

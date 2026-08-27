@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the native `time.strptime` week-number directive batch.
+Last updated after the native `sys.getsizeof` bool-return parity batch.
 
 Current checklist count:
 
@@ -69,6 +69,9 @@ What this means:
 
 Recent completed batches:
 
+- Tightened native `sys.getsizeof`: callable `__sizeof__()` results of
+  `True`/`False` are now accepted with bool-as-int semantics instead of
+  falling through to default handling or raising `TypeError`.
 - Tightened native `time.strptime`: `%U`/`%W` week numbers now combine with
   `%w`/`%u` weekday directives to derive CPython-style month/day, weekday, and
   year-day fields for Sunday-first, Monday-first, and ISO weekday inputs.
@@ -666,8 +669,8 @@ Native or runtime-backed foundation:
   CPython-style arity/type/immutable-type errors,
   `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
-  protocol/default handling including TypeError default fallback and negative-result
-  `ValueError`, `getrefcount`,
+  protocol/default handling including bool-as-int return values, TypeError default
+  fallback and negative-result `ValueError`, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing and `builtins._`,
   audit hook dispatch,
   stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`

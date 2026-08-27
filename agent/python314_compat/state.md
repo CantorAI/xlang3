@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._getframe/_getframemodulename bool-depth handling matches CPython 3.14
+sys.getsizeof accepts bool results from __sizeof__ with CPython-style int semantics
 ```
 
 Current next loop:
