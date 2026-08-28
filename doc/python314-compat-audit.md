@@ -511,6 +511,9 @@ Recent completed batches:
 - Expanded native `sys` runtime/config/cache helper metadata so covered
   functions expose CPython-style short `__name__`/`__qualname__`,
   `__module__ == "sys"`, and non-empty docstrings for introspection.
+- Fixed Python thread target execution to use the same runtime execution-lock
+  boundary as native thread targets, stabilizing inherited trace/profile hook
+  dispatch in worker threads.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
   ASCII, and Latin-1 coding cookies; wired it into `linecache` and `_tokenize`.
 - Fixed bytes-regex match groups so CPython `Lib/tokenize.py` can run its
@@ -961,7 +964,8 @@ Native or runtime-backed foundation:
   `call`/`return`/`exception` events with current frame arguments and callback-recursion
   suppression, native/C `c_call`/`c_return`/`c_exception` profile events with
   current-frame arguments for covered native callable paths, plus
-  `threading.setprofile` inheritance for new threads,
+  `threading.settrace`/`threading.setprofile` inheritance for new Python-thread
+  targets with native-path execution-lock parity,
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
   including CPython-style activation arity/type `TypeError` diagnostics,

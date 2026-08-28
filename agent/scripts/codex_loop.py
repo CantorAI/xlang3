@@ -354,7 +354,14 @@ def run_with_input_tee(command: str, stdin_text: str) -> str:
 
 
 def capture(command: list[str]) -> str:
-    return subprocess.check_output(command, cwd=ROOT, text=True, stderr=subprocess.STDOUT)
+    return subprocess.check_output(
+        command,
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stderr=subprocess.STDOUT,
+    )
 
 
 def read_text(path: Path) -> str:

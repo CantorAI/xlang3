@@ -32,6 +32,9 @@ shape the next iteration.
 - Codex CLI output is UTF-8. When the loop captures child output on Windows, do
   not use the console default code page; decode as UTF-8 with replacement so
   warnings or Unicode diagnostics cannot crash the runner.
+- Git command output captured for prompt/commit generation can also contain
+  UTF-8 diff text. Decode helper output as UTF-8 with replacement instead of
+  using the Windows console default codec.
 - In continuous mode, one empty Codex batch should not stop the goal. Treat it
   as no-progress and retry a small fixed number of times before exiting.
 - Compatibility fixtures must run headless. Windows crash/report dialogs from
@@ -43,6 +46,9 @@ shape the next iteration.
 - Do not “fix” thread crashes by turning on a coarse global VM lock. It can
   deadlock fixtures that intentionally wait across threads; fix ownership,
   teardown, and lock boundaries instead.
+- Keep Python and native thread target execution-lock boundaries symmetric.
+  Inherited trace/profile hooks exercise frame snapshots from worker threads and
+  can expose crashes when only the native target path is locked.
 - Descriptor primitive changes often need both `object_get_attr` and the VM
   fast-path attribute helper updated; otherwise explicit descriptor calls and
   compiled attribute access can diverge.
