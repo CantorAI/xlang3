@@ -674,6 +674,10 @@ try:
     sys._is_interned()
 except TypeError as err:
     print("sys-is-interned-arity", "exactly one argument" in str(err) or "1 argument" in str(err), "0 given" in str(err))
+try:
+    sys._is_interned(string=sys_intern_canonical)
+except TypeError as err:
+    print("sys-is-interned-keyword", "takes no keyword arguments" in str(err))
 for sys_intern_bad_value in (b"abc", 42):
     try:
         sys.intern(sys_intern_bad_value)
@@ -683,6 +687,10 @@ try:
     sys.intern()
 except TypeError as err:
     print("sys-intern-arity", "one argument" in str(err) or "1 argument" in str(err))
+try:
+    sys.intern(string="xlang3")
+except TypeError as err:
+    print("sys-intern-keyword", "takes no keyword arguments" in str(err))
 print(sys._is_immortal(None), sys._is_immortal(True), sys._is_immortal(42), sys._is_immortal("abc"), sys._is_immortal([]))
 try:
     sys._is_immortal()

@@ -1437,6 +1437,20 @@ bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool sys_intern_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys.intern() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._is_interned() takes exactly one argument (" + std::to_string(argc) + " given)";
@@ -1450,6 +1464,20 @@ bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   value_set_bool(out, string_value_is_interned(args[0]));
   return true;
+}
+
+bool sys_is_interned_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys._is_interned() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3020,13 +3048,28 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(
       sys,
       "intern",
-      sys_metadata_native_function(runtime, "sys", "sys.intern", "intern", sys_intern, nullptr, "``Intern'' the given string."),
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.intern",
+          "intern",
+          sys_intern,
+          nullptr,
+          "``Intern'' the given string.",
+          sys_intern_kw),
       error);
   module_set_attr(
       sys,
       "_is_interned",
       sys_metadata_native_function(
-          runtime, "sys", "sys._is_interned", "_is_interned", sys_is_interned, nullptr, "Return True if the given string is \"interned\"."),
+          runtime,
+          "sys",
+          "sys._is_interned",
+          "_is_interned",
+          sys_is_interned,
+          nullptr,
+          "Return True if the given string is \"interned\".",
+          sys_is_interned_kw),
       error);
   module_set_attr(
       sys,

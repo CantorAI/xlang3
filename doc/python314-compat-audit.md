@@ -960,9 +960,9 @@ Native or runtime-backed foundation:
   diagnostics, default/filesystem encoding helpers, recursion-limit
   helpers including bool-as-int bounds and CPython-style setter arity/type
   `TypeError` plus low-limit `ValueError` diagnostics, `intern`
-  with runtime canonicalization plus CPython-style wrong-type/wrong-arity
+  with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword
   `TypeError` diagnostics and `_is_interned` including CPython-style
-  wrong-type/wrong-arity `TypeError` diagnostics, `getsizeof` with CPython-style
+  wrong-type/wrong-arity/keyword `TypeError` diagnostics, `getsizeof` with CPython-style
   keyword binding plus wrong-arity `TypeError` diagnostics and `__sizeof__`
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount` including
