@@ -161,6 +161,7 @@ True True True
 sys-getrefcount-arity True True
 sys-getrefcount-arity True
 True False True 2 False False True False
+True True True
 sys-stdio-capability-arity stdin-readable True
 sys-stdio-capability-arity stdin-writable True
 sys-stdio-capability-arity stdout-isatty True

@@ -691,6 +691,13 @@ try:
 except TypeError as err:
     print("sys-getrefcount-arity", "2 given" in str(err))
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
+stdio_method_names = ("read", "readline", "write", "flush", "close", "isatty", "readable", "writable", "seekable", "fileno")
+stdio_streams = (sys.stdin, sys.stdout, sys.stderr)
+print(
+    all(getattr(stream, name).__name__ == name for stream in stdio_streams for name in stdio_method_names),
+    all(getattr(stream, name).__qualname__ == "TextIOWrapper." + name for stream in stdio_streams for name in stdio_method_names),
+    all(getattr(getattr(stream, name), "__module__", None) is None and getattr(getattr(stream, name), "__doc__", None) is None for stream in stdio_streams for name in stdio_method_names),
+)
 for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
     ("stdin-readable", lambda: sys.stdin.readable(1), ("TextIOWrapper.readable", "takes no arguments", "1 given")),
     ("stdin-writable", lambda: sys.stdin.writable(1), ("TextIOWrapper.writable", "takes no arguments", "1 given")),

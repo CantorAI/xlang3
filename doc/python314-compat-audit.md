@@ -523,6 +523,9 @@ Recent completed batches:
 - Expanded native `sys` frame and stack-trampoline callable metadata so
   `_getframe()` and stack-trampoline helpers expose CPython-style short names,
   `__module__ == "sys"`, and docstrings.
+- Tightened native `sys` stdio method metadata so `stdin`/`stdout`/`stderr`
+  methods expose CPython-style short `__name__`, `TextIOWrapper.*`
+  `__qualname__`, and absent `__module__`/`__doc__` attributes.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -968,8 +971,8 @@ Native or runtime-backed foundation:
   audit hook dispatch including CPython-style call-time failure for registered
   non-callable hooks and CPython-style `sys.audit`/`sys.addaudithook` arity/type
   `TypeError` diagnostics,
-  stdio capability probes including CPython-style no-argument method
-  diagnostics, profile/switch-interval/int-string helpers with
+  stdio capability probes including CPython-style method metadata and
+  no-argument diagnostics, profile/switch-interval/int-string helpers with
   bool-as-int setters and CPython-style setter arity/type `TypeError`
   diagnostics plus CPython-style trace/profile/config setter and debug helper
   metadata, `sys.int_info`

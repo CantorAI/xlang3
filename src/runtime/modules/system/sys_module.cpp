@@ -931,16 +931,26 @@ bool sys_stdio_fileno(Runtime& runtime, const Value*, uint32_t argc, Value& out,
 
 Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind) {
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"write", runtime.make_native_function(std::string("sys.") + kind + ".write", sys_stdio_write, const_cast<char*>(kind))});
-  attrs.push_back({"read", runtime.make_native_function(std::string("sys.") + kind + ".read", sys_stdio_read, const_cast<char*>(kind))});
-  attrs.push_back({"readline", runtime.make_native_function(std::string("sys.") + kind + ".readline", sys_stdio_readline, const_cast<char*>(kind))});
-  attrs.push_back({"flush", runtime.make_native_function(std::string("sys.") + kind + ".flush", sys_stdio_flush, const_cast<char*>(kind))});
-  attrs.push_back({"close", runtime.make_native_function(std::string("sys.") + kind + ".close", sys_stdio_close, const_cast<char*>(kind))});
-  attrs.push_back({"isatty", runtime.make_native_function(std::string("sys.") + kind + ".isatty", sys_stdio_isatty, const_cast<char*>(kind))});
-  attrs.push_back({"readable", runtime.make_native_function(std::string("sys.") + kind + ".readable", sys_stdio_readable, const_cast<char*>(kind))});
-  attrs.push_back({"writable", runtime.make_native_function(std::string("sys.") + kind + ".writable", sys_stdio_writable, const_cast<char*>(kind))});
-  attrs.push_back({"seekable", runtime.make_native_function(std::string("sys.") + kind + ".seekable", sys_stdio_seekable, const_cast<char*>(kind))});
-  attrs.push_back({"fileno", runtime.make_native_function(std::string("sys.") + kind + ".fileno", sys_stdio_fileno, const_cast<char*>(kind))});
+  auto stdio_method = [&](const char* method, NativeFunctionCallback callback) {
+    Value function = runtime.make_native_function(std::string("sys.") + kind + "." + method, callback, const_cast<char*>(kind));
+    if (auto* native = value_as_native_function(function)) {
+      native->attrs_dict = new Value(Value::dict({
+          {Value::string("__name__"), Value::string(method)},
+          {Value::string("__qualname__"), Value::string(std::string("TextIOWrapper.") + method)},
+      }));
+    }
+    return function;
+  };
+  attrs.push_back({"write", stdio_method("write", sys_stdio_write)});
+  attrs.push_back({"read", stdio_method("read", sys_stdio_read)});
+  attrs.push_back({"readline", stdio_method("readline", sys_stdio_readline)});
+  attrs.push_back({"flush", stdio_method("flush", sys_stdio_flush)});
+  attrs.push_back({"close", stdio_method("close", sys_stdio_close)});
+  attrs.push_back({"isatty", stdio_method("isatty", sys_stdio_isatty)});
+  attrs.push_back({"readable", stdio_method("readable", sys_stdio_readable)});
+  attrs.push_back({"writable", stdio_method("writable", sys_stdio_writable)});
+  attrs.push_back({"seekable", stdio_method("seekable", sys_stdio_seekable)});
+  attrs.push_back({"fileno", stdio_method("fileno", sys_stdio_fileno)});
   Value klass = Value::class_object(class_name, std::move(attrs));
   Value stream = Value::instance(klass);
   std::string ignored;
