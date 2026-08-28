@@ -219,6 +219,17 @@ monitoring-arity get_events0 True
 monitoring-arity set_local2 True
 monitoring-arity get_local1 True
 monitoring-arity callback2 True
+monitoring-keyword use_tool_id True
+monitoring-keyword free_tool_id True
+monitoring-keyword clear_tool_id True
+monitoring-keyword get_tool True
+monitoring-keyword set_events True
+monitoring-keyword get_events True
+monitoring-keyword set_local_events True
+monitoring-keyword get_local_events True
+monitoring-keyword register_callback True
+monitoring-keyword restart_events True
+monitoring-keyword _all_events True
 True
 True True
 True monitoring-live

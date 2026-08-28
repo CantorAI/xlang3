@@ -841,6 +841,23 @@ for monitoring_arity_name, monitoring_arity_call, monitoring_arity_parts in [
     except TypeError as err:
         monitoring_arity_message = str(err)
         print("monitoring-arity", monitoring_arity_name, all(part in monitoring_arity_message for part in monitoring_arity_parts))
+for monitoring_keyword_name, monitoring_keyword_call in [
+    ("use_tool_id", lambda: sys.monitoring.use_tool_id(tool_id=monitoring_tool_id, name="name")),
+    ("free_tool_id", lambda: sys.monitoring.free_tool_id(tool_id=monitoring_tool_id)),
+    ("clear_tool_id", lambda: sys.monitoring.clear_tool_id(tool_id=monitoring_tool_id)),
+    ("get_tool", lambda: sys.monitoring.get_tool(tool_id=monitoring_tool_id)),
+    ("set_events", lambda: sys.monitoring.set_events(tool_id=monitoring_tool_id, event_set=0)),
+    ("get_events", lambda: sys.monitoring.get_events(tool_id=monitoring_tool_id)),
+    ("set_local_events", lambda: sys.monitoring.set_local_events(tool_id=monitoring_tool_id, code=monitoring_code, event_set=0)),
+    ("get_local_events", lambda: sys.monitoring.get_local_events(tool_id=monitoring_tool_id, code=monitoring_code)),
+    ("register_callback", lambda: sys.monitoring.register_callback(tool_id=monitoring_tool_id, event=monitoring_events.LINE, func=None)),
+    ("restart_events", lambda: sys.monitoring.restart_events(x=1)),
+    ("_all_events", lambda: sys.monitoring._all_events(x=1)),
+]:
+    try:
+        monitoring_keyword_call()
+    except TypeError as err:
+        print("monitoring-keyword", monitoring_keyword_name, "takes no keyword arguments" in str(err))
 monitoring_live_events = []
 def sys_monitoring_live_callback(code, instruction_offset, *args):
     monitoring_live_events.append((code.co_name, isinstance(instruction_offset, int), len(args), args[0] if args else None))

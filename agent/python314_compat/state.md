@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys frame helper keyword binding and diagnostics
+sys monitoring helper keyword diagnostics
 ```
 
 Current next loop:
