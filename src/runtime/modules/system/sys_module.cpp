@@ -3386,7 +3386,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getdefaultencoding,
           const_cast<char*>("sys.getdefaultencoding"),
           "Return the current default encoding used by the Unicode implementation.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3399,7 +3400,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getfilesystemencoding,
           const_cast<char*>("sys.getfilesystemencoding"),
           "Return the encoding used to convert Unicode filenames to OS filenames.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3412,7 +3414,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getfilesystemencodeerrors,
           const_cast<char*>("sys.getfilesystemencodeerrors"),
           "Return the error mode used Unicode to OS filename conversion.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,

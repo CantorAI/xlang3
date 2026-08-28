@@ -962,7 +962,7 @@ Native or runtime-backed foundation:
   offending-type diagnostics,
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
   diagnostics and text signature, default/filesystem encoding helpers with CPython-style keyword
-  diagnostics, `getunicodeinternedsize(_only_immortal=...)` binding, arity diagnostics, and text signature, recursion-limit
+  diagnostics and text signatures, `getunicodeinternedsize(_only_immortal=...)` binding, arity diagnostics, and text signature, recursion-limit
   helpers including bool-as-int bounds, CPython-style `getrecursionlimit`/`setrecursionlimit`
   docs, and CPython-style getter/setter keyword
   diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`
