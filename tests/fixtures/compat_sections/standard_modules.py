@@ -2037,6 +2037,8 @@ print(type(time_struct_year_descriptor).__name__, type(time_struct_year_descript
 constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123))
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})
+constructed_keyword_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1))
+constructed_keyword_dict_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={"tm_zone": "KW", "tm_gmtoff": 789})
 constructed_preserved_time = time.struct_time((2026, 8, 26, 1, 2, 3, 9, 999, -1))
 constructed_string_field_time = time.struct_time((2026, 8, 26, 1, 2, 3, "weekday", 238, -1))
 for time_strptime_bad_name, time_strptime_bad_call, time_strptime_bad_parts in [
@@ -2114,6 +2116,7 @@ parsed_whitespace_format_run = time.strptime("2026 08 26", "%Y   %m\t%d")
 parsed_whitespace_tab_run = time.strptime("2026\t08   26", "%Y %m %d")
 parsed_locale_datetime_tab_day = time.strptime("Wed Aug\t6 01:02:03 2026", "%c")
 print(constructed_time.tm_year, constructed_time[1], parsed_time.tm_year, parsed_time.tm_mon, parsed_time.tm_mday)
+print("struct-time-keyword", constructed_keyword_time.tm_year, constructed_keyword_time.tm_zone is None, constructed_keyword_time.tm_gmtoff is None, constructed_keyword_dict_time.tm_zone, constructed_keyword_dict_time.tm_gmtoff)
 print(tuple(parsed_year_only), tuple(parsed_month_day), tuple(parsed_clock_only))
 print(tuple(parsed_yday), parsed_yday.tm_mon, parsed_yday.tm_mday, parsed_yday.tm_yday)
 print(tuple(parsed_yday_common_overflow), tuple(parsed_yday_leap_last))
@@ -2157,6 +2160,11 @@ for bad_struct_time_name, bad_struct_time_call, bad_struct_time_parts in [
     ("dict-type", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), 1), ("takes a dict as second arg",)),
     ("short-sequence", lambda: time.struct_time((2026, 8, 26)), ("at least 9-sequence", "3-sequence given")),
     ("long-sequence", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123, 0)), ("at most 11-sequence", "12-sequence given")),
+    ("sequence-keyword-missing", lambda: time.struct_time(dict={}), ("missing required argument", "sequence")),
+    ("unexpected-keyword", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), other={}), ("unexpected keyword argument", "other")),
+    ("duplicate-sequence-keyword", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1)), ("given by name", "sequence", "position (1)")),
+    ("extra-keywords", lambda: time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={}, other=1), ("at most 2 keyword arguments", "3 given")),
+    ("duplicate-dict-keyword", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {}, dict={}), ("at most 2 arguments", "3 given")),
 ]:
     try:
         bad_struct_time_call()

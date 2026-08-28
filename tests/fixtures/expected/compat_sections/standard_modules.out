@@ -607,6 +607,7 @@ time-strptime-diagnostic keyword True
 time-strptime-diagnostic text-type True
 time-strptime-diagnostic format-type True
 2026 8 2026 8 26
+struct-time-keyword 2026 True True KW 789
 (2026, 1, 1, 0, 0, 0, 3, 1, -1) (1900, 8, 26, 0, 0, 0, 6, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1)
 (2026, 8, 27, 0, 0, 0, 3, 239, -1) 8 27 239
 (2027, 1, 1, 0, 0, 0, 4, 366, -1) (2024, 12, 31, 0, 0, 0, 1, 366, -1)
@@ -646,6 +647,11 @@ struct-time-diagnostic sequence-type True
 struct-time-diagnostic dict-type True
 struct-time-diagnostic short-sequence True
 struct-time-diagnostic long-sequence True
+struct-time-diagnostic sequence-keyword-missing True
+struct-time-diagnostic unexpected-keyword True
+struct-time-diagnostic duplicate-sequence-keyword True
+struct-time-diagnostic extra-keywords True
+struct-time-diagnostic duplicate-dict-keyword True
 struct-time-extra True
 struct-time-extra True
 struct-time-extra True

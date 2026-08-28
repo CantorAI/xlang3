@@ -1661,6 +1661,62 @@ bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool time_struct_time_init_kw(Runtime& runtime, const Value* args, uint32_t argc, const NativeKeywordArg* kwargs, uint32_t kwargc, Value& out, std::string& error, void*) {
+  const uint32_t positional_argc = argc > 0 ? argc - 1 : 0;
+  if (kwargc > 2) {
+    error = "structseq() takes at most 2 keyword arguments (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (positional_argc + kwargc > 2) {
+    error = "structseq() takes at most 2 arguments (" + std::to_string(positional_argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  const Value* sequence = argc >= 2 ? &args[1] : nullptr;
+  const Value* fields = argc >= 3 ? &args[2] : nullptr;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string& name = kwargs[i].name;
+    if (name == "sequence") {
+      if (sequence != nullptr) {
+        error = "argument for structseq() given by name ('sequence') and position (1)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      sequence = kwargs[i].value;
+      continue;
+    }
+    if (name == "dict") {
+      if (fields != nullptr) {
+        error = "argument for structseq() given by name ('dict') and position (2)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      fields = kwargs[i].value;
+      continue;
+    }
+    error = "structseq() got an unexpected keyword argument '" + name + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  if (sequence == nullptr) {
+    error = "structseq() missing required argument 'sequence' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<Value> bound_args;
+  bound_args.reserve(fields == nullptr ? 2 : 3);
+  bound_args.push_back(argc > 0 ? args[0] : Value::none());
+  bound_args.push_back(*sequence);
+  if (fields != nullptr) {
+    bound_args.push_back(*fields);
+  }
+  return time_struct_time_init(runtime, bound_args.data(), static_cast<uint32_t>(bound_args.size()), out, error, nullptr);
+}
+
 bool time_time(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(runtime, argc, "time.time", error)) {
     return false;
@@ -2254,7 +2310,7 @@ void register_time_module(Runtime& runtime) {
       "struct_time",
       {
           {"__module__", Value::string("time")},
-          {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init)},
+          {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr)},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count)},
           {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index)},

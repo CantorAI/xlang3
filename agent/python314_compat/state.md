@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys startup hook keyword diagnostics
+time struct_time constructor keyword binding diagnostics
 ```
 
 Current next loop:
