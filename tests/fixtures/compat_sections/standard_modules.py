@@ -592,6 +592,7 @@ sys.setrecursionlimit(old_recursion_limit + 1)
 print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
 print(sys.__name__, isinstance(sys.__doc__, str), len(sys.__doc__) > 0, callable(sys.__interactivehook__), sys.__interactivehook__() is None, callable(sys._baserepl), sys._baserepl() is None)
+print("sys-hook-aliases", sys.__displayhook__ is sys.displayhook, sys.__excepthook__ is sys.excepthook, sys.__unraisablehook__ is sys.unraisablehook, sys.__breakpointhook__ is sys.breakpointhook)
 for sys_startup_hook_probe in (sys.__interactivehook__, sys._baserepl):
     try:
         sys_startup_hook_probe(1)

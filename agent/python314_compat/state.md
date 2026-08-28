@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time tuple field diagnostics parity
+sys default hook alias identity parity
 ```
 
 Current next loop:

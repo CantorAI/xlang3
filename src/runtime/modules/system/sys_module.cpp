@@ -2519,22 +2519,19 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
   module_set_attr(sys, "exception", runtime.make_native_function("sys.exception", sys_exception), error);
   module_set_attr(sys, "exit", runtime.make_native_function("sys.exit", sys_exit), error);
-  module_set_attr(sys, "displayhook", runtime.make_native_function("sys.displayhook", sys_displayhook), error);
-  module_set_attr(sys, "__displayhook__", runtime.make_native_function("sys.__displayhook__", sys_displayhook), error);
-  module_set_attr(sys, "excepthook", runtime.make_native_function("sys.excepthook", sys_excepthook), error);
-  module_set_attr(sys, "__excepthook__", runtime.make_native_function("sys.__excepthook__", sys_excepthook), error);
-  module_set_attr(sys, "unraisablehook", runtime.make_native_function("sys.unraisablehook", sys_unraisablehook), error);
-  module_set_attr(sys, "__unraisablehook__", runtime.make_native_function("sys.__unraisablehook__", sys_unraisablehook), error);
-  module_set_attr(
-      sys,
-      "breakpointhook",
-      runtime.make_native_function("sys.breakpointhook", sys_breakpointhook, nullptr, nullptr, nullptr, false, sys_breakpointhook_kw),
-      error);
-  module_set_attr(
-      sys,
-      "__breakpointhook__",
-      runtime.make_native_function("sys.__breakpointhook__", sys_breakpointhook, nullptr, nullptr, nullptr, false, sys_breakpointhook_kw),
-      error);
+  const Value displayhook = runtime.make_native_function("sys.displayhook", sys_displayhook);
+  module_set_attr(sys, "displayhook", displayhook, error);
+  module_set_attr(sys, "__displayhook__", displayhook, error);
+  const Value excepthook = runtime.make_native_function("sys.excepthook", sys_excepthook);
+  module_set_attr(sys, "excepthook", excepthook, error);
+  module_set_attr(sys, "__excepthook__", excepthook, error);
+  const Value unraisablehook = runtime.make_native_function("sys.unraisablehook", sys_unraisablehook);
+  module_set_attr(sys, "unraisablehook", unraisablehook, error);
+  module_set_attr(sys, "__unraisablehook__", unraisablehook, error);
+  const Value breakpointhook =
+      runtime.make_native_function("sys.breakpointhook", sys_breakpointhook, nullptr, nullptr, nullptr, false, sys_breakpointhook_kw);
+  module_set_attr(sys, "breakpointhook", breakpointhook, error);
+  module_set_attr(sys, "__breakpointhook__", breakpointhook, error);
   module_set_attr(sys, "addaudithook", runtime.make_native_function("sys.addaudithook", sys_addaudithook), error);
   module_set_attr(sys, "audit", runtime.make_native_function("sys.audit", sys_audit), error);
   module_set_attr(sys, "getdefaultencoding", runtime.make_native_function("sys.getdefaultencoding", sys_getdefaultencoding), error);

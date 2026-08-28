@@ -223,6 +223,9 @@ Recent completed batches:
   `time.asctime`, and `time.strftime`: non-integer sequence fields now raise
   catchable CPython-style `TypeError` diagnostics naming the offending field
   value type.
+- Aligned native `sys` default-hook aliases: `__displayhook__`,
+  `__excepthook__`, `__unraisablehook__`, and `__breakpointhook__` now share
+  object identity with their public hook attributes at startup.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -916,7 +919,7 @@ Native or runtime-backed foundation:
   `getallocatedblocks`, `exit` including CPython-style too-many-arguments
   `TypeError` diagnostics, display/exception hooks with stdio routing and
   CPython-style default-hook arity `TypeError` diagnostics,
-  `builtins._`, default hook aliases, CPython-style displayhook string repr,
+  `builtins._`, CPython-style default hook alias identity, CPython-style displayhook string repr,
   and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered
