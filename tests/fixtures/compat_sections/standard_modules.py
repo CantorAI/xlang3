@@ -1943,6 +1943,8 @@ sys_runtime_text_signatures = {
     "_getframemodulename": "($module, /, depth=0)",
     "_current_frames": "($module, /)",
     "_current_exceptions": "($module, /)",
+    "_clear_internal_caches": "($module, /)",
+    "_clear_type_cache": "($module, /)",
     "getdefaultencoding": "($module, /)",
     "getfilesystemencoding": "($module, /)",
     "getfilesystemencodeerrors": "($module, /)",

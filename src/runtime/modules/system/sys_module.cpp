@@ -4043,7 +4043,8 @@ void register_sys_module(Runtime& runtime) {
           sys_clear_internal_caches,
           const_cast<char*>("sys._clear_internal_caches"),
           "Clear all internal performance-related caches.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -4056,7 +4057,8 @@ void register_sys_module(Runtime& runtime) {
           sys_clear_type_cache,
           const_cast<char*>("sys._clear_type_cache"),
           "Clear the internal type lookup cache.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
