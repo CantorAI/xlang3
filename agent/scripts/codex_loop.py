@@ -297,7 +297,12 @@ class LoopLock:
             return
         try:
             self.file.seek(0)
-            msvcrt.locking(self.file.fileno(), msvcrt.LK_UNLCK, 1)
+            try:
+                msvcrt.locking(self.file.fileno(), msvcrt.LK_UNLCK, 1)
+            except OSError:
+                # The loop is already ending; stale lock-file cleanup must not
+                # turn a successful batch into a failed run.
+                pass
         finally:
             self.file.close()
             self.file = None
@@ -319,6 +324,8 @@ def run_with_input_tee(command: str, stdin_text: str) -> str:
         cwd=ROOT,
         shell=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -833,8 +840,7 @@ def commit_and_push(config: dict, goal: str, message: str) -> bool:
     paths = changed_paths()
     if not paths:
         print()
-        print("No stageable compatibility changes found.")
-        run(["git", "status", "--short"])
+        print("No stageable compatibility changes found. Scratch/temp files are ignored.")
         return False
 
     print()

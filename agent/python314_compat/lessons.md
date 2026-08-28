@@ -29,3 +29,6 @@ shape the next iteration.
   fixture when the behavior deserves isolation.
 - Do not start a second loop while one is running. Use the loop lock and the
   stop-request file so a human stop exits after the current iteration.
+- Codex CLI output is UTF-8. When the loop captures child output on Windows, do
+  not use the console default code page; decode as UTF-8 with replacement so
+  warnings or Unicode diagnostics cannot crash the runner.
