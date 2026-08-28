@@ -3270,7 +3270,13 @@ void register_sys_module(Runtime& runtime) {
       "unraisablehook",
       sys_unraisablehook,
       const_cast<char*>("sys.unraisablehook"),
-      "Handle an unraisable exception.",
+      "Handle an unraisable exception.\n\n"
+      "The unraisable argument has the following attributes:\n\n"
+      "* exc_type: Exception type.\n"
+      "* exc_value: Exception value, can be None.\n"
+      "* exc_traceback: Exception traceback, can be None.\n"
+      "* err_msg: Error message, can be None.\n"
+      "* object: Object causing the exception, can be None.",
       sys_no_keyword_args);
   module_set_attr(sys, "unraisablehook", unraisablehook, error);
   module_set_attr(sys, "__unraisablehook__", unraisablehook, error);
@@ -3281,7 +3287,7 @@ void register_sys_module(Runtime& runtime) {
       "breakpointhook",
       sys_breakpointhook,
       nullptr,
-      "This hook function is called by built-in breakpoint().",
+      "This hook function is called by built-in breakpoint().\n",
       sys_breakpointhook_kw);
   module_set_attr(sys, "breakpointhook", breakpointhook, error);
   module_set_attr(sys, "__breakpointhook__", breakpointhook, error);

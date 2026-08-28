@@ -977,7 +977,7 @@ Native or runtime-backed foundation:
   `exit` including CPython-style too-many-arguments/keyword
   `TypeError` diagnostics, CPython-style exception/interner/size helper
   metadata, display/exception hooks with stdio routing,
-  CPython-style public hook callable metadata, and
+  CPython-style public hook callable metadata including unraisable/breakpoint docs, and
   CPython-style default-hook arity `TypeError` diagnostics plus keyword
   rejection, `builtins._`, CPython-style default hook alias identity,
   CPython-style displayhook string repr, and catchable hook arity `TypeError`,

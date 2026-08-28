@@ -2009,6 +2009,7 @@ for sys_hook_keyword_name, sys_hook_keyword_call in [
         sys_hook_keyword_call()
     except TypeError as err:
         print("sys-hook-keyword", sys_hook_keyword_name, "takes no keyword arguments" in str(err))
+print("sys-hook-docs", "exc_type: Exception type." in sys.unraisablehook.__doc__, sys.__unraisablehook__.__doc__ is sys.unraisablehook.__doc__, sys.breakpointhook.__doc__.endswith("\n"), sys.__breakpointhook__.__doc__ is sys.breakpointhook.__doc__)
 sys_debugmalloc_stderr = SysHookCapture()
 try:
     sys.stderr = sys_debugmalloc_stderr

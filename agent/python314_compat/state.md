@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc public doc metadata
+sys hook doc metadata
 ```
 
 Current next loop:

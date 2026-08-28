@@ -570,6 +570,7 @@ sys-hook-keyword excepthook True
 sys-hook-keyword __excepthook__ True
 sys-hook-keyword unraisablehook True
 sys-hook-keyword __unraisablehook__ True
+sys-hook-docs True True True True
 True True True True True
 True False True True
 SimpleNamespace types True True True True
