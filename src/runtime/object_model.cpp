@@ -2084,6 +2084,16 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     }
     return mapping_set_item(method->attrs_dict, Value::string(name), value, error);
   }
+  if (auto* property = value_as_property(object)) {
+    if (name == "__name__") {
+      value_assign_fast(property->name, value);
+      property->has_name = true;
+      property->name_from_getter = false;
+      return true;
+    }
+    error = "property attribute '" + name + "' is read-only";
+    return false;
+  }
   if (auto* frame = value_as_frame(object)) {
     if (name == "f_lineno") {
       if (value.tag != ValueTag::Int64) {
@@ -2195,6 +2205,26 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
       return true;
     }
     error = "classmethod has no attribute '" + name + "'";
+    return false;
+  }
+  if (auto* property = value_as_property(object)) {
+    if (name == "__name__") {
+      Value getter_name;
+      std::string ignored;
+      if (property->fget.tag != ValueTag::None &&
+          property->fget.tag != ValueTag::Invalid &&
+          object_get_attr(property->fget, "__name__", getter_name, ignored)) {
+        value_assign_fast(property->name, getter_name);
+        property->has_name = true;
+        property->name_from_getter = true;
+      } else {
+        value_set_invalid(property->name);
+        property->has_name = false;
+        property->name_from_getter = false;
+      }
+      return true;
+    }
+    error = "property has no attribute '" + name + "'";
     return false;
   }
   if (auto* instance = value_as_instance(object)) {

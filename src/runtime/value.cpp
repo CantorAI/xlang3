@@ -880,12 +880,27 @@ Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abs
       doc_from_getter = true;
     }
   }
+  Value name = Value::invalid();
+  bool has_name = false;
+  bool name_from_getter = false;
+  if (fget.tag != ValueTag::None && fget.tag != ValueTag::Invalid) {
+    Value getter_name;
+    std::string ignored;
+    if (object_get_attr(fget, "__name__", getter_name, ignored)) {
+      name = std::move(getter_name);
+      has_name = true;
+      name_from_getter = true;
+    }
+  }
   obj->fget = std::move(fget);
   obj->fset = std::move(fset);
   obj->fdel = std::move(fdel);
   obj->doc = std::move(doc);
+  obj->name = std::move(name);
   obj->is_abstract = is_abstract;
   obj->doc_from_getter = doc_from_getter;
+  obj->has_name = has_name;
+  obj->name_from_getter = name_from_getter;
   v.as.obj = &obj->header;
   return v;
 }

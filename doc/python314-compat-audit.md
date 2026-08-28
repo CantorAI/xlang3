@@ -1127,6 +1127,7 @@ Native or runtime-backed foundation:
   including `abstractproperty` descriptor-level abstract markers for empty, setter-only,
   deleter-only, and full forms with CPython-normal unmarked accessors plus
   property getter-doc inheritance/recomputation across descriptor cloning while preserving explicit docs,
+  and CPython 3.14 `property.__name__` getter inheritance, mutation, clone preservation, and delete reset,
   CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,

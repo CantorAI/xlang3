@@ -453,8 +453,11 @@ struct PropertyObject {
   Value fset;
   Value fdel;
   Value doc;
+  Value name;
   bool is_abstract = false;
   bool doc_from_getter = false;
+  bool has_name = false;
+  bool name_from_getter = false;
 };
 
 struct TracebackObject {

@@ -29,6 +29,12 @@ bool property_getter_method(Runtime&, const Value* args, uint32_t argc, Value& o
     return false;
   }
   out = Value::property(args[1], property->fset, property->fdel, property->doc, property->is_abstract, property->doc_from_getter);
+  if (!property->name_from_getter && property->has_name) {
+    auto* cloned = value_as_property(out);
+    value_assign_fast(cloned->name, property->name);
+    cloned->has_name = true;
+    cloned->name_from_getter = false;
+  }
   return true;
 }
 
@@ -42,6 +48,12 @@ bool property_setter_method(Runtime&, const Value* args, uint32_t argc, Value& o
     return false;
   }
   out = Value::property(property->fget, args[1], property->fdel, property->doc, property->is_abstract, property->doc_from_getter);
+  if (!property->name_from_getter && property->has_name) {
+    auto* cloned = value_as_property(out);
+    value_assign_fast(cloned->name, property->name);
+    cloned->has_name = true;
+    cloned->name_from_getter = false;
+  }
   return true;
 }
 
@@ -55,6 +67,12 @@ bool property_deleter_method(Runtime&, const Value* args, uint32_t argc, Value& 
     return false;
   }
   out = Value::property(property->fget, property->fset, args[1], property->doc, property->is_abstract, property->doc_from_getter);
+  if (!property->name_from_getter && property->has_name) {
+    auto* cloned = value_as_property(out);
+    value_assign_fast(cloned->name, property->name);
+    cloned->has_name = true;
+    cloned->name_from_getter = false;
+  }
   return true;
 }
 
@@ -98,6 +116,10 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
   }
   if (name == "__doc__") {
     value_assign_fast(out, property->doc);
+    return true;
+  }
+  if (name == "__name__" && property->has_name) {
+    value_assign_fast(out, property->name);
     return true;
   }
 

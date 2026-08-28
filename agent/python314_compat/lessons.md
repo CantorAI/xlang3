@@ -80,3 +80,5 @@ shape the next iteration.
   attributes before assuming accessor marker propagation.
 - `property.__doc__` needs an internal "inherited from getter" distinction:
   replacement getters recompute inherited docs, while explicit docs remain stable.
+- `property.__name__` follows the same inherited-versus-explicit cloning shape
+  as property docs in Python 3.14, with deletion resetting to the getter name.

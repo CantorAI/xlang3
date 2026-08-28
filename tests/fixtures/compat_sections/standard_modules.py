@@ -379,10 +379,18 @@ abstract_doc_property_result = abc.abstractproperty(abstract_doc_property)
 abstract_doc_getter_result = abstract_doc_property_result.getter(abstract_doc_replacement)
 abstract_doc_explicit_result = abc.abstractproperty(abstract_doc_property, None, None, "explicit doc").getter(abstract_doc_replacement)
 abstract_doc_chain_result = abstract_doc_property_result.setter(abstract_keyword_setter).getter(abstract_doc_replacement)
+abstract_name_property_result = abc.abstractproperty(abstract_doc_property)
+abstract_name_property_result.__name__ = "manual_name"
+abstract_name_chain_result = abstract_name_property_result.setter(abstract_keyword_setter).getter(abstract_doc_replacement)
+del abstract_name_property_result.__name__
+abstract_empty_name_result = abc.abstractproperty()
+abstract_empty_name_missing = hasattr(abstract_empty_name_result, "__name__")
+abstract_empty_name_result.__name__ = "empty_name"
 print("abc-decorator-keyword", abstract_keyword_result is abstract_keyword_fn, abstract_keyword_fn.__isabstractmethod__, type(abstract_classmethod_result).__name__, abstract_classmethod_result.__isabstractmethod__, abstract_classmethod_result.__func__.__isabstractmethod__)
 print("abc-decorator-keyword", type(abstract_staticmethod_result).__name__, abstract_staticmethod_result.__isabstractmethod__, abstract_staticmethod_result.__func__.__isabstractmethod__, type(abstract_property_result).__name__, abstract_property_result.__isabstractmethod__, getattr(abstract_property_result.fget, "__isabstractmethod__", "missing"), type(abstract_empty_property_result).__name__, abstract_empty_property_result.__isabstractmethod__)
 print("abc-abstractproperty-marker", abstract_setter_property_result.__isabstractmethod__, abstract_deleter_property_result.__isabstractmethod__, abstract_full_property_result.__isabstractmethod__, abstract_full_property_result.__doc__)
 print("abc-abstractproperty-doc", abstract_doc_property_result.__doc__, abstract_doc_getter_result.__doc__, abstract_doc_explicit_result.__doc__, abstract_doc_chain_result.__doc__)
+print("abc-abstractproperty-name", abc.abstractproperty(abstract_doc_property).__name__, abstract_doc_chain_result.__name__, abstract_name_chain_result.__name__, abstract_name_property_result.__name__, abstract_empty_name_missing, abstract_empty_name_result.__name__)
 for abstract_target in (42, property(lambda self: 1)):
     try:
         abc.abstractmethod(abstract_target)
