@@ -3421,7 +3421,8 @@ void register_sys_module(Runtime& runtime) {
           "This enters the string in the (global) table of interned strings whose\n"
           "purpose is to speed up dictionary lookups. Return the string itself or\n"
           "the previously interned string object with the same value.",
-          sys_intern_kw),
+          sys_intern_kw,
+          "($module, string, /)"),
       error);
   module_set_attr(
       sys,
@@ -3434,7 +3435,8 @@ void register_sys_module(Runtime& runtime) {
           sys_is_interned,
           nullptr,
           "Return True if the given string is \"interned\".",
-          sys_is_interned_kw),
+          sys_is_interned_kw,
+          "($module, string, /)"),
       error);
   module_set_attr(
       sys,
@@ -3460,7 +3462,8 @@ void register_sys_module(Runtime& runtime) {
           sys_is_immortal,
           nullptr,
           "Return True if the given object is \"immortal\" per PEP 683.",
-          sys_is_immortal_kw),
+          sys_is_immortal_kw,
+          "($module, op, /)"),
       error);
   module_set_attr(
       sys,
@@ -3490,7 +3493,8 @@ void register_sys_module(Runtime& runtime) {
           "The count returned is generally one higher than you might expect,\n"
           "because it includes the (temporary) reference as an argument to\n"
           "getrefcount().",
-          sys_getrefcount_kw),
+          sys_getrefcount_kw,
+          "($module, object, /)"),
       error);
   module_set_attr(
       sys,
@@ -3503,7 +3507,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getallocatedblocks,
           nullptr,
           "Return the number of memory blocks currently allocated.",
-          sys_getallocatedblocks_kw),
+          sys_getallocatedblocks_kw,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,

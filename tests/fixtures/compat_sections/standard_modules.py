@@ -853,6 +853,14 @@ try:
 except TypeError as err:
     print("sys-getrefcount-keyword", "takes no keyword arguments" in str(err))
 print("sys-helper-docs", "previously interned string object" in sys.intern.__doc__, "Return the size of object in bytes." in sys.getsizeof.__doc__, "temporary) reference" in sys.getrefcount.__doc__)
+sys_interner_size_text_signatures = {
+    "intern": "($module, string, /)",
+    "_is_interned": "($module, string, /)",
+    "_is_immortal": "($module, op, /)",
+    "getrefcount": "($module, object, /)",
+    "getallocatedblocks": "($module, /)",
+}
+print("sys-interner-size-text-signatures", all(getattr(sys, name).__text_signature__ == signature for name, signature in sys_interner_size_text_signatures.items()), sys.getsizeof.__text_signature__ is None)
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 stdio_method_names = ("read", "readline", "write", "flush", "close", "isatty", "readable", "writable", "seekable", "fileno")
 stdio_streams = (sys.stdin, sys.stdout, sys.stderr)
