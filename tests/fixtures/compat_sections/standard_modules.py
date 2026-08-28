@@ -1060,6 +1060,16 @@ try:
     sys.activate_stack_trampoline("perf")
 except ValueError as err:
     print("stack-trampoline", "not available" in str(err))
+for sys_stack_bad_name, sys_stack_bad_call, sys_stack_bad_parts in [
+    ("missing", lambda: sys.activate_stack_trampoline(), ("exactly one argument", "0 given")),
+    ("extra", lambda: sys.activate_stack_trampoline("perf", "x"), ("exactly one argument", "2 given")),
+    ("type", lambda: sys.activate_stack_trampoline(1), ("argument must be str", "int")),
+]:
+    try:
+        sys_stack_bad_call()
+    except TypeError as err:
+        sys_stack_bad_message = str(err)
+        print("sys-stack-trampoline-diagnostic", sys_stack_bad_name, all(part in sys_stack_bad_message for part in sys_stack_bad_parts))
 print(sys.deactivate_stack_trampoline() is None, sys.is_stack_trampoline_active())
 old_switch = sys.getswitchinterval()
 sys.setswitchinterval(0.002)

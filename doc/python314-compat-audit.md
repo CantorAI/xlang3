@@ -162,6 +162,9 @@ Recent completed batches:
   diagnostics: arity and wrong-type failures now use CPython-style `TypeError`
   messages while preserving bool-as-int setter handling and existing bounds
   validation.
+- Tightened native stack-trampoline diagnostics: `sys.activate_stack_trampoline`
+  now reports CPython-style arity and backend-name type `TypeError` messages
+  while preserving the existing unsupported-backend `ValueError` path.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -869,7 +872,9 @@ Native or runtime-backed foundation:
   current-frame arguments for covered native callable paths, plus
   `threading.setprofile` inheritance for new threads,
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
-  absence while preserving non-Windows `_multiarch`, stack-trampoline probes, `sys._jit` module doc metadata and state probes,
+  absence while preserving non-Windows `_multiarch`, stack-trampoline probes
+  including CPython-style activation arity/type `TypeError` diagnostics,
+  `sys._jit` module doc metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
   global/local event masks, callback replacement, restart/all-events

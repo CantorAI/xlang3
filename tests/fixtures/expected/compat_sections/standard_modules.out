@@ -275,6 +275,9 @@ True True
 True True True
 mbcs replace
 stack-trampoline True
+sys-stack-trampoline-diagnostic missing True
+sys-stack-trampoline-diagnostic extra True
+sys-stack-trampoline-diagnostic type True
 True False
 True 4300 4300 4300 640
 True

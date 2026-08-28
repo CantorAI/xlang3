@@ -1812,9 +1812,12 @@ bool sys_is_gil_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& ou
 }
 
 bool sys_activate_stack_trampoline(Runtime& runtime, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
-  StringObject* backend = argc == 1 ? value_as_string(args[0]) : nullptr;
+  if (argc != 1) {
+    return raise_sys_one_arg_type_error(runtime, error, "sys.activate_stack_trampoline", argc);
+  }
+  StringObject* backend = value_as_string(args[0]);
   if (backend == nullptr) {
-    error = "sys.activate_stack_trampoline expected backend name";
+    error = "activate_stack_trampoline() argument must be str, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
