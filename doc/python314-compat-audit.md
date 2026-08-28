@@ -154,6 +154,10 @@ Recent completed batches:
   `sys.excepthook`, and `sys.unraisablehook` plus their default-hook aliases now
   raise CPython-style arity `TypeError` messages while preserving stdio routing
   and `builtins._` handling.
+- Tightened native trace/profile helper diagnostics: `sys.settrace`,
+  `sys.gettrace`, `sys.setprofile`, `sys.getprofile`, the all-thread variants,
+  and `sys.call_tracing` now raise CPython-style arity `TypeError` messages
+  while preserving existing live trace/profile dispatch behavior.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -852,7 +856,8 @@ Native or runtime-backed foundation:
   `TypeError` diagnostics,
   stdio capability probes, profile/switch-interval/int-string helpers with bool-as-int setters, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
-  `call_tracing`, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
+  `call_tracing` with CPython-style trace/profile helper arity `TypeError`
+  diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
   `call`/`return`/`exception` events with current frame arguments and callback-recursion
   suppression, native/C `c_call`/`c_return`/`c_exception` profile events with
   current-frame arguments for covered native callable paths, plus

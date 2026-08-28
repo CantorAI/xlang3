@@ -138,6 +138,12 @@ bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const ch
   return false;
 }
 
+bool raise_sys_one_arg_type_error(Runtime& runtime, std::string& error, const char* name, uint32_t argc) {
+  error = std::string(name) + "() takes exactly one argument (" + std::to_string(argc) + " given)";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool sys_bool_or_int_arg(const Value& value, int64_t& out) {
   if (value.tag == ValueTag::Bool) {
     out = value.as.b ? 1 : 0;
@@ -902,9 +908,7 @@ bool sys_exception(Runtime& runtime, const Value*, uint32_t argc, Value& out, st
 
 bool sys_settrace(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.settrace expected 1 argument";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_one_arg_type_error(runtime, error, "sys.settrace", argc);
   }
   runtime.set_trace_function(args[0]);
   value_set_none(out);
@@ -913,9 +917,7 @@ bool sys_settrace(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 
 bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.gettrace expected 0 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.gettrace", argc);
   }
   if (runtime.trace_function().tag == ValueTag::Invalid) {
     value_set_none(out);
@@ -926,12 +928,15 @@ bool sys_gettrace(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
 }
 
 bool sys_settraceallthreads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    return raise_sys_one_arg_type_error(runtime, error, "sys._settraceallthreads", argc);
+  }
   return sys_settrace(runtime, args, argc, out, error, user_data);
 }
 
 bool sys_call_tracing(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "sys.call_tracing expected function and argument tuple";
+    error = "call_tracing expected 2 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1676,9 +1681,7 @@ bool sys_audit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
 
 bool sys_setprofile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.setprofile expected 1 argument";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_one_arg_type_error(runtime, error, "sys.setprofile", argc);
   }
   runtime.set_profile_function(args[0]);
   value_set_none(out);
@@ -1687,9 +1690,7 @@ bool sys_setprofile(Runtime& runtime, const Value* args, uint32_t argc, Value& o
 
 bool sys_getprofile(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getprofile expected 0 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.getprofile", argc);
   }
   if (runtime.profile_function().tag == ValueTag::Invalid) {
     value_set_none(out);
@@ -1700,6 +1701,9 @@ bool sys_getprofile(Runtime& runtime, const Value*, uint32_t argc, Value& out, s
 }
 
 bool sys_setprofileallthreads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    return raise_sys_one_arg_type_error(runtime, error, "sys._setprofileallthreads", argc);
+  }
   return sys_setprofile(runtime, args, argc, out, error, user_data);
 }
 

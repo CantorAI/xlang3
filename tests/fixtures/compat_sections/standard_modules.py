@@ -1177,6 +1177,26 @@ try:
     sys.call_tracing(sys_call_tracing_probe, [1, 2])
 except TypeError as err:
     print("call-tracing-type", "tuple" in str(err))
+for sys_traceprofile_bad_name, sys_traceprofile_bad_call, sys_traceprofile_bad_parts in [
+    ("settrace0", lambda: sys.settrace(), ("exactly one argument", "0 given")),
+    ("settrace2", lambda: sys.settrace(None, None), ("exactly one argument", "2 given")),
+    ("gettrace1", lambda: sys.gettrace(1), ("takes no arguments", "1 given")),
+    ("setprofile0", lambda: sys.setprofile(), ("exactly one argument", "0 given")),
+    ("setprofile2", lambda: sys.setprofile(None, None), ("exactly one argument", "2 given")),
+    ("getprofile1", lambda: sys.getprofile(1), ("takes no arguments", "1 given")),
+    ("settraceall0", lambda: sys._settraceallthreads(), ("exactly one argument", "0 given")),
+    ("settraceall2", lambda: sys._settraceallthreads(None, None), ("exactly one argument", "2 given")),
+    ("setprofileall0", lambda: sys._setprofileallthreads(), ("exactly one argument", "0 given")),
+    ("setprofileall2", lambda: sys._setprofileallthreads(None, None), ("exactly one argument", "2 given")),
+    ("call_tracing0", lambda: sys.call_tracing(), ("expected 2 arguments", "got 0")),
+    ("call_tracing1", lambda: sys.call_tracing(sys_call_tracing_probe), ("expected 2 arguments", "got 1")),
+    ("call_tracing3", lambda: sys.call_tracing(sys_call_tracing_probe, (), 3), ("expected 2 arguments", "got 3")),
+]:
+    try:
+        sys_traceprofile_bad_call()
+    except TypeError as err:
+        sys_traceprofile_bad_message = str(err)
+        print("sys-traceprofile-arity", sys_traceprofile_bad_name, all(part in sys_traceprofile_bad_message for part in sys_traceprofile_bad_parts))
 print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == True)
 def sys_frame_module_probe():
     return sys._getframemodulename(1)

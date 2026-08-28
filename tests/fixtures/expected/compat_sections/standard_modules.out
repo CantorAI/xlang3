@@ -296,6 +296,19 @@ True True True
 True 7 True
 True True True
 call-tracing-type True
+sys-traceprofile-arity settrace0 True
+sys-traceprofile-arity settrace2 True
+sys-traceprofile-arity gettrace1 True
+sys-traceprofile-arity setprofile0 True
+sys-traceprofile-arity setprofile2 True
+sys-traceprofile-arity getprofile1 True
+sys-traceprofile-arity settraceall0 True
+sys-traceprofile-arity settraceall2 True
+sys-traceprofile-arity setprofileall0 True
+sys-traceprofile-arity setprofileall2 True
+sys-traceprofile-arity call_tracing0 True
+sys-traceprofile-arity call_tracing1 True
+sys-traceprofile-arity call_tracing3 True
 True True True
 __main__ True
 True True
