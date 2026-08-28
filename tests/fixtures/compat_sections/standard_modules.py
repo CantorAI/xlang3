@@ -749,7 +749,7 @@ sys_intern_spaced_canonical = sys.intern(sys_intern_spaced_literal)
 print(sys._is_interned(sys_intern_identifier_literal), sys._is_interned(sys_intern_spaced_literal), sys_intern_spaced_canonical is sys_intern_spaced_literal, sys._is_interned(sys_intern_spaced_canonical))
 unicode_interned_before = sys.getunicodeinternedsize()
 sys.intern("interned-size-probe")
-print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "XLang3", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
+print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "CPython", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
 try:
     sys.getunicodeinternedsize(x=1)
 except TypeError as err:
@@ -832,6 +832,8 @@ for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
         print("sys-stdio-capability-arity", sys_stdio_bad_name, all(part in sys_stdio_bad_message for part in sys_stdio_bad_parts))
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
+print(sys._git[0], sys._git[1].startswith("tags/v3.14."), len(sys._git), isinstance(sys._vpath, str), sys._home is None, sys.float_repr_style)
+print(isinstance(sys._stdlib_dir, str), sys._framework == "", (sys.platform == "win32") == hasattr(sys, "winver"), (sys.platform == "win32") == hasattr(sys, "dllhandle"), hasattr(sys, "abiflags") == (sys.platform != "win32"))
 implementation_repr = repr(sys.implementation)
 print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xlang3-314'" in implementation_repr, "version=sys.version_info(" in implementation_repr, "supports_isolated_interpreters=False" in implementation_repr)
 print(type(sys.implementation).__name__, type(sys.implementation).__module__, repr(sys.implementation).startswith("namespace("))

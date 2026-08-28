@@ -951,8 +951,9 @@ Native or runtime-backed foundation:
   and type-level `__match_args__`,
   `implementation` metadata with CPython-style SimpleNamespace type metadata
   and namespace-style repr, `builtin_module_names`,
-  CPython 3.14 top-level frozen `stdlib_module_names`, `_git`/`_vpath`/`_home`
-  metadata, `float_repr_style`, `getunicodeinternedsize` with CPython-style
+  CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` plus `_vpath`/`_home`
+  metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
+  `float_repr_style`, `getunicodeinternedsize` with CPython-style
   keyword diagnostics,
   `_get_cpu_count_config` and `is_remote_debug_enabled` with CPython-style
   keyword diagnostics,

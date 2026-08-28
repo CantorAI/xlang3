@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc abstractproperty marker doc name and method diagnostics
+sys CPython-shaped startup metadata
 ```
 
 Current next loop:
