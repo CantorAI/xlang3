@@ -979,7 +979,7 @@ Native or runtime-backed foundation:
   `TypeError` diagnostics, CPython-style exception/interner/size helper
   metadata including `exc_info`/`exception`/`exit` and `intern`/`getsizeof`/`getrefcount`
   docs plus exception/exit and interner/refcount helper text signatures, display/exception hooks with stdio routing,
-  CPython-style public hook callable metadata including unraisable/breakpoint docs, and
+  CPython-style public hook callable metadata including text signatures and unraisable/breakpoint docs, and
   CPython-style default-hook arity `TypeError` diagnostics plus keyword
   rejection, `builtins._`, CPython-style default hook alias identity,
   CPython-style displayhook string repr, and catchable hook arity `TypeError`,
@@ -987,7 +987,8 @@ Native or runtime-backed foundation:
   audit hook dispatch including CPython-style call-time failure for registered
   non-callable hooks, CPython-style `sys.addaudithook(hook=...)` keyword
   registration, and CPython-style `sys.audit`/`sys.addaudithook` arity, type
-  including `None`/`bytes` event names, and keyword `TypeError` diagnostics,
+  including `None`/`bytes` event names, keyword `TypeError` diagnostics, and
+  text signatures,
   stdio capability probes including CPython-style method metadata and
   no-argument diagnostics, profile/switch-interval/int-string helpers with
   bool-as-int setters and text signatures, CPython-style setter keyword diagnostics including

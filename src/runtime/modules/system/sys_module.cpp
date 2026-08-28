@@ -3310,7 +3310,8 @@ void register_sys_module(Runtime& runtime) {
       sys_displayhook,
       const_cast<char*>("sys.displayhook"),
       "Print an object to sys.stdout and also save it in builtins._",
-      sys_no_keyword_args);
+      sys_no_keyword_args,
+      "($module, object, /)");
   module_set_attr(sys, "displayhook", displayhook, error);
   module_set_attr(sys, "__displayhook__", displayhook, error);
   const Value excepthook = sys_metadata_native_function(
@@ -3321,7 +3322,8 @@ void register_sys_module(Runtime& runtime) {
       sys_excepthook,
       const_cast<char*>("sys.excepthook"),
       "Handle an exception by displaying it with a traceback on sys.stderr.",
-      sys_no_keyword_args);
+      sys_no_keyword_args,
+      "($module, exctype, value, traceback, /)");
   module_set_attr(sys, "excepthook", excepthook, error);
   module_set_attr(sys, "__excepthook__", excepthook, error);
   const Value unraisablehook = sys_metadata_native_function(
@@ -3338,7 +3340,8 @@ void register_sys_module(Runtime& runtime) {
       "* exc_traceback: Exception traceback, can be None.\n"
       "* err_msg: Error message, can be None.\n"
       "* object: Object causing the exception, can be None.",
-      sys_no_keyword_args);
+      sys_no_keyword_args,
+      "($module, unraisable, /)");
   module_set_attr(sys, "unraisablehook", unraisablehook, error);
   module_set_attr(sys, "__unraisablehook__", unraisablehook, error);
   const Value breakpointhook = sys_metadata_native_function(
@@ -3349,7 +3352,8 @@ void register_sys_module(Runtime& runtime) {
       sys_breakpointhook,
       nullptr,
       "This hook function is called by built-in breakpoint().\n",
-      sys_breakpointhook_kw);
+      sys_breakpointhook_kw,
+      "($module, /, *args, **kwargs)");
   module_set_attr(sys, "breakpointhook", breakpointhook, error);
   module_set_attr(sys, "__breakpointhook__", breakpointhook, error);
   module_set_attr(
@@ -3363,7 +3367,8 @@ void register_sys_module(Runtime& runtime) {
           sys_addaudithook,
           nullptr,
           "Adds a new audit hook callback.",
-          sys_addaudithook_kw),
+          sys_addaudithook_kw,
+          "($module, /, hook)"),
       error);
   module_set_attr(
       sys,
@@ -3376,7 +3381,8 @@ void register_sys_module(Runtime& runtime) {
           sys_audit,
           nullptr,
           "Passes the event to any audit hooks that are attached.",
-          sys_audit_kw),
+          sys_audit_kw,
+          "($module, event, /, *args)"),
       error);
   module_set_attr(
       sys,
