@@ -200,6 +200,9 @@ Recent completed batches:
 - Tightened native `sys._clear_type_descriptors` diagnostics: arity failures
   now include CPython-style given-count details and non-type failures include
   the offending runtime type name.
+- Tightened native `time.strftime` diagnostics: missing/extra arguments,
+  non-string formats, and invalid time-tuple arguments now raise catchable
+  CPython-style `TypeError` exceptions.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -971,7 +974,8 @@ Native or runtime-backed foundation:
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
   arguments plus CPython-style arity/type diagnostics, `mktime` bool fields in
-  time tuples plus CPython-style arity/type diagnostics, `strftime`, `strptime`,
+  time tuples plus CPython-style arity/type diagnostics, `strftime` with
+  CPython-style arity/type/time-tuple diagnostics, `strptime`,
   `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`

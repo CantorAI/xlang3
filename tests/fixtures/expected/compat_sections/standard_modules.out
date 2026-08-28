@@ -441,6 +441,11 @@ time-mktime-diagnostic type True
 Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
 Wed Jan  1 00:01:00 2026 2026 01 01 00 01 00 001 True
 Thu Aug  6 09:02:03 2026 09:02:03 AM 09:02:03 PM
+time-strftime-diagnostic missing True
+time-strftime-diagnostic extra True
+time-strftime-diagnostic format-type True
+time-strftime-diagnostic tuple-type True
+time-strftime-diagnostic tuple-short True
 strftime-invalid True
 strftime-invalid True
 strftime-invalid True

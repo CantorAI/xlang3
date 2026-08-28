@@ -1793,17 +1793,33 @@ bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
 }
 
 bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "time.strftime() expected format and optional time tuple";
+  if (argc < 1) {
+    error = "strftime() takes at least 1 argument (0 given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 2) {
+    error = "strftime() takes at most 2 arguments (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string format;
-  if (!get_string_arg(args[0], "time.strftime format", format, error)) {
+  auto* format_string = value_as_string(args[0]);
+  if (format_string == nullptr) {
+    error = "strftime() argument 1 must be str, not " + time_type_name(args[0]);
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
+  format = string_object_to_string(*format_string);
   std::tm tm{};
   if (argc == 2) {
     if (!tm_from_sequence_like(args[1], tm, error)) {
+      if (value_as_tuple(args[1]) == nullptr && value_as_list(args[1]) == nullptr && value_as_instance(args[1]) == nullptr) {
+        error = "Tuple or struct_time argument required";
+      } else {
+        error = "strftime(): illegal time tuple argument";
+      }
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
   } else {

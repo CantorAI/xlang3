@@ -1651,6 +1651,18 @@ print(time.asctime(bool_time_tuple), time.strftime("%Y %m %d %H %M %S %j", bool_
 strftime_locale_tuple = (2026, 8, 6, 9, 2, 3, 3, 218, -1)
 strftime_locale_tuple_pm = (2026, 8, 6, 21, 2, 3, 3, 218, -1)
 print(time.strftime("%c", strftime_locale_tuple), time.strftime("%r", strftime_locale_tuple), time.strftime("%r", strftime_locale_tuple_pm))
+for time_strftime_bad_name, time_strftime_bad_call, time_strftime_bad_parts in [
+    ("missing", lambda: time.strftime(), ("takes at least 1 argument", "0 given")),
+    ("extra", lambda: time.strftime("%Y", strftime_locale_tuple, "x"), ("takes at most 2 arguments", "3 given")),
+    ("format-type", lambda: time.strftime(1), ("argument 1 must be str", "int")),
+    ("tuple-type", lambda: time.strftime("%Y", "x"), ("Tuple or struct_time argument required",)),
+    ("tuple-short", lambda: time.strftime("%Y", (1, 2)), ("illegal time tuple argument",)),
+]:
+    try:
+        time_strftime_bad_call()
+    except TypeError as err:
+        time_strftime_bad_message = str(err)
+        print("time-strftime-diagnostic", time_strftime_bad_name, all(part in time_strftime_bad_message for part in time_strftime_bad_parts))
 for bad_strftime_format in ["%f", "%k", "%l", "%P", "%q", "%Q", "%s", "%"]:
     try:
         time.strftime(bad_strftime_format, strftime_locale_tuple)
