@@ -500,6 +500,7 @@ Value make_structseq(
     const std::string& repr_name = "") {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
+  class_attrs.push_back({"__qualname__", Value::string(type_name)});
   class_attrs.push_back({"count", runtime.make_native_function(type_name + ".count", sys_structseq_count, nullptr, nullptr, nullptr, false, sys_structseq_count_kw)});
   class_attrs.push_back({"index", runtime.make_native_function(type_name + ".index", sys_structseq_index, nullptr, nullptr, nullptr, false, sys_structseq_index_kw)});
   class_attrs.push_back({"__repr__", runtime.make_native_function(type_name + ".__repr__", sys_structseq_repr, nullptr, nullptr, nullptr, false, sys_structseq_repr_kw)});

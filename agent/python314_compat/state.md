@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys trace/profile helper text signatures
+sys structseq type qualname metadata
 ```
 
 Current next loop:

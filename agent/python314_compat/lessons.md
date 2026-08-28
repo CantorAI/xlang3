@@ -96,3 +96,6 @@ shape the next iteration.
   keyword names, metadata strings, or fixture temporaries may be interned during
   the probe. Assert monotonic relationships or relative bounds instead of exact
   equality across successive intern-count calls.
+- Structseq type metadata belongs in the shared builder. CPython-visible
+  `__module__`/`__qualname__` gaps can otherwise affect every generated
+  `sys.*_info` type even when instances, descriptors, and reprs look correct.
