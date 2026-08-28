@@ -199,6 +199,13 @@ def types_function_probe():
     return None
 
 types_generator_probe = (value for value in [1])
+def types_cell_outer():
+    value = "cell"
+    def types_cell_inner():
+        return value
+    return types_cell_inner.__closure__[0]
+
+types_cell_probe = types_cell_outer()
 try:
     raise RuntimeError("types-traceback")
 except RuntimeError as types_traceback_error:
@@ -211,6 +218,7 @@ print(
     types.FrameType is type(sys._getframe()),
     types.TracebackType is type(types_traceback_probe),
     types.GeneratorType is type(types_generator_probe),
+    types.CellType is type(types_cell_probe),
 )
 
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.

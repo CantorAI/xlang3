@@ -136,6 +136,7 @@ void register_types_module(Runtime& runtime) {
   copy_runtime_type(runtime, builder, "LambdaType", "function");
   copy_runtime_type(runtime, builder, "TracebackType", "traceback");
   copy_runtime_type(runtime, builder, "GeneratorType", "generator");
+  copy_runtime_type(runtime, builder, "CellType", "cell");
   copy_runtime_type(runtime, builder, "NoneType", "NoneType");
   copy_runtime_type(runtime, builder, "EllipsisType", "ellipsis");
   copy_runtime_type(runtime, builder, "NotImplementedType", "NotImplementedType");
