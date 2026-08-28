@@ -1367,7 +1367,7 @@ print(time.asctime(bool_time_tuple), time.strftime("%Y %m %d %H %M %S %j", bool_
 strftime_locale_tuple = (2026, 8, 6, 9, 2, 3, 3, 218, -1)
 strftime_locale_tuple_pm = (2026, 8, 6, 21, 2, 3, 3, 218, -1)
 print(time.strftime("%c", strftime_locale_tuple), time.strftime("%r", strftime_locale_tuple), time.strftime("%r", strftime_locale_tuple_pm))
-for bad_strftime_format in ["%k", "%l", "%P", "%q", "%"]:
+for bad_strftime_format in ["%f", "%k", "%l", "%P", "%q", "%Q", "%s", "%"]:
     try:
         time.strftime(bad_strftime_format, strftime_locale_tuple)
     except ValueError as err:

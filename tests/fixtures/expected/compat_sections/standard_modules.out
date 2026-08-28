@@ -340,6 +340,9 @@ strftime-invalid True
 strftime-invalid True
 strftime-invalid True
 strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
 1970 9 9 [1970, 1, 1]
 11 0 True True
 11 9 0 True True

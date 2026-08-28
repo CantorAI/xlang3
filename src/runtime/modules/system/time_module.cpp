@@ -1059,10 +1059,13 @@ bool normalize_strftime_format(const std::string& format, std::string& out, std:
         out += "%I:%M:%S %p";
         break;
 #if defined(_WIN32)
+      case 'f':
       case 'k':
       case 'l':
       case 'P':
       case 'q':
+      case 'Q':
+      case 's':
         error = "Invalid format string";
         return false;
 #endif

@@ -28,6 +28,10 @@ limitations under the License.
   runtime behavior is Python-compatible or the runtime needs fixing.
 - Use `agent/scripts/build_release.py` and `agent/scripts/run_fixtures.py` for
   repeatable local validation instead of constructing ad hoc commands.
+- Use `agent/scripts/run_section_fixture.py` for section fixture checks.
+- On Windows PowerShell, prefer `rg -F` for literal searches. Audit rows,
+  checkboxes, backticks, brackets, quotes, and C++/Python punctuation are
+  literals unless the task explicitly needs regex matching.
 - Add or update fixtures for every compatibility change.
 - Use `tests/fixtures` as the canonical fixture location.
 - Build and run tests before commit.

@@ -35,6 +35,9 @@ Work rules:
 - Add fixture coverage under `tests/fixtures`.
 - Use deterministic agent scripts for local checks; do not invent build/test
   command lines during each batch.
+- On Windows PowerShell, use `rg -F` for literal searches, especially for audit
+  checkboxes, brackets, backticks, quotes, C++ punctuation, and Python syntax.
+  Use regex mode only when the pattern is intentionally a regex.
 - When a fixture mismatch appears, decide whether it is a runtime bug or an
   obsolete golden file by comparing against Python 3.14 behavior or the changed
   runtime contract. Do not update expected output just to make tests pass.

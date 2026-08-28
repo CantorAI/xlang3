@@ -143,6 +143,11 @@ Runtime doctrine:
   runtime behavior is Python-compatible or the runtime needs fixing.
 - Every compatibility change needs fixture coverage under tests/fixtures.
 - Update doc/python314-compat-audit.md truthfully.
+- Use the fixed scripts below for validation and section checks; do not invent
+  build/test commands during the batch.
+- On Windows PowerShell, use `rg -F` for literal searches, especially for audit
+  checkboxes, brackets, backticks, quotes, C++ punctuation, and Python syntax.
+  Use regex mode only when the pattern is intentionally a regex.
 
 Selected audit section:
 {section or "whole audit"}
@@ -161,6 +166,7 @@ Next unfinished audit rows:
 Validation after Codex work:
 - Run C:/Python/Python314/python.exe agent/scripts/build_release.py.
 - Run C:/Python/Python314/python.exe agent/scripts/run_fixtures.py --xlang3 D:/CantorAI/xlang3/build/Release/xlang3.exe.
+- Run C:/Python/Python314/python.exe agent/scripts/run_section_fixture.py --section "{section or "Standard Modules Foundation"}" when a quick selected-section check is useful.
 - Run git diff --check.
 - Commit and push only after validation passes.
 """
