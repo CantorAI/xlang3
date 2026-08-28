@@ -1331,6 +1331,18 @@ except TypeError as err:
     print("sys-addaudithook-arity", "at most 1 argument" in str(err), "2 given" in str(err))
 sys.addaudithook(sys_audit_probe)
 print(sys.audit("xlang3.fixture", 1, "a") is None, audit_events[0][0], audit_events[0][1])
+print(sys.addaudithook(hook=sys_audit_probe) is None)
+sys.audit("xlang3.fixture.kw", "k")
+print("sys-audit-keyword-hook", audit_events[-2:] == [("xlang3.fixture.kw", ("k",)), ("xlang3.fixture.kw", ("k",))])
+for sys_audit_keyword_bad_name, sys_audit_keyword_bad_call, sys_audit_keyword_bad_parts in [
+    ("addaudit-unexpected", lambda: sys.addaudithook(callback=sys_audit_probe), ("missing required argument", "hook")),
+    ("addaudit-extra-kw", lambda: sys.addaudithook(hook=sys_audit_probe, callback=sys_audit_probe), ("at most 1 keyword argument", "2 given")),
+    ("audit-keyword", lambda: sys.audit(event="xlang3.fixture.kw"), ("takes no keyword arguments",)),
+]:
+    try:
+        sys_audit_keyword_bad_call()
+    except TypeError as err:
+        print("sys-audit-keyword-diagnostic", sys_audit_keyword_bad_name, all(part in str(err) for part in sys_audit_keyword_bad_parts))
 print(sys.addaudithook(42) is None)
 try:
     sys.audit("xlang3.fixture.bad-hook")

@@ -1736,20 +1736,53 @@ bool sys_breakpointhook_kw(
   return true;
 }
 
-bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1) {
-    error = "addaudithook() missing required argument 'hook' (pos 1)";
+bool sys_addaudithook_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  if (kwargc > 1) {
+    error = "addaudithook() takes at most 1 keyword argument (" + std::to_string(kwargc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (argc > 1) {
-    error = "addaudithook() takes at most 1 argument (" + std::to_string(argc) + " given)";
+  if (argc + kwargc > 1) {
+    error = "addaudithook() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc < 1) {
+    if (kwargc == 1 && std::string(kwargs[0].name == nullptr ? "" : kwargs[0].name) == "hook" && kwargs[0].value != nullptr) {
+      g_audit_hooks.push_back(*kwargs[0].value);
+      value_set_none(out);
+      return true;
+    }
+    error = "addaudithook() missing required argument 'hook' (pos 1)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   g_audit_hooks.push_back(args[0]);
   value_set_none(out);
   return true;
+}
+
+bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return sys_addaudithook_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool sys_addaudithook_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return sys_addaudithook_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
 bool sys_audit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1777,6 +1810,23 @@ bool sys_audit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   }
   value_set_none(out);
   return true;
+}
+
+bool sys_audit_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (kwargc > 0) {
+    error = "sys.audit() takes no keyword arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return sys_audit(runtime, args, argc, out, error, nullptr);
 }
 
 bool sys_setprofile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2729,7 +2779,8 @@ void register_sys_module(Runtime& runtime) {
           "addaudithook",
           sys_addaudithook,
           nullptr,
-          "Adds a new audit hook callback."),
+          "Adds a new audit hook callback.",
+          sys_addaudithook_kw),
       error);
   module_set_attr(
       sys,
@@ -2741,7 +2792,8 @@ void register_sys_module(Runtime& runtime) {
           "audit",
           sys_audit,
           nullptr,
-          "Passes the event to any audit hooks that are attached."),
+          "Passes the event to any audit hooks that are attached.",
+          sys_audit_kw),
       error);
   module_set_attr(
       sys,

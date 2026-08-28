@@ -62,3 +62,6 @@ shape the next iteration.
 - A failed build or fixture run should become a repair prompt in the same Codex
   session. Preserve the changed batch, feed back the captured validation log,
   fix the regression, and only commit after the next validation pass.
+- Native functions that should reject keyword arguments with a catchable Python
+  `TypeError` need an explicit keyword callback; otherwise the generic native
+  dispatcher can surface the rejection as an uncaught runtime failure.

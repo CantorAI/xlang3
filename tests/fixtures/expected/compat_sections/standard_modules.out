@@ -357,6 +357,11 @@ sys-addaudithook-arity True True
 sys-addaudithook-arity True True
 True xlang3.fixture (1, 'a')
 True
+sys-audit-keyword-hook True
+sys-audit-keyword-diagnostic addaudit-unexpected True
+sys-audit-keyword-diagnostic addaudit-extra-kw True
+sys-audit-keyword-diagnostic audit-keyword True
+True
 sys-audit-bad-hook True
 ('sys_frame_probe', '<module>', '__main__', False)
 1 1 True True True

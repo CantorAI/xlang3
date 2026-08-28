@@ -526,6 +526,8 @@ Recent completed batches:
 - Tightened native `sys` stdio method metadata so `stdin`/`stdout`/`stderr`
   methods expose CPython-style short `__name__`, `TextIOWrapper.*`
   `__qualname__`, and absent `__module__`/`__doc__` attributes.
+- Added CPython-style `sys.addaudithook(hook=...)` keyword registration and
+  catchable keyword-argument diagnostics for `sys.audit`.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -969,8 +971,9 @@ Native or runtime-backed foundation:
   and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered
-  non-callable hooks and CPython-style `sys.audit`/`sys.addaudithook` arity/type
-  `TypeError` diagnostics,
+  non-callable hooks, CPython-style `sys.addaudithook(hook=...)` keyword
+  registration, and CPython-style `sys.audit`/`sys.addaudithook` arity, type,
+  and keyword `TypeError` diagnostics,
   stdio capability probes including CPython-style method metadata and
   no-argument diagnostics, profile/switch-interval/int-string helpers with
   bool-as-int setters and CPython-style setter arity/type `TypeError`

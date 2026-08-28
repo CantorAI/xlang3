@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys stdio method metadata
+sys audit keyword call binding
 ```
 
 Current next loop:
