@@ -599,6 +599,14 @@ for sys_startup_hook_probe in (sys.__interactivehook__, sys._baserepl):
         sys_startup_hook_probe(1)
     except TypeError as err:
         print("sys-startup-hook-args", "argument" in str(err) or "takes no arguments" in str(err))
+for sys_startup_hook_keyword_name, sys_startup_hook_keyword_call, sys_startup_hook_keyword_parts in [
+    ("__interactivehook__", lambda: sys.__interactivehook__(x=1), ("unexpected keyword argument", "x")),
+    ("_baserepl", lambda: sys._baserepl(x=1), ("takes no keyword arguments",)),
+]:
+    try:
+        sys_startup_hook_keyword_call()
+    except TypeError as err:
+        print("sys-startup-hook-keyword", sys_startup_hook_keyword_name, all(part in str(err) for part in sys_startup_hook_keyword_parts))
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
 class SysSizeProbe:
     def __sizeof__(self):

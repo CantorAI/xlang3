@@ -1050,8 +1050,8 @@ Native or runtime-backed foundation:
   diagnostics, allocator-backed `_debugmallocstats` with active `sys.stderr`
   routing and CPython-style keyword diagnostics,
   CPython 3.14 startup metadata/hooks including `__doc__`,
-  `__interactivehook__`, `_baserepl`, and CPython-normal Windows `abiflags`
-  absence while preserving non-Windows `abiflags`,
+  `__interactivehook__`/`_baserepl` keyword diagnostics, and CPython-normal
+  Windows `abiflags` absence while preserving non-Windows `abiflags`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
   and `context_aware_warnings`, CPython-default `sys.dont_write_bytecode` plus
   `sys.flags.dont_write_bytecode`/`hash_randomization`/`utf8_mode` startup values,

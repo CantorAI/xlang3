@@ -138,6 +138,8 @@ register_readline register_readline site _baserepl _baserepl sys True True
 sys-hook-aliases True True True True
 sys-startup-hook-args True
 sys-startup-hook-args True
+sys-startup-hook-keyword __interactivehook__ True
+sys-startup-hook-keyword _baserepl True
 True True True True True
 123 99
 sys-getsizeof-negative True

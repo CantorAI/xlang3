@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys default hook keyword diagnostics
+sys startup hook keyword diagnostics
 ```
 
 Current next loop:

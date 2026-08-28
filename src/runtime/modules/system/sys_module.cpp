@@ -175,6 +175,22 @@ bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, st
   return true;
 }
 
+bool sys_noop_unexpected_keyword(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void* user_data) {
+  const char* name = static_cast<const char*>(user_data);
+  const std::string keyword(kwargc > 0 && kwargs[0].name != nullptr ? kwargs[0].name : "");
+  error = std::string(name) + "() got an unexpected keyword argument '" + keyword + "'";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 Value sys_metadata_native_function(
     Runtime& runtime,
     const std::string& module_name,
@@ -2923,7 +2939,8 @@ void register_sys_module(Runtime& runtime) {
           "register_readline",
           sys_noop_hook,
           const_cast<char*>("site.register_readline"),
-          "Configure readline completion on interactive prompts."),
+          "Configure readline completion on interactive prompts.",
+          sys_noop_unexpected_keyword),
       error);
   module_set_attr(
       sys,
@@ -2935,7 +2952,8 @@ void register_sys_module(Runtime& runtime) {
           "_baserepl",
           sys_noop_hook,
           const_cast<char*>("sys._baserepl"),
-          "Private function for getting the base REPL"),
+          "Private function for getting the base REPL",
+          sys_no_keyword_args),
       error);
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);
