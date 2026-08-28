@@ -1944,6 +1944,7 @@ sys_runtime_text_signatures = {
     "_current_frames": "($module, /)",
     "_current_exceptions": "($module, /)",
     "_get_cpu_count_config": "($module, /)",
+    "_dump_tracelets": "($module, /, outpath)",
     "get_coroutine_origin_tracking_depth": "($module, /)",
     "set_coroutine_origin_tracking_depth": "($module, /, depth)",
     "get_asyncgen_hooks": "($module, /)",

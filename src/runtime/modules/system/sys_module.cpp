@@ -3818,7 +3818,8 @@ void register_sys_module(Runtime& runtime) {
           sys_dump_tracelets,
           nullptr,
           "Dump the graph of tracelets in graphviz format",
-          sys_dump_tracelets_kw),
+          sys_dump_tracelets_kw,
+          "($module, /, outpath)"),
       error);
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
   jit_builder.value("__doc__", Value::string("Utilities for observing just-in-time compilation."))

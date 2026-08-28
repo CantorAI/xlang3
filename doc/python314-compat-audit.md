@@ -961,7 +961,7 @@ Native or runtime-backed foundation:
   CPython-style arity/type/keyword/immutable-type errors including given-count and
   offending-type diagnostics,
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
-  diagnostics, default/filesystem encoding helpers with CPython-style keyword
+  diagnostics and text signature, default/filesystem encoding helpers with CPython-style keyword
   diagnostics, `getunicodeinternedsize(_only_immortal=...)` binding, arity diagnostics, and text signature, recursion-limit
   helpers including bool-as-int bounds, CPython-style `getrecursionlimit`/`setrecursionlimit`
   docs, and CPython-style getter/setter keyword
