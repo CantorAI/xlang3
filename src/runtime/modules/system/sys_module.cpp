@@ -2760,7 +2760,18 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Return the current value of the recursion limit."),
       error);
-  module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
+  module_set_attr(
+      sys,
+      "setrecursionlimit",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.setrecursionlimit",
+          "setrecursionlimit",
+          sys_setrecursionlimit,
+          nullptr,
+          "Set the maximum depth of the Python interpreter stack to n."),
+      error);
   module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
   module_set_attr(sys, "_is_interned", runtime.make_native_function("sys._is_interned", sys_is_interned), error);
   module_set_attr(sys, "getunicodeinternedsize", runtime.make_native_function("sys.getunicodeinternedsize", sys_getunicodeinternedsize), error);
@@ -2779,13 +2790,72 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Return the number of memory blocks currently allocated."),
       error);
-  module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
-  module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
-  module_set_attr(sys, "_settraceallthreads", runtime.make_native_function("sys._settraceallthreads", sys_settraceallthreads), error);
-  module_set_attr(sys, "call_tracing", runtime.make_native_function("sys.call_tracing", sys_call_tracing), error);
-  module_set_attr(sys, "setprofile", runtime.make_native_function("sys.setprofile", sys_setprofile), error);
-  module_set_attr(sys, "getprofile", runtime.make_native_function("sys.getprofile", sys_getprofile), error);
-  module_set_attr(sys, "_setprofileallthreads", runtime.make_native_function("sys._setprofileallthreads", sys_setprofileallthreads), error);
+  module_set_attr(
+      sys,
+      "settrace",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.settrace", "settrace", sys_settrace, nullptr, "Set the global debug tracing function."),
+      error);
+  module_set_attr(
+      sys,
+      "gettrace",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.gettrace",
+          "gettrace",
+          sys_gettrace,
+          nullptr,
+          "Return the global debug tracing function set with sys.settrace."),
+      error);
+  module_set_attr(
+      sys,
+      "_settraceallthreads",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._settraceallthreads",
+          "_settraceallthreads",
+          sys_settraceallthreads,
+          nullptr,
+          "Set the global debug tracing function in all running threads belonging to the current interpreter."),
+      error);
+  module_set_attr(
+      sys,
+      "call_tracing",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.call_tracing", "call_tracing", sys_call_tracing, nullptr, "Call func(*args), while tracing is enabled."),
+      error);
+  module_set_attr(
+      sys,
+      "setprofile",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.setprofile", "setprofile", sys_setprofile, nullptr, "Set the profiling function."),
+      error);
+  module_set_attr(
+      sys,
+      "getprofile",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getprofile",
+          "getprofile",
+          sys_getprofile,
+          nullptr,
+          "Return the profiling function set with sys.setprofile."),
+      error);
+  module_set_attr(
+      sys,
+      "_setprofileallthreads",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._setprofileallthreads",
+          "_setprofileallthreads",
+          sys_setprofileallthreads,
+          nullptr,
+          "Set the profiling function in all running threads belonging to the current interpreter."),
+      error);
   module_set_attr(
       sys,
       "getswitchinterval",
@@ -2798,7 +2868,18 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Return the current thread switch interval; see sys.setswitchinterval()."),
       error);
-  module_set_attr(sys, "setswitchinterval", runtime.make_native_function("sys.setswitchinterval", sys_setswitchinterval), error);
+  module_set_attr(
+      sys,
+      "setswitchinterval",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.setswitchinterval",
+          "setswitchinterval",
+          sys_setswitchinterval,
+          nullptr,
+          "Set the ideal thread switching delay inside the Python interpreter."),
+      error);
   module_set_attr(
       sys,
       "get_int_max_str_digits",
@@ -2811,7 +2892,18 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Return the maximum string digits limit for non-binary int<->str conversions."),
       error);
-  module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
+  module_set_attr(
+      sys,
+      "set_int_max_str_digits",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.set_int_max_str_digits",
+          "set_int_max_str_digits",
+          sys_set_int_max_str_digits,
+          nullptr,
+          "Set the maximum string digits limit for non-binary int<->str conversions."),
+      error);
   module_set_attr(
       sys,
       "is_finalizing",
@@ -2851,8 +2943,30 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "activate_stack_trampoline", runtime.make_native_function("sys.activate_stack_trampoline", sys_activate_stack_trampoline), error);
   module_set_attr(sys, "deactivate_stack_trampoline", runtime.make_native_function("sys.deactivate_stack_trampoline", sys_deactivate_stack_trampoline), error);
   module_set_attr(sys, "is_stack_trampoline_active", runtime.make_native_function("sys.is_stack_trampoline_active", sys_is_stack_trampoline_active), error);
-  module_set_attr(sys, "_debugmallocstats", runtime.make_native_function("sys._debugmallocstats", sys_debugmallocstats), error);
-  module_set_attr(sys, "_dump_tracelets", runtime.make_native_function("sys._dump_tracelets", sys_dump_tracelets), error);
+  module_set_attr(
+      sys,
+      "_debugmallocstats",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._debugmallocstats",
+          "_debugmallocstats",
+          sys_debugmallocstats,
+          nullptr,
+          "Print summary info to stderr about the state of pymalloc's structures."),
+      error);
+  module_set_attr(
+      sys,
+      "_dump_tracelets",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._dump_tracelets",
+          "_dump_tracelets",
+          sys_dump_tracelets,
+          nullptr,
+          "Dump the graph of tracelets in graphviz format"),
+      error);
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
   jit_builder.value("__doc__", Value::string("Utilities for observing just-in-time compilation."))
       .value("is_available",
@@ -3054,7 +3168,18 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Check status of origin tracking for coroutine objects in this thread."),
       error);
-  module_set_attr(sys, "set_coroutine_origin_tracking_depth", runtime.make_native_function("sys.set_coroutine_origin_tracking_depth", sys_set_coroutine_origin_tracking_depth), error);
+  module_set_attr(
+      sys,
+      "set_coroutine_origin_tracking_depth",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.set_coroutine_origin_tracking_depth",
+          "set_coroutine_origin_tracking_depth",
+          sys_set_coroutine_origin_tracking_depth,
+          nullptr,
+          "Enable or disable origin tracking for coroutine objects in this thread."),
+      error);
   module_set_attr(
       sys,
       "get_asyncgen_hooks",
@@ -3070,7 +3195,15 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(
       sys,
       "set_asyncgen_hooks",
-      runtime.make_native_function("sys.set_asyncgen_hooks", sys_set_asyncgen_hooks, nullptr, nullptr, nullptr, false, sys_set_asyncgen_hooks_kw),
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.set_asyncgen_hooks",
+          "set_asyncgen_hooks",
+          sys_set_asyncgen_hooks,
+          nullptr,
+          "set_asyncgen_hooks([firstiter] [, finalizer])",
+          sys_set_asyncgen_hooks_kw),
       error);
   module_set_attr(sys, "_xlang3_debug_set_hook", runtime.make_native_function("sys._xlang3_debug_set_hook", sys_xlang3_debug_set_hook), error);
   module_set_attr(sys, "_xlang3_debug_add_breakpoint", runtime.make_native_function("sys._xlang3_debug_add_breakpoint", sys_xlang3_debug_add_breakpoint), error);

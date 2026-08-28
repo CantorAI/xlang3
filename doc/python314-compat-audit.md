@@ -514,6 +514,9 @@ Recent completed batches:
 - Expanded native `sys` hook callable metadata for display, exception,
   unraisable, breakpoint, and audit hooks so the public hook functions expose
   CPython-style short names, `__module__ == "sys"`, and docstrings.
+- Expanded native `sys` trace/profile/config setter and debug helper metadata
+  so covered stateful helper functions expose CPython-style short names,
+  `__module__ == "sys"`, and docstrings without changing hook behavior.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -961,7 +964,8 @@ Native or runtime-backed foundation:
   stdio capability probes including CPython-style no-argument method
   diagnostics, profile/switch-interval/int-string helpers with
   bool-as-int setters and CPython-style setter arity/type `TypeError`
-  diagnostics, `sys.int_info`
+  diagnostics plus CPython-style trace/profile/config setter and debug helper
+  metadata, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing` with CPython-style trace/profile helper arity `TypeError`
   diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
