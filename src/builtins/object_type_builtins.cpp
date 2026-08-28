@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -32,6 +33,110 @@ namespace xlang3 {
 Value make_dict_fromkeys_classmethod();
 
 namespace {
+
+bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, std::string& error) {
+  if (auto* source_dict = value_as_dict(source)) {
+    for (const auto& entry : source_dict->entries) {
+      if (!mapping_set_item(target, entry.first, entry.second, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* source_instance = value_as_instance(source)) {
+    if (auto* storage = value_as_dict(source_instance->mapping_storage)) {
+      for (const auto& entry : storage->entries) {
+        if (!mapping_set_item(target, entry.first, entry.second, error)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  Value iterator;
+  if (!runtime_get_iter(runtime, source, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    const TupleObject* tuple = value_as_tuple(item);
+    const ListObject* list = value_as_list(item);
+    const Value* key = nullptr;
+    const Value* value = nullptr;
+    if (tuple != nullptr && tuple->items.size() == 2) {
+      key = &tuple->items[0];
+      value = &tuple->items[1];
+    } else if (list != nullptr && list->items.size() == 2) {
+      key = &list->items[0];
+      value = &list->items[1];
+    } else {
+      error = "dict update sequence element has length other than 2";
+      return false;
+    }
+    if (!mapping_set_item(target, *key, *value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool builtin_dict_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "dict expected at most 1 argument, got " + std::to_string(argc > 0 ? argc - 1 : 0);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (auto* dict = value_as_dict(args[0])) {
+    dict->entries.clear();
+    target = args[0];
+  } else if (auto* instance = value_as_instance(args[0])) {
+    if (auto* storage = value_as_dict(instance->mapping_storage)) {
+      storage->entries.clear();
+      target = instance->mapping_storage;
+    }
+  }
+  if (target.tag == ValueTag::Invalid) {
+    error = "dict.__init__ target is not a dict";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc == 2 && !dict_init_update_one(runtime, target, args[1], error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (!mapping_set_item(target, Value::string(kwargs[i].name), *kwargs[i].value, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool builtin_dict_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return builtin_dict_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
 
 bool collect_type_new_slots(const Value& value, std::vector<std::string>& slots) {
   if (auto* string = value_as_string(value)) {
@@ -787,6 +892,8 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "dict", object_type);
   if (const auto* dict_value = runtime.find_builtin("dict")) {
     if (auto* dict_class = value_as_class(*dict_value)) {
+      dict_class->attrs["__init__"] =
+          runtime.make_native_function("dict.__init__", builtin_dict_init, nullptr, nullptr, nullptr, false, builtin_dict_init_kw);
       dict_class->attrs["fromkeys"] = make_dict_fromkeys_classmethod();
       ++dict_class->version;
     }

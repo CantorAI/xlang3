@@ -1087,8 +1087,8 @@ Native or runtime-backed foundation:
   and named/member fields for sequence slots plus `tm_zone`/`tm_gmtoff`
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
   descriptor repr, `inspect.ismemberdescriptor` visibility, and descriptor `__get__`,
-  constructor `sequence=`/`dict=` keyword binding with CPython-style diagnostics, dict
-  extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
+  constructor `sequence=`/`dict=` keyword binding with CPython-style diagnostics, dict subclass
+  and extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index` including bool-as-int start/stop bounds, CPython-style named-field `__repr__` through `repr()`, platform-backed timezone constants/names,
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, bool fields in

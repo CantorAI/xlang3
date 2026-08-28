@@ -65,3 +65,7 @@ shape the next iteration.
 - Native functions that should reject keyword arguments with a catchable Python
   `TypeError` need an explicit keyword callback; otherwise the generic native
   dispatcher can surface the rejection as an uncaught runtime failure.
+- Container subclass construction may depend on inherited native `__init__`
+  methods even when exact builtin construction is handled by VM constructor
+  fast paths. Add the initializer on the builtin type and cover both subclass
+  construction and direct `dict.__init__`-style calls when exposing it.

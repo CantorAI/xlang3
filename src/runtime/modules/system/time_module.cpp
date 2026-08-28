@@ -1590,6 +1590,11 @@ bool struct_time_extra_fields_from_dict(
     std::string& error) {
   auto* dict = value_as_dict(dict_value);
   if (dict == nullptr) {
+    if (auto* instance = value_as_instance(dict_value)) {
+      dict = value_as_dict(instance->mapping_storage);
+    }
+  }
+  if (dict == nullptr) {
     error = "time.struct_time() takes a dict as second arg, if any";
     return false;
   }
