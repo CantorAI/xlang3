@@ -132,8 +132,8 @@ bool is_callable_value(const Value& value) {
          }();
 }
 
-bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const char* name) {
-  error = std::string(name) + " expected 0 arguments";
+bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const char* name, uint32_t argc) {
+  error = std::string(name) + "() takes no arguments (" + std::to_string(argc) + " given)";
   runtime.raise_class_error("TypeError", error);
   return false;
 }
@@ -153,7 +153,7 @@ bool sys_bool_or_int_arg(const Value& value, int64_t& out) {
 bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
   const char* name = static_cast<const char*>(user_data);
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, name);
+    return raise_sys_no_args_type_error(runtime, error, name, argc);
   }
   value_set_none(out);
   return true;
@@ -1037,7 +1037,7 @@ bool sys_getframemodulename(Runtime& runtime, const Value* args, uint32_t argc, 
 
 bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._current_frames");
+    return raise_sys_no_args_type_error(runtime, error, "sys._current_frames", argc);
   }
   out = runtime.current_frame_snapshots(xlang_thread_active_idents());
   return true;
@@ -1045,7 +1045,7 @@ bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& ou
 
 bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._current_exceptions");
+    return raise_sys_no_args_type_error(runtime, error, "sys._current_exceptions", argc);
   }
   out = runtime.current_exception_snapshots(xlang_thread_active_idents());
   return true;
@@ -1053,7 +1053,7 @@ bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value
 
 bool sys_get_cpu_count_config(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._get_cpu_count_config");
+    return raise_sys_no_args_type_error(runtime, error, "sys._get_cpu_count_config", argc);
   }
   value_set_int64(out, -1);
   return true;
@@ -1061,7 +1061,7 @@ bool sys_get_cpu_count_config(Runtime& runtime, const Value*, uint32_t argc, Val
 
 bool sys_clear_internal_caches(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._clear_internal_caches");
+    return raise_sys_no_args_type_error(runtime, error, "sys._clear_internal_caches", argc);
   }
   value_set_none(out);
   return true;
@@ -1138,7 +1138,7 @@ bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args
 
 bool sys_get_coroutine_origin_tracking_depth(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.get_coroutine_origin_tracking_depth");
+    return raise_sys_no_args_type_error(runtime, error, "sys.get_coroutine_origin_tracking_depth", argc);
   }
   value_set_int64(out, g_coroutine_origin_tracking_depth);
   return true;
@@ -1155,7 +1155,7 @@ bool validate_asyncgen_hook(Runtime& runtime, const Value& hook, const char* nam
 
 bool sys_get_asyncgen_hooks(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.get_asyncgen_hooks");
+    return raise_sys_no_args_type_error(runtime, error, "sys.get_asyncgen_hooks", argc);
   }
   out = make_asyncgen_hooks(runtime);
   return true;
@@ -1241,7 +1241,7 @@ bool sys_set_asyncgen_hooks_kw(
 
 bool sys_getdefaultencoding(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getdefaultencoding");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getdefaultencoding", argc);
   }
   out = Value::string("utf-8");
   return true;
@@ -1249,7 +1249,7 @@ bool sys_getdefaultencoding(Runtime& runtime, const Value*, uint32_t argc, Value
 
 bool sys_getfilesystemencoding(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getfilesystemencoding");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getfilesystemencoding", argc);
   }
   out = Value::string(g_filesystem_encoding);
   return true;
@@ -1257,7 +1257,7 @@ bool sys_getfilesystemencoding(Runtime& runtime, const Value*, uint32_t argc, Va
 
 bool sys_getfilesystemencodeerrors(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getfilesystemencodeerrors");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getfilesystemencodeerrors", argc);
   }
   out = Value::string(g_filesystem_encode_errors);
   return true;
@@ -1265,7 +1265,7 @@ bool sys_getfilesystemencodeerrors(Runtime& runtime, const Value*, uint32_t argc
 
 bool sys_getrecursionlimit(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getrecursionlimit");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getrecursionlimit", argc);
   }
   value_set_int64(out, g_recursion_limit);
   return true;
@@ -1335,7 +1335,7 @@ bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& 
 
 bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.getunicodeinternedsize expected 0 arguments";
+    error = "getunicodeinternedsize() takes no positional arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1472,7 +1472,7 @@ uint64_t live_block_count(const memory::X3MemoryCounter& counter) {
 
 bool sys_getallocatedblocks(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getallocatedblocks");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getallocatedblocks", argc);
   }
   const auto& object_stats = memory::x3_thread_object_pools().stats();
   const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
@@ -1697,7 +1697,7 @@ double g_switch_interval = 0.005;
 
 bool sys_getswitchinterval(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getswitchinterval");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getswitchinterval", argc);
   }
   out = Value::number(g_switch_interval);
   return true;
@@ -1722,7 +1722,7 @@ bool sys_setswitchinterval(Runtime& runtime, const Value* args, uint32_t argc, V
 
 bool sys_get_int_max_str_digits(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.get_int_max_str_digits");
+    return raise_sys_no_args_type_error(runtime, error, "sys.get_int_max_str_digits", argc);
   }
   value_set_int64(out, g_int_max_str_digits);
   return true;
@@ -1762,7 +1762,7 @@ bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t ar
 
 bool sys_is_finalizing(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.is_finalizing");
+    return raise_sys_no_args_type_error(runtime, error, "sys.is_finalizing", argc);
   }
   out = Value::boolean(false);
   return true;
@@ -1770,7 +1770,7 @@ bool sys_is_finalizing(Runtime& runtime, const Value*, uint32_t argc, Value& out
 
 bool sys_is_remote_debug_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.is_remote_debug_enabled");
+    return raise_sys_no_args_type_error(runtime, error, "sys.is_remote_debug_enabled", argc);
   }
   out = Value::boolean(false);
   return true;
@@ -1778,7 +1778,7 @@ bool sys_is_remote_debug_enabled(Runtime& runtime, const Value*, uint32_t argc, 
 
 bool sys_is_gil_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._is_gil_enabled");
+    return raise_sys_no_args_type_error(runtime, error, "sys._is_gil_enabled", argc);
   }
   out = Value::boolean(true);
   return true;
@@ -1798,7 +1798,7 @@ bool sys_activate_stack_trampoline(Runtime& runtime, const Value* args, uint32_t
 
 bool sys_deactivate_stack_trampoline(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.deactivate_stack_trampoline");
+    return raise_sys_no_args_type_error(runtime, error, "sys.deactivate_stack_trampoline", argc);
   }
   value_set_none(out);
   return true;
@@ -1806,7 +1806,7 @@ bool sys_deactivate_stack_trampoline(Runtime& runtime, const Value*, uint32_t ar
 
 bool sys_is_stack_trampoline_active(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.is_stack_trampoline_active");
+    return raise_sys_no_args_type_error(runtime, error, "sys.is_stack_trampoline_active", argc);
   }
   out = Value::boolean(false);
   return true;
@@ -1814,7 +1814,7 @@ bool sys_is_stack_trampoline_active(Runtime& runtime, const Value*, uint32_t arg
 
 bool sys_jit_is_available(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_available");
+    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_available", argc);
   }
   out = Value::boolean(false);
   return true;
@@ -1822,7 +1822,7 @@ bool sys_jit_is_available(Runtime& runtime, const Value*, uint32_t argc, Value& 
 
 bool sys_jit_is_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_enabled");
+    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_enabled", argc);
   }
   out = Value::boolean(false);
   return true;
@@ -1830,7 +1830,7 @@ bool sys_jit_is_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& ou
 
 bool sys_jit_is_active(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_active");
+    return raise_sys_no_args_type_error(runtime, error, "sys._jit.is_active", argc);
   }
   out = Value::boolean(false);
   return true;
@@ -2099,7 +2099,7 @@ bool sys_monitoring_register_callback(Runtime& runtime, const Value* args, uint3
 
 bool sys_monitoring_restart_events(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.monitoring.restart_events");
+    return raise_sys_no_args_type_error(runtime, error, "sys.monitoring.restart_events", argc);
   }
   value_set_none(out);
   return true;
@@ -2107,7 +2107,7 @@ bool sys_monitoring_restart_events(Runtime& runtime, const Value*, uint32_t argc
 
 bool sys_monitoring_all_events(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.monitoring._all_events");
+    return raise_sys_no_args_type_error(runtime, error, "sys.monitoring._all_events", argc);
   }
   out = Value::dict({});
   return true;
@@ -2203,7 +2203,7 @@ Value make_monitoring_events() {
 #if defined(_WIN32)
 bool sys_getwindowsversion(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys.getwindowsversion");
+    return raise_sys_no_args_type_error(runtime, error, "sys.getwindowsversion", argc);
   }
   out = make_windows_version(runtime);
   return true;
@@ -2211,7 +2211,7 @@ bool sys_getwindowsversion(Runtime& runtime, const Value*, uint32_t argc, Value&
 
 bool sys_enablelegacywindowsfsencoding(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._enablelegacywindowsfsencoding");
+    return raise_sys_no_args_type_error(runtime, error, "sys._enablelegacywindowsfsencoding", argc);
   }
   g_filesystem_encoding = "mbcs";
   g_filesystem_encode_errors = "replace";
@@ -2222,7 +2222,7 @@ bool sys_enablelegacywindowsfsencoding(Runtime& runtime, const Value*, uint32_t 
 
 bool sys_debugmallocstats(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._debugmallocstats");
+    return raise_sys_no_args_type_error(runtime, error, "sys._debugmallocstats", argc);
   }
   const auto& object_stats = memory::x3_thread_object_pools().stats();
   const auto& bucket_stats = memory::x3_thread_buckets().bucket_stats();
@@ -2241,7 +2241,7 @@ bool sys_debugmallocstats(Runtime& runtime, const Value*, uint32_t argc, Value& 
 
 bool sys_dump_tracelets(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._dump_tracelets");
+    return raise_sys_no_args_type_error(runtime, error, "sys._dump_tracelets", argc);
   }
   value_set_none(out);
   return true;

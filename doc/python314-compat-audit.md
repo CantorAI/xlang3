@@ -139,6 +139,10 @@ Recent completed batches:
 - Tightened native `sys.getsizeof` diagnostics: missing-object and too-many
   positional calls now report CPython-style `TypeError` messages while
   preserving the existing `__sizeof__` protocol/default handling.
+- Tightened native `sys` no-argument probe diagnostics: shared runtime/config/
+  frame/cache/JIT probes now report CPython-style `takes no arguments (N given)`
+  `TypeError` messages, while `sys.getunicodeinternedsize` keeps its
+  CPython-style no-positional-arguments wording.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -866,8 +870,8 @@ Native or runtime-backed foundation:
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   async-generator hook configuration with structseq-like `asyncgen_hooks` including CPython-style
   `builtins` type-module metadata,
-  catchable `TypeError` arity failures for no-argument runtime/config/frame/cache/JIT
-  probes,
+  catchable CPython-style `TypeError` arity failures for no-argument
+  runtime/config/frame/cache/JIT probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`
   with active `sys.stderr` routing,

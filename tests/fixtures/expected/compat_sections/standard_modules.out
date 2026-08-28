@@ -333,6 +333,11 @@ True True True
 asyncgen-hooks True True
 asyncgen-hooks True True
 sys-noarg-typeerrors 26 26
+sys-noarg-diagnostic allocated True True
+sys-noarg-diagnostic encoding True True
+sys-noarg-diagnostic cpu True True
+sys-noarg-diagnostic jit True True
+sys-noarg-diagnostic unicodeinterned True
 True True
 True
 5

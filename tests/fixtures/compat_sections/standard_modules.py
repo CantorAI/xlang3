@@ -1343,6 +1343,20 @@ for sys_noarg_typeerror_probe in sys_noarg_typeerror_probes:
         if "argument" in str(err) or "expected 0" in str(err) or "takes no arguments" in str(err):
             sys_noarg_typeerror_count += 1
 print("sys-noarg-typeerrors", sys_noarg_typeerror_count, len(sys_noarg_typeerror_probes))
+for sys_noarg_name, sys_noarg_probe in (
+    ("allocated", sys.getallocatedblocks),
+    ("encoding", sys.getdefaultencoding),
+    ("cpu", sys._get_cpu_count_config),
+    ("jit", sys._jit.is_available),
+):
+    try:
+        sys_noarg_probe(1)
+    except TypeError as err:
+        print("sys-noarg-diagnostic", sys_noarg_name, "takes no arguments" in str(err), "1 given" in str(err))
+try:
+    sys.getunicodeinternedsize(1)
+except TypeError as err:
+    print("sys-noarg-diagnostic", "unicodeinterned", "no positional arguments" in str(err))
 try:
     raise RuntimeError("active")
 except RuntimeError as err:
