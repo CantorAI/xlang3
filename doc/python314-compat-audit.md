@@ -194,6 +194,9 @@ Recent completed batches:
   `gmtime`, and `ctime` invalid timestamp calls plus `mktime` invalid
   argument counts/types now raise catchable CPython-style `TypeError`
   exceptions while preserving bool timestamp handling.
+- Tightened native `sys` stdio capability method diagnostics: `isatty`,
+  `readable`, `writable`, and `seekable` now raise catchable CPython-style
+  no-argument `TypeError` exceptions when called with extra arguments.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -892,7 +895,8 @@ Native or runtime-backed foundation:
   audit hook dispatch including CPython-style call-time failure for registered
   non-callable hooks and CPython-style `sys.audit`/`sys.addaudithook` arity/type
   `TypeError` diagnostics,
-  stdio capability probes, profile/switch-interval/int-string helpers with
+  stdio capability probes including CPython-style no-argument method
+  diagnostics, profile/switch-interval/int-string helpers with
   bool-as-int setters and CPython-style setter arity/type `TypeError`
   diagnostics, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including

@@ -796,39 +796,42 @@ bool sys_stdio_close(Runtime&, const Value*, uint32_t argc, Value& out, std::str
   return true;
 }
 
-bool sys_stdio_isatty(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool raise_stdio_no_args_type_error(Runtime& runtime, std::string& error, const char* method, uint32_t argc) {
+  const uint32_t given = argc == 0 ? 0 : argc - 1;
+  error = std::string("TextIOWrapper.") + method + "() takes no arguments (" + std::to_string(given) + " given)";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool sys_stdio_isatty(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "stdio.isatty() expected no arguments";
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "isatty", argc);
   }
   value_set_bool(out, false);
   return true;
 }
 
-bool sys_stdio_readable(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool sys_stdio_readable(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
-    error = "stdio.readable() expected no arguments";
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "readable", argc);
   }
   const char* kind = static_cast<const char*>(user_data);
   value_set_bool(out, std::string(kind) == "stdin");
   return true;
 }
 
-bool sys_stdio_writable(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool sys_stdio_writable(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
-    error = "stdio.writable() expected no arguments";
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "writable", argc);
   }
   const char* kind = static_cast<const char*>(user_data);
   value_set_bool(out, std::string(kind) != "stdin");
   return true;
 }
 
-bool sys_stdio_seekable(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_stdio_seekable(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "stdio.seekable() expected no arguments";
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "seekable", argc);
   }
   value_set_bool(out, false);
   return true;

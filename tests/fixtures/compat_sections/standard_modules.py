@@ -689,6 +689,17 @@ try:
 except TypeError as err:
     print("sys-getrefcount-arity", "2 given" in str(err))
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
+for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
+    ("stdin-readable", lambda: sys.stdin.readable(1), ("TextIOWrapper.readable", "takes no arguments", "1 given")),
+    ("stdin-writable", lambda: sys.stdin.writable(1), ("TextIOWrapper.writable", "takes no arguments", "1 given")),
+    ("stdout-isatty", lambda: sys.stdout.isatty(1), ("TextIOWrapper.isatty", "takes no arguments", "1 given")),
+    ("stderr-seekable", lambda: sys.stderr.seekable(1), ("TextIOWrapper.seekable", "takes no arguments", "1 given")),
+]:
+    try:
+        sys_stdio_bad_call()
+    except TypeError as err:
+        sys_stdio_bad_message = str(err)
+        print("sys-stdio-capability-arity", sys_stdio_bad_name, all(part in sys_stdio_bad_message for part in sys_stdio_bad_parts))
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 implementation_repr = repr(sys.implementation)
