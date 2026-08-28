@@ -175,8 +175,9 @@ Value sys_metadata_native_function(
     const std::string& function_name,
     NativeFunctionCallback callback,
     void* user_data,
-    const std::string& doc) {
-  Value function = runtime.make_native_function(qualified_name, callback, user_data);
+    const std::string& doc,
+    NativeKeywordFunctionCallback keyword_callback = nullptr) {
+  Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__module__"), Value::string(module_name)},
@@ -2646,21 +2647,71 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
   module_set_attr(sys, "exception", runtime.make_native_function("sys.exception", sys_exception), error);
   module_set_attr(sys, "exit", runtime.make_native_function("sys.exit", sys_exit), error);
-  const Value displayhook = runtime.make_native_function("sys.displayhook", sys_displayhook);
+  const Value displayhook = sys_metadata_native_function(
+      runtime,
+      "sys",
+      "sys.displayhook",
+      "displayhook",
+      sys_displayhook,
+      nullptr,
+      "Print an object to sys.stdout and also save it in builtins._");
   module_set_attr(sys, "displayhook", displayhook, error);
   module_set_attr(sys, "__displayhook__", displayhook, error);
-  const Value excepthook = runtime.make_native_function("sys.excepthook", sys_excepthook);
+  const Value excepthook = sys_metadata_native_function(
+      runtime,
+      "sys",
+      "sys.excepthook",
+      "excepthook",
+      sys_excepthook,
+      nullptr,
+      "Handle an exception by displaying it with a traceback on sys.stderr.");
   module_set_attr(sys, "excepthook", excepthook, error);
   module_set_attr(sys, "__excepthook__", excepthook, error);
-  const Value unraisablehook = runtime.make_native_function("sys.unraisablehook", sys_unraisablehook);
+  const Value unraisablehook = sys_metadata_native_function(
+      runtime,
+      "sys",
+      "sys.unraisablehook",
+      "unraisablehook",
+      sys_unraisablehook,
+      nullptr,
+      "Handle an unraisable exception.");
   module_set_attr(sys, "unraisablehook", unraisablehook, error);
   module_set_attr(sys, "__unraisablehook__", unraisablehook, error);
-  const Value breakpointhook =
-      runtime.make_native_function("sys.breakpointhook", sys_breakpointhook, nullptr, nullptr, nullptr, false, sys_breakpointhook_kw);
+  const Value breakpointhook = sys_metadata_native_function(
+      runtime,
+      "sys",
+      "sys.breakpointhook",
+      "breakpointhook",
+      sys_breakpointhook,
+      nullptr,
+      "This hook function is called by built-in breakpoint().",
+      sys_breakpointhook_kw);
   module_set_attr(sys, "breakpointhook", breakpointhook, error);
   module_set_attr(sys, "__breakpointhook__", breakpointhook, error);
-  module_set_attr(sys, "addaudithook", runtime.make_native_function("sys.addaudithook", sys_addaudithook), error);
-  module_set_attr(sys, "audit", runtime.make_native_function("sys.audit", sys_audit), error);
+  module_set_attr(
+      sys,
+      "addaudithook",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.addaudithook",
+          "addaudithook",
+          sys_addaudithook,
+          nullptr,
+          "Adds a new audit hook callback."),
+      error);
+  module_set_attr(
+      sys,
+      "audit",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.audit",
+          "audit",
+          sys_audit,
+          nullptr,
+          "Passes the event to any audit hooks that are attached."),
+      error);
   module_set_attr(
       sys,
       "getdefaultencoding",
