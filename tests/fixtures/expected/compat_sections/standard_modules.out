@@ -166,6 +166,7 @@ sys-is-immortal-arity True
 True True True
 sys-getrefcount-arity True True
 sys-getrefcount-arity True
+sys-getrefcount-keyword True
 True False True 2 False False True False
 True True True
 sys-stdio-capability-arity stdin-readable True

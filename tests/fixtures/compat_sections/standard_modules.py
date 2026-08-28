@@ -703,6 +703,10 @@ try:
     sys.getrefcount(1, 2)
 except TypeError as err:
     print("sys-getrefcount-arity", "2 given" in str(err))
+try:
+    sys.getrefcount(object=sys_ref_target)
+except TypeError as err:
+    print("sys-getrefcount-keyword", "takes no keyword arguments" in str(err))
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 stdio_method_names = ("read", "readline", "write", "flush", "close", "isatty", "readable", "writable", "seekable", "fileno")
 stdio_streams = (sys.stdin, sys.stdout, sys.stderr)

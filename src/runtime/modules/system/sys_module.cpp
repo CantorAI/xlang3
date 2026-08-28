@@ -1656,6 +1656,20 @@ bool sys_getrefcount(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+bool sys_getrefcount_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys.getrefcount() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 uint64_t live_block_count(const memory::X3MemoryCounter& counter) {
   return counter.alloc_count >= counter.free_count ? counter.alloc_count - counter.free_count : 0;
 }
@@ -3014,7 +3028,14 @@ void register_sys_module(Runtime& runtime) {
       sys,
       "getrefcount",
       sys_metadata_native_function(
-          runtime, "sys", "sys.getrefcount", "getrefcount", sys_getrefcount, nullptr, "Return the reference count of object."),
+          runtime,
+          "sys",
+          "sys.getrefcount",
+          "getrefcount",
+          sys_getrefcount,
+          nullptr,
+          "Return the reference count of object.",
+          sys_getrefcount_kw),
       error);
   module_set_attr(
       sys,
