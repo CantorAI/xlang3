@@ -1656,6 +1656,8 @@ for time_asctime_bad_name, time_asctime_bad_call, time_asctime_bad_parts in [
     except TypeError as err:
         time_asctime_bad_message = str(err)
         print("time-asctime-diagnostic", time_asctime_bad_name, all(part in time_asctime_bad_message for part in time_asctime_bad_parts))
+asctime_default = time.asctime()
+print("time-asctime-default", isinstance(asctime_default, str), len(asctime_default) == 24, asctime_default[3] == " ", asctime_default[7] == " ", asctime_default[13] == ":", asctime_default[16] == ":", asctime_default[19] == " ")
 bool_time_tuple = (2026, True, True, False, True, False, 2, True, -1)
 print(time.asctime(bool_time_tuple), time.strftime("%Y %m %d %H %M %S %j", bool_time_tuple), time.mktime((1970, True, True, False, False, False, 3, True, -1)) == time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1)))
 strftime_locale_tuple = (2026, 8, 6, 9, 2, 3, 3, 218, -1)

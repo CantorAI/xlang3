@@ -1930,7 +1930,9 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   std::tm tm{};
-  if (argc == 1) {
+  if (argc == 0) {
+    tm = tm_from_time_t(std::time(nullptr), false);
+  } else {
     if (!tm_from_sequence_like(args[0], tm, error)) {
       if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
         error = "Tuple or struct_time argument required";
@@ -1940,9 +1942,6 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-  } else {
-    const auto timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    tm = tm_from_time_t(timestamp, false);
   }
   out = Value::string(format_asctime_tm(tm));
   return true;
