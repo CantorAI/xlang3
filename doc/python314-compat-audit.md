@@ -950,7 +950,7 @@ Native or runtime-backed foundation:
   out-of-range `IndexError`, CPython-style named-field `repr` with arity/type/keyword diagnostics,
   and type-level `__match_args__`,
   `implementation` metadata with CPython-style SimpleNamespace type metadata
-  and namespace-style repr, `builtin_module_names`,
+  including `__qualname__` and doc text plus namespace-style repr, `builtin_module_names`,
   CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` plus `_vpath`/`_home`
   metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
   `float_repr_style`, `getunicodeinternedsize` with CPython-style

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys startup hook baserepl text signature
+sys implementation SimpleNamespace type metadata
 ```
 
 Current next loop:
