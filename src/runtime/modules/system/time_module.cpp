@@ -21,9 +21,11 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <chrono>
+#include <cmath>
 #include <cctype>
 #include <ctime>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -1222,6 +1224,21 @@ bool optional_timestamp(Runtime& runtime, const Value* args, uint32_t argc, cons
     const auto now = std::chrono::system_clock::now().time_since_epoch();
     out = static_cast<std::time_t>(std::chrono::duration<double>(now).count());
     return true;
+  }
+  if (args[0].tag == ValueTag::Double) {
+    const double seconds = args[0].as.f64;
+    if (std::isnan(seconds)) {
+      error = "Invalid value NaN (not a number)";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (!std::isfinite(seconds) ||
+        seconds < static_cast<double>(std::numeric_limits<std::time_t>::min()) ||
+        seconds > static_cast<double>(std::numeric_limits<std::time_t>::max())) {
+      error = "timestamp out of range for platform time_t";
+      runtime.raise_class_error("OverflowError", error);
+      return false;
+    }
   }
   if (!numeric_time_arg(args[0], out, error)) {
     error = "'" + time_type_name(args[0]) + "' object cannot be interpreted as an integer";

@@ -435,6 +435,9 @@ time-timestamp-diagnostic gmt-extra True
 time-timestamp-diagnostic gmt-type True
 time-timestamp-diagnostic ctime-extra True
 time-timestamp-diagnostic ctime-type True
+time-timestamp-nonfinite local-nan True
+time-timestamp-nonfinite gmt-inf True
+time-timestamp-nonfinite ctime-neginf True
 time-mktime-diagnostic missing True
 time-mktime-diagnostic extra True
 time-mktime-diagnostic type True

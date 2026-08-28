@@ -1635,6 +1635,16 @@ for time_timestamp_bad_name, time_timestamp_bad_call, time_timestamp_bad_parts i
     except TypeError as err:
         time_timestamp_bad_message = str(err)
         print("time-timestamp-diagnostic", time_timestamp_bad_name, all(part in time_timestamp_bad_message for part in time_timestamp_bad_parts))
+for time_nonfinite_name, time_nonfinite_call, time_nonfinite_error, time_nonfinite_parts in [
+    ("local-nan", lambda: time.localtime(float("nan")), ValueError, ("Invalid value NaN",)),
+    ("gmt-inf", lambda: time.gmtime(float("inf")), OverflowError, ("timestamp out of range", "time_t")),
+    ("ctime-neginf", lambda: time.ctime(float("-inf")), OverflowError, ("timestamp out of range", "time_t")),
+]:
+    try:
+        time_nonfinite_call()
+    except time_nonfinite_error as err:
+        time_nonfinite_message = str(err)
+        print("time-timestamp-nonfinite", time_nonfinite_name, all(part in time_nonfinite_message for part in time_nonfinite_parts))
 for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
     ("missing", lambda: time.mktime(), ("takes exactly one argument", "0 given")),
     ("extra", lambda: time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1), 1), ("takes exactly one argument", "2 given")),
