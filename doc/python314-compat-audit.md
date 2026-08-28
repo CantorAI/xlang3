@@ -169,6 +169,10 @@ Recent completed batches:
   reports CPython-style arity/type `TypeError` messages and low-limit
   `ValueError` wording while preserving bool-as-int depth checks and state
   restoration.
+- Tightened native coroutine-origin tracking configuration:
+  `sys.set_coroutine_origin_tracking_depth` now accepts bool-as-int depths and
+  reports CPython-style arity/type `TypeError` plus negative-depth `ValueError`
+  diagnostics while preserving runtime state updates.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -903,7 +907,9 @@ Native or runtime-backed foundation:
   `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
   wrong-arity `TypeError` diagnostics,
   live-thread-id-keyed `_current_frames` snapshots,
-  live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
+  live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable
+  coroutine-origin tracking helpers including bool-as-int setter handling and
+  CPython-style arity/type/negative-depth diagnostics,
   async-generator hook configuration with structseq-like `asyncgen_hooks` including CPython-style
   `builtins` type-module metadata,
   catchable CPython-style `TypeError` arity failures for no-argument

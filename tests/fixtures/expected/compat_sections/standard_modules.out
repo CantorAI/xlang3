@@ -351,7 +351,12 @@ sys-clear-type-descriptors-type True
 sys-clear-type-descriptors-immutable True
 2
 0
+True 1
+True 0
 coroutine-origin-depth True
+coroutine-origin-diagnostic missing True
+coroutine-origin-diagnostic extra True
+coroutine-origin-diagnostic type True
 asyncgen_hooks 2 True True
 builtins ('firstiter', 'finalizer')
 True 2 0

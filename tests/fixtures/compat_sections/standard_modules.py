@@ -1356,10 +1356,22 @@ sys.set_coroutine_origin_tracking_depth(2)
 print(sys.get_coroutine_origin_tracking_depth())
 sys.set_coroutine_origin_tracking_depth(0)
 print(sys.get_coroutine_origin_tracking_depth())
+print(sys.set_coroutine_origin_tracking_depth(True) is None, sys.get_coroutine_origin_tracking_depth())
+print(sys.set_coroutine_origin_tracking_depth(False) is None, sys.get_coroutine_origin_tracking_depth())
 try:
     sys.set_coroutine_origin_tracking_depth(-1)
 except ValueError as err:
-    print("coroutine-origin-depth", "non-negative" in str(err))
+    print("coroutine-origin-depth", ">= 0" in str(err))
+for sys_coroutine_origin_bad_name, sys_coroutine_origin_bad_call, sys_coroutine_origin_bad_parts in [
+    ("missing", lambda: sys.set_coroutine_origin_tracking_depth(), ("missing required argument", "depth")),
+    ("extra", lambda: sys.set_coroutine_origin_tracking_depth(1, 2), ("takes at most 1 argument", "2 given")),
+    ("type", lambda: sys.set_coroutine_origin_tracking_depth("x"), ("str", "cannot be interpreted as an integer")),
+]:
+    try:
+        sys_coroutine_origin_bad_call()
+    except TypeError as err:
+        sys_coroutine_origin_bad_message = str(err)
+        print("coroutine-origin-diagnostic", sys_coroutine_origin_bad_name, all(part in sys_coroutine_origin_bad_message for part in sys_coroutine_origin_bad_parts))
 asyncgen_hooks = sys.get_asyncgen_hooks()
 print(type(asyncgen_hooks).__name__, len(asyncgen_hooks), asyncgen_hooks.firstiter is None, asyncgen_hooks.finalizer is None)
 print(type(asyncgen_hooks).__module__, type(asyncgen_hooks).__match_args__)

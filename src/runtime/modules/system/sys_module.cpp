@@ -1128,17 +1128,28 @@ bool sys_clear_type_descriptors(Runtime& runtime, const Value* args, uint32_t ar
 }
 
 bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
-    error = "sys.set_coroutine_origin_tracking_depth expected integer depth";
+  int64_t depth = 0;
+  if (argc < 1) {
+    error = "set_coroutine_origin_tracking_depth() missing required argument 'depth' (pos 1)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (args[0].as.i64 < 0) {
-    error = "depth must be non-negative";
+  if (argc > 1) {
+    error = "set_coroutine_origin_tracking_depth() takes at most 1 argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sys_bool_or_int_arg(args[0], depth)) {
+    error = "'" + sys_type_name(runtime, args[0]) + "' object cannot be interpreted as an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (depth < 0) {
+    error = "depth must be >= 0";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  g_coroutine_origin_tracking_depth = args[0].as.i64;
+  g_coroutine_origin_tracking_depth = depth;
   value_set_none(out);
   return true;
 }
