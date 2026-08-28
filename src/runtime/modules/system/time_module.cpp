@@ -1714,13 +1714,18 @@ bool time_thread_time_ns(Runtime& runtime, const Value* args, uint32_t argc, Val
 
 bool time_get_clock_info(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "time.get_clock_info() expected clock name";
+    error = "get_clock_info() takes exactly 1 argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string name;
-  if (!get_string_arg(args[0], "time.get_clock_info name", name, error)) {
+  auto* name_string = value_as_string(args[0]);
+  if (name_string == nullptr) {
+    error = "get_clock_info() argument 1 must be str, not " + time_type_name(args[0]);
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
+  name = string_object_to_string(*name_string);
   if (name == "time") {
     out = make_clock_info(runtime, true, false, 1e-9, "std::chrono::system_clock");
     return true;

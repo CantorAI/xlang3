@@ -1562,6 +1562,17 @@ print(
 )
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
+for clock_info_bad_name, clock_info_bad_call, clock_info_bad_error, clock_info_bad_parts in [
+    ("missing", lambda: time.get_clock_info(), TypeError, ("takes exactly 1 argument", "0 given")),
+    ("extra", lambda: time.get_clock_info("time", "x"), TypeError, ("takes exactly 1 argument", "2 given")),
+    ("type", lambda: time.get_clock_info(1), TypeError, ("argument 1 must be str", "int")),
+    ("unknown", lambda: time.get_clock_info("missing"), ValueError, ("unknown clock",)),
+]:
+    try:
+        clock_info_bad_call()
+    except clock_info_bad_error as err:
+        clock_info_bad_message = str(err)
+        print("time-clock-info-diagnostic", clock_info_bad_name, all(part in clock_info_bad_message for part in clock_info_bad_parts))
 print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() >= 0, time.thread_time_ns() >= 0)
 for time_noarg_clock in [
     time.time,

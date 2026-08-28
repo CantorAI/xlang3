@@ -401,6 +401,10 @@ sys-hook-type unraisablehook True
 sys-hook-type __unraisablehook__ True
 True True True True True
 True False True True
+time-clock-info-diagnostic missing True
+time-clock-info-diagnostic extra True
+time-clock-info-diagnostic type True
+time-clock-info-diagnostic unknown True
 True True True True
 time-clock-arity time.time True True True
 time-clock-arity time.time_ns True True True
