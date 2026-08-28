@@ -228,6 +228,7 @@ True True True True
 0 1 2 5 0 32 16 262144
 SimpleNamespace types True True True
 True True True
+monitoring-text-signatures True
 True True fixture-monitor
 0 True 48
 True True fixture-monitor-bool

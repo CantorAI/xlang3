@@ -900,6 +900,20 @@ print(
     all(getattr(sys.monitoring, name).__module__ == "sys.monitoring" for name in monitoring_function_names),
     all(getattr(sys.monitoring, name).__doc__ is None for name in monitoring_function_names),
 )
+monitoring_text_signatures = {
+    "use_tool_id": "($module, tool_id, name, /)",
+    "free_tool_id": "($module, tool_id, /)",
+    "clear_tool_id": "($module, tool_id, /)",
+    "get_tool": "($module, tool_id, /)",
+    "set_events": "($module, tool_id, event_set, /)",
+    "get_events": "($module, tool_id, /)",
+    "set_local_events": "($module, tool_id, code, event_set, /)",
+    "get_local_events": "($module, tool_id, code, /)",
+    "register_callback": "($module, tool_id, event, func, /)",
+    "restart_events": "($module, /)",
+    "_all_events": "($module, /)",
+}
+print("monitoring-text-signatures", all(getattr(sys.monitoring, name).__text_signature__ == signature for name, signature in monitoring_text_signatures.items()))
 print(sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor") is None, sys.monitoring.get_tool(monitoring_tool_id))
 print(sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL) is None, sys.monitoring.get_events(monitoring_tool_id))
 print(sys.monitoring.get_tool(True) is None, sys.monitoring.use_tool_id(True, "fixture-monitor-bool") is None, sys.monitoring.get_tool(1))

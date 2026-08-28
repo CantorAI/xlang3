@@ -224,14 +224,19 @@ Value sys_metadata_native_function_no_doc(
     const std::string& function_name,
     NativeFunctionCallback callback,
     void* user_data = nullptr,
-    NativeKeywordFunctionCallback keyword_callback = nullptr) {
+    NativeKeywordFunctionCallback keyword_callback = nullptr,
+    const char* text_signature = nullptr) {
   Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
-    native->attrs_dict = new Value(Value::dict({
+    std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
         {Value::string("__name__"), Value::string(function_name)},
         {Value::string("__qualname__"), Value::string(function_name)},
-    }));
+    };
+    if (text_signature != nullptr) {
+      attrs.push_back({Value::string("__text_signature__"), Value::string(text_signature)});
+    }
+    native->attrs_dict = new Value(Value::dict(std::move(attrs)));
   }
   return function;
 }
@@ -3823,37 +3828,37 @@ void register_sys_module(Runtime& runtime) {
       .value("events", make_monitoring_events())
       .value("use_tool_id",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.use_tool_id", "use_tool_id", sys_monitoring_use_tool_id, const_cast<char*>("sys.monitoring.use_tool_id"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.use_tool_id", "use_tool_id", sys_monitoring_use_tool_id, const_cast<char*>("sys.monitoring.use_tool_id"), sys_no_keyword_args, "($module, tool_id, name, /)"))
       .value("free_tool_id",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.free_tool_id", "free_tool_id", sys_monitoring_free_tool_id, const_cast<char*>("sys.monitoring.free_tool_id"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.free_tool_id", "free_tool_id", sys_monitoring_free_tool_id, const_cast<char*>("sys.monitoring.free_tool_id"), sys_no_keyword_args, "($module, tool_id, /)"))
       .value("clear_tool_id",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.clear_tool_id", "clear_tool_id", sys_monitoring_clear_tool_id, const_cast<char*>("sys.monitoring.clear_tool_id"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.clear_tool_id", "clear_tool_id", sys_monitoring_clear_tool_id, const_cast<char*>("sys.monitoring.clear_tool_id"), sys_no_keyword_args, "($module, tool_id, /)"))
       .value("get_tool",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.get_tool", "get_tool", sys_monitoring_get_tool, const_cast<char*>("sys.monitoring.get_tool"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.get_tool", "get_tool", sys_monitoring_get_tool, const_cast<char*>("sys.monitoring.get_tool"), sys_no_keyword_args, "($module, tool_id, /)"))
       .value("set_events",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.set_events", "set_events", sys_monitoring_set_events, const_cast<char*>("sys.monitoring.set_events"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.set_events", "set_events", sys_monitoring_set_events, const_cast<char*>("sys.monitoring.set_events"), sys_no_keyword_args, "($module, tool_id, event_set, /)"))
       .value("get_events",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.get_events", "get_events", sys_monitoring_get_events, const_cast<char*>("sys.monitoring.get_events"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.get_events", "get_events", sys_monitoring_get_events, const_cast<char*>("sys.monitoring.get_events"), sys_no_keyword_args, "($module, tool_id, /)"))
       .value("set_local_events",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.set_local_events", "set_local_events", sys_monitoring_set_local_events, const_cast<char*>("sys.monitoring.set_local_events"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.set_local_events", "set_local_events", sys_monitoring_set_local_events, const_cast<char*>("sys.monitoring.set_local_events"), sys_no_keyword_args, "($module, tool_id, code, event_set, /)"))
       .value("get_local_events",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.get_local_events", "get_local_events", sys_monitoring_get_local_events, const_cast<char*>("sys.monitoring.get_local_events"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.get_local_events", "get_local_events", sys_monitoring_get_local_events, const_cast<char*>("sys.monitoring.get_local_events"), sys_no_keyword_args, "($module, tool_id, code, /)"))
       .value("register_callback",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.register_callback", "register_callback", sys_monitoring_register_callback, const_cast<char*>("sys.monitoring.register_callback"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.register_callback", "register_callback", sys_monitoring_register_callback, const_cast<char*>("sys.monitoring.register_callback"), sys_no_keyword_args, "($module, tool_id, event, func, /)"))
       .value("restart_events",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring.restart_events", "restart_events", sys_monitoring_restart_events, const_cast<char*>("sys.monitoring.restart_events"), sys_no_keyword_args))
+                 runtime, "sys.monitoring", "sys.monitoring.restart_events", "restart_events", sys_monitoring_restart_events, const_cast<char*>("sys.monitoring.restart_events"), sys_no_keyword_args, "($module, /)"))
       .value("_all_events",
              sys_metadata_native_function_no_doc(
-                 runtime, "sys.monitoring", "sys.monitoring._all_events", "_all_events", sys_monitoring_all_events, const_cast<char*>("sys.monitoring._all_events"), sys_no_keyword_args));
+                 runtime, "sys.monitoring", "sys.monitoring._all_events", "_all_events", sys_monitoring_all_events, const_cast<char*>("sys.monitoring._all_events"), sys_no_keyword_args, "($module, /)"));
   Value monitoring_module = monitoring_builder.finish();
   module_set_attr(sys, "monitoring", monitoring_module, error);
   runtime.register_module("sys.monitoring", monitoring_module);
