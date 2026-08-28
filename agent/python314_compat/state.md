@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys monitoring module package/loader/spec metadata
+sys jit helper text signatures
 ```
 
 Current next loop:

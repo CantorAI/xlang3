@@ -199,15 +199,20 @@ Value sys_metadata_native_function(
     NativeFunctionCallback callback,
     void* user_data,
     const std::string& doc,
-    NativeKeywordFunctionCallback keyword_callback = nullptr) {
+    NativeKeywordFunctionCallback keyword_callback = nullptr,
+    const char* text_signature = nullptr) {
   Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
-    native->attrs_dict = new Value(Value::dict({
+    std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
         {Value::string("__name__"), Value::string(function_name)},
         {Value::string("__qualname__"), Value::string(function_name)},
         {Value::string("__doc__"), Value::string(doc)},
-    }));
+    };
+    if (text_signature != nullptr) {
+      attrs.push_back({Value::string("__text_signature__"), Value::string(text_signature)});
+    }
+    native->attrs_dict = new Value(Value::dict(std::move(attrs)));
   }
   return function;
 }
@@ -3777,7 +3782,8 @@ void register_sys_module(Runtime& runtime) {
                  sys_jit_is_available,
                  const_cast<char*>("sys._jit.is_available"),
                  "Return True if the current Python executable supports JIT compilation, and False otherwise.",
-                 sys_no_keyword_args))
+                 sys_no_keyword_args,
+                 "($module, /)"))
       .value("is_enabled",
              sys_metadata_native_function(
                  runtime,
@@ -3787,7 +3793,8 @@ void register_sys_module(Runtime& runtime) {
                  sys_jit_is_enabled,
                  const_cast<char*>("sys._jit.is_enabled"),
                  "Return True if JIT compilation is enabled for the current Python process (implies sys._jit.is_available()), and False otherwise.",
-                 sys_no_keyword_args))
+                 sys_no_keyword_args,
+                 "($module, /)"))
       .value("is_active",
              sys_metadata_native_function(
                  runtime,
@@ -3797,7 +3804,8 @@ void register_sys_module(Runtime& runtime) {
                  sys_jit_is_active,
                  const_cast<char*>("sys._jit.is_active"),
                  "Return True if the topmost Python frame is currently executing JIT code (implies sys._jit.is_enabled()), and False otherwise.",
-                 sys_no_keyword_args));
+                 sys_no_keyword_args,
+                 "($module, /)"));
   Value jit_module = jit_builder.finish();
   module_set_attr(sys, "_jit", jit_module, error);
   runtime.register_module("sys._jit", jit_module);

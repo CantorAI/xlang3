@@ -1008,8 +1008,8 @@ Native or runtime-backed foundation:
   docs, no-argument keyword diagnostics,
   and activation arity/type/keyword `TypeError` diagnostics,
   `sys._jit` module/function metadata including CPython-style module
-  package/loader/spec metadata and state probes with CPython-style keyword
-  diagnostics,
+  package/loader/spec metadata, no-argument helper text signatures, and state
+  probes with CPython-style keyword diagnostics,
   `sys.monitoring` import/configuration surface with CPython 3.14 module
   package/loader/spec metadata, helper function metadata, tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
