@@ -1212,9 +1212,10 @@ bool numeric_time_arg(const Value& value, std::time_t& out, std::string& error) 
   return false;
 }
 
-bool optional_timestamp(const Value* args, uint32_t argc, const char* name, std::time_t& out, std::string& error) {
+bool optional_timestamp(Runtime& runtime, const Value* args, uint32_t argc, const char* name, std::time_t& out, std::string& error) {
   if (argc > 1) {
-    error = std::string(name) + "() expected at most one argument";
+    error = std::string(name) + "() takes at most 1 argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (argc == 0 || args[0].tag == ValueTag::None) {
@@ -1222,7 +1223,12 @@ bool optional_timestamp(const Value* args, uint32_t argc, const char* name, std:
     out = static_cast<std::time_t>(std::chrono::duration<double>(now).count());
     return true;
   }
-  return numeric_time_arg(args[0], out, error);
+  if (!numeric_time_arg(args[0], out, error)) {
+    error = "'" + time_type_name(args[0]) + "' object cannot be interpreted as an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool int_from_value(const Value& value, const char* name, int& out, std::string& error) {
@@ -1743,9 +1749,9 @@ bool time_get_clock_info(Runtime& runtime, const Value* args, uint32_t argc, Val
   return false;
 }
 
-bool time_localtime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool time_localtime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   std::time_t timestamp = 0;
-  if (!optional_timestamp(args, argc, "time.localtime", timestamp, error)) {
+  if (!optional_timestamp(runtime, args, argc, "localtime", timestamp, error)) {
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
@@ -1753,9 +1759,9 @@ bool time_localtime(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
-bool time_gmtime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool time_gmtime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   std::time_t timestamp = 0;
-  if (!optional_timestamp(args, argc, "time.gmtime", timestamp, error)) {
+  if (!optional_timestamp(runtime, args, argc, "gmtime", timestamp, error)) {
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
@@ -1763,13 +1769,18 @@ bool time_gmtime(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool time_mktime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "time.mktime() expected one time tuple";
+    error = "time.mktime() takes exactly one argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::tm tm{};
   if (!tm_from_sequence_like(args[0], tm, error)) {
+    if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
+      error = "Tuple or struct_time argument required";
+    }
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const std::time_t timestamp = std::mktime(&tm);
@@ -1893,9 +1904,9 @@ bool time_asctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
-bool time_ctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_ctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   std::time_t timestamp = 0;
-  if (!optional_timestamp(args, argc, "time.ctime", timestamp, error)) {
+  if (!optional_timestamp(runtime, args, argc, "ctime", timestamp, error)) {
     return false;
   }
   const std::tm tm = tm_from_time_t(timestamp, false);

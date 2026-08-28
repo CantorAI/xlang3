@@ -1607,6 +1607,29 @@ epoch_utc = time.gmtime(0)
 print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_mon, epoch_utc.tm_mday, time.strftime("%Y", epoch_utc))
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))
 print(time.gmtime(True).tm_sec, time.gmtime(False).tm_sec, time.localtime(True).tm_sec, time.localtime(False).tm_sec, isinstance(time.ctime(True), str), isinstance(time.ctime(False), str))
+for time_timestamp_bad_name, time_timestamp_bad_call, time_timestamp_bad_parts in [
+    ("local-extra", lambda: time.localtime(0, 1), ("takes at most 1 argument", "2 given")),
+    ("local-type", lambda: time.localtime("x"), ("str", "cannot be interpreted as an integer")),
+    ("gmt-extra", lambda: time.gmtime(0, 1), ("takes at most 1 argument", "2 given")),
+    ("gmt-type", lambda: time.gmtime("x"), ("str", "cannot be interpreted as an integer")),
+    ("ctime-extra", lambda: time.ctime(0, 1), ("takes at most 1 argument", "2 given")),
+    ("ctime-type", lambda: time.ctime("x"), ("str", "cannot be interpreted as an integer")),
+]:
+    try:
+        time_timestamp_bad_call()
+    except TypeError as err:
+        time_timestamp_bad_message = str(err)
+        print("time-timestamp-diagnostic", time_timestamp_bad_name, all(part in time_timestamp_bad_message for part in time_timestamp_bad_parts))
+for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
+    ("missing", lambda: time.mktime(), ("takes exactly one argument", "0 given")),
+    ("extra", lambda: time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1), 1), ("takes exactly one argument", "2 given")),
+    ("type", lambda: time.mktime("x"), ("Tuple or struct_time argument required",)),
+]:
+    try:
+        time_mktime_bad_call()
+    except TypeError as err:
+        time_mktime_bad_message = str(err)
+        print("time-mktime-diagnostic", time_mktime_bad_name, all(part in time_mktime_bad_message for part in time_mktime_bad_parts))
 print(time.asctime((2026, 8, 6, 1, 2, 3, 2, 218, -1)), time.asctime((2026, 8, 16, 1, 2, 3, 6, 228, -1)))
 bool_time_tuple = (2026, True, True, False, True, False, 2, True, -1)
 print(time.asctime(bool_time_tuple), time.strftime("%Y %m %d %H %M %S %j", bool_time_tuple), time.mktime((1970, True, True, False, False, False, 3, True, -1)) == time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1)))

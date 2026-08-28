@@ -190,6 +190,10 @@ Recent completed batches:
 - Tightened native `time.get_clock_info` diagnostics: arity, wrong-type clock
   names, and unknown-clock failures now raise catchable CPython-style
   `TypeError`/`ValueError` exceptions.
+- Tightened native `time` timestamp/time-tuple diagnostics: `localtime`,
+  `gmtime`, and `ctime` invalid timestamp calls plus `mktime` invalid
+  argument counts/types now raise catchable CPython-style `TypeError`
+  exceptions while preserving bool timestamp handling.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -957,8 +961,10 @@ Native or runtime-backed foundation:
   no-argument `TypeError` diagnostics naming each public API, `get_clock_info`
   with CPython-style arity/type/unknown-clock diagnostics,
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative
-  duration diagnostics, `localtime`,
-  `gmtime`, `mktime`, `strftime`, `strptime`, `asctime`/`ctime` CPython-style C-locale
+  duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
+  arguments plus CPython-style arity/type diagnostics, `mktime` bool fields in
+  time tuples plus CPython-style arity/type diagnostics, `strftime`, `strptime`,
+  `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`
   and trailing percent, constructible/indexable/iterable

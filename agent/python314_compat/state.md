@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time get_clock_info diagnostics parity
+time timestamp diagnostics parity
 ```
 
 Current next loop:
