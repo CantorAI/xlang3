@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-types runtime-backed cell alias
+types native callable aliases
 ```
 
 Current next loop:

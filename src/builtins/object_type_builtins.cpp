@@ -339,8 +339,9 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
     case ObjectKind::Module:
       return "module";
     case ObjectKind::Function:
-    case ObjectKind::NativeFunction:
       return "function";
+    case ObjectKind::NativeFunction:
+      return "builtin_function_or_method";
     case ObjectKind::Code:
       return "code";
     case ObjectKind::Frame:
@@ -849,6 +850,11 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
         }
       }
       const char* type_name = builtin_type_name_for_kind(value.as.obj->kind);
+      if (auto* bound = value_as_bound_method(value)) {
+        if (value_as_native_function(bound->function) != nullptr) {
+          type_name = "builtin_function_or_method";
+        }
+      }
       if (value.as.obj->kind == ObjectKind::Set) {
         if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
           type_name = "frozenset";
@@ -931,6 +937,7 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "generator", object_type);
   register_builtin_type(runtime, "module", object_type);
   register_builtin_type(runtime, "function", object_type);
+  register_builtin_type(runtime, "builtin_function_or_method", object_type);
   register_builtin_type(runtime, "method", object_type);
   register_builtin_type(runtime, "member_descriptor", object_type);
   register_builtin_type(runtime, "property", object_type);

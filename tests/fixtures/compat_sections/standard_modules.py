@@ -219,6 +219,10 @@ print(
     types.TracebackType is type(types_traceback_probe),
     types.GeneratorType is type(types_generator_probe),
     types.CellType is type(types_cell_probe),
+    types.BuiltinFunctionType is type(len),
+    types.BuiltinMethodType is type([].append),
+    type(len).__name__ == "builtin_function_or_method",
+    type([].append).__name__ == "builtin_function_or_method",
 )
 
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.

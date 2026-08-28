@@ -1279,8 +1279,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics, real singleton
   aliases for `NoneType`/`EllipsisType`/`NotImplementedType`, runtime-backed
   `FunctionType`/`LambdaType`/`CodeType`/`FrameType`/`TracebackType`/`GeneratorType`/
-  `CellType` aliases, and CPython `copy.py` singleton import/copy foundations; exact
-  builtin/native function split and broader exact CPython type objects pending
+  `CellType` aliases, CPython-shaped `BuiltinFunctionType`/`BuiltinMethodType`
+  aliases for native callables, and CPython `copy.py` singleton import/copy
+  foundations; broader exact CPython type objects pending
 - [~] `collections`: native `deque` with iteration/index/containment, `defaultdict`,
   `OrderedDict`, `namedtuple` with `_make`, dict-backed `Counter`, and `ChainMap` foundations;
   full CPython collection semantics pending
