@@ -266,6 +266,9 @@ Recent completed batches:
   CPython's module-documentation opening, and `sys.__interactivehook__` plus
   `sys._baserepl` expose CPython-style callable metadata while retaining their
   callable no-op behavior and catchable no-argument arity validation.
+- Aligned native `sys.is_remote_debug_enabled()` with CPython 3.14's enabled
+  capability result while preserving the existing catchable no-argument arity
+  diagnostics.
 - Expanded native `sys._jit` CPython 3.14 metadata: the runtime JIT probe
   module now exposes the CPython module docstring alongside the existing
   inactive/unavailable state probes, with Standard Modules fixture coverage.

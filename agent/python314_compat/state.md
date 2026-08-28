@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-CPython-style sys startup documentation and hook metadata
+sys.is_remote_debug_enabled CPython 3.14 enabled result
 ```
 
 Current next loop:

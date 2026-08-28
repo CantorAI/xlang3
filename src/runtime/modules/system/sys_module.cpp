@@ -1871,7 +1871,7 @@ bool sys_is_remote_debug_enabled(Runtime& runtime, const Value*, uint32_t argc, 
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.is_remote_debug_enabled", argc);
   }
-  out = Value::boolean(false);
+  out = Value::boolean(true);
   return true;
 }
 
