@@ -1943,9 +1943,11 @@ sys_runtime_text_signatures = {
     "_getframemodulename": "($module, /, depth=0)",
     "_current_frames": "($module, /)",
     "_current_exceptions": "($module, /)",
+    "_get_cpu_count_config": "($module, /)",
     "get_coroutine_origin_tracking_depth": "($module, /)",
     "set_coroutine_origin_tracking_depth": "($module, /, depth)",
     "get_asyncgen_hooks": "($module, /)",
+    "is_remote_debug_enabled": "($module, /)",
     "_is_gil_enabled": "($module, /)",
 }
 print("sys-runtime-text-signatures", all(getattr(sys, name).__text_signature__ == signature for name, signature in sys_runtime_text_signatures.items()))

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys getunicodeinternedsize only_immortal arity diagnostics
+sys runtime helper text signatures for CPU count and remote debug probes
 ```
 
 Current next loop:

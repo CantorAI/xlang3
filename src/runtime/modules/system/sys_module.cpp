@@ -3728,7 +3728,8 @@ void register_sys_module(Runtime& runtime) {
           sys_is_remote_debug_enabled,
           const_cast<char*>("sys.is_remote_debug_enabled"),
           "Return True if remote debugging is enabled, False otherwise.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -4007,7 +4008,8 @@ void register_sys_module(Runtime& runtime) {
           sys_get_cpu_count_config,
           const_cast<char*>("sys._get_cpu_count_config"),
           "Private function for getting PyConfig.cpu_count",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
