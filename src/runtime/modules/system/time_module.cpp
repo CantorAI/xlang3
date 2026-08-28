@@ -64,8 +64,9 @@ Value time_native_function(
     const std::string& function_name,
     NativeFunctionCallback callback,
     const std::string& doc,
-    void* user_data = nullptr) {
-  Value function = runtime.make_native_function(qualified_name, callback, user_data);
+    void* user_data = nullptr,
+    NativeKeywordFunctionCallback keyword_callback = nullptr) {
+  Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__module__"), Value::string("time")},
@@ -1969,6 +1970,25 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool time_strptime_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc > 0) {
+    error = "strptime() takes no keyword arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  error = "_strptime_time() missing 1 required positional argument: 'data_string'";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
     error = "asctime expected at most 1 argument, got " + std::to_string(argc);
@@ -2187,7 +2207,7 @@ void register_time_module(Runtime& runtime) {
                              "Format a time tuple according to a format specification."))
       .value("strptime", time_native_function(
                              runtime, "time.strptime", "strptime", time_strptime,
-                             "Parse a string to a time tuple according to a format specification.", state))
+                             "Parse a string to a time tuple according to a format specification.", state, time_strptime_kw))
       .value("asctime", time_native_function(
                             runtime, "time.asctime", "asctime", time_asctime,
                             "Convert a time tuple to a string."))

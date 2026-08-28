@@ -1860,6 +1860,7 @@ constructed_string_field_time = time.struct_time((2026, 8, 26, 1, 2, 3, "weekday
 for time_strptime_bad_name, time_strptime_bad_call, time_strptime_bad_parts in [
     ("missing", lambda: time.strptime(), ("missing 1 required positional argument", "data_string")),
     ("extra", lambda: time.strptime("2026", "%Y", "x"), ("takes from 1 to 2 positional arguments", "3 were given")),
+    ("keyword", lambda: time.strptime(string="2026", format="%Y"), ("takes no keyword arguments",)),
     ("text-type", lambda: time.strptime(1, "%Y"), ("argument 0 must be str", "int")),
     ("format-type", lambda: time.strptime("2026", 1), ("argument 1 must be str", "int")),
 ]:

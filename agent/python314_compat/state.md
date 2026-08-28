@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys audit keyword call binding
+time.strptime keyword diagnostics
 ```
 
 Current next loop:

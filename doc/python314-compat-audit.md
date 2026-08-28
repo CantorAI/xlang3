@@ -528,6 +528,7 @@ Recent completed batches:
   `__qualname__`, and absent `__module__`/`__doc__` attributes.
 - Added CPython-style `sys.addaudithook(hook=...)` keyword registration and
   catchable keyword-argument diagnostics for `sys.audit`.
+- Added catchable CPython-style keyword-argument rejection for `time.strptime`.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -1054,7 +1055,7 @@ Native or runtime-backed foundation:
   arguments plus CPython-style arity/type/non-finite diagnostics, `mktime` bool fields in
   time tuples plus CPython-style arity/type/field-type diagnostics, `strftime` with
   CPython-style arity/type/time-tuple/field-type diagnostics, `strptime` with
-  CPython-style entry-point arity/type diagnostics,
+  CPython-style entry-point arity/type/keyword diagnostics,
   `asctime` CPython-style default current-local-time behavior and
   arity/type/time-tuple/field-type diagnostics,
   `asctime`/`ctime` CPython-style C-locale

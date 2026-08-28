@@ -493,6 +493,7 @@ strftime-invalid True
 member_descriptor builtins True 2026 Z True True
 time-strptime-diagnostic missing True
 time-strptime-diagnostic extra True
+time-strptime-diagnostic keyword True
 time-strptime-diagnostic text-type True
 time-strptime-diagnostic format-type True
 2026 8 2026 8 26
