@@ -347,12 +347,12 @@ True
 5
 sys-exit-arity True True
 2 42 'hook\ntext' 2 True True True
-sys-hook-type True
-sys-hook-type True
-sys-hook-type True
-sys-hook-type True
-sys-hook-type True
-sys-hook-type True
+sys-hook-type displayhook True
+sys-hook-type __displayhook__ True
+sys-hook-type excepthook True
+sys-hook-type __excepthook__ True
+sys-hook-type unraisablehook True
+sys-hook-type __unraisablehook__ True
 True True True True True
 True False True True
 True True True True

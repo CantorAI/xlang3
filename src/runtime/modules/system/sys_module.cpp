@@ -1572,7 +1572,7 @@ std::string sys_displayhook_repr(const Value& value) {
 
 bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.displayhook expected one argument";
+    error = "sys.displayhook() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1589,7 +1589,7 @@ bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& 
 
 bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
-    error = "sys.excepthook expected type, value, traceback";
+    error = "excepthook expected 3 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1605,7 +1605,7 @@ bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& o
 
 bool sys_unraisablehook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.unraisablehook expected one argument";
+    error = "sys.unraisablehook() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

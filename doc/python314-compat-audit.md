@@ -150,6 +150,10 @@ Recent completed batches:
   event names, non-string event names, and add-audit-hook arity failures now
   raise CPython-style `TypeError` messages while preserving call-time failure
   for registered non-callable hooks.
+- Tightened native default hook diagnostics: `sys.displayhook`,
+  `sys.excepthook`, and `sys.unraisablehook` plus their default-hook aliases now
+  raise CPython-style arity `TypeError` messages while preserving stdio routing
+  and `builtins._` handling.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -838,7 +842,8 @@ Native or runtime-backed foundation:
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity `TypeError` diagnostics,
   `getallocatedblocks`, `exit` including CPython-style too-many-arguments
-  `TypeError` diagnostics, display/exception hooks with stdio routing,
+  `TypeError` diagnostics, display/exception hooks with stdio routing and
+  CPython-style default-hook arity `TypeError` diagnostics,
   `builtins._`, default hook aliases, CPython-style displayhook string repr,
   and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,

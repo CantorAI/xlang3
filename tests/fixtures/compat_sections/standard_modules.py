@@ -1425,18 +1425,19 @@ print(
     "RuntimeError: defaulted" in sys_hook_stderr.items[1],
     builtins._ is saved_builtin_underscore,
 )
-for sys_hook_bad_call in [
-    lambda: sys.displayhook(),
-    lambda: sys.__displayhook__(),
-    lambda: sys.excepthook(ValueError),
-    lambda: sys.__excepthook__(ValueError),
-    lambda: sys.unraisablehook(),
-    lambda: sys.__unraisablehook__(),
+for sys_hook_bad_name, sys_hook_bad_call, sys_hook_bad_parts in [
+    ("displayhook", lambda: sys.displayhook(), ("exactly one argument", "0 given")),
+    ("__displayhook__", lambda: sys.__displayhook__(), ("exactly one argument", "0 given")),
+    ("excepthook", lambda: sys.excepthook(ValueError), ("expected 3 arguments", "got 1")),
+    ("__excepthook__", lambda: sys.__excepthook__(ValueError), ("expected 3 arguments", "got 1")),
+    ("unraisablehook", lambda: sys.unraisablehook(), ("exactly one argument", "0 given")),
+    ("__unraisablehook__", lambda: sys.__unraisablehook__(), ("exactly one argument", "0 given")),
 ]:
     try:
         sys_hook_bad_call()
     except TypeError as err:
-        print("sys-hook-type", "expected" in str(err))
+        sys_hook_bad_message = str(err)
+        print("sys-hook-type", sys_hook_bad_name, all(part in sys_hook_bad_message for part in sys_hook_bad_parts))
 sys_debugmalloc_stderr = SysHookCapture()
 try:
     sys.stderr = sys_debugmalloc_stderr
