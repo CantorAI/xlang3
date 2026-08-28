@@ -881,7 +881,7 @@ print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xla
 print(type(sys.implementation).__name__, type(sys.implementation).__module__, repr(sys.implementation).startswith("namespace("))
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print((sys.platform == "win32" and not hasattr(sys.implementation, "_multiarch")) or (sys.platform != "win32" and hasattr(sys.implementation, "_multiarch")))
-print(sys._jit.__doc__ == "Utilities for observing just-in-time compilation.", sys._jit.__package__ is None)
+print(sys._jit.__doc__ == "Utilities for observing just-in-time compilation.", sys._jit.__package__ is None, sys._jit.__loader__ is None, sys._jit.__spec__ is None)
 print(
     sys._jit.is_available.__name__, sys._jit.is_available.__qualname__, sys._jit.is_available.__module__, sys._jit.is_available.__doc__ is not None,
     sys._jit.is_enabled.__name__, sys._jit.is_enabled.__qualname__, sys._jit.is_enabled.__module__, sys._jit.is_enabled.__doc__ is not None,

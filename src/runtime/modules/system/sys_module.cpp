@@ -3766,6 +3766,8 @@ void register_sys_module(Runtime& runtime) {
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
   jit_builder.value("__doc__", Value::string("Utilities for observing just-in-time compilation."))
       .value("__package__", Value::none())
+      .value("__loader__", Value::none())
+      .value("__spec__", Value::none())
       .value("is_available",
              sys_metadata_native_function(
                  runtime,

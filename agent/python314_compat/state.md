@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys jit module package metadata
+sys jit module package/loader/spec metadata
 ```
 
 Current next loop:

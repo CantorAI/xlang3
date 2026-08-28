@@ -221,7 +221,7 @@ True True True True
 SimpleNamespace types True
 False False False False False
 True
-True True
+True True True True
 is_available is_available sys._jit True is_enabled is_enabled sys._jit True is_active is_active sys._jit True
 0 1 2 5 0 32 16 262144
 SimpleNamespace types True True True
