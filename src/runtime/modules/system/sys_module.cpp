@@ -1632,8 +1632,13 @@ bool sys_breakpointhook_kw(
 }
 
 bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "sys.addaudithook expected 1 argument";
+  if (argc < 1) {
+    error = "addaudithook() missing required argument 'hook' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 1) {
+    error = "addaudithook() takes at most 1 argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1643,8 +1648,13 @@ bool sys_addaudithook(Runtime& runtime, const Value* args, uint32_t argc, Value&
 }
 
 bool sys_audit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || value_as_string(args[0]) == nullptr) {
-    error = "sys.audit expected event name string";
+  if (argc < 1) {
+    error = "audit expected at least 1 argument, got 0";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_string(args[0]) == nullptr) {
+    error = "audit() argument 1 must be str, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }

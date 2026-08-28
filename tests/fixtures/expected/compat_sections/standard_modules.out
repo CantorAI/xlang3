@@ -305,6 +305,10 @@ sys-getframe-bool-depth True
 sys-getframe-depth True
 sys-getframemodulename-type True
 sys-gil-args True
+sys-audit-arity True True
+sys-audit-event-type True True
+sys-addaudithook-arity True True
+sys-addaudithook-arity True True
 True xlang3.fixture (1, 'a')
 True
 sys-audit-bad-hook True

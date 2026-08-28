@@ -1203,6 +1203,22 @@ except TypeError as err:
 audit_events = []
 def sys_audit_probe(event, args):
     audit_events.append((event, args))
+try:
+    sys.audit()
+except TypeError as err:
+    print("sys-audit-arity", "at least 1 argument" in str(err), "got 0" in str(err))
+try:
+    sys.audit(1)
+except TypeError as err:
+    print("sys-audit-event-type", "argument 1 must be str" in str(err), "int" in str(err))
+try:
+    sys.addaudithook()
+except TypeError as err:
+    print("sys-addaudithook-arity", "missing required argument" in str(err), "hook" in str(err))
+try:
+    sys.addaudithook(sys_audit_probe, sys_audit_probe)
+except TypeError as err:
+    print("sys-addaudithook-arity", "at most 1 argument" in str(err), "2 given" in str(err))
 sys.addaudithook(sys_audit_probe)
 print(sys.audit("xlang3.fixture", 1, "a") is None, audit_events[0][0], audit_events[0][1])
 print(sys.addaudithook(42) is None)

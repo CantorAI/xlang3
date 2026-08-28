@@ -146,6 +146,10 @@ Recent completed batches:
 - Tightened native `sys.exit` diagnostics: too many positional arguments now
   raise CPython-style `TypeError` text while preserving `SystemExit.code`
   propagation for zero- and one-argument exits.
+- Tightened native `sys.audit` / `sys.addaudithook` diagnostics: missing audit
+  event names, non-string event names, and add-audit-hook arity failures now
+  raise CPython-style `TypeError` messages while preserving call-time failure
+  for registered non-callable hooks.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -838,7 +842,9 @@ Native or runtime-backed foundation:
   `builtins._`, default hook aliases, CPython-style displayhook string repr,
   and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
-  audit hook dispatch including CPython-style call-time failure for registered non-callable hooks,
+  audit hook dispatch including CPython-style call-time failure for registered
+  non-callable hooks and CPython-style `sys.audit`/`sys.addaudithook` arity/type
+  `TypeError` diagnostics,
   stdio capability probes, profile/switch-interval/int-string helpers with bool-as-int setters, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing`, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
