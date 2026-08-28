@@ -954,7 +954,7 @@ Native or runtime-backed foundation:
   CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` plus `_vpath`/`_home`
   metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
   `float_repr_style`, `getunicodeinternedsize` with CPython-style
-  keyword diagnostics,
+  positional and keyword diagnostics,
   `_get_cpu_count_config` and `is_remote_debug_enabled` with CPython-style
   keyword diagnostics,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
@@ -962,7 +962,7 @@ Native or runtime-backed foundation:
   offending-type diagnostics,
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
   diagnostics, default/filesystem encoding helpers with CPython-style keyword
-  diagnostics, `getunicodeinternedsize(_only_immortal=...)` binding and text signature, recursion-limit
+  diagnostics, `getunicodeinternedsize(_only_immortal=...)` binding, arity diagnostics, and text signature, recursion-limit
   helpers including bool-as-int bounds, CPython-style `getrecursionlimit`/`setrecursionlimit`
   docs, and CPython-style getter/setter keyword
   diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`

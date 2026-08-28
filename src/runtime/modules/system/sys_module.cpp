@@ -1668,7 +1668,11 @@ bool sys_is_interned_kw(
 
 bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "getunicodeinternedsize() takes no positional arguments";
+    if (argc > 1) {
+      error = "getunicodeinternedsize() takes at most 1 argument (" + std::to_string(argc) + " given)";
+    } else {
+      error = "getunicodeinternedsize() takes no positional arguments";
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1685,6 +1689,11 @@ bool sys_getunicodeinternedsize_kw(
     Value& out,
     std::string& error,
     void*) {
+  if (argc == 0 && kwargc > 1) {
+    error = "getunicodeinternedsize() takes at most 1 keyword argument (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (argc + kwargc > 1) {
     error = "getunicodeinternedsize() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
     runtime.raise_class_error("TypeError", error);

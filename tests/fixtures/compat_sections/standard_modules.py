@@ -801,6 +801,14 @@ try:
 except TypeError as err:
     print("sys-getunicodeinternedsize-keyword", "unexpected keyword argument" in str(err), "x" in str(err))
 try:
+    sys.getunicodeinternedsize(True, False)
+except TypeError as err:
+    print("sys-getunicodeinternedsize-diagnostic two-pos", "at most 1 argument" in str(err), "2 given" in str(err))
+try:
+    sys.getunicodeinternedsize(_only_immortal=False, x=1)
+except TypeError as err:
+    print("sys-getunicodeinternedsize-diagnostic two-keyword", "at most 1 keyword argument" in str(err), "2 given" in str(err))
+try:
     sys._is_interned(42)
 except TypeError as err:
     print("sys-is-interned-type", "argument must be str" in str(err), "int" in str(err))

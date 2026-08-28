@@ -192,6 +192,8 @@ True False False True
 True True True True True True True
 sys-getunicodeinternedsize-only-immortal True True True True True
 sys-getunicodeinternedsize-keyword True True
+sys-getunicodeinternedsize-diagnostic two-pos True True
+sys-getunicodeinternedsize-diagnostic two-keyword True True
 sys-is-interned-type True True
 sys-is-interned-arity True True
 sys-is-interned-keyword True
