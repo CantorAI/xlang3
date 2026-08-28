@@ -36,6 +36,7 @@ stacked
 ['enter', 'callback', 'exit']
 True True True True ellipsis builtins
 copy-singletons True True True
+types-runtime-aliases True True True True True True
 7 True bob
 True keep fast ['a', 'b'] 2 False C ['x', 'y'] 2.5
 slow ['--unknown', 'value'] True True

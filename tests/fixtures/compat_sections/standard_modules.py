@@ -191,9 +191,27 @@ print(events)
 # types/copy: singleton type aliases must point at real runtime singleton types.
 import types
 import copy
+import sys
 
 print(types.NoneType is type(None), types.NotImplementedType is type(NotImplemented), types.EllipsisType is type(...), ... is Ellipsis, type(...).__name__, type(...).__module__)
 print("copy-singletons", copy.copy(None) is None, copy.copy(...) is Ellipsis, copy.deepcopy(NotImplemented) is NotImplemented)
+def types_function_probe():
+    return None
+
+types_generator_probe = (value for value in [1])
+try:
+    raise RuntimeError("types-traceback")
+except RuntimeError as types_traceback_error:
+    types_traceback_probe = types_traceback_error.__traceback__
+print(
+    "types-runtime-aliases",
+    types.FunctionType is type(types_function_probe),
+    types.LambdaType is types.FunctionType,
+    types.CodeType is type(types_function_probe.__code__),
+    types.FrameType is type(sys._getframe()),
+    types.TracebackType is type(types_traceback_probe),
+    types.GeneratorType is type(types_generator_probe),
+)
 
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.
 import argparse

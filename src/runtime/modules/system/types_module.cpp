@@ -125,17 +125,17 @@ void register_types_module(Runtime& runtime) {
   builder.function("ModuleType", types_module_type)
       .function("MethodType", types_method_type)
       .function("MappingProxyType", types_mapping_proxy_type);
-  builder.value("FrameType", make_types_class("FrameType"))
-      .value("CodeType", make_types_class("CodeType"))
-      .value("FunctionType", make_types_class("FunctionType"))
-      .value("LambdaType", make_types_class("FunctionType"))
-      .value("BuiltinFunctionType", make_types_class("BuiltinFunctionType"))
+  builder.value("BuiltinFunctionType", make_types_class("BuiltinFunctionType"))
       .value("BuiltinMethodType", make_types_class("BuiltinFunctionType"))
       .value("MethodWrapperType", make_types_class("MethodWrapperType"))
-      .value("TracebackType", make_types_class("TracebackType"))
-      .value("GeneratorType", make_types_class("GeneratorType"))
       .value("CoroutineType", make_types_class("CoroutineType"))
       .value("DynamicClassAttribute", make_types_class("DynamicClassAttribute"));
+  copy_runtime_type(runtime, builder, "FrameType", "frame");
+  copy_runtime_type(runtime, builder, "CodeType", "code");
+  copy_runtime_type(runtime, builder, "FunctionType", "function");
+  copy_runtime_type(runtime, builder, "LambdaType", "function");
+  copy_runtime_type(runtime, builder, "TracebackType", "traceback");
+  copy_runtime_type(runtime, builder, "GeneratorType", "generator");
   copy_runtime_type(runtime, builder, "NoneType", "NoneType");
   copy_runtime_type(runtime, builder, "EllipsisType", "ellipsis");
   copy_runtime_type(runtime, builder, "NotImplementedType", "NotImplementedType");
