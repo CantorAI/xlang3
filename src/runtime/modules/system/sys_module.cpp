@@ -3431,7 +3431,8 @@ void register_sys_module(Runtime& runtime) {
           "The recursion limit is the maximum depth of the Python interpreter\n"
           "stack.  This limit prevents infinite recursion from causing an overflow\n"
           "of the C stack and crashing Python.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3447,7 +3448,8 @@ void register_sys_module(Runtime& runtime) {
           "This limit prevents infinite recursion from causing an overflow of the C\n"
           "stack and crashing Python.  The highest possible limit is platform-\n"
           "dependent.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, limit, /)"),
       error);
   module_set_attr(
       sys,

@@ -964,7 +964,7 @@ Native or runtime-backed foundation:
   diagnostics and text signature, default/filesystem encoding helpers with CPython-style keyword
   diagnostics and text signatures, `getunicodeinternedsize(_only_immortal=...)` binding, arity diagnostics, and text signature, recursion-limit
   helpers including bool-as-int bounds, CPython-style `getrecursionlimit`/`setrecursionlimit`
-  docs, and CPython-style getter/setter keyword
+  docs and text signatures, and CPython-style getter/setter keyword
   diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`
   diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword

@@ -1946,6 +1946,8 @@ sys_runtime_text_signatures = {
     "getdefaultencoding": "($module, /)",
     "getfilesystemencoding": "($module, /)",
     "getfilesystemencodeerrors": "($module, /)",
+    "getrecursionlimit": "($module, /)",
+    "setrecursionlimit": "($module, limit, /)",
     "_get_cpu_count_config": "($module, /)",
     "_dump_tracelets": "($module, /, outpath)",
     "get_coroutine_origin_tracking_depth": "($module, /)",
