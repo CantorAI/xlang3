@@ -38,6 +38,9 @@ limitations under the License.
   whole VM as a shortcut unless the design explicitly calls for it.
 - Do not change fixtures blindly. For each output mismatch, confirm whether the
   runtime behavior is Python-compatible or the runtime needs fixing.
+- If a loop validation step fails, repair the current failed batch before
+  advancing audit rows. Use the captured failure log as the primary input and
+  keep the fix scoped to the regression.
 - Use `agent/scripts/build_release.py` and `agent/scripts/run_fixtures.py` for
   repeatable local validation instead of constructing ad hoc commands.
 - Use `agent/scripts/run_section_fixture.py` for section fixture checks.

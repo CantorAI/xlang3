@@ -210,6 +210,10 @@ def default_no_progress_retry_limit(config: dict, goal: str) -> int:
     return int(goal_config(config, goal).get("no_progress_retry_limit", 3))
 
 
+def default_validation_repair_limit(config: dict, goal: str) -> int:
+    return int(goal_config(config, goal).get("validation_repair_limit", 2))
+
+
 def default_commit_message(config: dict, goal: str) -> str:
     return goal_config(config, goal).get(
         "default_commit_message",
@@ -271,6 +275,48 @@ def run(command: list[str] | str, *, shell: bool = False) -> None:
     result = subprocess.run(command, cwd=ROOT, shell=shell)
     if result.returncode != 0:
         raise SystemExit(result.returncode)
+
+
+class CommandFailure(Exception):
+    def __init__(self, command_text: str, returncode: int, output: str) -> None:
+        super().__init__(f"command failed with exit code {returncode}: {command_text}")
+        self.command_text = command_text
+        self.returncode = returncode
+        self.output = output
+
+
+def command_display(command: list[str] | str) -> str:
+    return command if isinstance(command, str) else " ".join(command)
+
+
+def run_capture_tee(command: list[str] | str, *, shell: bool = False) -> str:
+    print()
+    print("==", command_display(command))
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=ROOT,
+            shell=shell,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1,
+        )
+    except OSError as exc:
+        raise CommandFailure(command_display(command), 1, str(exc)) from exc
+
+    assert process.stdout is not None
+    captured: list[str] = []
+    for line in process.stdout:
+        print(line, end="")
+        captured.append(line)
+    return_code = process.wait()
+    output = "".join(captured)
+    if return_code != 0:
+        raise CommandFailure(command_display(command), return_code, output)
+    return output
 
 
 class LoopLock:
@@ -519,6 +565,9 @@ Runtime doctrine:
 - Any crash, hang, Windows popup, access violation, or negative exit code is a
   runtime regression. Stop feature work, isolate the smallest fixture repro,
   fix the runtime cause, and update lessons before continuing.
+- If build or fixtures fail after your batch, the outer loop will feed the
+  failure log back to you as a repair prompt in the same Codex session. Repair
+  the failed batch before advancing to new audit rows.
 - Do not hide regressions with broad locks, sleeps, retries, fake return values,
   or expected-output edits.
 - Threading/runtime changes must state and preserve ownership and lock
@@ -573,12 +622,99 @@ sections; update only the checked/partial rows affected by this batch.
 """
 
 
-def write_prompt(config: dict, goal: str, prompt: str, iteration: int) -> Path:
+def tail_text(text: str, max_chars: int = 16000) -> str:
+    if len(text) <= max_chars:
+        return text
+    return "... output truncated to the final validation context ...\n" + text[-max_chars:]
+
+
+def compose_repair_prompt(
+    config: dict,
+    goal: str,
+    section: str,
+    previous_prompt_path: str,
+    failure_log_path: Path,
+    failure_output: str,
+    repair_attempt: int,
+    repair_limit: int,
+) -> str:
+    build_command = build_command_text(config)
+    fixture_command = fixture_command_text(config)
+    section_fixture_command = section_fixture_command_text(config, section) if section else ""
+    lessons = read_compact_lessons(config, goal)
+    paths = changed_paths()
+    changed = "\n".join(f"- {path}" for path in paths) or "- No stageable files detected."
+
+    return f"""# XLang3 Python 3.14 Compatibility Repair Batch
+
+The previous compatibility iteration changed code, but validation failed. Do
+not advance to new audit items yet. Repair this batch first, then run the fixed
+local validation scripts.
+
+Repair attempt:
+{repair_attempt}/{repair_limit}
+
+Goal:
+Make the current in-progress batch build and pass fixtures without hiding or
+weakening the compatibility checks.
+
+Rules:
+- Treat the validation failure as the primary input.
+- Fix the runtime/test cause, not the symptom.
+- Do not fake return values, add benchmark-specific paths, silence crashes, or
+  edit expected output unless Python 3.14 proves the expected output is wrong.
+- Add or adjust fixture coverage only when it proves the repaired behavior.
+- Keep work scoped to the current failed batch and its direct regression.
+- Use deterministic scripts; do not rediscover local tool paths.
+- Update lessons if this failure reveals a reusable loop/runtime mistake.
+- Commit is handled by the outer loop only after validation passes.
+
+Fixed local scripts:
+- Build: {build_command}
+- Full fixture validation: {fixture_command}
+- Selected section quick run: {section_fixture_command or "not available for whole-audit mode"}
+
+Selected audit section:
+{section or "whole audit"}
+
+Previous prompt:
+{previous_prompt_path or "not recorded"}
+
+Failure log:
+{failure_log_path}
+
+Stageable files currently in the failed batch:
+{changed}
+
+Lessons from previous iterations:
+{lessons}
+
+Validation failure output:
+```text
+{tail_text(failure_output)}
+```
+
+Repair the failing batch now. After your changes, run the most focused fixture
+that reproduces the failure, then the fixed full validation command if feasible.
+"""
+
+
+def write_prompt(config: dict, goal: str, prompt: str, iteration: int, label: str = "iteration") -> Path:
     output_dir = runs_dir(config, goal)
     output_dir.mkdir(parents=True, exist_ok=True)
     stamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    path = output_dir / f"{stamp}-iteration-{iteration:02d}.prompt.md"
+    safe_label = re.sub(r"[^A-Za-z0-9_-]+", "-", label).strip("-") or "iteration"
+    path = output_dir / f"{stamp}-{safe_label}-{iteration:02d}.prompt.md"
     path.write_text(prompt, encoding="utf-8")
+    return path
+
+
+def write_failure_log(config: dict, goal: str, iteration: int, repair_attempt: int, output: str) -> Path:
+    output_dir = runs_dir(config, goal)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    path = output_dir / f"{stamp}-iteration-{iteration:02d}-repair-{repair_attempt:02d}.failure.log"
+    path.write_text(output, encoding="utf-8")
     return path
 
 
@@ -730,14 +866,25 @@ def resolve_cmake(explicit: str, config: dict) -> str:
 
 
 def validate(cmake: str, xlang3: str, python_exe: str, skip_build: bool, skip_tests: bool) -> None:
+    captured: list[str] = []
+
+    def checked_run(command: list[str]) -> None:
+        try:
+            captured.append(run_capture_tee(command))
+        except CommandFailure as exc:
+            output = "\n".join(captured)
+            if exc.output:
+                output += ("\n" if output else "") + exc.output
+            raise CommandFailure(exc.command_text, exc.returncode, output) from exc
+
     if not skip_build:
         print()
         print("Status: building Release xlang3")
-        run([python_exe, "agent\\scripts\\build_release.py"])
+        checked_run([python_exe, "agent\\scripts\\build_release.py"])
     if not skip_tests:
         print()
         print("Status: running compatibility fixtures")
-        run([
+        checked_run([
             python_exe,
             "agent\\scripts\\run_fixtures.py",
             "--xlang3",
@@ -745,11 +892,11 @@ def validate(cmake: str, xlang3: str, python_exe: str, skip_build: bool, skip_te
         ])
         print()
         print("Status: checking patch whitespace")
-        run(["git", "diff", "--check"])
+        checked_run(["git", "diff", "--check"])
 
 
 def should_resume_as_codex_done(phase: str, saved_state: dict, stageable_changes: list[str]) -> bool:
-    if phase not in {"prompt_written", "codex_running"}:
+    if phase not in {"prompt_written", "codex_running", "repair_prompt_written", "repair_codex_running"}:
         return False
     baseline = sorted(saved_state.get("baseline_stageable_paths", []))
     current = sorted(stageable_changes)
@@ -786,7 +933,13 @@ def stageable(path: str) -> bool:
 
 
 def changed_paths() -> list[str]:
-    output = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
+    output = subprocess.check_output(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     paths: list[str] = []
     for line in output.splitlines():
         if len(line) < 4:
@@ -927,6 +1080,7 @@ def main() -> int:
     iterations = args.iterations if args.iterations >= 0 else default_iterations(config, goal)
     continuous = iterations == 0
     no_progress_retry_limit = default_no_progress_retry_limit(config, goal)
+    validation_repair_limit = default_validation_repair_limit(config, goal)
     no_progress_count = 0
     xlang3 = args.xlang3 or default_xlang3(config)
     python_exe = default_python(config)
@@ -987,7 +1141,10 @@ def main() -> int:
             if should_resume_as_codex_done(resume_phase, saved_state, stageable_changes):
                 print("Saved phase was interrupted, but stageable changes exist; resuming at validation.")
                 resume_phase = "codex_done"
-            elif resume_phase in {"prompt_written", "codex_running"}:
+            elif resume_phase == "validation_failed":
+                print("Saved validation failure exists; retrying validation/repair for the failed batch.")
+                resume_phase = "codex_done"
+            elif resume_phase in {"prompt_written", "codex_running", "repair_prompt_written", "repair_codex_running"}:
                 prompt_path = Path(saved_state.get("prompt_path", ""))
                 if not prompt_path.exists():
                     print("Saved prompt is missing; starting a fresh iteration.")
@@ -997,29 +1154,34 @@ def main() -> int:
                 else:
                     prompt = prompt_path.read_text(encoding="utf-8")
                     print("Resuming saved Codex prompt.")
-                    write_loop_state(config, goal, {
+                    running_state = dict(saved_state)
+                    running_state.update({
                         "active": True,
-                        "phase": "codex_running",
+                        "phase": "repair_codex_running" if resume_phase.startswith("repair_") else "codex_running",
                         "goal": goal,
                         "section": active_section,
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                     })
+                    write_loop_state(config, goal, running_state)
                     try:
                         invoke_codex(config, goal, codex_command, prompt_path, prompt)
                     except SystemExit:
-                        write_loop_state(config, goal, {
+                        retry_state = dict(saved_state)
+                        retry_state.update({
                             "active": True,
-                            "phase": "prompt_written",
+                            "phase": "repair_prompt_written" if resume_phase.startswith("repair_") else "prompt_written",
                             "goal": goal,
                             "section": active_section,
                             "prompt_path": str(prompt_path),
                             "iteration": iteration,
                             "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                         })
+                        write_loop_state(config, goal, retry_state)
                         raise
-                    write_loop_state(config, goal, {
+                    done_state = dict(saved_state)
+                    done_state.update({
                         "active": True,
                         "phase": "codex_done",
                         "goal": goal,
@@ -1028,6 +1190,7 @@ def main() -> int:
                         "iteration": iteration,
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                     })
+                    write_loop_state(config, goal, done_state)
                     resume_phase = "codex_done"
                     current_prompt_path = str(prompt_path)
                     current_baseline_paths = saved_state.get("baseline_stageable_paths", [])
@@ -1109,7 +1272,102 @@ def main() -> int:
             if resume_phase == "codex_done" or not resume_phase:
                 print()
                 print("Status: validating Codex changes")
-                validate(cmake, xlang3, python_exe, args.skip_build, args.skip_tests)
+                repair_attempt = int(saved_state.get("repair_attempt", 0)) if saved_state else 0
+                while True:
+                    try:
+                        validate(cmake, xlang3, python_exe, args.skip_build, args.skip_tests)
+                        break
+                    except CommandFailure as exc:
+                        if args.dry_run:
+                            raise SystemExit(exc.returncode) from exc
+                        if repair_attempt >= validation_repair_limit:
+                            failure_log = write_failure_log(
+                                config,
+                                goal,
+                                iteration,
+                                repair_attempt,
+                                exc.output,
+                            )
+                            write_loop_state(config, goal, {
+                                "active": True,
+                                "phase": "validation_failed",
+                                "goal": goal,
+                                "section": active_section,
+                                "prompt_path": current_prompt_path,
+                                "iteration": iteration,
+                                "repair_attempt": repair_attempt,
+                                "failure_log_path": str(failure_log),
+                                "baseline_stageable_paths": current_baseline_paths,
+                            })
+                            print()
+                            print(
+                                "Validation still fails after "
+                                f"{validation_repair_limit} repair attempts."
+                            )
+                            print(f"Failure log: {failure_log}")
+                            raise SystemExit(exc.returncode) from exc
+
+                        repair_attempt += 1
+                        failure_log = write_failure_log(
+                            config,
+                            goal,
+                            iteration,
+                            repair_attempt,
+                            exc.output,
+                        )
+                        print()
+                        print(
+                            "Validation failed; feeding the failure back into "
+                            f"Codex repair attempt {repair_attempt}/{validation_repair_limit}."
+                        )
+                        print(f"Failure log: {failure_log}")
+                        repair_prompt = compose_repair_prompt(
+                            config,
+                            goal,
+                            active_section,
+                            current_prompt_path,
+                            failure_log,
+                            exc.output,
+                            repair_attempt,
+                            validation_repair_limit,
+                        )
+                        repair_prompt_path = write_prompt(
+                            config,
+                            goal,
+                            repair_prompt,
+                            iteration,
+                            label=f"repair-{repair_attempt:02d}",
+                        )
+                        repair_state = {
+                            "active": True,
+                            "phase": "repair_prompt_written",
+                            "goal": goal,
+                            "section": active_section,
+                            "prompt_path": str(repair_prompt_path),
+                            "previous_prompt_path": current_prompt_path,
+                            "iteration": iteration,
+                            "repair_attempt": repair_attempt,
+                            "failure_log_path": str(failure_log),
+                            "baseline_stageable_paths": current_baseline_paths,
+                        }
+                        write_loop_state(config, goal, repair_state)
+
+                        write_loop_state(config, goal, {
+                            **repair_state,
+                            "phase": "repair_codex_running",
+                        })
+                        try:
+                            invoke_codex(config, goal, codex_command, repair_prompt_path, repair_prompt)
+                        except SystemExit:
+                            write_loop_state(config, goal, repair_state)
+                            raise
+
+                        write_loop_state(config, goal, {
+                            **repair_state,
+                            "phase": "codex_done",
+                        })
+                        saved_state = read_loop_state(config, goal)
+                        current_prompt_path = str(repair_prompt_path)
                 write_loop_state(config, goal, {
                     "active": True,
                     "phase": "validated",
@@ -1117,6 +1375,7 @@ def main() -> int:
                     "section": active_section,
                     "prompt_path": current_prompt_path,
                     "iteration": iteration,
+                    "repair_attempt": repair_attempt,
                     "baseline_stageable_paths": current_baseline_paths,
                 })
 

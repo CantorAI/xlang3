@@ -59,3 +59,6 @@ shape the next iteration.
   it with the golden output. After adding or reordering fixture assertions, run
   the full fixture script or do an explicit line comparison before trusting the
   expected-output file.
+- A failed build or fixture run should become a repair prompt in the same Codex
+  session. Preserve the changed batch, feed back the captured validation log,
+  fix the regression, and only commit after the next validation pass.
