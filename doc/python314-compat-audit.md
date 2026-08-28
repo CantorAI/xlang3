@@ -1124,6 +1124,8 @@ Native or runtime-backed foundation:
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers including
   CPython-style `AttributeError` propagation for failed marker writes, keyword binding
   for public abstract decorators/update helpers, and abstract descriptor decorators,
+  including `abstractproperty` descriptor-level abstract markers for empty, setter-only,
+  deleter-only, and full forms with CPython-normal unmarked accessors,
   CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,

@@ -357,13 +357,21 @@ def abstract_keyword_staticmethod():
     return "static-keyword"
 def abstract_keyword_property(self):
     return "property-keyword"
+def abstract_keyword_setter(self, value):
+    pass
+def abstract_keyword_deleter(self):
+    pass
 abstract_keyword_result = abc.abstractmethod(funcobj=abstract_keyword_fn)
 abstract_classmethod_result = abc.abstractclassmethod(callable=abstract_keyword_classmethod)
 abstract_staticmethod_result = abc.abstractstaticmethod(callable=abstract_keyword_staticmethod)
 abstract_property_result = abc.abstractproperty(fget=abstract_keyword_property)
 abstract_empty_property_result = abc.abstractproperty()
+abstract_setter_property_result = abc.abstractproperty(fset=abstract_keyword_setter)
+abstract_deleter_property_result = abc.abstractproperty(fdel=abstract_keyword_deleter)
+abstract_full_property_result = abc.abstractproperty(abstract_keyword_property, abstract_keyword_setter, abstract_keyword_deleter, "abstract doc")
 print("abc-decorator-keyword", abstract_keyword_result is abstract_keyword_fn, abstract_keyword_fn.__isabstractmethod__, type(abstract_classmethod_result).__name__, abstract_classmethod_result.__isabstractmethod__, abstract_classmethod_result.__func__.__isabstractmethod__)
-print("abc-decorator-keyword", type(abstract_staticmethod_result).__name__, abstract_staticmethod_result.__isabstractmethod__, abstract_staticmethod_result.__func__.__isabstractmethod__, type(abstract_property_result).__name__, abstract_property_result.__isabstractmethod__, abstract_property_result.fget.__isabstractmethod__, type(abstract_empty_property_result).__name__)
+print("abc-decorator-keyword", type(abstract_staticmethod_result).__name__, abstract_staticmethod_result.__isabstractmethod__, abstract_staticmethod_result.__func__.__isabstractmethod__, type(abstract_property_result).__name__, abstract_property_result.__isabstractmethod__, getattr(abstract_property_result.fget, "__isabstractmethod__", "missing"), type(abstract_empty_property_result).__name__, abstract_empty_property_result.__isabstractmethod__)
+print("abc-abstractproperty-marker", abstract_setter_property_result.__isabstractmethod__, abstract_deleter_property_result.__isabstractmethod__, abstract_full_property_result.__isabstractmethod__, abstract_full_property_result.__doc__)
 for abstract_target in (42, property(lambda self: 1)):
     try:
         abc.abstractmethod(abstract_target)
@@ -388,7 +396,7 @@ raw_abstract_static = AbstractDescriptorProbe.__dict__["static"]
 raw_abstract_property = AbstractDescriptorProbe.__dict__["prop"]
 print(type(raw_abstract_class).__name__, raw_abstract_class.__isabstractmethod__, raw_abstract_class.__func__.__isabstractmethod__, AbstractDescriptorProbe.named())
 print(type(raw_abstract_static).__name__, raw_abstract_static.__isabstractmethod__, raw_abstract_static.__func__.__isabstractmethod__, AbstractDescriptorProbe.static())
-print(type(raw_abstract_property).__name__, raw_abstract_property.__isabstractmethod__, raw_abstract_property.fget.__isabstractmethod__, AbstractDescriptorProbe().prop)
+print(type(raw_abstract_property).__name__, raw_abstract_property.__isabstractmethod__, getattr(raw_abstract_property.fget, "__isabstractmethod__", "missing"), AbstractDescriptorProbe().prop)
 
 class AbstractEnforcedABC(metaclass=abc.ABCMeta):
     @abc.abstractmethod

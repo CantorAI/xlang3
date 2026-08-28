@@ -28,7 +28,7 @@ bool property_getter_method(Runtime&, const Value* args, uint32_t argc, Value& o
     error = "property.getter target is not a property";
     return false;
   }
-  out = Value::property(args[1], property->fset, property->fdel, property->doc);
+  out = Value::property(args[1], property->fset, property->fdel, property->doc, property->is_abstract);
   return true;
 }
 
@@ -41,7 +41,7 @@ bool property_setter_method(Runtime&, const Value* args, uint32_t argc, Value& o
     error = "property.setter target is not a property";
     return false;
   }
-  out = Value::property(property->fget, args[1], property->fdel, property->doc);
+  out = Value::property(property->fget, args[1], property->fdel, property->doc, property->is_abstract);
   return true;
 }
 
@@ -54,7 +54,7 @@ bool property_deleter_method(Runtime&, const Value* args, uint32_t argc, Value& 
     error = "property.deleter target is not a property";
     return false;
   }
-  out = Value::property(property->fget, property->fset, args[1], property->doc);
+  out = Value::property(property->fget, property->fset, args[1], property->doc, property->is_abstract);
   return true;
 }
 
@@ -66,6 +66,10 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
     return false;
   }
   if (name == "__isabstractmethod__") {
+    if (property->is_abstract) {
+      value_set_bool(out, true);
+      return true;
+    }
     for (const Value* accessor : {&property->fget, &property->fset, &property->fdel}) {
       if (accessor->tag == ValueTag::None || accessor->tag == ValueTag::Invalid) {
         continue;

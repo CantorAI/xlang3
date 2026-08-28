@@ -75,3 +75,6 @@ shape the next iteration.
 - Check whether a native-backed public stdlib API is originally a Python
   function before rejecting keywords. Public helpers may need keyword binding
   even when adjacent private C helper functions reject all keywords.
+- Deprecated descriptor wrappers can expose compatibility state on the wrapper
+  itself rather than mutating wrapped callables. Check CPython-visible descriptor
+  attributes before assuming accessor marker propagation.

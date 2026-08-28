@@ -74,12 +74,13 @@ False False False
 True
 True
 abc-decorator-keyword True True classmethod True True
-abc-decorator-keyword staticmethod True True property True True property
+abc-decorator-keyword staticmethod True True property True missing property True
+abc-abstractproperty-marker True True True abstract doc
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
 classmethod True True AbstractDescriptorProbe
 staticmethod True True static
-property True True prop
+property True missing prop
 True 1 frozenset False
 True True
 abc-abstract-instantiation True True

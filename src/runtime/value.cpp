@@ -868,7 +868,7 @@ Value Value::native_function(
   return v;
 }
 
-Value Value::property(Value fget, Value fset, Value fdel, Value doc) {
+Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<PropertyObject>(ObjectKind::Property);
@@ -876,6 +876,7 @@ Value Value::property(Value fget, Value fset, Value fdel, Value doc) {
   obj->fset = std::move(fset);
   obj->fdel = std::move(fdel);
   obj->doc = std::move(doc);
+  obj->is_abstract = is_abstract;
   v.as.obj = &obj->header;
   return v;
 }

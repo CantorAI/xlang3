@@ -639,10 +639,7 @@ bool abc_abstractproperty(Runtime& runtime, const Value* args, uint32_t argc, Va
   for (uint32_t i = 0; i < argc; ++i) {
     value_assign_fast(values[i], args[i]);
   }
-  if (argc >= 1 && values[0].tag != ValueTag::None && !abc_abstractmethod(runtime, values, 1, out, error, user_data)) {
-    return false;
-  }
-  out = Value::property(values[0], values[1], values[2], values[3]);
+  out = Value::property(values[0], values[1], values[2], values[3], true);
   return true;
 }
 
