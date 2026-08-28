@@ -939,7 +939,7 @@ documented here.
 Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`/`exception` with CPython-style no-argument
-  `TypeError` diagnostics, stdio objects, argv/orig_argv/path/import-cache containers,
+  and keyword `TypeError` diagnostics, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors
@@ -959,7 +959,8 @@ Native or runtime-backed foundation:
   CPython-style arity/type/keyword/immutable-type errors including given-count and
   offending-type diagnostics,
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
-  diagnostics, default/filesystem encoding helpers, recursion-limit
+  diagnostics, default/filesystem encoding helpers with CPython-style keyword
+  diagnostics, recursion-limit
   helpers including bool-as-int bounds and CPython-style setter arity/type
   `TypeError` plus low-limit `ValueError` diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword
@@ -997,9 +998,10 @@ Native or runtime-backed foundation:
   targets with native-path execution-lock parity,
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
-  including CPython-style callable metadata and activation arity/type
-  `TypeError` diagnostics,
-  `sys._jit` module/function metadata and state probes,
+  including CPython-style callable metadata, no-argument keyword diagnostics,
+  and activation arity/type `TypeError` diagnostics,
+  `sys._jit` module/function metadata and state probes with CPython-style
+  keyword diagnostics,
   `sys.monitoring` import/configuration surface with CPython 3.14 helper
   function metadata, tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
@@ -1023,23 +1025,27 @@ Native or runtime-backed foundation:
   CPython-style callback arguments,
   `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
   wrong-arity/keyword `TypeError` diagnostics,
-  live-thread-id-keyed `_current_frames` snapshots,
-  live-thread-id-keyed `_current_exceptions`, cache-clear hooks with
-  CPython-style keyword diagnostics, configurable
-  coroutine-origin tracking helpers including bool-as-int setter handling and
-  CPython-style arity/type/negative-depth diagnostics,
+  live-thread-id-keyed `_current_frames` snapshots with CPython-style keyword
+  diagnostics, live-thread-id-keyed `_current_exceptions` with CPython-style
+  keyword diagnostics, cache-clear hooks with CPython-style keyword diagnostics,
+  configurable coroutine-origin tracking helpers including getter keyword
+  diagnostics, bool-as-int setter handling and CPython-style
+  arity/type/negative-depth diagnostics,
   async-generator hook configuration with structseq-like `asyncgen_hooks`
   including CPython-style `builtins` type-module metadata and
-  `set_asyncgen_hooks` positional/keyword/non-callable `TypeError` diagnostics,
+  `get_asyncgen_hooks` keyword diagnostics and `set_asyncgen_hooks`
+  positional/keyword/non-callable `TypeError` diagnostics,
   `sys.monitoring` tool/event/local-event helpers with CPython-style arity
   `TypeError` diagnostics,
   CPython-style runtime/config/frame/cache no-argument helper metadata,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes plus keyword failures for covered
-  runtime/config/cache helpers,
-  `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
-  stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`
-  with active `sys.stderr` routing,
+  runtime/config/frame/cache/JIT helpers,
+  `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`
+  with CPython-style keyword diagnostics,
+  stateful `_enablelegacywindowsfsencoding` with CPython-style keyword
+  diagnostics, allocator-backed `_debugmallocstats` with active `sys.stderr`
+  routing and CPython-style keyword diagnostics,
   CPython 3.14 startup metadata/hooks including `__doc__`,
   `__interactivehook__`, `_baserepl`, and CPython-normal Windows `abiflags`
   absence while preserving non-Windows `abiflags`,

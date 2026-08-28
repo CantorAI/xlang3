@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys no-argument runtime/config/cache keyword diagnostics
+sys broad no-argument helper keyword diagnostics
 ```
 
 Current next loop:

@@ -2932,14 +2932,22 @@ void register_sys_module(Runtime& runtime) {
           "sys.exc_info",
           "exc_info",
           sys_exc_info,
-          nullptr,
-          "Return current exception information: (type, value, traceback)."),
+          const_cast<char*>("sys.exc_info"),
+          "Return current exception information: (type, value, traceback).",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
       "exception",
       sys_metadata_native_function(
-          runtime, "sys", "sys.exception", "exception", sys_exception, nullptr, "Return the current exception."),
+          runtime,
+          "sys",
+          "sys.exception",
+          "exception",
+          sys_exception,
+          const_cast<char*>("sys.exception"),
+          "Return the current exception.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3030,8 +3038,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getdefaultencoding",
           "getdefaultencoding",
           sys_getdefaultencoding,
-          nullptr,
-          "Return the current default encoding used by the Unicode implementation."),
+          const_cast<char*>("sys.getdefaultencoding"),
+          "Return the current default encoding used by the Unicode implementation.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3042,8 +3051,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getfilesystemencoding",
           "getfilesystemencoding",
           sys_getfilesystemencoding,
-          nullptr,
-          "Return the encoding used to convert Unicode filenames to OS filenames."),
+          const_cast<char*>("sys.getfilesystemencoding"),
+          "Return the encoding used to convert Unicode filenames to OS filenames.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3054,8 +3064,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getfilesystemencodeerrors",
           "getfilesystemencodeerrors",
           sys_getfilesystemencodeerrors,
-          nullptr,
-          "Return the error mode used Unicode to OS filename conversion."),
+          const_cast<char*>("sys.getfilesystemencodeerrors"),
+          "Return the error mode used Unicode to OS filename conversion.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3066,8 +3077,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getrecursionlimit",
           "getrecursionlimit",
           sys_getrecursionlimit,
-          nullptr,
-          "Return the current value of the recursion limit."),
+          const_cast<char*>("sys.getrecursionlimit"),
+          "Return the current value of the recursion limit.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3187,8 +3199,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.gettrace",
           "gettrace",
           sys_gettrace,
-          nullptr,
-          "Return the global debug tracing function set with sys.settrace."),
+          const_cast<char*>("sys.gettrace"),
+          "Return the global debug tracing function set with sys.settrace.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3223,8 +3236,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getprofile",
           "getprofile",
           sys_getprofile,
-          nullptr,
-          "Return the profiling function set with sys.setprofile."),
+          const_cast<char*>("sys.getprofile"),
+          "Return the profiling function set with sys.setprofile.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3247,8 +3261,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getswitchinterval",
           "getswitchinterval",
           sys_getswitchinterval,
-          nullptr,
-          "Return the current thread switch interval; see sys.setswitchinterval()."),
+          const_cast<char*>("sys.getswitchinterval"),
+          "Return the current thread switch interval; see sys.setswitchinterval().",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3271,8 +3286,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.get_int_max_str_digits",
           "get_int_max_str_digits",
           sys_get_int_max_str_digits,
-          nullptr,
-          "Return the maximum string digits limit for non-binary int<->str conversions."),
+          const_cast<char*>("sys.get_int_max_str_digits"),
+          "Return the maximum string digits limit for non-binary int<->str conversions.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3295,8 +3311,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.is_finalizing",
           "is_finalizing",
           sys_is_finalizing,
-          nullptr,
-          "Return True if Python is exiting."),
+          const_cast<char*>("sys.is_finalizing"),
+          "Return True if Python is exiting.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3345,8 +3362,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.deactivate_stack_trampoline",
           "deactivate_stack_trampoline",
           sys_deactivate_stack_trampoline,
-          nullptr,
-          "Deactivate the current stack profiler trampoline backend."),
+          const_cast<char*>("sys.deactivate_stack_trampoline"),
+          "Deactivate the current stack profiler trampoline backend.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3357,8 +3375,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.is_stack_trampoline_active",
           "is_stack_trampoline_active",
           sys_is_stack_trampoline_active,
-          nullptr,
-          "Return *True* if a stack profiler trampoline is active."),
+          const_cast<char*>("sys.is_stack_trampoline_active"),
+          "Return *True* if a stack profiler trampoline is active.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3369,8 +3388,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._debugmallocstats",
           "_debugmallocstats",
           sys_debugmallocstats,
-          nullptr,
-          "Print summary info to stderr about the state of pymalloc's structures."),
+          const_cast<char*>("sys._debugmallocstats"),
+          "Print summary info to stderr about the state of pymalloc's structures.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3394,8 +3414,9 @@ void register_sys_module(Runtime& runtime) {
                  "sys._jit.is_available",
                  "is_available",
                  sys_jit_is_available,
-                 nullptr,
-                 "Return True if the current Python executable supports JIT compilation, and False otherwise."))
+                 const_cast<char*>("sys._jit.is_available"),
+                 "Return True if the current Python executable supports JIT compilation, and False otherwise.",
+                 sys_no_keyword_args))
       .value("is_enabled",
              sys_metadata_native_function(
                  runtime,
@@ -3403,8 +3424,9 @@ void register_sys_module(Runtime& runtime) {
                  "sys._jit.is_enabled",
                  "is_enabled",
                  sys_jit_is_enabled,
-                 nullptr,
-                 "Return True if JIT compilation is enabled for the current Python process (implies sys._jit.is_available()), and False otherwise."))
+                 const_cast<char*>("sys._jit.is_enabled"),
+                 "Return True if JIT compilation is enabled for the current Python process (implies sys._jit.is_available()), and False otherwise.",
+                 sys_no_keyword_args))
       .value("is_active",
              sys_metadata_native_function(
                  runtime,
@@ -3412,8 +3434,9 @@ void register_sys_module(Runtime& runtime) {
                  "sys._jit.is_active",
                  "is_active",
                  sys_jit_is_active,
-                 nullptr,
-                 "Return True if the topmost Python frame is currently executing JIT code (implies sys._jit.is_enabled()), and False otherwise."));
+                 const_cast<char*>("sys._jit.is_active"),
+                 "Return True if the topmost Python frame is currently executing JIT code (implies sys._jit.is_enabled()), and False otherwise.",
+                 sys_no_keyword_args));
   Value jit_module = jit_builder.finish();
   module_set_attr(sys, "_jit", jit_module, error);
   runtime.register_module("sys._jit", jit_module);
@@ -3473,8 +3496,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.getwindowsversion",
           "getwindowsversion",
           sys_getwindowsversion,
-          nullptr,
-          "Return info about the running version of Windows as a named tuple."),
+          const_cast<char*>("sys.getwindowsversion"),
+          "Return info about the running version of Windows as a named tuple.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3485,8 +3509,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._enablelegacywindowsfsencoding",
           "_enablelegacywindowsfsencoding",
           sys_enablelegacywindowsfsencoding,
-          nullptr,
-          "Changes the default filesystem encoding to mbcs:replace."),
+          const_cast<char*>("sys._enablelegacywindowsfsencoding"),
+          "Changes the default filesystem encoding to mbcs:replace.",
+          sys_no_keyword_args),
       error);
 #endif
   module_set_attr(
@@ -3516,8 +3541,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._current_frames",
           "_current_frames",
           sys_current_frames,
-          nullptr,
-          "Return a dict mapping each thread's thread id to its current stack frame."),
+          const_cast<char*>("sys._current_frames"),
+          "Return a dict mapping each thread's thread id to its current stack frame.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3528,8 +3554,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._current_exceptions",
           "_current_exceptions",
           sys_current_exceptions,
-          nullptr,
-          "Return a dict mapping each thread's identifier to its current raised exception."),
+          const_cast<char*>("sys._current_exceptions"),
+          "Return a dict mapping each thread's identifier to its current raised exception.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3592,8 +3619,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.get_coroutine_origin_tracking_depth",
           "get_coroutine_origin_tracking_depth",
           sys_get_coroutine_origin_tracking_depth,
-          nullptr,
-          "Check status of origin tracking for coroutine objects in this thread."),
+          const_cast<char*>("sys.get_coroutine_origin_tracking_depth"),
+          "Check status of origin tracking for coroutine objects in this thread.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3616,8 +3644,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.get_asyncgen_hooks",
           "get_asyncgen_hooks",
           sys_get_asyncgen_hooks,
-          nullptr,
-          "Return the installed asynchronous generators hooks."),
+          const_cast<char*>("sys.get_asyncgen_hooks"),
+          "Return the installed asynchronous generators hooks.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,

@@ -1443,11 +1443,34 @@ if os.path.exists(sys_dump_tracelets_path):
     os.remove(sys_dump_tracelets_path)
 print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors(SysClearDescriptorsProbe) is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
 for sys_noarg_keyword_name, sys_noarg_keyword_probe in (
+    ("exc_info", sys.exc_info),
+    ("exception", sys.exception),
+    ("getdefaultencoding", sys.getdefaultencoding),
+    ("getfilesystemencoding", sys.getfilesystemencoding),
+    ("getfilesystemencodeerrors", sys.getfilesystemencodeerrors),
+    ("getrecursionlimit", sys.getrecursionlimit),
+    ("gettrace", sys.gettrace),
+    ("getprofile", sys.getprofile),
+    ("getswitchinterval", sys.getswitchinterval),
+    ("get_int_max_str_digits", sys.get_int_max_str_digits),
+    ("is_finalizing", sys.is_finalizing),
     ("_clear_internal_caches", sys._clear_internal_caches),
     ("_clear_type_cache", sys._clear_type_cache),
     ("_get_cpu_count_config", sys._get_cpu_count_config),
     ("is_remote_debug_enabled", sys.is_remote_debug_enabled),
     ("_is_gil_enabled", sys._is_gil_enabled),
+    ("deactivate_stack_trampoline", sys.deactivate_stack_trampoline),
+    ("is_stack_trampoline_active", sys.is_stack_trampoline_active),
+    ("getwindowsversion", sys.getwindowsversion),
+    ("_enablelegacywindowsfsencoding", sys._enablelegacywindowsfsencoding),
+    ("_debugmallocstats", sys._debugmallocstats),
+    ("get_coroutine_origin_tracking_depth", sys.get_coroutine_origin_tracking_depth),
+    ("get_asyncgen_hooks", sys.get_asyncgen_hooks),
+    ("_current_frames", sys._current_frames),
+    ("_current_exceptions", sys._current_exceptions),
+    ("_jit.is_available", sys._jit.is_available),
+    ("_jit.is_enabled", sys._jit.is_enabled),
+    ("_jit.is_active", sys._jit.is_active),
 ):
     try:
         sys_noarg_keyword_probe(x=1)

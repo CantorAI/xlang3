@@ -384,11 +384,34 @@ True True True
 True True True True
 True True True True
 True True True -1 True 0
+sys-noarg-keyword exc_info True
+sys-noarg-keyword exception True
+sys-noarg-keyword getdefaultencoding True
+sys-noarg-keyword getfilesystemencoding True
+sys-noarg-keyword getfilesystemencodeerrors True
+sys-noarg-keyword getrecursionlimit True
+sys-noarg-keyword gettrace True
+sys-noarg-keyword getprofile True
+sys-noarg-keyword getswitchinterval True
+sys-noarg-keyword get_int_max_str_digits True
+sys-noarg-keyword is_finalizing True
 sys-noarg-keyword _clear_internal_caches True
 sys-noarg-keyword _clear_type_cache True
 sys-noarg-keyword _get_cpu_count_config True
 sys-noarg-keyword is_remote_debug_enabled True
 sys-noarg-keyword _is_gil_enabled True
+sys-noarg-keyword deactivate_stack_trampoline True
+sys-noarg-keyword is_stack_trampoline_active True
+sys-noarg-keyword getwindowsversion True
+sys-noarg-keyword _enablelegacywindowsfsencoding True
+sys-noarg-keyword _debugmallocstats True
+sys-noarg-keyword get_coroutine_origin_tracking_depth True
+sys-noarg-keyword get_asyncgen_hooks True
+sys-noarg-keyword _current_frames True
+sys-noarg-keyword _current_exceptions True
+sys-noarg-keyword _jit.is_available True
+sys-noarg-keyword _jit.is_enabled True
+sys-noarg-keyword _jit.is_active True
 True True
 True True True
 True True
