@@ -375,6 +375,7 @@ sys-stack-trampoline-diagnostic missing True
 sys-stack-trampoline-diagnostic extra True
 sys-stack-trampoline-diagnostic type True
 True False
+sys-stack-trampoline-docs True
 True 4300 4300 4300 640
 True
 switchinterval-bool True

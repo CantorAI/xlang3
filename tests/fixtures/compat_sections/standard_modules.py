@@ -1324,6 +1324,7 @@ for sys_stack_bad_name, sys_stack_bad_call, sys_stack_bad_parts in [
         sys_stack_bad_message = str(err)
         print("sys-stack-trampoline-diagnostic", sys_stack_bad_name, all(part in sys_stack_bad_message for part in sys_stack_bad_parts))
 print(sys.deactivate_stack_trampoline() is None, sys.is_stack_trampoline_active())
+print("sys-stack-trampoline-docs", "no stack profiler is activated" in sys.deactivate_stack_trampoline.__doc__)
 old_switch = sys.getswitchinterval()
 sys.setswitchinterval(0.002)
 old_recursion_limit = sys.getrecursionlimit()

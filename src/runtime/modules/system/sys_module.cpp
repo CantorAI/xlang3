@@ -3718,7 +3718,8 @@ void register_sys_module(Runtime& runtime) {
           "deactivate_stack_trampoline",
           sys_deactivate_stack_trampoline,
           const_cast<char*>("sys.deactivate_stack_trampoline"),
-          "Deactivate the current stack profiler trampoline backend.",
+          "Deactivate the current stack profiler trampoline backend.\n\n"
+          "If no stack profiler is activated, this function has no effect.",
           sys_no_keyword_args),
       error);
   module_set_attr(

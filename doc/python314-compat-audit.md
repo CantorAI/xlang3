@@ -1004,7 +1004,8 @@ Native or runtime-backed foundation:
   targets with native-path execution-lock parity,
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
-  including CPython-style callable metadata, no-argument keyword diagnostics,
+  including CPython-style callable metadata including `deactivate_stack_trampoline`
+  docs, no-argument keyword diagnostics,
   and activation arity/type/keyword `TypeError` diagnostics,
   `sys._jit` module/function metadata and state probes with CPython-style
   keyword diagnostics,
