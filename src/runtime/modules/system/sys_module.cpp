@@ -3264,7 +3264,8 @@ void register_sys_module(Runtime& runtime) {
           "Return current exception information: (type, value, traceback).\n\n"
           "Return information about the most recent exception caught by an except\n"
           "clause in the current stack frame or in an older stack frame.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3280,7 +3281,8 @@ void register_sys_module(Runtime& runtime) {
           "Return the most recent exception caught by an except clause\n"
           "in the current stack frame or in an older stack frame, or None\n"
           "if no such exception exists.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3297,7 +3299,8 @@ void register_sys_module(Runtime& runtime) {
           "If the status is an integer, it will be used as the system exit status.\n"
           "If it is another kind of object, it will be printed and the system\n"
           "exit status will be one (i.e., failure).",
-          sys_exit_kw),
+          sys_exit_kw,
+          "($module, status=None, /)"),
       error);
   const Value displayhook = sys_metadata_native_function(
       runtime,

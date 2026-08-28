@@ -1939,6 +1939,9 @@ print(
     all(isinstance(getattr(sys, name).__doc__, str) and len(getattr(sys, name).__doc__) > 0 for name in sys_runtime_metadata_names),
 )
 sys_runtime_text_signatures = {
+    "exc_info": "($module, /)",
+    "exception": "($module, /)",
+    "exit": "($module, status=None, /)",
     "_getframe": "($module, depth=0, /)",
     "_getframemodulename": "($module, /, depth=0)",
     "_current_frames": "($module, /)",
