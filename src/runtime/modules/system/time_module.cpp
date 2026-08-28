@@ -1359,6 +1359,23 @@ bool time_struct_time_count(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool time_struct_time_count_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "tuple.count() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     error = "unbound method tuple.index() needs an argument";
@@ -1401,6 +1418,23 @@ bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, 
   }
   error = "tuple.index(x): x not in tuple";
   runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
+bool time_struct_time_index_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "tuple.index() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
@@ -2343,8 +2377,8 @@ void register_time_module(Runtime& runtime) {
           {"__module__", Value::string("time")},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr)},
-          {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count)},
-          {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index)},
+          {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count, nullptr, nullptr, nullptr, false, time_struct_time_count_kw)},
+          {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index, nullptr, nullptr, nullptr, false, time_struct_time_index_kw)},
           {"n_sequence_fields", Value::int64(9)},
           {"n_fields", Value::int64(11)},
           {"n_unnamed_fields", Value::int64(0)},
