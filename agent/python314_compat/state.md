@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time struct_time tuple method keyword diagnostics
+time struct_time repr diagnostics
 ```
 
 Current next loop:

@@ -1462,9 +1462,15 @@ std::string struct_time_field_repr(const Value& value) {
   return value_to_string(value);
 }
 
-bool time_struct_time_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_struct_time_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "descriptor '__repr__' of 'time.struct_time' object needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (argc != 1) {
-    error = "time.struct_time.__repr__() expected no arguments";
+    error = "expected 0 arguments, got " + std::to_string(argc - 1);
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   static const char* names[] = {
@@ -1479,7 +1485,9 @@ bool time_struct_time_repr(Runtime&, const Value* args, uint32_t argc, Value& ou
       "tm_isdst",
   };
   TupleObject* tuple = nullptr;
-  if (!struct_time_tuple_storage(args[0], "time.struct_time.__repr__", tuple, error)) {
+  if (!struct_time_tuple_storage(args[0], "__repr__", tuple, error)) {
+    error = "descriptor '__repr__' requires a 'time.struct_time' object but received a '" + time_type_name(args[0]) + "'";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string text = "time.struct_time(";
@@ -1494,6 +1502,23 @@ bool time_struct_time_repr(Runtime&, const Value* args, uint32_t argc, Value& ou
   text += ")";
   out = Value::string(std::move(text));
   return true;
+}
+
+bool time_struct_time_repr_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "wrapper __repr__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error) {
@@ -2376,7 +2401,7 @@ void register_time_module(Runtime& runtime) {
       {
           {"__module__", Value::string("time")},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
-          {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr)},
+          {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count, nullptr, nullptr, nullptr, false, time_struct_time_count_kw)},
           {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index, nullptr, nullptr, nullptr, false, time_struct_time_index_kw)},
           {"n_sequence_fields", Value::int64(9)},

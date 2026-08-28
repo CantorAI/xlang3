@@ -1092,7 +1092,8 @@ Native or runtime-backed foundation:
   diagnostics, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index` including bool-as-int start/stop bounds and CPython-style arity/type/keyword
-  diagnostics, CPython-style named-field `__repr__` through `repr()`, platform-backed timezone constants/names,
+  diagnostics, CPython-style named-field `__repr__` through `repr()` plus
+  arity/type/keyword diagnostics, platform-backed timezone constants/names,
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, bool fields in
   time tuples consumed by `asctime`/`strftime`/`mktime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,

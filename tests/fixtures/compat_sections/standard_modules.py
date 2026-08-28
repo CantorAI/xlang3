@@ -2188,6 +2188,10 @@ for struct_time_method_bad_name, struct_time_method_bad_call, struct_time_method
     ("index-keyword", lambda: constructed_time.index(value=238), ("tuple.index()", "takes no keyword arguments")),
     ("index-unbound-missing", lambda: time.struct_time.index(), ("unbound method tuple.index()", "needs an argument")),
     ("index-receiver", lambda: time.struct_time.index([], 1), ("descriptor 'index'", "tuple", "list")),
+    ("repr-extra", lambda: constructed_time.__repr__(1), ("expected 0 arguments", "got 1")),
+    ("repr-keyword", lambda: constructed_time.__repr__(x=1), ("wrapper __repr__()", "takes no keyword arguments")),
+    ("repr-unbound-missing", lambda: time.struct_time.__repr__(), ("descriptor '__repr__'", "needs an argument")),
+    ("repr-receiver", lambda: time.struct_time.__repr__([]), ("descriptor '__repr__'", "time.struct_time", "list")),
 ]:
     try:
         struct_time_method_bad_call()

@@ -660,6 +660,10 @@ struct-time-method-diagnostic index-extra True
 struct-time-method-diagnostic index-keyword True
 struct-time-method-diagnostic index-unbound-missing True
 struct-time-method-diagnostic index-receiver True
+struct-time-method-diagnostic repr-extra True
+struct-time-method-diagnostic repr-keyword True
+struct-time-method-diagnostic repr-unbound-missing True
+struct-time-method-diagnostic repr-receiver True
 struct-time-index-missing True
 struct-time-diagnostic missing True
 struct-time-diagnostic extra-args True
