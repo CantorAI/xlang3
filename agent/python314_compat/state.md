@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time struct_time dict-subclass metadata via dict initializer binding
+sys frame-depth arity and type diagnostics
 ```
 
 Current next loop:

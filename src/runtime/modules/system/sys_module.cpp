@@ -1083,7 +1083,12 @@ bool sys_frame_at_depth(
     const char* name,
     bool none_when_too_deep = false) {
   if (argc > 1) {
-    error = std::string(name) + " expected at most 1 argument";
+    const std::string function_name = std::string(name) == "sys._getframe" ? "_getframe" : "_getframemodulename";
+    if (function_name == "_getframe") {
+      error = function_name + " expected at most 1 argument, got " + std::to_string(argc);
+    } else {
+      error = function_name + "() takes at most 1 argument (" + std::to_string(argc) + " given)";
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1094,7 +1099,7 @@ bool sys_frame_at_depth(
     } else if (args[0].tag == ValueTag::Int64) {
       depth = args[0].as.i64;
     } else {
-      error = std::string(name) + " depth must be int";
+      error = "'" + sys_type_name(runtime, args[0]) + "' object cannot be interpreted as an integer";
       runtime.raise_class_error("TypeError", error);
       return false;
     }

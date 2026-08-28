@@ -1390,6 +1390,17 @@ try:
     sys._getframemodulename("x")
 except TypeError as err:
     print("sys-getframemodulename-type", "int" in str(err) or "integer" in str(err))
+for sys_getframe_bad_name, sys_getframe_bad_call, sys_getframe_bad_parts in [
+    ("frame-type", lambda: sys._getframe("x"), ("str", "cannot be interpreted as an integer")),
+    ("module-type", lambda: sys._getframemodulename(None), ("NoneType", "cannot be interpreted as an integer")),
+    ("frame-extra", lambda: sys._getframe(0, 1), ("_getframe", "at most 1 argument", "got 2")),
+    ("module-extra", lambda: sys._getframemodulename(0, 1), ("_getframemodulename", "at most 1 argument", "2 given")),
+]:
+    try:
+        sys_getframe_bad_call()
+    except TypeError as err:
+        sys_getframe_bad_message = str(err)
+        print("sys-getframe-diagnostic", sys_getframe_bad_name, all(part in sys_getframe_bad_message for part in sys_getframe_bad_parts))
 try:
     sys._getframe(depth=0)
 except TypeError as err:

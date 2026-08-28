@@ -1056,9 +1056,9 @@ Native or runtime-backed foundation:
   and `context_aware_warnings`, CPython-default `sys.dont_write_bytecode` plus
   `sys.flags.dont_write_bytecode`/`hash_randomization`/`utf8_mode` startup values,
   and frame placeholders with populated
-  `f_builtins`, `_getframe` with CPython-style keyword diagnostics,
+  `f_builtins`, `_getframe` with CPython-style arity/type/keyword diagnostics,
   `_getframemodulename` with CPython-style `depth=` keyword binding and
-  diagnostics, negative-depth and bool-depth handling plus too-shallow-stack
+  arity/type diagnostics, negative-depth and bool-depth handling plus too-shallow-stack
   behavior, and CPython-default `_is_gil_enabled` enabled result with shared
   CPython-style no-argument `TypeError` validation;
   full CPython startup flags/config/runtime internals, remaining CPython profile edge

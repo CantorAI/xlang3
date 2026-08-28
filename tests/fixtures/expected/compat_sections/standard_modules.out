@@ -389,6 +389,10 @@ True True
 sys-getframe-bool-depth True
 sys-getframe-depth True
 sys-getframemodulename-type True
+sys-getframe-diagnostic frame-type True
+sys-getframe-diagnostic module-type True
+sys-getframe-diagnostic frame-extra True
+sys-getframe-diagnostic module-extra True
 sys-getframe-keyword True
 sys-getframemodulename-keyword-diagnostic unexpected True
 sys-getframemodulename-keyword-diagnostic duplicate True
