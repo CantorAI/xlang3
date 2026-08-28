@@ -168,6 +168,26 @@ bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, st
   return true;
 }
 
+Value sys_metadata_native_function(
+    Runtime& runtime,
+    const std::string& module_name,
+    const std::string& qualified_name,
+    const std::string& function_name,
+    NativeFunctionCallback callback,
+    void* user_data,
+    const std::string& doc) {
+  Value function = runtime.make_native_function(qualified_name, callback, user_data);
+  if (auto* native = value_as_native_function(function)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__module__"), Value::string(module_name)},
+        {Value::string("__name__"), Value::string(function_name)},
+        {Value::string("__qualname__"), Value::string(function_name)},
+        {Value::string("__doc__"), Value::string(doc)},
+    }));
+  }
+  return function;
+}
+
 Value make_member_descriptor(const std::string& owner_name, const std::string& name, uint32_t index) {
   return slot_descriptor(owner_name, name, index);
 }
@@ -2475,13 +2495,41 @@ void register_sys_module(Runtime& runtime) {
   Value modules_ref;
   value_borrow_assign_fast(modules_ref, runtime.module_registry_dict());
   module_set_attr(sys, "modules", modules_ref, error);
-  module_set_attr(sys, "__doc__", Value::string("This module provides access to XLang3 runtime internals exposed with CPython-compatible sys APIs."), error);
+  module_set_attr(
+      sys,
+      "__doc__",
+      Value::string(
+          "This module provides access to some objects used or maintained by the\n"
+          "interpreter and to functions that interact strongly with the interpreter.\n"
+          "\n"
+          "Dynamic objects:\n"
+          "\n"
+          "argv -- command line arguments; argv[0] is the script pathname if known"),
+      error);
   module_set_attr(
       sys,
       "__interactivehook__",
-      runtime.make_native_function("site.register_readline", sys_noop_hook, const_cast<char*>("site.register_readline")),
+      sys_metadata_native_function(
+          runtime,
+          "site",
+          "site.register_readline",
+          "register_readline",
+          sys_noop_hook,
+          const_cast<char*>("site.register_readline"),
+          "Configure readline completion on interactive prompts."),
       error);
-  module_set_attr(sys, "_baserepl", runtime.make_native_function("sys._baserepl", sys_noop_hook, const_cast<char*>("sys._baserepl")), error);
+  module_set_attr(
+      sys,
+      "_baserepl",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._baserepl",
+          "_baserepl",
+          sys_noop_hook,
+          const_cast<char*>("sys._baserepl"),
+          "Private function for getting the base REPL"),
+      error);
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);
   module_set_attr(sys, "version_info", make_version_info(runtime), error);

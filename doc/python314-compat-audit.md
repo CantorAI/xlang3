@@ -262,10 +262,10 @@ Recent completed batches:
 - Tightened native `sys.monitoring` event-set validation: global and local
   event masks now reject any `C_RETURN`/`C_RAISE` request, including the paired
   mask, matching CPython 3.14's static validation.
-- Expanded native `sys` CPython 3.14 startup metadata: `sys.__doc__` is now
-  published as real module documentation, and `sys.__interactivehook__` plus
-  `sys._baserepl` are exposed as callable no-op hooks with catchable
-  no-argument arity validation.
+- Expanded native `sys` CPython 3.14 startup metadata: `sys.__doc__` now uses
+  CPython's module-documentation opening, and `sys.__interactivehook__` plus
+  `sys._baserepl` expose CPython-style callable metadata while retaining their
+  callable no-op behavior and catchable no-argument arity validation.
 - Expanded native `sys._jit` CPython 3.14 metadata: the runtime JIT probe
   module now exposes the CPython module docstring alongside the existing
   inactive/unavailable state probes, with Standard Modules fixture coverage.
