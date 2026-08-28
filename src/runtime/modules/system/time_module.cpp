@@ -2400,6 +2400,8 @@ void register_time_module(Runtime& runtime) {
       "struct_time",
       {
           {"__module__", Value::string("time")},
+          {"__qualname__", Value::string("struct_time")},
+          {"__doc__", Value::string("The time value as returned by gmtime(), localtime(), and strptime(), and accepted by asctime(), mktime() and strftime().")},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count, nullptr, nullptr, nullptr, false, time_struct_time_count_kw)},

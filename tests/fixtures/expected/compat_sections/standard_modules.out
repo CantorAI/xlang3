@@ -643,7 +643,7 @@ strftime-invalid True
 strftime-invalid True
 1970 9 9 [1970, 1, 1]
 11 0 True True
-11 9 0 True True
+time struct_time True 11 9 0 True True
 11 True
 ('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
 member_descriptor builtins True 2026 Z True True

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc ABC and ABCMeta class metadata
+time struct_time class metadata
 ```
 
 Current next loop:

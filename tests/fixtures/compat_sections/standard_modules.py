@@ -2137,7 +2137,7 @@ for bad_strftime_format in ["%f", "%k", "%l", "%P", "%q", "%Q", "%s", "%"]:
 # time structseq behavior and parsing.
 print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
 print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC", epoch_utc.tm_gmtoff == 0)
-print(time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct_time.n_unnamed_fields, time.struct_time.tm_zone is not None, time.struct_time.tm_gmtoff is not None)
+print(time.struct_time.__module__, time.struct_time.__qualname__, time.struct_time.__doc__ is not None, time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct_time.n_unnamed_fields, time.struct_time.tm_zone is not None, time.struct_time.tm_gmtoff is not None)
 print(time._STRUCT_TM_ITEMS, time._STRUCT_TM_ITEMS == time.struct_time.n_fields)
 print(time.struct_time.__match_args__, time.struct_time.tm_year.__name__, time.struct_time.tm_isdst.__name__)
 time_struct_year_descriptor = time.struct_time.tm_year
