@@ -1649,6 +1649,7 @@ for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
     ("missing", lambda: time.mktime(), ("takes exactly one argument", "0 given")),
     ("extra", lambda: time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1), 1), ("takes exactly one argument", "2 given")),
     ("type", lambda: time.mktime("x"), ("Tuple or struct_time argument required",)),
+    ("field-type", lambda: time.mktime((1970.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:
         time_mktime_bad_call()
@@ -1660,6 +1661,7 @@ for time_asctime_bad_name, time_asctime_bad_call, time_asctime_bad_parts in [
     ("extra", lambda: time.asctime((2026, 1, 1, 0, 0, 0, 3, 1, -1), "x"), ("asctime expected at most 1 argument", "got 2")),
     ("type", lambda: time.asctime("x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.asctime((1, 2)), ("illegal time tuple argument",)),
+    ("field-type", lambda: time.asctime((2026.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:
         time_asctime_bad_call()
@@ -1679,6 +1681,7 @@ for time_strftime_bad_name, time_strftime_bad_call, time_strftime_bad_parts in [
     ("format-type", lambda: time.strftime(1), ("argument 1 must be str", "int")),
     ("tuple-type", lambda: time.strftime("%Y", "x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.strftime("%Y", (1, 2)), ("illegal time tuple argument",)),
+    ("field-type", lambda: time.strftime("%Y", (2026.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:
         time_strftime_bad_call()

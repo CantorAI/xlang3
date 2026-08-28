@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time nonfinite timestamp diagnostics parity
+time tuple field diagnostics parity
 ```
 
 Current next loop:

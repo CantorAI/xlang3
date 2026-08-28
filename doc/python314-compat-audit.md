@@ -219,6 +219,10 @@ Recent completed batches:
 - Tightened native timestamp conversion for `time.localtime`, `time.gmtime`,
   and `time.ctime`: NaN now raises catchable `ValueError` and infinities raise
   catchable `OverflowError` before platform `time_t` conversion.
+- Tightened shared time-tuple field conversion for `time.mktime`,
+  `time.asctime`, and `time.strftime`: non-integer sequence fields now raise
+  catchable CPython-style `TypeError` diagnostics naming the offending field
+  value type.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -990,11 +994,11 @@ Native or runtime-backed foundation:
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
   arguments plus CPython-style arity/type/non-finite diagnostics, `mktime` bool fields in
-  time tuples plus CPython-style arity/type diagnostics, `strftime` with
-  CPython-style arity/type/time-tuple diagnostics, `strptime` with
+  time tuples plus CPython-style arity/type/field-type diagnostics, `strftime` with
+  CPython-style arity/type/time-tuple/field-type diagnostics, `strptime` with
   CPython-style entry-point arity/type diagnostics,
   `asctime` CPython-style default current-local-time behavior and
-  arity/type/time-tuple diagnostics,
+  arity/type/time-tuple/field-type diagnostics,
   `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`

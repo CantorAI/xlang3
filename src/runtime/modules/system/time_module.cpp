@@ -1254,7 +1254,8 @@ bool int_from_value(const Value& value, const char* name, int& out, std::string&
     return true;
   }
   if (value.tag != ValueTag::Int64) {
-    error = std::string(name) + " must be int";
+    (void)name;
+    error = "'" + time_type_name(value) + "' object cannot be interpreted as an integer";
     return false;
   }
   out = static_cast<int>(value.as.i64);
@@ -1838,7 +1839,7 @@ bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     if (!tm_from_sequence_like(args[1], tm, error)) {
       if (value_as_tuple(args[1]) == nullptr && value_as_list(args[1]) == nullptr && value_as_instance(args[1]) == nullptr) {
         error = "Tuple or struct_time argument required";
-      } else {
+      } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
         error = "strftime(): illegal time tuple argument";
       }
       runtime.raise_class_error("TypeError", error);
@@ -1953,7 +1954,7 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     if (!tm_from_sequence_like(args[0], tm, error)) {
       if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
         error = "Tuple or struct_time argument required";
-      } else {
+      } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
         error = "asctime(): illegal time tuple argument";
       }
       runtime.raise_class_error("TypeError", error);

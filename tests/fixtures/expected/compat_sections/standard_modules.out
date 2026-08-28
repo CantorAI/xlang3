@@ -441,10 +441,12 @@ time-timestamp-nonfinite ctime-neginf True
 time-mktime-diagnostic missing True
 time-mktime-diagnostic extra True
 time-mktime-diagnostic type True
+time-mktime-diagnostic field-type True
 Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
 time-asctime-diagnostic extra True
 time-asctime-diagnostic type True
 time-asctime-diagnostic tuple-short True
+time-asctime-diagnostic field-type True
 time-asctime-default True True True True True True True
 Wed Jan  1 00:01:00 2026 2026 01 01 00 01 00 001 True
 Thu Aug  6 09:02:03 2026 09:02:03 AM 09:02:03 PM
@@ -453,6 +455,7 @@ time-strftime-diagnostic extra True
 time-strftime-diagnostic format-type True
 time-strftime-diagnostic tuple-type True
 time-strftime-diagnostic tuple-short True
+time-strftime-diagnostic field-type True
 strftime-invalid True
 strftime-invalid True
 strftime-invalid True
