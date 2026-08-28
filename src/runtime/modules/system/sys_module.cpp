@@ -3401,7 +3401,10 @@ void register_sys_module(Runtime& runtime) {
           "intern",
           sys_intern,
           nullptr,
-          "``Intern'' the given string.",
+          "``Intern'' the given string.\n\n"
+          "This enters the string in the (global) table of interned strings whose\n"
+          "purpose is to speed up dictionary lookups. Return the string itself or\n"
+          "the previously interned string object with the same value.",
           sys_intern_kw),
       error);
   module_set_attr(
@@ -3453,7 +3456,8 @@ void register_sys_module(Runtime& runtime) {
           "getsizeof",
           sys_getsizeof,
           nullptr,
-          "getsizeof(object [, default]) -> int",
+          "getsizeof(object [, default]) -> int\n\n"
+          "Return the size of object in bytes.",
           sys_getsizeof_kw),
       error);
   module_set_attr(
@@ -3466,7 +3470,10 @@ void register_sys_module(Runtime& runtime) {
           "getrefcount",
           sys_getrefcount,
           nullptr,
-          "Return the reference count of object.",
+          "Return the reference count of object.\n\n"
+          "The count returned is generally one higher than you might expect,\n"
+          "because it includes the (temporary) reference as an argument to\n"
+          "getrefcount().",
           sys_getrefcount_kw),
       error);
   module_set_attr(
