@@ -3773,7 +3773,8 @@ void register_sys_module(Runtime& runtime) {
           sys_activate_stack_trampoline,
           const_cast<char*>("sys.activate_stack_trampoline"),
           "Activate stack profiler trampoline *backend*.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, backend, /)"),
       error);
   module_set_attr(
       sys,
@@ -3787,7 +3788,8 @@ void register_sys_module(Runtime& runtime) {
           const_cast<char*>("sys.deactivate_stack_trampoline"),
           "Deactivate the current stack profiler trampoline backend.\n\n"
           "If no stack profiler is activated, this function has no effect.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3800,7 +3802,8 @@ void register_sys_module(Runtime& runtime) {
           sys_is_stack_trampoline_active,
           const_cast<char*>("sys.is_stack_trampoline_active"),
           "Return *True* if a stack profiler trampoline is active.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,

@@ -1005,7 +1005,7 @@ Native or runtime-backed foundation:
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
   including CPython-style callable metadata including `deactivate_stack_trampoline`
-  docs, no-argument keyword diagnostics,
+  docs and text signatures, no-argument keyword diagnostics,
   and activation arity/type/keyword `TypeError` diagnostics,
   `sys._jit` module/function metadata including CPython-style module
   package/loader/spec metadata, no-argument helper text signatures, and state
