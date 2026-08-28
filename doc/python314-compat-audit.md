@@ -993,7 +993,7 @@ Native or runtime-backed foundation:
   bool-as-int setters, CPython-style setter keyword diagnostics including
   `set_int_max_str_digits(maxdigits=...)` binding, and setter arity/type
   `TypeError` diagnostics plus CPython-style trace/profile/config setter and debug helper
-  metadata including `setswitchinterval` docs, `sys.int_info`
+  metadata including trace/profile helper docs and `setswitchinterval` docs, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing` with CPython-style trace/profile helper arity/keyword
   `TypeError` diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python

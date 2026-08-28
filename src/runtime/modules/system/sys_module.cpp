@@ -3505,7 +3505,9 @@ void register_sys_module(Runtime& runtime) {
           "settrace",
           sys_settrace,
           const_cast<char*>("sys.settrace"),
-          "Set the global debug tracing function.",
+          "Set the global debug tracing function.\n\n"
+          "It will be called on each function call.  See the debugger chapter\n"
+          "in the library manual.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3518,7 +3520,8 @@ void register_sys_module(Runtime& runtime) {
           "gettrace",
           sys_gettrace,
           const_cast<char*>("sys.gettrace"),
-          "Return the global debug tracing function set with sys.settrace.",
+          "Return the global debug tracing function set with sys.settrace.\n\n"
+          "See the debugger chapter in the library manual.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3531,7 +3534,9 @@ void register_sys_module(Runtime& runtime) {
           "_settraceallthreads",
           sys_settraceallthreads,
           const_cast<char*>("sys._settraceallthreads"),
-          "Set the global debug tracing function in all running threads belonging to the current interpreter.",
+          "Set the global debug tracing function in all running threads belonging to the current interpreter.\n\n"
+          "It will be called on each function call. See the debugger chapter\n"
+          "in the library manual.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3544,7 +3549,10 @@ void register_sys_module(Runtime& runtime) {
           "call_tracing",
           sys_call_tracing,
           const_cast<char*>("sys.call_tracing"),
-          "Call func(*args), while tracing is enabled.",
+          "Call func(*args), while tracing is enabled.\n\n"
+          "The tracing state is saved, and restored afterwards.  This is intended\n"
+          "to be called from a debugger from a checkpoint, to recursively debug\n"
+          "some other code.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3557,7 +3565,9 @@ void register_sys_module(Runtime& runtime) {
           "setprofile",
           sys_setprofile,
           const_cast<char*>("sys.setprofile"),
-          "Set the profiling function.",
+          "Set the profiling function.\n\n"
+          "It will be called on each function call and return.  See the profiler\n"
+          "chapter in the library manual.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3570,7 +3580,8 @@ void register_sys_module(Runtime& runtime) {
           "getprofile",
           sys_getprofile,
           const_cast<char*>("sys.getprofile"),
-          "Return the profiling function set with sys.setprofile.",
+          "Return the profiling function set with sys.setprofile.\n\n"
+          "See the profiler chapter in the library manual.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3583,7 +3594,9 @@ void register_sys_module(Runtime& runtime) {
           "_setprofileallthreads",
           sys_setprofileallthreads,
           const_cast<char*>("sys._setprofileallthreads"),
-          "Set the profiling function in all running threads belonging to the current interpreter.",
+          "Set the profiling function in all running threads belonging to the current interpreter.\n\n"
+          "It will be called on each function call and return.  See the profiler\n"
+          "chapter in the library manual.",
           sys_no_keyword_args),
       error);
   module_set_attr(

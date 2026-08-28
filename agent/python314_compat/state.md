@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys configuration setter doc metadata
+sys trace/profile doc metadata
 ```
 
 Current next loop:

@@ -88,3 +88,7 @@ shape the next iteration.
   row claims CPython-shaped docs. A non-`None` doc assertion can hide
   compatibility-visible one-line summaries where CPython exposes structured
   multi-line documentation.
+- When fixture checks pin CPython multi-line docs, choose substrings that do not
+  cross line-wrapping boundaries unless the newline itself is intentional.
+  CPython doc text can split phrases such as `profiler\nchapter`, so prose
+  substring checks must be based on the probed `repr`.

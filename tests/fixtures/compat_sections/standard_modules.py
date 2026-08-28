@@ -1498,6 +1498,7 @@ for sys_traceprofile_bad_name, sys_traceprofile_bad_call, sys_traceprofile_bad_p
     except TypeError as err:
         sys_traceprofile_bad_message = str(err)
         print("sys-traceprofile-arity", sys_traceprofile_bad_name, all(part in sys_traceprofile_bad_message for part in sys_traceprofile_bad_parts))
+print("sys-traceprofile-docs", "debugger chapter" in sys.settrace.__doc__, "debugger chapter" in sys.gettrace.__doc__, "current interpreter" in sys._settraceallthreads.__doc__, "recursively debug" in sys.call_tracing.__doc__, "profiler" in sys.setprofile.__doc__ and "library manual" in sys.setprofile.__doc__, "profiler chapter" in sys.getprofile.__doc__, "current interpreter" in sys._setprofileallthreads.__doc__)
 for sys_setter_keyword_name, sys_setter_keyword_call in [
     ("setrecursionlimit", lambda: sys.setrecursionlimit(limit=old_recursion_limit)),
     ("setswitchinterval", lambda: sys.setswitchinterval(interval=old_switch)),

@@ -423,6 +423,7 @@ sys-traceprofile-arity setprofileall2 True
 sys-traceprofile-arity call_tracing0 True
 sys-traceprofile-arity call_tracing1 True
 sys-traceprofile-arity call_tracing3 True
+sys-traceprofile-docs True True True True True True True
 sys-setter-keyword setrecursionlimit True
 sys-setter-keyword setswitchinterval True
 sys-setter-keyword settrace True
