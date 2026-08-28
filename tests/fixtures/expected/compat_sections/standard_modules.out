@@ -164,6 +164,7 @@ True True True False False
 sys-is-immortal-arity True True
 sys-is-immortal-arity True
 True True True
+sys-getallocatedblocks-keyword True
 sys-getrefcount-arity True True
 sys-getrefcount-arity True
 sys-getrefcount-keyword True
@@ -428,6 +429,7 @@ sys-exception-state-arity exc_info True True
 sys-exception-state-arity exception True True
 5
 sys-exit-arity True True
+sys-exit-keyword True
 2 42 'hook\ntext' 2 True True True
 sys-hook-type displayhook True
 sys-hook-type __displayhook__ True

@@ -1689,6 +1689,20 @@ bool sys_getallocatedblocks(Runtime& runtime, const Value*, uint32_t argc, Value
   return true;
 }
 
+bool sys_getallocatedblocks_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys.getallocatedblocks() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
     error = "exit expected at most 1 argument, got " + std::to_string(argc);
@@ -1701,6 +1715,20 @@ bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   object_set_attr(exception, "args", argc == 0 ? Value::tuple({}) : Value::tuple({args[0]}), ignored);
   runtime.set_pending_exception(std::move(exception));
   value_set_none(out);
+  return false;
+}
+
+bool sys_exit_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys.exit() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
@@ -2853,7 +2881,14 @@ void register_sys_module(Runtime& runtime) {
       sys,
       "exit",
       sys_metadata_native_function(
-          runtime, "sys", "sys.exit", "exit", sys_exit, nullptr, "Exit the interpreter by raising SystemExit(status)."),
+          runtime,
+          "sys",
+          "sys.exit",
+          "exit",
+          sys_exit,
+          nullptr,
+          "Exit the interpreter by raising SystemExit(status).",
+          sys_exit_kw),
       error);
   const Value displayhook = sys_metadata_native_function(
       runtime,
@@ -3047,7 +3082,8 @@ void register_sys_module(Runtime& runtime) {
           "getallocatedblocks",
           sys_getallocatedblocks,
           nullptr,
-          "Return the number of memory blocks currently allocated."),
+          "Return the number of memory blocks currently allocated.",
+          sys_getallocatedblocks_kw),
       error);
   module_set_attr(
       sys,

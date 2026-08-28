@@ -696,6 +696,10 @@ sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
 print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)
 try:
+    sys.getallocatedblocks(x=1)
+except TypeError as err:
+    print("sys-getallocatedblocks-keyword", "takes no keyword arguments" in str(err))
+try:
     sys.getrefcount()
 except TypeError as err:
     print("sys-getrefcount-arity", "exactly one argument" in str(err) or "1 argument" in str(err), "0 given" in str(err))
@@ -1657,6 +1661,10 @@ try:
     sys.exit(1, 2)
 except TypeError as err:
     print("sys-exit-arity", "at most 1 argument" in str(err), "got 2" in str(err))
+try:
+    sys.exit(code=7)
+except TypeError as err:
+    print("sys-exit-keyword", "takes no keyword arguments" in str(err))
 class SysHookCapture:
     def __init__(self):
         self.items = []

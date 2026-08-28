@@ -967,7 +967,8 @@ Native or runtime-backed foundation:
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity/keyword `TypeError` diagnostics,
-  `getallocatedblocks`, `exit` including CPython-style too-many-arguments
+  `getallocatedblocks` with CPython-style keyword `TypeError` diagnostics,
+  `exit` including CPython-style too-many-arguments/keyword
   `TypeError` diagnostics, CPython-style exception/interner/size helper
   metadata, display/exception hooks with stdio routing,
   CPython-style public hook callable metadata, and
