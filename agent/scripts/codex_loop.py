@@ -317,7 +317,15 @@ class LoopLock:
 def run_with_input(command: str, stdin_text: str) -> None:
     print()
     print("==", command)
-    result = subprocess.run(command, cwd=ROOT, shell=True, text=True, input=stdin_text)
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        shell=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        input=stdin_text,
+    )
     if result.returncode != 0:
         raise SystemExit(result.returncode)
 
