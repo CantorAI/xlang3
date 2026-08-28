@@ -1836,17 +1836,33 @@ bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 }
 
 bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc < 1 || argc > 2) {
-    error = "time.strptime() expected string and optional format";
+  if (argc < 1) {
+    error = "_strptime_time() missing 1 required positional argument: 'data_string'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 2) {
+    error = "_strptime_time() takes from 1 to 2 positional arguments but " + std::to_string(argc) + " were given";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string text;
-  if (!get_string_arg(args[0], "time.strptime string", text, error)) {
+  auto* text_string = value_as_string(args[0]);
+  if (text_string == nullptr) {
+    error = "strptime() argument 0 must be str, not <class '" + time_type_name(args[0]) + "'>";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
+  text = string_object_to_string(*text_string);
   std::string format = "%a %b %d %H:%M:%S %Y";
-  if (argc == 2 && !get_string_arg(args[1], "time.strptime format", format, error)) {
-    return false;
+  if (argc == 2) {
+    auto* format_string = value_as_string(args[1]);
+    if (format_string == nullptr) {
+      error = "strptime() argument 1 must be str, not <class '" + time_type_name(args[1]) + "'>";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    format = string_object_to_string(*format_string);
   }
   std::tm tm{};
   tm.tm_year = 0;

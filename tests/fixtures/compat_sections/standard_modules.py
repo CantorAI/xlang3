@@ -1693,6 +1693,17 @@ constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X",
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})
 constructed_preserved_time = time.struct_time((2026, 8, 26, 1, 2, 3, 9, 999, -1))
 constructed_string_field_time = time.struct_time((2026, 8, 26, 1, 2, 3, "weekday", 238, -1))
+for time_strptime_bad_name, time_strptime_bad_call, time_strptime_bad_parts in [
+    ("missing", lambda: time.strptime(), ("missing 1 required positional argument", "data_string")),
+    ("extra", lambda: time.strptime("2026", "%Y", "x"), ("takes from 1 to 2 positional arguments", "3 were given")),
+    ("text-type", lambda: time.strptime(1, "%Y"), ("argument 0 must be str", "int")),
+    ("format-type", lambda: time.strptime("2026", 1), ("argument 1 must be str", "int")),
+]:
+    try:
+        time_strptime_bad_call()
+    except TypeError as err:
+        time_strptime_bad_message = str(err)
+        print("time-strptime-diagnostic", time_strptime_bad_name, all(part in time_strptime_bad_message for part in time_strptime_bad_parts))
 parsed_time = time.strptime("2026-08-26", "%Y-%m-%d")
 parsed_year_only = time.strptime("2026", "%Y")
 parsed_month_day = time.strptime("08-26", "%m-%d")
