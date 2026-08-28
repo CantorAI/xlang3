@@ -3731,7 +3731,8 @@ void register_sys_module(Runtime& runtime) {
           sys_is_finalizing,
           const_cast<char*>("sys.is_finalizing"),
           "Return True if Python is exiting.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,

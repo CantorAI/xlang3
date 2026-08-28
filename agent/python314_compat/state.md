@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys switch interval and int string helper text signatures
+sys is_finalizing text signature
 ```
 
 Current next loop:

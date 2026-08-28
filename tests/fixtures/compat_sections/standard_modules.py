@@ -1952,6 +1952,7 @@ sys_runtime_text_signatures = {
     "setswitchinterval": "($module, interval, /)",
     "get_int_max_str_digits": "($module, /)",
     "set_int_max_str_digits": "($module, /, maxdigits)",
+    "is_finalizing": "($module, /)",
     "_get_cpu_count_config": "($module, /)",
     "_dump_tracelets": "($module, /, outpath)",
     "get_coroutine_origin_tracking_depth": "($module, /)",
