@@ -391,6 +391,25 @@ print("abc-decorator-keyword", type(abstract_staticmethod_result).__name__, abst
 print("abc-abstractproperty-marker", abstract_setter_property_result.__isabstractmethod__, abstract_deleter_property_result.__isabstractmethod__, abstract_full_property_result.__isabstractmethod__, abstract_full_property_result.__doc__)
 print("abc-abstractproperty-doc", abstract_doc_property_result.__doc__, abstract_doc_getter_result.__doc__, abstract_doc_explicit_result.__doc__, abstract_doc_chain_result.__doc__)
 print("abc-abstractproperty-name", abc.abstractproperty(abstract_doc_property).__name__, abstract_doc_chain_result.__name__, abstract_name_chain_result.__name__, abstract_name_property_result.__name__, abstract_empty_name_missing, abstract_empty_name_result.__name__)
+property_diagnostic_cases = (
+    ("getter-missing", lambda: property.getter(), "unbound method property.getter() needs an argument"),
+    ("getter-extra", lambda: abstract_empty_property_result.getter(abstract_keyword_property, abstract_keyword_property), "property.getter() takes exactly one argument (2 given)"),
+    ("getter-keyword", lambda: abstract_empty_property_result.getter(fget=abstract_keyword_property), "property.getter() takes no keyword arguments"),
+    ("getter-receiver", lambda: property.getter(42, abstract_keyword_property), "descriptor 'getter' for 'property' objects doesn't apply to a 'int' object"),
+    ("setter-missing", lambda: property.setter(), "unbound method property.setter() needs an argument"),
+    ("setter-extra", lambda: abstract_empty_property_result.setter(abstract_keyword_setter, abstract_keyword_setter), "property.setter() takes exactly one argument (2 given)"),
+    ("setter-keyword", lambda: abstract_empty_property_result.setter(fset=abstract_keyword_setter), "property.setter() takes no keyword arguments"),
+    ("setter-receiver", lambda: property.setter(42, abstract_keyword_setter), "descriptor 'setter' for 'property' objects doesn't apply to a 'int' object"),
+    ("deleter-missing", lambda: property.deleter(), "unbound method property.deleter() needs an argument"),
+    ("deleter-extra", lambda: abstract_empty_property_result.deleter(abstract_keyword_deleter, abstract_keyword_deleter), "property.deleter() takes exactly one argument (2 given)"),
+    ("deleter-keyword", lambda: abstract_empty_property_result.deleter(fdel=abstract_keyword_deleter), "property.deleter() takes no keyword arguments"),
+    ("deleter-receiver", lambda: property.deleter(42, abstract_keyword_deleter), "descriptor 'deleter' for 'property' objects doesn't apply to a 'int' object"),
+)
+for property_diagnostic_name, property_diagnostic_call, property_diagnostic_message in property_diagnostic_cases:
+    try:
+        property_diagnostic_call()
+    except TypeError as err:
+        print("abc-abstractproperty-method-diagnostic", property_diagnostic_name, str(err) == property_diagnostic_message)
 for abstract_target in (42, property(lambda self: 1)):
     try:
         abc.abstractmethod(abstract_target)

@@ -14,19 +14,68 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 #include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
 
 namespace xlang3 {
 
 namespace {
 
-bool property_getter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "property.getter", error)) {
-    return false;
+std::string property_receiver_type_name(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::None:
+      return "NoneType";
+    case ValueTag::Bool:
+      return "bool";
+    case ValueTag::Int64:
+      return "int";
+    case ValueTag::Double:
+      return "float";
+    case ValueTag::Object:
+      if (auto* klass = value_as_class(value)) {
+        return klass->name;
+      }
+      if (auto* instance = value_as_instance(value)) {
+        if (auto* klass = value_as_class(instance->klass)) {
+          return klass->name;
+        }
+      }
+      break;
+    case ValueTag::Invalid:
+      break;
+  }
+  return value_to_string(value);
+}
+
+bool property_method_argc_error(Runtime& runtime, const char* method, uint32_t argc, std::string& error) {
+  if (argc == 0) {
+    error = "unbound method property." + std::string(method) + "() needs an argument";
+  } else {
+    error = "property." + std::string(method) + "() takes exactly one argument (" + std::to_string(argc - 1) + " given)";
+  }
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool property_method_receiver_error(Runtime& runtime, const Value& self, const char* method, std::string& error) {
+  error = "descriptor '" + std::string(method) + "' for 'property' objects doesn't apply to a '" +
+      property_receiver_type_name(self) + "' object";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool property_method_keyword_error(Runtime& runtime, const char* method, std::string& error) {
+  error = "property." + std::string(method) + "() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool property_getter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    return property_method_argc_error(runtime, "getter", argc, error);
   }
   auto* property = value_as_property(args[0]);
   if (property == nullptr) {
-    error = "property.getter target is not a property";
-    return false;
+    return property_method_receiver_error(runtime, args[0], "getter", error);
   }
   out = Value::property(args[1], property->fset, property->fdel, property->doc, property->is_abstract, property->doc_from_getter);
   if (!property->name_from_getter && property->has_name) {
@@ -38,14 +87,17 @@ bool property_getter_method(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool property_setter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "property.setter", error)) {
-    return false;
+bool property_getter_kw(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t, Value&, std::string& error, void*) {
+  return property_method_keyword_error(runtime, "getter", error);
+}
+
+bool property_setter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    return property_method_argc_error(runtime, "setter", argc, error);
   }
   auto* property = value_as_property(args[0]);
   if (property == nullptr) {
-    error = "property.setter target is not a property";
-    return false;
+    return property_method_receiver_error(runtime, args[0], "setter", error);
   }
   out = Value::property(property->fget, args[1], property->fdel, property->doc, property->is_abstract, property->doc_from_getter);
   if (!property->name_from_getter && property->has_name) {
@@ -57,14 +109,17 @@ bool property_setter_method(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool property_deleter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "property.deleter", error)) {
-    return false;
+bool property_setter_kw(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t, Value&, std::string& error, void*) {
+  return property_method_keyword_error(runtime, "setter", error);
+}
+
+bool property_deleter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    return property_method_argc_error(runtime, "deleter", argc, error);
   }
   auto* property = value_as_property(args[0]);
   if (property == nullptr) {
-    error = "property.deleter target is not a property";
-    return false;
+    return property_method_receiver_error(runtime, args[0], "deleter", error);
   }
   out = Value::property(property->fget, property->fset, args[1], property->doc, property->is_abstract, property->doc_from_getter);
   if (!property->name_from_getter && property->has_name) {
@@ -74,6 +129,10 @@ bool property_deleter_method(Runtime&, const Value* args, uint32_t argc, Value& 
     cloned->name_from_getter = false;
   }
   return true;
+}
+
+bool property_deleter_kw(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t, Value&, std::string& error, void*) {
+  return property_method_keyword_error(runtime, "deleter", error);
 }
 
 } // namespace
@@ -124,11 +183,22 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
   }
 
   static constexpr BuiltinMethodSpec methods[] = {
-      {"getter", "property.getter", property_getter_method},
-      {"setter", "property.setter", property_setter_method},
-      {"deleter", "property.deleter", property_deleter_method},
+      {"getter", "property.getter", property_getter_method, nullptr, false, property_getter_kw},
+      {"setter", "property.setter", property_setter_method, nullptr, false, property_setter_kw},
+      {"deleter", "property.deleter", property_deleter_method, nullptr, false, property_deleter_kw},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
+}
+
+bool property_install_class_methods(Runtime& runtime, ClassObject& property_class) {
+  property_class.attrs["getter"] =
+      runtime.make_native_function("property.getter", property_getter_method, nullptr, nullptr, nullptr, false, property_getter_kw);
+  property_class.attrs["setter"] =
+      runtime.make_native_function("property.setter", property_setter_method, nullptr, nullptr, nullptr, false, property_setter_kw);
+  property_class.attrs["deleter"] =
+      runtime.make_native_function("property.deleter", property_deleter_method, nullptr, nullptr, nullptr, false, property_deleter_kw);
+  ++property_class.version;
+  return true;
 }
 
 } // namespace xlang3

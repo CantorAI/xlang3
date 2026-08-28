@@ -78,6 +78,18 @@ abc-decorator-keyword staticmethod True True property True missing property True
 abc-abstractproperty-marker True True True abstract doc
 abc-abstractproperty-doc getter doc replacement doc explicit doc replacement doc
 abc-abstractproperty-name abstract_doc_property abstract_doc_replacement manual_name abstract_doc_property False empty_name
+abc-abstractproperty-method-diagnostic getter-missing True
+abc-abstractproperty-method-diagnostic getter-extra True
+abc-abstractproperty-method-diagnostic getter-keyword True
+abc-abstractproperty-method-diagnostic getter-receiver True
+abc-abstractproperty-method-diagnostic setter-missing True
+abc-abstractproperty-method-diagnostic setter-extra True
+abc-abstractproperty-method-diagnostic setter-keyword True
+abc-abstractproperty-method-diagnostic setter-receiver True
+abc-abstractproperty-method-diagnostic deleter-missing True
+abc-abstractproperty-method-diagnostic deleter-extra True
+abc-abstractproperty-method-diagnostic deleter-keyword True
+abc-abstractproperty-method-diagnostic deleter-receiver True
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
 classmethod True True AbstractDescriptorProbe

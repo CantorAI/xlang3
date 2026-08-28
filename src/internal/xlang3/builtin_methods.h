@@ -23,6 +23,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct ClassObject;
+
 XLANG3_HOT_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error) {
   if (argc == expected) {
     return true;
@@ -143,6 +145,7 @@ bool memoryview_get_method(const Value& object, const std::string& name, Value& 
 bool iterator_get_method(const Value& object, const std::string& name, Value& out);
 bool generator_get_method(const Value& object, const std::string& name, Value& out);
 bool property_get_method(const Value& object, const std::string& name, Value& out);
+bool property_install_class_methods(Runtime& runtime, ClassObject& property_class);
 
 XLANG3_HOT_INLINE const BuiltinMethodSpec* builtin_method_find_spec_for_call(
     const Value& object,

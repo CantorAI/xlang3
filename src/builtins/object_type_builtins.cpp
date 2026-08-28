@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
@@ -933,6 +934,11 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "method", object_type);
   register_builtin_type(runtime, "member_descriptor", object_type);
   register_builtin_type(runtime, "property", object_type);
+  if (const auto* property_value = runtime.find_builtin("property")) {
+    if (auto* property_class = value_as_class(*property_value)) {
+      property_install_class_methods(runtime, *property_class);
+    }
+  }
   register_builtin_type(runtime, "classmethod", object_type);
   register_builtin_type(runtime, "staticmethod", object_type);
   register_builtin_type(runtime, "code", object_type);
