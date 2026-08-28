@@ -143,9 +143,15 @@ True True True True True
 sys-getsizeof-negative True
 1 1
 99 101
+123 202 303
 sys-getsizeof-reraises True
 sys-getsizeof-arity True True
 sys-getsizeof-arity True True
+sys-getsizeof-keyword keyword-missing True
+sys-getsizeof-keyword keyword-extra True
+sys-getsizeof-keyword keyword-duplicate-object True
+sys-getsizeof-keyword keyword-duplicate-default True
+sys-getsizeof-keyword keyword-unexpected True
 True True False
 True False False True
 True True True True True True True

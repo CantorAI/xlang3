@@ -630,6 +630,7 @@ except ValueError as err:
     print("sys-getsizeof-negative", ">= 0" in str(err))
 print(sys.getsizeof(SysSizeBoolProbe()), sys.getsizeof(SysSizeBoolProbe(), 99))
 print(sys.getsizeof(SysSizeTypeErrorProbe(), 99), sys.getsizeof(SysSizeDefaultProbe(), 101))
+print(sys.getsizeof(object=SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), default=202), sys.getsizeof(object=SysSizeDefaultProbe(), default=303))
 try:
     sys.getsizeof(SysSizeValueErrorProbe(), 99)
 except ValueError as err:
@@ -642,6 +643,18 @@ try:
     sys.getsizeof(1, 2, 3)
 except TypeError as err:
     print("sys-getsizeof-arity", "at most 2 arguments" in str(err), "3 given" in str(err))
+for sys_getsizeof_bad_name, sys_getsizeof_bad_call, sys_getsizeof_bad_parts in [
+    ("keyword-missing", lambda: sys.getsizeof(default=2), ("missing required argument", "object")),
+    ("keyword-extra", lambda: sys.getsizeof(object=1, default=2, other=3), ("at most 2 keyword arguments", "3 given")),
+    ("keyword-duplicate-object", lambda: sys.getsizeof(1, object=2), ("given by name", "object", "position (1)")),
+    ("keyword-duplicate-default", lambda: sys.getsizeof(1, 2, default=3), ("at most 2 arguments", "3 given")),
+    ("keyword-unexpected", lambda: sys.getsizeof(object=1, obj=2), ("unexpected keyword", "obj")),
+]:
+    try:
+        sys_getsizeof_bad_call()
+    except TypeError as err:
+        sys_getsizeof_bad_message = str(err)
+        print("sys-getsizeof-keyword", sys_getsizeof_bad_name, all(part in sys_getsizeof_bad_message for part in sys_getsizeof_bad_parts))
 sys_intern_prefix = "xlang"
 sys_intern_dynamic = sys_intern_prefix + "3"
 sys_intern_canonical = sys.intern(sys_intern_dynamic)

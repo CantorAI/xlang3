@@ -1570,6 +1570,77 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool sys_getsizeof_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (kwargc > 2) {
+    error = "getsizeof() takes at most 2 keyword arguments (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc + kwargc > 2) {
+    error = "getsizeof() takes at most 2 arguments (" + std::to_string(argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  Value bound_args[2];
+  bool has_object = argc >= 1;
+  bool has_default = argc >= 2;
+  if (argc >= 1) {
+    value_assign_fast(bound_args[0], args[0]);
+  }
+  if (argc >= 2) {
+    value_assign_fast(bound_args[1], args[1]);
+  }
+
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      error = "getsizeof() got an invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (name == "object") {
+      if (has_object) {
+        error = "argument for getsizeof() given by name ('object') and position (1)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      value_assign_fast(bound_args[0], *kwargs[i].value);
+      has_object = true;
+    } else if (name == "default") {
+      if (has_default) {
+        error = "getsizeof() got multiple values for keyword argument 'default'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      value_assign_fast(bound_args[1], *kwargs[i].value);
+      has_default = true;
+    } else {
+      if (!has_object) {
+        error = "getsizeof() missing required argument 'object' (pos 1)";
+      } else {
+        error = "getsizeof() got an unexpected keyword argument '" + name + "'";
+      }
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (!has_object) {
+    error = "getsizeof() missing required argument 'object' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return sys_getsizeof(runtime, bound_args, has_default ? 2 : 1, out, error, nullptr);
+}
+
 bool sys_getrefcount(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys.getrefcount() takes exactly one argument (" + std::to_string(argc) + " given)";
@@ -2930,7 +3001,14 @@ void register_sys_module(Runtime& runtime) {
       sys,
       "getsizeof",
       sys_metadata_native_function(
-          runtime, "sys", "sys.getsizeof", "getsizeof", sys_getsizeof, nullptr, "getsizeof(object [, default]) -> int"),
+          runtime,
+          "sys",
+          "sys.getsizeof",
+          "getsizeof",
+          sys_getsizeof,
+          nullptr,
+          "getsizeof(object [, default]) -> int",
+          sys_getsizeof_kw),
       error);
   module_set_attr(
       sys,
