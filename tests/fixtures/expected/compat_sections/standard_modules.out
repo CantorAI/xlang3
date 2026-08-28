@@ -381,6 +381,7 @@ sys-dump-tracelets-diagnostic extra True
 sys-dump-tracelets-diagnostic type True
 sys-clear-type-descriptors-arity True True
 sys-clear-type-descriptors-arity True True
+sys-clear-type-descriptors-keyword True
 sys-clear-type-descriptors-type True True
 sys-clear-type-descriptors-immutable True
 2

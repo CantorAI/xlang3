@@ -1437,6 +1437,10 @@ try:
 except TypeError as err:
     print("sys-clear-type-descriptors-arity", "takes exactly one argument" in str(err), "2 given" in str(err))
 try:
+    sys._clear_type_descriptors(type=SysClearDescriptorsProbe)
+except TypeError as err:
+    print("sys-clear-type-descriptors-keyword", "takes no keyword arguments" in str(err))
+try:
     sys._clear_type_descriptors(42)
 except TypeError as err:
     print("sys-clear-type-descriptors-type", "argument must be type" in str(err), "int" in str(err))

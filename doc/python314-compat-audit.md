@@ -954,7 +954,7 @@ Native or runtime-backed foundation:
   metadata, `float_repr_style`, `getunicodeinternedsize`,
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
-  CPython-style arity/type/immutable-type errors including given-count and
+  CPython-style arity/type/keyword/immutable-type errors including given-count and
   offending-type diagnostics,
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type
   diagnostics, default/filesystem encoding helpers, recursion-limit

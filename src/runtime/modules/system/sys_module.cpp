@@ -1211,6 +1211,20 @@ bool sys_clear_type_descriptors(Runtime& runtime, const Value* args, uint32_t ar
   return true;
 }
 
+bool sys_clear_type_descriptors_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys._clear_type_descriptors() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   int64_t depth = 0;
   if (argc < 1) {
@@ -3310,7 +3324,8 @@ void register_sys_module(Runtime& runtime) {
           "_clear_type_descriptors",
           sys_clear_type_descriptors,
           nullptr,
-          "Private function for clearing certain descriptors from a type's dictionary."),
+          "Private function for clearing certain descriptors from a type's dictionary.",
+          sys_clear_type_descriptors_kw),
       error);
   module_set_attr(
       sys,
