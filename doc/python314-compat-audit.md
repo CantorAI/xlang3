@@ -984,8 +984,8 @@ Native or runtime-backed foundation:
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered
   non-callable hooks, CPython-style `sys.addaudithook(hook=...)` keyword
-  registration, and CPython-style `sys.audit`/`sys.addaudithook` arity, type,
-  and keyword `TypeError` diagnostics,
+  registration, and CPython-style `sys.audit`/`sys.addaudithook` arity, type
+  including `None`/`bytes` event names, and keyword `TypeError` diagnostics,
   stdio capability probes including CPython-style method metadata and
   no-argument diagnostics, profile/switch-interval/int-string helpers with
   bool-as-int setters, CPython-style setter keyword diagnostics including

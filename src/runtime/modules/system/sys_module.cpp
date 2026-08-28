@@ -2152,7 +2152,8 @@ bool sys_audit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   if (value_as_string(args[0]) == nullptr) {
-    error = "audit() argument 1 must be str, not " + sys_type_name(runtime, args[0]);
+    const std::string type_name = args[0].tag == ValueTag::None ? "None" : sys_type_name(runtime, args[0]);
+    error = "audit() argument 1 must be str, not " + type_name;
     runtime.raise_class_error("TypeError", error);
     return false;
   }

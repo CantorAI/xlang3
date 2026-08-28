@@ -1566,6 +1566,12 @@ try:
     sys.audit(1)
 except TypeError as err:
     print("sys-audit-event-type", "argument 1 must be str" in str(err), "int" in str(err))
+for sys_audit_bad_event, sys_audit_bad_type_name in [(b"x", "bytes"), (None, "None")]:
+    try:
+        sys.audit(sys_audit_bad_event)
+    except TypeError as err:
+        sys_audit_bad_event_message = str(err)
+        print("sys-audit-event-type", "argument 1 must be str" in sys_audit_bad_event_message, sys_audit_bad_type_name in sys_audit_bad_event_message)
 try:
     sys.addaudithook()
 except TypeError as err:

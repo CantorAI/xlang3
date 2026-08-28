@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-types native callable aliases
+sys audit event type diagnostics
 ```
 
 Current next loop:

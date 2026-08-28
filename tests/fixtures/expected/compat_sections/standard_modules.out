@@ -445,6 +445,8 @@ sys-getframemodulename-keyword-diagnostic extra-keyword True
 sys-gil-args True
 sys-audit-arity True True
 sys-audit-event-type True True
+sys-audit-event-type True True
+sys-audit-event-type True True
 sys-addaudithook-arity True True
 sys-addaudithook-arity True True
 True xlang3.fixture (1, 'a')
