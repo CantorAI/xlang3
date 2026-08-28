@@ -34,6 +34,15 @@ shape the next iteration.
   warnings or Unicode diagnostics cannot crash the runner.
 - In continuous mode, one empty Codex batch should not stop the goal. Treat it
   as no-progress and retry a small fixed number of times before exiting.
+- Compatibility fixtures must run headless. Windows crash/report dialogs from
+  child `xlang3.exe` processes block the loop, so the CLI and Python fixture
+  runners both disable popup error UI and report failures in console output.
+- A passing direct fixture run is not enough for threaded/runtime-sensitive
+  code. Also test it through the fixture runner with captured stdout/stderr,
+  because pipe output and process teardown can expose different lifetime bugs.
+- Do not “fix” thread crashes by turning on a coarse global VM lock. It can
+  deadlock fixtures that intentionally wait across threads; fix ownership,
+  teardown, and lock boundaries instead.
 - Descriptor primitive changes often need both `object_get_attr` and the VM
   fast-path attribute helper updated; otherwise explicit descriptor calls and
   compiled attribute access can diverge.

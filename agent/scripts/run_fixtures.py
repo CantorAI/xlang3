@@ -17,6 +17,8 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+from win_no_popup import configure_no_popup_error_mode
+
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "agent" / "config.toml"
@@ -210,6 +212,8 @@ def check_negative(
 
 
 def main() -> int:
+    configure_no_popup_error_mode()
+
     parser = argparse.ArgumentParser(description="Run XLang3 compatibility fixtures.")
     parser.add_argument("--xlang3", default="", help="Path to xlang3 executable.")
     args = parser.parse_args()

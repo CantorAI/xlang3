@@ -1505,6 +1505,23 @@ if hasattr(sys, "getwindowsversion"):
     sys_noarg_typeerror_probes.append(sys.getwindowsversion)
 if hasattr(sys, "_enablelegacywindowsfsencoding"):
     sys_noarg_typeerror_probes.append(sys._enablelegacywindowsfsencoding)
+sys_runtime_metadata_names = [
+    "is_remote_debug_enabled",
+    "_is_gil_enabled",
+    "_getframemodulename",
+    "_clear_internal_caches",
+    "_clear_type_cache",
+    "_clear_type_descriptors",
+]
+if hasattr(sys, "getwindowsversion"):
+    sys_runtime_metadata_names.append("getwindowsversion")
+if hasattr(sys, "_enablelegacywindowsfsencoding"):
+    sys_runtime_metadata_names.append("_enablelegacywindowsfsencoding")
+print(
+    all(getattr(sys, name).__name__ == name and getattr(sys, name).__qualname__ == name for name in sys_runtime_metadata_names),
+    all(getattr(sys, name).__module__ == "sys" for name in sys_runtime_metadata_names),
+    all(isinstance(getattr(sys, name).__doc__, str) and len(getattr(sys, name).__doc__) > 0 for name in sys_runtime_metadata_names),
+)
 sys_noarg_typeerror_count = 0
 for sys_noarg_typeerror_probe in sys_noarg_typeerror_probes:
     try:

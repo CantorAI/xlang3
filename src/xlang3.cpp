@@ -34,9 +34,18 @@ limitations under the License.
 #if defined(_WIN32)
 #include <fcntl.h>
 #include <io.h>
+#include <windows.h>
+#include <crtdbg.h>
 #endif
 
 namespace {
+
+void configure_no_popup_error_mode() {
+#if defined(_WIN32)
+  SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+  _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
+}
 
 void print_usage() {
   std::cerr << "usage: xlang3 [--dap-stdio] [--dump-ir] [--debug-dir <folder>] [--perf-counters] "
@@ -497,6 +506,8 @@ int run_dap_stdio() {
 } // namespace
 
 int main(int argc, char** argv) {
+  configure_no_popup_error_mode();
+
   if (argc >= 2 && std::string(argv[1]) == "--dap-stdio") {
     return run_dap_stdio();
   }

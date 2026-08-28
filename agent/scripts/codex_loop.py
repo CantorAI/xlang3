@@ -24,6 +24,8 @@ import tomllib
 import msvcrt
 from pathlib import Path
 
+from win_no_popup import configure_no_popup_error_mode
+
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "agent" / "config.toml"
@@ -499,6 +501,14 @@ Runtime doctrine:
 - No debugpy-only shortcuts.
 - No benchmark-specific code.
 - No stubs, placeholder facades, or fake compatibility.
+- Any crash, hang, Windows popup, access violation, or negative exit code is a
+  runtime regression. Stop feature work, isolate the smallest fixture repro,
+  fix the runtime cause, and update lessons before continuing.
+- Do not hide regressions with broad locks, sleeps, retries, fake return values,
+  or expected-output edits.
+- Threading/runtime changes must state and preserve ownership and lock
+  boundaries. Lock the minimum region only; do not serialize the whole VM as a
+  shortcut.
 - Every compatibility change needs fixture coverage under tests/fixtures.
 - Before claiming a feature is implemented, map it to a concrete fixture
   assertion. If no assertion exists, add one to the combined section fixture or
@@ -868,6 +878,8 @@ def commit_and_push(config: dict, goal: str, message: str) -> bool:
 
 
 def main() -> int:
+    configure_no_popup_error_mode()
+
     parser = argparse.ArgumentParser(description="Run the XLang3 Python 3.14 Codex compatibility loop.")
     parser.add_argument("--goal", default="", help="Goal name from agent/config.toml.")
     parser.add_argument("--section", default=None, help="Optional audit section name.")

@@ -508,6 +508,9 @@ Recent completed batches:
 - Expanded native `time` callable metadata so public functions expose
   CPython-style short `__name__`/`__qualname__`, `__module__ == "time"`, and
   non-empty docstrings for introspection.
+- Expanded native `sys` runtime/config/cache helper metadata so covered
+  functions expose CPython-style short `__name__`/`__qualname__`,
+  `__module__ == "sys"`, and non-empty docstrings for introspection.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
   ASCII, and Latin-1 coding cookies; wired it into `linecache` and `_tokenize`.
 - Fixed bytes-regex match groups so CPython `Lib/tokenize.py` can run its
@@ -995,6 +998,7 @@ Native or runtime-backed foundation:
   `set_asyncgen_hooks` positional/keyword/non-callable `TypeError` diagnostics,
   `sys.monitoring` tool/event/local-event helpers with CPython-style arity
   `TypeError` diagnostics,
+  CPython-style runtime/config/cache helper metadata,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,

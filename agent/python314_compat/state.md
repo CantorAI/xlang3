@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time public callable metadata
+sys runtime/config/cache helper metadata
 ```
 
 Current next loop:

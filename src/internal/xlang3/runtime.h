@@ -151,7 +151,7 @@ public:
   void set_last_error(std::string error) { last_error_ = std::move(error); }
   const std::string& last_error() const { return last_error_; }
   void set_current_globals_module(const Value& globals_module);
-  const Value& current_globals_module() const { return current_globals_module_; }
+  const Value& current_globals_module() const;
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
   void set_trace_function(Value trace_function);
   const Value& trace_function() const;

@@ -19,7 +19,7 @@ limitations under the License.
 namespace xlang3 {
 
 #ifndef XLANG3_VM_GLOBAL_LOCK
-#define XLANG3_VM_GLOBAL_LOCK 0
+#define XLANG3_VM_GLOBAL_LOCK 1
 #endif
 
 std::recursive_mutex& xlang_runtime_execution_lock();

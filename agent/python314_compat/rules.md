@@ -28,6 +28,14 @@ limitations under the License.
 - Do not hide gaps behind stubs, placeholders, importable empty facades, or
   return-`None` behavior.
 - Do not add benchmark-specific or module-specific cheats.
+- Do not add broad locks, sleeps, retries, fake returns, or expected-output
+  rewrites to hide crashes or failing fixtures.
+- Treat negative process exit codes, Windows crash dialogs, hangs, and popup
+  alerts as runtime regressions. Isolate the smallest fixture repro, fix the
+  runtime cause, and record the reusable lesson.
+- Threading/runtime changes must define the ownership and locking invariant
+  before code changes. Lock only the minimum region needed; never serialize the
+  whole VM as a shortcut unless the design explicitly calls for it.
 - Do not change fixtures blindly. For each output mismatch, confirm whether the
   runtime behavior is Python-compatible or the runtime needs fixing.
 - Use `agent/scripts/build_release.py` and `agent/scripts/run_fixtures.py` for

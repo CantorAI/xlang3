@@ -2685,8 +2685,30 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "get_int_max_str_digits", runtime.make_native_function("sys.get_int_max_str_digits", sys_get_int_max_str_digits), error);
   module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
   module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
-  module_set_attr(sys, "is_remote_debug_enabled", runtime.make_native_function("sys.is_remote_debug_enabled", sys_is_remote_debug_enabled), error);
-  module_set_attr(sys, "_is_gil_enabled", runtime.make_native_function("sys._is_gil_enabled", sys_is_gil_enabled), error);
+  module_set_attr(
+      sys,
+      "is_remote_debug_enabled",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.is_remote_debug_enabled",
+          "is_remote_debug_enabled",
+          sys_is_remote_debug_enabled,
+          nullptr,
+          "Return True if remote debugging is enabled, False otherwise."),
+      error);
+  module_set_attr(
+      sys,
+      "_is_gil_enabled",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._is_gil_enabled",
+          "_is_gil_enabled",
+          sys_is_gil_enabled,
+          nullptr,
+          "Return True if the GIL is currently enabled and False otherwise."),
+      error);
   module_set_attr(sys, "activate_stack_trampoline", runtime.make_native_function("sys.activate_stack_trampoline", sys_activate_stack_trampoline), error);
   module_set_attr(sys, "deactivate_stack_trampoline", runtime.make_native_function("sys.deactivate_stack_trampoline", sys_deactivate_stack_trampoline), error);
   module_set_attr(sys, "is_stack_trampoline_active", runtime.make_native_function("sys.is_stack_trampoline_active", sys_is_stack_trampoline_active), error);
@@ -2771,17 +2793,83 @@ void register_sys_module(Runtime& runtime) {
 #if defined(_WIN32)
   module_set_attr(sys, "winver", Value::string("3.14"), error);
   module_set_attr(sys, "dllhandle", Value::int64(reinterpret_cast<int64_t>(GetModuleHandleW(nullptr))), error);
-  module_set_attr(sys, "getwindowsversion", runtime.make_native_function("sys.getwindowsversion", sys_getwindowsversion), error);
-  module_set_attr(sys, "_enablelegacywindowsfsencoding", runtime.make_native_function("sys._enablelegacywindowsfsencoding", sys_enablelegacywindowsfsencoding), error);
+  module_set_attr(
+      sys,
+      "getwindowsversion",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getwindowsversion",
+          "getwindowsversion",
+          sys_getwindowsversion,
+          nullptr,
+          "Return info about the running version of Windows as a named tuple."),
+      error);
+  module_set_attr(
+      sys,
+      "_enablelegacywindowsfsencoding",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._enablelegacywindowsfsencoding",
+          "_enablelegacywindowsfsencoding",
+          sys_enablelegacywindowsfsencoding,
+          nullptr,
+          "Changes the default filesystem encoding to mbcs:replace."),
+      error);
 #endif
   module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);
-  module_set_attr(sys, "_getframemodulename", runtime.make_native_function("sys._getframemodulename", sys_getframemodulename), error);
+  module_set_attr(
+      sys,
+      "_getframemodulename",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._getframemodulename",
+          "_getframemodulename",
+          sys_getframemodulename,
+          nullptr,
+          "Return the name of the module for a calling frame."),
+      error);
   module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);
   module_set_attr(sys, "_current_exceptions", runtime.make_native_function("sys._current_exceptions", sys_current_exceptions), error);
   module_set_attr(sys, "_get_cpu_count_config", runtime.make_native_function("sys._get_cpu_count_config", sys_get_cpu_count_config), error);
-  module_set_attr(sys, "_clear_internal_caches", runtime.make_native_function("sys._clear_internal_caches", sys_clear_internal_caches), error);
-  module_set_attr(sys, "_clear_type_cache", runtime.make_native_function("sys._clear_type_cache", sys_clear_type_cache), error);
-  module_set_attr(sys, "_clear_type_descriptors", runtime.make_native_function("sys._clear_type_descriptors", sys_clear_type_descriptors), error);
+  module_set_attr(
+      sys,
+      "_clear_internal_caches",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._clear_internal_caches",
+          "_clear_internal_caches",
+          sys_clear_internal_caches,
+          nullptr,
+          "Clear all internal performance-related caches."),
+      error);
+  module_set_attr(
+      sys,
+      "_clear_type_cache",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._clear_type_cache",
+          "_clear_type_cache",
+          sys_clear_type_cache,
+          nullptr,
+          "Clear the internal type lookup cache."),
+      error);
+  module_set_attr(
+      sys,
+      "_clear_type_descriptors",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._clear_type_descriptors",
+          "_clear_type_descriptors",
+          sys_clear_type_descriptors,
+          nullptr,
+          "Private function for clearing certain descriptors from a type's dictionary."),
+      error);
   module_set_attr(sys, "get_coroutine_origin_tracking_depth", runtime.make_native_function("sys.get_coroutine_origin_tracking_depth", sys_get_coroutine_origin_tracking_depth), error);
   module_set_attr(sys, "set_coroutine_origin_tracking_depth", runtime.make_native_function("sys.set_coroutine_origin_tracking_depth", sys_set_coroutine_origin_tracking_depth), error);
   module_set_attr(sys, "get_asyncgen_hooks", runtime.make_native_function("sys.get_asyncgen_hooks", sys_get_asyncgen_hooks), error);

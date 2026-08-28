@@ -42,6 +42,13 @@ Work rules:
   feature and the fixture file/assertion that proves it.
 - Use deterministic agent scripts for local checks; do not invent build/test
   command lines during each batch.
+- Treat any crash, hang, Windows popup, access violation, or negative exit code
+  as a runtime regression. Stop feature work, isolate the smallest repro under
+  `tests/fixtures`, fix the runtime cause, and add/update the lesson before
+  allowing the loop to continue.
+- Do not add broad locks, sleeps, retries, or expected-output changes to hide a
+  failing fixture. A stabilization change is valid only when it fixes the
+  runtime invariant and still passes the deterministic fixture gate.
 - On Windows PowerShell, use `rg -F` for literal searches, especially for audit
   checkboxes, brackets, backticks, quotes, C++ punctuation, and Python syntax.
   Use regex mode only when the pattern is intentionally a regex.

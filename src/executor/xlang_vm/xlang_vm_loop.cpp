@@ -474,7 +474,7 @@ RuntimeResult Interpreter::run_function(
     }
     if (auto* returned_trace = value_as_function(trace_result.value)) {
       (void)returned_trace;
-      trace_frame.trace_function = trace_result.value;
+      value_assign_fast(trace_frame.trace_function, trace_result.value);
     } else if (trace_result.value.tag == ValueTag::None || trace_result.value.tag == ValueTag::Invalid) {
       value_set_invalid(trace_frame.trace_function);
     }

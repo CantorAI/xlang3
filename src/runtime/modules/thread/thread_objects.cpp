@@ -894,7 +894,7 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
       } else if (auto* native = value_as_native_function(bound->function)) {
         Value ignored;
         std::string error;
-        std::unique_lock<std::recursive_mutex> execution_lock(xlang_runtime_execution_lock());
+        XlangRuntimeExecutionGuard execution_lock;
         if (!native->callback(
                 *state->runtime,
                 bound_call_args.leading,
@@ -910,7 +910,7 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
     } else if (auto* native = value_as_native_function(state->target)) {
       Value ignored;
       std::string error;
-      std::unique_lock<std::recursive_mutex> execution_lock(xlang_runtime_execution_lock());
+      XlangRuntimeExecutionGuard execution_lock;
       if (!native->callback(
               *state->runtime,
               call_args.leading,
@@ -994,7 +994,7 @@ bool xlang_thread_start_detached(
       } else if (auto* native = value_as_native_function(bound->function)) {
         Value ignored;
         std::string callback_error;
-        std::unique_lock<std::recursive_mutex> execution_lock(xlang_runtime_execution_lock());
+        XlangRuntimeExecutionGuard execution_lock;
         (void)native->callback(
             *state->runtime,
             bound_call_args.leading,
@@ -1006,7 +1006,7 @@ bool xlang_thread_start_detached(
     } else if (auto* native = value_as_native_function(state->target)) {
       Value ignored;
       std::string callback_error;
-      std::unique_lock<std::recursive_mutex> execution_lock(xlang_runtime_execution_lock());
+      XlangRuntimeExecutionGuard execution_lock;
       (void)native->callback(
           *state->runtime,
           call_args.leading,

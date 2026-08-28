@@ -51,6 +51,7 @@ namespace {
 struct RuntimeCurrentFrameState {
   const std::shared_ptr<const ir::Module>* module_owner = nullptr;
   const Value* globals_module = nullptr;
+  Value current_globals_module;
   uint32_t function_id = 0;
   uint32_t instruction_index = 0;
   const RuntimeFrameView* frame_stack = nullptr;
@@ -407,7 +408,16 @@ const Value* Runtime::find_builtin(const std::string& name) const {
 }
 
 void Runtime::set_current_globals_module(const Value& globals_module) {
-  value_assign_fast(current_globals_module_, globals_module);
+  Value next;
+  value_assign_fast(next, globals_module);
+  auto& state = current_frame_state(*this);
+  value_set_invalid(state.current_globals_module);
+  state.current_globals_module = next;
+}
+
+const Value& Runtime::current_globals_module() const {
+  const auto& state = current_frame_state(*this);
+  return state.current_globals_module.tag == ValueTag::Invalid ? current_globals_module_ : state.current_globals_module;
 }
 
 bool Runtime::set_sys_argv(const std::vector<std::string>& argv, std::string& error) {
@@ -439,7 +449,11 @@ bool Runtime::publish_sys_path(std::string& error) {
 #endif
 
 void Runtime::set_trace_function(Value trace_function) {
-  current_frame_state(*this).trace_function = std::move(trace_function);
+  Value next;
+  value_assign_fast(next, trace_function);
+  auto& state = current_frame_state(*this);
+  value_set_invalid(state.trace_function);
+  state.trace_function = next;
 }
 
 const Value& Runtime::trace_function() const {
@@ -456,11 +470,18 @@ void Runtime::set_trace_dispatch_active(bool active) {
 }
 
 void Runtime::set_thread_trace_function(Value trace_function) {
-  thread_trace_function_ = trace_function;
+  Value next;
+  value_assign_fast(next, trace_function);
+  value_set_invalid(thread_trace_function_);
+  thread_trace_function_ = next;
 }
 
 void Runtime::set_profile_function(Value profile_function) {
-  current_frame_state(*this).profile_function = std::move(profile_function);
+  Value next;
+  value_assign_fast(next, profile_function);
+  auto& state = current_frame_state(*this);
+  value_set_invalid(state.profile_function);
+  state.profile_function = next;
 }
 
 const Value& Runtime::profile_function() const {
@@ -503,7 +524,10 @@ bool Runtime::emit_profile_event_for_frame(const Value& frame, const char* event
 }
 
 void Runtime::set_thread_profile_function(Value profile_function) {
-  thread_profile_function_ = profile_function;
+  Value next;
+  value_assign_fast(next, profile_function);
+  value_set_invalid(thread_profile_function_);
+  thread_profile_function_ = next;
 }
 
 void Runtime::refresh_debug_poll_needed() {
@@ -515,7 +539,10 @@ void Runtime::refresh_debug_poll_needed() {
 }
 
 void Runtime::set_debug_hook(Value hook) {
-  debug_hook_ = std::move(hook);
+  Value next;
+  value_assign_fast(next, hook);
+  value_set_invalid(debug_hook_);
+  debug_hook_ = next;
   refresh_debug_poll_needed();
 }
 
