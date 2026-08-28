@@ -32,6 +32,8 @@ shape the next iteration.
 - Codex CLI output is UTF-8. When the loop captures child output on Windows, do
   not use the console default code page; decode as UTF-8 with replacement so
   warnings or Unicode diagnostics cannot crash the runner.
+- In continuous mode, one empty Codex batch should not stop the goal. Treat it
+  as no-progress and retry a small fixed number of times before exiting.
 - Descriptor primitive changes often need both `object_get_attr` and the VM
   fast-path attribute helper updated; otherwise explicit descriptor calls and
   compiled attribute access can diverge.

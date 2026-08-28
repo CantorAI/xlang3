@@ -38,4 +38,5 @@ lessons = "agent/python314_compat/lessons.md"
 default_section = "Standard Modules Foundation"
 default_limit = 3
 default_iterations = 0
+no_progress_retry_limit = 3
 default_commit_message = "Advance Python 3.14 compatibility"

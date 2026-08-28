@@ -204,6 +204,10 @@ def default_iterations(config: dict, goal: str) -> int:
     return int(goal_config(config, goal).get("default_iterations", 1))
 
 
+def default_no_progress_retry_limit(config: dict, goal: str) -> int:
+    return int(goal_config(config, goal).get("no_progress_retry_limit", 3))
+
+
 def default_commit_message(config: dict, goal: str) -> str:
     return goal_config(config, goal).get(
         "default_commit_message",
@@ -895,6 +899,8 @@ def main() -> int:
     commit_message = args.commit_message or default_commit_message(config, goal)
     iterations = args.iterations if args.iterations >= 0 else default_iterations(config, goal)
     continuous = iterations == 0
+    no_progress_retry_limit = default_no_progress_retry_limit(config, goal)
+    no_progress_count = 0
     xlang3 = args.xlang3 or default_xlang3(config)
     python_exe = default_python(config)
     codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
@@ -1099,8 +1105,19 @@ def main() -> int:
                 if consume_stop_request(config, goal):
                     break
                 if continuous and not committed:
-                    print("Stopping continuous loop because this batch produced no stageable changes.")
-                    break
+                    no_progress_count += 1
+                    if no_progress_count >= no_progress_retry_limit:
+                        print(
+                            "Stopping continuous loop after "
+                            f"{no_progress_count} consecutive no-progress batches."
+                        )
+                        break
+                    print(
+                        "No stageable changes in this batch; continuing because "
+                        f"continuous mode allows {no_progress_retry_limit} retries."
+                    )
+                else:
+                    no_progress_count = 0
 
                 iteration += 1
     finally:
