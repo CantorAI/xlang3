@@ -720,6 +720,12 @@ monitoring_tool_id = 3
 monitoring_code = (lambda: None).__code__
 print(sys.monitoring.DEBUGGER_ID, sys.monitoring.COVERAGE_ID, sys.monitoring.PROFILER_ID, sys.monitoring.OPTIMIZER_ID, monitoring_events.NO_EVENTS, monitoring_events.LINE, monitoring_events.CALL, monitoring_events.BRANCH)
 print(type(monitoring_events).__name__, type(monitoring_events).__module__, repr(monitoring_events).startswith("namespace(PY_START=1"), "C_RAISE=131072" in repr(monitoring_events), repr(monitoring_events).endswith("NO_EVENTS=0)"))
+monitoring_function_names = ("use_tool_id", "free_tool_id", "clear_tool_id", "get_tool", "set_events", "get_events", "set_local_events", "get_local_events", "register_callback", "restart_events", "_all_events")
+print(
+    all(getattr(sys.monitoring, name).__name__ == name and getattr(sys.monitoring, name).__qualname__ == name for name in monitoring_function_names),
+    all(getattr(sys.monitoring, name).__module__ == "sys.monitoring" for name in monitoring_function_names),
+    all(getattr(sys.monitoring, name).__doc__ is None for name in monitoring_function_names),
+)
 print(sys.monitoring.get_tool(monitoring_tool_id) is None, sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor") is None, sys.monitoring.get_tool(monitoring_tool_id))
 print(sys.monitoring.get_events(monitoring_tool_id), sys.monitoring.set_events(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL) is None, sys.monitoring.get_events(monitoring_tool_id))
 print(sys.monitoring.get_tool(True) is None, sys.monitoring.use_tool_id(True, "fixture-monitor-bool") is None, sys.monitoring.get_tool(1))

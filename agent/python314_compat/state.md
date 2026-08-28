@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._jit CPython-style probe function metadata
+sys.monitoring CPython-style helper function metadata
 ```
 
 Current next loop:

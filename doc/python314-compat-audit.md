@@ -274,6 +274,10 @@ Recent completed batches:
   `is_available`/`is_enabled`/`is_active` callable metadata alongside the
   existing inactive/unavailable state probes, with Standard Modules fixture
   coverage.
+- Expanded native `sys.monitoring` CPython 3.14 metadata: monitoring helper
+  functions now expose short `__name__`/`__qualname__`, `sys.monitoring`
+  `__module__`, and CPython-style `None` docs while preserving their covered
+  arity diagnostics and event behavior.
 - Tightened native `sys.breakpointhook` / `sys.__breakpointhook__`: both
   aliases now accept keyword calls through the native keyword-call path, so
   the `PYTHONBREAKPOINT=0` no-op compatibility path used by tooling handles
@@ -956,7 +960,8 @@ Native or runtime-backed foundation:
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
   including CPython-style activation arity/type `TypeError` diagnostics,
   `sys._jit` module/function metadata and state probes,
-  `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
+  `sys.monitoring` import/configuration surface with CPython 3.14 helper
+  function metadata, tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
   global/local event masks, callback replacement, restart/all-events
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,

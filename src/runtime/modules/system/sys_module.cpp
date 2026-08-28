@@ -188,6 +188,23 @@ Value sys_metadata_native_function(
   return function;
 }
 
+Value sys_metadata_native_function_no_doc(
+    Runtime& runtime,
+    const std::string& module_name,
+    const std::string& qualified_name,
+    const std::string& function_name,
+    NativeFunctionCallback callback) {
+  Value function = runtime.make_native_function(qualified_name, callback);
+  if (auto* native = value_as_native_function(function)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__module__"), Value::string(module_name)},
+        {Value::string("__name__"), Value::string(function_name)},
+        {Value::string("__qualname__"), Value::string(function_name)},
+    }));
+  }
+  return function;
+}
+
 Value make_member_descriptor(const std::string& owner_name, const std::string& name, uint32_t index) {
   return slot_descriptor(owner_name, name, index);
 }
@@ -2715,17 +2732,39 @@ void register_sys_module(Runtime& runtime) {
       .value("MISSING", Value::instance(Value::class_object("object", {})))
       .value("DISABLE", Value::instance(Value::class_object("object", {})))
       .value("events", make_monitoring_events())
-      .function("use_tool_id", sys_monitoring_use_tool_id)
-      .function("free_tool_id", sys_monitoring_free_tool_id)
-      .function("clear_tool_id", sys_monitoring_clear_tool_id)
-      .function("get_tool", sys_monitoring_get_tool)
-      .function("set_events", sys_monitoring_set_events)
-      .function("get_events", sys_monitoring_get_events)
-      .function("set_local_events", sys_monitoring_set_local_events)
-      .function("get_local_events", sys_monitoring_get_local_events)
-      .function("register_callback", sys_monitoring_register_callback)
-      .function("restart_events", sys_monitoring_restart_events)
-      .function("_all_events", sys_monitoring_all_events);
+      .value("use_tool_id",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.use_tool_id", "use_tool_id", sys_monitoring_use_tool_id))
+      .value("free_tool_id",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.free_tool_id", "free_tool_id", sys_monitoring_free_tool_id))
+      .value("clear_tool_id",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.clear_tool_id", "clear_tool_id", sys_monitoring_clear_tool_id))
+      .value("get_tool",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.get_tool", "get_tool", sys_monitoring_get_tool))
+      .value("set_events",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.set_events", "set_events", sys_monitoring_set_events))
+      .value("get_events",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.get_events", "get_events", sys_monitoring_get_events))
+      .value("set_local_events",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.set_local_events", "set_local_events", sys_monitoring_set_local_events))
+      .value("get_local_events",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.get_local_events", "get_local_events", sys_monitoring_get_local_events))
+      .value("register_callback",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.register_callback", "register_callback", sys_monitoring_register_callback))
+      .value("restart_events",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring.restart_events", "restart_events", sys_monitoring_restart_events))
+      .value("_all_events",
+             sys_metadata_native_function_no_doc(
+                 runtime, "sys.monitoring", "sys.monitoring._all_events", "_all_events", sys_monitoring_all_events));
   Value monitoring_module = monitoring_builder.finish();
   module_set_attr(sys, "monitoring", monitoring_module, error);
   runtime.register_module("sys.monitoring", monitoring_module);
