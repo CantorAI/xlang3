@@ -3670,7 +3670,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getswitchinterval,
           const_cast<char*>("sys.getswitchinterval"),
           "Return the current thread switch interval; see sys.setswitchinterval().",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3688,7 +3689,8 @@ void register_sys_module(Runtime& runtime) {
           "(this is implementation-specific and workload-dependent).\n\n"
           "The parameter must represent the desired switching delay in seconds\n"
           "A typical value is 0.005 (5 milliseconds).",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, interval, /)"),
       error);
   module_set_attr(
       sys,
@@ -3701,7 +3703,8 @@ void register_sys_module(Runtime& runtime) {
           sys_get_int_max_str_digits,
           const_cast<char*>("sys.get_int_max_str_digits"),
           "Return the maximum string digits limit for non-binary int<->str conversions.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3714,7 +3717,8 @@ void register_sys_module(Runtime& runtime) {
           sys_set_int_max_str_digits,
           nullptr,
           "Set the maximum string digits limit for non-binary int<->str conversions.",
-          sys_set_int_max_str_digits_kw),
+          sys_set_int_max_str_digits_kw,
+          "($module, /, maxdigits)"),
       error);
   module_set_attr(
       sys,

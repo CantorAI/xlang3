@@ -990,7 +990,7 @@ Native or runtime-backed foundation:
   including `None`/`bytes` event names, and keyword `TypeError` diagnostics,
   stdio capability probes including CPython-style method metadata and
   no-argument diagnostics, profile/switch-interval/int-string helpers with
-  bool-as-int setters, CPython-style setter keyword diagnostics including
+  bool-as-int setters and text signatures, CPython-style setter keyword diagnostics including
   `set_int_max_str_digits(maxdigits=...)` binding, and setter arity/type
   `TypeError` diagnostics plus CPython-style trace/profile/config setter and debug helper
   metadata including trace/profile helper docs and `setswitchinterval` docs, `sys.int_info`
