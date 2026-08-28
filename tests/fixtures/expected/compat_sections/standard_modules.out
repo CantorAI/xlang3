@@ -377,6 +377,8 @@ sys-noarg-diagnostic jit True True
 sys-noarg-diagnostic unicodeinterned True
 True True
 True
+sys-exception-state-arity exc_info True True
+sys-exception-state-arity exception True True
 5
 sys-exit-arity True True
 2 42 'hook\ntext' 2 True True True

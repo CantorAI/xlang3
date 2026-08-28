@@ -176,6 +176,8 @@ Recent completed batches:
 - Tightened native async-generator hook configuration: `sys.set_asyncgen_hooks`
   now reports CPython-style positional/keyword binding diagnostics and includes
   offending type names in non-callable hook `TypeError` messages.
+- Tightened native exception-state helper diagnostics: `sys.exc_info` and
+  `sys.exception` now report CPython-style no-argument `TypeError` messages.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -839,7 +841,8 @@ documented here.
 
 Native or runtime-backed foundation:
 
-- [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
+- [~] `sys`: `modules`, `exc_info`/`exception` with CPython-style no-argument
+  `TypeError` diagnostics, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors

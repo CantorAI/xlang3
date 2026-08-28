@@ -1460,6 +1460,15 @@ try:
 except RuntimeError as err:
     print(sys.exception() is err, sys.exc_info()[1] is err)
     print(sys._current_exceptions()[current_thread_id] is err)
+for sys_exception_state_name, sys_exception_state_call in [
+    ("exc_info", lambda: sys.exc_info(1)),
+    ("exception", lambda: sys.exception(1)),
+]:
+    try:
+        sys_exception_state_call()
+    except TypeError as err:
+        sys_exception_state_message = str(err)
+        print("sys-exception-state-arity", sys_exception_state_name, "takes no arguments" in sys_exception_state_message, "1 given" in sys_exception_state_message)
 try:
     sys.exit(5)
 except SystemExit as err:

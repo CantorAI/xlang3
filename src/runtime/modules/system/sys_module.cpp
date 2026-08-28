@@ -877,9 +877,7 @@ Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind)
 
 bool sys_exc_info(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.exc_info expected 0 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.exc_info", argc);
   }
   const Value& exception = runtime.active_exception();
   if (exception.tag == ValueTag::Invalid) {
@@ -895,9 +893,7 @@ bool sys_exc_info(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
 
 bool sys_exception(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
-    error = "sys.exception expected 0 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_no_args_type_error(runtime, error, "sys.exception", argc);
   }
   const Value& exception = runtime.active_exception();
   if (exception.tag == ValueTag::Invalid) {
