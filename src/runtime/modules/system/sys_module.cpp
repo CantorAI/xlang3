@@ -1133,6 +1133,41 @@ bool sys_getframemodulename(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool sys_getframemodulename_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc + kwargc > 1) {
+    if (argc > 0) {
+      error = "_getframemodulename() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
+    } else {
+      error = "_getframemodulename() takes at most 1 keyword argument (" + std::to_string(kwargc) + " given)";
+    }
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (kwargc == 1) {
+    const std::string name(kwargs[0].name == nullptr ? "" : kwargs[0].name);
+    if (name != "depth") {
+      error = "_getframemodulename() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (kwargs[0].value == nullptr) {
+      error = "_getframemodulename() received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    return sys_getframemodulename(runtime, kwargs[0].value, 1, out, error, nullptr);
+  }
+  return sys_getframemodulename(runtime, args, argc, out, error, nullptr);
+}
+
 bool sys_current_frames(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys._current_frames", argc);
@@ -3585,7 +3620,14 @@ void register_sys_module(Runtime& runtime) {
       sys,
       "_getframe",
       sys_metadata_native_function(
-          runtime, "sys", "sys._getframe", "_getframe", sys_getframe, nullptr, "Return a frame object from the call stack."),
+          runtime,
+          "sys",
+          "sys._getframe",
+          "_getframe",
+          sys_getframe,
+          const_cast<char*>("sys._getframe"),
+          "Return a frame object from the call stack.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3597,7 +3639,8 @@ void register_sys_module(Runtime& runtime) {
           "_getframemodulename",
           sys_getframemodulename,
           nullptr,
-          "Return the name of the module for a calling frame."),
+          "Return the name of the module for a calling frame.",
+          sys_getframemodulename_kw),
       error);
   module_set_attr(
       sys,

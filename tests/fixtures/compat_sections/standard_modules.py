@@ -1349,6 +1349,7 @@ print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_
 def sys_frame_module_probe():
     return sys._getframemodulename(1)
 print(sys_frame_module_probe(), sys._getframemodulename(9999) is None)
+print("sys-getframemodulename-keyword", sys._getframemodulename(depth=0) == "__main__")
 print(sys._getframemodulename(False) == "__main__", sys._getframemodulename(True) is None)
 print(sys._getframe(-1).f_code.co_name == "<module>", sys._getframe(-2).f_globals["__name__"] == "__main__")
 print(sys._getframemodulename(-1) == "__main__", sys._getframemodulename(-2) == "__main__")
@@ -1364,6 +1365,20 @@ try:
     sys._getframemodulename("x")
 except TypeError as err:
     print("sys-getframemodulename-type", "int" in str(err) or "integer" in str(err))
+try:
+    sys._getframe(depth=0)
+except TypeError as err:
+    print("sys-getframe-keyword", "takes no keyword arguments" in str(err))
+for sys_getframemodulename_bad_name, sys_getframemodulename_bad_call, sys_getframemodulename_bad_parts in [
+    ("unexpected", lambda: sys._getframemodulename(x=0), ("unexpected keyword argument", "x")),
+    ("duplicate", lambda: sys._getframemodulename(0, depth=0), ("at most 1 argument", "2 given")),
+    ("extra-keyword", lambda: sys._getframemodulename(depth=0, x=1), ("at most 1 keyword argument", "2 given")),
+]:
+    try:
+        sys_getframemodulename_bad_call()
+    except TypeError as err:
+        sys_getframemodulename_bad_message = str(err)
+        print("sys-getframemodulename-keyword-diagnostic", sys_getframemodulename_bad_name, all(part in sys_getframemodulename_bad_message for part in sys_getframemodulename_bad_parts))
 try:
     sys._is_gil_enabled(1)
 except TypeError as err:

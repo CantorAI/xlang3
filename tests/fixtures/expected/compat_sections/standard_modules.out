@@ -369,12 +369,17 @@ sys-setter-keyword call_tracing True
 sys-setter-keyword activate_stack_trampoline True
 True True True
 __main__ True
+sys-getframemodulename-keyword True
 True True
 True True
 True True
 sys-getframe-bool-depth True
 sys-getframe-depth True
 sys-getframemodulename-type True
+sys-getframe-keyword True
+sys-getframemodulename-keyword-diagnostic unexpected True
+sys-getframemodulename-keyword-diagnostic duplicate True
+sys-getframemodulename-keyword-diagnostic extra-keyword True
 sys-gil-args True
 sys-audit-arity True True
 sys-audit-event-type True True
