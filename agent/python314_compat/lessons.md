@@ -99,3 +99,7 @@ shape the next iteration.
 - Structseq type metadata belongs in the shared builder. CPython-visible
   `__module__`/`__qualname__` gaps can otherwise affect every generated
   `sys.*_info` type even when instances, descriptors, and reprs look correct.
+- Type reprs need to derive from visible class `__module__`/`__qualname__`
+  metadata while eliding `builtins`; setting those attrs alone can still leave
+  CPython-visible `<class 'module.name'>` mismatches if the shared repr path
+  uses only the internal class name.

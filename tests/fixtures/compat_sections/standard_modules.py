@@ -1295,7 +1295,7 @@ print(repr(sys.version_info), repr(sys.flags).startswith("sys.flags("), "gil=" n
 print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_randomization, sys.flags.utf8_mode)
 print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.thread_inherit_context, sys.flags.context_aware_warnings, len(sys.flags))
 print(type(sys.version_info).n_fields, type(sys.version_info).major.__name__, type(sys.flags).n_fields, type(sys.flags).gil.__name__)
-print("sys-structseq-type-metadata", all((type(getattr(sys, name)).__module__, type(getattr(sys, name)).__qualname__) == ("sys", name) for name in ("version_info", "flags", "int_info", "float_info", "hash_info", "thread_info")))
+print("sys-structseq-type-metadata", all((type(getattr(sys, name)).__module__, type(getattr(sys, name)).__qualname__) == ("sys", name) for name in ("version_info", "flags", "int_info", "float_info", "hash_info", "thread_info")), all(repr(type(getattr(sys, name))) == "<class 'sys." + name + "'>" and str(type(getattr(sys, name))) == "<class 'sys." + name + "'>" for name in ("version_info", "flags", "int_info", "float_info", "hash_info", "thread_info")))
 print(type(sys.version_info).__match_args__, type(sys.flags).__match_args__[-1], len(type(sys.flags).__match_args__), "gil" not in type(sys.flags).__match_args__)
 sys_version_major_descriptor = type(sys.version_info).major
 sys_flags_debug_descriptor = type(sys.flags).debug

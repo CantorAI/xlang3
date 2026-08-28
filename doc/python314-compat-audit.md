@@ -948,7 +948,7 @@ Native or runtime-backed foundation:
   tuple inheritance, sequence iteration, tuple-backed `count`/`index` including bool-as-int
   start/stop bounds and CPython-style arity/type/keyword diagnostics plus
   out-of-range `IndexError`, CPython-style named-field `repr` with arity/type/keyword diagnostics,
-  type-level `__module__`/`__qualname__` metadata, and type-level `__match_args__`,
+  type-level `__module__`/`__qualname__` metadata and CPython-style type reprs, and type-level `__match_args__`,
   `implementation` metadata with CPython-style SimpleNamespace type metadata
   including `__qualname__` and doc text plus namespace-style repr, `builtin_module_names`,
   CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` plus `_vpath`/`_home`

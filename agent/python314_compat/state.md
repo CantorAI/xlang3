@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys structseq type qualname metadata
+sys structseq type repr metadata
 ```
 
 Current next loop:

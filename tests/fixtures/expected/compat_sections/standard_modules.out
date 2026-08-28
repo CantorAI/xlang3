@@ -339,7 +339,7 @@ sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) Tru
 False 0 1 0
 18 21 1 0 0 18
 5 major 21 gil
-sys-structseq-type-metadata True
+sys-structseq-type-metadata True True
 ('major', 'minor', 'micro', 'releaselevel', 'serial') int_max_str_digits 18 True
 member_descriptor builtins True 3 True True True
 2 53 64 nt

@@ -96,6 +96,30 @@ Value class_value(const ClassObject* klass) {
   return value;
 }
 
+std::string class_display_name(const ClassObject& klass) {
+  std::string name = klass.name;
+  auto qualname_it = klass.attrs.find("__qualname__");
+  if (qualname_it != klass.attrs.end()) {
+    if (auto* qualname = value_as_string(qualname_it->second)) {
+      name = string_object_to_string(*qualname);
+    }
+  }
+
+  auto module_it = klass.attrs.find("__module__");
+  if (module_it == klass.attrs.end()) {
+    return name;
+  }
+  auto* module = value_as_string(module_it->second);
+  if (module == nullptr) {
+    return name;
+  }
+  std::string module_name = string_object_to_string(*module);
+  if (module_name.empty() || module_name == "builtins") {
+    return name;
+  }
+  return module_name + "." + name;
+}
+
 bool contains_class(const std::vector<const ClassObject*>& classes, const ClassObject* klass) {
   return std::find(classes.begin(), classes.end(), klass) != classes.end();
 }
@@ -1121,7 +1145,7 @@ void object_model_release_object(Object* object) {
 
 std::string object_model_to_string(const Value& value) {
   if (auto* klass = value_as_class(value)) {
-    return "<class '" + klass->name + "'>";
+    return "<class '" + class_display_name(*klass) + "'>";
   }
   if (auto* instance = value_as_instance(value)) {
     if (auto* klass = value_as_class(instance->klass)) {
