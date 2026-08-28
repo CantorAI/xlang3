@@ -2152,6 +2152,19 @@ constructed_keyword_dict_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3,
 constructed_new_time = time.struct_time.__new__(time.struct_time, (2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_new_keyword_time = time.struct_time.__new__(time.struct_time, sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={"tm_zone": "NEW", "tm_gmtoff": 987})
 print("struct-time-new", constructed_new_time.tm_year, constructed_new_keyword_time.tm_zone, constructed_new_keyword_time.tm_gmtoff, time.struct_time.__new__.__name__, time.struct_time.__new__.__qualname__, time.struct_time.__new__.__doc__ is not None)
+struct_time_getnewargs = constructed_zone_time.__getnewargs__()
+print("struct-time-getnewargs", isinstance(struct_time_getnewargs, tuple), len(struct_time_getnewargs), struct_time_getnewargs[0] == tuple(constructed_zone_time), len(struct_time_getnewargs[0]), time.struct_time.__getnewargs__.__name__, time.struct_time.__getnewargs__.__qualname__, getattr(time.struct_time.__getnewargs__, "__module__", None) is None, time.struct_time.__getnewargs__.__doc__ is None)
+for struct_time_getnewargs_bad_name, struct_time_getnewargs_bad_call, struct_time_getnewargs_bad_parts in [
+    ("extra", lambda: constructed_time.__getnewargs__(1), ("takes no arguments", "1 given")),
+    ("keyword", lambda: constructed_time.__getnewargs__(x=1), ("takes no keyword arguments",)),
+    ("unbound-missing", lambda: time.struct_time.__getnewargs__(), ("needs an argument",)),
+    ("receiver", lambda: time.struct_time.__getnewargs__([]), ("descriptor '__getnewargs__'", "list")),
+]:
+    try:
+        struct_time_getnewargs_bad_call()
+    except TypeError as err:
+        struct_time_getnewargs_bad_message = str(err)
+        print("struct-time-getnewargs-diagnostic", struct_time_getnewargs_bad_name, all(part in struct_time_getnewargs_bad_message for part in struct_time_getnewargs_bad_parts))
 for struct_time_new_bad_name, struct_time_new_bad_call, struct_time_new_bad_parts in [
     ("missing", lambda: time.struct_time.__new__(), ("not enough arguments",)),
     ("class-only", lambda: time.struct_time.__new__(time.struct_time), ("missing required argument", "sequence")),

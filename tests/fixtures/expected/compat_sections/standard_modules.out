@@ -648,6 +648,11 @@ time struct_time True 11 9 0 True True
 ('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
 member_descriptor builtins True 2026 Z True True
 struct-time-new 2026 NEW 987 __new__ struct_time.__new__ True
+struct-time-getnewargs True 1 True 9 __getnewargs__ tuple.__getnewargs__ True True
+struct-time-getnewargs-diagnostic extra True
+struct-time-getnewargs-diagnostic keyword True
+struct-time-getnewargs-diagnostic unbound-missing True
+struct-time-getnewargs-diagnostic receiver True
 struct-time-new-diagnostic missing True
 struct-time-new-diagnostic class-only True
 struct-time-new-diagnostic extra True

@@ -1084,7 +1084,8 @@ Native or runtime-backed foundation:
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`
   and trailing percent, constructible/indexable/iterable
   `struct_time` with CPython-style class `__module__`/`__qualname__`/doc metadata,
-  direct `struct_time.__new__` construction/metadata/keyword binding, and constructor arity/type/sequence-length
+  direct `struct_time.__new__` construction/metadata/keyword binding, tuple-backed
+  `__getnewargs__` payload/metadata/diagnostics, and constructor arity/type/sequence-length
   diagnostics and CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
   `n_unnamed_fields`, module-level `_STRUCT_TM_ITEMS`, type-level `__match_args__`,
   and named/member fields for sequence slots plus `tm_zone`/`tm_gmtoff`

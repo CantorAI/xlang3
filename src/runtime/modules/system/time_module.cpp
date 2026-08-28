@@ -1377,6 +1377,40 @@ bool time_struct_time_count_kw(
   return false;
 }
 
+bool time_struct_time_getnewargs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "unbound method tuple.__getnewargs__() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 1) {
+    error = "tuple.__getnewargs__() takes no arguments (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  TupleObject* tuple = nullptr;
+  if (!struct_time_tuple_storage(args[0], "__getnewargs__", tuple, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::tuple({Value::tuple(tuple->items)});
+  return true;
+}
+
+bool time_struct_time_getnewargs_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "tuple.__getnewargs__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     error = "unbound method tuple.index() needs an argument";
@@ -2508,6 +2542,14 @@ TimezoneInfo platform_timezone_info() {
 void register_time_module(Runtime& runtime) {
   auto* state = new TimeModuleState();
   const Value* tuple_base = runtime.find_builtin("tuple");
+  Value struct_time_getnewargs = runtime.make_native_function("time.struct_time.__getnewargs__", time_struct_time_getnewargs, nullptr, nullptr, nullptr, false, time_struct_time_getnewargs_kw);
+  if (auto* native = value_as_native_function(struct_time_getnewargs)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__name__"), Value::string("__getnewargs__")},
+        {Value::string("__qualname__"), Value::string("tuple.__getnewargs__")},
+        {Value::string("__doc__"), Value::none()},
+    }));
+  }
   state->struct_time_class = Value::class_object(
       "struct_time",
       {
@@ -2517,6 +2559,7 @@ void register_time_module(Runtime& runtime) {
           {"__new__", Value::static_method(time_native_function(runtime, "time.struct_time.__new__", "__new__", time_struct_time_new, "Create a new struct_time object.", nullptr, time_struct_time_new_kw, "struct_time.__new__"))},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
+          {"__getnewargs__", struct_time_getnewargs},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count, nullptr, nullptr, nullptr, false, time_struct_time_count_kw)},
           {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index, nullptr, nullptr, nullptr, false, time_struct_time_index_kw)},
           {"n_sequence_fields", Value::int64(9)},
