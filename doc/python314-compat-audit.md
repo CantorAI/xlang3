@@ -197,6 +197,9 @@ Recent completed batches:
 - Tightened native `sys` stdio capability method diagnostics: `isatty`,
   `readable`, `writable`, and `seekable` now raise catchable CPython-style
   no-argument `TypeError` exceptions when called with extra arguments.
+- Tightened native `sys._clear_type_descriptors` diagnostics: arity failures
+  now include CPython-style given-count details and non-type failures include
+  the offending runtime type name.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -875,7 +878,8 @@ Native or runtime-backed foundation:
   metadata, `float_repr_style`, `getunicodeinternedsize`,
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
-  CPython-style arity/type/immutable-type errors,
+  CPython-style arity/type/immutable-type errors including given-count and
+  offending-type diagnostics,
   `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit
   helpers including bool-as-int bounds and CPython-style setter arity/type
   `TypeError` plus low-limit `ValueError` diagnostics, `intern`

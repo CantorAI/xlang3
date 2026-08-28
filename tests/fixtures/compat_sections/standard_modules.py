@@ -1372,11 +1372,15 @@ print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys
 try:
     sys._clear_type_descriptors()
 except TypeError as err:
-    print("sys-clear-type-descriptors-arity", "argument" in str(err))
+    print("sys-clear-type-descriptors-arity", "takes exactly one argument" in str(err), "0 given" in str(err))
+try:
+    sys._clear_type_descriptors(SysClearDescriptorsProbe, SysClearDescriptorsProbe)
+except TypeError as err:
+    print("sys-clear-type-descriptors-arity", "takes exactly one argument" in str(err), "2 given" in str(err))
 try:
     sys._clear_type_descriptors(42)
 except TypeError as err:
-    print("sys-clear-type-descriptors-type", "type" in str(err))
+    print("sys-clear-type-descriptors-type", "argument must be type" in str(err), "int" in str(err))
 try:
     sys._clear_type_descriptors(int)
 except TypeError as err:

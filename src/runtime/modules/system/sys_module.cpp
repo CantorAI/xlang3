@@ -1107,13 +1107,13 @@ bool sys_clear_type_descriptors_immutable_type(const ClassObject& klass) {
 bool sys_clear_type_descriptors(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   (void)user_data;
   if (argc != 1) {
-    error = "sys._clear_type_descriptors expected exactly one argument";
+    error = "sys._clear_type_descriptors() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* klass = value_as_class(args[0]);
   if (klass == nullptr) {
-    error = "_clear_type_descriptors() argument must be type";
+    error = "_clear_type_descriptors() argument must be type, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
