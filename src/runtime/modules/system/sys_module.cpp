@@ -2128,6 +2128,46 @@ bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t ar
   return true;
 }
 
+bool sys_set_int_max_str_digits_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc + kwargc > 1) {
+    if (argc > 0) {
+      error = "set_int_max_str_digits() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
+    } else {
+      error = "set_int_max_str_digits() takes at most 1 keyword argument (" + std::to_string(kwargc) + " given)";
+    }
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc == 0 && kwargc == 0) {
+    error = "set_int_max_str_digits() missing required argument 'maxdigits' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (kwargc == 1) {
+    const std::string name(kwargs[0].name == nullptr ? "" : kwargs[0].name);
+    if (name != "maxdigits") {
+      error = "set_int_max_str_digits() missing required argument 'maxdigits' (pos 1)";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (kwargs[0].value == nullptr) {
+      error = "set_int_max_str_digits() received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    return sys_set_int_max_str_digits(runtime, kwargs[0].value, 1, out, error, nullptr);
+  }
+  return sys_set_int_max_str_digits(runtime, args, argc, out, error, nullptr);
+}
+
 bool sys_is_finalizing(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.is_finalizing", argc);
@@ -3090,8 +3130,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.setrecursionlimit",
           "setrecursionlimit",
           sys_setrecursionlimit,
-          nullptr,
-          "Set the maximum depth of the Python interpreter stack to n."),
+          const_cast<char*>("sys.setrecursionlimit"),
+          "Set the maximum depth of the Python interpreter stack to n.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3188,7 +3229,14 @@ void register_sys_module(Runtime& runtime) {
       sys,
       "settrace",
       sys_metadata_native_function(
-          runtime, "sys", "sys.settrace", "settrace", sys_settrace, nullptr, "Set the global debug tracing function."),
+          runtime,
+          "sys",
+          "sys.settrace",
+          "settrace",
+          sys_settrace,
+          const_cast<char*>("sys.settrace"),
+          "Set the global debug tracing function.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3212,20 +3260,35 @@ void register_sys_module(Runtime& runtime) {
           "sys._settraceallthreads",
           "_settraceallthreads",
           sys_settraceallthreads,
-          nullptr,
-          "Set the global debug tracing function in all running threads belonging to the current interpreter."),
+          const_cast<char*>("sys._settraceallthreads"),
+          "Set the global debug tracing function in all running threads belonging to the current interpreter.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
       "call_tracing",
       sys_metadata_native_function(
-          runtime, "sys", "sys.call_tracing", "call_tracing", sys_call_tracing, nullptr, "Call func(*args), while tracing is enabled."),
+          runtime,
+          "sys",
+          "sys.call_tracing",
+          "call_tracing",
+          sys_call_tracing,
+          const_cast<char*>("sys.call_tracing"),
+          "Call func(*args), while tracing is enabled.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
       "setprofile",
       sys_metadata_native_function(
-          runtime, "sys", "sys.setprofile", "setprofile", sys_setprofile, nullptr, "Set the profiling function."),
+          runtime,
+          "sys",
+          "sys.setprofile",
+          "setprofile",
+          sys_setprofile,
+          const_cast<char*>("sys.setprofile"),
+          "Set the profiling function.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3249,8 +3312,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._setprofileallthreads",
           "_setprofileallthreads",
           sys_setprofileallthreads,
-          nullptr,
-          "Set the profiling function in all running threads belonging to the current interpreter."),
+          const_cast<char*>("sys._setprofileallthreads"),
+          "Set the profiling function in all running threads belonging to the current interpreter.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3274,8 +3338,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.setswitchinterval",
           "setswitchinterval",
           sys_setswitchinterval,
-          nullptr,
-          "Set the ideal thread switching delay inside the Python interpreter."),
+          const_cast<char*>("sys.setswitchinterval"),
+          "Set the ideal thread switching delay inside the Python interpreter.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3300,7 +3365,8 @@ void register_sys_module(Runtime& runtime) {
           "set_int_max_str_digits",
           sys_set_int_max_str_digits,
           nullptr,
-          "Set the maximum string digits limit for non-binary int<->str conversions."),
+          "Set the maximum string digits limit for non-binary int<->str conversions.",
+          sys_set_int_max_str_digits_kw),
       error);
   module_set_attr(
       sys,
@@ -3350,8 +3416,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.activate_stack_trampoline",
           "activate_stack_trampoline",
           sys_activate_stack_trampoline,
-          nullptr,
-          "Activate stack profiler trampoline *backend*."),
+          const_cast<char*>("sys.activate_stack_trampoline"),
+          "Activate stack profiler trampoline *backend*.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,

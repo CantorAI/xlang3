@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys broad no-argument helper keyword diagnostics
+sys setter keyword diagnostics and int max digits keyword binding
 ```
 
 Current next loop:

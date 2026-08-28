@@ -326,10 +326,15 @@ sys-recursionlimit-diagnostic type True
 640 640 640 4300 640
 0 0 0
 0 0 0
+sys-int-max-str-digits-keyword True True True
+sys-int-max-str-digits-keyword True True True
 int-max-str-digits-bool True True
 sys-int-max-str-digits-diagnostic missing True
 sys-int-max-str-digits-diagnostic extra True
 sys-int-max-str-digits-diagnostic type True
+sys-int-max-str-digits-diagnostic keyword-missing True
+sys-int-max-str-digits-diagnostic keyword-duplicate True
+sys-int-max-str-digits-diagnostic keyword-extra True
 int-max-str-digits True True
 True False
 True True True
@@ -354,6 +359,14 @@ sys-traceprofile-arity setprofileall2 True
 sys-traceprofile-arity call_tracing0 True
 sys-traceprofile-arity call_tracing1 True
 sys-traceprofile-arity call_tracing3 True
+sys-setter-keyword setrecursionlimit True
+sys-setter-keyword setswitchinterval True
+sys-setter-keyword settrace True
+sys-setter-keyword _settraceallthreads True
+sys-setter-keyword setprofile True
+sys-setter-keyword _setprofileallthreads True
+sys-setter-keyword call_tracing True
+sys-setter-keyword activate_stack_trampoline True
 True True True
 __main__ True
 True True

@@ -1204,6 +1204,10 @@ sys.set_int_max_str_digits(0)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17])
 sys.set_int_max_str_digits(False)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17])
+sys.set_int_max_str_digits(maxdigits=640)
+print("sys-int-max-str-digits-keyword", sys.get_int_max_str_digits() == 640, sys.flags.int_max_str_digits == 640, sys.flags[17] == 640)
+sys.set_int_max_str_digits(maxdigits=0)
+print("sys-int-max-str-digits-keyword", sys.get_int_max_str_digits() == 0, sys.flags.int_max_str_digits == 0, sys.flags[17] == 0)
 try:
     sys.set_int_max_str_digits(True)
 except ValueError as err:
@@ -1212,6 +1216,9 @@ for sys_int_digits_bad_name, sys_int_digits_bad_call, sys_int_digits_bad_parts i
     ("missing", lambda: sys.set_int_max_str_digits(), ("missing required argument", "maxdigits")),
     ("extra", lambda: sys.set_int_max_str_digits(1, 2), ("at most 1 argument", "2 given")),
     ("type", lambda: sys.set_int_max_str_digits("x"), ("str", "cannot be interpreted as an integer")),
+    ("keyword-missing", lambda: sys.set_int_max_str_digits(value=640), ("missing required argument", "maxdigits")),
+    ("keyword-duplicate", lambda: sys.set_int_max_str_digits(640, maxdigits=640), ("at most 1 argument", "2 given")),
+    ("keyword-extra", lambda: sys.set_int_max_str_digits(maxdigits=640, value=0), ("at most 1 keyword argument", "2 given")),
 ]:
     try:
         sys_int_digits_bad_call()
@@ -1324,6 +1331,20 @@ for sys_traceprofile_bad_name, sys_traceprofile_bad_call, sys_traceprofile_bad_p
     except TypeError as err:
         sys_traceprofile_bad_message = str(err)
         print("sys-traceprofile-arity", sys_traceprofile_bad_name, all(part in sys_traceprofile_bad_message for part in sys_traceprofile_bad_parts))
+for sys_setter_keyword_name, sys_setter_keyword_call in [
+    ("setrecursionlimit", lambda: sys.setrecursionlimit(limit=old_recursion_limit)),
+    ("setswitchinterval", lambda: sys.setswitchinterval(interval=old_switch)),
+    ("settrace", lambda: sys.settrace(function=None)),
+    ("_settraceallthreads", lambda: sys._settraceallthreads(function=None)),
+    ("setprofile", lambda: sys.setprofile(function=None)),
+    ("_setprofileallthreads", lambda: sys._setprofileallthreads(function=None)),
+    ("call_tracing", lambda: sys.call_tracing(func=sys_call_tracing_probe, args=())),
+    ("activate_stack_trampoline", lambda: sys.activate_stack_trampoline(backend="perf")),
+]:
+    try:
+        sys_setter_keyword_call()
+    except TypeError as err:
+        print("sys-setter-keyword", sys_setter_keyword_name, "takes no keyword arguments" in str(err))
 print(sys.exception() is None, sys._getframemodulename() == "__main__", sys._is_gil_enabled() == True)
 def sys_frame_module_probe():
     return sys._getframemodulename(1)

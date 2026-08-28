@@ -961,8 +961,9 @@ Native or runtime-backed foundation:
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
   diagnostics, default/filesystem encoding helpers with CPython-style keyword
   diagnostics, recursion-limit
-  helpers including bool-as-int bounds and CPython-style setter arity/type
-  `TypeError` plus low-limit `ValueError` diagnostics, `intern`
+  helpers including bool-as-int bounds and CPython-style getter/setter keyword
+  diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`
+  diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword
   `TypeError` diagnostics and `_is_interned` including CPython-style
   wrong-type/wrong-arity/keyword `TypeError` diagnostics, `getsizeof` with CPython-style
@@ -985,12 +986,13 @@ Native or runtime-backed foundation:
   and keyword `TypeError` diagnostics,
   stdio capability probes including CPython-style method metadata and
   no-argument diagnostics, profile/switch-interval/int-string helpers with
-  bool-as-int setters and CPython-style setter arity/type `TypeError`
-  diagnostics plus CPython-style trace/profile/config setter and debug helper
+  bool-as-int setters, CPython-style setter keyword diagnostics including
+  `set_int_max_str_digits(maxdigits=...)` binding, and setter arity/type
+  `TypeError` diagnostics plus CPython-style trace/profile/config setter and debug helper
   metadata, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
-  `call_tracing` with CPython-style trace/profile helper arity `TypeError`
-  diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
+  `call_tracing` with CPython-style trace/profile helper arity/keyword
+  `TypeError` diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
   `call`/`return`/`exception` events with current frame arguments and callback-recursion
   suppression, native/C `c_call`/`c_return`/`c_exception` profile events with
   current-frame arguments for covered native callable paths, plus
@@ -999,7 +1001,7 @@ Native or runtime-backed foundation:
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
   including CPython-style callable metadata, no-argument keyword diagnostics,
-  and activation arity/type `TypeError` diagnostics,
+  and activation arity/type/keyword `TypeError` diagnostics,
   `sys._jit` module/function metadata and state probes with CPython-style
   keyword diagnostics,
   `sys.monitoring` import/configuration surface with CPython 3.14 helper
