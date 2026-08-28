@@ -21,6 +21,10 @@ limitations under the License.
   as `_io`, `_thread`, `_weakref`, `_abc`, `_collections`, `_struct`, `_pickle`,
   `zlib`, `_socket`, and product-specific accelerated modules.
 - Do not mark an audit item `[x]` unless it has real fixture coverage.
+- For every new or changed compatibility feature, identify the fixture
+  assertion that proves it. If no assertion exists, add one to the relevant
+  combined section fixture or add a focused fixture with expected output.
+- Batch summaries must include a compact feature-to-fixture coverage map.
 - Do not hide gaps behind stubs, placeholders, importable empty facades, or
   return-`None` behavior.
 - Do not add benchmark-specific or module-specific cheats.

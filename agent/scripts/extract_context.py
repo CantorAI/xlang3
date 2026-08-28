@@ -142,6 +142,10 @@ Runtime doctrine:
 - Do not change fixtures blindly. For each output mismatch, confirm whether the
   runtime behavior is Python-compatible or the runtime needs fixing.
 - Every compatibility change needs fixture coverage under tests/fixtures.
+- Before claiming a feature is implemented, map it to a concrete fixture
+  assertion. If no assertion exists, add one to the combined section fixture or
+  add a focused fixture plus expected output.
+- Include a compact feature-to-fixture coverage map in the batch summary.
 - Update doc/python314-compat-audit.md truthfully.
 - Use the fixed scripts below for validation and section checks; do not invent
   build/test commands during the batch.

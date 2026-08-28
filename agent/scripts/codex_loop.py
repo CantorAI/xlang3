@@ -418,6 +418,10 @@ Runtime doctrine:
 - No benchmark-specific code.
 - No stubs, placeholder facades, or fake compatibility.
 - Every compatibility change needs fixture coverage under tests/fixtures.
+- Before claiming a feature is implemented, map it to a concrete fixture
+  assertion. If no assertion exists, add one to the combined section fixture or
+  add a focused fixture plus expected output.
+- Include a compact feature-to-fixture coverage map in the batch summary.
 - Use the fixed local commands below. Do not rediscover cmake, msbuild, ninja,
   python.exe, or xlang3.exe paths unless one of these exact commands fails.
 - Use the fixed agent scripts below for deterministic build/test behavior;

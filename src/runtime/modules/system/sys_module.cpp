@@ -138,6 +138,18 @@ bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const ch
   return false;
 }
 
+bool sys_bool_or_int_arg(const Value& value, int64_t& out) {
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  return false;
+}
+
 bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
   const char* name = static_cast<const char*>(user_data);
   if (argc != 0) {
@@ -1262,17 +1274,23 @@ bool sys_getrecursionlimit(Runtime& runtime, const Value*, uint32_t argc, Value&
 }
 
 bool sys_setrecursionlimit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  int64_t limit = 0;
+  if (argc != 1 || !sys_bool_or_int_arg(args[0], limit)) {
     error = "sys.setrecursionlimit expected integer limit";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (args[0].as.i64 < 1 || args[0].as.i64 > std::numeric_limits<int>::max()) {
+  if (limit < 1 || limit > std::numeric_limits<int>::max()) {
     error = "recursion limit must be positive";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  g_recursion_limit = static_cast<int>(args[0].as.i64);
+  if (limit <= 1) {
+    error = "cannot set the recursion limit to 1 at the recursion depth 1: the limit is too low";
+    runtime.raise_class_error("RecursionError", error);
+    return false;
+  }
+  g_recursion_limit = static_cast<int>(limit);
   value_set_none(out);
   return true;
 }
@@ -1663,12 +1681,12 @@ bool sys_getswitchinterval(Runtime& runtime, const Value*, uint32_t argc, Value&
 }
 
 bool sys_setswitchinterval(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || (args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double)) {
+  if (argc != 1 || (args[0].tag != ValueTag::Bool && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double)) {
     error = "sys.setswitchinterval expected number";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const double value = args[0].tag == ValueTag::Int64 ? static_cast<double>(args[0].as.i64) : args[0].as.f64;
+  const double value = args[0].tag == ValueTag::Bool ? (args[0].as.b ? 1.0 : 0.0) : args[0].tag == ValueTag::Int64 ? static_cast<double>(args[0].as.i64) : args[0].as.f64;
   if (value <= 0.0) {
     error = "switch interval must be strictly positive";
     runtime.raise_class_error("ValueError", error);
@@ -1688,12 +1706,12 @@ bool sys_get_int_max_str_digits(Runtime& runtime, const Value*, uint32_t argc, V
 }
 
 bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  int64_t max_digits = 0;
+  if (argc != 1 || !sys_bool_or_int_arg(args[0], max_digits)) {
     error = "object cannot be interpreted as an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const int64_t max_digits = args[0].as.i64;
   if (max_digits != 0 && max_digits < kIntStrDigitsCheckThreshold) {
     error = "maxdigits must be >= 640 or 0 for unlimited";
     runtime.raise_class_error("ValueError", error);

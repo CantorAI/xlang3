@@ -33,6 +33,12 @@ Work rules:
 - Use native C++ only for runtime primitives, CPython native dependency modules,
   and performance-critical product modules.
 - Add fixture coverage under `tests/fixtures`.
+- For every new or changed compatibility feature, first check whether an
+  existing fixture assertion covers it. If coverage is missing, add assertions
+  to the existing combined section fixture or add a focused fixture plus its
+  expected output.
+- In the final batch summary, include a compact coverage map naming each
+  feature and the fixture file/assertion that proves it.
 - Use deterministic agent scripts for local checks; do not invent build/test
   command lines during each batch.
 - On Windows PowerShell, use `rg -F` for literal searches, especially for audit

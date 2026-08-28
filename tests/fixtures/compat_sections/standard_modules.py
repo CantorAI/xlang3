@@ -1022,12 +1022,34 @@ except ValueError as err:
 print(sys.deactivate_stack_trampoline() is None, sys.is_stack_trampoline_active())
 old_switch = sys.getswitchinterval()
 sys.setswitchinterval(0.002)
+old_recursion_limit = sys.getrecursionlimit()
 old_int_max_digits = sys.get_int_max_str_digits()
 print(sys.getswitchinterval() > 0, old_int_max_digits, sys.flags.int_max_str_digits, sys.int_info.default_max_str_digits, sys.int_info.str_digits_check_threshold)
+sys.setswitchinterval(True)
+print(sys.getswitchinterval() == 1.0)
+try:
+    sys.setswitchinterval(False)
+except ValueError as err:
+    print("switchinterval-bool", "strictly positive" in str(err))
+try:
+    sys.setrecursionlimit(True)
+except RecursionError as err:
+    print("recursionlimit-bool", "limit is too low" in str(err))
+try:
+    sys.setrecursionlimit(False)
+except ValueError as err:
+    print("recursionlimit-bool", "positive" in str(err) or "greater or equal" in str(err))
+sys.setrecursionlimit(old_recursion_limit)
 sys.set_int_max_str_digits(640)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17], sys.int_info[2], sys.int_info[3])
 sys.set_int_max_str_digits(0)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17])
+sys.set_int_max_str_digits(False)
+print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17])
+try:
+    sys.set_int_max_str_digits(True)
+except ValueError as err:
+    print("int-max-str-digits-bool", ">= 640" in str(err), "0 for unlimited" in str(err))
 sys.set_int_max_str_digits(old_int_max_digits)
 sys.setswitchinterval(old_switch)
 try:

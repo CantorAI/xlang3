@@ -265,8 +265,14 @@ mbcs replace
 stack-trampoline True
 True False
 True 4300 4300 4300 640
+True
+switchinterval-bool True
+recursionlimit-bool True
+recursionlimit-bool True
 640 640 640 4300 640
 0 0 0
+0 0 0
+int-max-str-digits-bool True True
 int-max-str-digits True True
 True False
 True True True

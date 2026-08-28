@@ -798,7 +798,8 @@ Native or runtime-backed foundation:
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/immutable-type errors,
-  `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers, `intern`
+  `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers including bool-as-int
+  bounds, `intern`
   with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount`,
@@ -807,7 +808,7 @@ Native or runtime-backed foundation:
   and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered non-callable hooks,
-  stdio capability probes, profile/switch-interval/int-string helpers with `sys.int_info`
+  stdio capability probes, profile/switch-interval/int-string helpers with bool-as-int setters, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing`, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
   `call`/`return`/`exception` events with current frame arguments and callback-recursion
