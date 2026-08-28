@@ -476,11 +476,16 @@ True
 True True True firstiter
 True True True
 True True True
+True
+asyncgen-hooks-keyword True True
 asyncgen-hooks True True True
 asyncgen-hooks True True True
 asyncgen-hooks-diagnostic extra True
 asyncgen-hooks-diagnostic keyword True
 asyncgen-hooks-diagnostic duplicate True
+asyncgen-hooks-diagnostic too-many-keywords True
+asyncgen-hooks-diagnostic keyword-firstiter-type True
+asyncgen-hooks-diagnostic keyword-finalizer-type True
 True True True
 sys-noarg-typeerrors 25 25
 sys-noarg-diagnostic allocated True True

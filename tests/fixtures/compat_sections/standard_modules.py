@@ -1615,6 +1615,10 @@ asyncgen_hooks = sys.get_asyncgen_hooks()
 print(asyncgen_hooks.firstiter is asyncgen_firstiter_probe, asyncgen_hooks.finalizer is asyncgen_finalizer_probe, asyncgen_hooks[0] is asyncgen_firstiter_probe, type(asyncgen_hooks).firstiter.__name__)
 print(sys.set_asyncgen_hooks(finalizer=None) is None, sys.get_asyncgen_hooks().firstiter is asyncgen_firstiter_probe, sys.get_asyncgen_hooks().finalizer is None)
 print(sys.set_asyncgen_hooks(firstiter=None) is None, sys.get_asyncgen_hooks().firstiter is None, sys.get_asyncgen_hooks().finalizer is None)
+print(sys.set_asyncgen_hooks(firstiter=asyncgen_firstiter_probe, finalizer=asyncgen_finalizer_probe) is None)
+asyncgen_hooks = sys.get_asyncgen_hooks()
+print("asyncgen-hooks-keyword", asyncgen_hooks.firstiter is asyncgen_firstiter_probe, asyncgen_hooks.finalizer is asyncgen_finalizer_probe)
+sys.set_asyncgen_hooks(firstiter=None, finalizer=None)
 try:
     sys.set_asyncgen_hooks(42)
 except TypeError as err:
@@ -1627,6 +1631,9 @@ for sys_asyncgen_bad_name, sys_asyncgen_bad_call, sys_asyncgen_bad_parts in [
     ("extra", lambda: sys.set_asyncgen_hooks(None, None, None), ("at most 2 arguments", "3 given")),
     ("keyword", lambda: sys.set_asyncgen_hooks(unknown=None), ("unexpected keyword argument", "unknown")),
     ("duplicate", lambda: sys.set_asyncgen_hooks(None, firstiter=None), ("given by name", "firstiter", "position (1)")),
+    ("too-many-keywords", lambda: sys.set_asyncgen_hooks(firstiter=None, finalizer=None, unknown=None), ("at most 2 keyword arguments", "3 given")),
+    ("keyword-firstiter-type", lambda: sys.set_asyncgen_hooks(firstiter=42), ("firstiter", "callable", "int")),
+    ("keyword-finalizer-type", lambda: sys.set_asyncgen_hooks(finalizer=42), ("finalizer", "callable", "int")),
 ]:
     try:
         sys_asyncgen_bad_call()

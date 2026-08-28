@@ -1036,7 +1036,8 @@ Native or runtime-backed foundation:
   async-generator hook configuration with structseq-like `asyncgen_hooks`
   including CPython-style `builtins` type-module metadata and
   `get_asyncgen_hooks` keyword diagnostics and `set_asyncgen_hooks`
-  positional/keyword/non-callable `TypeError` diagnostics,
+  positional/two-keyword binding/non-callable/too-many-keyword `TypeError`
+  diagnostics,
   `sys.monitoring` tool/event/local-event helpers with CPython-style arity and
   keyword `TypeError` diagnostics,
   CPython-style runtime/config/frame/cache no-argument helper metadata,

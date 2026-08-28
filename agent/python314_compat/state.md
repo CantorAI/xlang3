@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys coroutine origin tracking depth keyword binding
+sys asyncgen hook keyword binding diagnostics
 ```
 
 Current next loop:

@@ -1357,6 +1357,11 @@ bool sys_set_asyncgen_hooks_impl(
     uint32_t kwargc,
     Value& out,
     std::string& error) {
+  if (kwargc > 2) {
+    error = "function takes at most 2 keyword arguments (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (argc > 2 || argc + kwargc > 2) {
     error = "function takes at most 2 arguments (" + std::to_string(argc + kwargc) + " given)";
     runtime.raise_class_error("TypeError", error);
