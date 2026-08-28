@@ -74,6 +74,15 @@ C:\Python\Python314\python.exe agent\scripts\run_fixtures.py --xlang3 build\Rele
 The script is intentionally conservative: it does not edit code by itself, and
 it does not stage root-level scratch files or build output.
 
+Lessons learned are accumulated in:
+
+```text
+agent/python314_compat/lessons.md
+```
+
+Each batch should add a short lesson when it discovers a recurring mistake,
+compatibility trap, or workflow rule that should guide later iterations.
+
 Resume behavior:
 
 ```text

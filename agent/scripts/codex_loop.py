@@ -31,6 +31,7 @@ CONFIG_PATH = ROOT / "agent" / "config.toml"
 
 CHECK_RE = re.compile(r"^\s*-\s+\[(x|~| )\]\s+(.+)$")
 HEADING_RE = re.compile(r"^(#+)\s+(.+)$")
+SESSION_ID_RE = re.compile(r"\bsession id:\s*([0-9a-fA-F-]{36})\b")
 
 
 def load_config() -> dict:
@@ -63,6 +64,17 @@ def stop_request_path(config: dict, goal: str) -> Path:
 
 def loop_lock_path(config: dict, goal: str) -> Path:
     return runs_dir(config, goal) / "loop.lock"
+
+
+def session_id_path(config: dict, goal: str) -> Path:
+    return runs_dir(config, goal) / "codex_session_id.txt"
+
+
+def lessons_path(config: dict, goal: str) -> Path:
+    configured = goal_config(config, goal).get("lessons", "")
+    if configured:
+        return ROOT / configured
+    return ROOT / "agent" / goal / "lessons.md"
 
 
 def default_xlang3(config: dict) -> str:
@@ -104,6 +116,10 @@ def section_fixture_command_text(config: dict, section: str) -> str:
 
 def default_codex_command(config: dict) -> str:
     return config.get("codex", {}).get("command", "")
+
+
+def default_codex_resume_command(config: dict) -> str:
+    return config.get("codex", {}).get("resume_command", "")
 
 
 def default_commit_message_command(config: dict) -> str:
@@ -169,6 +185,10 @@ def expand_command_template(config: dict, command: str, output: str = "") -> str
     if "{output}" in command:
         command = command.replace("{output}", output)
     return command
+
+
+def expand_session_command_template(config: dict, command: str, session_id: str) -> str:
+    return expand_command_template(config, command).replace("{session_id}", session_id)
 
 
 def default_section(config: dict, goal: str) -> str:
@@ -291,12 +311,62 @@ def run_with_input(command: str, stdin_text: str) -> None:
         raise SystemExit(result.returncode)
 
 
+def run_with_input_tee(command: str, stdin_text: str) -> str:
+    print()
+    print("==", command)
+    process = subprocess.Popen(
+        command,
+        cwd=ROOT,
+        shell=True,
+        text=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
+    )
+    assert process.stdin is not None
+    assert process.stdout is not None
+    process.stdin.write(stdin_text)
+    process.stdin.close()
+
+    captured: list[str] = []
+    for line in process.stdout:
+        print(line, end="")
+        captured.append(line)
+    return_code = process.wait()
+    output = "".join(captured)
+    if return_code != 0:
+        raise SystemExit(return_code)
+    return output
+
+
 def capture(command: list[str]) -> str:
     return subprocess.check_output(command, cwd=ROOT, text=True, stderr=subprocess.STDOUT)
 
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def read_compact_lessons(config: dict, goal: str, max_lines: int = 18) -> str:
+    path = lessons_path(config, goal)
+    if not path.exists():
+        return "- No lessons recorded yet."
+    lessons: list[str] = []
+    current: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            if current:
+                lessons.append(" ".join(current))
+            current = [stripped]
+        elif current and stripped and not stripped.startswith("#") and not stripped.startswith("<!--"):
+            current.append(stripped)
+    if current:
+        lessons.append(" ".join(current))
+    if not lessons:
+        return "- No lessons recorded yet."
+    return "\n".join(lessons[-max_lines:])
 
 
 def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
@@ -397,6 +467,7 @@ def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int,
     fixture_command = fixture_command_text(config)
     section_fixture_command = section_fixture_command_text(config, section) if section else ""
     audit_cursor = f"{section or 'whole audit'}::{items[0][0] if items else 'done'}"
+    lessons = read_compact_lessons(config, goal)
     return f"""# XLang3 Python 3.14 Compatibility Batch
 
 This is a compact cursor-extracted context. Do not reread the full control
@@ -432,6 +503,8 @@ Runtime doctrine:
 - Build only the Release xlang3 target during this loop.
 - Update doc/python314-compat-audit.md truthfully.
 - Update agent/python314_compat/state.md if the checkpoint changes.
+- Update agent/python314_compat/lessons.md if this batch exposes a reusable
+  mistake pattern, compatibility trap, or workflow lesson.
 - The loop will build, test, commit, and push after your work.
 
 Fixed local scripts:
@@ -447,6 +520,9 @@ Selected audit section:
 
 Agent goal:
 {goal}
+
+Lessons from previous iterations:
+{lessons}
 
 Audit counts:
 - checked: {checked}
@@ -543,7 +619,30 @@ def consume_stop_request(config: dict, goal: str) -> bool:
     return True
 
 
-def invoke_codex(command_template: str, prompt_path: Path, prompt: str) -> None:
+def read_saved_session_id(config: dict, goal: str) -> str:
+    path = session_id_path(config, goal)
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8").strip()
+
+
+def write_saved_session_id(config: dict, goal: str, output: str) -> None:
+    matches = SESSION_ID_RE.findall(output)
+    if not matches:
+        return
+    path = session_id_path(config, goal)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(matches[-1] + "\n", encoding="utf-8")
+    print(f"Saved Codex session id: {matches[-1]}")
+
+
+def invoke_codex(config: dict, goal: str, command_template: str, prompt_path: Path, prompt: str) -> None:
+    session_id = read_saved_session_id(config, goal)
+    resume_template = default_codex_resume_command(config)
+    if session_id and resume_template:
+        command_template = expand_session_command_template(config, resume_template, session_id)
+        print(f"Resuming Codex session: {session_id}")
+
     if not command_template:
         raise SystemExit(
             "No Codex backend command configured. Pass --codex-command or use --dry-run."
@@ -558,14 +657,16 @@ def invoke_codex(command_template: str, prompt_path: Path, prompt: str) -> None:
         print()
         print("== Codex backend")
         print(f"Prompt file: {prompt_path}")
-        run_with_input(command, prompt)
+        output = run_with_input_tee(command, prompt)
+        write_saved_session_id(config, goal, output)
         print("Codex backend finished.")
         return
 
     print()
     print("== Codex backend")
     print(f"Prompt file: {prompt_path}")
-    run(command, shell=True)
+    output = run_with_input_tee(command, prompt)
+    write_saved_session_id(config, goal, output)
     print("Codex backend finished.")
 
 
@@ -867,7 +968,7 @@ def main() -> int:
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
                     })
                     try:
-                        invoke_codex(codex_command, prompt_path, prompt)
+                        invoke_codex(config, goal, codex_command, prompt_path, prompt)
                     except SystemExit:
                         write_loop_state(config, goal, {
                             "active": True,
@@ -944,7 +1045,7 @@ def main() -> int:
                     "baseline_stageable_paths": stageable_changes,
                 })
                 try:
-                    invoke_codex(codex_command, prompt_path, prompt)
+                    invoke_codex(config, goal, codex_command, prompt_path, prompt)
                 except SystemExit:
                     write_loop_state(config, goal, {
                         "active": True,

@@ -22,6 +22,7 @@ Read these files before choosing a batch:
 - `agent/python314_compat/rules.md`
 - `agent/python314_compat/state.md`
 - `agent/python314_compat/queue.md`
+- `agent/python314_compat/lessons.md`
 - `doc/python314-compat-audit.md`
 
 Work rules:
@@ -49,5 +50,7 @@ Work rules:
   runtime contract. Do not update expected output just to make tests pass.
 - Update `doc/python314-compat-audit.md` only for behavior that is really
   implemented and tested.
+- Update `agent/python314_compat/lessons.md` when the batch discovers a
+  reusable mistake pattern or workflow lesson.
 - Build Release with `agent/scripts/build_release.py` and run
   `agent/scripts/run_fixtures.py` before committing.

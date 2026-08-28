@@ -40,8 +40,36 @@ def audit_path(config: dict, goal: str) -> Path:
     return ROOT / goal_config(config, goal)["audit"]
 
 
+def lessons_path(config: dict, goal: str) -> Path:
+    configured = goal_config(config, goal).get("lessons", "")
+    if configured:
+        return ROOT / configured
+    return ROOT / "agent" / goal / "lessons.md"
+
+
 def read_lines(path: Path) -> list[str]:
     return path.read_text(encoding="utf-8").splitlines()
+
+
+def read_compact_lessons(config: dict, goal: str, max_lines: int = 18) -> str:
+    path = lessons_path(config, goal)
+    if not path.exists():
+        return "- No lessons recorded yet."
+    lessons: list[str] = []
+    current: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            if current:
+                lessons.append(" ".join(current))
+            current = [stripped]
+        elif current and stripped and not stripped.startswith("#") and not stripped.startswith("<!--"):
+            current.append(stripped)
+    if current:
+        lessons.append(" ".join(current))
+    if not lessons:
+        return "- No lessons recorded yet."
+    return "\n".join(lessons[-max_lines:])
 
 
 def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
@@ -122,6 +150,7 @@ def extract(config: dict, goal: str, section: str, limit: int) -> str:
     )
     if not rows:
         rows = "- No unfinished rows found in this scope."
+    lessons = read_compact_lessons(config, goal)
 
     return f"""# XLang3 Python 3.14 Compact Agent Context
 
@@ -158,6 +187,9 @@ Selected audit section:
 
 Agent goal:
 {goal}
+
+Lessons from previous iterations:
+{lessons}
 
 Audit counts:
 - checked: {checked}
