@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys exception-state helper diagnostics parity
+sys monitoring helper arity diagnostics parity
 ```
 
 Current next loop:

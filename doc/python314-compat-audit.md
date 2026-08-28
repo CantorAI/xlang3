@@ -178,6 +178,9 @@ Recent completed batches:
   offending type names in non-callable hook `TypeError` messages.
 - Tightened native exception-state helper diagnostics: `sys.exc_info` and
   `sys.exception` now report CPython-style no-argument `TypeError` messages.
+- Tightened native `sys.monitoring` helper diagnostics: tool/event/local-event
+  helper arity failures now use CPython-style `TypeError` wording across the
+  covered configuration surface.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -919,6 +922,8 @@ Native or runtime-backed foundation:
   async-generator hook configuration with structseq-like `asyncgen_hooks`
   including CPython-style `builtins` type-module metadata and
   `set_asyncgen_hooks` positional/keyword/non-callable `TypeError` diagnostics,
+  `sys.monitoring` tool/event/local-event helpers with CPython-style arity
+  `TypeError` diagnostics,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,

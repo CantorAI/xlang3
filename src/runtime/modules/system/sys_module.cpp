@@ -1943,7 +1943,7 @@ bool monitoring_single_event(Runtime& runtime, const Value& value, int64_t& out,
 
 bool sys_monitoring_use_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "sys.monitoring.use_tool_id expected tool_id and name";
+    error = "use_tool_id expected 2 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1969,9 +1969,7 @@ bool sys_monitoring_use_tool_id(Runtime& runtime, const Value* args, uint32_t ar
 
 bool sys_monitoring_free_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.monitoring.free_tool_id expected tool_id";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_one_arg_type_error(runtime, error, "sys.monitoring.free_tool_id", argc);
   }
   int64_t tool_id = 0;
   if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
@@ -1987,9 +1985,7 @@ bool sys_monitoring_free_tool_id(Runtime& runtime, const Value* args, uint32_t a
 
 bool sys_monitoring_clear_tool_id(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.monitoring.clear_tool_id expected tool_id";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_one_arg_type_error(runtime, error, "sys.monitoring.clear_tool_id", argc);
   }
   int64_t tool_id = 0;
   if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
@@ -2004,9 +2000,7 @@ bool sys_monitoring_clear_tool_id(Runtime& runtime, const Value* args, uint32_t 
 
 bool sys_monitoring_get_tool(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.monitoring.get_tool expected 1 argument";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_one_arg_type_error(runtime, error, "sys.monitoring.get_tool", argc);
   }
   int64_t tool_id = 0;
   if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
@@ -2018,7 +2012,7 @@ bool sys_monitoring_get_tool(Runtime& runtime, const Value* args, uint32_t argc,
 
 bool sys_monitoring_set_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "sys.monitoring.set_events expected tool_id and event_set";
+    error = "set_events expected 2 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -2041,9 +2035,7 @@ bool sys_monitoring_set_events(Runtime& runtime, const Value* args, uint32_t arg
 
 bool sys_monitoring_get_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.monitoring.get_events expected tool_id";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_sys_one_arg_type_error(runtime, error, "sys.monitoring.get_events", argc);
   }
   int64_t tool_id = 0;
   if (!monitoring_tool_id(runtime, args[0], tool_id, error)) {
@@ -2055,7 +2047,7 @@ bool sys_monitoring_get_events(Runtime& runtime, const Value* args, uint32_t arg
 
 bool sys_monitoring_set_local_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
-    error = "sys.monitoring.set_local_events expected tool_id, code, and event_set";
+    error = "set_local_events expected 3 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -2092,7 +2084,7 @@ bool sys_monitoring_set_local_events(Runtime& runtime, const Value* args, uint32
 
 bool sys_monitoring_get_local_events(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "sys.monitoring.get_local_events expected tool_id and code";
+    error = "get_local_events expected 2 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -2114,7 +2106,7 @@ bool sys_monitoring_get_local_events(Runtime& runtime, const Value* args, uint32
 
 bool sys_monitoring_register_callback(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
-    error = "sys.monitoring.register_callback expected tool_id, event, and func";
+    error = "register_callback expected 3 arguments, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }

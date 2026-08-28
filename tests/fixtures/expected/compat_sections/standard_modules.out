@@ -186,6 +186,17 @@ monitoring-unused-local-tool True
 monitoring-event-set True
 monitoring-code-type True
 monitoring-callback-event True
+monitoring-arity use0 True
+monitoring-arity use3 True
+monitoring-arity free0 True
+monitoring-arity free2 True
+monitoring-arity get_tool0 True
+monitoring-arity clear2 True
+monitoring-arity set_events1 True
+monitoring-arity get_events0 True
+monitoring-arity set_local2 True
+monitoring-arity get_local1 True
+monitoring-arity callback2 True
 True
 True True
 True monitoring-live

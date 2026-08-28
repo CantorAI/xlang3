@@ -754,6 +754,24 @@ try:
     sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE | monitoring_events.CALL, None)
 except ValueError as err:
     print("monitoring-callback-event", "one event" in str(err))
+for monitoring_arity_name, monitoring_arity_call, monitoring_arity_parts in [
+    ("use0", lambda: sys.monitoring.use_tool_id(), ("expected 2 arguments", "got 0")),
+    ("use3", lambda: sys.monitoring.use_tool_id(monitoring_tool_id, "name", "extra"), ("expected 2 arguments", "got 3")),
+    ("free0", lambda: sys.monitoring.free_tool_id(), ("takes exactly one argument", "0 given")),
+    ("free2", lambda: sys.monitoring.free_tool_id(monitoring_tool_id, 1), ("takes exactly one argument", "2 given")),
+    ("get_tool0", lambda: sys.monitoring.get_tool(), ("takes exactly one argument", "0 given")),
+    ("clear2", lambda: sys.monitoring.clear_tool_id(monitoring_tool_id, 1), ("takes exactly one argument", "2 given")),
+    ("set_events1", lambda: sys.monitoring.set_events(monitoring_tool_id), ("expected 2 arguments", "got 1")),
+    ("get_events0", lambda: sys.monitoring.get_events(), ("takes exactly one argument", "0 given")),
+    ("set_local2", lambda: sys.monitoring.set_local_events(monitoring_tool_id, monitoring_code), ("expected 3 arguments", "got 2")),
+    ("get_local1", lambda: sys.monitoring.get_local_events(monitoring_tool_id), ("expected 2 arguments", "got 1")),
+    ("callback2", lambda: sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.LINE), ("expected 3 arguments", "got 2")),
+]:
+    try:
+        monitoring_arity_call()
+    except TypeError as err:
+        monitoring_arity_message = str(err)
+        print("monitoring-arity", monitoring_arity_name, all(part in monitoring_arity_message for part in monitoring_arity_parts))
 monitoring_live_events = []
 def sys_monitoring_live_callback(code, instruction_offset, *args):
     monitoring_live_events.append((code.co_name, isinstance(instruction_offset, int), len(args), args[0] if args else None))
