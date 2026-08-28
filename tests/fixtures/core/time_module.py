@@ -24,3 +24,6 @@ print(isinstance(epoch, time.struct_time), epoch.tm_year, epoch.tm_mon, epoch.tm
 print(time.strftime("%Y-%m-%d %H:%M:%S", epoch))
 print(time.asctime(epoch).endswith("1970"), isinstance(time.ctime(0), str))
 print(time.mktime(time.localtime(0)) == 0.0)
+parsed = time.strptime("2024-02-29 11 pm", "%Y-%m-%d %I %P")
+print(parsed.tm_year, parsed.tm_mon, parsed.tm_mday, parsed.tm_hour, parsed.tm_yday, parsed.tm_wday)
+print(repr(parsed))

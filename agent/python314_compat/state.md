@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys frame negative-depth current-frame parity
+time.struct_time repr dispatch parity
 ```
 
 Current next loop:

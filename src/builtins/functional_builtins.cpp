@@ -1172,7 +1172,7 @@ bool builtin_exec(
 }
 
 bool builtin_repr(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     Value& out,
@@ -1181,6 +1181,22 @@ bool builtin_repr(
   if (argc != 1) {
     error = "repr() expected 1 argument";
     return false;
+  }
+  if (value_as_instance(args[0]) != nullptr) {
+    Value repr_method;
+    std::string attr_error;
+    if (attribute_get(args[0], "__repr__", repr_method, attr_error)) {
+      Value result;
+      if (!runtime_call_callable(runtime, repr_method, nullptr, 0, result, error)) {
+        return false;
+      }
+      auto* string = value_as_string(result);
+      if (string == nullptr) {
+        return raise_type_error(runtime, "__repr__ returned non-string", error);
+      }
+      out = result;
+      return true;
+    }
   }
   out = Value::string(value_to_repr(args[0]));
   return true;
