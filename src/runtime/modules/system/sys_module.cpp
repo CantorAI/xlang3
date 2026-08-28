@@ -3577,7 +3577,8 @@ void register_sys_module(Runtime& runtime) {
           "Set the global debug tracing function.\n\n"
           "It will be called on each function call.  See the debugger chapter\n"
           "in the library manual.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, function, /)"),
       error);
   module_set_attr(
       sys,
@@ -3591,7 +3592,8 @@ void register_sys_module(Runtime& runtime) {
           const_cast<char*>("sys.gettrace"),
           "Return the global debug tracing function set with sys.settrace.\n\n"
           "See the debugger chapter in the library manual.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3606,7 +3608,8 @@ void register_sys_module(Runtime& runtime) {
           "Set the global debug tracing function in all running threads belonging to the current interpreter.\n\n"
           "It will be called on each function call. See the debugger chapter\n"
           "in the library manual.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, function, /)"),
       error);
   module_set_attr(
       sys,
@@ -3622,7 +3625,8 @@ void register_sys_module(Runtime& runtime) {
           "The tracing state is saved, and restored afterwards.  This is intended\n"
           "to be called from a debugger from a checkpoint, to recursively debug\n"
           "some other code.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, func, args, /)"),
       error);
   module_set_attr(
       sys,
@@ -3637,7 +3641,8 @@ void register_sys_module(Runtime& runtime) {
           "Set the profiling function.\n\n"
           "It will be called on each function call and return.  See the profiler\n"
           "chapter in the library manual.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, function, /)"),
       error);
   module_set_attr(
       sys,
@@ -3651,7 +3656,8 @@ void register_sys_module(Runtime& runtime) {
           const_cast<char*>("sys.getprofile"),
           "Return the profiling function set with sys.setprofile.\n\n"
           "See the profiler chapter in the library manual.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3666,7 +3672,8 @@ void register_sys_module(Runtime& runtime) {
           "Set the profiling function in all running threads belonging to the current interpreter.\n\n"
           "It will be called on each function call and return.  See the profiler\n"
           "chapter in the library manual.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, function, /)"),
       error);
   module_set_attr(
       sys,
