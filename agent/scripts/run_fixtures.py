@@ -166,18 +166,28 @@ def read_expected(path: Path) -> str:
     return normalize(path.read_text(encoding="utf-8"))
 
 
-def run_xlang3(xlang3: Path, source: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [str(xlang3), str(source)],
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+def run_xlang3(xlang3: Path, source: Path, timeout: float) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            [str(xlang3), str(source)],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        output = normalize((exc.stdout or "") + (exc.stderr or ""))
+        detail = f"\nPartial output:\n{output}" if output else ""
+        raise SystemExit(
+            f"{source} timed out after {timeout:g} seconds.{detail}"
+        ) from exc
 
 
-def check_case(xlang3: Path, source: Path, expected_path: Path, label: str) -> None:
-    result = run_xlang3(xlang3, source)
+def check_case(xlang3: Path, source: Path, expected_path: Path, label: str, timeout: float) -> None:
+    result = run_xlang3(xlang3, source, timeout)
     if result.returncode != 0:
         raise SystemExit(f"{label} failed with exit code {result.returncode}")
 
@@ -197,9 +207,10 @@ def check_negative(
     case: str,
     expected_code: int,
     required_fragments: list[str],
+    timeout: float,
 ) -> None:
     source = fixtures / "core" / f"{case}.py"
-    result = run_xlang3(xlang3, source)
+    result = run_xlang3(xlang3, source, timeout)
     if result.returncode != expected_code:
         raise SystemExit(f"{case} expected exit code {expected_code}, got {result.returncode}")
 
@@ -216,6 +227,12 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Run XLang3 compatibility fixtures.")
     parser.add_argument("--xlang3", default="", help="Path to xlang3 executable.")
+    parser.add_argument(
+        "--case-timeout",
+        type=float,
+        default=60.0,
+        help="Maximum seconds one fixture may run before it is treated as failed.",
+    )
     args = parser.parse_args()
 
     config = load_config()
@@ -232,6 +249,7 @@ def main() -> int:
             fixtures / "core" / f"{case}.py",
             fixtures / "expected" / f"{case}.out",
             f"fixture {case}",
+            args.case_timeout,
         )
 
     for case in SECTION_CASES:
@@ -240,10 +258,11 @@ def main() -> int:
             fixtures / "compat_sections" / f"{case}.py",
             fixtures / "expected" / "compat_sections" / f"{case}.out",
             f"compat section {case}",
+            args.case_timeout,
         )
 
     for case, code, fragments in NEGATIVE_CASES:
-        check_negative(fixtures, xlang3, case, code, fragments)
+        check_negative(fixtures, xlang3, case, code, fragments, args.case_timeout)
 
     return 0
 

@@ -103,9 +103,11 @@ def build_command_text(config: dict) -> str:
 
 
 def fixture_command_text(config: dict) -> str:
+    timeout = int(config.get("repo", {}).get("fixture_case_timeout", 60))
     return (
         f"{command_quote(default_python(config))} agent\\scripts\\run_fixtures.py "
-        f"--xlang3 {command_quote(default_xlang3(config))}"
+        f"--xlang3 {command_quote(default_xlang3(config))} "
+        f"--case-timeout {timeout}"
     )
 
 
@@ -867,6 +869,8 @@ def resolve_cmake(explicit: str, config: dict) -> str:
 
 def validate(cmake: str, xlang3: str, python_exe: str, skip_build: bool, skip_tests: bool) -> None:
     captured: list[str] = []
+    config = load_config()
+    fixture_timeout = str(int(config.get("repo", {}).get("fixture_case_timeout", 60)))
 
     def checked_run(command: list[str]) -> None:
         try:
@@ -889,6 +893,8 @@ def validate(cmake: str, xlang3: str, python_exe: str, skip_build: bool, skip_te
             "agent\\scripts\\run_fixtures.py",
             "--xlang3",
             xlang3,
+            "--case-timeout",
+            fixture_timeout,
         ])
         print()
         print("Status: checking patch whitespace")
