@@ -1759,6 +1759,7 @@ print(time.sleep(False) is None)
 for time_sleep_bad_name, time_sleep_bad_call, time_sleep_bad_error, time_sleep_bad_parts in [
     ("missing", lambda: time.sleep(), TypeError, ("takes exactly one argument", "0 given")),
     ("extra", lambda: time.sleep(0, 1), TypeError, ("takes exactly one argument", "2 given")),
+    ("keyword", lambda: time.sleep(secs=0), TypeError, ("takes no keyword arguments",)),
     ("type", lambda: time.sleep("x"), TypeError, ("str", "cannot be interpreted as an integer or float")),
     ("negative", lambda: time.sleep(-1), ValueError, ("sleep length must be non-negative",)),
 ]:
@@ -1773,10 +1774,13 @@ print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isi
 print(time.gmtime(True).tm_sec, time.gmtime(False).tm_sec, time.localtime(True).tm_sec, time.localtime(False).tm_sec, isinstance(time.ctime(True), str), isinstance(time.ctime(False), str))
 for time_timestamp_bad_name, time_timestamp_bad_call, time_timestamp_bad_parts in [
     ("local-extra", lambda: time.localtime(0, 1), ("takes at most 1 argument", "2 given")),
+    ("local-keyword", lambda: time.localtime(secs=0), ("takes no keyword arguments",)),
     ("local-type", lambda: time.localtime("x"), ("str", "cannot be interpreted as an integer")),
     ("gmt-extra", lambda: time.gmtime(0, 1), ("takes at most 1 argument", "2 given")),
+    ("gmt-keyword", lambda: time.gmtime(secs=0), ("takes no keyword arguments",)),
     ("gmt-type", lambda: time.gmtime("x"), ("str", "cannot be interpreted as an integer")),
     ("ctime-extra", lambda: time.ctime(0, 1), ("takes at most 1 argument", "2 given")),
+    ("ctime-keyword", lambda: time.ctime(secs=0), ("takes no keyword arguments",)),
     ("ctime-type", lambda: time.ctime("x"), ("str", "cannot be interpreted as an integer")),
 ]:
     try:
@@ -1797,6 +1801,7 @@ for time_nonfinite_name, time_nonfinite_call, time_nonfinite_error, time_nonfini
 for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
     ("missing", lambda: time.mktime(), ("takes exactly one argument", "0 given")),
     ("extra", lambda: time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1), 1), ("takes exactly one argument", "2 given")),
+    ("keyword", lambda: time.mktime(t=(1970, 1, 1, 0, 0, 0, 3, 1, -1)), ("takes no keyword arguments",)),
     ("type", lambda: time.mktime("x"), ("Tuple or struct_time argument required",)),
     ("field-type", lambda: time.mktime((1970.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
@@ -1808,6 +1813,7 @@ for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
 print(time.asctime((2026, 8, 6, 1, 2, 3, 2, 218, -1)), time.asctime((2026, 8, 16, 1, 2, 3, 6, 228, -1)))
 for time_asctime_bad_name, time_asctime_bad_call, time_asctime_bad_parts in [
     ("extra", lambda: time.asctime((2026, 1, 1, 0, 0, 0, 3, 1, -1), "x"), ("asctime expected at most 1 argument", "got 2")),
+    ("keyword", lambda: time.asctime(t=(2026, 1, 1, 0, 0, 0, 3, 1, -1)), ("takes no keyword arguments",)),
     ("type", lambda: time.asctime("x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.asctime((1, 2)), ("illegal time tuple argument",)),
     ("field-type", lambda: time.asctime((2026.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
@@ -1827,6 +1833,7 @@ print(time.strftime("%c", strftime_locale_tuple), time.strftime("%r", strftime_l
 for time_strftime_bad_name, time_strftime_bad_call, time_strftime_bad_parts in [
     ("missing", lambda: time.strftime(), ("takes at least 1 argument", "0 given")),
     ("extra", lambda: time.strftime("%Y", strftime_locale_tuple, "x"), ("takes at most 2 arguments", "3 given")),
+    ("keyword", lambda: time.strftime(format="%Y", t=strftime_locale_tuple), ("takes no keyword arguments",)),
     ("format-type", lambda: time.strftime(1), ("argument 1 must be str", "int")),
     ("tuple-type", lambda: time.strftime("%Y", "x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.strftime("%Y", (1, 2)), ("illegal time tuple argument",)),

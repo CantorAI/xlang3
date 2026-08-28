@@ -529,6 +529,8 @@ Recent completed batches:
 - Added CPython-style `sys.addaudithook(hook=...)` keyword registration and
   catchable keyword-argument diagnostics for `sys.audit`.
 - Added catchable CPython-style keyword-argument rejection for `time.strptime`.
+- Added catchable CPython-style keyword-argument rejection for `time.sleep`,
+  `localtime`, `gmtime`, `ctime`, `mktime`, `strftime`, and `asctime`.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -1050,14 +1052,14 @@ Native or runtime-backed foundation:
   public callable metadata and no-argument `TypeError` diagnostics naming each public API, `get_clock_info`
   with CPython-style namespace type metadata/repr plus arity/type/unknown-clock
   diagnostics,
-  `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative
+  `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/keyword/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
-  arguments plus CPython-style arity/type/non-finite diagnostics, `mktime` bool fields in
-  time tuples plus CPython-style arity/type/field-type diagnostics, `strftime` with
-  CPython-style arity/type/time-tuple/field-type diagnostics, `strptime` with
+  arguments plus CPython-style arity/type/keyword/non-finite diagnostics, `mktime` bool fields in
+  time tuples plus CPython-style arity/type/keyword/field-type diagnostics, `strftime` with
+  CPython-style arity/type/keyword/time-tuple/field-type diagnostics, `strptime` with
   CPython-style entry-point arity/type/keyword diagnostics,
   `asctime` CPython-style default current-local-time behavior and
-  arity/type/time-tuple/field-type diagnostics,
+  arity/type/keyword/time-tuple/field-type diagnostics,
   `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`

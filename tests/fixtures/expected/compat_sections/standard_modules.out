@@ -445,26 +445,32 @@ time-clock-arity thread_time_ns True True True
 True
 time-sleep-diagnostic missing True
 time-sleep-diagnostic extra True
+time-sleep-diagnostic keyword True
 time-sleep-diagnostic type True
 time-sleep-diagnostic negative True
 True 1970 1 1 1970
 True True True
 1 0 1 0 True True
 time-timestamp-diagnostic local-extra True
+time-timestamp-diagnostic local-keyword True
 time-timestamp-diagnostic local-type True
 time-timestamp-diagnostic gmt-extra True
+time-timestamp-diagnostic gmt-keyword True
 time-timestamp-diagnostic gmt-type True
 time-timestamp-diagnostic ctime-extra True
+time-timestamp-diagnostic ctime-keyword True
 time-timestamp-diagnostic ctime-type True
 time-timestamp-nonfinite local-nan True
 time-timestamp-nonfinite gmt-inf True
 time-timestamp-nonfinite ctime-neginf True
 time-mktime-diagnostic missing True
 time-mktime-diagnostic extra True
+time-mktime-diagnostic keyword True
 time-mktime-diagnostic type True
 time-mktime-diagnostic field-type True
 Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
 time-asctime-diagnostic extra True
+time-asctime-diagnostic keyword True
 time-asctime-diagnostic type True
 time-asctime-diagnostic tuple-short True
 time-asctime-diagnostic field-type True
@@ -473,6 +479,7 @@ Wed Jan  1 00:01:00 2026 2026 01 01 00 01 00 001 True
 Thu Aug  6 09:02:03 2026 09:02:03 AM 09:02:03 PM
 time-strftime-diagnostic missing True
 time-strftime-diagnostic extra True
+time-strftime-diagnostic keyword True
 time-strftime-diagnostic format-type True
 time-strftime-diagnostic tuple-type True
 time-strftime-diagnostic tuple-short True

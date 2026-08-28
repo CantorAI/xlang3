@@ -1989,6 +1989,90 @@ bool time_strptime_kw(
   return false;
 }
 
+bool reject_time_keywords(Runtime& runtime, uint32_t kwargc, const char* display_name, std::string& error) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = std::string(display_name) + "() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool time_sleep_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "time.sleep", error)) {
+    return false;
+  }
+  return time_sleep(runtime, args, argc, out, error, user_data);
+}
+
+bool time_localtime_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "localtime", error)) {
+    return false;
+  }
+  return time_localtime(runtime, args, argc, out, error, user_data);
+}
+
+bool time_gmtime_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "gmtime", error)) {
+    return false;
+  }
+  return time_gmtime(runtime, args, argc, out, error, user_data);
+}
+
+bool time_mktime_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "time.mktime", error)) {
+    return false;
+  }
+  return time_mktime(runtime, args, argc, out, error, user_data);
+}
+
+bool time_strftime_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "strftime", error)) {
+    return false;
+  }
+  return time_strftime(runtime, args, argc, out, error, user_data);
+}
+
 bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
     error = "asctime expected at most 1 argument, got " + std::to_string(argc);
@@ -2013,6 +2097,21 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
+bool time_asctime_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "asctime", error)) {
+    return false;
+  }
+  return time_asctime(runtime, args, argc, out, error, user_data);
+}
+
 bool time_ctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   std::time_t timestamp = 0;
   if (!optional_timestamp(runtime, args, argc, "ctime", timestamp, error)) {
@@ -2021,6 +2120,21 @@ bool time_ctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   const std::tm tm = tm_from_time_t(timestamp, false);
   out = Value::string(format_asctime_tm(tm));
   return true;
+}
+
+bool time_ctime_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!reject_time_keywords(runtime, kwargc, "ctime", error)) {
+    return false;
+  }
+  return time_ctime(runtime, args, argc, out, error, user_data);
 }
 
 std::tm local_tm_for_epoch(std::time_t timestamp) {
@@ -2192,28 +2306,28 @@ void register_time_module(Runtime& runtime) {
                                    "Get information about the specified clock."))
       .value("sleep", time_native_function(
                           runtime, "time.sleep", "sleep", time_sleep,
-                          "Delay execution for a given number of seconds."))
+                          "Delay execution for a given number of seconds.", nullptr, time_sleep_kw))
       .value("localtime", time_native_function(
                               runtime, "time.localtime", "localtime", time_localtime,
-                              "Convert seconds since the Epoch to local time.", state))
+                              "Convert seconds since the Epoch to local time.", state, time_localtime_kw))
       .value("gmtime", time_native_function(
                            runtime, "time.gmtime", "gmtime", time_gmtime,
-                           "Convert seconds since the Epoch to UTC.", state))
+                           "Convert seconds since the Epoch to UTC.", state, time_gmtime_kw))
       .value("mktime", time_native_function(
                            runtime, "time.mktime", "mktime", time_mktime,
-                           "Convert a time tuple in local time to seconds since the Epoch."))
+                           "Convert a time tuple in local time to seconds since the Epoch.", nullptr, time_mktime_kw))
       .value("strftime", time_native_function(
                              runtime, "time.strftime", "strftime", time_strftime,
-                             "Format a time tuple according to a format specification."))
+                             "Format a time tuple according to a format specification.", nullptr, time_strftime_kw))
       .value("strptime", time_native_function(
                              runtime, "time.strptime", "strptime", time_strptime,
                              "Parse a string to a time tuple according to a format specification.", state, time_strptime_kw))
       .value("asctime", time_native_function(
                             runtime, "time.asctime", "asctime", time_asctime,
-                            "Convert a time tuple to a string."))
+                            "Convert a time tuple to a string.", nullptr, time_asctime_kw))
       .value("ctime", time_native_function(
                          runtime, "time.ctime", "ctime", time_ctime,
-                         "Convert a time in seconds since the Epoch to a string in local time."))
+                         "Convert a time in seconds since the Epoch to a string in local time.", nullptr, time_ctime_kw))
       .value("struct_time", state->struct_time_class)
       .value("_STRUCT_TM_ITEMS", Value::int64(11))
       .value("timezone", Value::int64(timezone.timezone))
