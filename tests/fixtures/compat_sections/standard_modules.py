@@ -667,6 +667,10 @@ unicode_interned_before = sys.getunicodeinternedsize()
 sys.intern("interned-size-probe")
 print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "XLang3", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
 try:
+    sys.getunicodeinternedsize(x=1)
+except TypeError as err:
+    print("sys-getunicodeinternedsize-keyword", "unexpected keyword argument" in str(err), "x" in str(err))
+try:
     sys._is_interned(42)
 except TypeError as err:
     print("sys-is-interned-type", "argument must be str" in str(err), "int" in str(err))
@@ -700,6 +704,10 @@ try:
     sys._is_immortal(1, 2)
 except TypeError as err:
     print("sys-is-immortal-arity", "2 given" in str(err))
+try:
+    sys._is_immortal(object=1)
+except TypeError as err:
+    print("sys-is-immortal-keyword", "takes no keyword arguments" in str(err))
 sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
 print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)

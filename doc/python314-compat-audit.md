@@ -951,7 +951,8 @@ Native or runtime-backed foundation:
   `implementation` metadata with CPython-style SimpleNamespace type metadata
   and namespace-style repr, `builtin_module_names`,
   CPython 3.14 top-level frozen `stdlib_module_names`, `_git`/`_vpath`/`_home`
-  metadata, `float_repr_style`, `getunicodeinternedsize`,
+  metadata, `float_repr_style`, `getunicodeinternedsize` with CPython-style
+  keyword diagnostics,
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/keyword/immutable-type errors including given-count and
@@ -1020,7 +1021,7 @@ Native or runtime-backed foundation:
   live explicit `RERAISE` dispatch for bare `raise` in active handlers with
   CPython-style callback arguments,
   `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
-  wrong-arity `TypeError` diagnostics,
+  wrong-arity/keyword `TypeError` diagnostics,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable
   coroutine-origin tracking helpers including bool-as-int setter handling and

@@ -155,6 +155,7 @@ sys-getsizeof-keyword keyword-unexpected True
 True True False
 True False False True
 True True True True True True True
+sys-getunicodeinternedsize-keyword True True
 sys-is-interned-type True True
 sys-is-interned-arity True True
 sys-is-interned-keyword True
@@ -165,6 +166,7 @@ sys-intern-keyword True
 True True True False False
 sys-is-immortal-arity True True
 sys-is-immortal-arity True
+sys-is-immortal-keyword True
 True True True
 sys-getallocatedblocks-keyword True
 sys-getrefcount-arity True True

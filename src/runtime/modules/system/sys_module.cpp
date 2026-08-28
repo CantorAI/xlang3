@@ -1490,6 +1490,21 @@ bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, V
   return true;
 }
 
+bool sys_getunicodeinternedsize_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  const std::string name(kwargc > 0 && kwargs[0].name != nullptr ? kwargs[0].name : "");
+  error = "getunicodeinternedsize() got an unexpected keyword argument '" + name + "'";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._is_immortal() takes exactly one argument (" + std::to_string(argc) + " given)";
@@ -1498,6 +1513,20 @@ bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   value_set_bool(out, args[0].tag != ValueTag::Object);
   return true;
+}
+
+bool sys_is_immortal_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "sys._is_immortal() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 int64_t shallow_sizeof(const Value& value) {
@@ -3081,13 +3110,21 @@ void register_sys_module(Runtime& runtime) {
           "getunicodeinternedsize",
           sys_getunicodeinternedsize,
           nullptr,
-          "Return the number of elements of the unicode interned dictionary"),
+          "Return the number of elements of the unicode interned dictionary",
+          sys_getunicodeinternedsize_kw),
       error);
   module_set_attr(
       sys,
       "_is_immortal",
       sys_metadata_native_function(
-          runtime, "sys", "sys._is_immortal", "_is_immortal", sys_is_immortal, nullptr, "Return True if the given object is \"immortal\" per PEP 683."),
+          runtime,
+          "sys",
+          "sys._is_immortal",
+          "_is_immortal",
+          sys_is_immortal,
+          nullptr,
+          "Return True if the given object is \"immortal\" per PEP 683.",
+          sys_is_immortal_kw),
       error);
   module_set_attr(
       sys,

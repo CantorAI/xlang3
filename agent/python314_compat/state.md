@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys interner keyword diagnostics
+sys unicode interned size and immortal keyword diagnostics
 ```
 
 Current next loop:
