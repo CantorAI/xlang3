@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys CPython-shaped startup metadata
+abc ABC and ABCMeta class metadata
 ```
 
 Current next loop:

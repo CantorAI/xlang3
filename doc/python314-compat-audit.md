@@ -1130,7 +1130,8 @@ Native or runtime-backed foundation:
   property getter-doc inheritance/recomputation across descriptor cloning while preserving explicit docs,
   CPython 3.14 `property.__name__` getter inheritance, mutation, clone preservation, and delete reset,
   and catchable CPython-style `property.getter`/`setter`/`deleter` arity, receiver-type, and keyword diagnostics,
-  CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
+  CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface
+  including `ABC`/`ABCMeta` `__qualname__` and docs,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
   `_abc_init` class initialization for the CPython `abc.py` path,

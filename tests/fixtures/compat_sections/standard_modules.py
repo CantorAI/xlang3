@@ -240,7 +240,7 @@ import abc
 import _abc
 import weakref
 
-print(abc.ABCMeta.__module__, abc.ABC.__module__, abc.abstractmethod.__module__, _abc.get_cache_token.__module__)
+print(abc.ABCMeta.__module__, abc.ABC.__module__, abc.abstractmethod.__module__, _abc.get_cache_token.__module__, abc.ABCMeta.__qualname__, abc.ABC.__qualname__, abc.ABCMeta.__doc__ is not None, abc.ABC.__doc__ is not None)
 print(abc.abstractmethod.__name__, abc.ABCMeta.register.__name__, _abc._abc_init.__name__, abc.abstractmethod.__doc__ is not None, _abc.__doc__ is not None)
 
 class NativeABC(metaclass=abc.ABCMeta):

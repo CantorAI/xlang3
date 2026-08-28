@@ -793,6 +793,8 @@ void register_abc_module(Runtime& runtime) {
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
   abc_meta_attrs.push_back({"__module__", Value::string("abc")});
+  abc_meta_attrs.push_back({"__qualname__", Value::string("ABCMeta")});
+  abc_meta_attrs.push_back({"__doc__", Value::string("Metaclass for defining Abstract Base Classes.")});
   abc_meta_attrs.push_back({"__new__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__new__", "__new__", abc_meta_new, "Create a new ABC class."))});
   abc_meta_attrs.push_back({"__init__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__init__", "__init__", abc_meta_init, "Initialize a new ABC class."))});
   abc_meta_attrs.push_back({"register", abc_native_function(runtime, "abc", "ABCMeta.register", "register", abc_meta_register, "Register a virtual subclass of an ABC.")});
@@ -809,7 +811,16 @@ void register_abc_module(Runtime& runtime) {
       type_base != nullptr ? *type_base : Value::invalid(),
       {},
       type_base != nullptr ? *type_base : Value::invalid());
-  Value abc_class = Value::class_object("ABC", {{"__module__", Value::string("abc")}}, Value::invalid(), {}, abc_meta);
+  Value abc_class = Value::class_object(
+      "ABC",
+      {
+          {"__module__", Value::string("abc")},
+          {"__qualname__", Value::string("ABC")},
+          {"__doc__", Value::string("Helper class that provides a standard way to create an ABC using inheritance.")},
+      },
+      Value::invalid(),
+      {},
+      abc_meta);
   std::string error;
   object_set_attr(abc_class, kRegistryAttr, Value::list({}), error);
   object_set_attr(abc_class, kCacheAttr, Value::list({}), error);

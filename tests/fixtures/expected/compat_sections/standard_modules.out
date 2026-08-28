@@ -42,7 +42,7 @@ argparse-error True
 BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
 True Expression
 ['seen']
-abc abc abc _abc
+abc abc abc _abc ABCMeta ABC True True
 abstractmethod register _abc_init True True
 True True
 True True
