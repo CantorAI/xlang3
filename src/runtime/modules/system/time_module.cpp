@@ -1902,14 +1902,21 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
-bool time_asctime(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
-    error = "time.asctime() expected optional time tuple";
+    error = "asctime expected at most 1 argument, got " + std::to_string(argc);
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::tm tm{};
   if (argc == 1) {
     if (!tm_from_sequence_like(args[0], tm, error)) {
+      if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
+        error = "Tuple or struct_time argument required";
+      } else {
+        error = "asctime(): illegal time tuple argument";
+      }
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
   } else {
