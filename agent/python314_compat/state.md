@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys cache-clear helper text signatures
+sys type-descriptor cache helper text signature
 ```
 
 Current next loop:

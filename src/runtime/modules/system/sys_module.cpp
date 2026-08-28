@@ -4071,7 +4071,8 @@ void register_sys_module(Runtime& runtime) {
           sys_clear_type_descriptors,
           nullptr,
           "Private function for clearing certain descriptors from a type's dictionary.",
-          sys_clear_type_descriptors_kw),
+          sys_clear_type_descriptors_kw,
+          "($module, type, /)"),
       error);
   module_set_attr(
       sys,

@@ -1945,6 +1945,7 @@ sys_runtime_text_signatures = {
     "_current_exceptions": "($module, /)",
     "_clear_internal_caches": "($module, /)",
     "_clear_type_cache": "($module, /)",
+    "_clear_type_descriptors": "($module, type, /)",
     "getdefaultencoding": "($module, /)",
     "getfilesystemencoding": "($module, /)",
     "getfilesystemencodeerrors": "($module, /)",
