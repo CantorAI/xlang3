@@ -58,6 +58,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   }
   auto* instance = value_as_instance(receiver);
   if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
+    if (instance != nullptr) {
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == descriptor.name) {
+          value_assign_fast(out, attr.second);
+          return XlangVMOpFlow::Next;
+        }
+      }
+    }
+    Value tuple_value;
+    std::string tuple_error;
+    if (object_get_attr(receiver, "_tuple", tuple_value, tuple_error)) {
+      if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && descriptor.index < tuple->items.size()) {
+        value_assign_fast(out, tuple->items[descriptor.index]);
+        return XlangVMOpFlow::Next;
+      }
+    }
     return raise_runtime_error("descriptor does not apply to this object")
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;

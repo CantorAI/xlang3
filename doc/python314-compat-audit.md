@@ -122,6 +122,12 @@ Recent completed batches:
   through the active `sys.stderr.write` stream before returning `None`, so
   redirected stderr observes the CPython-style diagnostics path while the
   existing allocator counters remain runtime-backed.
+- Tightened structseq member descriptor parity: `sys` structseq fields and
+  `time.struct_time` fields now use real `member_descriptor` objects with
+  CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
+  descriptor repr, `inspect.ismemberdescriptor` visibility, and descriptor
+  `__get__` access for tuple-backed sequence fields plus `time.struct_time`
+  `tm_zone`/`tm_gmtoff` named fields.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -788,7 +794,9 @@ Native or runtime-backed foundation:
 - [~] `sys`: `modules`, `exc_info`, stdio objects, argv/orig_argv/path/import-cache containers,
   version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
-  `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors,
+  `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors
+  with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
+  descriptor repr, `inspect.ismemberdescriptor` visibility, and tuple-backed `__get__`,
   tuple inheritance, sequence iteration, tuple-backed `count`/`index` including bool-as-int
   start/stop bounds and CPython-style out-of-range `IndexError`, CPython-style named-field `repr`,
   and type-level `__match_args__`,
@@ -869,7 +877,10 @@ Native or runtime-backed foundation:
   and trailing percent, constructible/indexable/iterable
   `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
   `n_unnamed_fields`, module-level `_STRUCT_TM_ITEMS`, type-level `__match_args__`,
-  and named/member fields for sequence slots plus `tm_zone`/`tm_gmtoff`, constructor dict
+  and named/member fields for sequence slots plus `tm_zone`/`tm_gmtoff`
+  with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
+  descriptor repr, `inspect.ismemberdescriptor` visibility, and descriptor `__get__`,
+  constructor dict
   extra-field handling, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index` including bool-as-int start/stop bounds, CPython-style named-field `__repr__` through `repr()`, platform-backed timezone constants/names,

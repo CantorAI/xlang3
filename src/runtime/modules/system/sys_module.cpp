@@ -159,11 +159,8 @@ bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, st
   return true;
 }
 
-Value make_member_descriptor(const std::string& name) {
-  Value descriptor = Value::instance(Value::class_object("member_descriptor", {}));
-  std::string ignored;
-  object_set_attr(descriptor, "__name__", Value::string(name), ignored);
-  return descriptor;
+Value make_member_descriptor(const std::string& owner_name, const std::string& name, uint32_t index) {
+  return slot_descriptor(owner_name, name, index);
 }
 
 bool sys_structseq_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
@@ -352,10 +349,13 @@ Value make_structseq(
   class_attrs.push_back({"n_sequence_fields", Value::int64(static_cast<int64_t>(sequence_fields))});
   class_attrs.push_back({"n_fields", Value::int64(static_cast<int64_t>(fields.size()))});
   class_attrs.push_back({"n_unnamed_fields", Value::int64(0)});
+  const std::string actual_repr_name =
+      repr_name.empty() ? (module_name.empty() ? type_name : module_name + "." + type_name) : repr_name;
   std::vector<Value> match_args;
   match_args.reserve(sequence_fields);
-  for (const auto& field : fields) {
-    class_attrs.push_back({field.first, make_member_descriptor(field.first)});
+  for (size_t i = 0; i < fields.size(); ++i) {
+    const auto& field = fields[i];
+    class_attrs.push_back({field.first, make_member_descriptor(actual_repr_name, field.first, static_cast<uint32_t>(i))});
     if (match_args.size() < sequence_fields) {
       match_args.push_back(Value::string(field.first));
     }
@@ -384,8 +384,6 @@ Value make_structseq(
   object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
   object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
   object_set_attr(instance, "_field_names", Value::tuple(std::move(field_names)), ignored);
-  const std::string actual_repr_name =
-      repr_name.empty() ? (module_name.empty() ? type_name : module_name + "." + type_name) : repr_name;
   object_set_attr(instance, "_repr_name", Value::string(actual_repr_name), ignored);
   sys_structseq_update_string_value(instance, ignored);
   return instance;

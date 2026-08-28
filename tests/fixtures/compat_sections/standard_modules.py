@@ -990,6 +990,8 @@ print(sys.dont_write_bytecode, sys.flags.dont_write_bytecode, sys.flags.hash_ran
 print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.thread_inherit_context, sys.flags.context_aware_warnings, len(sys.flags))
 print(type(sys.version_info).n_fields, type(sys.version_info).major.__name__, type(sys.flags).n_fields, type(sys.flags).gil.__name__)
 print(type(sys.version_info).__match_args__, type(sys.flags).__match_args__[-1], len(type(sys.flags).__match_args__), "gil" not in type(sys.flags).__match_args__)
+sys_version_major_descriptor = type(sys.version_info).major
+print(type(sys_version_major_descriptor).__name__, type(sys_version_major_descriptor).__module__, sys_version_major_descriptor.__objclass__ is type(sys.version_info), sys_version_major_descriptor.__get__(sys.version_info), inspect.ismemberdescriptor(sys_version_major_descriptor), repr(sys_version_major_descriptor) == "<member 'major' of 'sys.version_info' objects>")
 print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
 print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sys.thread_info).n_sequence_fields, type(sys.thread_info).name.__name__)
 print(type(sys.float_info).__match_args__[0], type(sys.hash_info).__match_args__[-1], type(sys.thread_info).__match_args__)
@@ -1400,6 +1402,10 @@ print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC"
 print(time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct_time.n_unnamed_fields, time.struct_time.tm_zone is not None, time.struct_time.tm_gmtoff is not None)
 print(time._STRUCT_TM_ITEMS, time._STRUCT_TM_ITEMS == time.struct_time.n_fields)
 print(time.struct_time.__match_args__, time.struct_time.tm_year.__name__, time.struct_time.tm_isdst.__name__)
+time_struct_year_descriptor = time.struct_time.tm_year
+time_struct_zone_descriptor = time.struct_time.tm_zone
+time_struct_descriptor_probe = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "Z", 9))
+print(type(time_struct_year_descriptor).__name__, type(time_struct_year_descriptor).__module__, time_struct_year_descriptor.__objclass__ is time.struct_time, time_struct_year_descriptor.__get__(time_struct_descriptor_probe), time_struct_zone_descriptor.__get__(time_struct_descriptor_probe), inspect.ismemberdescriptor(time_struct_year_descriptor), repr(time_struct_year_descriptor) == "<member 'tm_year' of 'time.struct_time' objects>")
 constructed_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123))
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})

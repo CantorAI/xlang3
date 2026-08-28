@@ -32,3 +32,6 @@ shape the next iteration.
 - Codex CLI output is UTF-8. When the loop captures child output on Windows, do
   not use the console default code page; decode as UTF-8 with replacement so
   warnings or Unicode diagnostics cannot crash the runner.
+- Descriptor primitive changes often need both `object_get_attr` and the VM
+  fast-path attribute helper updated; otherwise explicit descriptor calls and
+  compiled attribute access can diverge.

@@ -1143,11 +1143,8 @@ Value make_struct_time(const Value& klass, const std::tm& tm, const Value& zone 
   return instance;
 }
 
-Value make_member_descriptor(const std::string& name) {
-  Value descriptor = Value::instance(Value::class_object("member_descriptor", {}));
-  std::string ignored;
-  object_set_attr(descriptor, "__name__", Value::string(name), ignored);
-  return descriptor;
+Value make_member_descriptor(const std::string& owner_name, const std::string& name, uint32_t index) {
+  return slot_descriptor(owner_name, name, index);
 }
 
 Value struct_time_match_args() {
@@ -1967,17 +1964,17 @@ void register_time_module(Runtime& runtime) {
           {"n_sequence_fields", Value::int64(9)},
           {"n_fields", Value::int64(11)},
           {"n_unnamed_fields", Value::int64(0)},
-          {"tm_year", make_member_descriptor("tm_year")},
-          {"tm_mon", make_member_descriptor("tm_mon")},
-          {"tm_mday", make_member_descriptor("tm_mday")},
-          {"tm_hour", make_member_descriptor("tm_hour")},
-          {"tm_min", make_member_descriptor("tm_min")},
-          {"tm_sec", make_member_descriptor("tm_sec")},
-          {"tm_wday", make_member_descriptor("tm_wday")},
-          {"tm_yday", make_member_descriptor("tm_yday")},
-          {"tm_isdst", make_member_descriptor("tm_isdst")},
-          {"tm_zone", make_member_descriptor("tm_zone")},
-          {"tm_gmtoff", make_member_descriptor("tm_gmtoff")},
+          {"tm_year", make_member_descriptor("time.struct_time", "tm_year", 0)},
+          {"tm_mon", make_member_descriptor("time.struct_time", "tm_mon", 1)},
+          {"tm_mday", make_member_descriptor("time.struct_time", "tm_mday", 2)},
+          {"tm_hour", make_member_descriptor("time.struct_time", "tm_hour", 3)},
+          {"tm_min", make_member_descriptor("time.struct_time", "tm_min", 4)},
+          {"tm_sec", make_member_descriptor("time.struct_time", "tm_sec", 5)},
+          {"tm_wday", make_member_descriptor("time.struct_time", "tm_wday", 6)},
+          {"tm_yday", make_member_descriptor("time.struct_time", "tm_yday", 7)},
+          {"tm_isdst", make_member_descriptor("time.struct_time", "tm_isdst", 8)},
+          {"tm_zone", make_member_descriptor("time.struct_time", "tm_zone", 9)},
+          {"tm_gmtoff", make_member_descriptor("time.struct_time", "tm_gmtoff", 10)},
           {"__match_args__", struct_time_match_args()},
       },
       tuple_base != nullptr ? *tuple_base : Value::invalid());

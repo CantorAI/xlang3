@@ -576,7 +576,14 @@ void register_builtin_type(Runtime& runtime, const char* name, const Value& obje
   if (const auto* type_type = runtime.find_builtin("type")) {
     value_assign_fast(metaclass, *type_type);
   }
-  runtime.register_builtin(name, Value::class_object(name, {}, object_base, {}, std::move(metaclass)));
+  runtime.register_builtin(
+      name,
+      Value::class_object(
+          name,
+          {{"__module__", Value::string("builtins")}},
+          object_base,
+          {},
+          std::move(metaclass)));
 }
 
 bool builtin_object_init(

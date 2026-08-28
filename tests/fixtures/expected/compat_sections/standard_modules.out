@@ -241,6 +241,7 @@ False 0 1 0
 18 21 1 0 0 18
 5 major 21 gil
 ('major', 'minor', 'micro', 'releaselevel', 'serial') int_max_str_digits 18 True
+member_descriptor builtins True 3 True True
 2 53 64 nt
 11 width 3 name
 max cutoff ('name', 'lock', 'version')
@@ -354,6 +355,7 @@ strftime-invalid True
 11 9 0 True True
 11 True
 ('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
+member_descriptor builtins True 2026 Z True True
 2026 8 2026 8 26
 (2026, 1, 1, 0, 0, 0, 3, 1, -1) (1900, 8, 26, 0, 0, 0, 6, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1)
 (2026, 8, 27, 0, 0, 0, 3, 239, -1) 8 27 239

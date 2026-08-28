@@ -86,6 +86,7 @@ struct SuperObject {
 
 struct SlotDescriptorObject {
   Object header;
+  Value owner_class;
   std::string owner_name;
   std::string name;
   uint32_t index = 0;
@@ -153,6 +154,9 @@ XLANG3_HOT_INLINE const Value& instance_slot_at(const InstanceObject* instance, 
 }
 
 void object_model_release_object(Object* object);
+
+Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
+void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class);
 std::string object_model_to_string(const Value& value);
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);

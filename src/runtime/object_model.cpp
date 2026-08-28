@@ -671,6 +671,22 @@ bool slot_descriptor_get_method(
   }
   auto* instance = value_as_instance(args[1]);
   if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
+    if (instance != nullptr) {
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == slot->name) {
+          value_assign_fast(out, attr.second);
+          return true;
+        }
+      }
+    }
+    Value tuple_value;
+    std::string tuple_error;
+    if (object_get_attr(args[1], "_tuple", tuple_value, tuple_error)) {
+      if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && slot->index < tuple->items.size()) {
+        value_assign_fast(out, tuple->items[slot->index]);
+        return true;
+      }
+    }
     error = "descriptor does not apply to this object";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -908,8 +924,6 @@ bool callable_qualname_attr(const Value& callable, Value& out) {
 
 } // namespace
 
-Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
-
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name) {
   return class_has_builtin_base_name_impl(klass, name);
 }
@@ -992,6 +1006,9 @@ Value Value::class_object(
     obj->has_descriptors = true;
   }
   v.as.obj = &obj->header;
+  for (auto& attr : obj->attrs) {
+    slot_descriptor_set_owner_class(attr.second, v);
+  }
   return v;
 }
 
@@ -1060,11 +1077,18 @@ Value slot_descriptor(std::string owner_name, std::string name, uint32_t index) 
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object_model<SlotDescriptorObject>(ObjectKind::SlotDescriptor);
+  value_set_invalid(obj->owner_class);
   obj->owner_name = std::move(owner_name);
   obj->name = std::move(name);
   obj->index = index;
   v.as.obj = &obj->header;
   return v;
+}
+
+void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class) {
+  if (auto* slot = value_as_slot_descriptor(descriptor)) {
+    value_assign_fast(slot->owner_class, owner_class);
+  }
 }
 
 void object_model_release_object(Object* object) {
@@ -1142,7 +1166,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__objclass__") {
-      out = Value::string(slot->owner_name);
+      if (slot->owner_class.tag != ValueTag::Invalid) {
+        value_assign_fast(out, slot->owner_class);
+      } else {
+        out = Value::string(slot->owner_name);
+      }
+      return true;
+    }
+    if (name == "__module__") {
+      out = Value::string("builtins");
       return true;
     }
     if (name == "__doc__") {
