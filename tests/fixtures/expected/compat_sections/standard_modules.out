@@ -601,6 +601,10 @@ strftime-invalid True
 11 True
 ('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
 member_descriptor builtins True 2026 Z True True
+dict-init-diagnostic missing True
+dict-init-diagnostic extra True
+dict-init-diagnostic receiver True
+dict-init-diagnostic source-type True
 time-strptime-diagnostic missing True
 time-strptime-diagnostic extra True
 time-strptime-diagnostic keyword True

@@ -2041,6 +2041,17 @@ constructed_keyword_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 2
 constructed_keyword_dict_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={"tm_zone": "KW", "tm_gmtoff": 789})
 dict_init_probe = {"old": 0}
 dict.__init__(dict_init_probe, {"tm_zone": "DI"}, tm_gmtoff=654)
+for dict_init_bad_name, dict_init_bad_call, dict_init_bad_parts in [
+    ("missing", lambda: dict.__init__(), ("needs an argument",)),
+    ("extra", lambda: dict.__init__(dict(), dict(), dict()), ("at most 1 argument", "got 2")),
+    ("receiver", lambda: dict.__init__(list(), dict()), ("requires a 'dict' object", "list")),
+    ("source-type", lambda: dict.__init__(dict(), 1), ("int", "not iterable")),
+]:
+    try:
+        dict_init_bad_call()
+    except TypeError as err:
+        dict_init_bad_message = str(err)
+        print("dict-init-diagnostic", dict_init_bad_name, all(part in dict_init_bad_message for part in dict_init_bad_parts))
 StructTimeDictSubclass = type("StructTimeDictSubclass", (dict,), {})
 constructed_dict_subclass_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), StructTimeDictSubclass({"tm_zone": "DS", "tm_gmtoff": 321}))
 constructed_preserved_time = time.struct_time((2026, 8, 26, 1, 2, 3, 9, 999, -1))

@@ -34,6 +34,16 @@ Value make_dict_fromkeys_classmethod();
 
 namespace {
 
+std::string builtin_value_type_name(Runtime& runtime, const Value& value) {
+  Value type;
+  if (runtime_type_of_value(runtime, value, type)) {
+    if (auto* klass = value_as_class(type)) {
+      return klass->name;
+    }
+  }
+  return value_to_string(value);
+}
+
 bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, std::string& error) {
   if (auto* source_dict = value_as_dict(source)) {
     for (const auto& entry : source_dict->entries) {
@@ -56,6 +66,9 @@ bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, 
 
   Value iterator;
   if (!runtime_get_iter(runtime, source, iterator, error)) {
+    if (error == "object is not iterable") {
+      error = "'" + builtin_value_type_name(runtime, source) + "' object is not iterable";
+    }
     return false;
   }
   for (;;) {
@@ -97,8 +110,13 @@ bool builtin_dict_init_kw(
     Value& out,
     std::string& error,
     void*) {
-  if (argc < 1 || argc > 2) {
-    error = "dict expected at most 1 argument, got " + std::to_string(argc > 0 ? argc - 1 : 0);
+  if (argc < 1) {
+    error = "descriptor '__init__' of 'dict' object needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 2) {
+    error = "dict expected at most 1 argument, got " + std::to_string(argc - 1);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -113,7 +131,7 @@ bool builtin_dict_init_kw(
     }
   }
   if (target.tag == ValueTag::Invalid) {
-    error = "dict.__init__ target is not a dict";
+    error = "descriptor '__init__' requires a 'dict' object but received a '" + builtin_value_type_name(runtime, args[0]) + "'";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
