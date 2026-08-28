@@ -531,6 +531,8 @@ Recent completed batches:
 - Added catchable CPython-style keyword-argument rejection for `time.strptime`.
 - Added catchable CPython-style keyword-argument rejection for `time.sleep`,
   `localtime`, `gmtime`, `ctime`, `mktime`, `strftime`, and `asctime`.
+- Added catchable CPython-style keyword-argument rejection for `time` clock
+  APIs and `get_clock_info`.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -1049,8 +1051,8 @@ Native or runtime-backed foundation:
   event coverage beyond instruction/call/line/return/generator-resume-yield/throw/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns` with CPython-style
-  public callable metadata and no-argument `TypeError` diagnostics naming each public API, `get_clock_info`
-  with CPython-style namespace type metadata/repr plus arity/type/unknown-clock
+  public callable metadata and no-argument/keyword `TypeError` diagnostics naming each public API, `get_clock_info`
+  with CPython-style namespace type metadata/repr plus arity/type/keyword/unknown-clock
   diagnostics,
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/keyword/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp

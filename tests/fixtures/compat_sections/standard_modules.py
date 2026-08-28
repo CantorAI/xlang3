@@ -1729,6 +1729,7 @@ print(
 for clock_info_bad_name, clock_info_bad_call, clock_info_bad_error, clock_info_bad_parts in [
     ("missing", lambda: time.get_clock_info(), TypeError, ("takes exactly 1 argument", "0 given")),
     ("extra", lambda: time.get_clock_info("time", "x"), TypeError, ("takes exactly 1 argument", "2 given")),
+    ("keyword", lambda: time.get_clock_info(name="time"), TypeError, ("takes no keyword arguments",)),
     ("type", lambda: time.get_clock_info(1), TypeError, ("argument 1 must be str", "int")),
     ("unknown", lambda: time.get_clock_info("missing"), ValueError, ("unknown clock",)),
 ]:
@@ -1755,6 +1756,11 @@ for time_noarg_clock in [
     except TypeError as err:
         time_noarg_clock_message = str(err)
         print("time-clock-arity", time_noarg_clock.__name__, time_noarg_clock.__name__ in time_noarg_clock_message, "takes no arguments" in time_noarg_clock_message, "1 given" in time_noarg_clock_message)
+    try:
+        time_noarg_clock(flag=True)
+    except TypeError as err:
+        time_noarg_clock_message = str(err)
+        print("time-clock-keyword", time_noarg_clock.__name__, time_noarg_clock.__name__ in time_noarg_clock_message, "takes no keyword arguments" in time_noarg_clock_message)
 print(time.sleep(False) is None)
 for time_sleep_bad_name, time_sleep_bad_call, time_sleep_bad_error, time_sleep_bad_parts in [
     ("missing", lambda: time.sleep(), TypeError, ("takes exactly one argument", "0 given")),

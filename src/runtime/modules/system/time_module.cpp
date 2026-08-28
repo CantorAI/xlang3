@@ -1998,6 +1998,19 @@ bool reject_time_keywords(Runtime& runtime, uint32_t kwargc, const char* display
   return false;
 }
 
+bool time_reject_keywords_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void* user_data) {
+  const char* display_name = static_cast<const char*>(user_data);
+  return reject_time_keywords(runtime, kwargc, display_name == nullptr ? "time function" : display_name, error);
+}
+
 bool time_sleep_kw(
     Runtime& runtime,
     const Value* args,
@@ -2273,37 +2286,37 @@ void register_time_module(Runtime& runtime) {
   builder
       .value("time", time_native_function(
                          runtime, "time.time", "time", time_time,
-                         "Return the current time in seconds since the Epoch."))
+                         "Return the current time in seconds since the Epoch.", const_cast<char*>("time.time"), time_reject_keywords_kw))
       .value("time_ns", time_native_function(
                             runtime, "time.time_ns", "time_ns", time_time_ns,
-                            "Return the current time in nanoseconds since the Epoch."))
+                            "Return the current time in nanoseconds since the Epoch.", const_cast<char*>("time.time_ns"), time_reject_keywords_kw))
       .value("monotonic", time_native_function(
                               runtime, "time.monotonic", "monotonic", time_monotonic,
-                              "Monotonic clock, cannot go backward."))
+                              "Monotonic clock, cannot go backward.", const_cast<char*>("time.monotonic"), time_reject_keywords_kw))
       .value("monotonic_ns", time_native_function(
                                  runtime, "time.monotonic_ns", "monotonic_ns", time_monotonic_ns,
-                                 "Monotonic clock, cannot go backward, as nanoseconds."))
+                                 "Monotonic clock, cannot go backward, as nanoseconds.", const_cast<char*>("time.monotonic_ns"), time_reject_keywords_kw))
       .value("perf_counter", time_native_function(
                                  runtime, "time.perf_counter", "perf_counter", time_perf_counter,
-                                 "Performance counter for benchmarking."))
+                                 "Performance counter for benchmarking.", const_cast<char*>("time.perf_counter"), time_reject_keywords_kw))
       .value("perf_counter_ns", time_native_function(
                                     runtime, "time.perf_counter_ns", "perf_counter_ns", time_perf_counter_ns,
-                                    "Performance counter for benchmarking, as nanoseconds."))
+                                    "Performance counter for benchmarking, as nanoseconds.", const_cast<char*>("time.perf_counter_ns"), time_reject_keywords_kw))
       .value("process_time", time_native_function(
                                  runtime, "time.process_time", "process_time", time_process_time,
-                                 "Process time for profiling."))
+                                 "Process time for profiling.", const_cast<char*>("time.process_time"), time_reject_keywords_kw))
       .value("process_time_ns", time_native_function(
                                     runtime, "time.process_time_ns", "process_time_ns", time_process_time_ns,
-                                    "Process time for profiling, as nanoseconds."))
+                                    "Process time for profiling, as nanoseconds.", const_cast<char*>("time.process_time_ns"), time_reject_keywords_kw))
       .value("thread_time", time_native_function(
                                 runtime, "time.thread_time", "thread_time", time_thread_time,
-                                "Thread time for profiling."))
+                                "Thread time for profiling.", const_cast<char*>("time.thread_time"), time_reject_keywords_kw))
       .value("thread_time_ns", time_native_function(
                                    runtime, "time.thread_time_ns", "thread_time_ns", time_thread_time_ns,
-                                   "Thread time for profiling, as nanoseconds."))
+                                   "Thread time for profiling, as nanoseconds.", const_cast<char*>("time.thread_time_ns"), time_reject_keywords_kw))
       .value("get_clock_info", time_native_function(
                                    runtime, "time.get_clock_info", "get_clock_info", time_get_clock_info,
-                                   "Get information about the specified clock."))
+                                   "Get information about the specified clock.", const_cast<char*>("get_clock_info"), time_reject_keywords_kw))
       .value("sleep", time_native_function(
                           runtime, "time.sleep", "sleep", time_sleep,
                           "Delay execution for a given number of seconds.", nullptr, time_sleep_kw))

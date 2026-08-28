@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time public keyword diagnostics
+time clock keyword diagnostics
 ```
 
 Current next loop:

@@ -429,19 +429,30 @@ SimpleNamespace types True True True True
 True True True
 time-clock-info-diagnostic missing True
 time-clock-info-diagnostic extra True
+time-clock-info-diagnostic keyword True
 time-clock-info-diagnostic type True
 time-clock-info-diagnostic unknown True
 True True True True
 time-clock-arity time True True True
+time-clock-keyword time True True
 time-clock-arity time_ns True True True
+time-clock-keyword time_ns True True
 time-clock-arity monotonic True True True
+time-clock-keyword monotonic True True
 time-clock-arity monotonic_ns True True True
+time-clock-keyword monotonic_ns True True
 time-clock-arity perf_counter True True True
+time-clock-keyword perf_counter True True
 time-clock-arity perf_counter_ns True True True
+time-clock-keyword perf_counter_ns True True
 time-clock-arity process_time True True True
+time-clock-keyword process_time True True
 time-clock-arity process_time_ns True True True
+time-clock-keyword process_time_ns True True
 time-clock-arity thread_time True True True
+time-clock-keyword thread_time True True
 time-clock-arity thread_time_ns True True True
+time-clock-keyword thread_time_ns True True
 True
 time-sleep-diagnostic missing True
 time-sleep-diagnostic extra True
