@@ -868,12 +868,11 @@ Value Value::native_function(
   return v;
 }
 
-Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract) {
+Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract, bool doc_from_getter) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<PropertyObject>(ObjectKind::Property);
-  bool doc_from_getter = false;
-  if (doc.tag == ValueTag::None && fget.tag != ValueTag::None && fget.tag != ValueTag::Invalid) {
+  if ((doc_from_getter || doc.tag == ValueTag::None) && fget.tag != ValueTag::None && fget.tag != ValueTag::Invalid) {
     Value getter_doc;
     std::string ignored;
     if (object_get_attr(fget, "__doc__", getter_doc, ignored)) {

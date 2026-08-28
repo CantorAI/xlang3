@@ -253,7 +253,7 @@ struct Value {
   static Value static_method(Value function);
   static Value class_method(Value function);
   static Value super_object(Value klass, Value self);
-  static Value property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract = false);
+  static Value property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract = false, bool doc_from_getter = false);
   static Value type_param(std::string name);
 };
 
