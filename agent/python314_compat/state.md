@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys stack-trampoline TypeError diagnostics parity
+sys recursion-limit diagnostics parity
 ```
 
 Current next loop:

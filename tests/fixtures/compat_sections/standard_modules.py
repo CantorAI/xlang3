@@ -1099,7 +1099,17 @@ except RecursionError as err:
 try:
     sys.setrecursionlimit(False)
 except ValueError as err:
-    print("recursionlimit-bool", "positive" in str(err) or "greater or equal" in str(err))
+    print("recursionlimit-bool", "greater or equal" in str(err))
+for sys_recursion_bad_name, sys_recursion_bad_call, sys_recursion_bad_parts in [
+    ("missing", lambda: sys.setrecursionlimit(), ("exactly one argument", "0 given")),
+    ("extra", lambda: sys.setrecursionlimit(1000, 2), ("exactly one argument", "2 given")),
+    ("type", lambda: sys.setrecursionlimit("x"), ("str", "cannot be interpreted as an integer")),
+]:
+    try:
+        sys_recursion_bad_call()
+    except TypeError as err:
+        sys_recursion_bad_message = str(err)
+        print("sys-recursionlimit-diagnostic", sys_recursion_bad_name, all(part in sys_recursion_bad_message for part in sys_recursion_bad_parts))
 sys.setrecursionlimit(old_recursion_limit)
 sys.set_int_max_str_digits(640)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17], sys.int_info[2], sys.int_info[3])

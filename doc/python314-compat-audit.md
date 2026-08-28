@@ -165,6 +165,10 @@ Recent completed batches:
 - Tightened native stack-trampoline diagnostics: `sys.activate_stack_trampoline`
   now reports CPython-style arity and backend-name type `TypeError` messages
   while preserving the existing unsupported-backend `ValueError` path.
+- Tightened native recursion-limit diagnostics: `sys.setrecursionlimit` now
+  reports CPython-style arity/type `TypeError` messages and low-limit
+  `ValueError` wording while preserving bool-as-int depth checks and state
+  restoration.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -843,8 +847,9 @@ Native or runtime-backed foundation:
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/immutable-type errors,
-  `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers including bool-as-int
-  bounds, `intern`
+  `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit
+  helpers including bool-as-int bounds and CPython-style setter arity/type
+  `TypeError` plus low-limit `ValueError` diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity
   `TypeError` diagnostics and `_is_interned` including CPython-style
   wrong-type/wrong-arity `TypeError` diagnostics, `getsizeof` with CPython-style

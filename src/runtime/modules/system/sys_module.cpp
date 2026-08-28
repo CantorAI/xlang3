@@ -156,6 +156,8 @@ bool sys_bool_or_int_arg(const Value& value, int64_t& out) {
   return false;
 }
 
+std::string sys_type_name(Runtime& runtime, const Value& value);
+
 bool sys_noop_hook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
   const char* name = static_cast<const char*>(user_data);
   if (argc != 0) {
@@ -1278,13 +1280,16 @@ bool sys_getrecursionlimit(Runtime& runtime, const Value*, uint32_t argc, Value&
 
 bool sys_setrecursionlimit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   int64_t limit = 0;
-  if (argc != 1 || !sys_bool_or_int_arg(args[0], limit)) {
-    error = "sys.setrecursionlimit expected integer limit";
+  if (argc != 1) {
+    return raise_sys_one_arg_type_error(runtime, error, "sys.setrecursionlimit", argc);
+  }
+  if (!sys_bool_or_int_arg(args[0], limit)) {
+    error = "'" + sys_type_name(runtime, args[0]) + "' object cannot be interpreted as an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (limit < 1 || limit > std::numeric_limits<int>::max()) {
-    error = "recursion limit must be positive";
+    error = "recursion limit must be greater or equal than 1";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
