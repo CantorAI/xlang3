@@ -84,3 +84,7 @@ shape the next iteration.
   as property docs in Python 3.14, with deletion resetting to the getter name.
 - PowerShell does not accept Bash-style `<<'EOF'` heredocs. Use `python -c`
   or an existing fixture/script path for CPython probes on Windows.
+- Class and callable metadata checks should pin visible doc text when an audit
+  row claims CPython-shaped docs. A non-`None` doc assertion can hide
+  compatibility-visible one-line summaries where CPython exposes structured
+  multi-line documentation.
