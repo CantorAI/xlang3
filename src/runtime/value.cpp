@@ -872,11 +872,21 @@ Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abs
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<PropertyObject>(ObjectKind::Property);
+  bool doc_from_getter = false;
+  if (doc.tag == ValueTag::None && fget.tag != ValueTag::None && fget.tag != ValueTag::Invalid) {
+    Value getter_doc;
+    std::string ignored;
+    if (object_get_attr(fget, "__doc__", getter_doc, ignored)) {
+      doc = std::move(getter_doc);
+      doc_from_getter = true;
+    }
+  }
   obj->fget = std::move(fget);
   obj->fset = std::move(fset);
   obj->fdel = std::move(fdel);
   obj->doc = std::move(doc);
   obj->is_abstract = is_abstract;
+  obj->doc_from_getter = doc_from_getter;
   v.as.obj = &obj->header;
   return v;
 }

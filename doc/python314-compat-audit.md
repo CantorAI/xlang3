@@ -1125,7 +1125,8 @@ Native or runtime-backed foundation:
   CPython-style `AttributeError` propagation for failed marker writes, keyword binding
   for public abstract decorators/update helpers, and abstract descriptor decorators,
   including `abstractproperty` descriptor-level abstract markers for empty, setter-only,
-  deleter-only, and full forms with CPython-normal unmarked accessors,
+  deleter-only, and full forms with CPython-normal unmarked accessors plus
+  property getter-doc inheritance/recomputation while preserving explicit docs,
   CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,

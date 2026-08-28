@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc abstractproperty marker propagation
+abc abstractproperty marker and doc propagation
 ```
 
 Current next loop:

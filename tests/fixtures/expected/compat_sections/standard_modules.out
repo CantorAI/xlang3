@@ -76,6 +76,7 @@ True
 abc-decorator-keyword True True classmethod True True
 abc-decorator-keyword staticmethod True True property True missing property True
 abc-abstractproperty-marker True True True abstract doc
+abc-abstractproperty-doc getter doc replacement doc explicit doc
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
 classmethod True True AbstractDescriptorProbe

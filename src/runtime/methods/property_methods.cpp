@@ -28,7 +28,7 @@ bool property_getter_method(Runtime&, const Value* args, uint32_t argc, Value& o
     error = "property.getter target is not a property";
     return false;
   }
-  out = Value::property(args[1], property->fset, property->fdel, property->doc, property->is_abstract);
+  out = Value::property(args[1], property->fset, property->fdel, property->doc_from_getter ? Value::none() : property->doc, property->is_abstract);
   return true;
 }
 

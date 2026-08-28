@@ -78,3 +78,5 @@ shape the next iteration.
 - Deprecated descriptor wrappers can expose compatibility state on the wrapper
   itself rather than mutating wrapped callables. Check CPython-visible descriptor
   attributes before assuming accessor marker propagation.
+- `property.__doc__` needs an internal "inherited from getter" distinction:
+  replacement getters recompute inherited docs, while explicit docs remain stable.
