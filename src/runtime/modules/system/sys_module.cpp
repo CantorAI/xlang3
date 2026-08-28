@@ -2996,9 +2996,42 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Return True if the GIL is currently enabled and False otherwise."),
       error);
-  module_set_attr(sys, "activate_stack_trampoline", runtime.make_native_function("sys.activate_stack_trampoline", sys_activate_stack_trampoline), error);
-  module_set_attr(sys, "deactivate_stack_trampoline", runtime.make_native_function("sys.deactivate_stack_trampoline", sys_deactivate_stack_trampoline), error);
-  module_set_attr(sys, "is_stack_trampoline_active", runtime.make_native_function("sys.is_stack_trampoline_active", sys_is_stack_trampoline_active), error);
+  module_set_attr(
+      sys,
+      "activate_stack_trampoline",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.activate_stack_trampoline",
+          "activate_stack_trampoline",
+          sys_activate_stack_trampoline,
+          nullptr,
+          "Activate stack profiler trampoline *backend*."),
+      error);
+  module_set_attr(
+      sys,
+      "deactivate_stack_trampoline",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.deactivate_stack_trampoline",
+          "deactivate_stack_trampoline",
+          sys_deactivate_stack_trampoline,
+          nullptr,
+          "Deactivate the current stack profiler trampoline backend."),
+      error);
+  module_set_attr(
+      sys,
+      "is_stack_trampoline_active",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.is_stack_trampoline_active",
+          "is_stack_trampoline_active",
+          sys_is_stack_trampoline_active,
+          nullptr,
+          "Return *True* if a stack profiler trampoline is active."),
+      error);
   module_set_attr(
       sys,
       "_debugmallocstats",
@@ -3127,7 +3160,12 @@ void register_sys_module(Runtime& runtime) {
           "Changes the default filesystem encoding to mbcs:replace."),
       error);
 #endif
-  module_set_attr(sys, "_getframe", runtime.make_native_function("sys._getframe", sys_getframe), error);
+  module_set_attr(
+      sys,
+      "_getframe",
+      sys_metadata_native_function(
+          runtime, "sys", "sys._getframe", "_getframe", sys_getframe, nullptr, "Return a frame object from the call stack."),
+      error);
   module_set_attr(
       sys,
       "_getframemodulename",

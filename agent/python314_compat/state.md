@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys exception/interner/size helper metadata
+sys frame and stack-trampoline helper metadata
 ```
 
 Current next loop:

@@ -520,6 +520,9 @@ Recent completed batches:
 - Expanded native `sys` exception/interner/size helper metadata so covered
   runtime probes expose CPython-style short names, `__module__ == "sys"`, and
   docstrings while preserving existing exception, intern, and sizing behavior.
+- Expanded native `sys` frame and stack-trampoline callable metadata so
+  `_getframe()` and stack-trampoline helpers expose CPython-style short names,
+  `__module__ == "sys"`, and docstrings.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -980,7 +983,8 @@ Native or runtime-backed foundation:
   targets with native-path execution-lock parity,
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
-  including CPython-style activation arity/type `TypeError` diagnostics,
+  including CPython-style callable metadata and activation arity/type
+  `TypeError` diagnostics,
   `sys._jit` module/function metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 helper
   function metadata, tool IDs, event constants,
