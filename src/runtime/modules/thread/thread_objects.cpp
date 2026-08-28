@@ -34,7 +34,7 @@ constexpr const char* kRLockNativeType = "_thread.RLock";
 using XlangThreadStateHandle = std::shared_ptr<XlangThreadState>;
 
 std::mutex g_thread_registry_mutex;
-std::vector<std::weak_ptr<XlangThreadState>> g_thread_registry;
+std::vector<std::shared_ptr<XlangThreadState>> g_thread_registry;
 
 XlangThreadStateHandle* thread_state_handle_from_self(const Value& self, std::string& error) {
   auto* handle = static_cast<XlangThreadStateHandle*>(instance_get_native_data(self, kThreadNativeType));
@@ -799,14 +799,15 @@ size_t xlang_thread_active_count() {
   size_t count = 1;
   auto it = g_thread_registry.begin();
   while (it != g_thread_registry.end()) {
-    if (auto state = it->lock()) {
-      if (xlang_thread_is_alive_state(*state)) {
-        ++count;
-      }
-      ++it;
-    } else {
+    auto state = *it;
+    if (!state) {
       it = g_thread_registry.erase(it);
+      continue;
     }
+    if (xlang_thread_is_alive_state(*state)) {
+      ++count;
+    }
+    ++it;
   }
   return count;
 }
@@ -817,17 +818,18 @@ std::vector<int64_t> xlang_thread_active_idents() {
   idents.push_back(xlang_thread_current_ident());
   auto it = g_thread_registry.begin();
   while (it != g_thread_registry.end()) {
-    if (auto state = it->lock()) {
-      if (xlang_thread_is_alive_state(*state)) {
-        std::lock_guard<std::mutex> state_lock(state->mutex);
-        if (state->ident != 0) {
-          idents.push_back(state->ident);
-        }
-      }
-      ++it;
-    } else {
+    auto state = *it;
+    if (!state) {
       it = g_thread_registry.erase(it);
+      continue;
     }
+    if (xlang_thread_is_alive_state(*state)) {
+      std::lock_guard<std::mutex> state_lock(state->mutex);
+      if (state->ident != 0) {
+        idents.push_back(state->ident);
+      }
+    }
+    ++it;
   }
   return idents;
 }
@@ -955,7 +957,7 @@ bool xlang_thread_start_detached(
   value_assign_fast(state->target, target);
   state->args = std::move(args);
 
-  std::thread worker([state]() {
+  state->worker = std::thread([state]() {
     {
       std::lock_guard<std::mutex> lock(state->mutex);
       state->ident = xlang_thread_current_ident();
@@ -1025,7 +1027,10 @@ bool xlang_thread_start_detached(
     state->done_cv.wait(lock, [&state]() { return state->started; });
     ident = state->ident;
   }
-  worker.detach();
+  {
+    std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
+    g_thread_registry.push_back(state);
+  }
   return true;
 }
 
@@ -1046,6 +1051,35 @@ void xlang_thread_join_state(XlangThreadState& state) {
 bool xlang_thread_is_alive_state(XlangThreadState& state) {
   std::lock_guard<std::mutex> lock(state.mutex);
   return state.started && !state.done;
+}
+
+void xlang_thread_join_runtime_threads(Runtime* runtime) {
+  std::vector<std::shared_ptr<XlangThreadState>> threads;
+  {
+    std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
+    for (const auto& state : g_thread_registry) {
+      if (state && state->runtime == runtime) {
+        threads.push_back(state);
+      }
+    }
+  }
+
+  for (auto& state : threads) {
+    xlang_thread_join_state(*state);
+  }
+
+  {
+    std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
+    auto it = g_thread_registry.begin();
+    while (it != g_thread_registry.end()) {
+      auto state = *it;
+      if (!state || (state->runtime == runtime && !xlang_thread_is_alive_state(*state))) {
+        it = g_thread_registry.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
 }
 
 void xlang_thread_state_cleanup(void* data) {

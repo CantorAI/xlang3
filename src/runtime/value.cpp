@@ -57,8 +57,9 @@ T* allocate_object(ObjectKind kind) {
 
 void release_string_block(StringObject* object) {
   const size_t alloc_size = object->alloc_size;
+  auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
   object->~StringObject();
-  memory::x3_thread_buckets().release(object, alloc_size);
+  allocator->release(object, alloc_size);
 }
 
 StringObject* allocate_string_object(size_t size) {
@@ -74,9 +75,52 @@ StringObject* allocate_string_object(size_t size) {
   obj->header.refcnt = 1;
   obj->size = static_cast<uint32_t>(size);
   obj->alloc_size = static_cast<uint32_t>(total_size);
+  obj->allocator = &memory::x3_thread_buckets();
   string_object_mutable_data(*obj)[size] = '\0';
   xlang_perf_count_object_alloc(ObjectKind::String);
   return obj;
+}
+
+void string_object_set_bytes(StringObject* object, const char* source, size_t size);
+
+std::vector<Value>& interned_string_table() {
+  static auto* table = new std::vector<Value>();
+  return *table;
+}
+
+bool is_auto_internable_string(std::string_view value) {
+  for (unsigned char ch : value) {
+    if (ch < 128 && !(std::isalnum(ch) || ch == '_')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool interned_string_equal(const Value& interned, std::string_view value) {
+  auto* string = value_as_string(interned);
+  return string != nullptr && string_object_view(*string) == value;
+}
+
+Value make_plain_string(std::string_view value) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_string_object(value.size());
+  string_object_set_bytes(obj, value.data(), value.size());
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value intern_string_view(std::string_view value) {
+  auto& table = interned_string_table();
+  for (const auto& item : table) {
+    if (interned_string_equal(item, value)) {
+      return item;
+    }
+  }
+  Value interned = make_plain_string(value);
+  table.push_back(interned);
+  return interned;
 }
 
 BytesObject* allocate_bytes_object(size_t size) {
@@ -92,6 +136,7 @@ BytesObject* allocate_bytes_object(size_t size) {
   obj->header.refcnt = 1;
   obj->size = static_cast<uint32_t>(size);
   obj->alloc_size = static_cast<uint32_t>(total_size);
+  obj->allocator = &memory::x3_thread_buckets();
   bytes_object_mutable_data(*obj)[size] = '\0';
   xlang_perf_count_object_alloc(ObjectKind::Bytes);
   return obj;
@@ -109,12 +154,13 @@ void release_tuple_block(TupleObject* object) {
   const size_t capacity = object->items.capacity();
   Value* item_storage = object->items.begin();
   const size_t alloc_size = object->alloc_size;
+  auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
   object->items.clear();
   for (size_t i = 0; i < capacity; ++i) {
     item_storage[i].~Value();
   }
   object->~TupleObject();
-  memory::x3_thread_buckets().release(object, alloc_size);
+  allocator->release(object, alloc_size);
 }
 
 struct TupleObjectFreeLists {
@@ -155,6 +201,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
   obj->header.kind = ObjectKind::Tuple;
   obj->header.refcnt = 1;
   obj->alloc_size = static_cast<uint32_t>(total_size);
+  obj->allocator = &memory::x3_thread_buckets();
   auto* item_storage = reinterpret_cast<Value*>(static_cast<unsigned char*>(block) + tuple_items_offset());
   for (size_t i = 0; i < capacity; ++i) {
     new (item_storage + i) Value();
@@ -166,7 +213,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
 void recycle_tuple_object(TupleObject* object) {
   const uint32_t capacity = object->items.capacity();
   object->items.clear();
-  if (capacity < tuple_object_free_lists.small.size()) {
+  if (object->allocator == &memory::x3_thread_buckets() && capacity < tuple_object_free_lists.small.size()) {
     auto& list = tuple_object_free_lists.small[capacity];
     if (list.size() < 4096) {
       list.push_back(object);
@@ -188,8 +235,9 @@ void recycle_string_object(StringObject* object) {
 
 void recycle_bytes_object(BytesObject* object) {
   const size_t alloc_size = object->alloc_size;
+  auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
   object->~BytesObject();
-  memory::x3_thread_buckets().release(object, alloc_size);
+  allocator->release(object, alloc_size);
 }
 
 bool is_number(const Value& value) {
@@ -478,6 +526,30 @@ std::string bytes_repr(std::string_view value) {
   return text;
 }
 
+std::string string_repr(std::string_view value) {
+  const bool has_single_quote = value.find('\'') != std::string_view::npos;
+  const bool has_double_quote = value.find('"') != std::string_view::npos;
+  const char quote = has_single_quote && !has_double_quote ? '"' : '\'';
+  std::string text;
+  text.push_back(quote);
+  for (const char ch : value) {
+    if (ch == '\\' || ch == quote) {
+      text.push_back('\\');
+      text.push_back(ch);
+    } else if (ch == '\n') {
+      text += "\\n";
+    } else if (ch == '\r') {
+      text += "\\r";
+    } else if (ch == '\t') {
+      text += "\\t";
+    } else {
+      text.push_back(ch);
+    }
+  }
+  text.push_back(quote);
+  return text;
+}
+
 FunctionObject* as_function(Object* obj) {
   return reinterpret_cast<FunctionObject*>(obj);
 }
@@ -569,12 +641,10 @@ Value Value::string(std::string value) {
 }
 
 Value Value::string_view(std::string_view value) {
-  Value v;
-  v.tag = ValueTag::Object;
-  auto* obj = allocate_string_object(value.size());
-  string_object_set_bytes(obj, value.data(), value.size());
-  v.as.obj = &obj->header;
-  return v;
+  if (is_auto_internable_string(value)) {
+    return intern_string_view(value);
+  }
+  return make_plain_string(value);
 }
 
 Value Value::string_uninitialized(size_t size) {
@@ -583,6 +653,27 @@ Value Value::string_uninitialized(size_t size) {
   auto* obj = allocate_string_object(size);
   v.as.obj = &obj->header;
   return v;
+}
+
+Value intern_string_value(const Value& value) {
+  auto* string = value_as_string(value);
+  if (string == nullptr) {
+    return Value::invalid();
+  }
+  return intern_string_view(string_object_view(*string));
+}
+
+bool string_value_is_interned(const Value& value) {
+  for (const auto& item : interned_string_table()) {
+    if (value_is(item, value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int64_t interned_string_count() {
+  return static_cast<int64_t>(interned_string_table().size());
 }
 
 Value Value::bytes(std::string value) {
@@ -976,7 +1067,7 @@ std::string value_to_string(const Value& value) {
           if (i != 0) {
             text += ", ";
           }
-          text += value_to_string(items[i]);
+          text += value_to_repr(items[i]);
         }
         if (items.size() == 1) {
           text += ",";
@@ -1057,6 +1148,14 @@ std::string value_to_string(const Value& value) {
       return "<object>";
   }
   return "<unknown>";
+}
+
+std::string value_to_repr(const Value& value) {
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
+      value.as.obj->kind == ObjectKind::String) {
+    return string_repr(string_object_view(*as_string(value.as.obj)));
+  }
+  return value_to_string(value);
 }
 
 bool string_percent_arg(

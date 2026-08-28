@@ -24,6 +24,10 @@ limitations under the License.
 - Do not hide gaps behind stubs, placeholders, importable empty facades, or
   return-`None` behavior.
 - Do not add benchmark-specific or module-specific cheats.
+- Do not change fixtures blindly. For each output mismatch, confirm whether the
+  runtime behavior is Python-compatible or the runtime needs fixing.
+- Use `agent/scripts/build_release.py` and `agent/scripts/run_fixtures.py` for
+  repeatable local validation instead of constructing ad hoc commands.
 - Add or update fixtures for every compatibility change.
 - Use `tests/fixtures` as the canonical fixture location.
 - Build and run tests before commit.

@@ -22,8 +22,11 @@ X3ObjectPoolManager& x3_thread_object_pools() {
 }
 
 X3BucketAllocator& x3_thread_buckets() {
-  thread_local X3BucketAllocator buckets;
-  return buckets;
+  // Objects allocated in one XLang3 native thread can legally outlive that
+  // thread and be released by another. Keep each per-thread bucket alive for
+  // process lifetime; variable-sized objects store their owning bucket.
+  thread_local X3BucketAllocator* buckets = new X3BucketAllocator();
+  return *buckets;
 }
 
 } // namespace xlang3::memory

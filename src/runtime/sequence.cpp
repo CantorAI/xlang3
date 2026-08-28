@@ -84,7 +84,7 @@ std::string repr_items(const std::vector<Value>& items, const char* open, const 
     if (i != 0) {
       text += ", ";
     }
-    text += value_to_string(items[i]);
+    text += value_to_repr(items[i]);
   }
   text += close;
   return text;

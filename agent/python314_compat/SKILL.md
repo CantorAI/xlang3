@@ -33,7 +33,12 @@ Work rules:
 - Use native C++ only for runtime primitives, CPython native dependency modules,
   and performance-critical product modules.
 - Add fixture coverage under `tests/fixtures`.
+- Use deterministic agent scripts for local checks; do not invent build/test
+  command lines during each batch.
+- When a fixture mismatch appears, decide whether it is a runtime bug or an
+  obsolete golden file by comparing against Python 3.14 behavior or the changed
+  runtime contract. Do not update expected output just to make tests pass.
 - Update `doc/python314-compat-audit.md` only for behavior that is really
   implemented and tested.
-- Build Release with Visual Studio CMake and run `agent/scripts/run_fixtures.py`
-  before committing.
+- Build Release with `agent/scripts/build_release.py` and run
+  `agent/scripts/run_fixtures.py` before committing.

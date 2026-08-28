@@ -323,9 +323,9 @@ std::string mapping_to_string(const Value& value) {
       if (i != 0) {
         text += ", ";
       }
-      text += value_to_string(dict->entries[i].first);
+      text += value_to_repr(dict->entries[i].first);
       text += ": ";
-      text += value_to_string(dict->entries[i].second);
+      text += value_to_repr(dict->entries[i].second);
     }
     text += "}";
     return text;
@@ -346,16 +346,16 @@ std::string mapping_to_string(const Value& value) {
       }
       switch (view->kind) {
         case DictIterationKind::Keys:
-          text += value_to_string(dict->entries[i].first);
+          text += value_to_repr(dict->entries[i].first);
           break;
         case DictIterationKind::Values:
-          text += value_to_string(dict->entries[i].second);
+          text += value_to_repr(dict->entries[i].second);
           break;
         case DictIterationKind::Items:
           text += "(";
-          text += value_to_string(dict->entries[i].first);
+          text += value_to_repr(dict->entries[i].first);
           text += ", ";
-          text += value_to_string(dict->entries[i].second);
+          text += value_to_repr(dict->entries[i].second);
           text += ")";
           break;
       }

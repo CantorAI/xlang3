@@ -7,9 +7,9 @@
 1
 None
 9
-dict_keys([a])
+dict_keys(['a'])
 dict_values([1])
-dict_items([(a, 1)])
+dict_items([('a', 1)])
 1
 8
 0
@@ -20,6 +20,6 @@ dict_items([(a, 1)])
 abc
 ABC
 hi
-[a, b, c]
-[a, b, c]
+['a', 'b', 'c']
+['a', 'b', 'c']
 True

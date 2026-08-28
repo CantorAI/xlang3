@@ -35,6 +35,7 @@ X3BucketAllocator::~X3BucketAllocator() {
 }
 
 void* X3BucketAllocator::allocate(size_t bytes) {
+  std::lock_guard<std::mutex> lock(mutex_);
   const uint32_t size_class = x3_size_class_for(bytes);
   if (size_class == kInvalidSizeClass) {
     void* mem = pages_.allocate(bytes == 0 ? 1 : bytes, alignof(std::max_align_t));
@@ -59,6 +60,7 @@ void X3BucketAllocator::release(void* ptr, size_t bytes) noexcept {
   if (ptr == nullptr) {
     return;
   }
+  std::lock_guard<std::mutex> lock(mutex_);
 
   const uint32_t size_class = x3_size_class_for(bytes);
   if (size_class == kInvalidSizeClass) {

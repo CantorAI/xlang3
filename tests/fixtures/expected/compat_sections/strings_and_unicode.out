@@ -1,7 +1,7 @@
 A Alpha AB haha
 Alpha,beta,Alpha Alpha,beta,Alpha     Alpha,beta,Alpha
 2 13 8 13
-(  Alpha, ,, beta,Alpha  ) (  Alpha,beta, ,, Alpha  )
+('  Alpha', ',', 'beta,Alpha  ') ('  Alpha,beta', ',', 'Alpha  ')
   A,beta,Alpha   2
 True True
 True True True True
@@ -10,13 +10,11 @@ True False True True
 Hello World True aBc abc
 --x-- x.. ..x -0042
 name name
-a   b [a, b, c] [a
-, b
-, c]
-[a, b, c]
+a   b ['a', 'b', 'c'] ['a\n', 'b\r\n', 'c']
+['a', 'b', 'c']
 id:7
 one-zero-n
-a|b|c [a, , b]
+a|b|c ['a', '', 'b']
 Hi ASCII
 ascii-decode-error
 b'x' b'?x' 3 65533
@@ -60,9 +58,9 @@ control Cc B
 ANGSTROM SIGN 197 IV
 unicode-lookup-error
 ascii b'x' ab
-(b'?x', 2) (Hi, 2)
+(b'?x', 2) ('Hi', 2)
 b'\xe9?' 2 233 ? 5 ok
 utf_8 latin_1
-(b'\xe9?', 2) (ok, 5)
+(b'\xe9?', 2) ('ok', 5)
 True
 True

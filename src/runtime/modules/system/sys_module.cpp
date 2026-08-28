@@ -120,11 +120,6 @@ MonitoringCodeKey monitoring_code_key(const CodeObject& code) {
   return MonitoringCodeKey{code.module.get(), code.function_id};
 }
 
-std::vector<Value>& interned_strings() {
-  static auto* table = new std::vector<Value>();
-  return *table;
-}
-
 bool is_callable_value(const Value& value) {
   return value_as_function(value) != nullptr ||
          value_as_native_function(value) != nullptr ||
@@ -1288,17 +1283,7 @@ bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const std::string text = string_object_to_string(*value_as_string(args[0]));
-  auto& interned = interned_strings();
-  for (const auto& item : interned) {
-    auto* interned_string = value_as_string(item);
-    if (interned_string != nullptr && string_object_to_string(*interned_string) == text) {
-      value_assign_fast(out, item);
-      return true;
-    }
-  }
-  interned.push_back(args[0]);
-  value_assign_fast(out, args[0]);
+  out = intern_string_value(args[0]);
   return true;
 }
 
@@ -1308,13 +1293,7 @@ bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  for (const auto& interned : interned_strings()) {
-    if (value_is(interned, args[0])) {
-      value_set_bool(out, true);
-      return true;
-    }
-  }
-  value_set_bool(out, false);
+  value_set_bool(out, string_value_is_interned(args[0]));
   return true;
 }
 
@@ -1324,7 +1303,7 @@ bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_int64(out, static_cast<int64_t>(interned_strings().size()));
+  value_set_int64(out, interned_string_count());
   return true;
 }
 

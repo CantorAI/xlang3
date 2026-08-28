@@ -11,8 +11,7 @@ one
 one
 
 
-[two
-, three]
+['two\n', 'three']
 one
 two
 three
@@ -27,9 +26,9 @@ b'xy'
 3
 b'a\r\nb'
 a
+
 b
-[a
-, b]
+['a\n', 'b']
 2
 b'\xe9?'
 2 233 ?

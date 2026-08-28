@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <array>
 #include <cstddef>
+#include <mutex>
 #include <vector>
 
 namespace xlang3::memory {
@@ -63,6 +64,7 @@ private:
   std::array<Bucket, x3_size_class_count()> buckets_;
   X3MemoryCounter bucket_stats_;
   X3MemoryCounter large_stats_;
+  std::mutex mutex_;
 };
 
 } // namespace xlang3::memory

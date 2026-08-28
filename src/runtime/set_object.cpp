@@ -138,7 +138,7 @@ std::string set_to_string(const Value& value) {
         if (i != 0) {
           text += ", ";
         }
-        text += value_to_string(set->items[i]);
+        text += value_to_repr(set->items[i]);
       }
       text += "})";
       return text;
@@ -148,7 +148,7 @@ std::string set_to_string(const Value& value) {
       if (i != 0) {
         text += ", ";
       }
-      text += value_to_string(set->items[i]);
+      text += value_to_repr(set->items[i]);
     }
     text += "}";
     return text;

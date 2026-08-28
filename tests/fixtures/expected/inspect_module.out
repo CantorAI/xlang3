@@ -15,7 +15,7 @@ world
 b
 abc False
 True True
-[a, b] 3 2
+['a', 'b'] 3 2
 {}
 True
 True True

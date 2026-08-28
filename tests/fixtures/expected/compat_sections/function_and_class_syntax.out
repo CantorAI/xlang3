@@ -4,8 +4,8 @@ T
 13 11
 11 15
 23 left child yes T
-99 [eval]
-8 42 [MetaMade] type
+99 ['eval']
+8 42 ['MetaMade'] type
 18 CustomMeta CustomMeta
 inst MetadataProbe.inst inst doc MetadataProbe inst
 sm MetadataProbe.sm 5
@@ -24,7 +24,7 @@ None
 3
 1
 None
-[closed]
+['closed']
 16
 10
 asend lazy

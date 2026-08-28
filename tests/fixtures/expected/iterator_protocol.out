@@ -3,7 +3,7 @@
 done
 StopIteration
 True
-(1, a)
+(1, 'a')
 zip-done
 True
 5

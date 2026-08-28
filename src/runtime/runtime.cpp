@@ -44,6 +44,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+void xlang_thread_join_runtime_threads(Runtime* runtime);
+
 namespace {
 
 struct RuntimeCurrentFrameState {
@@ -341,6 +343,7 @@ Runtime::Runtime(OutputSink output)
 Runtime::~Runtime() {
   std::string ignored;
   run_exit_functions(ignored);
+  xlang_thread_join_runtime_threads(this);
   value_set_invalid(pending_exception_);
   value_set_invalid(active_exception_);
   value_set_invalid(runtime_current_exception_state(*this));

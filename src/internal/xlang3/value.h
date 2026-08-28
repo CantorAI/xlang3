@@ -31,6 +31,10 @@ namespace ir {
 struct Module;
 }
 
+namespace memory {
+class X3BucketAllocator;
+}
+
 class Runtime;
 class FileSystem;
 struct Value;
@@ -148,6 +152,7 @@ struct StringObject {
   Object header;
   uint32_t size = 0;
   uint32_t alloc_size = 0;
+  memory::X3BucketAllocator* allocator = nullptr;
   // Immutable string bytes follow this object in the same allocation block.
 };
 
@@ -155,6 +160,7 @@ struct BytesObject {
   Object header;
   uint32_t size = 0;
   uint32_t alloc_size = 0;
+  memory::X3BucketAllocator* allocator = nullptr;
   // Immutable bytes follow this object in the same allocation block.
 };
 
@@ -379,6 +385,7 @@ private:
 struct TupleObject {
   Object header;
   uint32_t alloc_size = 0;
+  memory::X3BucketAllocator* allocator = nullptr;
   TupleItems items;
 };
 
@@ -477,6 +484,10 @@ XLANG3_HOT_INLINE char* string_object_mutable_data(StringObject& value) {
 inline std::string string_object_to_string(const StringObject& value) {
   return std::string(string_object_view(value));
 }
+
+Value intern_string_value(const Value& value);
+bool string_value_is_interned(const Value& value);
+int64_t interned_string_count();
 
 XLANG3_HOT_INLINE size_t utf8_codepoint_width(unsigned char ch) {
   if ((ch & 0x80u) == 0) return 1;
@@ -729,6 +740,7 @@ XLANG3_HOT_INLINE void value_set_number(Value& out, double value) {
 }
 
 std::string value_to_string(const Value& value);
+std::string value_to_repr(const Value& value);
 bool value_truthy(const Value& value);
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);

@@ -1,4 +1,4 @@
-[hello.txt, folder/source.txt, deflated.txt, meta.txt, emptydir/]
+['hello.txt', 'folder/source.txt', 'deflated.txt', 'meta.txt', 'emptydir/']
 hello.txt 9 0
 8 True
 hello.txt 9
@@ -16,11 +16,11 @@ b'hello zip'
 True True True
 True True b'hello zip'
 True True
-hello.txt hello .txt [.txt]
+hello.txt hello .txt ['.txt']
 False True hello.txt
 True
 True
-[hello.txt, deflated.txt, meta.txt]
+['hello.txt', 'deflated.txt', 'meta.txt']
 True
 True
 True

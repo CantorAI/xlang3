@@ -1182,28 +1182,7 @@ bool builtin_repr(
     error = "repr() expected 1 argument";
     return false;
   }
-  if (auto* string = value_as_string(args[0])) {
-    std::string text;
-    text.push_back('\'');
-    for (char ch : string_object_view(*string)) {
-      if (ch == '\'' || ch == '\\') {
-        text.push_back('\\');
-      }
-      if (ch == '\n') {
-        text += "\\n";
-      } else if (ch == '\r') {
-        text += "\\r";
-      } else if (ch == '\t') {
-        text += "\\t";
-      } else {
-        text.push_back(ch);
-      }
-    }
-    text.push_back('\'');
-    out = Value::string(std::move(text));
-    return true;
-  }
-  out = Value::string(value_to_string(args[0]));
+  out = Value::string(value_to_repr(args[0]));
   return true;
 }
 

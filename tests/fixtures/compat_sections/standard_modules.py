@@ -636,6 +636,10 @@ sys_intern_prefix = "xlang"
 sys_intern_dynamic = sys_intern_prefix + "3"
 sys_intern_canonical = sys.intern(sys_intern_dynamic)
 print(sys.intern("xlang3") is sys_intern_canonical, sys._is_interned(sys_intern_canonical), sys._is_interned(sys_intern_dynamic))
+sys_intern_identifier_literal = "identifier_literal"
+sys_intern_spaced_literal = "identifier literal"
+sys_intern_spaced_canonical = sys.intern(sys_intern_spaced_literal)
+print(sys._is_interned(sys_intern_identifier_literal), sys._is_interned(sys_intern_spaced_literal), sys_intern_spaced_canonical is sys_intern_spaced_literal, sys._is_interned(sys_intern_spaced_canonical))
 unicode_interned_before = sys.getunicodeinternedsize()
 sys.intern("interned-size-probe")
 print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "XLang3", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")

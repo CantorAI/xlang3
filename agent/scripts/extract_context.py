@@ -138,7 +138,9 @@ Runtime doctrine:
 - Native C++ is correct for CPython native/core dependency modules and
   performance-critical product modules.
 - No debugpy-only shortcuts.
-- No stubs or fake compatibility.
+- No stubs, placeholder facades, or fake compatibility.
+- Do not change fixtures blindly. For each output mismatch, confirm whether the
+  runtime behavior is Python-compatible or the runtime needs fixing.
 - Every compatibility change needs fixture coverage under tests/fixtures.
 - Update doc/python314-compat-audit.md truthfully.
 
@@ -157,8 +159,8 @@ Next unfinished audit rows:
 {rows}
 
 Validation after Codex work:
-- Build Release xlang3 with Visual Studio CMake.
-- Run agent/scripts/run_fixtures.py.
+- Run C:/Python/Python314/python.exe agent/scripts/build_release.py.
+- Run C:/Python/Python314/python.exe agent/scripts/run_fixtures.py --xlang3 D:/CantorAI/xlang3/build/Release/xlang3.exe.
 - Run git diff --check.
 - Commit and push only after validation passes.
 """

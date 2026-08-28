@@ -266,6 +266,59 @@ bool run_source(
   return true;
 }
 
+bool run_source_in_module(
+    const std::string& source,
+    const xlang3::RunConfig& config,
+    xlang3::Runtime& runtime,
+    xlang3::Interpreter& interpreter,
+    xlang3::Value globals_module,
+    const std::string& source_file,
+    bool dump_ir) {
+  const auto run_start = std::chrono::steady_clock::now();
+  trace_frontend_timing("parse-begin", run_start);
+  auto parsed = xlang3::parse_source(source);
+  trace_frontend_timing("parse-end", run_start);
+  if (!parsed.errors.empty()) {
+    for (const auto& error : parsed.errors) {
+      std::cerr << "parse: " << error << "\n";
+    }
+    return false;
+  }
+
+  trace_frontend_timing("lower-begin", run_start);
+  auto lowered = xlang3::lower_to_ir(parsed.module);
+  trace_frontend_timing("lower-end", run_start);
+  if (!lowered.errors.empty()) {
+    for (const auto& error : lowered.errors) {
+      std::cerr << "lower: " << error << "\n";
+    }
+    return false;
+  }
+
+  if (dump_ir && !dump_ir_file(config, lowered.module)) {
+    return false;
+  }
+
+  auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
+  if (!source_file.empty()) {
+    module->source_file = source_file;
+  } else if (!config.source_path.empty()) {
+    module->source_file = source_file_for_run(config).string();
+  } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
+    module->source_file = "<string>";
+  }
+  trace_frontend_timing("exec-begin", run_start);
+  auto result = interpreter.run_module(*module, std::move(globals_module), module);
+  trace_frontend_timing("exec-end", run_start);
+  if (!result.errors.empty()) {
+    for (const auto& error : result.errors) {
+      std::cerr << "runtime: " << error << "\n";
+    }
+    return false;
+  }
+  return true;
+}
+
 bool run_module_name(
     const xlang3::RunConfig& config,
     xlang3::Runtime& runtime,
@@ -313,6 +366,42 @@ std::string repl_source_for_line(const std::string& line) {
   return "print(" + line + ")";
 }
 
+bool line_starts_with_indent(const std::string& line) {
+  return !line.empty() && (line[0] == ' ' || line[0] == '\t');
+}
+
+bool line_opens_block(const std::string& line) {
+  const auto last = line.find_last_not_of(" \t");
+  return last != std::string::npos && line[last] == ':';
+}
+
+std::string join_repl_lines(const std::vector<std::string>& lines) {
+  std::string source;
+  for (const auto& entry : lines) {
+    source += entry;
+    source += '\n';
+  }
+  return source;
+}
+
+bool run_repl_line(
+    const std::string& line,
+    const xlang3::RunConfig& config,
+    xlang3::Runtime& runtime,
+    xlang3::Interpreter& interpreter,
+    xlang3::Value& globals_module) {
+  return run_source_in_module(repl_source_for_line(line), config, runtime, interpreter, globals_module, "<stdin>", false);
+}
+
+bool run_repl_block(
+    const std::vector<std::string>& lines,
+    const xlang3::RunConfig& config,
+    xlang3::Runtime& runtime,
+    xlang3::Interpreter& interpreter,
+    xlang3::Value& globals_module) {
+  return run_source_in_module(join_repl_lines(lines), config, runtime, interpreter, globals_module, "<stdin>", false);
+}
+
 int run_repl() {
   std::cout << "XLang3 interactive shell\n";
   std::cout << "Type .exit to quit.\n";
@@ -321,11 +410,16 @@ int run_repl() {
   xlang3::Runtime runtime(std::cout);
   runtime.prepend_import_root(std::filesystem::current_path());
   xlang3::Interpreter interpreter(runtime);
+  xlang3::Value globals_module = xlang3::Value::module("__main__");
 
   std::string line;
+  std::vector<std::string> pending_block;
   while (true) {
-    std::cout << ">>> " << std::flush;
+    std::cout << (pending_block.empty() ? ">>> " : "... ") << std::flush;
     if (!std::getline(std::cin, line)) {
+      if (!pending_block.empty()) {
+        run_repl_block(pending_block, config, runtime, interpreter, globals_module);
+      }
       std::cout << "\n";
       return 0;
     }
@@ -333,9 +427,25 @@ int run_repl() {
       return 0;
     }
     if (line.empty()) {
+      if (!pending_block.empty()) {
+        run_repl_block(pending_block, config, runtime, interpreter, globals_module);
+        pending_block.clear();
+      }
       continue;
     }
-    run_source(repl_source_for_line(line), config, runtime, interpreter, false);
+    if (!pending_block.empty()) {
+      if (line_starts_with_indent(line) || line_opens_block(pending_block.back())) {
+        pending_block.push_back(line);
+        continue;
+      }
+      run_repl_block(pending_block, config, runtime, interpreter, globals_module);
+      pending_block.clear();
+    }
+    if (line_opens_block(line)) {
+      pending_block.push_back(line);
+      continue;
+    }
+    run_repl_line(line, config, runtime, interpreter, globals_module);
   }
 }
 
@@ -387,8 +497,6 @@ int run_dap_stdio() {
 } // namespace
 
 int main(int argc, char** argv) {
-  configure_binary_stdio();
-
   if (argc >= 2 && std::string(argv[1]) == "--dap-stdio") {
     return run_dap_stdio();
   }

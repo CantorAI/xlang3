@@ -56,6 +56,10 @@ def state_path(config: dict, goal: str) -> Path:
     return runs_dir(config, goal) / "loop_state.json"
 
 
+def stop_request_path(config: dict, goal: str) -> Path:
+    return runs_dir(config, goal) / "stop.requested"
+
+
 def default_xlang3(config: dict) -> str:
     return str(ROOT / config.get("repo", {}).get("release_exe", "build/Release/xlang3.exe"))
 
@@ -76,8 +80,7 @@ def command_quote(value: str) -> str:
 
 
 def build_command_text(config: dict) -> str:
-    cmake = default_cmake(config) or "cmake"
-    return f"{command_quote(cmake)} --build build --config Release --target xlang3 -- /m"
+    return f"{command_quote(default_python(config))} agent\\scripts\\build_release.py"
 
 
 def fixture_command_text(config: dict) -> str:
@@ -376,12 +379,14 @@ Runtime doctrine:
 - Every compatibility change needs fixture coverage under tests/fixtures.
 - Use the fixed local commands below. Do not rediscover cmake, msbuild, ninja,
   python.exe, or xlang3.exe paths unless one of these exact commands fails.
+- Use the fixed agent scripts below for deterministic build/test behavior;
+  do not generate new build or fixture command lines inside the batch.
 - Build only the Release xlang3 target during this loop.
 - Update doc/python314-compat-audit.md truthfully.
 - Update agent/python314_compat/state.md if the checkpoint changes.
 - The loop will build, test, commit, and push after your work.
 
-Fixed local commands:
+Fixed local scripts:
 - Build: {build_command}
 - Full fixture validation: {fixture_command}
 - Selected section quick run: {section_fixture_command or "not available for whole-audit mode"}
@@ -466,6 +471,28 @@ def clear_loop_state(config: dict, goal: str) -> None:
     path = state_path(config, goal)
     if path.exists():
         path.unlink()
+
+
+def request_stop(config: dict, goal: str) -> None:
+    path = stop_request_path(config, goal)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "Stop after the current XLang3 compatibility loop iteration completes.\n",
+        encoding="utf-8",
+    )
+    print(f"Stop requested. The loop will exit after the current iteration: {path}")
+
+
+def consume_stop_request(config: dict, goal: str) -> bool:
+    path = stop_request_path(config, goal)
+    if not path.exists():
+        return False
+    try:
+        path.unlink()
+    except OSError:
+        pass
+    print("Stop request acknowledged; exiting after this completed iteration.")
+    return True
 
 
 def invoke_codex(command_template: str, prompt_path: Path, prompt: str) -> None:
@@ -702,6 +729,7 @@ def main() -> int:
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--skip-tests", action="store_true")
     parser.add_argument("--reset-loop-state", action="store_true", help="Discard saved resume state for this goal.")
+    parser.add_argument("--request-stop", action="store_true", help="Ask a running continuous loop to stop after its current iteration.")
     args = parser.parse_args()
 
     os.chdir(ROOT)
@@ -720,6 +748,10 @@ def main() -> int:
     if args.reset_loop_state:
         clear_loop_state(config, goal)
         print(f"Cleared loop state for goal: {goal}")
+
+    if args.request_stop:
+        request_stop(config, goal)
+        return 0
 
     if args.status:
         print_loop_status(config, goal, section, limit)
@@ -905,6 +937,8 @@ def main() -> int:
         else:
             committed = commit_and_push(config, goal, commit_message)
             clear_loop_state(config, goal)
+            if consume_stop_request(config, goal):
+                break
             if continuous and not committed:
                 print("Stopping continuous loop because this batch produced no stageable changes.")
                 break

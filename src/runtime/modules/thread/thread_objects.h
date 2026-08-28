@@ -58,6 +58,7 @@ bool xlang_thread_tuple_to_args(const Value& value, std::vector<Value>& out, std
 bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::string& error);
 bool xlang_thread_start_detached(Runtime& runtime, Value target, std::vector<Value> args, int64_t& ident, std::string& error);
 void xlang_thread_join_state(XlangThreadState& state);
+void xlang_thread_join_runtime_threads(Runtime* runtime);
 bool xlang_thread_is_alive_state(XlangThreadState& state);
 bool xlang_lock_acquire_value(const Value& lock, bool blocking, std::string& error);
 bool xlang_lock_release_value(const Value& lock, std::string& error);
