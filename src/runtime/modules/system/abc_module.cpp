@@ -809,13 +809,22 @@ void register_abc_module(Runtime& runtime) {
            "even via super()).\n")});
   abc_meta_attrs.push_back({"__new__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__new__", "__new__", abc_meta_new, "Create a new ABC class."))});
   abc_meta_attrs.push_back({"__init__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__init__", "__init__", abc_meta_init, "Initialize a new ABC class."))});
-  abc_meta_attrs.push_back({"register", abc_native_function(runtime, "abc", "ABCMeta.register", "register", abc_meta_register, "Register a virtual subclass of an ABC.")});
+  abc_meta_attrs.push_back(
+      {"register",
+       abc_native_function(
+           runtime,
+           "abc",
+           "ABCMeta.register",
+           "register",
+           abc_meta_register,
+           "Register a virtual subclass of an ABC.\n\n"
+           "Returns the subclass, to allow usage as a class decorator.\n")});
   abc_meta_attrs.push_back({
       "__instancecheck__",
-      abc_native_function(runtime, "abc", "ABCMeta.__instancecheck__", "__instancecheck__", abc_meta_instancecheck, "Override isinstance(instance, cls).")});
+      abc_native_function(runtime, "abc", "ABCMeta.__instancecheck__", "__instancecheck__", abc_meta_instancecheck, "Override for isinstance(instance, cls).")});
   abc_meta_attrs.push_back({
       "__subclasscheck__",
-      abc_native_function(runtime, "abc", "ABCMeta.__subclasscheck__", "__subclasscheck__", abc_meta_subclasscheck, "Override issubclass(subclass, cls).")});
+      abc_native_function(runtime, "abc", "ABCMeta.__subclasscheck__", "__subclasscheck__", abc_meta_subclasscheck, "Override for issubclass(subclass, cls).")});
   const Value* type_base = runtime.find_builtin("type");
   Value abc_meta = Value::class_object(
       "ABCMeta",
@@ -846,20 +855,105 @@ void register_abc_module(Runtime& runtime) {
       .value("ABC", abc_class)
       .value(
           "get_cache_token",
-          abc_native_function(runtime, "abc", "abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token.", abc_no_keyword_args))
-      .value("abstractmethod", abc_native_function(runtime, "abc", "abc.abstractmethod", "abstractmethod", abc_abstractmethod, "A decorator indicating abstract methods.", abc_abstractmethod_kw))
+          abc_native_function(
+              runtime,
+              "abc",
+              "abc.get_cache_token",
+              "get_cache_token",
+              abc_get_cache_token,
+              "Returns the current ABC cache token.\n\n"
+              "The token is an opaque object (supporting equality testing) identifying\n"
+              "the current version of the ABC cache for virtual subclasses.  The token\n"
+              "changes with every call to register() on any ABC.",
+              abc_no_keyword_args))
+      .value(
+          "abstractmethod",
+          abc_native_function(
+              runtime,
+              "abc",
+              "abc.abstractmethod",
+              "abstractmethod",
+              abc_abstractmethod,
+              "A decorator indicating abstract methods.\n\n"
+              "Requires that the metaclass is ABCMeta or derived from it.  A\n"
+              "class that has a metaclass derived from ABCMeta cannot be\n"
+              "instantiated unless all of its abstract methods are overridden.\n"
+              "The abstract methods can be called using any of the normal\n"
+              "'super' call mechanisms.  abstractmethod() may be used to declare\n"
+              "abstract methods for properties and descriptors.\n\n"
+              "Usage:\n\n"
+              "    class C(metaclass=ABCMeta):\n"
+              "        @abstractmethod\n"
+              "        def my_abstract_method(self, arg1, arg2, argN):\n"
+              "            ...\n",
+              abc_abstractmethod_kw))
       .value(
           "update_abstractmethods",
-          abc_native_function(runtime, "abc", "abc.update_abstractmethods", "update_abstractmethods", abc_update_abstractmethods, "Recalculate abstract methods.", abc_update_abstractmethods_kw))
+          abc_native_function(
+              runtime,
+              "abc",
+              "abc.update_abstractmethods",
+              "update_abstractmethods",
+              abc_update_abstractmethods,
+              "Recalculate the set of abstract methods of an abstract class.\n\n"
+              "If a class has had one of its abstract methods implemented after the\n"
+              "class was created, the method will not be considered implemented until\n"
+              "this function is called. Alternatively, if a new abstract method has been\n"
+              "added to the class, it will only be considered an abstract method of the\n"
+              "class after this function is called.\n\n"
+              "This function should be called before any use is made of the class,\n"
+              "usually in class decorators that add methods to the subject class.\n\n"
+              "Returns cls, to allow usage as a class decorator.\n\n"
+              "If cls is not an instance of ABCMeta, does nothing.\n",
+              abc_update_abstractmethods_kw))
       .value(
           "abstractclassmethod",
-          abc_native_function(runtime, "abc", "abc.abstractclassmethod", "abstractclassmethod", abc_abstractclassmethod, "A decorator indicating abstract classmethods.", abc_abstractclassmethod_kw))
+          abc_native_function(
+              runtime,
+              "abc",
+              "abc.abstractclassmethod",
+              "abstractclassmethod",
+              abc_abstractclassmethod,
+              "A decorator indicating abstract classmethods.\n\n"
+              "Deprecated, use 'classmethod' with 'abstractmethod' instead:\n\n"
+              "    class C(ABC):\n"
+              "        @classmethod\n"
+              "        @abstractmethod\n"
+              "        def my_abstract_classmethod(cls, ...):\n"
+              "            ...\n\n",
+              abc_abstractclassmethod_kw))
       .value(
           "abstractstaticmethod",
-          abc_native_function(runtime, "abc", "abc.abstractstaticmethod", "abstractstaticmethod", abc_abstractstaticmethod, "A decorator indicating abstract staticmethods.", abc_abstractstaticmethod_kw))
+          abc_native_function(
+              runtime,
+              "abc",
+              "abc.abstractstaticmethod",
+              "abstractstaticmethod",
+              abc_abstractstaticmethod,
+              "A decorator indicating abstract staticmethods.\n\n"
+              "Deprecated, use 'staticmethod' with 'abstractmethod' instead:\n\n"
+              "    class C(ABC):\n"
+              "        @staticmethod\n"
+              "        @abstractmethod\n"
+              "        def my_abstract_staticmethod(...):\n"
+              "            ...\n\n",
+              abc_abstractstaticmethod_kw))
       .value(
           "abstractproperty",
-          abc_native_function(runtime, "abc", "abc.abstractproperty", "abstractproperty", abc_abstractproperty, "A decorator indicating abstract properties.", abc_abstractproperty_kw));
+          abc_native_function(
+              runtime,
+              "abc",
+              "abc.abstractproperty",
+              "abstractproperty",
+              abc_abstractproperty,
+              "A decorator indicating abstract properties.\n\n"
+              "Deprecated, use 'property' with 'abstractmethod' instead:\n\n"
+              "    class C(ABC):\n"
+              "        @property\n"
+              "        @abstractmethod\n"
+              "        def my_abstract_property(self):\n"
+              "            ...\n\n",
+              abc_abstractproperty_kw));
   runtime.register_module("abc", public_builder.finish());
 }
 

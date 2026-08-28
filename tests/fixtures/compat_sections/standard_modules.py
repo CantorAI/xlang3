@@ -279,6 +279,8 @@ import weakref
 
 print(abc.ABCMeta.__module__, abc.ABC.__module__, abc.abstractmethod.__module__, _abc.get_cache_token.__module__, abc.ABCMeta.__qualname__, abc.ABC.__qualname__, abc.ABCMeta.__doc__ is not None, abc.ABC.__doc__ is not None)
 print("abc-class-docs", abc.ABCMeta.__doc__.startswith("Metaclass for defining Abstract Base Classes (ABCs)."), "virtual subclasses" in abc.ABCMeta.__doc__, abc.ABCMeta.__doc__.endswith("\n"), abc.ABC.__doc__ == "Helper class that provides a standard way to create an ABC using\ninheritance.\n")
+print("abc-function-docs", abc.abstractmethod.__doc__.startswith("A decorator indicating abstract methods.\n\nRequires"), "my_abstract_method" in abc.abstractmethod.__doc__, "opaque object" in abc.get_cache_token.__doc__, abc.update_abstractmethods.__doc__.endswith("does nothing.\n"), "Deprecated, use 'classmethod'" in abc.abstractclassmethod.__doc__, "Deprecated, use 'staticmethod'" in abc.abstractstaticmethod.__doc__, "Deprecated, use 'property'" in abc.abstractproperty.__doc__)
+print("abc-meta-method-docs", abc.ABCMeta.register.__doc__.endswith("usage as a class decorator.\n"), abc.ABCMeta.__instancecheck__.__doc__ == "Override for isinstance(instance, cls).", abc.ABCMeta.__subclasscheck__.__doc__ == "Override for issubclass(subclass, cls).")
 print(abc.abstractmethod.__name__, abc.ABCMeta.register.__name__, _abc._abc_init.__name__, abc.abstractmethod.__doc__ is not None, _abc.__doc__ is not None)
 
 class NativeABC(metaclass=abc.ABCMeta):
