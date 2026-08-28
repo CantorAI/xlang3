@@ -1581,6 +1581,17 @@ for time_noarg_clock in [
         time_noarg_clock_message = str(err)
         print("time-clock-arity", time_noarg_clock.__name__, time_noarg_clock.__name__ in time_noarg_clock_message, "takes no arguments" in time_noarg_clock_message, "1 given" in time_noarg_clock_message)
 print(time.sleep(False) is None)
+for time_sleep_bad_name, time_sleep_bad_call, time_sleep_bad_error, time_sleep_bad_parts in [
+    ("missing", lambda: time.sleep(), TypeError, ("takes exactly one argument", "0 given")),
+    ("extra", lambda: time.sleep(0, 1), TypeError, ("takes exactly one argument", "2 given")),
+    ("type", lambda: time.sleep("x"), TypeError, ("str", "cannot be interpreted as an integer or float")),
+    ("negative", lambda: time.sleep(-1), ValueError, ("sleep length must be non-negative",)),
+]:
+    try:
+        time_sleep_bad_call()
+    except time_sleep_bad_error as err:
+        time_sleep_bad_message = str(err)
+        print("time-sleep-diagnostic", time_sleep_bad_name, all(part in time_sleep_bad_message for part in time_sleep_bad_parts))
 epoch_utc = time.gmtime(0)
 print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_mon, epoch_utc.tm_mday, time.strftime("%Y", epoch_utc))
 print(time.mktime(time.localtime(0)) == 0.0, isinstance(time.tzname, tuple), isinstance(time.ctime(0), str))

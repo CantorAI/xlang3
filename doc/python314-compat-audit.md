@@ -184,6 +184,9 @@ Recent completed batches:
 - Tightened native `time` clock diagnostics: zero-argument clock APIs now
   report CPython-style no-argument `TypeError` messages using each public
   function name, including `perf_counter` and `thread_time` aliases.
+- Tightened native `time.sleep` diagnostics: arity, wrong-type, and negative
+  duration failures now raise catchable CPython-style `TypeError`/`ValueError`
+  exceptions while preserving bool-as-int zero-delay handling.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -948,7 +951,9 @@ Native or runtime-backed foundation:
   event coverage beyond instruction/call/line/return/generator-resume-yield/throw/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns` with CPython-style
-  no-argument `TypeError` diagnostics naming each public API, `get_clock_info`, `sleep`, `localtime`,
+  no-argument `TypeError` diagnostics naming each public API, `get_clock_info`,
+  `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative
+  duration diagnostics, `localtime`,
   `gmtime`, `mktime`, `strftime`, `strptime`, `sleep` bool-as-int zero-delay handling, `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`

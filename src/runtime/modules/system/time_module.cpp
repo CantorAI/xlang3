@@ -56,6 +56,27 @@ bool no_args(Runtime& runtime, uint32_t argc, const char* name, std::string& err
   return false;
 }
 
+std::string time_type_name(const Value& value) {
+  switch (value.tag) {
+  case ValueTag::None:
+    return "NoneType";
+  case ValueTag::Bool:
+    return "bool";
+  case ValueTag::Int64:
+    return "int";
+  case ValueTag::Double:
+    return "float";
+  case ValueTag::Object:
+    if (value_as_string(value) != nullptr) {
+      return "str";
+    }
+    return "object";
+  case ValueTag::Invalid:
+  default:
+    return "object";
+  }
+}
+
 int64_t duration_to_ns(std::chrono::nanoseconds value) {
   return static_cast<int64_t>(value.count());
 }
@@ -1632,9 +1653,10 @@ bool time_perf_counter_ns(Runtime& runtime, const Value* args, uint32_t argc, Va
   return time_monotonic_ns(runtime, args, 0, out, error, user_data);
 }
 
-bool time_sleep(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_sleep(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "time.sleep() expected one argument";
+    error = "time.sleep() takes exactly one argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   double seconds = 0.0;
@@ -1645,11 +1667,13 @@ bool time_sleep(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   } else if (args[0].tag == ValueTag::Double) {
     seconds = args[0].as.f64;
   } else {
-    error = "time.sleep() argument must be int or float";
+    error = "'" + time_type_name(args[0]) + "' object cannot be interpreted as an integer or float";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (seconds < 0.0) {
     error = "sleep length must be non-negative";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   std::this_thread::sleep_for(std::chrono::duration<double>(seconds));

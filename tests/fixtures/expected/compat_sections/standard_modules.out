@@ -413,6 +413,10 @@ time-clock-arity time.process_time_ns True True True
 time-clock-arity time.thread_time True True True
 time-clock-arity time.thread_time_ns True True True
 True
+time-sleep-diagnostic missing True
+time-sleep-diagnostic extra True
+time-sleep-diagnostic type True
+time-sleep-diagnostic negative True
 True 1970 1 1 1970
 True True True
 1 0 1 0 True True
