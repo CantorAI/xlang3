@@ -31,6 +31,7 @@ limitations under the License.
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <fstream>
 #include <filesystem>
 #include <iostream>
 #include <limits>
@@ -685,6 +686,42 @@ bool bytes_or_string_text(const Value& value, std::string& out) {
     out = bytearray->value;
     return true;
   }
+  return false;
+}
+
+bool sys_path_arg(Runtime& runtime, const Value& value, std::string& out, std::string& error) {
+  if (auto* text = value_as_string(value)) {
+    out = string_object_to_string(*text);
+    return true;
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    out.assign(view.data(), view.size());
+    return true;
+  }
+
+  Value fspath;
+  std::string ignored;
+  if (object_get_attr(value, "__fspath__", fspath, ignored)) {
+    Value result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, fspath, nullptr, 0, result, call_error)) {
+      error = call_error;
+      return false;
+    }
+    if (auto* text = value_as_string(result)) {
+      out = string_object_to_string(*text);
+      return true;
+    }
+    if (auto* bytes = value_as_bytes(result)) {
+      const auto view = bytes_object_view(*bytes);
+      out.assign(view.data(), view.size());
+      return true;
+    }
+  }
+
+  error = "expected str, bytes or os.PathLike object, not " + sys_type_name(runtime, value);
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
@@ -2276,9 +2313,32 @@ bool sys_debugmallocstats(Runtime& runtime, const Value*, uint32_t argc, Value& 
   return true;
 }
 
-bool sys_dump_tracelets(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 0) {
-    return raise_sys_no_args_type_error(runtime, error, "sys._dump_tracelets", argc);
+bool sys_dump_tracelets(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "_dump_tracelets() missing required argument 'outpath' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 1) {
+    error = "_dump_tracelets() takes at most 1 argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string outpath;
+  if (!sys_path_arg(runtime, args[0], outpath, error)) {
+    return false;
+  }
+  std::ofstream file(outpath, std::ios::binary | std::ios::trunc);
+  if (!file) {
+    error = "could not open tracelet dump path";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  file << "digraph ideal {\n\n    rankdir = \"LR\"\n\n}\n\n";
+  if (!file) {
+    error = "could not write tracelet dump";
+    runtime.raise_class_error("OSError", error);
+    return false;
   }
   value_set_none(out);
   return true;

@@ -389,6 +389,11 @@ Recent completed batches:
   and `time.get_clock_info()` results now expose `type(...).__module__ ==
   "types"`, and clock-info results use CPython-style `namespace(...)` repr
   spelling.
+- Aligned native `sys._dump_tracelets`: the function now follows Python 3.14's
+  one-argument `outpath` contract, accepts string/bytes/path-like values,
+  writes a Graphviz-format empty tracelet graph, returns `None`, and raises
+  catchable CPython-style `TypeError` diagnostics for missing/extra/bad-type
+  arguments.
 - Added native `sys._is_immortal` for CPython 3.14 feature probes. XLang3
   reports non-refcounted tagged singleton/scalar values as immortal and heap
   objects as non-immortal, matching the runtime's actual ownership model
@@ -911,7 +916,8 @@ Native or runtime-backed foundation:
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/immutable-type errors including given-count and
   offending-type diagnostics,
-  `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit
+  `_dump_tracelets(outpath)` file emission with CPython-style arity/type
+  diagnostics, default/filesystem encoding helpers, recursion-limit
   helpers including bool-as-int bounds and CPython-style setter arity/type
   `TypeError` plus low-limit `ValueError` diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity

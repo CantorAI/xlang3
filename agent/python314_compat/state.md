@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-SimpleNamespace metadata parity for sys.implementation and time.get_clock_info
+sys._dump_tracelets outpath contract parity
 ```
 
 Current next loop:

@@ -1370,7 +1370,33 @@ sys_exception_thread_release.set()
 sys_exception_thread.join()
 class SysClearDescriptorsProbe:
     pass
-print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors(SysClearDescriptorsProbe) is None, sys._dump_tracelets() is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
+sys_dump_tracelets_path = "xlang3_sys_tracelets.dot"
+if os.path.exists(sys_dump_tracelets_path):
+    os.remove(sys_dump_tracelets_path)
+print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors(SysClearDescriptorsProbe) is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
+print(sys._dump_tracelets(sys_dump_tracelets_path) is None, os.path.exists(sys_dump_tracelets_path))
+with open(sys_dump_tracelets_path, "rb") as sys_dump_tracelets_file:
+    sys_dump_tracelets_data = sys_dump_tracelets_file.read()
+print(sys_dump_tracelets_data.startswith(b"digraph ideal"), b'rankdir = "LR"' in sys_dump_tracelets_data, len(sys_dump_tracelets_data) > 0)
+os.remove(sys_dump_tracelets_path)
+class SysDumpTraceletsPath:
+    def __fspath__(self):
+        return sys_dump_tracelets_path
+print(sys._dump_tracelets(SysDumpTraceletsPath()) is None, os.path.exists(sys_dump_tracelets_path))
+os.remove(sys_dump_tracelets_path)
+sys_dump_tracelets_bytes_path = bytes(sys_dump_tracelets_path, "utf-8")
+print(sys._dump_tracelets(sys_dump_tracelets_bytes_path) is None, os.path.exists(sys_dump_tracelets_path))
+os.remove(sys_dump_tracelets_path)
+for sys_dump_tracelets_bad_name, sys_dump_tracelets_bad_call, sys_dump_tracelets_bad_parts in [
+    ("missing", lambda: sys._dump_tracelets(), ("missing required argument", "outpath")),
+    ("extra", lambda: sys._dump_tracelets(sys_dump_tracelets_path, sys_dump_tracelets_path), ("takes at most 1 argument", "2 given")),
+    ("type", lambda: sys._dump_tracelets(42), ("expected str, bytes or os.PathLike object", "int")),
+]:
+    try:
+        sys_dump_tracelets_bad_call()
+    except TypeError as err:
+        sys_dump_tracelets_bad_message = str(err)
+        print("sys-dump-tracelets-diagnostic", sys_dump_tracelets_bad_name, all(part in sys_dump_tracelets_bad_message for part in sys_dump_tracelets_bad_parts))
 try:
     sys._clear_type_descriptors()
 except TypeError as err:
@@ -1460,7 +1486,6 @@ sys_noarg_typeerror_probes = [
     sys._jit.is_enabled,
     sys._jit.is_active,
     sys._debugmallocstats,
-    sys._dump_tracelets,
     sys.get_coroutine_origin_tracking_depth,
     sys.get_asyncgen_hooks,
 ]
