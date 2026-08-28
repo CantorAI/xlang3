@@ -3146,7 +3146,8 @@ void register_sys_module(Runtime& runtime) {
           sys_noop_hook,
           const_cast<char*>("sys._baserepl"),
           "Private function for getting the base REPL",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);

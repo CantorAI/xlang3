@@ -167,7 +167,7 @@ True True 127
 utf-8 utf-8 surrogatepass True
 sys True True True True True True
 sys-module-doc True True True True
-register_readline register_readline site _baserepl _baserepl sys True True
+register_readline register_readline site _baserepl _baserepl sys True True True
 sys-hook-aliases True True True True
 sys-startup-hook-args True
 sys-startup-hook-args True
