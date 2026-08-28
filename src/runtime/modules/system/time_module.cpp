@@ -65,13 +65,14 @@ Value time_native_function(
     NativeFunctionCallback callback,
     const std::string& doc,
     void* user_data = nullptr,
-    NativeKeywordFunctionCallback keyword_callback = nullptr) {
+    NativeKeywordFunctionCallback keyword_callback = nullptr,
+    const std::string& qualname_override = "") {
   Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__module__"), Value::string("time")},
         {Value::string("__name__"), Value::string(function_name)},
-        {Value::string("__qualname__"), Value::string(function_name)},
+        {Value::string("__qualname__"), Value::string(qualname_override.empty() ? function_name : qualname_override)},
         {Value::string("__doc__"), Value::string(doc)},
     }));
   }
@@ -1721,6 +1722,117 @@ void set_struct_time_attrs(Value& instance, const std::vector<Value>& items, con
   set_struct_time_metadata(instance, items, zone, gmtoff);
 }
 
+bool time_struct_time_new(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "time.struct_time.__new__(): not enough arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "time.struct_time.__new__() argument 1 must be type, not " + time_type_name(args[0]);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc < 2) {
+    error = "structseq() missing required argument 'sequence' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 3) {
+    error = "structseq() takes at most 2 arguments (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value zone = Value::none();
+  Value gmtoff = Value::none();
+  bool sequence_has_zone = false;
+  bool sequence_has_gmtoff = false;
+  std::vector<Value> items;
+  if (!struct_time_constructor_items(args[1], items, zone, gmtoff, sequence_has_zone, sequence_has_gmtoff, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc == 3 && !struct_time_extra_fields_from_dict(args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::instance(args[0]);
+  set_struct_time_attrs(out, items, zone, gmtoff);
+  return true;
+}
+
+bool time_struct_time_new_kw(Runtime& runtime, const Value* args, uint32_t argc, const NativeKeywordArg* kwargs, uint32_t kwargc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "time.struct_time.__new__(): not enough arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "time.struct_time.__new__() argument 1 must be type, not " + time_type_name(args[0]);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const uint32_t positional_argc = argc - 1;
+  if (kwargc > 2) {
+    error = "structseq() takes at most 2 keyword arguments (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (positional_argc + kwargc > 2) {
+    error = "structseq() takes at most 2 arguments (" + std::to_string(positional_argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  const Value* sequence = argc >= 2 ? &args[1] : nullptr;
+  const Value* fields = argc >= 3 ? &args[2] : nullptr;
+  std::string unexpected_keyword;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (name == "sequence") {
+      if (sequence != nullptr) {
+        error = "argument for structseq() given by name ('sequence') and position (1)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      sequence = kwargs[i].value;
+      continue;
+    }
+    if (name == "dict") {
+      if (fields != nullptr) {
+        error = "argument for structseq() given by name ('dict') and position (2)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      fields = kwargs[i].value;
+      continue;
+    }
+    if (unexpected_keyword.empty()) {
+      unexpected_keyword = name;
+    }
+  }
+
+  if (sequence == nullptr) {
+    error = "structseq() missing required argument 'sequence' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!unexpected_keyword.empty()) {
+    error = "structseq() got an unexpected keyword argument '" + unexpected_keyword + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<Value> bound_args;
+  bound_args.reserve(fields == nullptr ? 2 : 3);
+  bound_args.push_back(args[0]);
+  bound_args.push_back(*sequence);
+  if (fields != nullptr) {
+    bound_args.push_back(*fields);
+  }
+  return time_struct_time_new(runtime, bound_args.data(), static_cast<uint32_t>(bound_args.size()), out, error, nullptr);
+}
+
 bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "structseq() missing required argument 'sequence' (pos 1)";
@@ -2402,6 +2514,7 @@ void register_time_module(Runtime& runtime) {
           {"__module__", Value::string("time")},
           {"__qualname__", Value::string("struct_time")},
           {"__doc__", Value::string("The time value as returned by gmtime(), localtime(), and strptime(), and accepted by asctime(), mktime() and strftime().")},
+          {"__new__", Value::static_method(time_native_function(runtime, "time.struct_time.__new__", "__new__", time_struct_time_new, "Create a new struct_time object.", nullptr, time_struct_time_new_kw, "struct_time.__new__"))},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count, nullptr, nullptr, nullptr, false, time_struct_time_count_kw)},

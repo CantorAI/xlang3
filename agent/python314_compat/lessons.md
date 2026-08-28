@@ -82,3 +82,5 @@ shape the next iteration.
   replacement getters recompute inherited docs, while explicit docs remain stable.
 - `property.__name__` follows the same inherited-versus-explicit cloning shape
   as property docs in Python 3.14, with deletion resetting to the getter name.
+- PowerShell does not accept Bash-style `<<'EOF'` heredocs. Use `python -c`
+  or an existing fixture/script path for CPython probes on Windows.

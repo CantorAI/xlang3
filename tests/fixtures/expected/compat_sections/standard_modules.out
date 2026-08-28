@@ -647,6 +647,14 @@ time struct_time True 11 9 0 True True
 11 True
 ('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
 member_descriptor builtins True 2026 Z True True
+struct-time-new 2026 NEW 987 __new__ struct_time.__new__ True
+struct-time-new-diagnostic missing True
+struct-time-new-diagnostic class-only True
+struct-time-new-diagnostic extra True
+struct-time-new-diagnostic type True
+struct-time-new-diagnostic unexpected True
+struct-time-new-diagnostic duplicate True
+struct-time-new-diagnostic kw-extra True
 dict-init-diagnostic missing True
 dict-init-diagnostic extra True
 dict-init-diagnostic receiver True

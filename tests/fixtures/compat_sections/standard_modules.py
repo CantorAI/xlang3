@@ -2149,6 +2149,23 @@ constructed_zone_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X",
 constructed_dict_time = time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"tm_zone": "Y", "tm_gmtoff": 456})
 constructed_keyword_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_keyword_dict_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={"tm_zone": "KW", "tm_gmtoff": 789})
+constructed_new_time = time.struct_time.__new__(time.struct_time, (2026, 8, 26, 1, 2, 3, 2, 238, -1))
+constructed_new_keyword_time = time.struct_time.__new__(time.struct_time, sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={"tm_zone": "NEW", "tm_gmtoff": 987})
+print("struct-time-new", constructed_new_time.tm_year, constructed_new_keyword_time.tm_zone, constructed_new_keyword_time.tm_gmtoff, time.struct_time.__new__.__name__, time.struct_time.__new__.__qualname__, time.struct_time.__new__.__doc__ is not None)
+for struct_time_new_bad_name, struct_time_new_bad_call, struct_time_new_bad_parts in [
+    ("missing", lambda: time.struct_time.__new__(), ("not enough arguments",)),
+    ("class-only", lambda: time.struct_time.__new__(time.struct_time), ("missing required argument", "sequence")),
+    ("extra", lambda: time.struct_time.__new__(time.struct_time, (1, 2, 3, 4, 5, 6, 7, 8, 9), {}, {}), ("at most 2 arguments", "3 given")),
+    ("type", lambda: time.struct_time.__new__(time.struct_time, 42), ("constructor requires a sequence",)),
+    ("unexpected", lambda: time.struct_time.__new__(time.struct_time, value=(1, 2, 3, 4, 5, 6, 7, 8, 9)), ("missing required argument", "sequence")),
+    ("duplicate", lambda: time.struct_time.__new__(time.struct_time, (1, 2, 3, 4, 5, 6, 7, 8, 9), sequence=(1, 2, 3, 4, 5, 6, 7, 8, 9)), ("given by name", "sequence")),
+    ("kw-extra", lambda: time.struct_time.__new__(time.struct_time, sequence=(1, 2, 3, 4, 5, 6, 7, 8, 9), dict={}, value=1), ("at most 2 keyword arguments", "3 given")),
+]:
+    try:
+        struct_time_new_bad_call()
+    except TypeError as err:
+        struct_time_new_bad_message = str(err)
+        print("struct-time-new-diagnostic", struct_time_new_bad_name, all(part in struct_time_new_bad_message for part in struct_time_new_bad_parts))
 dict_init_probe = {"old": 0}
 dict.__init__(dict_init_probe, {"tm_zone": "DI"}, tm_gmtoff=654)
 for dict_init_bad_name, dict_init_bad_call, dict_init_bad_parts in [
