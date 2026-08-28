@@ -302,6 +302,20 @@ member_descriptor builtins True 3 True True True
 11 width 3 name
 max cutoff ('name', 'lock', 'version')
 True 1 3 3
+sys-structseq-method-diagnostic count-missing True
+sys-structseq-method-diagnostic count-extra True
+sys-structseq-method-diagnostic count-keyword True
+sys-structseq-method-diagnostic count-unbound-missing True
+sys-structseq-method-diagnostic count-receiver True
+sys-structseq-method-diagnostic index-missing True
+sys-structseq-method-diagnostic index-extra True
+sys-structseq-method-diagnostic index-keyword True
+sys-structseq-method-diagnostic index-unbound-missing True
+sys-structseq-method-diagnostic index-receiver True
+sys-structseq-method-diagnostic repr-extra True
+sys-structseq-method-diagnostic repr-keyword True
+sys-structseq-method-diagnostic repr-unbound-missing True
+sys-structseq-method-diagnostic repr-receiver True
 True True 17 True
 1 17 4300
 sys-flags-index-error True

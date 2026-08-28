@@ -69,3 +69,6 @@ shape the next iteration.
   methods even when exact builtin construction is handled by VM constructor
   fast paths. Add the initializer on the builtin type and cover both subclass
   construction and direct `dict.__init__`-style calls when exposing it.
+- Shared structseq method implementations need the same catchable
+  `TypeError` and explicit keyword-callback handling as direct native methods;
+  one bare registration can leak raw runtime errors across every structseq type.

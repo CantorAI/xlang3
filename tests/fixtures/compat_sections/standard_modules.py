@@ -1146,6 +1146,27 @@ print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.th
 print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sys.thread_info).n_sequence_fields, type(sys.thread_info).name.__name__)
 print(type(sys.float_info).__match_args__[0], type(sys.hash_info).__match_args__[-1], type(sys.thread_info).__match_args__)
 print(isinstance(sys.version_info, tuple), sys.version_info.count(3), sys.version_info.index("final"), list(sys.version_info)[0])
+for sys_structseq_method_bad_name, sys_structseq_method_bad_call, sys_structseq_method_bad_parts in [
+    ("count-missing", lambda: sys.version_info.count(), ("tuple.count()", "exactly one argument", "0 given")),
+    ("count-extra", lambda: sys.version_info.count(1, 2), ("tuple.count()", "exactly one argument", "2 given")),
+    ("count-keyword", lambda: sys.version_info.count(value=3), ("tuple.count()", "takes no keyword arguments")),
+    ("count-unbound-missing", lambda: type(sys.version_info).count(), ("unbound method tuple.count()", "needs an argument")),
+    ("count-receiver", lambda: type(sys.version_info).count([], 1), ("descriptor 'count'", "tuple", "list")),
+    ("index-missing", lambda: sys.version_info.index(), ("index expected at least 1 argument", "got 0")),
+    ("index-extra", lambda: sys.version_info.index(1, 0, 1, 2), ("index expected at most 3 arguments", "got 4")),
+    ("index-keyword", lambda: sys.version_info.index(value=3), ("tuple.index()", "takes no keyword arguments")),
+    ("index-unbound-missing", lambda: type(sys.version_info).index(), ("unbound method tuple.index()", "needs an argument")),
+    ("index-receiver", lambda: type(sys.version_info).index([], 1), ("descriptor 'index'", "tuple", "list")),
+    ("repr-extra", lambda: sys.version_info.__repr__(1), ("expected 0 arguments", "got 1")),
+    ("repr-keyword", lambda: sys.version_info.__repr__(x=1), ("wrapper __repr__()", "takes no keyword arguments")),
+    ("repr-unbound-missing", lambda: type(sys.version_info).__repr__(), ("descriptor '__repr__'", "needs an argument")),
+    ("repr-receiver", lambda: type(sys.version_info).__repr__([]), ("descriptor '__repr__'", "list")),
+]:
+    try:
+        sys_structseq_method_bad_call()
+    except TypeError as err:
+        sys_structseq_method_bad_message = str(err)
+        print("sys-structseq-method-diagnostic", sys_structseq_method_bad_name, all(part in sys_structseq_method_bad_message for part in sys_structseq_method_bad_parts))
 print(isinstance(sys.flags, tuple), sys.flags.count(sys.flags.gil) >= 1, sys.flags.index(sys.flags.int_max_str_digits), sys.flags.n_fields > len(sys.flags))
 print(sys.flags.index(0, True), sys.flags.index(sys.flags.int_max_str_digits, False), sys.flags[-1])
 try:

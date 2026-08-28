@@ -245,13 +245,21 @@ bool sys_structseq_tuple_storage(const Value& self, const char* method, TupleObj
   return true;
 }
 
-bool sys_structseq_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_structseq_count(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "unbound method tuple.count() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (argc != 2) {
-    error = "sys structseq count expected value";
+    error = "tuple.count() takes exactly one argument (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   TupleObject* tuple = nullptr;
   if (!sys_structseq_tuple_storage(args[0], "sys structseq count", tuple, error)) {
+    error = "descriptor 'count' for 'tuple' objects doesn't apply to a '" + sys_type_name(runtime, args[0]) + "' object";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t count = 0;
@@ -262,6 +270,23 @@ bool sys_structseq_count(Runtime&, const Value* args, uint32_t argc, Value& out,
   }
   out = Value::int64(count);
   return true;
+}
+
+bool sys_structseq_count_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "tuple.count() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool sys_structseq_bound(const Value& value, size_t size, size_t& out, std::string& error) {
@@ -284,13 +309,24 @@ bool sys_structseq_bound(const Value& value, size_t size, size_t& out, std::stri
 }
 
 bool sys_structseq_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 4) {
-    error = "sys structseq index expected value and optional bounds";
+  if (argc == 0) {
+    error = "unbound method tuple.index() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc < 2) {
+    error = "index expected at least 1 argument, got " + std::to_string(argc - 1);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 4) {
+    error = "index expected at most 3 arguments, got " + std::to_string(argc - 1);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   TupleObject* tuple = nullptr;
   if (!sys_structseq_tuple_storage(args[0], "sys structseq index", tuple, error)) {
+    error = "descriptor 'index' for 'tuple' objects doesn't apply to a '" + sys_type_name(runtime, args[0]) + "' object";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -315,6 +351,23 @@ bool sys_structseq_index(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   error = "tuple.index(x): x not in tuple";
   runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
+bool sys_structseq_index_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "tuple.index() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
@@ -390,17 +443,42 @@ bool sys_structseq_update_string_value(Value& self, std::string& error) {
   return true;
 }
 
-bool sys_structseq_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_structseq_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "descriptor '__repr__' of 'sys structseq' object needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (argc != 1) {
-    error = "sys structseq __repr__ expected no arguments";
+    error = "expected 0 arguments, got " + std::to_string(argc - 1);
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string text;
   if (!sys_structseq_repr_text(args[0], text, error)) {
+    error = "descriptor '__repr__' requires a 'sys structseq' object but received a '" + sys_type_name(runtime, args[0]) + "'";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   out = Value::string(std::move(text));
   return true;
+}
+
+bool sys_structseq_repr_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "wrapper __repr__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 Value make_structseq(
@@ -412,9 +490,9 @@ Value make_structseq(
     const std::string& repr_name = "") {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
-  class_attrs.push_back({"count", runtime.make_native_function(type_name + ".count", sys_structseq_count)});
-  class_attrs.push_back({"index", runtime.make_native_function(type_name + ".index", sys_structseq_index)});
-  class_attrs.push_back({"__repr__", runtime.make_native_function(type_name + ".__repr__", sys_structseq_repr)});
+  class_attrs.push_back({"count", runtime.make_native_function(type_name + ".count", sys_structseq_count, nullptr, nullptr, nullptr, false, sys_structseq_count_kw)});
+  class_attrs.push_back({"index", runtime.make_native_function(type_name + ".index", sys_structseq_index, nullptr, nullptr, nullptr, false, sys_structseq_index_kw)});
+  class_attrs.push_back({"__repr__", runtime.make_native_function(type_name + ".__repr__", sys_structseq_repr, nullptr, nullptr, nullptr, false, sys_structseq_repr_kw)});
   if (sequence_fields == std::numeric_limits<size_t>::max() || sequence_fields > fields.size()) {
     sequence_fields = fields.size();
   }
