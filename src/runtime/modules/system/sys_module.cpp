@@ -2677,9 +2677,33 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_dump_tracelets", runtime.make_native_function("sys._dump_tracelets", sys_dump_tracelets), error);
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
   jit_builder.value("__doc__", Value::string("Utilities for observing just-in-time compilation."))
-      .function("is_available", sys_jit_is_available)
-      .function("is_enabled", sys_jit_is_enabled)
-      .function("is_active", sys_jit_is_active);
+      .value("is_available",
+             sys_metadata_native_function(
+                 runtime,
+                 "sys._jit",
+                 "sys._jit.is_available",
+                 "is_available",
+                 sys_jit_is_available,
+                 nullptr,
+                 "Return True if the current Python executable supports JIT compilation, and False otherwise."))
+      .value("is_enabled",
+             sys_metadata_native_function(
+                 runtime,
+                 "sys._jit",
+                 "sys._jit.is_enabled",
+                 "is_enabled",
+                 sys_jit_is_enabled,
+                 nullptr,
+                 "Return True if JIT compilation is enabled for the current Python process (implies sys._jit.is_available()), and False otherwise."))
+      .value("is_active",
+             sys_metadata_native_function(
+                 runtime,
+                 "sys._jit",
+                 "sys._jit.is_active",
+                 "is_active",
+                 sys_jit_is_active,
+                 nullptr,
+                 "Return True if the topmost Python frame is currently executing JIT code (implies sys._jit.is_enabled()), and False otherwise."));
   Value jit_module = jit_builder.finish();
   module_set_attr(sys, "_jit", jit_module, error);
   runtime.register_module("sys._jit", jit_module);

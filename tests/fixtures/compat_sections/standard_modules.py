@@ -710,6 +710,11 @@ print(type(sys.implementation).__name__, type(sys.implementation).__module__, re
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print((sys.platform == "win32" and not hasattr(sys.implementation, "_multiarch")) or (sys.platform != "win32" and hasattr(sys.implementation, "_multiarch")))
 print(sys._jit.__doc__ == "Utilities for observing just-in-time compilation.")
+print(
+    sys._jit.is_available.__name__, sys._jit.is_available.__qualname__, sys._jit.is_available.__module__, sys._jit.is_available.__doc__ is not None,
+    sys._jit.is_enabled.__name__, sys._jit.is_enabled.__qualname__, sys._jit.is_enabled.__module__, sys._jit.is_enabled.__doc__ is not None,
+    sys._jit.is_active.__name__, sys._jit.is_active.__qualname__, sys._jit.is_active.__module__, sys._jit.is_active.__doc__ is not None,
+)
 monitoring_events = sys.monitoring.events
 monitoring_tool_id = 3
 monitoring_code = (lambda: None).__code__

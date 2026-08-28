@@ -270,8 +270,10 @@ Recent completed batches:
   capability result while preserving the existing catchable no-argument arity
   diagnostics.
 - Expanded native `sys._jit` CPython 3.14 metadata: the runtime JIT probe
-  module now exposes the CPython module docstring alongside the existing
-  inactive/unavailable state probes, with Standard Modules fixture coverage.
+  module now exposes the CPython module docstring plus CPython-style
+  `is_available`/`is_enabled`/`is_active` callable metadata alongside the
+  existing inactive/unavailable state probes, with Standard Modules fixture
+  coverage.
 - Tightened native `sys.breakpointhook` / `sys.__breakpointhook__`: both
   aliases now accept keyword calls through the native keyword-call path, so
   the `PYTHONBREAKPOINT=0` no-op compatibility path used by tooling handles
@@ -953,7 +955,7 @@ Native or runtime-backed foundation:
   `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
   including CPython-style activation arity/type `TypeError` diagnostics,
-  `sys._jit` module doc metadata and state probes,
+  `sys._jit` module/function metadata and state probes,
   `sys.monitoring` import/configuration surface with CPython 3.14 tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
   global/local event masks, callback replacement, restart/all-events
