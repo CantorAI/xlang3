@@ -632,6 +632,14 @@ try:
     sys.getsizeof(SysSizeValueErrorProbe(), 99)
 except ValueError as err:
     print("sys-getsizeof-reraises", "bad-size" in str(err))
+try:
+    sys.getsizeof()
+except TypeError as err:
+    print("sys-getsizeof-arity", "missing required argument" in str(err), "object" in str(err))
+try:
+    sys.getsizeof(1, 2, 3)
+except TypeError as err:
+    print("sys-getsizeof-arity", "at most 2 arguments" in str(err), "3 given" in str(err))
 sys_intern_prefix = "xlang"
 sys_intern_dynamic = sys_intern_prefix + "3"
 sys_intern_canonical = sys.intern(sys_intern_dynamic)

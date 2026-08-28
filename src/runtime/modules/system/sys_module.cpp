@@ -1388,8 +1388,13 @@ int64_t shallow_sizeof(const Value& value) {
 }
 
 bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "sys.getsizeof expected object and optional default";
+  if (argc < 1) {
+    error = "getsizeof() missing required argument 'object' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 2) {
+    error = "getsizeof() takes at most 2 arguments (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

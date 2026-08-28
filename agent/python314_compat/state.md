@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys probe TypeError diagnostics parity
+sys.getsizeof TypeError diagnostics parity
 ```
 
 Current next loop:

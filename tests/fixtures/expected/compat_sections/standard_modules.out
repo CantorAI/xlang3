@@ -142,6 +142,8 @@ sys-getsizeof-negative True
 1 1
 99 101
 sys-getsizeof-reraises True
+sys-getsizeof-arity True True
+sys-getsizeof-arity True True
 True True False
 True False False True
 True True True True True True True

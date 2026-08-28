@@ -136,6 +136,9 @@ Recent completed batches:
   wrong-arity and wrong-type failures with CPython-style `TypeError` messages,
   while `sys._is_immortal` and `sys.getrefcount` report CPython-style
   exact-one-argument arity failures.
+- Tightened native `sys.getsizeof` diagnostics: missing-object and too-many
+  positional calls now report CPython-style `TypeError` messages while
+  preserving the existing `__sizeof__` protocol/default handling.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -818,7 +821,8 @@ Native or runtime-backed foundation:
   bounds, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity
   `TypeError` diagnostics and `_is_interned` including CPython-style
-  wrong-type/wrong-arity `TypeError` diagnostics, `getsizeof` with `__sizeof__`
+  wrong-type/wrong-arity `TypeError` diagnostics, `getsizeof` with CPython-style
+  wrong-arity `TypeError` diagnostics and `__sizeof__`
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity `TypeError` diagnostics,
