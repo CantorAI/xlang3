@@ -92,6 +92,15 @@ std::string time_type_name(const Value& value) {
     if (value_as_string(value) != nullptr) {
       return "str";
     }
+    if (value_as_list(value) != nullptr) {
+      return "list";
+    }
+    if (value_as_tuple(value) != nullptr) {
+      return "tuple";
+    }
+    if (value_as_dict(value) != nullptr) {
+      return "dict";
+    }
     return "object";
   case ValueTag::Invalid:
   default:
@@ -1295,7 +1304,7 @@ bool struct_time_tuple_storage(const Value& self, const char* method, TupleObjec
   Value tuple_value;
   std::string ignored;
   if (!object_get_attr(self, "_tuple", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
-    error = std::string(method) + " target has no tuple storage";
+    error = "descriptor '" + std::string(method) + "' for 'tuple' objects doesn't apply to a '" + time_type_name(self) + "' object";
     return false;
   }
   return true;
@@ -1324,13 +1333,20 @@ bool normalize_struct_time_bound(const Value& value, size_t size, size_t& out, s
   return true;
 }
 
-bool time_struct_time_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_struct_time_count(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "unbound method tuple.count() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (argc != 2) {
-    error = "time.struct_time.count expected value";
+    error = "tuple.count() takes exactly one argument (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   TupleObject* tuple = nullptr;
-  if (!struct_time_tuple_storage(args[0], "time.struct_time.count", tuple, error)) {
+  if (!struct_time_tuple_storage(args[0], "count", tuple, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t count = 0;
@@ -1344,13 +1360,23 @@ bool time_struct_time_count(Runtime&, const Value* args, uint32_t argc, Value& o
 }
 
 bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 4) {
-    error = "time.struct_time.index expected value and optional bounds";
+  if (argc == 0) {
+    error = "unbound method tuple.index() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc < 2) {
+    error = "index expected at least 1 argument, got " + std::to_string(argc - 1);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 4) {
+    error = "index expected at most 3 arguments, got " + std::to_string(argc - 1);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   TupleObject* tuple = nullptr;
-  if (!struct_time_tuple_storage(args[0], "time.struct_time.index", tuple, error)) {
+  if (!struct_time_tuple_storage(args[0], "index", tuple, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }

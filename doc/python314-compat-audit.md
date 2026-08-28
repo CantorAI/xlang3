@@ -1091,7 +1091,8 @@ Native or runtime-backed foundation:
   and extra-field handling through inherited `dict.__init__` with CPython-style descriptor
   diagnostics, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
-  `count`/`index` including bool-as-int start/stop bounds, CPython-style named-field `__repr__` through `repr()`, platform-backed timezone constants/names,
+  `count`/`index` including bool-as-int start/stop bounds and CPython-style arity/type
+  diagnostics, CPython-style named-field `__repr__` through `repr()`, platform-backed timezone constants/names,
   bool timestamp arguments for `gmtime`/`localtime`/`ctime`, bool fields in
   time tuples consumed by `asctime`/`strftime`/`mktime`, and `strptime`
   CPython default-field filling, weekday/year-day normalization,

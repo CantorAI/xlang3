@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys frame-depth arity and type diagnostics
+time struct_time tuple method diagnostics
 ```
 
 Current next loop:

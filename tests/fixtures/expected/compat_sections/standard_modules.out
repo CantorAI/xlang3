@@ -650,6 +650,14 @@ True
 weekday weekday
 True 1 2 7 6
 0 1
+struct-time-method-diagnostic count-missing True
+struct-time-method-diagnostic count-extra True
+struct-time-method-diagnostic count-unbound-missing True
+struct-time-method-diagnostic count-receiver True
+struct-time-method-diagnostic index-missing True
+struct-time-method-diagnostic index-extra True
+struct-time-method-diagnostic index-unbound-missing True
+struct-time-method-diagnostic index-receiver True
 struct-time-index-missing True
 struct-time-diagnostic missing True
 struct-time-diagnostic extra-args True

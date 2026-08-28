@@ -2177,6 +2177,21 @@ print(tuple(constructed_preserved_time)[6:9], constructed_preserved_time.tm_wday
 print(constructed_string_field_time.tm_wday, tuple(constructed_string_field_time)[6])
 print(isinstance(constructed_time, tuple), constructed_time.count(2026), constructed_time.count(2), constructed_time.index(238), constructed_time.index(2, 6))
 print(constructed_time.index(2026, False, True), constructed_time.index(8, True, 9))
+for struct_time_method_bad_name, struct_time_method_bad_call, struct_time_method_bad_parts in [
+    ("count-missing", lambda: constructed_time.count(), ("tuple.count()", "exactly one argument", "0 given")),
+    ("count-extra", lambda: constructed_time.count(1, 2), ("tuple.count()", "exactly one argument", "2 given")),
+    ("count-unbound-missing", lambda: time.struct_time.count(), ("unbound method tuple.count()", "needs an argument")),
+    ("count-receiver", lambda: time.struct_time.count([], 1), ("descriptor 'count'", "tuple", "list")),
+    ("index-missing", lambda: constructed_time.index(), ("index expected at least 1 argument", "got 0")),
+    ("index-extra", lambda: constructed_time.index(1, 0, 1, 2), ("index expected at most 3 arguments", "got 4")),
+    ("index-unbound-missing", lambda: time.struct_time.index(), ("unbound method tuple.index()", "needs an argument")),
+    ("index-receiver", lambda: time.struct_time.index([], 1), ("descriptor 'index'", "tuple", "list")),
+]:
+    try:
+        struct_time_method_bad_call()
+    except TypeError as err:
+        struct_time_method_bad_message = str(err)
+        print("struct-time-method-diagnostic", struct_time_method_bad_name, all(part in struct_time_method_bad_message for part in struct_time_method_bad_parts))
 try:
     constructed_time.index("missing")
 except ValueError as err:
