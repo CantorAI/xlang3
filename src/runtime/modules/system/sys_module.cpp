@@ -1718,8 +1718,11 @@ bool sys_getswitchinterval(Runtime& runtime, const Value*, uint32_t argc, Value&
 }
 
 bool sys_setswitchinterval(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || (args[0].tag != ValueTag::Bool && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double)) {
-    error = "sys.setswitchinterval expected number";
+  if (argc != 1) {
+    return raise_sys_one_arg_type_error(runtime, error, "sys.setswitchinterval", argc);
+  }
+  if (args[0].tag != ValueTag::Bool && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double) {
+    error = "must be real number, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1744,8 +1747,18 @@ bool sys_get_int_max_str_digits(Runtime& runtime, const Value*, uint32_t argc, V
 
 bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   int64_t max_digits = 0;
-  if (argc != 1 || !sys_bool_or_int_arg(args[0], max_digits)) {
-    error = "object cannot be interpreted as an integer";
+  if (argc < 1) {
+    error = "set_int_max_str_digits() missing required argument 'maxdigits' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 1) {
+    error = "set_int_max_str_digits() takes at most 1 argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sys_bool_or_int_arg(args[0], max_digits)) {
+    error = "'" + sys_type_name(runtime, args[0]) + "' object cannot be interpreted as an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

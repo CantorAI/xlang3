@@ -158,6 +158,10 @@ Recent completed batches:
   `sys.gettrace`, `sys.setprofile`, `sys.getprofile`, the all-thread variants,
   and `sys.call_tracing` now raise CPython-style arity `TypeError` messages
   while preserving existing live trace/profile dispatch behavior.
+- Tightened native `sys.setswitchinterval` and `sys.set_int_max_str_digits`
+  diagnostics: arity and wrong-type failures now use CPython-style `TypeError`
+  messages while preserving bool-as-int setter handling and existing bounds
+  validation.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -854,7 +858,9 @@ Native or runtime-backed foundation:
   audit hook dispatch including CPython-style call-time failure for registered
   non-callable hooks and CPython-style `sys.audit`/`sys.addaudithook` arity/type
   `TypeError` diagnostics,
-  stdio capability probes, profile/switch-interval/int-string helpers with bool-as-int setters, `sys.int_info`
+  stdio capability probes, profile/switch-interval/int-string helpers with
+  bool-as-int setters and CPython-style setter arity/type `TypeError`
+  diagnostics, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing` with CPython-style trace/profile helper arity `TypeError`
   diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python

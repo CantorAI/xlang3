@@ -1072,6 +1072,16 @@ try:
     sys.setswitchinterval(False)
 except ValueError as err:
     print("switchinterval-bool", "strictly positive" in str(err))
+for sys_switch_bad_name, sys_switch_bad_call, sys_switch_bad_parts in [
+    ("missing", lambda: sys.setswitchinterval(), ("exactly one argument", "0 given")),
+    ("extra", lambda: sys.setswitchinterval(0.1, 0.2), ("exactly one argument", "2 given")),
+    ("type", lambda: sys.setswitchinterval("x"), ("real number", "str")),
+]:
+    try:
+        sys_switch_bad_call()
+    except TypeError as err:
+        sys_switch_bad_message = str(err)
+        print("sys-switchinterval-diagnostic", sys_switch_bad_name, all(part in sys_switch_bad_message for part in sys_switch_bad_parts))
 try:
     sys.setrecursionlimit(True)
 except RecursionError as err:
@@ -1091,6 +1101,16 @@ try:
     sys.set_int_max_str_digits(True)
 except ValueError as err:
     print("int-max-str-digits-bool", ">= 640" in str(err), "0 for unlimited" in str(err))
+for sys_int_digits_bad_name, sys_int_digits_bad_call, sys_int_digits_bad_parts in [
+    ("missing", lambda: sys.set_int_max_str_digits(), ("missing required argument", "maxdigits")),
+    ("extra", lambda: sys.set_int_max_str_digits(1, 2), ("at most 1 argument", "2 given")),
+    ("type", lambda: sys.set_int_max_str_digits("x"), ("str", "cannot be interpreted as an integer")),
+]:
+    try:
+        sys_int_digits_bad_call()
+    except TypeError as err:
+        sys_int_digits_bad_message = str(err)
+        print("sys-int-max-str-digits-diagnostic", sys_int_digits_bad_name, all(part in sys_int_digits_bad_message for part in sys_int_digits_bad_parts))
 sys.set_int_max_str_digits(old_int_max_digits)
 sys.setswitchinterval(old_switch)
 try:

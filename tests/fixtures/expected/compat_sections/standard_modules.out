@@ -279,12 +279,18 @@ True False
 True 4300 4300 4300 640
 True
 switchinterval-bool True
+sys-switchinterval-diagnostic missing True
+sys-switchinterval-diagnostic extra True
+sys-switchinterval-diagnostic type True
 recursionlimit-bool True
 recursionlimit-bool True
 640 640 640 4300 640
 0 0 0
 0 0 0
 int-max-str-digits-bool True True
+sys-int-max-str-digits-diagnostic missing True
+sys-int-max-str-digits-diagnostic extra True
+sys-int-max-str-digits-diagnostic type True
 int-max-str-digits True True
 True False
 True True True
