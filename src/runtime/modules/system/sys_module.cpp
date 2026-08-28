@@ -2644,9 +2644,30 @@ void register_sys_module(Runtime& runtime) {
       error);
   module_set_attr(sys, "pycache_prefix", Value::none(), error);
   module_set_attr(sys, "copyright", Value::string("Copyright (C) 2026 CantorAI Inc. and The XLang Foundation"), error);
-  module_set_attr(sys, "exc_info", runtime.make_native_function("sys.exc_info", sys_exc_info), error);
-  module_set_attr(sys, "exception", runtime.make_native_function("sys.exception", sys_exception), error);
-  module_set_attr(sys, "exit", runtime.make_native_function("sys.exit", sys_exit), error);
+  module_set_attr(
+      sys,
+      "exc_info",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.exc_info",
+          "exc_info",
+          sys_exc_info,
+          nullptr,
+          "Return current exception information: (type, value, traceback)."),
+      error);
+  module_set_attr(
+      sys,
+      "exception",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.exception", "exception", sys_exception, nullptr, "Return the current exception."),
+      error);
+  module_set_attr(
+      sys,
+      "exit",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.exit", "exit", sys_exit, nullptr, "Exit the interpreter by raising SystemExit(status)."),
+      error);
   const Value displayhook = sys_metadata_native_function(
       runtime,
       "sys",
@@ -2772,12 +2793,47 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Set the maximum depth of the Python interpreter stack to n."),
       error);
-  module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
-  module_set_attr(sys, "_is_interned", runtime.make_native_function("sys._is_interned", sys_is_interned), error);
-  module_set_attr(sys, "getunicodeinternedsize", runtime.make_native_function("sys.getunicodeinternedsize", sys_getunicodeinternedsize), error);
-  module_set_attr(sys, "_is_immortal", runtime.make_native_function("sys._is_immortal", sys_is_immortal), error);
-  module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
-  module_set_attr(sys, "getrefcount", runtime.make_native_function("sys.getrefcount", sys_getrefcount), error);
+  module_set_attr(
+      sys,
+      "intern",
+      sys_metadata_native_function(runtime, "sys", "sys.intern", "intern", sys_intern, nullptr, "``Intern'' the given string."),
+      error);
+  module_set_attr(
+      sys,
+      "_is_interned",
+      sys_metadata_native_function(
+          runtime, "sys", "sys._is_interned", "_is_interned", sys_is_interned, nullptr, "Return True if the given string is \"interned\"."),
+      error);
+  module_set_attr(
+      sys,
+      "getunicodeinternedsize",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getunicodeinternedsize",
+          "getunicodeinternedsize",
+          sys_getunicodeinternedsize,
+          nullptr,
+          "Return the number of elements of the unicode interned dictionary"),
+      error);
+  module_set_attr(
+      sys,
+      "_is_immortal",
+      sys_metadata_native_function(
+          runtime, "sys", "sys._is_immortal", "_is_immortal", sys_is_immortal, nullptr, "Return True if the given object is \"immortal\" per PEP 683."),
+      error);
+  module_set_attr(
+      sys,
+      "getsizeof",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.getsizeof", "getsizeof", sys_getsizeof, nullptr, "getsizeof(object [, default]) -> int"),
+      error);
+  module_set_attr(
+      sys,
+      "getrefcount",
+      sys_metadata_native_function(
+          runtime, "sys", "sys.getrefcount", "getrefcount", sys_getrefcount, nullptr, "Return the reference count of object."),
+      error);
   module_set_attr(
       sys,
       "getallocatedblocks",

@@ -517,6 +517,9 @@ Recent completed batches:
 - Expanded native `sys` trace/profile/config setter and debug helper metadata
   so covered stateful helper functions expose CPython-style short names,
   `__module__ == "sys"`, and docstrings without changing hook behavior.
+- Expanded native `sys` exception/interner/size helper metadata so covered
+  runtime probes expose CPython-style short names, `__module__ == "sys"`, and
+  docstrings while preserving existing exception, intern, and sizing behavior.
 - Fixed Python thread target execution to use the same runtime execution-lock
   boundary as native thread targets, stabilizing inherited trace/profile hook
   dispatch in worker threads.
@@ -952,7 +955,8 @@ Native or runtime-backed foundation:
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity `TypeError` diagnostics,
   `getallocatedblocks`, `exit` including CPython-style too-many-arguments
-  `TypeError` diagnostics, display/exception hooks with stdio routing,
+  `TypeError` diagnostics, CPython-style exception/interner/size helper
+  metadata, display/exception hooks with stdio routing,
   CPython-style public hook callable metadata, and
   CPython-style default-hook arity `TypeError` diagnostics,
   `builtins._`, CPython-style default hook alias identity, CPython-style displayhook string repr,
