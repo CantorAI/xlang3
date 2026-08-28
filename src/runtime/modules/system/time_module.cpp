@@ -94,12 +94,21 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
 }
 
 Value make_clock_info(Runtime& runtime, bool adjustable, bool monotonic, double resolution, const std::string& implementation) {
-  Value info = Value::instance(Value::class_object("SimpleNamespace", {}));
+  Value info = Value::instance(Value::class_object("SimpleNamespace", {{"__module__", Value::string("types")}}));
   std::string ignored;
   object_set_attr(info, "adjustable", Value::boolean(adjustable), ignored);
   object_set_attr(info, "monotonic", Value::boolean(monotonic), ignored);
   object_set_attr(info, "resolution", Value::number(resolution), ignored);
   object_set_attr(info, "implementation", Value::string(implementation), ignored);
+  object_set_attr(
+      info,
+      "__xlang3_string_value__",
+      Value::string(
+          "namespace(implementation='" + implementation + "', monotonic=" +
+          std::string(monotonic ? "True" : "False") + ", adjustable=" +
+          std::string(adjustable ? "True" : "False") + ", resolution=" +
+          value_to_string(Value::number(resolution)) + ")"),
+      ignored);
   return info;
 }
 

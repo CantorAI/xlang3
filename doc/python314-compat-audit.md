@@ -385,6 +385,10 @@ Recent completed batches:
   standard-library module-name set, so stdlib/package probes can recognize
   importable standard modules such as `asyncio`, `email`, `encodings`, and
   `tomllib` without pure-Python facades.
+- Aligned native SimpleNamespace-backed metadata objects: `sys.implementation`
+  and `time.get_clock_info()` results now expose `type(...).__module__ ==
+  "types"`, and clock-info results use CPython-style `namespace(...)` repr
+  spelling.
 - Added native `sys._is_immortal` for CPython 3.14 feature probes. XLang3
   reports non-refcounted tagged singleton/scalar values as immortal and heap
   objects as non-immortal, matching the runtime's actual ownership model
@@ -899,7 +903,8 @@ Native or runtime-backed foundation:
   tuple inheritance, sequence iteration, tuple-backed `count`/`index` including bool-as-int
   start/stop bounds and CPython-style out-of-range `IndexError`, CPython-style named-field `repr`,
   and type-level `__match_args__`,
-  `implementation` metadata and namespace-style repr, `builtin_module_names`,
+  `implementation` metadata with CPython-style SimpleNamespace type metadata
+  and namespace-style repr, `builtin_module_names`,
   CPython 3.14 top-level frozen `stdlib_module_names`, `_git`/`_vpath`/`_home`
   metadata, `float_repr_style`, `getunicodeinternedsize`,
   `_get_cpu_count_config`, `is_remote_debug_enabled`,
@@ -993,7 +998,8 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns` with CPython-style
   no-argument `TypeError` diagnostics naming each public API, `get_clock_info`
-  with CPython-style arity/type/unknown-clock diagnostics,
+  with CPython-style namespace type metadata/repr plus arity/type/unknown-clock
+  diagnostics,
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
   arguments plus CPython-style arity/type/non-finite diagnostics, `mktime` bool fields in

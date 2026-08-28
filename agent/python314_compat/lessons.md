@@ -40,3 +40,7 @@ shape the next iteration.
 - Native module functions that should raise catchable Python exceptions must
   call `runtime.raise_class_error`; returning `false` with only an error string
   can surface as an uncaught runtime failure instead.
+- The selected section runner executes a section fixture but does not compare
+  it with the golden output. After adding or reordering fixture assertions, run
+  the full fixture script or do an explicit line comparison before trusting the
+  expected-output file.

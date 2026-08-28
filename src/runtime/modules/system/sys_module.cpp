@@ -2473,7 +2473,9 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "__stdin__", stdin_stream, error);
   module_set_attr(sys, "__stdout__", stdout_stream, error);
   module_set_attr(sys, "__stderr__", stderr_stream, error);
-  module_set_attr(sys, "implementation", Value::instance(Value::class_object("SimpleNamespace", {})), error);
+  module_set_attr(sys, "implementation",
+                  Value::instance(Value::class_object("SimpleNamespace", {{"__module__", Value::string("types")}})),
+                  error);
   Value implementation;
   module_get_attr(sys, "implementation", implementation, error);
   object_set_attr(implementation, "name", Value::string("xlang3"), error);

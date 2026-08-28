@@ -705,6 +705,7 @@ for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 implementation_repr = repr(sys.implementation)
 print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xlang3-314'" in implementation_repr, "version=sys.version_info(" in implementation_repr, "supports_isolated_interpreters=False" in implementation_repr)
+print(type(sys.implementation).__name__, type(sys.implementation).__module__, repr(sys.implementation).startswith("namespace("))
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print((sys.platform == "win32" and not hasattr(sys.implementation, "_multiarch")) or (sys.platform != "win32" and hasattr(sys.implementation, "_multiarch")))
 print(sys._jit.__doc__ == "Utilities for observing just-in-time compilation.")
@@ -1578,6 +1579,8 @@ print(
 )
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
+clock_info_repr = repr(clock_info)
+print(type(clock_info).__name__, type(clock_info).__module__, clock_info_repr.startswith("namespace("), "monotonic=True" in clock_info_repr, "adjustable=False" in clock_info_repr, "resolution=" in clock_info_repr)
 for clock_info_bad_name, clock_info_bad_call, clock_info_bad_error, clock_info_bad_parts in [
     ("missing", lambda: time.get_clock_info(), TypeError, ("takes exactly 1 argument", "0 given")),
     ("extra", lambda: time.get_clock_info("time", "x"), TypeError, ("takes exactly 1 argument", "2 given")),

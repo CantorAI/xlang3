@@ -166,6 +166,7 @@ sys-stdio-capability-arity stdout-isatty True
 sys-stdio-capability-arity stderr-seekable True
 3 14 7 xlang3-314
 True True True True
+SimpleNamespace types True
 False False False False False
 True
 True
@@ -407,6 +408,7 @@ sys-hook-type unraisablehook True
 sys-hook-type __unraisablehook__ True
 True True True True True
 True False True True
+SimpleNamespace types True True True True
 time-clock-info-diagnostic missing True
 time-clock-info-diagnostic extra True
 time-clock-info-diagnostic type True
