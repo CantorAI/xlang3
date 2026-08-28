@@ -1051,7 +1051,7 @@ Native or runtime-backed foundation:
   stateful `_enablelegacywindowsfsencoding` with CPython-style keyword
   diagnostics, allocator-backed `_debugmallocstats` with active `sys.stderr`
   routing and CPython-style keyword diagnostics,
-  CPython 3.14 startup metadata/hooks including `__doc__`,
+  CPython 3.14 startup metadata/hooks including CPython-shaped full `__doc__`,
   `__interactivehook__`/`_baserepl` keyword diagnostics, and CPython-normal
   Windows `abiflags` absence while preserving non-Windows `abiflags`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
