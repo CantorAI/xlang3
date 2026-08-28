@@ -1296,6 +1296,34 @@ bool sys_set_coroutine_origin_tracking_depth(Runtime& runtime, const Value* args
   return true;
 }
 
+bool sys_set_coroutine_origin_tracking_depth_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (kwargc > 1) {
+    error = "set_coroutine_origin_tracking_depth() takes at most 1 keyword argument (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc + kwargc > 1) {
+    error = "set_coroutine_origin_tracking_depth() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (kwargc == 1) {
+    const std::string name(kwargs[0].name == nullptr ? "" : kwargs[0].name);
+    if (kwargs[0].value != nullptr && name == "depth") {
+      return sys_set_coroutine_origin_tracking_depth(runtime, kwargs[0].value, 1, out, error, nullptr);
+    }
+  }
+  return sys_set_coroutine_origin_tracking_depth(runtime, args, argc, out, error, nullptr);
+}
+
 bool sys_get_coroutine_origin_tracking_depth(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.get_coroutine_origin_tracking_depth", argc);
@@ -3745,7 +3773,8 @@ void register_sys_module(Runtime& runtime) {
           "set_coroutine_origin_tracking_depth",
           sys_set_coroutine_origin_tracking_depth,
           nullptr,
-          "Enable or disable origin tracking for coroutine objects in this thread."),
+          "Enable or disable origin tracking for coroutine objects in this thread.",
+          sys_set_coroutine_origin_tracking_depth_kw),
       error);
   module_set_attr(
       sys,

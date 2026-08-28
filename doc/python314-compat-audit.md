@@ -1031,8 +1031,8 @@ Native or runtime-backed foundation:
   diagnostics, live-thread-id-keyed `_current_exceptions` with CPython-style
   keyword diagnostics, cache-clear hooks with CPython-style keyword diagnostics,
   configurable coroutine-origin tracking helpers including getter keyword
-  diagnostics, bool-as-int setter handling and CPython-style
-  arity/type/negative-depth diagnostics,
+  diagnostics, `depth=` setter keyword binding, bool-as-int setter handling and
+  CPython-style arity/type/keyword/negative-depth diagnostics,
   async-generator hook configuration with structseq-like `asyncgen_hooks`
   including CPython-style `builtins` type-module metadata and
   `get_asyncgen_hooks` keyword diagnostics and `set_asyncgen_hooks`

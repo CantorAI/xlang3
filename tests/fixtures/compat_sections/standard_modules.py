@@ -1583,6 +1583,8 @@ sys.set_coroutine_origin_tracking_depth(0)
 print(sys.get_coroutine_origin_tracking_depth())
 print(sys.set_coroutine_origin_tracking_depth(True) is None, sys.get_coroutine_origin_tracking_depth())
 print(sys.set_coroutine_origin_tracking_depth(False) is None, sys.get_coroutine_origin_tracking_depth())
+print("coroutine-origin-depth-keyword", sys.set_coroutine_origin_tracking_depth(depth=True) is None, sys.get_coroutine_origin_tracking_depth())
+sys.set_coroutine_origin_tracking_depth(0)
 try:
     sys.set_coroutine_origin_tracking_depth(-1)
 except ValueError as err:
@@ -1591,6 +1593,9 @@ for sys_coroutine_origin_bad_name, sys_coroutine_origin_bad_call, sys_coroutine_
     ("missing", lambda: sys.set_coroutine_origin_tracking_depth(), ("missing required argument", "depth")),
     ("extra", lambda: sys.set_coroutine_origin_tracking_depth(1, 2), ("takes at most 1 argument", "2 given")),
     ("type", lambda: sys.set_coroutine_origin_tracking_depth("x"), ("str", "cannot be interpreted as an integer")),
+    ("keyword-missing", lambda: sys.set_coroutine_origin_tracking_depth(x=0), ("missing required argument", "depth")),
+    ("keyword-duplicate", lambda: sys.set_coroutine_origin_tracking_depth(0, depth=1), ("takes at most 1 argument", "2 given")),
+    ("keyword-extra", lambda: sys.set_coroutine_origin_tracking_depth(depth=0, x=1), ("takes at most 1 keyword argument", "2 given")),
 ]:
     try:
         sys_coroutine_origin_bad_call()
