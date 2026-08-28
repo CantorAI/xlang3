@@ -1511,15 +1511,15 @@ bool struct_time_constructor_items(
       sequence_has_gmtoff = true;
     }
   } else {
-    error = "time tuple must be tuple, list, or struct_time";
+    error = "constructor requires a sequence";
     return false;
   }
   if (raw_items.size() < 9) {
-    error = "time tuple must have 9 elements";
+    error = "time.struct_time() takes an at least 9-sequence (" + std::to_string(raw_items.size()) + "-sequence given)";
     return false;
   }
   if (raw_items.size() > 11) {
-    error = "time.struct_time() takes an at most 11-sequence";
+    error = "time.struct_time() takes an at most 11-sequence (" + std::to_string(raw_items.size()) + "-sequence given)";
     return false;
   }
   items.assign(raw_items.begin(), raw_items.begin() + 9);
@@ -1543,7 +1543,7 @@ bool struct_time_extra_fields_from_dict(
     std::string& error) {
   auto* dict = value_as_dict(dict_value);
   if (dict == nullptr) {
-    error = "time.struct_time() optional second argument must be a dict";
+    error = "time.struct_time() takes a dict as second arg, if any";
     return false;
   }
   for (const auto& entry : dict->entries) {
@@ -1585,8 +1585,13 @@ void set_struct_time_attrs(Value& instance, const std::vector<Value>& items, con
 }
 
 bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 3) {
-    error = "time.struct_time() expected one sequence and optional dict";
+  if (argc < 2) {
+    error = "structseq() missing required argument 'sequence' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 3) {
+    error = "structseq() takes at most 2 arguments (" + std::to_string(argc - 1) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

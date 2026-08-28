@@ -209,6 +209,10 @@ Recent completed batches:
 - Tightened native `time.strptime` entry-point diagnostics: missing/extra
   arguments and non-string data/format arguments now raise catchable
   CPython-style `TypeError` exceptions before parser validation.
+- Tightened native `time.struct_time` constructor diagnostics: missing sequence,
+  too many constructor arguments, non-sequence inputs, non-dict extra-field
+  maps, and short/long sequence sizes now raise catchable CPython-style
+  `TypeError` exceptions.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -988,7 +992,8 @@ Native or runtime-backed foundation:
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`
   and trailing percent, constructible/indexable/iterable
-  `struct_time` with CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
+  `struct_time` with CPython-style constructor arity/type/sequence-length
+  diagnostics and CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
   `n_unnamed_fields`, module-level `_STRUCT_TM_ITEMS`, type-level `__match_args__`,
   and named/member fields for sequence slots plus `tm_zone`/`tm_gmtoff`
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,

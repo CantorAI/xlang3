@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time strptime entry diagnostics parity
+time struct_time constructor diagnostics parity
 ```
 
 Current next loop:

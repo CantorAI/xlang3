@@ -501,6 +501,12 @@ weekday weekday
 True 1 2 7 6
 0 1
 struct-time-index-missing True
+struct-time-diagnostic missing True
+struct-time-diagnostic extra-args True
+struct-time-diagnostic sequence-type True
+struct-time-diagnostic dict-type True
+struct-time-diagnostic short-sequence True
+struct-time-diagnostic long-sequence True
 struct-time-extra True
 struct-time-extra True
 struct-time-extra True

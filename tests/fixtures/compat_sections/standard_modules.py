@@ -1803,6 +1803,19 @@ try:
     constructed_time.index("missing")
 except ValueError as err:
     print("struct-time-index-missing", "not in tuple" in str(err))
+for bad_struct_time_name, bad_struct_time_call, bad_struct_time_parts in [
+    ("missing", lambda: time.struct_time(), ("missing required argument", "sequence")),
+    ("extra-args", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {}, {}), ("takes at most 2 arguments", "3 given")),
+    ("sequence-type", lambda: time.struct_time(1), ("constructor requires a sequence",)),
+    ("dict-type", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), 1), ("takes a dict as second arg",)),
+    ("short-sequence", lambda: time.struct_time((2026, 8, 26)), ("at least 9-sequence", "3-sequence given")),
+    ("long-sequence", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123, 0)), ("at most 11-sequence", "12-sequence given")),
+]:
+    try:
+        bad_struct_time_call()
+    except TypeError as err:
+        bad_struct_time_message = str(err)
+        print("struct-time-diagnostic", bad_struct_time_name, all(part in bad_struct_time_message for part in bad_struct_time_parts))
 for bad_struct_time_args in [
     ((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X"), {"tm_zone": "Y"}),
     ((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"unexpected": "Y"}),
