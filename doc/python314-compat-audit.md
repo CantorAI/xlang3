@@ -132,6 +132,10 @@ Recent completed batches:
 - Tightened native `sys.intern` diagnostics: non-string arguments now raise
   CPython-style `TypeError` text naming the offending type, and wrong arity is
   reported separately while preserving runtime string canonicalization.
+- Tightened native `sys` probe diagnostics: `sys._is_interned` now separates
+  wrong-arity and wrong-type failures with CPython-style `TypeError` messages,
+  while `sys._is_immortal` and `sys.getrefcount` report CPython-style
+  exact-one-argument arity failures.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -813,9 +817,11 @@ Native or runtime-backed foundation:
   `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers including bool-as-int
   bounds, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity
-  `TypeError` diagnostics and `_is_interned`, `getsizeof` with `__sizeof__`
+  `TypeError` diagnostics and `_is_interned` including CPython-style
+  wrong-type/wrong-arity `TypeError` diagnostics, `getsizeof` with `__sizeof__`
   protocol/default handling including bool-as-int return values, TypeError default
-  fallback and negative-result `ValueError`, `getrefcount`,
+  fallback and negative-result `ValueError`, `getrefcount` including
+  CPython-style wrong-arity `TypeError` diagnostics,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing,
   `builtins._`, default hook aliases, CPython-style displayhook string repr,
   and catchable hook arity `TypeError`,
@@ -850,7 +856,8 @@ Native or runtime-backed foundation:
   exceptions leave unhandled Python frames with CPython-style callback arguments,
   live explicit `RERAISE` dispatch for bare `raise` in active handlers with
   CPython-style callback arguments,
-  `_is_immortal` for XLang3 tagged singleton/scalar values,
+  `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
+  wrong-arity `TypeError` diagnostics,
   live-thread-id-keyed `_current_frames` snapshots,
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable coroutine-origin tracking helpers,
   async-generator hook configuration with structseq-like `asyncgen_hooks` including CPython-style

@@ -646,7 +646,11 @@ print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._g
 try:
     sys._is_interned(42)
 except TypeError as err:
-    print("sys-is-interned-type", "string" in str(err))
+    print("sys-is-interned-type", "argument must be str" in str(err), "int" in str(err))
+try:
+    sys._is_interned()
+except TypeError as err:
+    print("sys-is-interned-arity", "exactly one argument" in str(err) or "1 argument" in str(err), "0 given" in str(err))
 for sys_intern_bad_value in (b"abc", 42):
     try:
         sys.intern(sys_intern_bad_value)
@@ -657,9 +661,25 @@ try:
 except TypeError as err:
     print("sys-intern-arity", "one argument" in str(err) or "1 argument" in str(err))
 print(sys._is_immortal(None), sys._is_immortal(True), sys._is_immortal(42), sys._is_immortal("abc"), sys._is_immortal([]))
+try:
+    sys._is_immortal()
+except TypeError as err:
+    print("sys-is-immortal-arity", "exactly one argument" in str(err) or "1 argument" in str(err), "0 given" in str(err))
+try:
+    sys._is_immortal(1, 2)
+except TypeError as err:
+    print("sys-is-immortal-arity", "2 given" in str(err))
 sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
 print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)
+try:
+    sys.getrefcount()
+except TypeError as err:
+    print("sys-getrefcount-arity", "exactly one argument" in str(err) or "1 argument" in str(err), "0 given" in str(err))
+try:
+    sys.getrefcount(1, 2)
+except TypeError as err:
+    print("sys-getrefcount-arity", "2 given" in str(err))
 print(sys.stdin.readable(), sys.stdin.writable(), sys.stdout.writable(), sys.stderr.fileno(), sys.stdout.isatty(), sys.stderr.seekable(), sys.stdout.line_buffering, sys.stdout.closed)
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)

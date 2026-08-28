@@ -1319,8 +1319,13 @@ bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
 }
 
 bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || value_as_string(args[0]) == nullptr) {
-    error = "sys._is_interned expected string";
+  if (argc != 1) {
+    error = "sys._is_interned() takes exactly one argument (" + std::to_string(argc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_string(args[0]) == nullptr) {
+    error = "_is_interned() argument must be str, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1340,7 +1345,7 @@ bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, V
 
 bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys._is_immortal expected object";
+    error = "sys._is_immortal() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1443,7 +1448,7 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 
 bool sys_getrefcount(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "sys.getrefcount expected object";
+    error = "sys.getrefcount() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
