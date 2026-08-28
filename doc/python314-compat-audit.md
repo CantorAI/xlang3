@@ -1055,10 +1055,11 @@ Native or runtime-backed foundation:
   runtime/config/frame/cache/JIT probes plus keyword failures for covered
   runtime/config/frame/cache/JIT helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`
-  with CPython-style keyword diagnostics,
-  stateful `_enablelegacywindowsfsencoding` with CPython-style keyword
-  diagnostics, allocator-backed `_debugmallocstats` with active `sys.stderr`
-  routing, CPython-style docs, and CPython-style keyword diagnostics,
+  with CPython-style text signature and keyword diagnostics,
+  stateful `_enablelegacywindowsfsencoding` with CPython-style text signature
+  and keyword diagnostics, allocator-backed `_debugmallocstats` with active
+  `sys.stderr` routing, CPython-style docs, text signature, and CPython-style
+  keyword diagnostics,
   CPython 3.14 startup metadata/hooks including CPython-shaped full `__doc__`,
   `__interactivehook__`/`_baserepl` keyword diagnostics and `_baserepl` text signature, and CPython-normal
   Windows `abiflags` absence while preserving non-Windows `abiflags`,

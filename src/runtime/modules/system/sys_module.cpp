@@ -3818,7 +3818,8 @@ void register_sys_module(Runtime& runtime) {
           "Print summary info to stderr about the state of pymalloc's structures.\n\n"
           "In Py_DEBUG mode, also perform some expensive internal consistency\n"
           "checks.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3946,7 +3947,8 @@ void register_sys_module(Runtime& runtime) {
           "workstation, 2 for a domain controller, 3 for a server.\n"
           "Platform_version is a 3-tuple containing a version number that is\n"
           "intended for identifying the OS rather than feature detection.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3959,7 +3961,8 @@ void register_sys_module(Runtime& runtime) {
           sys_enablelegacywindowsfsencoding,
           const_cast<char*>("sys._enablelegacywindowsfsencoding"),
           "Changes the default filesystem encoding to mbcs:replace.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
 #endif
   module_set_attr(

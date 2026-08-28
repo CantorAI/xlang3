@@ -1959,6 +1959,7 @@ sys_runtime_text_signatures = {
     "activate_stack_trampoline": "($module, backend, /)",
     "deactivate_stack_trampoline": "($module, /)",
     "is_stack_trampoline_active": "($module, /)",
+    "_debugmallocstats": "($module, /)",
     "_get_cpu_count_config": "($module, /)",
     "_dump_tracelets": "($module, /, outpath)",
     "get_coroutine_origin_tracking_depth": "($module, /)",
@@ -1967,6 +1968,10 @@ sys_runtime_text_signatures = {
     "is_remote_debug_enabled": "($module, /)",
     "_is_gil_enabled": "($module, /)",
 }
+if hasattr(sys, "getwindowsversion"):
+    sys_runtime_text_signatures["getwindowsversion"] = "($module, /)"
+if hasattr(sys, "_enablelegacywindowsfsencoding"):
+    sys_runtime_text_signatures["_enablelegacywindowsfsencoding"] = "($module, /)"
 print("sys-runtime-text-signatures", all(getattr(sys, name).__text_signature__ == signature for name, signature in sys_runtime_text_signatures.items()))
 sys_noarg_typeerror_count = 0
 for sys_noarg_typeerror_probe in sys_noarg_typeerror_probes:
