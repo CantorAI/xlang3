@@ -3391,7 +3391,10 @@ void register_sys_module(Runtime& runtime) {
           "setrecursionlimit",
           sys_setrecursionlimit,
           const_cast<char*>("sys.setrecursionlimit"),
-          "Set the maximum depth of the Python interpreter stack to n.",
+          "Set the maximum depth of the Python interpreter stack to n.\n\n"
+          "This limit prevents infinite recursion from causing an overflow of the C\n"
+          "stack and crashing Python.  The highest possible limit is platform-\n"
+          "dependent.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3606,7 +3609,12 @@ void register_sys_module(Runtime& runtime) {
           "setswitchinterval",
           sys_setswitchinterval,
           const_cast<char*>("sys.setswitchinterval"),
-          "Set the ideal thread switching delay inside the Python interpreter.",
+          "Set the ideal thread switching delay inside the Python interpreter.\n\n"
+          "The actual frequency of switching threads can be lower if the\n"
+          "interpreter executes long sequences of uninterruptible code\n"
+          "(this is implementation-specific and workload-dependent).\n\n"
+          "The parameter must represent the desired switching delay in seconds\n"
+          "A typical value is 0.005 (5 milliseconds).",
           sys_no_keyword_args),
       error);
   module_set_attr(

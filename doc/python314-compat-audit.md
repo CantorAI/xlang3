@@ -963,8 +963,8 @@ Native or runtime-backed foundation:
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
   diagnostics, default/filesystem encoding helpers with CPython-style keyword
   diagnostics, recursion-limit
-  helpers including bool-as-int bounds, CPython-style `getrecursionlimit` docs,
-  and CPython-style getter/setter keyword
+  helpers including bool-as-int bounds, CPython-style `getrecursionlimit`/`setrecursionlimit`
+  docs, and CPython-style getter/setter keyword
   diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`
   diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword
@@ -993,7 +993,7 @@ Native or runtime-backed foundation:
   bool-as-int setters, CPython-style setter keyword diagnostics including
   `set_int_max_str_digits(maxdigits=...)` binding, and setter arity/type
   `TypeError` diagnostics plus CPython-style trace/profile/config setter and debug helper
-  metadata, `sys.int_info`
+  metadata including `setswitchinterval` docs, `sys.int_info`
   and stateful `sys.flags.int_max_str_digits`, trace/debug hooks including
   `call_tracing` with CPython-style trace/profile helper arity/keyword
   `TypeError` diagnostics, live `sys.setprofile` / `_setprofileallthreads` dispatch for Python
