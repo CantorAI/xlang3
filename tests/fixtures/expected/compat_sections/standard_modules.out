@@ -376,8 +376,12 @@ True True
 True True True
 True True
 True True
+True True
 sys-dump-tracelets-diagnostic missing True
 sys-dump-tracelets-diagnostic extra True
+sys-dump-tracelets-diagnostic duplicate-keyword True
+sys-dump-tracelets-diagnostic extra-keyword True
+sys-dump-tracelets-diagnostic unexpected-keyword True
 sys-dump-tracelets-diagnostic type True
 sys-clear-type-descriptors-arity True True
 sys-clear-type-descriptors-arity True True

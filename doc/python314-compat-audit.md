@@ -956,7 +956,7 @@ Native or runtime-backed foundation:
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/keyword/immutable-type errors including given-count and
   offending-type diagnostics,
-  `_dump_tracelets(outpath)` file emission with CPython-style arity/type
+  `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
   diagnostics, default/filesystem encoding helpers, recursion-limit
   helpers including bool-as-int bounds and CPython-style setter arity/type
   `TypeError` plus low-limit `ValueError` diagnostics, `intern`

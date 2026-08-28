@@ -2456,6 +2456,34 @@ bool sys_dump_tracelets(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool sys_dump_tracelets_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (kwargc > 1) {
+    error = "_dump_tracelets() takes at most 1 keyword argument (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc + kwargc > 1) {
+    error = "_dump_tracelets() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (kwargc == 1) {
+    const std::string name(kwargs[0].name == nullptr ? "" : kwargs[0].name);
+    if (kwargs[0].value != nullptr && name == "outpath") {
+      return sys_dump_tracelets(runtime, kwargs[0].value, 1, out, error, nullptr);
+    }
+  }
+  return sys_dump_tracelets(runtime, args, argc, out, error, nullptr);
+}
+
 bool sys_xlang3_debug_set_hook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "sys._xlang3_debug_set_hook expected 1 argument";
@@ -3130,7 +3158,8 @@ void register_sys_module(Runtime& runtime) {
           "_dump_tracelets",
           sys_dump_tracelets,
           nullptr,
-          "Dump the graph of tracelets in graphviz format"),
+          "Dump the graph of tracelets in graphviz format",
+          sys_dump_tracelets_kw),
       error);
   NativeModuleBuilder jit_builder(runtime, "sys._jit");
   jit_builder.value("__doc__", Value::string("Utilities for observing just-in-time compilation."))

@@ -1418,9 +1418,14 @@ os.remove(sys_dump_tracelets_path)
 sys_dump_tracelets_bytes_path = bytes(sys_dump_tracelets_path, "utf-8")
 print(sys._dump_tracelets(sys_dump_tracelets_bytes_path) is None, os.path.exists(sys_dump_tracelets_path))
 os.remove(sys_dump_tracelets_path)
+print(sys._dump_tracelets(outpath=sys_dump_tracelets_path) is None, os.path.exists(sys_dump_tracelets_path))
+os.remove(sys_dump_tracelets_path)
 for sys_dump_tracelets_bad_name, sys_dump_tracelets_bad_call, sys_dump_tracelets_bad_parts in [
     ("missing", lambda: sys._dump_tracelets(), ("missing required argument", "outpath")),
     ("extra", lambda: sys._dump_tracelets(sys_dump_tracelets_path, sys_dump_tracelets_path), ("takes at most 1 argument", "2 given")),
+    ("duplicate-keyword", lambda: sys._dump_tracelets(sys_dump_tracelets_path, outpath=sys_dump_tracelets_path), ("takes at most 1 argument", "2 given")),
+    ("extra-keyword", lambda: sys._dump_tracelets(outpath=sys_dump_tracelets_path, path=sys_dump_tracelets_path), ("takes at most 1 keyword argument", "2 given")),
+    ("unexpected-keyword", lambda: sys._dump_tracelets(path=sys_dump_tracelets_path), ("missing required argument", "outpath")),
     ("type", lambda: sys._dump_tracelets(42), ("expected str, bytes or os.PathLike object", "int")),
 ]:
     try:
