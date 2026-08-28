@@ -791,6 +791,11 @@ print(sys._is_interned(sys_intern_identifier_literal), sys._is_interned(sys_inte
 unicode_interned_before = sys.getunicodeinternedsize()
 sys.intern("interned-size-probe")
 print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "CPython", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
+unicode_interned_total = sys.getunicodeinternedsize()
+unicode_interned_nonimmortal = sys.getunicodeinternedsize(_only_immortal=False)
+unicode_interned_immortal = sys.getunicodeinternedsize(_only_immortal=True)
+unicode_interned_falsey = sys.getunicodeinternedsize(_only_immortal=[])
+print("sys-getunicodeinternedsize-only-immortal", unicode_interned_nonimmortal >= unicode_interned_total, isinstance(unicode_interned_immortal, int), unicode_interned_immortal <= unicode_interned_nonimmortal, unicode_interned_falsey >= unicode_interned_nonimmortal, sys.getunicodeinternedsize.__text_signature__ == "($module, /, *, _only_immortal=False)")
 try:
     sys.getunicodeinternedsize(x=1)
 except TypeError as err:

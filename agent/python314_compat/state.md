@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys interner/refcount helper text signatures
+sys getunicodeinternedsize only_immortal binding
 ```
 
 Current next loop:

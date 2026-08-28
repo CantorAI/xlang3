@@ -92,3 +92,7 @@ shape the next iteration.
   cross line-wrapping boundaries unless the newline itself is intentional.
   CPython doc text can split phrases such as `profiler\nchapter`, so prose
   substring checks must be based on the probed `repr`.
+- Intern-table size probes can mutate the value they are measuring because
+  keyword names, metadata strings, or fixture temporaries may be interned during
+  the probe. Assert monotonic relationships or relative bounds instead of exact
+  equality across successive intern-count calls.

@@ -1679,16 +1679,39 @@ bool sys_getunicodeinternedsize(Runtime& runtime, const Value*, uint32_t argc, V
 bool sys_getunicodeinternedsize_kw(
     Runtime& runtime,
     const Value*,
-    uint32_t,
+    uint32_t argc,
     const NativeKeywordArg* kwargs,
     uint32_t kwargc,
-    Value&,
+    Value& out,
     std::string& error,
     void*) {
+  if (argc + kwargc > 1) {
+    error = "getunicodeinternedsize() takes at most 1 argument (" + std::to_string(argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 0) {
+    error = "getunicodeinternedsize() takes no positional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (kwargc == 0) {
+    value_set_int64(out, interned_string_count());
+    return true;
+  }
   const std::string name(kwargc > 0 && kwargs[0].name != nullptr ? kwargs[0].name : "");
-  error = "getunicodeinternedsize() got an unexpected keyword argument '" + name + "'";
-  runtime.raise_class_error("TypeError", error);
-  return false;
+  if (name != "_only_immortal") {
+    error = "getunicodeinternedsize() got an unexpected keyword argument '" + name + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (kwargs[0].value == nullptr) {
+    error = "getunicodeinternedsize() got an invalid keyword argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_int64(out, value_truthy(*kwargs[0].value) ? 0 : interned_string_count());
+  return true;
 }
 
 bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3449,7 +3472,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getunicodeinternedsize,
           nullptr,
           "Return the number of elements of the unicode interned dictionary",
-          sys_getunicodeinternedsize_kw),
+          sys_getunicodeinternedsize_kw,
+          "($module, /, *, _only_immortal=False)"),
       error);
   module_set_attr(
       sys,
