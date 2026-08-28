@@ -3309,7 +3309,7 @@ private:
           emit(ir::Op::LoadConst, reg, add_const(Value::bytes(lit->text)));
           break;
         case ast::LiteralExpr::Kind::Ellipsis:
-          emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+          emit(ir::Op::LoadGlobal, reg, add_name("Ellipsis"));
           break;
       }
       return reg;

@@ -188,6 +188,13 @@ with contextlib.ExitStack() as stack:
 
 print(events)
 
+# types/copy: singleton type aliases must point at real runtime singleton types.
+import types
+import copy
+
+print(types.NoneType is type(None), types.NotImplementedType is type(NotImplemented), types.EllipsisType is type(...), ... is Ellipsis, type(...).__name__, type(...).__module__)
+print("copy-singletons", copy.copy(None) is None, copy.copy(...) is Ellipsis, copy.deepcopy(NotImplemented) is NotImplemented)
+
 # argparse: common parser shape with option aliases, typed values, flags, and positional args.
 import argparse
 import ast

@@ -1276,7 +1276,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
 - [~] `importlib`: `import_module`, `invalidate_caches`, `importlib.util.find_spec`/`resolve_name`,
   loader/spec/module creation foundations, and VFS-backed `importlib.resources` read helpers
-- [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics; exact CPython type objects pending
+- [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics, real singleton
+  aliases for `NoneType`/`EllipsisType`/`NotImplementedType`, and CPython `copy.py`
+  singleton import/copy foundations; broader exact CPython type objects pending
 - [~] `collections`: native `deque` with iteration/index/containment, `defaultdict`,
   `OrderedDict`, `namedtuple` with `_make`, dict-backed `Counter`, and `ChainMap` foundations;
   full CPython collection semantics pending

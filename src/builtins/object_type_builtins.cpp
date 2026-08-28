@@ -947,6 +947,13 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "cell", object_type);
   register_builtin_type(runtime, "file", object_type);
   register_builtin_type(runtime, "type_parameter", object_type);
+  register_builtin_type(runtime, "ellipsis", object_type);
+  if (const auto* ellipsis_type = runtime.find_builtin("ellipsis")) {
+    Value ellipsis = Value::instance(*ellipsis_type);
+    std::string ignored;
+    object_set_attr(ellipsis, "__xlang3_string_value__", Value::string("Ellipsis"), ignored);
+    runtime.register_builtin("Ellipsis", std::move(ellipsis));
+  }
   register_builtin_type(runtime, "NotImplementedType", object_type);
   if (const auto* not_implemented_type = runtime.find_builtin("NotImplementedType")) {
     Value not_implemented = Value::instance(*not_implemented_type);

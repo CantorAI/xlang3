@@ -112,6 +112,12 @@ Value make_types_class(const std::string& name) {
   return Value::class_object(name, std::move(attrs));
 }
 
+void copy_runtime_type(Runtime& runtime, NativeModuleBuilder& builder, const char* exported_name, const char* builtin_name) {
+  if (const auto* type = runtime.find_builtin(builtin_name)) {
+    builder.value(exported_name, *type);
+  }
+}
+
 } // namespace
 
 void register_types_module(Runtime& runtime) {
@@ -130,6 +136,9 @@ void register_types_module(Runtime& runtime) {
       .value("GeneratorType", make_types_class("GeneratorType"))
       .value("CoroutineType", make_types_class("CoroutineType"))
       .value("DynamicClassAttribute", make_types_class("DynamicClassAttribute"));
+  copy_runtime_type(runtime, builder, "NoneType", "NoneType");
+  copy_runtime_type(runtime, builder, "EllipsisType", "ellipsis");
+  copy_runtime_type(runtime, builder, "NotImplementedType", "NotImplementedType");
   builder.value(
       "SimpleNamespace",
       runtime.make_native_function(
