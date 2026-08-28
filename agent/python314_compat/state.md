@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys structseq method diagnostics
+abc keyword binding diagnostics
 ```
 
 Current next loop:

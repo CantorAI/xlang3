@@ -72,3 +72,6 @@ shape the next iteration.
 - Shared structseq method implementations need the same catchable
   `TypeError` and explicit keyword-callback handling as direct native methods;
   one bare registration can leak raw runtime errors across every structseq type.
+- Check whether a native-backed public stdlib API is originally a Python
+  function before rejecting keywords. Public helpers may need keyword binding
+  even when adjacent private C helper functions reject all keywords.

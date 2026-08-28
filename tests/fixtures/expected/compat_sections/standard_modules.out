@@ -73,6 +73,8 @@ True True 0 True True
 False False False
 True
 True
+abc-decorator-keyword True True classmethod True True
+abc-decorator-keyword staticmethod True True property True True property
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
 classmethod True True AbstractDescriptorProbe
@@ -104,6 +106,15 @@ abc-helper-type True
 abc-helper-type True
 abc-helper-type True
 abc-helper-type True
+abc-helper-keyword get_cache_token True
+abc-helper-keyword _abc_init True
+abc-helper-keyword _abc_register True
+abc-helper-keyword _abc_subclasscheck True
+abc-helper-keyword _abc_instancecheck True
+abc-helper-keyword _get_dump True
+abc-helper-keyword _reset_registry True
+abc-helper-keyword _reset_caches True
+abc-update-keyword True
 True True True
 True True True
 True True True

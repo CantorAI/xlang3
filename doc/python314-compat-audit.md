@@ -1122,7 +1122,8 @@ Native or runtime-backed foundation:
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers including
-  CPython-style `AttributeError` propagation for failed marker writes, and abstract descriptor decorators,
+  CPython-style `AttributeError` propagation for failed marker writes, keyword binding
+  for public abstract decorators/update helpers, and abstract descriptor decorators,
   CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
@@ -1130,7 +1131,7 @@ Native or runtime-backed foundation:
   direct `ABCMeta.__new__` construction with namespace attrs, ABC metadata, abstract-method computation,
   cache initialization, and virtual subclass registration/check behavior,
   abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers
-  with catchable `TypeError` argument validation,
+  with catchable `TypeError` argument and keyword validation,
   virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
   `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,

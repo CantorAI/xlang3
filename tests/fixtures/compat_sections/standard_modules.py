@@ -349,6 +349,21 @@ def abstract_fn():
     pass
 
 print(abstract_fn.__isabstractmethod__)
+def abstract_keyword_fn():
+    pass
+def abstract_keyword_classmethod(cls):
+    return cls.__name__
+def abstract_keyword_staticmethod():
+    return "static-keyword"
+def abstract_keyword_property(self):
+    return "property-keyword"
+abstract_keyword_result = abc.abstractmethod(funcobj=abstract_keyword_fn)
+abstract_classmethod_result = abc.abstractclassmethod(callable=abstract_keyword_classmethod)
+abstract_staticmethod_result = abc.abstractstaticmethod(callable=abstract_keyword_staticmethod)
+abstract_property_result = abc.abstractproperty(fget=abstract_keyword_property)
+abstract_empty_property_result = abc.abstractproperty()
+print("abc-decorator-keyword", abstract_keyword_result is abstract_keyword_fn, abstract_keyword_fn.__isabstractmethod__, type(abstract_classmethod_result).__name__, abstract_classmethod_result.__isabstractmethod__, abstract_classmethod_result.__func__.__isabstractmethod__)
+print("abc-decorator-keyword", type(abstract_staticmethod_result).__name__, abstract_staticmethod_result.__isabstractmethod__, abstract_staticmethod_result.__func__.__isabstractmethod__, type(abstract_property_result).__name__, abstract_property_result.__isabstractmethod__, abstract_property_result.fget.__isabstractmethod__, type(abstract_empty_property_result).__name__)
 for abstract_target in (42, property(lambda self: 1)):
     try:
         abc.abstractmethod(abstract_target)
@@ -449,6 +464,21 @@ for abc_bad_call in [
         abc_bad_call()
     except TypeError as err:
         print("abc-helper-type", "expected" in str(err) or "arguments" in str(err))
+for abc_keyword_bad_name, abc_keyword_bad_call in [
+    ("get_cache_token", lambda: abc.get_cache_token(x=1)),
+    ("_abc_init", lambda: _abc._abc_init(self=NativeABC)),
+    ("_abc_register", lambda: _abc._abc_register(self=NativeABC, subclass=Concrete)),
+    ("_abc_subclasscheck", lambda: _abc._abc_subclasscheck(self=NativeABC, subclass=Concrete)),
+    ("_abc_instancecheck", lambda: _abc._abc_instancecheck(self=NativeABC, instance=Concrete())),
+    ("_get_dump", lambda: _abc._get_dump(self=NativeABC)),
+    ("_reset_registry", lambda: _abc._reset_registry(self=NativeABC)),
+    ("_reset_caches", lambda: _abc._reset_caches(self=NativeABC)),
+]:
+    try:
+        abc_keyword_bad_call()
+    except TypeError as err:
+        print("abc-helper-keyword", abc_keyword_bad_name, "takes no keyword arguments" in str(err))
+print("abc-update-keyword", abc.update_abstractmethods(cls=ConcreteABC) is ConcreteABC)
 
 # numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
 import numbers

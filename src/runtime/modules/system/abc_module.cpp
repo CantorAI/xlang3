@@ -64,6 +64,56 @@ bool abc_type_error(Runtime& runtime, std::string& error, std::string message) {
   return false;
 }
 
+bool abc_no_keyword_args(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t kwargc, Value&, std::string& error, void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  return abc_type_error(runtime, error, "takes no keyword arguments");
+}
+
+bool abc_bind_one_keyword(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& bound,
+    const char* function_name,
+    const char* parameter_name,
+    std::string& error) {
+  if (kwargc == 0) {
+    return true;
+  }
+  if (argc > 1) {
+    return abc_type_error(
+        runtime,
+        error,
+        std::string(function_name) + "() takes 1 positional argument but " + std::to_string(argc) + " were given");
+  }
+  bool has_arg = argc == 1;
+  if (has_arg) {
+    value_assign_fast(bound, args[0]);
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (name != parameter_name) {
+      return abc_type_error(runtime, error, std::string(function_name) + "() got an unexpected keyword argument '" + name + "'");
+    }
+    if (has_arg) {
+      return abc_type_error(runtime, error, std::string(function_name) + "() got multiple values for argument '" + parameter_name + "'");
+    }
+    if (kwargs[i].value == nullptr) {
+      return abc_type_error(runtime, error, std::string(function_name) + "() got an invalid keyword argument");
+    }
+    value_assign_fast(bound, *kwargs[i].value);
+    has_arg = true;
+  }
+  if (!has_arg) {
+    return abc_type_error(runtime, error, std::string(function_name) + "() missing 1 required positional argument: '" + parameter_name + "'");
+  }
+  return true;
+}
+
 bool abc_state_list(Value& abc_class, const char* attr, Value& out, std::string& error) {
   std::string ignored;
   if (object_get_attr(abc_class, attr, out, ignored) && value_as_list(out) != nullptr) {
@@ -287,8 +337,9 @@ Value abc_native_function(
     const std::string& qualified_name,
     const std::string& function_name,
     NativeFunctionCallback callback,
-    const std::string& doc) {
-  Value function = runtime.make_native_function(qualified_name, callback);
+    const std::string& doc,
+    NativeKeywordFunctionCallback keyword_callback = nullptr) {
+  Value function = runtime.make_native_function(qualified_name, callback, nullptr, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__module__"), Value::string(module_name)},
@@ -581,11 +632,141 @@ bool abc_abstractstaticmethod(Runtime& runtime, const Value* args, uint32_t argc
 }
 
 bool abc_abstractproperty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (!abc_abstractmethod(runtime, args, argc, out, error, user_data)) {
+  if (argc > 4) {
+    return abc_type_error(runtime, error, "property() takes at most 4 arguments (" + std::to_string(argc) + " given)");
+  }
+  Value values[4] = {Value::none(), Value::none(), Value::none(), Value::none()};
+  for (uint32_t i = 0; i < argc; ++i) {
+    value_assign_fast(values[i], args[i]);
+  }
+  if (argc >= 1 && values[0].tag != ValueTag::None && !abc_abstractmethod(runtime, values, 1, out, error, user_data)) {
     return false;
   }
-  out = Value::property(args[0], Value::none(), Value::none(), Value::none());
+  out = Value::property(values[0], values[1], values[2], values[3]);
   return true;
+}
+
+bool abc_update_abstractmethods_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  Value bound;
+  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.update_abstractmethods", "cls", error)) {
+    return false;
+  }
+  if (kwargc == 0) {
+    return true;
+  }
+  return abc_update_abstractmethods(runtime, &bound, 1, out, error, nullptr);
+}
+
+bool abc_abstractmethod_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  Value bound;
+  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.abstractmethod", "funcobj", error)) {
+    return false;
+  }
+  if (kwargc == 0) {
+    return true;
+  }
+  return abc_abstractmethod(runtime, &bound, 1, out, error, nullptr);
+}
+
+bool abc_abstractclassmethod_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  Value bound;
+  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.abstractclassmethod", "callable", error)) {
+    return false;
+  }
+  if (kwargc == 0) {
+    return true;
+  }
+  return abc_abstractclassmethod(runtime, &bound, 1, out, error, nullptr);
+}
+
+bool abc_abstractstaticmethod_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  Value bound;
+  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.abstractstaticmethod", "callable", error)) {
+    return false;
+  }
+  if (kwargc == 0) {
+    return true;
+  }
+  return abc_abstractstaticmethod(runtime, &bound, 1, out, error, nullptr);
+}
+
+bool abc_abstractproperty_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  if (argc > 4) {
+    return abc_type_error(runtime, error, "property() takes at most 4 arguments (" + std::to_string(argc) + " given)");
+  }
+  Value values[4] = {Value::none(), Value::none(), Value::none(), Value::none()};
+  bool has_value[4] = {false, false, false, false};
+  for (uint32_t i = 0; i < argc; ++i) {
+    value_assign_fast(values[i], args[i]);
+    has_value[i] = true;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    int slot = -1;
+    if (name == "fget") {
+      slot = 0;
+    } else if (name == "fset") {
+      slot = 1;
+    } else if (name == "fdel") {
+      slot = 2;
+    } else if (name == "doc") {
+      slot = 3;
+    } else {
+      return abc_type_error(runtime, error, "property() got an unexpected keyword argument '" + name + "'");
+    }
+    if (has_value[slot]) {
+      return abc_type_error(runtime, error, "property() got multiple values for argument '" + name + "'");
+    }
+    if (kwargs[i].value == nullptr) {
+      return abc_type_error(runtime, error, "property() got an invalid keyword argument");
+    }
+    value_assign_fast(values[slot], *kwargs[i].value);
+    has_value[slot] = true;
+  }
+  return abc_abstractproperty(runtime, values, 4, out, error, nullptr);
 }
 
 } // namespace
@@ -595,22 +776,22 @@ void register_abc_module(Runtime& runtime) {
   builder.value("__doc__", Value::string("Module contains fast helpers for abc.py."))
       .value(
           "get_cache_token",
-          abc_native_function(runtime, "_abc", "_abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token."))
-      .value("_abc_init", abc_native_function(runtime, "_abc", "_abc._abc_init", "_abc_init", abc_init, "Internal ABC class initialization."))
+          abc_native_function(runtime, "_abc", "_abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token.", abc_no_keyword_args))
+      .value("_abc_init", abc_native_function(runtime, "_abc", "_abc._abc_init", "_abc_init", abc_init, "Internal ABC class initialization.", abc_no_keyword_args))
       .value(
           "_abc_register",
-          abc_native_function(runtime, "_abc", "_abc._abc_register", "_abc_register", abc_register, "Register a virtual subclass of an ABC."))
+          abc_native_function(runtime, "_abc", "_abc._abc_register", "_abc_register", abc_register, "Register a virtual subclass of an ABC.", abc_no_keyword_args))
       .value(
           "_abc_instancecheck",
-          abc_native_function(runtime, "_abc", "_abc._abc_instancecheck", "_abc_instancecheck", abc_instancecheck, "Internal ABC instance check."))
+          abc_native_function(runtime, "_abc", "_abc._abc_instancecheck", "_abc_instancecheck", abc_instancecheck, "Internal ABC instance check.", abc_no_keyword_args))
       .value(
           "_abc_subclasscheck",
-          abc_native_function(runtime, "_abc", "_abc._abc_subclasscheck", "_abc_subclasscheck", abc_subclasscheck, "Internal ABC subclass check."))
-      .value("_get_dump", abc_native_function(runtime, "_abc", "_abc._get_dump", "_get_dump", abc_get_dump, "Return ABC registry and cache snapshots."))
+          abc_native_function(runtime, "_abc", "_abc._abc_subclasscheck", "_abc_subclasscheck", abc_subclasscheck, "Internal ABC subclass check.", abc_no_keyword_args))
+      .value("_get_dump", abc_native_function(runtime, "_abc", "_abc._get_dump", "_get_dump", abc_get_dump, "Return ABC registry and cache snapshots.", abc_no_keyword_args))
       .value(
           "_reset_registry",
-          abc_native_function(runtime, "_abc", "_abc._reset_registry", "_reset_registry", abc_reset_registry, "Clear the ABC registry."))
-      .value("_reset_caches", abc_native_function(runtime, "_abc", "_abc._reset_caches", "_reset_caches", abc_reset_caches, "Clear ABC caches."));
+          abc_native_function(runtime, "_abc", "_abc._reset_registry", "_reset_registry", abc_reset_registry, "Clear the ABC registry.", abc_no_keyword_args))
+      .value("_reset_caches", abc_native_function(runtime, "_abc", "_abc._reset_caches", "_reset_caches", abc_reset_caches, "Clear ABC caches.", abc_no_keyword_args));
   runtime.register_module("_abc", builder.finish());
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
@@ -642,20 +823,20 @@ void register_abc_module(Runtime& runtime) {
       .value("ABC", abc_class)
       .value(
           "get_cache_token",
-          abc_native_function(runtime, "abc", "abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token."))
-      .value("abstractmethod", abc_native_function(runtime, "abc", "abc.abstractmethod", "abstractmethod", abc_abstractmethod, "A decorator indicating abstract methods."))
+          abc_native_function(runtime, "abc", "abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token.", abc_no_keyword_args))
+      .value("abstractmethod", abc_native_function(runtime, "abc", "abc.abstractmethod", "abstractmethod", abc_abstractmethod, "A decorator indicating abstract methods.", abc_abstractmethod_kw))
       .value(
           "update_abstractmethods",
-          abc_native_function(runtime, "abc", "abc.update_abstractmethods", "update_abstractmethods", abc_update_abstractmethods, "Recalculate abstract methods."))
+          abc_native_function(runtime, "abc", "abc.update_abstractmethods", "update_abstractmethods", abc_update_abstractmethods, "Recalculate abstract methods.", abc_update_abstractmethods_kw))
       .value(
           "abstractclassmethod",
-          abc_native_function(runtime, "abc", "abc.abstractclassmethod", "abstractclassmethod", abc_abstractclassmethod, "A decorator indicating abstract classmethods."))
+          abc_native_function(runtime, "abc", "abc.abstractclassmethod", "abstractclassmethod", abc_abstractclassmethod, "A decorator indicating abstract classmethods.", abc_abstractclassmethod_kw))
       .value(
           "abstractstaticmethod",
-          abc_native_function(runtime, "abc", "abc.abstractstaticmethod", "abstractstaticmethod", abc_abstractstaticmethod, "A decorator indicating abstract staticmethods."))
+          abc_native_function(runtime, "abc", "abc.abstractstaticmethod", "abstractstaticmethod", abc_abstractstaticmethod, "A decorator indicating abstract staticmethods.", abc_abstractstaticmethod_kw))
       .value(
           "abstractproperty",
-          abc_native_function(runtime, "abc", "abc.abstractproperty", "abstractproperty", abc_abstractproperty, "A decorator indicating abstract properties."));
+          abc_native_function(runtime, "abc", "abc.abstractproperty", "abstractproperty", abc_abstractproperty, "A decorator indicating abstract properties.", abc_abstractproperty_kw));
   runtime.register_module("abc", public_builder.finish());
 }
 
