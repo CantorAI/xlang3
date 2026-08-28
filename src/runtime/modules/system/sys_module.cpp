@@ -3212,7 +3212,9 @@ void register_sys_module(Runtime& runtime) {
           "exc_info",
           sys_exc_info,
           const_cast<char*>("sys.exc_info"),
-          "Return current exception information: (type, value, traceback).",
+          "Return current exception information: (type, value, traceback).\n\n"
+          "Return information about the most recent exception caught by an except\n"
+          "clause in the current stack frame or in an older stack frame.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3225,7 +3227,10 @@ void register_sys_module(Runtime& runtime) {
           "exception",
           sys_exception,
           const_cast<char*>("sys.exception"),
-          "Return the current exception.",
+          "Return the current exception.\n\n"
+          "Return the most recent exception caught by an except clause\n"
+          "in the current stack frame or in an older stack frame, or None\n"
+          "if no such exception exists.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3238,7 +3243,11 @@ void register_sys_module(Runtime& runtime) {
           "exit",
           sys_exit,
           nullptr,
-          "Exit the interpreter by raising SystemExit(status).",
+          "Exit the interpreter by raising SystemExit(status).\n\n"
+          "If the status is omitted or None, it defaults to zero (i.e., success).\n"
+          "If the status is an integer, it will be used as the system exit status.\n"
+          "If it is another kind of object, it will be printed and the system\n"
+          "exit status will be one (i.e., failure).",
           sys_exit_kw),
       error);
   const Value displayhook = sys_metadata_native_function(

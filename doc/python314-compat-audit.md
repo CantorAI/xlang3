@@ -976,7 +976,7 @@ Native or runtime-backed foundation:
   `getallocatedblocks` with CPython-style keyword `TypeError` diagnostics,
   `exit` including CPython-style too-many-arguments/keyword
   `TypeError` diagnostics, CPython-style exception/interner/size helper
-  metadata, display/exception hooks with stdio routing,
+  metadata including `exc_info`/`exception`/`exit` docs, display/exception hooks with stdio routing,
   CPython-style public hook callable metadata including unraisable/breakpoint docs, and
   CPython-style default-hook arity `TypeError` diagnostics plus keyword
   rejection, `builtins._`, CPython-style default hook alias identity,
