@@ -173,6 +173,9 @@ Recent completed batches:
   `sys.set_coroutine_origin_tracking_depth` now accepts bool-as-int depths and
   reports CPython-style arity/type `TypeError` plus negative-depth `ValueError`
   diagnostics while preserving runtime state updates.
+- Tightened native async-generator hook configuration: `sys.set_asyncgen_hooks`
+  now reports CPython-style positional/keyword binding diagnostics and includes
+  offending type names in non-callable hook `TypeError` messages.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -910,8 +913,9 @@ Native or runtime-backed foundation:
   live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable
   coroutine-origin tracking helpers including bool-as-int setter handling and
   CPython-style arity/type/negative-depth diagnostics,
-  async-generator hook configuration with structseq-like `asyncgen_hooks` including CPython-style
-  `builtins` type-module metadata,
+  async-generator hook configuration with structseq-like `asyncgen_hooks`
+  including CPython-style `builtins` type-module metadata and
+  `set_asyncgen_hooks` positional/keyword/non-callable `TypeError` diagnostics,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,

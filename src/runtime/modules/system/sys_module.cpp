@@ -1166,7 +1166,7 @@ bool validate_asyncgen_hook(Runtime& runtime, const Value& hook, const char* nam
   if (hook.tag == ValueTag::None || is_callable_value(hook)) {
     return true;
   }
-  error = std::string("callable ") + name + " expected";
+  error = std::string("callable ") + name + " expected, got " + sys_type_name(runtime, hook);
   runtime.raise_class_error("TypeError", error);
   return false;
 }
@@ -1187,8 +1187,8 @@ bool sys_set_asyncgen_hooks_impl(
     uint32_t kwargc,
     Value& out,
     std::string& error) {
-  if (argc > 2) {
-    error = "sys.set_asyncgen_hooks expected at most 2 arguments";
+  if (argc > 2 || argc + kwargc > 2) {
+    error = "function takes at most 2 arguments (" + std::to_string(argc + kwargc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1203,20 +1203,20 @@ bool sys_set_asyncgen_hooks_impl(
     }
     if (name == "firstiter") {
       if (firstiter != nullptr) {
-        error = "sys.set_asyncgen_hooks got multiple values for firstiter";
+        error = "argument for function given by name ('firstiter') and position (1)";
         runtime.raise_class_error("TypeError", error);
         return false;
       }
       firstiter = kwargs[i].value;
     } else if (name == "finalizer") {
       if (finalizer != nullptr) {
-        error = "sys.set_asyncgen_hooks got multiple values for finalizer";
+        error = "argument for function given by name ('finalizer') and position (2)";
         runtime.raise_class_error("TypeError", error);
         return false;
       }
       finalizer = kwargs[i].value;
     } else {
-      error = "sys.set_asyncgen_hooks got an unexpected keyword argument '" + name + "'";
+      error = "this function got an unexpected keyword argument '" + name + "'";
       runtime.raise_class_error("TypeError", error);
       return false;
     }

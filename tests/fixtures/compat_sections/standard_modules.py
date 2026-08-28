@@ -1388,11 +1388,21 @@ print(sys.set_asyncgen_hooks(firstiter=None) is None, sys.get_asyncgen_hooks().f
 try:
     sys.set_asyncgen_hooks(42)
 except TypeError as err:
-    print("asyncgen-hooks", "firstiter" in str(err), "callable" in str(err))
+    print("asyncgen-hooks", "firstiter" in str(err), "callable" in str(err), "int" in str(err))
 try:
     sys.set_asyncgen_hooks(None, 42)
 except TypeError as err:
-    print("asyncgen-hooks", "finalizer" in str(err), "callable" in str(err))
+    print("asyncgen-hooks", "finalizer" in str(err), "callable" in str(err), "int" in str(err))
+for sys_asyncgen_bad_name, sys_asyncgen_bad_call, sys_asyncgen_bad_parts in [
+    ("extra", lambda: sys.set_asyncgen_hooks(None, None, None), ("at most 2 arguments", "3 given")),
+    ("keyword", lambda: sys.set_asyncgen_hooks(unknown=None), ("unexpected keyword argument", "unknown")),
+    ("duplicate", lambda: sys.set_asyncgen_hooks(None, firstiter=None), ("given by name", "firstiter", "position (1)")),
+]:
+    try:
+        sys_asyncgen_bad_call()
+    except TypeError as err:
+        sys_asyncgen_bad_message = str(err)
+        print("asyncgen-hooks-diagnostic", sys_asyncgen_bad_name, all(part in sys_asyncgen_bad_message for part in sys_asyncgen_bad_parts))
 sys_noarg_typeerror_probes = [
     sys._current_frames,
     sys._current_exceptions,

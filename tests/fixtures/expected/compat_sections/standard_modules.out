@@ -364,8 +364,11 @@ True
 True True True firstiter
 True True True
 True True True
-asyncgen-hooks True True
-asyncgen-hooks True True
+asyncgen-hooks True True True
+asyncgen-hooks True True True
+asyncgen-hooks-diagnostic extra True
+asyncgen-hooks-diagnostic keyword True
+asyncgen-hooks-diagnostic duplicate True
 sys-noarg-typeerrors 26 26
 sys-noarg-diagnostic allocated True True
 sys-noarg-diagnostic encoding True True
