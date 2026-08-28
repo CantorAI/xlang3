@@ -896,6 +896,7 @@ for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print(sys._git[0], sys._git[1].startswith("tags/v3.14."), len(sys._git), isinstance(sys._vpath, str), sys._home is None, sys.float_repr_style)
+print("sys-git-metadata", sys._git == ("CPython", "tags/v3.14.7", "823f032"))
 print(isinstance(sys._stdlib_dir, str), sys._framework == "", (sys.platform == "win32") == hasattr(sys, "winver"), (sys.platform == "win32") == hasattr(sys, "dllhandle"), hasattr(sys, "abiflags") == (sys.platform != "win32"))
 implementation_repr = repr(sys.implementation)
 print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xlang3-314'" in implementation_repr, "version=sys.version_info(" in implementation_repr, "supports_isolated_interpreters=False" in implementation_repr)

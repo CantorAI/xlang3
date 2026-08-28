@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys builtin module names metadata
+sys git metadata
 ```
 
 Current next loop:
