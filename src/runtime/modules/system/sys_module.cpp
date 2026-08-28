@@ -3078,8 +3078,9 @@ void register_sys_module(Runtime& runtime) {
       "sys.displayhook",
       "displayhook",
       sys_displayhook,
-      nullptr,
-      "Print an object to sys.stdout and also save it in builtins._");
+      const_cast<char*>("sys.displayhook"),
+      "Print an object to sys.stdout and also save it in builtins._",
+      sys_no_keyword_args);
   module_set_attr(sys, "displayhook", displayhook, error);
   module_set_attr(sys, "__displayhook__", displayhook, error);
   const Value excepthook = sys_metadata_native_function(
@@ -3088,8 +3089,9 @@ void register_sys_module(Runtime& runtime) {
       "sys.excepthook",
       "excepthook",
       sys_excepthook,
-      nullptr,
-      "Handle an exception by displaying it with a traceback on sys.stderr.");
+      const_cast<char*>("sys.excepthook"),
+      "Handle an exception by displaying it with a traceback on sys.stderr.",
+      sys_no_keyword_args);
   module_set_attr(sys, "excepthook", excepthook, error);
   module_set_attr(sys, "__excepthook__", excepthook, error);
   const Value unraisablehook = sys_metadata_native_function(
@@ -3098,8 +3100,9 @@ void register_sys_module(Runtime& runtime) {
       "sys.unraisablehook",
       "unraisablehook",
       sys_unraisablehook,
-      nullptr,
-      "Handle an unraisable exception.");
+      const_cast<char*>("sys.unraisablehook"),
+      "Handle an unraisable exception.",
+      sys_no_keyword_args);
   module_set_attr(sys, "unraisablehook", unraisablehook, error);
   module_set_attr(sys, "__unraisablehook__", unraisablehook, error);
   const Value breakpointhook = sys_metadata_native_function(

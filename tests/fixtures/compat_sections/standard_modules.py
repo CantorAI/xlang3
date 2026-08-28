@@ -1832,6 +1832,18 @@ for sys_hook_bad_name, sys_hook_bad_call, sys_hook_bad_parts in [
     except TypeError as err:
         sys_hook_bad_message = str(err)
         print("sys-hook-type", sys_hook_bad_name, all(part in sys_hook_bad_message for part in sys_hook_bad_parts))
+for sys_hook_keyword_name, sys_hook_keyword_call in [
+    ("displayhook", lambda: sys.displayhook(object=42)),
+    ("__displayhook__", lambda: sys.__displayhook__(object=42)),
+    ("excepthook", lambda: sys.excepthook(type=ValueError, value=ValueError("hooked"), traceback=None)),
+    ("__excepthook__", lambda: sys.__excepthook__(type=ValueError, value=ValueError("hooked"), traceback=None)),
+    ("unraisablehook", lambda: sys.unraisablehook(unraisable=object())),
+    ("__unraisablehook__", lambda: sys.__unraisablehook__(unraisable=object())),
+]:
+    try:
+        sys_hook_keyword_call()
+    except TypeError as err:
+        print("sys-hook-keyword", sys_hook_keyword_name, "takes no keyword arguments" in str(err))
 sys_debugmalloc_stderr = SysHookCapture()
 try:
     sys.stderr = sys_debugmalloc_stderr
