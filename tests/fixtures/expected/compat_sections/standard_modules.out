@@ -384,6 +384,11 @@ True True True
 True True True True
 True True True True
 True True True -1 True 0
+sys-noarg-keyword _clear_internal_caches True
+sys-noarg-keyword _clear_type_cache True
+sys-noarg-keyword _get_cpu_count_config True
+sys-noarg-keyword is_remote_debug_enabled True
+sys-noarg-keyword _is_gil_enabled True
 True True
 True True True
 True True

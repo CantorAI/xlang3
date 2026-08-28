@@ -953,7 +953,8 @@ Native or runtime-backed foundation:
   CPython 3.14 top-level frozen `stdlib_module_names`, `_git`/`_vpath`/`_home`
   metadata, `float_repr_style`, `getunicodeinternedsize` with CPython-style
   keyword diagnostics,
-  `_get_cpu_count_config`, `is_remote_debug_enabled`,
+  `_get_cpu_count_config` and `is_remote_debug_enabled` with CPython-style
+  keyword diagnostics,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/keyword/immutable-type errors including given-count and
   offending-type diagnostics,
@@ -1023,7 +1024,8 @@ Native or runtime-backed foundation:
   `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
   wrong-arity/keyword `TypeError` diagnostics,
   live-thread-id-keyed `_current_frames` snapshots,
-  live-thread-id-keyed `_current_exceptions`, cache-clear hooks, configurable
+  live-thread-id-keyed `_current_exceptions`, cache-clear hooks with
+  CPython-style keyword diagnostics, configurable
   coroutine-origin tracking helpers including bool-as-int setter handling and
   CPython-style arity/type/negative-depth diagnostics,
   async-generator hook configuration with structseq-like `asyncgen_hooks`
@@ -1033,7 +1035,8 @@ Native or runtime-backed foundation:
   `TypeError` diagnostics,
   CPython-style runtime/config/frame/cache no-argument helper metadata,
   catchable CPython-style `TypeError` arity failures for no-argument
-  runtime/config/frame/cache/JIT probes,
+  runtime/config/frame/cache/JIT probes plus keyword failures for covered
+  runtime/config/cache helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`,
   stateful `_enablelegacywindowsfsencoding`, allocator-backed `_debugmallocstats`
   with active `sys.stderr` routing,

@@ -139,6 +139,13 @@ bool raise_sys_no_args_type_error(Runtime& runtime, std::string& error, const ch
   return false;
 }
 
+bool sys_no_keyword_args(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t, Value&, std::string& error, void* user_data) {
+  const char* name = static_cast<const char*>(user_data);
+  error = std::string(name) + "() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool raise_sys_one_arg_type_error(Runtime& runtime, std::string& error, const char* name, uint32_t argc) {
   error = std::string(name) + "() takes exactly one argument (" + std::to_string(argc) + " given)";
   runtime.raise_class_error("TypeError", error);
@@ -3300,8 +3307,9 @@ void register_sys_module(Runtime& runtime) {
           "sys.is_remote_debug_enabled",
           "is_remote_debug_enabled",
           sys_is_remote_debug_enabled,
-          nullptr,
-          "Return True if remote debugging is enabled, False otherwise."),
+          const_cast<char*>("sys.is_remote_debug_enabled"),
+          "Return True if remote debugging is enabled, False otherwise.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3312,8 +3320,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._is_gil_enabled",
           "_is_gil_enabled",
           sys_is_gil_enabled,
-          nullptr,
-          "Return True if the GIL is currently enabled and False otherwise."),
+          const_cast<char*>("sys._is_gil_enabled"),
+          "Return True if the GIL is currently enabled and False otherwise.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3531,8 +3540,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._get_cpu_count_config",
           "_get_cpu_count_config",
           sys_get_cpu_count_config,
-          nullptr,
-          "Private function for getting PyConfig.cpu_count"),
+          const_cast<char*>("sys._get_cpu_count_config"),
+          "Private function for getting PyConfig.cpu_count",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3543,8 +3553,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._clear_internal_caches",
           "_clear_internal_caches",
           sys_clear_internal_caches,
-          nullptr,
-          "Clear all internal performance-related caches."),
+          const_cast<char*>("sys._clear_internal_caches"),
+          "Clear all internal performance-related caches.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,
@@ -3555,8 +3566,9 @@ void register_sys_module(Runtime& runtime) {
           "sys._clear_type_cache",
           "_clear_type_cache",
           sys_clear_type_cache,
-          nullptr,
-          "Clear the internal type lookup cache."),
+          const_cast<char*>("sys._clear_type_cache"),
+          "Clear the internal type lookup cache.",
+          sys_no_keyword_args),
       error);
   module_set_attr(
       sys,

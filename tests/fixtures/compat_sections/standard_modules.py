@@ -1442,6 +1442,17 @@ sys_dump_tracelets_path = "xlang3_sys_tracelets.dot"
 if os.path.exists(sys_dump_tracelets_path):
     os.remove(sys_dump_tracelets_path)
 print(sys._clear_internal_caches() is None, sys._clear_type_cache() is None, sys._clear_type_descriptors(SysClearDescriptorsProbe) is None, sys._get_cpu_count_config(), sys.is_remote_debug_enabled(), sys.get_coroutine_origin_tracking_depth())
+for sys_noarg_keyword_name, sys_noarg_keyword_probe in (
+    ("_clear_internal_caches", sys._clear_internal_caches),
+    ("_clear_type_cache", sys._clear_type_cache),
+    ("_get_cpu_count_config", sys._get_cpu_count_config),
+    ("is_remote_debug_enabled", sys.is_remote_debug_enabled),
+    ("_is_gil_enabled", sys._is_gil_enabled),
+):
+    try:
+        sys_noarg_keyword_probe(x=1)
+    except TypeError as err:
+        print("sys-noarg-keyword", sys_noarg_keyword_name, "takes no keyword arguments" in str(err))
 print(sys._dump_tracelets(sys_dump_tracelets_path) is None, os.path.exists(sys_dump_tracelets_path))
 with open(sys_dump_tracelets_path, "rb") as sys_dump_tracelets_file:
     sys_dump_tracelets_data = sys_dump_tracelets_file.read()
