@@ -649,10 +649,20 @@ time struct_time True 11 9 0 True True
 member_descriptor builtins True 2026 Z True True
 struct-time-new 2026 NEW 987 __new__ struct_time.__new__ True
 struct-time-getnewargs True 1 True 9 __getnewargs__ tuple.__getnewargs__ True True
+struct-time-reduce True True X 123 True
+struct-time-reduce-metadata __reduce__ struct_time.__reduce__ True True __reduce_ex__ object.__reduce_ex__ True True
 struct-time-getnewargs-diagnostic extra True
 struct-time-getnewargs-diagnostic keyword True
 struct-time-getnewargs-diagnostic unbound-missing True
 struct-time-getnewargs-diagnostic receiver True
+struct-time-reduce-diagnostic reduce-extra True
+struct-time-reduce-diagnostic reduce-keyword True
+struct-time-reduce-diagnostic reduce-unbound-missing True
+struct-time-reduce-diagnostic reduce-receiver True
+struct-time-reduce-diagnostic reduce-ex-missing-proto True
+struct-time-reduce-diagnostic reduce-ex-extra True
+struct-time-reduce-diagnostic reduce-ex-keyword True
+struct-time-reduce-diagnostic reduce-ex-type True
 struct-time-new-diagnostic missing True
 struct-time-new-diagnostic class-only True
 struct-time-new-diagnostic extra True

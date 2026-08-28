@@ -1411,6 +1411,102 @@ bool time_struct_time_getnewargs_kw(
   return false;
 }
 
+bool struct_time_reduce_payload(Runtime& runtime, const Value& self, const char* method, Value& out, std::string& error) {
+  TupleObject* tuple = nullptr;
+  if (!struct_time_tuple_storage(self, method, tuple, error)) {
+    error = "descriptor '" + std::string(method) + "' for 'time.struct_time' objects doesn't apply to a '" + time_type_name(self) + "' object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    error = "descriptor '" + std::string(method) + "' for 'time.struct_time' objects doesn't apply to a '" + time_type_name(self) + "' object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value zone;
+  Value gmtoff;
+  std::string ignored;
+  if (!object_get_attr(self, "tm_zone", zone, ignored)) {
+    zone = Value::none();
+  }
+  if (!object_get_attr(self, "tm_gmtoff", gmtoff, ignored)) {
+    gmtoff = Value::none();
+  }
+  out = Value::tuple({
+      instance->klass,
+      Value::tuple({
+          Value::tuple(tuple->items),
+          Value::dict({
+              {Value::string("tm_zone"), zone},
+              {Value::string("tm_gmtoff"), gmtoff},
+          }),
+      }),
+  });
+  return true;
+}
+
+bool time_struct_time_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "unbound method struct_time.__reduce__() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 1) {
+    error = "struct_time.__reduce__() takes no arguments (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return struct_time_reduce_payload(runtime, args[0], "__reduce__", out, error);
+}
+
+bool time_struct_time_reduce_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "struct_time.__reduce__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool time_struct_time_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "unbound method object.__reduce_ex__() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 2) {
+    error = "object.__reduce_ex__() takes exactly one argument (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int protocol = 0;
+  if (!int_from_value(args[1], "protocol", protocol, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return struct_time_reduce_payload(runtime, args[0], "__reduce_ex__", out, error);
+}
+
+bool time_struct_time_reduce_ex_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "object.__reduce_ex__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool time_struct_time_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     error = "unbound method tuple.index() needs an argument";
@@ -2550,6 +2646,22 @@ void register_time_module(Runtime& runtime) {
         {Value::string("__doc__"), Value::none()},
     }));
   }
+  Value struct_time_reduce = runtime.make_native_function("time.struct_time.__reduce__", time_struct_time_reduce, nullptr, nullptr, nullptr, false, time_struct_time_reduce_kw);
+  if (auto* native = value_as_native_function(struct_time_reduce)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__name__"), Value::string("__reduce__")},
+        {Value::string("__qualname__"), Value::string("struct_time.__reduce__")},
+        {Value::string("__doc__"), Value::none()},
+    }));
+  }
+  Value struct_time_reduce_ex = runtime.make_native_function("time.struct_time.__reduce_ex__", time_struct_time_reduce_ex, nullptr, nullptr, nullptr, false, time_struct_time_reduce_ex_kw);
+  if (auto* native = value_as_native_function(struct_time_reduce_ex)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__name__"), Value::string("__reduce_ex__")},
+        {Value::string("__qualname__"), Value::string("object.__reduce_ex__")},
+        {Value::string("__doc__"), Value::string("Helper for pickle.")},
+    }));
+  }
   state->struct_time_class = Value::class_object(
       "struct_time",
       {
@@ -2560,6 +2672,8 @@ void register_time_module(Runtime& runtime) {
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
           {"__getnewargs__", struct_time_getnewargs},
+          {"__reduce__", struct_time_reduce},
+          {"__reduce_ex__", struct_time_reduce_ex},
           {"count", runtime.make_native_function("time.struct_time.count", time_struct_time_count, nullptr, nullptr, nullptr, false, time_struct_time_count_kw)},
           {"index", runtime.make_native_function("time.struct_time.index", time_struct_time_index, nullptr, nullptr, nullptr, false, time_struct_time_index_kw)},
           {"n_sequence_fields", Value::int64(9)},

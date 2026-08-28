@@ -2154,6 +2154,10 @@ constructed_new_keyword_time = time.struct_time.__new__(time.struct_time, sequen
 print("struct-time-new", constructed_new_time.tm_year, constructed_new_keyword_time.tm_zone, constructed_new_keyword_time.tm_gmtoff, time.struct_time.__new__.__name__, time.struct_time.__new__.__qualname__, time.struct_time.__new__.__doc__ is not None)
 struct_time_getnewargs = constructed_zone_time.__getnewargs__()
 print("struct-time-getnewargs", isinstance(struct_time_getnewargs, tuple), len(struct_time_getnewargs), struct_time_getnewargs[0] == tuple(constructed_zone_time), len(struct_time_getnewargs[0]), time.struct_time.__getnewargs__.__name__, time.struct_time.__getnewargs__.__qualname__, getattr(time.struct_time.__getnewargs__, "__module__", None) is None, time.struct_time.__getnewargs__.__doc__ is None)
+struct_time_reduce = constructed_zone_time.__reduce__()
+struct_time_reduce_ex = constructed_zone_time.__reduce_ex__(4)
+print("struct-time-reduce", struct_time_reduce[0] is time.struct_time, struct_time_reduce[1][0] == tuple(constructed_zone_time), struct_time_reduce[1][1]["tm_zone"], struct_time_reduce[1][1]["tm_gmtoff"], struct_time_reduce_ex == struct_time_reduce)
+print("struct-time-reduce-metadata", time.struct_time.__reduce__.__name__, time.struct_time.__reduce__.__qualname__, getattr(time.struct_time.__reduce__, "__module__", None) is None, time.struct_time.__reduce__.__doc__ is None, time.struct_time.__reduce_ex__.__name__, time.struct_time.__reduce_ex__.__qualname__, getattr(time.struct_time.__reduce_ex__, "__module__", None) is None, time.struct_time.__reduce_ex__.__doc__ is not None)
 for struct_time_getnewargs_bad_name, struct_time_getnewargs_bad_call, struct_time_getnewargs_bad_parts in [
     ("extra", lambda: constructed_time.__getnewargs__(1), ("takes no arguments", "1 given")),
     ("keyword", lambda: constructed_time.__getnewargs__(x=1), ("takes no keyword arguments",)),
@@ -2165,6 +2169,21 @@ for struct_time_getnewargs_bad_name, struct_time_getnewargs_bad_call, struct_tim
     except TypeError as err:
         struct_time_getnewargs_bad_message = str(err)
         print("struct-time-getnewargs-diagnostic", struct_time_getnewargs_bad_name, all(part in struct_time_getnewargs_bad_message for part in struct_time_getnewargs_bad_parts))
+for struct_time_reduce_bad_name, struct_time_reduce_bad_call, struct_time_reduce_bad_parts in [
+    ("reduce-extra", lambda: constructed_time.__reduce__(1), ("takes no arguments", "1 given")),
+    ("reduce-keyword", lambda: constructed_time.__reduce__(x=1), ("takes no keyword arguments",)),
+    ("reduce-unbound-missing", lambda: time.struct_time.__reduce__(), ("needs an argument",)),
+    ("reduce-receiver", lambda: time.struct_time.__reduce__([]), ("descriptor '__reduce__'", "list")),
+    ("reduce-ex-missing-proto", lambda: constructed_time.__reduce_ex__(), ("exactly one argument", "0 given")),
+    ("reduce-ex-extra", lambda: constructed_time.__reduce_ex__(4, 5), ("exactly one argument", "2 given")),
+    ("reduce-ex-keyword", lambda: constructed_time.__reduce_ex__(proto=4), ("takes no keyword arguments",)),
+    ("reduce-ex-type", lambda: constructed_time.__reduce_ex__("x"), ("str", "cannot be interpreted as an integer")),
+]:
+    try:
+        struct_time_reduce_bad_call()
+    except TypeError as err:
+        struct_time_reduce_bad_message = str(err)
+        print("struct-time-reduce-diagnostic", struct_time_reduce_bad_name, all(part in struct_time_reduce_bad_message for part in struct_time_reduce_bad_parts))
 for struct_time_new_bad_name, struct_time_new_bad_call, struct_time_new_bad_parts in [
     ("missing", lambda: time.struct_time.__new__(), ("not enough arguments",)),
     ("class-only", lambda: time.struct_time.__new__(time.struct_time), ("missing required argument", "sequence")),

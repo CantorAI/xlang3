@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time struct_time tuple-backed __getnewargs__
+time struct_time reduce helpers
 ```
 
 Current next loop:
