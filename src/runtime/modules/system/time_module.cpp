@@ -58,6 +58,25 @@ bool no_args(Runtime& runtime, uint32_t argc, const char* name, std::string& err
   return false;
 }
 
+Value time_native_function(
+    Runtime& runtime,
+    const std::string& qualified_name,
+    const std::string& function_name,
+    NativeFunctionCallback callback,
+    const std::string& doc,
+    void* user_data = nullptr) {
+  Value function = runtime.make_native_function(qualified_name, callback, user_data);
+  if (auto* native = value_as_native_function(function)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__module__"), Value::string("time")},
+        {Value::string("__name__"), Value::string(function_name)},
+        {Value::string("__qualname__"), Value::string(function_name)},
+        {Value::string("__doc__"), Value::string(doc)},
+    }));
+  }
+  return function;
+}
+
 std::string time_type_name(const Value& value) {
   switch (value.tag) {
   case ValueTag::None:
@@ -2117,25 +2136,64 @@ void register_time_module(Runtime& runtime) {
   state->has_daylight_timezone = timezone.daylight != 0;
 
   NativeModuleBuilder builder(runtime, "time");
-  builder.function("time", time_time)
-      .function("time_ns", time_time_ns)
-      .function("monotonic", time_monotonic)
-      .function("monotonic_ns", time_monotonic_ns)
-      .function("perf_counter", time_perf_counter)
-      .function("perf_counter_ns", time_perf_counter_ns)
-      .function("process_time", time_process_time)
-      .function("process_time_ns", time_process_time_ns)
-      .function("thread_time", time_thread_time)
-      .function("thread_time_ns", time_thread_time_ns)
-      .function("get_clock_info", time_get_clock_info)
-      .function("sleep", time_sleep)
-      .value("localtime", runtime.make_native_function("time.localtime", time_localtime, state))
-      .value("gmtime", runtime.make_native_function("time.gmtime", time_gmtime, state))
-      .function("mktime", time_mktime)
-      .function("strftime", time_strftime)
-      .value("strptime", runtime.make_native_function("time.strptime", time_strptime, state))
-      .function("asctime", time_asctime)
-      .function("ctime", time_ctime)
+  builder
+      .value("time", time_native_function(
+                         runtime, "time.time", "time", time_time,
+                         "Return the current time in seconds since the Epoch."))
+      .value("time_ns", time_native_function(
+                            runtime, "time.time_ns", "time_ns", time_time_ns,
+                            "Return the current time in nanoseconds since the Epoch."))
+      .value("monotonic", time_native_function(
+                              runtime, "time.monotonic", "monotonic", time_monotonic,
+                              "Monotonic clock, cannot go backward."))
+      .value("monotonic_ns", time_native_function(
+                                 runtime, "time.monotonic_ns", "monotonic_ns", time_monotonic_ns,
+                                 "Monotonic clock, cannot go backward, as nanoseconds."))
+      .value("perf_counter", time_native_function(
+                                 runtime, "time.perf_counter", "perf_counter", time_perf_counter,
+                                 "Performance counter for benchmarking."))
+      .value("perf_counter_ns", time_native_function(
+                                    runtime, "time.perf_counter_ns", "perf_counter_ns", time_perf_counter_ns,
+                                    "Performance counter for benchmarking, as nanoseconds."))
+      .value("process_time", time_native_function(
+                                 runtime, "time.process_time", "process_time", time_process_time,
+                                 "Process time for profiling."))
+      .value("process_time_ns", time_native_function(
+                                    runtime, "time.process_time_ns", "process_time_ns", time_process_time_ns,
+                                    "Process time for profiling, as nanoseconds."))
+      .value("thread_time", time_native_function(
+                                runtime, "time.thread_time", "thread_time", time_thread_time,
+                                "Thread time for profiling."))
+      .value("thread_time_ns", time_native_function(
+                                   runtime, "time.thread_time_ns", "thread_time_ns", time_thread_time_ns,
+                                   "Thread time for profiling, as nanoseconds."))
+      .value("get_clock_info", time_native_function(
+                                   runtime, "time.get_clock_info", "get_clock_info", time_get_clock_info,
+                                   "Get information about the specified clock."))
+      .value("sleep", time_native_function(
+                          runtime, "time.sleep", "sleep", time_sleep,
+                          "Delay execution for a given number of seconds."))
+      .value("localtime", time_native_function(
+                              runtime, "time.localtime", "localtime", time_localtime,
+                              "Convert seconds since the Epoch to local time.", state))
+      .value("gmtime", time_native_function(
+                           runtime, "time.gmtime", "gmtime", time_gmtime,
+                           "Convert seconds since the Epoch to UTC.", state))
+      .value("mktime", time_native_function(
+                           runtime, "time.mktime", "mktime", time_mktime,
+                           "Convert a time tuple in local time to seconds since the Epoch."))
+      .value("strftime", time_native_function(
+                             runtime, "time.strftime", "strftime", time_strftime,
+                             "Format a time tuple according to a format specification."))
+      .value("strptime", time_native_function(
+                             runtime, "time.strptime", "strptime", time_strptime,
+                             "Parse a string to a time tuple according to a format specification.", state))
+      .value("asctime", time_native_function(
+                            runtime, "time.asctime", "asctime", time_asctime,
+                            "Convert a time tuple to a string."))
+      .value("ctime", time_native_function(
+                         runtime, "time.ctime", "ctime", time_ctime,
+                         "Convert a time in seconds since the Epoch to a string in local time."))
       .value("struct_time", state->struct_time_class)
       .value("_STRUCT_TM_ITEMS", Value::int64(11))
       .value("timezone", Value::int64(timezone.timezone))

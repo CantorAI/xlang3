@@ -1618,6 +1618,32 @@ clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
 clock_info_repr = repr(clock_info)
 print(type(clock_info).__name__, type(clock_info).__module__, clock_info_repr.startswith("namespace("), "monotonic=True" in clock_info_repr, "adjustable=False" in clock_info_repr, "resolution=" in clock_info_repr)
+time_function_names = (
+    "time",
+    "time_ns",
+    "monotonic",
+    "monotonic_ns",
+    "perf_counter",
+    "perf_counter_ns",
+    "process_time",
+    "process_time_ns",
+    "thread_time",
+    "thread_time_ns",
+    "get_clock_info",
+    "sleep",
+    "localtime",
+    "gmtime",
+    "ctime",
+    "mktime",
+    "strftime",
+    "strptime",
+    "asctime",
+)
+print(
+    all(getattr(time, name).__name__ == name and getattr(time, name).__qualname__ == name for name in time_function_names),
+    all(getattr(time, name).__module__ == "time" for name in time_function_names),
+    all(isinstance(getattr(time, name).__doc__, str) and len(getattr(time, name).__doc__) > 0 for name in time_function_names),
+)
 for clock_info_bad_name, clock_info_bad_call, clock_info_bad_error, clock_info_bad_parts in [
     ("missing", lambda: time.get_clock_info(), TypeError, ("takes exactly 1 argument", "0 given")),
     ("extra", lambda: time.get_clock_info("time", "x"), TypeError, ("takes exactly 1 argument", "2 given")),

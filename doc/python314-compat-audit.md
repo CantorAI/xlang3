@@ -505,6 +505,9 @@ Recent completed batches:
   `False` for a real subclass.
 - Expanded native `time` timezone metadata to use platform C-runtime `timezone`,
   `altzone`, `daylight`, and `tzname` values instead of synthesized UTC defaults.
+- Expanded native `time` callable metadata so public functions expose
+  CPython-style short `__name__`/`__qualname__`, `__module__ == "time"`, and
+  non-empty docstrings for introspection.
 - Added shared Python source-encoding detection/decoding for UTF-8, UTF-8 BOM,
   ASCII, and Latin-1 coding cookies; wired it into `linecache` and `_tokenize`.
 - Fixed bytes-regex match groups so CPython `Lib/tokenize.py` can run its
@@ -1013,7 +1016,7 @@ Native or runtime-backed foundation:
   event coverage beyond instruction/call/line/return/generator-resume-yield/throw/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns` with CPython-style
-  no-argument `TypeError` diagnostics naming each public API, `get_clock_info`
+  public callable metadata and no-argument `TypeError` diagnostics naming each public API, `get_clock_info`
   with CPython-style namespace type metadata/repr plus arity/type/unknown-clock
   diagnostics,
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/negative

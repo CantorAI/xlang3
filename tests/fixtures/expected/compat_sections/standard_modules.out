@@ -419,21 +419,22 @@ sys-hook-type __unraisablehook__ True
 True True True True True
 True False True True
 SimpleNamespace types True True True True
+True True True
 time-clock-info-diagnostic missing True
 time-clock-info-diagnostic extra True
 time-clock-info-diagnostic type True
 time-clock-info-diagnostic unknown True
 True True True True
-time-clock-arity time.time True True True
-time-clock-arity time.time_ns True True True
-time-clock-arity time.monotonic True True True
-time-clock-arity time.monotonic_ns True True True
-time-clock-arity time.perf_counter True True True
-time-clock-arity time.perf_counter_ns True True True
-time-clock-arity time.process_time True True True
-time-clock-arity time.process_time_ns True True True
-time-clock-arity time.thread_time True True True
-time-clock-arity time.thread_time_ns True True True
+time-clock-arity time True True True
+time-clock-arity time_ns True True True
+time-clock-arity monotonic True True True
+time-clock-arity monotonic_ns True True True
+time-clock-arity perf_counter True True True
+time-clock-arity perf_counter_ns True True True
+time-clock-arity process_time True True True
+time-clock-arity process_time_ns True True True
+time-clock-arity thread_time True True True
+time-clock-arity thread_time_ns True True True
 True
 time-sleep-diagnostic missing True
 time-sleep-diagnostic extra True
