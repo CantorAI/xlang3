@@ -1563,6 +1563,23 @@ print(
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
 print(time.process_time() >= 0, time.process_time_ns() >= 0, time.thread_time() >= 0, time.thread_time_ns() >= 0)
+for time_noarg_clock in [
+    time.time,
+    time.time_ns,
+    time.monotonic,
+    time.monotonic_ns,
+    time.perf_counter,
+    time.perf_counter_ns,
+    time.process_time,
+    time.process_time_ns,
+    time.thread_time,
+    time.thread_time_ns,
+]:
+    try:
+        time_noarg_clock(1)
+    except TypeError as err:
+        time_noarg_clock_message = str(err)
+        print("time-clock-arity", time_noarg_clock.__name__, time_noarg_clock.__name__ in time_noarg_clock_message, "takes no arguments" in time_noarg_clock_message, "1 given" in time_noarg_clock_message)
 print(time.sleep(False) is None)
 epoch_utc = time.gmtime(0)
 print(isinstance(epoch_utc, time.struct_time), epoch_utc.tm_year, epoch_utc.tm_mon, epoch_utc.tm_mday, time.strftime("%Y", epoch_utc))

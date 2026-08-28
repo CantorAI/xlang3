@@ -37,3 +37,6 @@ shape the next iteration.
 - Descriptor primitive changes often need both `object_get_attr` and the VM
   fast-path attribute helper updated; otherwise explicit descriptor calls and
   compiled attribute access can diverge.
+- Native module functions that should raise catchable Python exceptions must
+  call `runtime.raise_class_error`; returning `false` with only an error string
+  can surface as an uncaught runtime failure instead.

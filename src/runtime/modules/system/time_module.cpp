@@ -47,11 +47,12 @@ void time_module_state_cleanup(void* data) {
   delete static_cast<TimeModuleState*>(data);
 }
 
-bool no_args(uint32_t argc, const char* name, std::string& error) {
+bool no_args(Runtime& runtime, uint32_t argc, const char* name, std::string& error) {
   if (argc == 0) {
     return true;
   }
-  error = std::string(name) + "() expected no arguments";
+  error = std::string(name) + "() takes no arguments (" + std::to_string(argc) + " given)";
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
@@ -1581,8 +1582,8 @@ bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
-bool time_time(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!no_args(argc, "time.time", error)) {
+bool time_time(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(runtime, argc, "time.time", error)) {
     return false;
   }
   const auto now = std::chrono::system_clock::now().time_since_epoch();
@@ -1590,8 +1591,8 @@ bool time_time(Runtime&, const Value*, uint32_t argc, Value& out, std::string& e
   return true;
 }
 
-bool time_time_ns(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!no_args(argc, "time.time_ns", error)) {
+bool time_time_ns(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(runtime, argc, "time.time_ns", error)) {
     return false;
   }
   value_set_int64(out, duration_to_ns(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -1599,8 +1600,8 @@ bool time_time_ns(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   return true;
 }
 
-bool time_monotonic(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!no_args(argc, "time.monotonic", error)) {
+bool time_monotonic(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(runtime, argc, "time.monotonic", error)) {
     return false;
   }
   const auto now = std::chrono::steady_clock::now().time_since_epoch();
@@ -1608,13 +1609,27 @@ bool time_monotonic(Runtime&, const Value*, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool time_monotonic_ns(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!no_args(argc, "time.monotonic_ns", error)) {
+bool time_monotonic_ns(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(runtime, argc, "time.monotonic_ns", error)) {
     return false;
   }
   value_set_int64(out, duration_to_ns(std::chrono::duration_cast<std::chrono::nanoseconds>(
                          std::chrono::steady_clock::now().time_since_epoch())));
   return true;
+}
+
+bool time_perf_counter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (!no_args(runtime, argc, "time.perf_counter", error)) {
+    return false;
+  }
+  return time_monotonic(runtime, args, 0, out, error, user_data);
+}
+
+bool time_perf_counter_ns(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (!no_args(runtime, argc, "time.perf_counter_ns", error)) {
+    return false;
+  }
+  return time_monotonic_ns(runtime, args, 0, out, error, user_data);
 }
 
 bool time_sleep(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1642,16 +1657,16 @@ bool time_sleep(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   return true;
 }
 
-bool time_process_time(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!no_args(argc, "time.process_time", error)) {
+bool time_process_time(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(runtime, argc, "time.process_time", error)) {
     return false;
   }
   out = Value::number(static_cast<double>(std::clock()) / static_cast<double>(CLOCKS_PER_SEC));
   return true;
 }
 
-bool time_process_time_ns(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!no_args(argc, "time.process_time_ns", error)) {
+bool time_process_time_ns(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(runtime, argc, "time.process_time_ns", error)) {
     return false;
   }
   const auto ticks = static_cast<int64_t>(std::clock());
@@ -1660,11 +1675,17 @@ bool time_process_time_ns(Runtime&, const Value*, uint32_t argc, Value& out, std
 }
 
 bool time_thread_time(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return time_process_time(runtime, args, argc, out, error, user_data);
+  if (!no_args(runtime, argc, "time.thread_time", error)) {
+    return false;
+  }
+  return time_process_time(runtime, args, 0, out, error, user_data);
 }
 
 bool time_thread_time_ns(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return time_process_time_ns(runtime, args, argc, out, error, user_data);
+  if (!no_args(runtime, argc, "time.thread_time_ns", error)) {
+    return false;
+  }
+  return time_process_time_ns(runtime, args, 0, out, error, user_data);
 }
 
 bool time_get_clock_info(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1990,8 +2011,8 @@ void register_time_module(Runtime& runtime) {
       .function("time_ns", time_time_ns)
       .function("monotonic", time_monotonic)
       .function("monotonic_ns", time_monotonic_ns)
-      .function("perf_counter", time_monotonic)
-      .function("perf_counter_ns", time_monotonic_ns)
+      .function("perf_counter", time_perf_counter)
+      .function("perf_counter_ns", time_perf_counter_ns)
       .function("process_time", time_process_time)
       .function("process_time_ns", time_process_time_ns)
       .function("thread_time", time_thread_time)
