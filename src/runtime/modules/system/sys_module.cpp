@@ -2661,10 +2661,54 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "__breakpointhook__", breakpointhook, error);
   module_set_attr(sys, "addaudithook", runtime.make_native_function("sys.addaudithook", sys_addaudithook), error);
   module_set_attr(sys, "audit", runtime.make_native_function("sys.audit", sys_audit), error);
-  module_set_attr(sys, "getdefaultencoding", runtime.make_native_function("sys.getdefaultencoding", sys_getdefaultencoding), error);
-  module_set_attr(sys, "getfilesystemencoding", runtime.make_native_function("sys.getfilesystemencoding", sys_getfilesystemencoding), error);
-  module_set_attr(sys, "getfilesystemencodeerrors", runtime.make_native_function("sys.getfilesystemencodeerrors", sys_getfilesystemencodeerrors), error);
-  module_set_attr(sys, "getrecursionlimit", runtime.make_native_function("sys.getrecursionlimit", sys_getrecursionlimit), error);
+  module_set_attr(
+      sys,
+      "getdefaultencoding",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getdefaultencoding",
+          "getdefaultencoding",
+          sys_getdefaultencoding,
+          nullptr,
+          "Return the current default encoding used by the Unicode implementation."),
+      error);
+  module_set_attr(
+      sys,
+      "getfilesystemencoding",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getfilesystemencoding",
+          "getfilesystemencoding",
+          sys_getfilesystemencoding,
+          nullptr,
+          "Return the encoding used to convert Unicode filenames to OS filenames."),
+      error);
+  module_set_attr(
+      sys,
+      "getfilesystemencodeerrors",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getfilesystemencodeerrors",
+          "getfilesystemencodeerrors",
+          sys_getfilesystemencodeerrors,
+          nullptr,
+          "Return the error mode used Unicode to OS filename conversion."),
+      error);
+  module_set_attr(
+      sys,
+      "getrecursionlimit",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getrecursionlimit",
+          "getrecursionlimit",
+          sys_getrecursionlimit,
+          nullptr,
+          "Return the current value of the recursion limit."),
+      error);
   module_set_attr(sys, "setrecursionlimit", runtime.make_native_function("sys.setrecursionlimit", sys_setrecursionlimit), error);
   module_set_attr(sys, "intern", runtime.make_native_function("sys.intern", sys_intern), error);
   module_set_attr(sys, "_is_interned", runtime.make_native_function("sys._is_interned", sys_is_interned), error);
@@ -2672,7 +2716,18 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_is_immortal", runtime.make_native_function("sys._is_immortal", sys_is_immortal), error);
   module_set_attr(sys, "getsizeof", runtime.make_native_function("sys.getsizeof", sys_getsizeof), error);
   module_set_attr(sys, "getrefcount", runtime.make_native_function("sys.getrefcount", sys_getrefcount), error);
-  module_set_attr(sys, "getallocatedblocks", runtime.make_native_function("sys.getallocatedblocks", sys_getallocatedblocks), error);
+  module_set_attr(
+      sys,
+      "getallocatedblocks",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getallocatedblocks",
+          "getallocatedblocks",
+          sys_getallocatedblocks,
+          nullptr,
+          "Return the number of memory blocks currently allocated."),
+      error);
   module_set_attr(sys, "settrace", runtime.make_native_function("sys.settrace", sys_settrace), error);
   module_set_attr(sys, "gettrace", runtime.make_native_function("sys.gettrace", sys_gettrace), error);
   module_set_attr(sys, "_settraceallthreads", runtime.make_native_function("sys._settraceallthreads", sys_settraceallthreads), error);
@@ -2680,11 +2735,44 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "setprofile", runtime.make_native_function("sys.setprofile", sys_setprofile), error);
   module_set_attr(sys, "getprofile", runtime.make_native_function("sys.getprofile", sys_getprofile), error);
   module_set_attr(sys, "_setprofileallthreads", runtime.make_native_function("sys._setprofileallthreads", sys_setprofileallthreads), error);
-  module_set_attr(sys, "getswitchinterval", runtime.make_native_function("sys.getswitchinterval", sys_getswitchinterval), error);
+  module_set_attr(
+      sys,
+      "getswitchinterval",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.getswitchinterval",
+          "getswitchinterval",
+          sys_getswitchinterval,
+          nullptr,
+          "Return the current thread switch interval; see sys.setswitchinterval()."),
+      error);
   module_set_attr(sys, "setswitchinterval", runtime.make_native_function("sys.setswitchinterval", sys_setswitchinterval), error);
-  module_set_attr(sys, "get_int_max_str_digits", runtime.make_native_function("sys.get_int_max_str_digits", sys_get_int_max_str_digits), error);
+  module_set_attr(
+      sys,
+      "get_int_max_str_digits",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.get_int_max_str_digits",
+          "get_int_max_str_digits",
+          sys_get_int_max_str_digits,
+          nullptr,
+          "Return the maximum string digits limit for non-binary int<->str conversions."),
+      error);
   module_set_attr(sys, "set_int_max_str_digits", runtime.make_native_function("sys.set_int_max_str_digits", sys_set_int_max_str_digits), error);
-  module_set_attr(sys, "is_finalizing", runtime.make_native_function("sys.is_finalizing", sys_is_finalizing), error);
+  module_set_attr(
+      sys,
+      "is_finalizing",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.is_finalizing",
+          "is_finalizing",
+          sys_is_finalizing,
+          nullptr,
+          "Return True if Python is exiting."),
+      error);
   module_set_attr(
       sys,
       "is_remote_debug_enabled",
@@ -2831,9 +2919,42 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Return the name of the module for a calling frame."),
       error);
-  module_set_attr(sys, "_current_frames", runtime.make_native_function("sys._current_frames", sys_current_frames), error);
-  module_set_attr(sys, "_current_exceptions", runtime.make_native_function("sys._current_exceptions", sys_current_exceptions), error);
-  module_set_attr(sys, "_get_cpu_count_config", runtime.make_native_function("sys._get_cpu_count_config", sys_get_cpu_count_config), error);
+  module_set_attr(
+      sys,
+      "_current_frames",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._current_frames",
+          "_current_frames",
+          sys_current_frames,
+          nullptr,
+          "Return a dict mapping each thread's thread id to its current stack frame."),
+      error);
+  module_set_attr(
+      sys,
+      "_current_exceptions",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._current_exceptions",
+          "_current_exceptions",
+          sys_current_exceptions,
+          nullptr,
+          "Return a dict mapping each thread's identifier to its current raised exception."),
+      error);
+  module_set_attr(
+      sys,
+      "_get_cpu_count_config",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys._get_cpu_count_config",
+          "_get_cpu_count_config",
+          sys_get_cpu_count_config,
+          nullptr,
+          "Private function for getting PyConfig.cpu_count"),
+      error);
   module_set_attr(
       sys,
       "_clear_internal_caches",
@@ -2870,9 +2991,31 @@ void register_sys_module(Runtime& runtime) {
           nullptr,
           "Private function for clearing certain descriptors from a type's dictionary."),
       error);
-  module_set_attr(sys, "get_coroutine_origin_tracking_depth", runtime.make_native_function("sys.get_coroutine_origin_tracking_depth", sys_get_coroutine_origin_tracking_depth), error);
+  module_set_attr(
+      sys,
+      "get_coroutine_origin_tracking_depth",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.get_coroutine_origin_tracking_depth",
+          "get_coroutine_origin_tracking_depth",
+          sys_get_coroutine_origin_tracking_depth,
+          nullptr,
+          "Check status of origin tracking for coroutine objects in this thread."),
+      error);
   module_set_attr(sys, "set_coroutine_origin_tracking_depth", runtime.make_native_function("sys.set_coroutine_origin_tracking_depth", sys_set_coroutine_origin_tracking_depth), error);
-  module_set_attr(sys, "get_asyncgen_hooks", runtime.make_native_function("sys.get_asyncgen_hooks", sys_get_asyncgen_hooks), error);
+  module_set_attr(
+      sys,
+      "get_asyncgen_hooks",
+      sys_metadata_native_function(
+          runtime,
+          "sys",
+          "sys.get_asyncgen_hooks",
+          "get_asyncgen_hooks",
+          sys_get_asyncgen_hooks,
+          nullptr,
+          "Return the installed asynchronous generators hooks."),
+      error);
   module_set_attr(
       sys,
       "set_asyncgen_hooks",

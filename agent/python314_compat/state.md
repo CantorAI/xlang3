@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys helper metadata and thread trace/profile execution-lock parity
+sys no-argument frame/config/runtime helper metadata
 ```
 
 Current next loop:

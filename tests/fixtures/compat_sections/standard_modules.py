@@ -1506,12 +1506,25 @@ if hasattr(sys, "getwindowsversion"):
 if hasattr(sys, "_enablelegacywindowsfsencoding"):
     sys_noarg_typeerror_probes.append(sys._enablelegacywindowsfsencoding)
 sys_runtime_metadata_names = [
+    "_current_frames",
+    "_current_exceptions",
+    "_get_cpu_count_config",
+    "getdefaultencoding",
+    "getfilesystemencoding",
+    "getfilesystemencodeerrors",
+    "getrecursionlimit",
+    "getallocatedblocks",
+    "getswitchinterval",
+    "get_int_max_str_digits",
+    "is_finalizing",
     "is_remote_debug_enabled",
     "_is_gil_enabled",
     "_getframemodulename",
     "_clear_internal_caches",
     "_clear_type_cache",
     "_clear_type_descriptors",
+    "get_coroutine_origin_tracking_depth",
+    "get_asyncgen_hooks",
 ]
 if hasattr(sys, "getwindowsversion"):
     sys_runtime_metadata_names.append("getwindowsversion")
