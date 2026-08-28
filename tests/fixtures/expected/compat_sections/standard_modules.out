@@ -551,6 +551,7 @@ asyncgen-hooks-diagnostic too-many-keywords True
 asyncgen-hooks-diagnostic keyword-firstiter-type True
 asyncgen-hooks-diagnostic keyword-finalizer-type True
 True True True
+sys-runtime-text-signatures True
 sys-noarg-typeerrors 25 25
 sys-noarg-diagnostic allocated True True
 sys-noarg-diagnostic encoding True True

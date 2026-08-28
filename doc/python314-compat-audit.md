@@ -1048,7 +1048,7 @@ Native or runtime-backed foundation:
   `sys.monitoring` tool/event/local-event helpers with CPython-style arity and
   keyword `TypeError` diagnostics,
   CPython-style runtime/config/frame/cache no-argument helper metadata including
-  Windows `getwindowsversion` docs,
+  frame/runtime helper text signatures and Windows `getwindowsversion` docs,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes plus keyword failures for covered
   runtime/config/frame/cache/JIT helpers,

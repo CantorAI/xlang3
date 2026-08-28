@@ -3703,7 +3703,8 @@ void register_sys_module(Runtime& runtime) {
           sys_is_gil_enabled,
           const_cast<char*>("sys._is_gil_enabled"),
           "Return True if the GIL is currently enabled and False otherwise.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3912,7 +3913,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getframe,
           const_cast<char*>("sys._getframe"),
           "Return a frame object from the call stack.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, depth=0, /)"),
       error);
   module_set_attr(
       sys,
@@ -3925,7 +3927,8 @@ void register_sys_module(Runtime& runtime) {
           sys_getframemodulename,
           nullptr,
           "Return the name of the module for a calling frame.",
-          sys_getframemodulename_kw),
+          sys_getframemodulename_kw,
+          "($module, /, depth=0)"),
       error);
   module_set_attr(
       sys,
@@ -3938,7 +3941,8 @@ void register_sys_module(Runtime& runtime) {
           sys_current_frames,
           const_cast<char*>("sys._current_frames"),
           "Return a dict mapping each thread's thread id to its current stack frame.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -3951,7 +3955,8 @@ void register_sys_module(Runtime& runtime) {
           sys_current_exceptions,
           const_cast<char*>("sys._current_exceptions"),
           "Return a dict mapping each thread's identifier to its current raised exception.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -4016,7 +4021,8 @@ void register_sys_module(Runtime& runtime) {
           sys_get_coroutine_origin_tracking_depth,
           const_cast<char*>("sys.get_coroutine_origin_tracking_depth"),
           "Check status of origin tracking for coroutine objects in this thread.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,
@@ -4029,7 +4035,8 @@ void register_sys_module(Runtime& runtime) {
           sys_set_coroutine_origin_tracking_depth,
           nullptr,
           "Enable or disable origin tracking for coroutine objects in this thread.",
-          sys_set_coroutine_origin_tracking_depth_kw),
+          sys_set_coroutine_origin_tracking_depth_kw,
+          "($module, /, depth)"),
       error);
   module_set_attr(
       sys,
@@ -4042,7 +4049,8 @@ void register_sys_module(Runtime& runtime) {
           sys_get_asyncgen_hooks,
           const_cast<char*>("sys.get_asyncgen_hooks"),
           "Return the installed asynchronous generators hooks.",
-          sys_no_keyword_args),
+          sys_no_keyword_args,
+          "($module, /)"),
       error);
   module_set_attr(
       sys,

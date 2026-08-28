@@ -1917,6 +1917,17 @@ print(
     all(getattr(sys, name).__module__ == "sys" for name in sys_runtime_metadata_names),
     all(isinstance(getattr(sys, name).__doc__, str) and len(getattr(sys, name).__doc__) > 0 for name in sys_runtime_metadata_names),
 )
+sys_runtime_text_signatures = {
+    "_getframe": "($module, depth=0, /)",
+    "_getframemodulename": "($module, /, depth=0)",
+    "_current_frames": "($module, /)",
+    "_current_exceptions": "($module, /)",
+    "get_coroutine_origin_tracking_depth": "($module, /)",
+    "set_coroutine_origin_tracking_depth": "($module, /, depth)",
+    "get_asyncgen_hooks": "($module, /)",
+    "_is_gil_enabled": "($module, /)",
+}
+print("sys-runtime-text-signatures", all(getattr(sys, name).__text_signature__ == signature for name, signature in sys_runtime_text_signatures.items()))
 sys_noarg_typeerror_count = 0
 for sys_noarg_typeerror_probe in sys_noarg_typeerror_probes:
     try:
