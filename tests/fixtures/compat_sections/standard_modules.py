@@ -647,6 +647,15 @@ try:
     sys._is_interned(42)
 except TypeError as err:
     print("sys-is-interned-type", "string" in str(err))
+for sys_intern_bad_value in (b"abc", 42):
+    try:
+        sys.intern(sys_intern_bad_value)
+    except TypeError as err:
+        print("sys-intern-type", "argument must be str" in str(err), type(sys_intern_bad_value).__name__ in str(err))
+try:
+    sys.intern()
+except TypeError as err:
+    print("sys-intern-arity", "one argument" in str(err) or "1 argument" in str(err))
 print(sys._is_immortal(None), sys._is_immortal(True), sys._is_immortal(42), sys._is_immortal("abc"), sys._is_immortal([]))
 sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
@@ -991,7 +1000,8 @@ print(sys.flags.n_sequence_fields, sys.flags.n_fields, sys.flags.gil, sys.flags.
 print(type(sys.version_info).n_fields, type(sys.version_info).major.__name__, type(sys.flags).n_fields, type(sys.flags).gil.__name__)
 print(type(sys.version_info).__match_args__, type(sys.flags).__match_args__[-1], len(type(sys.flags).__match_args__), "gil" not in type(sys.flags).__match_args__)
 sys_version_major_descriptor = type(sys.version_info).major
-print(type(sys_version_major_descriptor).__name__, type(sys_version_major_descriptor).__module__, sys_version_major_descriptor.__objclass__ is type(sys.version_info), sys_version_major_descriptor.__get__(sys.version_info), inspect.ismemberdescriptor(sys_version_major_descriptor), repr(sys_version_major_descriptor) == "<member 'major' of 'sys.version_info' objects>")
+sys_flags_debug_descriptor = type(sys.flags).debug
+print(type(sys_version_major_descriptor).__name__, type(sys_version_major_descriptor).__module__, sys_version_major_descriptor.__objclass__ is type(sys.version_info), sys_version_major_descriptor.__get__(sys.version_info), inspect.ismemberdescriptor(sys_version_major_descriptor), repr(sys_version_major_descriptor) == "<member 'major' of 'sys.version_info' objects>", repr(sys_flags_debug_descriptor) == "<member 'debug' of 'sys.flags' objects>")
 print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
 print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sys.thread_info).n_sequence_fields, type(sys.thread_info).name.__name__)
 print(type(sys.float_info).__match_args__[0], type(sys.hash_info).__match_args__[-1], type(sys.thread_info).__match_args__)
@@ -1013,6 +1023,7 @@ print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib"), sys._fr
 windows_version = sys.getwindowsversion()
 print(windows_version.major >= 0, len(windows_version), windows_version.n_fields, isinstance(windows_version.platform_version, tuple))
 print(type(windows_version).n_fields, type(windows_version).platform_version.__name__)
+print(repr(type(windows_version).major) == "<member 'major' of 'sys.getwindowsversion' objects>")
 print(isinstance(windows_version, tuple), windows_version.index(windows_version.platform), windows_version.count(windows_version.service_pack) >= 1)
 print(repr(windows_version).startswith("sys.getwindowsversion("), "platform_version" not in repr(windows_version))
 print(sys._enablelegacywindowsfsencoding() is None, sys._debugmallocstats() is None, isinstance(sys.dllhandle, int))

@@ -1293,9 +1293,24 @@ bool sys_setrecursionlimit(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+std::string sys_type_name(Runtime& runtime, const Value& value) {
+  Value type;
+  if (runtime_type_of_value(runtime, value, type)) {
+    if (auto* klass = value_as_class(type)) {
+      return klass->name;
+    }
+  }
+  return value_to_string(type);
+}
+
 bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || value_as_string(args[0]) == nullptr) {
-    error = "sys.intern expected string";
+  if (argc != 1) {
+    error = "intern() takes exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_string(args[0]) == nullptr) {
+    error = "intern() argument must be str, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }

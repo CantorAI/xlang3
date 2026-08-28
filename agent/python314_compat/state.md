@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-structseq member descriptor parity
+sys.intern TypeError diagnostics parity
 ```
 
 Current next loop:

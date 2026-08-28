@@ -125,9 +125,13 @@ Recent completed batches:
 - Tightened structseq member descriptor parity: `sys` structseq fields and
   `time.struct_time` fields now use real `member_descriptor` objects with
   CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
-  descriptor repr, `inspect.ismemberdescriptor` visibility, and descriptor
+  module-qualified descriptor repr where CPython uses it,
+  `inspect.ismemberdescriptor` visibility, and descriptor
   `__get__` access for tuple-backed sequence fields plus `time.struct_time`
   `tm_zone`/`tm_gmtoff` named fields.
+- Tightened native `sys.intern` diagnostics: non-string arguments now raise
+  CPython-style `TypeError` text naming the offending type, and wrong arity is
+  reported separately while preserving runtime string canonicalization.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -808,7 +812,8 @@ Native or runtime-backed foundation:
   CPython-style arity/type/immutable-type errors,
   `_dump_tracelets`, default/filesystem encoding helpers, recursion-limit helpers including bool-as-int
   bounds, `intern`
-  with runtime canonicalization plus `_is_interned`, `getsizeof` with `__sizeof__`
+  with runtime canonicalization plus CPython-style wrong-type/wrong-arity
+  `TypeError` diagnostics and `_is_interned`, `getsizeof` with `__sizeof__`
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount`,
   `getallocatedblocks`, `exit`, display/exception hooks with stdio routing,

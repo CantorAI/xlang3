@@ -146,6 +146,9 @@ True True False
 True False False True
 True True True True True True True
 sys-is-interned-type True
+sys-intern-type True True
+sys-intern-type True True
+sys-intern-arity True
 True True True False False
 True True True
 True False True 2 False False True False
@@ -241,7 +244,7 @@ False 0 1 0
 18 21 1 0 0 18
 5 major 21 gil
 ('major', 'minor', 'micro', 'releaselevel', 'serial') int_max_str_digits 18 True
-member_descriptor builtins True 3 True True
+member_descriptor builtins True 3 True True True
 2 53 64 nt
 11 width 3 name
 max cutoff ('name', 'lock', 'version')
@@ -259,6 +262,7 @@ True True True True True True True
 True True True True
 True 5 10 True
 10 platform_version
+True
 True 1 True
 True True
 True True True
