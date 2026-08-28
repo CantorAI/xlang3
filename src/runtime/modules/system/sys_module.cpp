@@ -3375,7 +3375,10 @@ void register_sys_module(Runtime& runtime) {
           "getrecursionlimit",
           sys_getrecursionlimit,
           const_cast<char*>("sys.getrecursionlimit"),
-          "Return the current value of the recursion limit.",
+          "Return the current value of the recursion limit.\n\n"
+          "The recursion limit is the maximum depth of the Python interpreter\n"
+          "stack.  This limit prevents infinite recursion from causing an overflow\n"
+          "of the C stack and crashing Python.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3720,7 +3723,9 @@ void register_sys_module(Runtime& runtime) {
           "_debugmallocstats",
           sys_debugmallocstats,
           const_cast<char*>("sys._debugmallocstats"),
-          "Print summary info to stderr about the state of pymalloc's structures.",
+          "Print summary info to stderr about the state of pymalloc's structures.\n\n"
+          "In Py_DEBUG mode, also perform some expensive internal consistency\n"
+          "checks.",
           sys_no_keyword_args),
       error);
   module_set_attr(
@@ -3828,7 +3833,16 @@ void register_sys_module(Runtime& runtime) {
           "getwindowsversion",
           sys_getwindowsversion,
           const_cast<char*>("sys.getwindowsversion"),
-          "Return info about the running version of Windows as a named tuple.",
+          "Return info about the running version of Windows as a named tuple.\n\n"
+          "The members are named: major, minor, build, platform, service_pack,\n"
+          "service_pack_major, service_pack_minor, suite_mask, product_type and\n"
+          "platform_version. For backward compatibility, only the first 5 items\n"
+          "are available by indexing. All elements are numbers, except\n"
+          "service_pack and platform_type which are strings, and platform_version\n"
+          "which is a 3-tuple. Platform is always 2. Product_type may be 1 for a\n"
+          "workstation, 2 for a domain controller, 3 for a server.\n"
+          "Platform_version is a 3-tuple containing a version number that is\n"
+          "intended for identifying the OS rather than feature detection.",
           sys_no_keyword_args),
       error);
   module_set_attr(

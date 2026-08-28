@@ -1364,6 +1364,7 @@ for sys_recursion_bad_name, sys_recursion_bad_call, sys_recursion_bad_parts in [
         sys_recursion_bad_message = str(err)
         print("sys-recursionlimit-diagnostic", sys_recursion_bad_name, all(part in sys_recursion_bad_message for part in sys_recursion_bad_parts))
 sys.setrecursionlimit(old_recursion_limit)
+print("sys-runtime-helper-docs", "maximum depth of the Python interpreter" in sys.getrecursionlimit.__doc__, "Platform_version is a 3-tuple" in sys.getwindowsversion.__doc__, "internal consistency" in sys._debugmallocstats.__doc__)
 sys.set_int_max_str_digits(640)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17], sys.int_info[2], sys.int_info[3])
 sys.set_int_max_str_digits(0)

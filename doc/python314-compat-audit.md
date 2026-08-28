@@ -963,7 +963,8 @@ Native or runtime-backed foundation:
   `_dump_tracelets(outpath)` file emission with CPython-style arity/type/keyword
   diagnostics, default/filesystem encoding helpers with CPython-style keyword
   diagnostics, recursion-limit
-  helpers including bool-as-int bounds and CPython-style getter/setter keyword
+  helpers including bool-as-int bounds, CPython-style `getrecursionlimit` docs,
+  and CPython-style getter/setter keyword
   diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`
   diagnostics, `intern`
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword
@@ -1043,7 +1044,8 @@ Native or runtime-backed foundation:
   diagnostics,
   `sys.monitoring` tool/event/local-event helpers with CPython-style arity and
   keyword `TypeError` diagnostics,
-  CPython-style runtime/config/frame/cache no-argument helper metadata,
+  CPython-style runtime/config/frame/cache no-argument helper metadata including
+  Windows `getwindowsversion` docs,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes plus keyword failures for covered
   runtime/config/frame/cache/JIT helpers,
@@ -1051,7 +1053,7 @@ Native or runtime-backed foundation:
   with CPython-style keyword diagnostics,
   stateful `_enablelegacywindowsfsencoding` with CPython-style keyword
   diagnostics, allocator-backed `_debugmallocstats` with active `sys.stderr`
-  routing and CPython-style keyword diagnostics,
+  routing, CPython-style docs, and CPython-style keyword diagnostics,
   CPython 3.14 startup metadata/hooks including CPython-shaped full `__doc__`,
   `__interactivehook__`/`_baserepl` keyword diagnostics, and CPython-normal
   Windows `abiflags` absence while preserving non-Windows `abiflags`,
