@@ -887,6 +887,7 @@ print(
     sys._jit.is_enabled.__name__, sys._jit.is_enabled.__qualname__, sys._jit.is_enabled.__module__, sys._jit.is_enabled.__doc__ is not None,
     sys._jit.is_active.__name__, sys._jit.is_active.__qualname__, sys._jit.is_active.__module__, sys._jit.is_active.__doc__ is not None,
 )
+print(sys.monitoring.__doc__ is None, sys.monitoring.__package__ is None, sys.monitoring.__loader__ is None, sys.monitoring.__spec__ is None)
 monitoring_events = sys.monitoring.events
 monitoring_tool_id = 3
 monitoring_code = (lambda: None).__code__

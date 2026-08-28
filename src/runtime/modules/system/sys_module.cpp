@@ -3802,7 +3802,11 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "_jit", jit_module, error);
   runtime.register_module("sys._jit", jit_module);
   NativeModuleBuilder monitoring_builder(runtime, "sys.monitoring");
-  monitoring_builder.value("DEBUGGER_ID", Value::int64(0))
+  monitoring_builder.value("__doc__", Value::none())
+      .value("__package__", Value::none())
+      .value("__loader__", Value::none())
+      .value("__spec__", Value::none())
+      .value("DEBUGGER_ID", Value::int64(0))
       .value("COVERAGE_ID", Value::int64(1))
       .value("PROFILER_ID", Value::int64(2))
       .value("OPTIMIZER_ID", Value::int64(5))

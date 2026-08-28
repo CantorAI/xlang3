@@ -1010,8 +1010,8 @@ Native or runtime-backed foundation:
   `sys._jit` module/function metadata including CPython-style module
   package/loader/spec metadata and state probes with CPython-style keyword
   diagnostics,
-  `sys.monitoring` import/configuration surface with CPython 3.14 helper
-  function metadata, tool IDs, event constants,
+  `sys.monitoring` import/configuration surface with CPython 3.14 module
+  package/loader/spec metadata, helper function metadata, tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
   global/local event masks, callback replacement, restart/all-events
   helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
