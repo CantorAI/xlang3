@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys no-argument probe TypeError diagnostics parity
+sys.exit TypeError diagnostics parity
 ```
 
 Current next loop:

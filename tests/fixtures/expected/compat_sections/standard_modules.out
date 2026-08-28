@@ -341,6 +341,7 @@ sys-noarg-diagnostic unicodeinterned True
 True True
 True
 5
+sys-exit-arity True True
 2 42 'hook\ntext' 2 True True True
 sys-hook-type True
 sys-hook-type True

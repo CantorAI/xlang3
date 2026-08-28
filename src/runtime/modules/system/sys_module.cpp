@@ -1487,7 +1487,7 @@ bool sys_getallocatedblocks(Runtime& runtime, const Value*, uint32_t argc, Value
 
 bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 1) {
-    error = "sys.exit expected optional status";
+    error = "exit expected at most 1 argument, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
     return false;
   }

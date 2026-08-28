@@ -1366,6 +1366,10 @@ try:
     sys.exit(5)
 except SystemExit as err:
     print(err.code)
+try:
+    sys.exit(1, 2)
+except TypeError as err:
+    print("sys-exit-arity", "at most 1 argument" in str(err), "got 2" in str(err))
 class SysHookCapture:
     def __init__(self):
         self.items = []

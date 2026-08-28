@@ -143,6 +143,9 @@ Recent completed batches:
   frame/cache/JIT probes now report CPython-style `takes no arguments (N given)`
   `TypeError` messages, while `sys.getunicodeinternedsize` keeps its
   CPython-style no-positional-arguments wording.
+- Tightened native `sys.exit` diagnostics: too many positional arguments now
+  raise CPython-style `TypeError` text while preserving `SystemExit.code`
+  propagation for zero- and one-argument exits.
 - Expanded native `sys.setprofile` live dispatch for native/C call paths:
   native callable wrappers now emit CPython-style `c_call`, `c_return`, and
   `c_exception` events with the current Python frame captured at native-call
@@ -830,7 +833,8 @@ Native or runtime-backed foundation:
   protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity `TypeError` diagnostics,
-  `getallocatedblocks`, `exit`, display/exception hooks with stdio routing,
+  `getallocatedblocks`, `exit` including CPython-style too-many-arguments
+  `TypeError` diagnostics, display/exception hooks with stdio routing,
   `builtins._`, default hook aliases, CPython-style displayhook string repr,
   and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
