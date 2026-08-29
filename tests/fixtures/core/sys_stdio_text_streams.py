@@ -26,3 +26,17 @@ print(type(sys.stdout.buffer).__module__, type(sys.stdout.buffer).__qualname__, 
 print(type(sys.stdin.buffer.read(0)).__name__, repr(sys.stdin.buffer.read(0)))
 print(sys.stdout.buffer.write(b""), sys.stderr.buffer.write(bytearray(b"")))
 print(sys.stdin.buffer.read.__text_signature__, sys.stdout.buffer.write.__text_signature__)
+
+def exc_message(func):
+    try:
+        func()
+    except TypeError as err:
+        return str(err)
+    return "missing"
+
+print(
+    "buffer-keyword-diagnostics",
+    exc_message(lambda: sys.stdin.buffer.read(size=0)) == "BufferedReader.read() takes no keyword arguments",
+    exc_message(lambda: sys.stdout.buffer.write(buffer=b"")) == "BufferedWriter.write() takes no keyword arguments",
+    exc_message(lambda: sys.stdin.buffer.readable(x=1)) == "BufferedReader.readable() takes no keyword arguments",
+)

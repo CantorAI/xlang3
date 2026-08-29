@@ -9,3 +9,4 @@ _io BufferedWriter False
 bytes b''
 0 0
 ($self, size=-1, /) ($self, buffer, /)
+buffer-keyword-diagnostics True True True

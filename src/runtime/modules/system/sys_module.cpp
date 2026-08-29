@@ -934,6 +934,25 @@ bool sys_stdio_no_keyword_args(
   return false;
 }
 
+void sys_string_user_data_cleanup(void* data) {
+  delete static_cast<std::string*>(data);
+}
+
+bool sys_stdio_buffer_no_keyword_args(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void* user_data) {
+  auto* qualified_name = static_cast<std::string*>(user_data);
+  error = *qualified_name + "() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     const uint32_t given = argc == 0 ? 0 : argc - 1;
@@ -1240,11 +1259,11 @@ Value make_sys_stdio_buffer_class(Runtime& runtime, const char* class_name) {
     Value function = runtime.make_native_function(
         std::string("_io.") + class_name + "." + method,
         callback,
-        const_cast<char*>(method),
-        nullptr,
+        new std::string(std::string(class_name) + "." + method),
+        sys_string_user_data_cleanup,
         nullptr,
         false,
-        sys_stdio_no_keyword_args);
+        sys_stdio_buffer_no_keyword_args);
     if (auto* native = value_as_native_function(function)) {
       const std::string text_signature =
           (std::string(method) == "read" || std::string(method) == "readline")
