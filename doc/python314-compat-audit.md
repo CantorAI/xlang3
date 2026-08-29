@@ -939,7 +939,8 @@ documented here.
 Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`/`exception` with CPython-style no-argument
-  and keyword `TypeError` diagnostics, stdio objects, argv/orig_argv/path/import-cache containers,
+  and keyword `TypeError` diagnostics, stdio objects, argv/orig_argv/path/import-cache containers
+  including CPython-style bootstrap `meta_path` finder objects,
   version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys float repr precision
+sys meta_path bootstrap finders
 ```
 
 Current next loop:

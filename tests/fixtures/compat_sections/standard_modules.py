@@ -725,6 +725,12 @@ for sys_startup_hook_keyword_name, sys_startup_hook_keyword_call, sys_startup_ho
     except TypeError as err:
         print("sys-startup-hook-keyword", sys_startup_hook_keyword_name, all(part in str(err) for part in sys_startup_hook_keyword_parts))
 print(sys.intern("abc") == "abc", sys.getsizeof("abc") > 0, isinstance(sys.meta_path, list), isinstance(sys.path_hooks, list), isinstance(sys.path_importer_cache, dict))
+sys_meta_path_head = sys.meta_path[:3]
+print("sys-meta-path-bootstrap",
+      [getattr(finder, "__name__", type(finder).__name__) for finder in sys_meta_path_head],
+      [getattr(finder, "__module__", None) for finder in sys_meta_path_head],
+      [repr(finder) for finder in sys_meta_path_head],
+      all(hasattr(finder, "find_spec") for finder in sys_meta_path_head))
 class SysSizeProbe:
     def __sizeof__(self):
         return 123

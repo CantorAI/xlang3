@@ -545,6 +545,12 @@ void register_importlib_module(Runtime& runtime) {
   Value frozen_importer = make_finder_class(runtime, "FrozenImporter");
   Value namespace_loader = make_loader_class(runtime, "NamespaceLoader");
 
+  std::string ignored;
+  object_set_attr(builtin_importer, "__module__", Value::string("_frozen_importlib"), ignored);
+  object_set_attr(frozen_importer, "__module__", Value::string("_frozen_importlib"), ignored);
+  object_set_attr(path_finder, "__module__", Value::string("_frozen_importlib_external"), ignored);
+  object_set_attr(file_finder, "__module__", Value::string("_frozen_importlib_external"), ignored);
+
   Value module_spec_class = make_simple_class(
       "ModuleSpec",
       {{"__init__", runtime.make_native_function("ModuleSpec.__init__", module_spec_init)}});
@@ -635,6 +641,15 @@ void register_importlib_module(Runtime& runtime) {
       .value("_bootstrap", frozen)
       .value("_bootstrap_external", external);
   runtime.register_module("importlib", builder.finish());
+
+  Value sys;
+  std::string error;
+  if (runtime.import_module("sys", sys, error)) {
+    module_set_attr(sys,
+                    "meta_path",
+                    Value::list({builtin_importer, frozen_importer, path_finder}),
+                    ignored);
+  }
 }
 
 } // namespace xlang3

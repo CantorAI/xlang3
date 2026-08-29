@@ -107,3 +107,7 @@ shape the next iteration.
   stream precision can leak into structseq reprs such as `sys.float_info`, so
   fix the central float formatter and cover both the structseq repr and direct
   `repr()`/`str()` cases.
+- When startup metadata depends on bootstrap modules registered after `sys`,
+  publish the already-created runtime objects from the later registration step
+  instead of inventing placeholder objects or forcing a broader registration
+  reorder.
