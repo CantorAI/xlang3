@@ -482,6 +482,7 @@ sys-audit-bad-hook True
 ('sys_frame_probe', '<module>', '__main__', False)
 1 1 True True True
 True True True
+sys-frame-helper-docs True True True True
 True True True True
 True True True True True False
 True True True

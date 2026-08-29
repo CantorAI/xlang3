@@ -1673,6 +1673,7 @@ current_exceptions = sys._current_exceptions()
 current_thread_id = list(current_frames)[0]
 print(len(current_frames), len(current_exceptions), current_thread_id in current_exceptions, current_frames[current_thread_id].f_code.co_name == "<module>", current_exceptions[current_thread_id] is None)
 print(sys._getframe().f_builtins["len"] is builtins.len, "Exception" in sys._getframe().f_builtins, current_frames[current_thread_id].f_builtins["print"] is builtins.print)
+print("sys-frame-helper-docs", "internal and specialized purposes" in sys._getframe.__doc__, "library module" in sys._getframemodulename.__doc__, "specialized purposes only" in sys._current_frames.__doc__, "specialized purposes only" in sys._current_exceptions.__doc__)
 print(current_thread_id == threading.get_ident(), "sys" in sys.stdlib_module_names, "threading" in sys.stdlib_module_names, len(sys.stdlib_module_names) > len(sys.builtin_module_names))
 print(isinstance(sys.stdlib_module_names, frozenset), "asyncio" in sys.stdlib_module_names, "email" in sys.stdlib_module_names, "encodings" in sys.stdlib_module_names, "tomllib" in sys.stdlib_module_names, "site-packages" in sys.stdlib_module_names)
 os.environ["PYTHONBREAKPOINT"] = "0"

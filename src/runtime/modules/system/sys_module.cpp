@@ -4038,7 +4038,13 @@ void register_sys_module(Runtime& runtime) {
           "_getframe",
           sys_getframe,
           const_cast<char*>("sys._getframe"),
-          "Return a frame object from the call stack.",
+          "Return a frame object from the call stack.\n\n"
+          "If optional integer depth is given, return the frame object that many\n"
+          "calls below the top of the stack.  If that is deeper than the call\n"
+          "stack, ValueError is raised.  The default for depth is zero, returning\n"
+          "the frame at the top of the call stack.\n\n"
+          "This function should be used for internal and specialized purposes\n"
+          "only.",
           sys_no_keyword_args,
           "($module, depth=0, /)"),
       error);
@@ -4052,7 +4058,11 @@ void register_sys_module(Runtime& runtime) {
           "_getframemodulename",
           sys_getframemodulename,
           nullptr,
-          "Return the name of the module for a calling frame.",
+          "Return the name of the module for a calling frame.\n\n"
+          "The default depth returns the module containing the call to this API.\n"
+          "A more typical use in a library will pass a depth of 1 to get the user's\n"
+          "module rather than the library module.\n\n"
+          "If no frame, module, or name can be found, returns None.",
           sys_getframemodulename_kw,
           "($module, /, depth=0)"),
       error);
@@ -4066,7 +4076,8 @@ void register_sys_module(Runtime& runtime) {
           "_current_frames",
           sys_current_frames,
           const_cast<char*>("sys._current_frames"),
-          "Return a dict mapping each thread's thread id to its current stack frame.",
+          "Return a dict mapping each thread's thread id to its current stack frame.\n\n"
+          "This function should be used for specialized purposes only.",
           sys_no_keyword_args,
           "($module, /)"),
       error);
@@ -4080,7 +4091,8 @@ void register_sys_module(Runtime& runtime) {
           "_current_exceptions",
           sys_current_exceptions,
           const_cast<char*>("sys._current_exceptions"),
-          "Return a dict mapping each thread's identifier to its current raised exception.",
+          "Return a dict mapping each thread's identifier to its current raised exception.\n\n"
+          "This function should be used for specialized purposes only.",
           sys_no_keyword_args,
           "($module, /)"),
       error);
