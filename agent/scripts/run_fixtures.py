@@ -54,6 +54,7 @@ CORE_CASES = [
     "object_type_model",
     "object_attribute_hooks",
     "descriptor_protocol",
+    "member_descriptor_get",
     "code_traceback_model",
     "mro_model",
     "property_descriptor",

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.monitoring._all_events global event-to-tool bitmask snapshots
+member_descriptor.__get__ None-owner and wrong-receiver diagnostics
 ```
 
 Current next loop:

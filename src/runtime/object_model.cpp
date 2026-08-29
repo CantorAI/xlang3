@@ -671,6 +671,42 @@ int64_t frame_source_line(const FrameObject& frame) {
   return static_cast<int64_t>(frame.instruction_index);
 }
 
+std::string slot_descriptor_receiver_type_name(const Value& value) {
+  if (value.tag == ValueTag::None) {
+    return "NoneType";
+  }
+  if (value.tag == ValueTag::Bool) {
+    return "bool";
+  }
+  if (value.tag == ValueTag::Int64) {
+    return "int";
+  }
+  if (value.tag == ValueTag::Double) {
+    return "float";
+  }
+  if (value_as_string(value) != nullptr) {
+    return "str";
+  }
+  if (value_as_tuple(value) != nullptr) {
+    return "tuple";
+  }
+  if (value_as_list(value) != nullptr) {
+    return "list";
+  }
+  if (value_as_dict(value) != nullptr) {
+    return "dict";
+  }
+  if (auto* klass = value_as_class(value)) {
+    return klass->name;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    if (auto* klass = value_as_class(instance->klass)) {
+      return klass->name;
+    }
+  }
+  return value_to_string(value);
+}
+
 bool slot_descriptor_get_method(
     Runtime& runtime,
     const Value* args,
@@ -678,8 +714,13 @@ bool slot_descriptor_get_method(
     Value& out,
     std::string& error,
     void*) {
-  if (argc < 2 || argc > 3) {
-    error = "member_descriptor.__get__ expected object and optional owner";
+  if (argc < 2) {
+    error = "__get__ expected at least 1 argument, got " + std::to_string(argc > 0 ? argc - 1 : 0);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 3) {
+    error = "__get__ expected at most 2 arguments, got " + std::to_string(argc - 1);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -690,6 +731,11 @@ bool slot_descriptor_get_method(
     return false;
   }
   if (args[1].tag == ValueTag::None) {
+    if (argc < 3 || args[2].tag == ValueTag::None) {
+      error = "__get__(None, None) is invalid";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     value_assign_fast(out, args[0]);
     return true;
   }
@@ -711,7 +757,8 @@ bool slot_descriptor_get_method(
         return true;
       }
     }
-    error = "descriptor does not apply to this object";
+    error = "descriptor '" + slot->name + "' for '" + slot->owner_name +
+            "' objects doesn't apply to a '" + slot_descriptor_receiver_type_name(args[1]) + "' object";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

@@ -253,3 +253,7 @@ shape the next iteration.
 - `sys.monitoring._all_events()` reports global events as `event_name -> tool
   bitmask` using `1 << tool_id`; local-only event masks do not appear in this
   snapshot.
+- CPython member descriptors return themselves for `__get__(None, owner)` but
+  reject `__get__(None)` and `__get__(None, None)` with `__get__(None, None) is
+  invalid`; wrong-receiver errors name the descriptor, owning type, and visible
+  receiver type.

@@ -1,0 +1,8 @@
+member-get-none-owner True
+member-get-version 3 3
+member-get-time 2026 2026
+member-get-none-missing-owner ('TypeError', '__get__(None, None) is invalid')
+member-get-none-none-owner ('TypeError', '__get__(None, None) is invalid')
+member-get-wrong-receiver ('TypeError', "descriptor 'major' for 'sys.version_info' objects doesn't apply to a 'tuple' object")
+member-get-missing ('TypeError', '__get__ expected at least 1 argument, got 0')
+member-get-extra ('TypeError', '__get__ expected at most 2 arguments, got 3')
