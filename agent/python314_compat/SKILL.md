@@ -18,12 +18,15 @@ Use this goal package when working on XLang3 Python 3.14 compatibility.
 
 Read these files before choosing a batch:
 
-- `agent/python314_compat/goal.md`
 - `agent/python314_compat/rules.md`
 - `agent/python314_compat/state.md`
 - `agent/python314_compat/queue.md`
 - `agent/python314_compat/lessons.md`
-- `doc/python314-compat-audit.md`
+- `agent/python314_compat/tasks/index.md`
+- the selected compact task file under `agent/python314_compat/tasks/`
+
+Use `doc/python314-compat-audit.md` only as a legacy reference when a compact
+task item is ambiguous.
 
 Work rules:
 
@@ -49,14 +52,15 @@ Work rules:
 - Do not add broad locks, sleeps, retries, or expected-output changes to hide a
   failing fixture. A stabilization change is valid only when it fixes the
   runtime invariant and still passes the deterministic fixture gate.
-- On Windows PowerShell, use `rg -F` for literal searches, especially for audit
+- On Windows PowerShell, use `rg -F` for literal searches, especially for task
   checkboxes, brackets, backticks, quotes, C++ punctuation, and Python syntax.
   Use regex mode only when the pattern is intentionally a regex.
 - When a fixture mismatch appears, decide whether it is a runtime bug or an
   obsolete golden file by comparing against Python 3.14 behavior or the changed
   runtime contract. Do not update expected output just to make tests pass.
-- Update `doc/python314-compat-audit.md` only for behavior that is really
-  implemented and tested.
+- Update the selected task file only for behavior that is really implemented
+  and tested. Update `doc/python314-compat-audit.md` only when intentionally
+  keeping the legacy audit snapshot aligned.
 - Update `agent/python314_compat/lessons.md` when the batch discovers a
   reusable mistake pattern or workflow lesson.
 - Build Release with `agent/scripts/build_release.py` and run

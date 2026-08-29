@@ -36,8 +36,8 @@ os.stat_result tuple-subclass surface for os.stat and DirEntry.stat
 Current next loop:
 
 ```text
-Read doc/python314-compat-audit.md.
-Pick the next unfinished runtime primitive or native dependency item.
+Read agent/python314_compat/tasks/index.md.
+Pick the next unfinished item from the selected compact task file.
 Implement the runtime behavior.
 Add fixture coverage under tests/fixtures.
 Build with Visual Studio CMake.

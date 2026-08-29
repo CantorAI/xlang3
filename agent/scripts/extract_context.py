@@ -22,6 +22,23 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / "agent" / "config.toml"
 CHECK_RE = re.compile(r"^\s*-\s+\[(x|~| )\]\s+(.+)$")
 HEADING_RE = re.compile(r"^(#+)\s+(.+)$")
+TASK_ALIASES = {
+    "Module And Statement Syntax": "syntax",
+    "Function And Class Syntax": "runtime_core",
+    "Expression Syntax": "syntax",
+    "Assignment Syntax": "syntax",
+    "Core Value And Object Model": "runtime_core",
+    "Functions And Calls": "runtime_core",
+    "Exceptions": "runtime_core",
+    "Containers": "builtin_types",
+    "Strings And Unicode": "builtin_types",
+    "Imports And Modules": "native_dependencies",
+    "Builtins": "builtin_functions",
+    "Standard Modules Foundation": "standard_modules",
+    "Async, Tasks, And Threads": "async_threads",
+    "Filesystem And IO": "filesystem_io",
+    "Debugger Compatibility": "debugger",
+}
 
 
 def load_config() -> dict:
@@ -38,6 +55,34 @@ def goal_config(config: dict, goal: str) -> dict:
 
 def audit_path(config: dict, goal: str) -> Path:
     return ROOT / goal_config(config, goal)["audit"]
+
+
+def task_dir(config: dict, goal: str) -> Path:
+    configured = goal_config(config, goal).get("tasks_dir", "")
+    if configured:
+        return ROOT / configured
+    return ROOT / "agent" / goal / "tasks"
+
+
+def task_slug(value: str) -> str:
+    value = TASK_ALIASES.get(value, value)
+    value = value.removesuffix(".md")
+    return re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").lower()
+
+
+def task_path(config: dict, goal: str, selector: str) -> Path | None:
+    folder = task_dir(config, goal)
+    if not selector or not folder.exists():
+        return None
+    direct = Path(selector)
+    candidates = [folder / direct.name] if direct.suffix == ".md" else [
+        folder / f"{selector}.md",
+        folder / f"{task_slug(selector)}.md",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def lessons_path(config: dict, goal: str) -> Path:
@@ -101,10 +146,18 @@ def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
     return list(enumerate(lines[start:end], start=start + 1))
 
 
+def control_source(config: dict, goal: str, selector: str) -> tuple[Path, list[tuple[int, str]], str, bool]:
+    task = task_path(config, goal, selector)
+    if task:
+        return task, list(enumerate(read_lines(task), start=1)), task.relative_to(ROOT).as_posix(), True
+    path = audit_path(config, goal)
+    return path, section_lines(read_lines(path), selector), f"{path.relative_to(ROOT).as_posix()}::{selector or 'whole audit'}", False
+
+
 def extract(config: dict, goal: str, section: str, limit: int) -> str:
     checked = partial = missing = 0
     unfinished: list[tuple[int, str, str]] = []
-    selected = section_lines(read_lines(audit_path(config, goal)), section)
+    source_path, selected, source_label, is_task = control_source(config, goal, section)
     in_fence = False
 
     for index, (line_number, line) in enumerate(selected):
@@ -175,14 +228,25 @@ Runtime doctrine:
   assertion. If no assertion exists, add one to the combined section fixture or
   add a focused fixture plus expected output.
 - Include a compact feature-to-fixture coverage map in the batch summary.
-- Update doc/python314-compat-audit.md truthfully.
+- Update the selected compact task file truthfully.
+- Update doc/python314-compat-audit.md only when intentionally aligning the
+  legacy audit snapshot.
 - Use the fixed scripts below for validation and section checks; do not invent
   build/test commands during the batch.
-- On Windows PowerShell, use `rg -F` for literal searches, especially for audit
+- On Windows PowerShell, use `rg -F` for literal searches, especially for task
   checkboxes, brackets, backticks, quotes, C++ punctuation, and Python syntax.
   Use regex mode only when the pattern is intentionally a regex.
 
-Selected audit section:
+Task source:
+{source_path.relative_to(ROOT).as_posix()}
+
+Task mode:
+{"task folder" if is_task else "legacy audit fallback"}
+
+Task cursor:
+{source_label}::{unfinished[0][0] if unfinished else "done"}
+
+Selected task:
 {section or "whole audit"}
 
 Agent goal:
@@ -191,18 +255,18 @@ Agent goal:
 Lessons from previous iterations:
 {lessons}
 
-Audit counts:
+Task counts:
 - checked: {checked}
 - partial: {partial}
 - missing: {missing}
 
-Next unfinished audit rows:
+Next unfinished task rows:
 {rows}
 
 Validation after Codex work:
 - Run C:/Python/Python314/python.exe agent/scripts/build_release.py.
-- Run C:/Python/Python314/python.exe agent/scripts/run_fixtures.py --xlang3 D:/CantorAI/xlang3/build/Release/xlang3.exe.
-- Run C:/Python/Python314/python.exe agent/scripts/run_section_fixture.py --section "{section or "Standard Modules Foundation"}" when a quick selected-section check is useful.
+- Run C:/Python/Python314/python.exe agent/scripts/run_fixtures.py --xlang3 D:/CantorAI/xlang3/build/Release/xlang3.exe --case-timeout 60.
+- Run C:/Python/Python314/python.exe agent/scripts/run_section_fixture.py --section "{section or "standard_modules"}" --case-timeout 60 when a quick selected-task check is useful.
 - Run git diff --check.
 - Commit and push only after validation passes.
 """

@@ -34,6 +34,23 @@ CONFIG_PATH = ROOT / "agent" / "config.toml"
 CHECK_RE = re.compile(r"^\s*-\s+\[(x|~| )\]\s+(.+)$")
 HEADING_RE = re.compile(r"^(#+)\s+(.+)$")
 SESSION_ID_RE = re.compile(r"\bsession id:\s*([0-9a-fA-F-]{36})\b")
+TASK_ALIASES = {
+    "Module And Statement Syntax": "syntax",
+    "Function And Class Syntax": "runtime_core",
+    "Expression Syntax": "syntax",
+    "Assignment Syntax": "syntax",
+    "Core Value And Object Model": "runtime_core",
+    "Functions And Calls": "runtime_core",
+    "Exceptions": "runtime_core",
+    "Containers": "builtin_types",
+    "Strings And Unicode": "builtin_types",
+    "Imports And Modules": "native_dependencies",
+    "Builtins": "builtin_functions",
+    "Standard Modules Foundation": "standard_modules",
+    "Async, Tasks, And Threads": "async_threads",
+    "Filesystem And IO": "filesystem_io",
+    "Debugger Compatibility": "debugger",
+}
 
 
 def load_config() -> dict:
@@ -50,6 +67,39 @@ def goal_config(config: dict, goal: str) -> dict:
 
 def audit_path(config: dict, goal: str) -> Path:
     return ROOT / goal_config(config, goal)["audit"]
+
+
+def task_dir(config: dict, goal: str) -> Path:
+    configured = goal_config(config, goal).get("tasks_dir", "")
+    if configured:
+        return ROOT / configured
+    return ROOT / "agent" / goal / "tasks"
+
+
+def task_slug(value: str) -> str:
+    value = TASK_ALIASES.get(value, value)
+    value = value.removesuffix(".md")
+    value = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").lower()
+    return value
+
+
+def task_path(config: dict, goal: str, selector: str) -> Path | None:
+    folder = task_dir(config, goal)
+    if not selector or not folder.exists():
+        return None
+
+    direct = Path(selector)
+    candidates = []
+    if direct.suffix == ".md":
+        candidates.append(folder / direct.name)
+    else:
+        candidates.append(folder / f"{selector}.md")
+        candidates.append(folder / f"{task_slug(selector)}.md")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def runs_dir(config: dict, goal: str) -> Path:
@@ -112,9 +162,10 @@ def fixture_command_text(config: dict) -> str:
 
 
 def section_fixture_command_text(config: dict, section: str) -> str:
+    timeout = int(config.get("repo", {}).get("fixture_case_timeout", 60))
     return (
         f"{command_quote(default_python(config))} agent\\scripts\\run_section_fixture.py "
-        f"--section {command_quote(section)}"
+        f"--section {command_quote(section)} --case-timeout {timeout}"
     )
 
 
@@ -475,11 +526,25 @@ def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
     return list(enumerate(lines[start_index:end_index], start=start_index + 1))
 
 
+def control_source(
+    config: dict,
+    goal: str,
+    selector: str,
+) -> tuple[Path, list[tuple[int, str]], str, bool]:
+    task = task_path(config, goal, selector)
+    if task:
+        label = task.relative_to(ROOT).as_posix()
+        return task, list(enumerate(read_text(task).splitlines(), start=1)), label, True
+
+    path = audit_path(config, goal)
+    label = f"{path.relative_to(ROOT).as_posix()}::{selector or 'whole audit'}"
+    return path, section_lines(read_text(path).splitlines(), selector), label, False
+
+
 def unfinished_items(config: dict, goal: str, section: str, limit: int) -> list[tuple[int, str, str]]:
-    # Cursor extraction keeps prompts small: only unfinished rows after the
-    # selected section cursor are passed to Codex, never the full audit doc.
-    lines = read_text(audit_path(config, goal)).splitlines()
-    selected = section_lines(lines, section)
+    # Cursor extraction keeps prompts small: only unfinished rows from the
+    # selected task file or legacy audit section are passed to Codex.
+    _, selected, _, _ = control_source(config, goal, section)
     items: list[tuple[int, str, str]] = []
     in_fence = False
     for index, (line_number, line) in enumerate(selected):
@@ -509,10 +574,10 @@ def unfinished_items(config: dict, goal: str, section: str, limit: int) -> list[
 
 
 def audit_counts(config: dict, goal: str, section: str) -> tuple[int, int, int]:
-    lines = read_text(audit_path(config, goal)).splitlines()
+    _, selected, _, _ = control_source(config, goal, section)
     checked = partial = missing = 0
     in_fence = False
-    for _, line in section_lines(lines, section):
+    for _, line in selected:
         if line.strip().startswith("```"):
             in_fence = not in_fence
             continue
@@ -539,15 +604,17 @@ def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int,
         next_items = "- No unfinished items found in the selected scope."
 
     checked, partial, missing = audit_counts(config, goal, section)
+    source_path, _, source_label, is_task = control_source(config, goal, section)
     build_command = build_command_text(config)
     fixture_command = fixture_command_text(config)
     section_fixture_command = section_fixture_command_text(config, section) if section else ""
-    audit_cursor = f"{section or 'whole audit'}::{items[0][0] if items else 'done'}"
+    cursor = f"{source_label}::{items[0][0] if items else 'done'}"
     lessons = read_compact_lessons(config, goal)
     return f"""# XLang3 Python 3.14 Compatibility Batch
 
-This is a compact cursor-extracted context. Do not reread the full control
-markdown unless something is ambiguous; use the audit cursor and rows below.
+This is a compact cursor-extracted context. Use the task file and cursor below
+as the control plane. Do not reread the legacy giant audit unless something is
+ambiguous.
 
 Goal:
 Make XLang3 runtime compatible with Python 3.14 so CPython standard-library
@@ -588,7 +655,9 @@ Runtime doctrine:
   text and quote patterns with single quotes. Do not use regex syntax for audit
   checkboxes, backticks, brackets, or C++ punctuation unless regex is required.
 - Build only the Release xlang3 target during this loop.
-- Update doc/python314-compat-audit.md truthfully.
+- Update the active task file truthfully.
+- Update doc/python314-compat-audit.md only when you intentionally keep the
+  legacy audit snapshot aligned with the task.
 - Update agent/python314_compat/state.md if the checkpoint changes.
 - Update agent/python314_compat/lessons.md if this batch exposes a reusable
   mistake pattern, compatibility trap, or workflow lesson.
@@ -599,10 +668,16 @@ Fixed local scripts:
 - Full fixture validation: {fixture_command}
 - Selected section quick run: {section_fixture_command or "not available for whole-audit mode"}
 
-Audit cursor:
-{audit_cursor}
+Task source:
+{source_path.relative_to(ROOT).as_posix()}
 
-Selected audit section:
+Task mode:
+{"task folder" if is_task else "legacy audit fallback"}
+
+Task cursor:
+{cursor}
+
+Selected task:
 {section or "whole audit"}
 
 Agent goal:
@@ -611,16 +686,16 @@ Agent goal:
 Lessons from previous iterations:
 {lessons}
 
-Audit counts:
+Task counts:
 - checked: {checked}
 - partial: {partial}
 - missing: {missing}
 
-Next unfinished audit rows from the cursor:
+Next unfinished task rows from the cursor:
 {next_items}
 
 Implement one coherent compatibility batch now. Do not scan unrelated audit
-sections; update only the checked/partial rows affected by this batch.
+sections; update only the task rows affected by this batch.
 """
 
 
@@ -734,11 +809,14 @@ def print_loop_status(config: dict, goal: str, section: str, limit: int) -> None
     current_state = read_loop_state(config, goal)
     checked, partial, missing = audit_counts(config, goal, section)
     items = unfinished_items(config, goal, section, limit)
+    source_path, _, _, is_task = control_source(config, goal, section)
 
     print(f"Repo: {ROOT}")
     print(f"Goal: {goal}")
-    print(f"Section: {section or 'whole audit'}")
-    print(f"Audit counts: checked={checked}, partial={partial}, missing={missing}")
+    print(f"Task: {section or 'whole audit'}")
+    print(f"Source: {source_path.relative_to(ROOT).as_posix()}")
+    print(f"Mode: {'task folder' if is_task else 'legacy audit fallback'}")
+    print(f"Task counts: checked={checked}, partial={partial}, missing={missing}")
 
     if current_state.get("active"):
         print(f"Saved loop phase: {current_state.get('phase', '')}")
@@ -753,7 +831,7 @@ def print_loop_status(config: dict, goal: str, section: str, limit: int) -> None
     if len(stageable_changes) > 20:
         print(f"  ... {len(stageable_changes) - 20} more")
 
-    print("Next unfinished rows:")
+    print("Next unfinished task rows:")
     for line, mark, text in items:
         print(f"[{mark}] line {line}: {text}")
 
@@ -1138,7 +1216,7 @@ def main() -> int:
             print(f"XLang3 Python 3.14 compatibility loop iteration {iteration}/{iteration_total}")
             print(f"Repo: {ROOT}")
             print(f"Goal: {goal}")
-            print(f"Section: {active_section or 'whole audit'}")
+            print(f"Task: {active_section or 'whole audit'}")
             if resume_phase:
                 print(f"Resume phase: {resume_phase}")
                 print(f"Stageable changed files: {len(stageable_changes)}")
@@ -1210,12 +1288,12 @@ def main() -> int:
                 checked, partial, missing = audit_counts(config, goal, active_section)
                 items = unfinished_items(config, goal, active_section, limit)
                 print()
-                print(f"Audit counts: checked={checked}, partial={partial}, missing={missing}")
+                print(f"Task counts: checked={checked}, partial={partial}, missing={missing}")
                 if not items:
-                    print("No unfinished rows remain in this audit scope.")
+                    print("No unfinished rows remain in this task scope.")
                     clear_loop_state(config, goal)
                     break
-                print("Next unfinished rows:")
+                print("Next unfinished task rows:")
                 for line, mark, text in items:
                     print(f"[{mark}] line {line}: {text}")
 

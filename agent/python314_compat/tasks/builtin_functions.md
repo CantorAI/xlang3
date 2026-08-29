@@ -12,26 +12,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Queue
+# Builtin Function Tasks
 
-This queue is implemented as compact task files under
-`agent/python314_compat/tasks/`. The legacy audit in
-`doc/python314-compat-audit.md` is reference material, not the normal loop input.
+- [x] common builtin functions
+  Coverage: `tests/fixtures/compat_sections/builtins.py`, `tests/fixtures/core/builtin_function_batch.py`
+  Remaining: none for the current common surface.
 
-P0 runtime compatibility:
+- [~] open
+  Coverage: `tests/fixtures/core/file_io_compat.py`, `tests/fixtures/compat_sections/builtins.py`
+  Remaining: exact buffering, newline, opener, fd, and error-class semantics.
 
-- `tasks/standard_modules.md`
-- `tasks/native_dependencies.md`
-- `tasks/filesystem_io.md`
-- `tasks/runtime_core.md`
+- [~] globals and locals mapping identity
+  Coverage: `tests/fixtures/compat_sections/builtins.py`
+  Remaining: exact live `dict` identity/type semantics for module and frame mappings.
 
-P1 native dependency modules:
-
-- `tasks/builtin_functions.md`
-- `tasks/builtin_types.md`
-- `tasks/async_threads.md`
-
-P2 CPython standard-library probes:
-
-- `tasks/debugger.md`
-- `tasks/deferred_exact_cpython.md`

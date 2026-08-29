@@ -12,26 +12,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-# Queue
+# Deferred Exact CPython Tasks
 
-This queue is implemented as compact task files under
-`agent/python314_compat/tasks/`. The legacy audit in
-`doc/python314-compat-audit.md` is reference material, not the normal loop input.
+- [~] deep Unicode database
+  Coverage: `tests/fixtures/compat_sections/strings_and_unicode.py`
+  Remaining: generated tables for all Unicode data, normalization, segmentation, casing, and identifier edge cases.
 
-P0 runtime compatibility:
+- [~] pyc and frozen bytecode parity
+  Coverage: import fixtures.
+  Remaining: `.pyc` read/write/execution, invalidation, and CPython frozen-code table behavior.
 
-- `tasks/standard_modules.md`
-- `tasks/native_dependencies.md`
-- `tasks/filesystem_io.md`
-- `tasks/runtime_core.md`
+- [~] native CPython extension ABI simulation
+  Coverage: none.
+  Remaining: PyObject compatibility layer, NumPy-style extension loading strategy, refcount/type simulation, and risk model.
 
-P1 native dependency modules:
-
-- `tasks/builtin_functions.md`
-- `tasks/builtin_types.md`
-- `tasks/async_threads.md`
-
-P2 CPython standard-library probes:
-
-- `tasks/debugger.md`
-- `tasks/deferred_exact_cpython.md`

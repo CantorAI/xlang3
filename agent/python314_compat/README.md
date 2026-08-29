@@ -26,9 +26,15 @@ agent/scripts/
 
 Those scripts are intentionally XLang3-aware. They read `agent/config.toml`,
 which records this repository layout, the Visual Studio CMake build, fixture
-locations, this goal folder, the audit file, and the Codex prompt contract.
+locations, this goal folder, the task files, and the Codex prompt contract.
 
-The product audit remains in:
+The compact active task plan lives in:
+
+```text
+agent/python314_compat/tasks/
+```
+
+The old product audit remains as a legacy snapshot/reference in:
 
 ```text
 doc/python314-compat-audit.md
@@ -42,9 +48,9 @@ tests/fixtures/compat_sections/
 tests/fixtures/expected/
 ```
 
-The agent loop reads the audit, finds unfinished items, builds XLang3 with the
-Visual Studio CMake toolchain, runs the fixture suite, and commits only after the
-tree passes validation.
+The agent loop reads the selected task file, finds unfinished items, builds
+XLang3 with the Visual Studio CMake toolchain, runs the fixture suite, and
+commits only after the tree passes validation.
 
 Typical use:
 
@@ -94,5 +100,5 @@ is running, the next run checks for stageable source changes. With changes, it
 continues to validation; without changes, it reruns the saved prompt. If it is
 stopped after validation, the next run resumes at commit.
 
-Use `--status` to inspect the saved phase and next audit rows. Use
+Use `--status` to inspect the saved phase and next task rows. Use
 `--reset-loop-state` only when intentionally discarding the saved batch.
