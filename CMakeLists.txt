@@ -108,69 +108,38 @@ set(XLANG3_TASK_RUNTIME_SOURCES
 
 set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/abc_module.cpp
-  src/runtime/modules/system/argparse_module.cpp
   src/runtime/modules/system/ast_module.cpp
   src/runtime/modules/system/atexit_module.cpp
-  src/runtime/modules/system/code_module.cpp
   src/runtime/modules/system/codecs_module.cpp
   src/runtime/modules/system/collections_module.cpp
-  src/runtime/modules/system/contextlib_module.cpp
-  src/runtime/modules/system/ctypes_module.cpp
-  src/runtime/modules/system/dataclasses_module.cpp
-  src/runtime/modules/system/dis_module.cpp
-  src/runtime/modules/system/enum_module.cpp
   src/runtime/modules/system/errno_module.cpp
-  src/runtime/modules/system/fnmatch_glob_module.cpp
-  src/runtime/modules/system/functools_module.cpp
-  src/runtime/modules/system/getpass_module.cpp
-  src/runtime/modules/system/future_module.cpp
   src/runtime/modules/system/imp_module.cpp
-  src/runtime/modules/system/inspect_module.cpp
   src/runtime/modules/system/importlib_module.cpp
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
-  src/runtime/modules/system/json_module.cpp
-  src/runtime/modules/system/linecache_module.cpp
   src/runtime/modules/system/locale_module.cpp
-  src/runtime/modules/system/logging_module.cpp
   src/runtime/modules/system/marshal_module.cpp
-  src/runtime/modules/system/numbers_module.cpp
   src/runtime/modules/system/opcode_module.cpp
-  src/runtime/modules/system/operator_module.cpp
   src/runtime/modules/system/os_module.cpp
-  src/runtime/modules/system/platform_module.cpp
   src/runtime/modules/system/pickle_module.cpp
-  src/runtime/modules/system/pkgutil_module.cpp
-  src/runtime/modules/system/pathlib_module.cpp
-  src/runtime/modules/system/subprocess_module.cpp
-  src/runtime/modules/system/tokenize_module.cpp
   src/runtime/modules/system/pydevd_compat_module.cpp
   src/runtime/modules/system/queue_module.cpp
-  src/runtime/modules/system/re_module.cpp
-  src/runtime/modules/system/runpy_module.cpp
   src/runtime/modules/system/signal_module.cpp
-  src/runtime/modules/system/site_module.cpp
   src/runtime/modules/system/socket_select_module.cpp
   src/runtime/modules/system/source_encoding.cpp
   src/runtime/modules/system/stat_module.cpp
   src/runtime/modules/system/string_module.cpp
   src/runtime/modules/system/struct_module.cpp
   src/runtime/modules/system/sys_module.cpp
-  src/runtime/modules/system/sysconfig_module.cpp
   src/runtime/modules/system/time_module.cpp
-  src/runtime/modules/system/traceback_module.cpp
-  src/runtime/modules/system/typing_module.cpp
-  src/runtime/modules/system/urllib_module.cpp
   src/runtime/modules/system/unicodedata_module.cpp
   src/runtime/modules/system/types_module.cpp
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp
   src/runtime/modules/system/winapi_module.cpp
   src/runtime/modules/system/winreg_module.cpp
-  src/runtime/modules/system/xmlrpc_http_module.cpp
   src/runtime/modules/system/zlib_module.cpp
   src/runtime/modules/system/zip_archive.cpp
-  src/runtime/modules/system/zipfile_module.cpp
   src/runtime/modules/system/zipimport_module.cpp
 )
 

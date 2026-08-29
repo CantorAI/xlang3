@@ -14,6 +14,10 @@ limitations under the License.
 -->
 # Standard Module Tasks
 
+- [ ] remove pure-stdlib C++ facade dependency
+  Coverage: add CPython `Lib/*.py` import/run probes for modules as runtime support lands.
+  Remaining: keep pure stdlib shims out of the runtime tree, split mixed native/facade files, and route pure modules through source import.
+
 - [~] os and nt/posix
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
   Remaining: fd APIs starting with `os.open`, close/read/write/lseek/fstat, environment mutation parity, process helpers, and Windows error mapping.
@@ -61,4 +65,3 @@ limitations under the License.
 - [~] socket, subprocess, winreg, urllib.parse, xmlrpc, http
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
   Remaining: socket/select foundations, subprocess fd/process support, registry APIs, and pure Python stdlib dependency chain.
-

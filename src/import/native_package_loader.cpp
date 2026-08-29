@@ -485,11 +485,20 @@ const X3PackageHost kPackageHost = {
     host_package_set_metadata,
 };
 
-std::vector<std::filesystem::path> collect_native_library_candidates(Runtime& runtime, const std::string& name) {
+std::vector<std::filesystem::path> collect_native_library_candidates(
+    Runtime& runtime,
+    const std::string& name,
+    NativePackageLookupMode mode) {
   std::vector<std::filesystem::path> out;
   out.reserve(runtime.import_roots().size() * 6);
   for (const auto& root : runtime.import_roots()) {
-    for (const auto& package_name : native_package_name_candidates(name)) {
+    std::vector<std::string> package_names;
+    if (mode == NativePackageLookupMode::ExactNameOnly) {
+      package_names.push_back(name);
+    } else {
+      package_names = native_package_name_candidates(name);
+    }
+    for (const auto& package_name : package_names) {
       auto candidates = native_library_candidates(root, package_name);
       out.insert(out.end(), candidates.begin(), candidates.end());
     }
@@ -523,9 +532,14 @@ std::string format_native_not_found(const std::string& name, const std::vector<s
 
 } // namespace
 
-bool import_native_package(Runtime& runtime, const std::string& package_name, Value& out, std::string& error) {
+bool import_native_package(
+    Runtime& runtime,
+    const std::string& package_name,
+    NativePackageLookupMode mode,
+    Value& out,
+    std::string& error) {
   std::filesystem::path library_path;
-  auto candidates = collect_native_library_candidates(runtime, package_name);
+  auto candidates = collect_native_library_candidates(runtime, package_name, mode);
   if (!find_native_library(candidates, library_path)) {
     error = format_native_not_found(package_name, candidates);
     return false;

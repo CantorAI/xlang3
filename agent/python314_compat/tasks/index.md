@@ -31,8 +31,8 @@ Task files:
 - `builtin_functions.md`
 - `native_dependencies.md`
 - `standard_modules.md`
+- `stdlib_shim_cleanup.md`
 - `filesystem_io.md`
 - `async_threads.md`
 - `debugger.md`
 - `deferred_exact_cpython.md`
-

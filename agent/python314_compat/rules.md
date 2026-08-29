@@ -17,6 +17,9 @@ limitations under the License.
 - The final goal is Python 3.14 runtime compatibility, not debugpy-only support.
 - Prefer runtime compatibility over native reimplementation of pure Python
   standard-library modules.
+- Do not implement or extend pure Python CPython stdlib modules as C++ facades.
+  If a pure `Lib/*.py` module fails, fix the missing runtime primitive or native
+  dependency it exposes.
 - Native modules are appropriate for CPython native/core dependency layers such
   as `_io`, `_thread`, `_weakref`, `_abc`, `_collections`, `_struct`, `_pickle`,
   `zlib`, `_socket`, and product-specific accelerated modules.

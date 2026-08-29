@@ -1029,15 +1029,21 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   if (it == modules_.end()) {
 #if !defined(XLANG3_EMBEDDED)
     std::string native_error;
-    if (import_native_package(*this, name, out, native_error)) {
+    if (import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error)) {
       return true;
     }
     std::string python_error;
     if (import_python_module(*this, name, out, python_error)) {
       return true;
     }
+    const bool python_source_not_found = python_error == "module '" + name + "' not found";
+    std::string prefixed_native_error;
+    if (python_source_not_found &&
+        import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error)) {
+      return true;
+    }
     if (!python_error.empty() && !native_error.empty()) {
-      error = python_error + "; native package candidates tried:\n" + native_error;
+      error = python_error + "; native package candidates tried:\n" + native_error + "\n" + prefixed_native_error;
     } else {
       error = native_error.empty() ? python_error : native_error;
     }

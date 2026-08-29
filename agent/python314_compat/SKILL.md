@@ -24,6 +24,7 @@ Read these files before choosing a batch:
 - `agent/python314_compat/lessons.md`
 - `agent/python314_compat/tasks/index.md`
 - the selected compact task file under `agent/python314_compat/tasks/`
+- `agent/python314_compat/context/module_policy.md`
 
 Use `doc/python314-compat-audit.md` only as a legacy reference when a compact
 task item is ambiguous.
@@ -34,6 +35,8 @@ Work rules:
 - Do not make debugpy-only, benchmark-only, or module-name-specific shortcuts.
 - Prefer fixing runtime primitives so CPython standard-library `.py` files can
   run naturally.
+- Do not implement or extend pure Python CPython stdlib modules as C++ facades.
+  Pure stdlib compatibility means the real `Lib/*.py` source path works.
 - Use native C++ only for runtime primitives, CPython native dependency modules,
   and performance-critical product modules.
 - Add fixture coverage under `tests/fixtures`.
