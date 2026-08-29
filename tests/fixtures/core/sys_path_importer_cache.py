@@ -28,6 +28,8 @@ try:
     importer = sys.path_importer_cache.get(zip_path)
     module_spec = importer.find_spec(module_name)
     package_spec = importer.find_spec(package_name)
+    module_code = importer.get_code(module_name)
+    package_code = importer.get_code(package_name)
     print(
         "path-importer-cache",
         module.VALUE,
@@ -44,6 +46,8 @@ try:
         module_spec.submodule_search_locations is None,
         importer.get_filename(module_name).endswith(module_name + ".py"),
         importer.get_source(module_name) == "VALUE = 314\n",
+        type(module_code).__name__ == "code",
+        module_code.co_filename.endswith(module_name + ".py"),
         importer.is_package(module_name),
     )
     print(
@@ -53,6 +57,8 @@ try:
         package_spec.origin.endswith("__init__.py"),
         package_spec.submodule_search_locations[0].endswith(package_name),
         importer.get_source(package_name) == "NAME = 'pkg'\n",
+        type(package_code).__name__ == "code",
+        package_code.co_filename.endswith("__init__.py"),
         importer.is_package(package_name),
         importer.find_spec("xlang3_path_importer_cache_fixture_missing") is None,
     )
