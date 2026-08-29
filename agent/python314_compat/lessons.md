@@ -140,3 +140,6 @@ shape the next iteration.
 - Attribute-compatible objects are not always acceptable to CPython C-style
   APIs. `mktime`/`strftime`/`asctime` require a tuple or exact `time.struct_time`
   instance, not an arbitrary object with `tm_*` fields.
+- `sys.getsizeof(obj, default)` falls back for missing/non-callable `__sizeof__`
+  or a `TypeError` raised while calling it, but a successful `__sizeof__` call
+  that returns a non-int still raises the normal `TypeError` diagnostic.

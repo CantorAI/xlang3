@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time tuple-consumer attr-only instance rejection
+sys.getsizeof non-int __sizeof__ diagnostic
 ```
 
 Current next loop:

@@ -1908,7 +1908,7 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
         value_assign_fast(out, args[1]);
         return true;
       }
-      error = "__sizeof__() should return int";
+      error = "an integer is required";
       runtime.raise_class_error("TypeError", error);
       return false;
     }

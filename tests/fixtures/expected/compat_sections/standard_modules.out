@@ -190,6 +190,7 @@ class-metadata-module-qualname builtins type builtins object builtins int builti
 sys-path-hooks-zipimporter True True zipimport <class 'zipimport.zipimporter'>
 sys-getsizeof-protocol-overhead 155 99
 sys-getsizeof-negative True
+sys-getsizeof-return-type True
 sys-getsizeof-bool-overhead 33 33
 99 101
 155 202 303
