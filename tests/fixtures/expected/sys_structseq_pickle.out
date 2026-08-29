@@ -17,6 +17,19 @@ sys-structseq-getnewargs thread True 1 True
 sys-structseq-reduce thread True True True 0
 sys-structseq-reduce-ex thread True True True 0
 sys-flags-reduce-named 1 0 0 1 0 0 True
+sys-structseq-construct int True True True True
+sys-structseq-construct float True True True True
+sys-structseq-construct hash True True True True
+sys-structseq-construct thread True True True True
+sys-structseq-noninstantiable version ('TypeError', "cannot create 'sys.version_info' instances")
+sys-structseq-noninstantiable flags ('TypeError', "cannot create 'sys.flags' instances")
+sys-structseq-construct-diagnostic missing ('TypeError', "structseq() missing required argument 'sequence' (pos 1)")
+sys-structseq-construct-diagnostic extra ('TypeError', 'structseq() takes at most 2 arguments (3 given)')
+sys-structseq-construct-diagnostic short ('TypeError', 'sys.int_info() takes a 4-sequence (3-sequence given)')
+sys-structseq-construct-diagnostic long ('TypeError', 'sys.int_info() takes a 4-sequence (5-sequence given)')
+sys-structseq-construct-diagnostic dict-extra ('TypeError', 'sys.int_info() got duplicate or unexpected field name(s)')
+sys-structseq-construct-keyword True
+sys-structseq-construct-diagnostic duplicate-sequence ('TypeError', "argument for structseq() given by name ('sequence') and position (1)")
 sys-structseq-method-meta __getnewargs__ __getnewargs__ flags.__getnewargs__ True True ($self, /)
 sys-structseq-method-meta __reduce__ __reduce__ flags.__reduce__ True True ($self, /)
 sys-structseq-method-meta __reduce_ex__ __reduce_ex__ flags.__reduce_ex__ True False ($self, protocol, /)

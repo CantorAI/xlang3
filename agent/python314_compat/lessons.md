@@ -270,3 +270,8 @@ shape the next iteration.
   `__reduce_ex__()` must preserve `gil`, `thread_inherit_context`, and
   `context_aware_warnings` there even though they are excluded from
   `len(sys.flags)` and `__match_args__`.
+- CPython `sys` structseq constructors are split by type: `version_info` and
+  `flags` reject direct construction, while `int_info`, `float_info`,
+  `hash_info`, and `thread_info` reconstruct from a sequence plus optional
+  named-field dict. Pickle payload support is incomplete unless the exposed
+  constructor path accepts the same shape.

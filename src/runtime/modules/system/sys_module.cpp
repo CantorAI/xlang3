@@ -247,13 +247,27 @@ Value make_member_descriptor(const std::string& owner_name, const std::string& n
   return slot_descriptor(owner_name, name, index);
 }
 
+bool sys_structseq_update_string_value(Value& self, std::string& error);
+
 struct SysStructSeqMethodData {
   std::string type_name;
   std::string owner_name;
 };
 
+struct SysStructSeqConstructorData {
+  std::string type_name;
+  std::string owner_name;
+  std::vector<std::string> field_names;
+  size_t sequence_fields = 0;
+  bool instantiable = true;
+};
+
 void sys_structseq_method_data_cleanup(void* data) {
   delete static_cast<SysStructSeqMethodData*>(data);
+}
+
+void sys_structseq_constructor_data_cleanup(void* data) {
+  delete static_cast<SysStructSeqConstructorData*>(data);
 }
 
 bool sys_structseq_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
@@ -502,6 +516,206 @@ bool sys_structseq_repr_kw(
   return false;
 }
 
+bool sys_structseq_constructor_items(
+    Runtime& runtime,
+    const SysStructSeqConstructorData& data,
+    const Value& sequence,
+    std::vector<Value>& items,
+    std::string& error) {
+  if (auto* tuple = value_as_tuple(sequence)) {
+    items = tuple->items;
+  } else if (auto* list = value_as_list(sequence)) {
+    items = list->items;
+  } else {
+    error = data.owner_name + "() argument 1 must be a sequence";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (items.size() != data.sequence_fields) {
+    error = data.owner_name + "() takes a " + std::to_string(data.sequence_fields) +
+            "-sequence (" + std::to_string(items.size()) + "-sequence given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool sys_structseq_apply_dict_fields(
+    Runtime& runtime,
+    const SysStructSeqConstructorData& data,
+    const Value* dict_value,
+    std::vector<Value>& named_values,
+    std::string& error) {
+  if (dict_value == nullptr) {
+    return true;
+  }
+  auto* dict = value_as_dict(*dict_value);
+  if (dict == nullptr) {
+    error = "dict must be a dictionary";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (const auto& entry : dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key == nullptr) {
+      error = data.owner_name + "() got duplicate or unexpected field name(s)";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const std::string name = string_object_to_string(*key);
+    auto it = std::find(data.field_names.begin() + static_cast<std::ptrdiff_t>(data.sequence_fields), data.field_names.end(), name);
+    if (it == data.field_names.end()) {
+      error = data.owner_name + "() got duplicate or unexpected field name(s)";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const size_t index = static_cast<size_t>(it - data.field_names.begin());
+    if (index < named_values.size() && named_values[index].tag != ValueTag::Invalid) {
+      error = data.owner_name + "() got duplicate or unexpected field name(s)";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (index < named_values.size()) {
+      named_values[index] = entry.second;
+    }
+  }
+  return true;
+}
+
+void sys_structseq_set_instance_attrs(Value& self, const SysStructSeqConstructorData& data, const std::vector<Value>& items, const std::vector<Value>& named_values) {
+  std::string ignored;
+  std::vector<Value> field_names;
+  std::vector<Value> all_field_names;
+  field_names.reserve(data.sequence_fields);
+  all_field_names.reserve(data.field_names.size());
+  for (size_t i = 0; i < data.field_names.size(); ++i) {
+    all_field_names.push_back(Value::string(data.field_names[i]));
+    if (i < data.sequence_fields) {
+      object_set_attr(self, data.field_names[i], items[i], ignored);
+      field_names.push_back(Value::string(data.field_names[i]));
+    } else if (i < named_values.size() && named_values[i].tag != ValueTag::Invalid) {
+      object_set_attr(self, data.field_names[i], named_values[i], ignored);
+    }
+  }
+  object_set_attr(self, "n_sequence_fields", Value::int64(static_cast<int64_t>(data.sequence_fields)), ignored);
+  object_set_attr(self, "n_fields", Value::int64(static_cast<int64_t>(data.field_names.size())), ignored);
+  object_set_attr(self, "n_unnamed_fields", Value::int64(0), ignored);
+  object_set_attr(self, "_tuple", Value::tuple(items), ignored);
+  object_set_attr(self, "_field_names", Value::tuple(std::move(field_names)), ignored);
+  object_set_attr(self, "_all_field_names", Value::tuple(std::move(all_field_names)), ignored);
+  object_set_attr(self, "_repr_name", Value::string(data.owner_name), ignored);
+  sys_structseq_update_string_value(self, ignored);
+}
+
+bool sys_structseq_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  auto* data = static_cast<SysStructSeqConstructorData*>(user_data);
+  if (data == nullptr || !data->instantiable) {
+    const std::string owner_name = data != nullptr ? data->owner_name : "sys.structseq";
+    error = "cannot create '" + owner_name + "' instances";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc < 2) {
+    error = "structseq() missing required argument 'sequence' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc > 3) {
+    error = "structseq() takes at most 2 arguments (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> items;
+  if (!sys_structseq_constructor_items(runtime, *data, args[1], items, error)) {
+    return false;
+  }
+  std::vector<Value> named_values(data->field_names.size(), Value::invalid());
+  if (argc == 3 && !sys_structseq_apply_dict_fields(runtime, *data, &args[2], named_values, error)) {
+    return false;
+  }
+  Value& self = const_cast<Value&>(args[0]);
+  sys_structseq_set_instance_attrs(self, *data, items, named_values);
+  value_set_none(out);
+  return true;
+}
+
+bool sys_structseq_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  auto* data = static_cast<SysStructSeqConstructorData*>(user_data);
+  if (data == nullptr || !data->instantiable) {
+    const std::string owner_name = data != nullptr ? data->owner_name : "sys.structseq";
+    error = "cannot create '" + owner_name + "' instances";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const uint32_t positional_argc = argc > 0 ? argc - 1 : 0;
+  if (kwargc > 2) {
+    error = "structseq() takes at most 2 keyword arguments (" + std::to_string(kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (positional_argc + kwargc > 2) {
+    error = "structseq() takes at most 2 arguments (" + std::to_string(positional_argc + kwargc) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  const Value* sequence = argc >= 2 ? &args[1] : nullptr;
+  const Value* fields = argc >= 3 ? &args[2] : nullptr;
+  std::string unexpected_keyword;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (name == "sequence") {
+      if (sequence != nullptr) {
+        error = "argument for structseq() given by name ('sequence') and position (1)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      sequence = kwargs[i].value;
+      continue;
+    }
+    if (name == "dict") {
+      if (fields != nullptr) {
+        error = "argument for structseq() given by name ('dict') and position (2)";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      fields = kwargs[i].value;
+      continue;
+    }
+    if (unexpected_keyword.empty()) {
+      unexpected_keyword = name;
+    }
+  }
+
+  if (sequence == nullptr) {
+    error = "structseq() missing required argument 'sequence' (pos 1)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!unexpected_keyword.empty()) {
+    error = "structseq() got an unexpected keyword argument '" + unexpected_keyword + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<Value> bound_args;
+  bound_args.reserve(fields == nullptr ? 2 : 3);
+  bound_args.push_back(argc > 0 ? args[0] : Value::none());
+  bound_args.push_back(*sequence);
+  if (fields != nullptr) {
+    bound_args.push_back(*fields);
+  }
+  return sys_structseq_init(runtime, bound_args.data(), static_cast<uint32_t>(bound_args.size()), out, error, user_data);
+}
+
 bool sys_structseq_getnewargs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc == 0) {
     error = "unbound method tuple.__getnewargs__() needs an argument";
@@ -686,7 +900,8 @@ Value make_structseq(
     const std::vector<std::pair<std::string, Value>>& fields,
     const std::string& module_name = "sys",
     size_t sequence_fields = std::numeric_limits<size_t>::max(),
-    const std::string& repr_name = "") {
+    const std::string& repr_name = "",
+    bool instantiable = true) {
   std::vector<std::pair<std::string, Value>> class_attrs;
   class_attrs.push_back({"__module__", Value::string(module_name)});
   class_attrs.push_back({"__qualname__", Value::string(type_name)});
@@ -731,6 +946,24 @@ Value make_structseq(
   class_attrs.push_back({"n_unnamed_fields", Value::int64(0)});
   const std::string actual_repr_name =
       repr_name.empty() ? (module_name.empty() ? type_name : module_name + "." + type_name) : repr_name;
+  std::vector<std::string> all_field_name_strings;
+  all_field_name_strings.reserve(fields.size());
+  for (const auto& field : fields) {
+    all_field_name_strings.push_back(field.first);
+  }
+  class_attrs.push_back({"__init__", runtime.make_native_function(
+                                       type_name + ".__init__",
+                                       sys_structseq_init,
+                                       new SysStructSeqConstructorData{
+                                           type_name,
+                                           actual_repr_name,
+                                           all_field_name_strings,
+                                           sequence_fields,
+                                           instantiable},
+                                       sys_structseq_constructor_data_cleanup,
+                                       nullptr,
+                                       false,
+                                       sys_structseq_init_kw)});
   std::vector<Value> match_args;
   match_args.reserve(sequence_fields);
   for (size_t i = 0; i < fields.size(); ++i) {
@@ -822,7 +1055,11 @@ Value make_version_info(Runtime& runtime) {
           {"micro", Value::int64(7)},
           {"releaselevel", Value::string("final")},
           {"serial", Value::int64(0)},
-      });
+      },
+      "sys",
+      std::numeric_limits<size_t>::max(),
+      "",
+      false);
 }
 
 Value make_flags(Runtime& runtime) {
@@ -853,7 +1090,9 @@ Value make_flags(Runtime& runtime) {
           {"context_aware_warnings", Value::int64(0)},
       },
       "sys",
-      18);
+      18,
+      "",
+      false);
 }
 
 Value make_int_info(Runtime& runtime) {

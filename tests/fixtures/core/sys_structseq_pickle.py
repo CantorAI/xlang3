@@ -51,6 +51,32 @@ print(
     "gil" not in type(sys.flags).__match_args__,
 )
 
+for label, obj in (
+    ("int", sys.int_info),
+    ("float", sys.float_info),
+    ("hash", sys.hash_info),
+    ("thread", sys.thread_info),
+):
+    cls = type(obj)
+    print(
+        "sys-structseq-construct",
+        label,
+        tuple(cls(tuple(obj))) == tuple(obj),
+        tuple(cls(list(obj))) == tuple(obj),
+        tuple(cls(*obj.__reduce__()[1])) == tuple(obj),
+        repr(cls(tuple(obj))).startswith("sys." + cls.__name__ + "("),
+    )
+
+print("sys-structseq-noninstantiable", "version", catch(lambda: type(sys.version_info)(tuple(sys.version_info))))
+print("sys-structseq-noninstantiable", "flags", catch(lambda: type(sys.flags)(tuple(sys.flags))))
+print("sys-structseq-construct-diagnostic", "missing", catch(lambda: type(sys.int_info)()))
+print("sys-structseq-construct-diagnostic", "extra", catch(lambda: type(sys.int_info)(tuple(sys.int_info), {}, None)))
+print("sys-structseq-construct-diagnostic", "short", catch(lambda: type(sys.int_info)(tuple(sys.int_info)[:-1])))
+print("sys-structseq-construct-diagnostic", "long", catch(lambda: type(sys.int_info)(tuple(sys.int_info) + (0,))))
+print("sys-structseq-construct-diagnostic", "dict-extra", catch(lambda: type(sys.int_info)(tuple(sys.int_info), {"extra": 1})))
+print("sys-structseq-construct-keyword", tuple(type(sys.int_info)(sequence=tuple(sys.int_info))) == tuple(sys.int_info))
+print("sys-structseq-construct-diagnostic", "duplicate-sequence", catch(lambda: type(sys.int_info)(tuple(sys.int_info), sequence=tuple(sys.int_info))))
+
 for name in ("__getnewargs__", "__reduce__", "__reduce_ex__"):
     method = getattr(sys.flags, name)
     print(
