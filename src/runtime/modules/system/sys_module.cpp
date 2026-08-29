@@ -247,6 +247,15 @@ Value make_member_descriptor(const std::string& owner_name, const std::string& n
   return slot_descriptor(owner_name, name, index);
 }
 
+struct SysStructSeqMethodData {
+  std::string type_name;
+  std::string owner_name;
+};
+
+void sys_structseq_method_data_cleanup(void* data) {
+  delete static_cast<SysStructSeqMethodData*>(data);
+}
+
 bool sys_structseq_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
   Value tuple_value;
   std::string ignored;
@@ -493,6 +502,138 @@ bool sys_structseq_repr_kw(
   return false;
 }
 
+bool sys_structseq_getnewargs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "unbound method tuple.__getnewargs__() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 1) {
+    error = "tuple.__getnewargs__() takes no arguments (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  TupleObject* tuple = nullptr;
+  if (!sys_structseq_tuple_storage(args[0], "sys structseq __getnewargs__", tuple, error)) {
+    error = "descriptor '__getnewargs__' for 'tuple' objects doesn't apply to a '" +
+            sys_type_name(runtime, args[0]) + "' object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::tuple({Value::tuple(tuple->items)});
+  return true;
+}
+
+bool sys_structseq_getnewargs_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "tuple.__getnewargs__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool sys_structseq_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  auto* data = static_cast<SysStructSeqMethodData*>(user_data);
+  const std::string type_name = data != nullptr ? data->type_name : "structseq";
+  const std::string owner_name = data != nullptr ? data->owner_name : "sys.structseq";
+  if (argc == 0) {
+    error = "unbound method " + type_name + ".__reduce__() needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 1) {
+    error = type_name + ".__reduce__() takes no arguments (" + std::to_string(argc - 1) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  TupleObject* tuple = nullptr;
+  if (instance == nullptr || !sys_structseq_tuple_storage(args[0], "sys structseq __reduce__", tuple, error)) {
+    error = "descriptor '__reduce__' for '" + owner_name + "' objects doesn't apply to a '" +
+            sys_type_name(runtime, args[0]) + "' object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<std::pair<Value, Value>> named_only;
+  Value names_value;
+  TupleObject* names = nullptr;
+  if (object_get_attr(args[0], "_all_field_names", names_value, error) &&
+      (names = value_as_tuple(names_value)) != nullptr) {
+    for (size_t i = tuple->items.size(); i < names->items.size(); ++i) {
+      auto* name = value_as_string(names->items[i]);
+      if (name == nullptr) {
+        continue;
+      }
+      Value field_value;
+      std::string ignored;
+      const std::string field_name = string_object_to_string(*name);
+      if (object_get_attr(args[0], field_name, field_value, ignored)) {
+        named_only.push_back({Value::string(field_name), field_value});
+      }
+    }
+  }
+
+  out = Value::tuple({
+      instance->klass,
+      Value::tuple({
+          Value::tuple(tuple->items),
+          Value::dict(std::move(named_only)),
+      }),
+  });
+  return true;
+}
+
+bool sys_structseq_reduce_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void* user_data) {
+  auto* data = static_cast<SysStructSeqMethodData*>(user_data);
+  const std::string type_name = data != nullptr ? data->type_name : "structseq";
+  error = type_name + ".__reduce__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+Value make_sys_structseq_method(
+    Runtime& runtime,
+    const std::string& type_name,
+    const std::string& method_name,
+    NativeFunctionCallback callback,
+    void* user_data,
+    void (*user_data_cleanup)(void*),
+    NativeKeywordFunctionCallback keyword_callback) {
+  Value function = runtime.make_native_function(
+      type_name + "." + method_name,
+      callback,
+      user_data,
+      user_data_cleanup,
+      nullptr,
+      false,
+      keyword_callback);
+  if (auto* native = value_as_native_function(function)) {
+    native->attrs_dict = new Value(Value::dict({
+        {Value::string("__module__"), Value::none()},
+        {Value::string("__name__"), Value::string(method_name)},
+        {Value::string("__qualname__"), Value::string(type_name + "." + method_name)},
+        {Value::string("__doc__"), Value::none()},
+        {Value::string("__text_signature__"), Value::string("($self, /)")},
+    }));
+  }
+  return function;
+}
+
 Value make_structseq(
     Runtime& runtime,
     const std::string& type_name,
@@ -506,6 +647,24 @@ Value make_structseq(
   class_attrs.push_back({"count", runtime.make_native_function(type_name + ".count", sys_structseq_count, nullptr, nullptr, nullptr, false, sys_structseq_count_kw)});
   class_attrs.push_back({"index", runtime.make_native_function(type_name + ".index", sys_structseq_index, nullptr, nullptr, nullptr, false, sys_structseq_index_kw)});
   class_attrs.push_back({"__repr__", runtime.make_native_function(type_name + ".__repr__", sys_structseq_repr, nullptr, nullptr, nullptr, false, sys_structseq_repr_kw)});
+  class_attrs.push_back({"__getnewargs__", make_sys_structseq_method(
+                                            runtime,
+                                            type_name,
+                                            "__getnewargs__",
+                                            sys_structseq_getnewargs,
+                                            nullptr,
+                                            nullptr,
+                                            sys_structseq_getnewargs_kw)});
+  class_attrs.push_back({"__reduce__", make_sys_structseq_method(
+                                         runtime,
+                                         type_name,
+                                         "__reduce__",
+                                         sys_structseq_reduce,
+                                         new SysStructSeqMethodData{
+                                             type_name,
+                                             module_name.empty() ? type_name : module_name + "." + type_name},
+                                         sys_structseq_method_data_cleanup,
+                                         sys_structseq_reduce_kw)});
   if (sequence_fields == std::numeric_limits<size_t>::max() || sequence_fields > fields.size()) {
     sequence_fields = fields.size();
   }
@@ -531,12 +690,15 @@ Value make_structseq(
       tuple_base != nullptr ? *tuple_base : Value::invalid()));
   std::vector<Value> tuple_items;
   std::vector<Value> field_names;
+  std::vector<Value> all_field_names;
   tuple_items.reserve(sequence_fields);
   field_names.reserve(sequence_fields);
+  all_field_names.reserve(fields.size());
   std::string ignored;
   for (size_t i = 0; i < fields.size(); ++i) {
     const auto& field = fields[i];
     object_set_attr(instance, field.first, field.second, ignored);
+    all_field_names.push_back(Value::string(field.first));
     if (i < sequence_fields) {
       tuple_items.push_back(field.second);
       field_names.push_back(Value::string(field.first));
@@ -547,6 +709,7 @@ Value make_structseq(
   object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
   object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
   object_set_attr(instance, "_field_names", Value::tuple(std::move(field_names)), ignored);
+  object_set_attr(instance, "_all_field_names", Value::tuple(std::move(all_field_names)), ignored);
   object_set_attr(instance, "_repr_name", Value::string(actual_repr_name), ignored);
   sys_structseq_update_string_value(instance, ignored);
   return instance;

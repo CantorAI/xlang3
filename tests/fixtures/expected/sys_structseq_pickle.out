@@ -1,0 +1,23 @@
+sys-structseq-getnewargs version True 1 True
+sys-structseq-reduce version True True True 0
+sys-structseq-getnewargs flags True 1 True
+sys-structseq-reduce flags True True True 3
+sys-structseq-getnewargs int True 1 True
+sys-structseq-reduce int True True True 0
+sys-structseq-getnewargs float True 1 True
+sys-structseq-reduce float True True True 0
+sys-structseq-getnewargs hash True 1 True
+sys-structseq-reduce hash True True True 0
+sys-structseq-getnewargs thread True 1 True
+sys-structseq-reduce thread True True True 0
+sys-flags-reduce-named 1 0 0 True
+sys-structseq-method-meta __getnewargs__ __getnewargs__ flags.__getnewargs__ True True ($self, /)
+sys-structseq-method-meta __reduce__ __reduce__ flags.__reduce__ True True ($self, /)
+sys-structseq-diagnostic getnewargs-extra ('TypeError', 'tuple.__getnewargs__() takes no arguments (1 given)')
+sys-structseq-diagnostic getnewargs-keyword ('TypeError', 'tuple.__getnewargs__() takes no keyword arguments')
+sys-structseq-diagnostic getnewargs-unbound-missing ('TypeError', 'unbound method tuple.__getnewargs__() needs an argument')
+sys-structseq-diagnostic getnewargs-receiver ('TypeError', "descriptor '__getnewargs__' for 'tuple' objects doesn't apply to a 'object' object")
+sys-structseq-diagnostic reduce-extra ('TypeError', 'flags.__reduce__() takes no arguments (1 given)')
+sys-structseq-diagnostic reduce-keyword ('TypeError', 'flags.__reduce__() takes no keyword arguments')
+sys-structseq-diagnostic reduce-unbound-missing ('TypeError', 'unbound method flags.__reduce__() needs an argument')
+sys-structseq-diagnostic reduce-receiver ('TypeError', "descriptor '__reduce__' for 'sys.flags' objects doesn't apply to a 'object' object")

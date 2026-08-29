@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-member_descriptor keyword rejection diagnostics for tuple-backed fields
+sys structseq __getnewargs__/__reduce__ payloads for startup metadata
 ```
 
 Current next loop:
