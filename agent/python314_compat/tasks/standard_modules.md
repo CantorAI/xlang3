@@ -14,9 +14,9 @@ limitations under the License.
 -->
 # Standard Module Tasks
 
-- [ ] remove pure-stdlib C++ facade dependency
-  Coverage: add CPython `Lib/*.py` import/run probes for modules as runtime support lands.
-  Remaining: keep pure stdlib shims out of the runtime tree, split mixed native/facade files, and route pure modules through source import.
+- [x] remove pure-stdlib C++ facade dependency
+  Coverage: pure facade sources removed; mixed module registrations now keep only native dependency modules; CPython `Lib/*.py` probes confirm public `ast`, `string`, and `opcode` load from the Python 3.14 library path.
+  Remaining: none for facade removal. Continue failures as runtime/native dependency gaps, not as new C++ facades.
 
 - [~] os and nt/posix
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`

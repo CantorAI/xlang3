@@ -20,6 +20,7 @@ This queue is implemented as compact task files under
 
 P0 runtime compatibility:
 
+- `tasks/native_sys_time_audit.md`
 - `tasks/standard_modules.md`
 - `tasks/native_dependencies.md`
 - `tasks/filesystem_io.md`
