@@ -2127,6 +2127,22 @@ try:
     sys.exit(5)
 except SystemExit as err:
     print("sys-exit-code", err.code, str(err), err.args == (5,))
+for sys_exit_tuple_status in [(), ("x",), ("x", "y")]:
+    try:
+        sys.exit(sys_exit_tuple_status)
+    except SystemExit as err:
+        if len(sys_exit_tuple_status) == 0:
+            expected_exit_code = None
+        elif len(sys_exit_tuple_status) == 1:
+            expected_exit_code = sys_exit_tuple_status[0]
+        else:
+            expected_exit_code = sys_exit_tuple_status
+        print(
+            "sys-exit-tuple",
+            len(sys_exit_tuple_status),
+            err.code == expected_exit_code,
+            err.args == sys_exit_tuple_status,
+        )
 sys_exit_multi = SystemExit(1, 2)
 print("system-exit-constructor", str(SystemExit()) == "", str(SystemExit(None)) == "None", sys_exit_multi.code == (1, 2), str(sys_exit_multi) == "(1, 2)")
 try:

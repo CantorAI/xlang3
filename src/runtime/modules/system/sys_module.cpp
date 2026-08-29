@@ -2063,11 +2063,25 @@ bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  std::vector<Value> exit_args;
+  if (argc == 1) {
+    if (auto* tuple = value_as_tuple(args[0])) {
+      exit_args = tuple->items;
+    } else {
+      exit_args.push_back(args[0]);
+    }
+  }
+  Value code = Value::none();
+  if (exit_args.size() == 1) {
+    code = exit_args[0];
+  } else if (exit_args.size() > 1) {
+    code = Value::tuple(exit_args);
+  }
   Value exception = runtime.make_exception("SystemExit", "");
   std::string ignored;
-  object_set_attr(exception, "code", argc == 0 ? Value::none() : args[0], ignored);
-  object_set_attr(exception, "args", argc == 0 ? Value::tuple({}) : Value::tuple({args[0]}), ignored);
-  object_set_attr(exception, "message", argc == 0 ? Value::string("") : args[0], ignored);
+  object_set_attr(exception, "code", code, ignored);
+  object_set_attr(exception, "args", Value::tuple(exit_args), ignored);
+  object_set_attr(exception, "message", exit_args.empty() ? Value::string("") : code, ignored);
   runtime.set_pending_exception(std::move(exception));
   value_set_none(out);
   return false;

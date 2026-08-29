@@ -124,3 +124,6 @@ shape the next iteration.
 - Shared time tuple helpers have different contracts depending on caller:
   `time.struct_time` construction accepts 10/11-field extra metadata, while
   `mktime`/`strftime`/`asctime` consume exactly 9-field time tuples.
+- `sys.exit(status)` does not behave like direct `SystemExit(status)` for tuple
+  statuses: CPython unpacks tuple status through exception normalization before
+  computing `SystemExit.args` and `code`.

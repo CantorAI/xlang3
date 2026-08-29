@@ -591,6 +591,9 @@ sys-exception-state-arity exc_info True True
 sys-exception-state-arity exception True True
 sys-exit-empty True True True
 sys-exit-code 5 5 True
+sys-exit-tuple 0 True True
+sys-exit-tuple 1 True True
+sys-exit-tuple 2 True True
 system-exit-constructor True True True True
 sys-exit-arity True True
 sys-exit-keyword True
