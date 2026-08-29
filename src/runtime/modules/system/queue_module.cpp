@@ -571,17 +571,6 @@ void register_queue_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_queue");
   builder.value("SimpleQueue", simple_queue_class);
   runtime.register_module("_queue", builder.finish());
-
-  NativeModuleBuilder facade(runtime, "queue");
-  facade.value("SimpleQueue", simple_queue_class)
-      .value("Queue", queue_class)
-      .value("LifoQueue", lifo_queue_class)
-      .value("PriorityQueue", priority_queue_class)
-      .value("Empty", empty_class)
-      .value("Full", full_class)
-      .value("ShutDown", shutdown_class)
-      .value("deque", Value::class_object("deque", {}));
-  runtime.register_module("queue", facade.finish());
 }
 
 } // namespace xlang3

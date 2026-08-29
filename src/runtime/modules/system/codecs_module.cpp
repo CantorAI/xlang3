@@ -546,7 +546,7 @@ bool codecs_register_error(Runtime& runtime, const Value* args, uint32_t argc, V
 } // namespace
 
 void register_codecs_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "codecs");
+  NativeModuleBuilder builder(runtime, "_codecs");
   builder.function("lookup", codecs_lookup)
       .function("encode", codecs_encode)
       .function("decode", codecs_decode)
@@ -556,7 +556,7 @@ void register_codecs_module(Runtime& runtime) {
       .function("register_error", codecs_register_error)
       .value("BOM_UTF8", Value::bytes(std::string("\xEF\xBB\xBF", 3)))
       .value("BOM", Value::bytes({}));
-  runtime.register_module("codecs", builder.finish());
+  runtime.register_module("_codecs", builder.finish());
 }
 
 } // namespace xlang3

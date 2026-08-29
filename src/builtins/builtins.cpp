@@ -45,10 +45,8 @@ void register_core_builtins(Runtime& runtime) {
   register_signal_module(runtime);
   register_collections_module(runtime);
   register_queue_module(runtime);
-  register_types_module(runtime);
   register_importlib_module(runtime);
   register_weakref_module(runtime);
-  register_locale_module(runtime);
   register_marshal_module(runtime);
   register_opcode_module(runtime);
   register_pickle_module(runtime);

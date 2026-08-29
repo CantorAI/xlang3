@@ -18,9 +18,9 @@ limitations under the License.
   Coverage: Release build without facade sources; registration/source-reference search is clean.
   Remaining: none for the removed facades.
 
-- [ ] split mixed native/facade modules
-  Coverage: module-specific CPython Lib probes.
-  Remaining: split `_queue` from `queue`, `_socket` from `socket`, `_io` from `io`, `_pickle` from `pickle`, `_stat` from `stat`, `_string` from `string`, `_opcode` from `opcode`, `_warnings` from `warnings`, `_abc` from `abc`, and `_ast` from `ast`.
+- [x] split mixed native/facade modules
+  Coverage: registration scan confirms public facades are no longer registered for `abc`, `ast`, `io`, `queue`, `pickle`, `string`, `weakref`, `collections`, `opcode`, `types`, `locale`, `json`, `argparse`, `inspect`, `pathlib`, `re`, `typing`, `subprocess`, or `zipfile`.
+  Remaining: none for top-level facade registration removal.
 
 - [x] remove pure facade source files
   Coverage: CMake build, import fallback probes.
@@ -28,4 +28,4 @@ limitations under the License.
 
 - [ ] convert compatibility checks to real CPython Lib probes
   Coverage: manual probes confirm `json` reaches `C:/Python/Python314/Lib/json/__init__.py`, `argparse` reaches `C:/Python/Python314/Lib/argparse.py`, and `inspect` reaches `C:/Python/Python314/Lib/inspect.py`.
-  Remaining: add scripted probes; current real-source failures include `enum.py` class/super behavior and `annotationlib.py` parser/runtime coverage.
+  Remaining: add scripted probes; current real-source failures include `abc.py`/`enum.py` class/super behavior, `types.py` descriptor/string behavior, `_weakref._remove_dead_weakref`, `_collections_abc`, `annotationlib.py` parser/runtime coverage, and `encodings` import/runtime coverage.

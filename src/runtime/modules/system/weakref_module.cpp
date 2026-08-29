@@ -245,11 +245,6 @@ void register_weakref_module(Runtime& runtime) {
   NativeModuleBuilder low_level(runtime, "_weakref");
   add_weakref_exports(low_level, runtime);
   runtime.register_module("_weakref", low_level.finish());
-
-  NativeModuleBuilder facade(runtime, "weakref");
-  add_weakref_exports(facade, runtime);
-  facade.function("finalize", weakref_finalize);
-  runtime.register_module("weakref", facade.finish());
 }
 
 } // namespace xlang3

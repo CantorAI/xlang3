@@ -117,12 +117,10 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/importlib_module.cpp
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
-  src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/marshal_module.cpp
   src/runtime/modules/system/opcode_module.cpp
   src/runtime/modules/system/os_module.cpp
   src/runtime/modules/system/pickle_module.cpp
-  src/runtime/modules/system/pydevd_compat_module.cpp
   src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/signal_module.cpp
   src/runtime/modules/system/socket_select_module.cpp
@@ -133,7 +131,6 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/sys_module.cpp
   src/runtime/modules/system/time_module.cpp
   src/runtime/modules/system/unicodedata_module.cpp
-  src/runtime/modules/system/types_module.cpp
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp
   src/runtime/modules/system/winapi_module.cpp

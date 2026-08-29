@@ -758,10 +758,6 @@ void register_socket_modules(Runtime& runtime) {
   add_socket_exports(runtime, low_level, socket_class);
   runtime.register_module("_socket", low_level.finish());
 
-  NativeModuleBuilder high_level(runtime, "socket");
-  add_socket_exports(runtime, high_level, socket_class);
-  runtime.register_module("socket", high_level.finish());
-
   NativeModuleBuilder select(runtime, "select");
   select.function("select", select_select)
       .value("error", Value::string("select.error"));

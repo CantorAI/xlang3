@@ -611,12 +611,6 @@ void register_ast_module(Runtime& runtime) {
   NativeModuleBuilder private_builder(runtime, "_ast");
   fill_ast_module(runtime, private_builder, private_state);
   runtime.register_module("_ast", private_builder.finish());
-
-  auto* public_state = new AstState();
-  runtime.register_native_package_cleanup(public_state, [](void* data) { delete static_cast<AstState*>(data); });
-  NativeModuleBuilder public_builder(runtime, "ast");
-  fill_ast_module(runtime, public_builder, public_state);
-  runtime.register_module("ast", public_builder.finish());
 }
 
 } // namespace xlang3

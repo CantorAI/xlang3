@@ -1400,15 +1400,6 @@ void register_collections_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_collections");
   builder.value("deque", deque_class);
   runtime.register_module("_collections", builder.finish());
-
-  NativeModuleBuilder facade(runtime, "collections");
-  facade.value("deque", std::move(deque_class))
-      .value("defaultdict", std::move(defaultdict_class))
-      .value("OrderedDict", std::move(ordered_dict_class))
-      .value("Counter", std::move(counter_class))
-      .value("ChainMap", std::move(chain_map_class))
-      .function("namedtuple", namedtuple_factory);
-  runtime.register_module("collections", facade.finish());
 }
 
 } // namespace xlang3

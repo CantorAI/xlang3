@@ -268,30 +268,6 @@ void register_string_module(Runtime& runtime) {
   builder.function("formatter_parser", formatter_parser)
       .function("formatter_field_name_split", formatter_field_name_split);
   runtime.register_module("_string", builder.finish());
-
-  NativeModuleBuilder public_builder(runtime, "string");
-  Value formatter_type = Value::class_object(
-      "Formatter",
-      {
-          {"__module__", Value::string("string")},
-          {"format", runtime.make_native_function("string.Formatter.format", formatter_format)},
-          {"vformat", runtime.make_native_function("string.Formatter.vformat", formatter_vformat)},
-          {"parse", runtime.make_native_function("string.Formatter.parse", formatter_parse)},
-          {"get_value", runtime.make_native_function("string.Formatter.get_value", formatter_get_value)},
-          {"format_field", runtime.make_native_function("string.Formatter.format_field", formatter_format_field)},
-          {"convert_field", runtime.make_native_function("string.Formatter.convert_field", formatter_convert_field)},
-      });
-  public_builder.value("ascii_lowercase", Value::string("abcdefghijklmnopqrstuvwxyz"))
-      .value("ascii_uppercase", Value::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-      .value("ascii_letters", Value::string("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-      .value("digits", Value::string("0123456789"))
-      .value("hexdigits", Value::string("0123456789abcdefABCDEF"))
-      .value("octdigits", Value::string("01234567"))
-      .value("punctuation", Value::string("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"))
-      .value("whitespace", Value::string(" \t\n\r\v\f"))
-      .value("printable", Value::string("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f"))
-      .value("Formatter", formatter_type);
-  runtime.register_module("string", public_builder.finish());
 }
 
 } // namespace xlang3

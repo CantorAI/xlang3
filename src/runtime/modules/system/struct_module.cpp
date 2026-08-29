@@ -599,7 +599,7 @@ void register_struct_module(Runtime& runtime) {
           {"unpack_from", runtime.make_native_function("struct.Struct.unpack_from", struct_method_unpack_from)},
           {"iter_unpack", runtime.make_native_function("struct.Struct.iter_unpack", struct_method_iter_unpack)},
       });
-  NativeModuleBuilder builder(runtime, "struct");
+  NativeModuleBuilder builder(runtime, "_struct");
   builder.function("calcsize", struct_calcsize)
       .function("pack", struct_pack)
       .function("pack_into", struct_pack_into)
@@ -608,7 +608,7 @@ void register_struct_module(Runtime& runtime) {
       .function("iter_unpack", struct_iter_unpack)
       .value("Struct", g_struct_class)
       .value("error", g_struct_error_class);
-  runtime.register_module("struct", builder.finish());
+  runtime.register_module("_struct", builder.finish());
 }
 
 } // namespace xlang3

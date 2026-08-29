@@ -460,11 +460,6 @@ void register_io_module(Runtime& runtime) {
   add_io_exports(low_level, runtime, string_io, bytes_io);
   low_level.value("UnsupportedOperation", unsupported_operation);
   runtime.register_module("_io", low_level.finish());
-
-  NativeModuleBuilder high_level(runtime, "io");
-  add_io_exports(high_level, runtime, std::move(string_io), std::move(bytes_io));
-  high_level.value("UnsupportedOperation", std::move(unsupported_operation));
-  runtime.register_module("io", high_level.finish());
 }
 
 } // namespace xlang3

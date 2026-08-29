@@ -118,31 +118,6 @@ void register_opcode_module(Runtime& runtime) {
       .function("get_special_method_names", opcode_empty_list)
       .function("get_nb_ops", opcode_empty_list);
   runtime.register_module("_opcode", private_builder.finish());
-
-  NativeModuleBuilder public_builder(runtime, "opcode");
-  public_builder.value("HAVE_ARGUMENT", Value::int64(43))
-      .value("EXTENDED_ARG", Value::int64(69))
-      .value("cmp_op", make_cmp_op())
-      .value("opmap", make_opcode_map())
-      .value("opname", make_opcode_names())
-      .value("hasarg",
-          make_opcode_int_list({128, 255, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-              58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
-              76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91,
-              92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106,
-              107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,
-              237, 239, 241, 242, 243, 244, 245, 247, 248, 249, 250, 251, 253, 257,
-              258, 259, 260, 261, 263, 264, 265, 266}))
-      .value("hasconst", make_opcode_int_list({82}))
-      .value("hasname", make_opcode_int_list({61, 64, 65, 72, 73, 80, 91, 92, 93, 96, 110, 115, 116, 249}))
-      .value("hasjrel", make_opcode_int_list({68, 70, 75, 76, 77, 100, 101, 102, 103, 106, 237, 248, 257, 258, 259, 260}))
-      .value("hasjabs", Value::list({}))
-      .value("haslocal", make_opcode_int_list({63, 83, 84, 85, 86, 87, 88, 89, 112, 113, 114, 261, 266}))
-      .value("hascompare", make_opcode_int_list({56}))
-      .value("hasfree", make_opcode_int_list({62, 90, 97, 111}))
-      .value("hasexc", make_opcode_int_list({263, 264, 265}))
-      .function("stack_effect", opcode_zero);
-  runtime.register_module("opcode", public_builder.finish());
 }
 
 } // namespace xlang3

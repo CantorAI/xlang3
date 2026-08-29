@@ -1471,7 +1471,6 @@ Value make_os_path_module(Runtime& runtime) {
 } // namespace
 
 void register_os_module(Runtime& runtime) {
-  Value path_module = make_os_path_module(runtime);
   Value env_dict = Value::dict({});
   auto* os_state = new OsModuleState();
   os_state->stat_result_class = make_stat_result_class(runtime);
@@ -1479,7 +1478,11 @@ void register_os_module(Runtime& runtime) {
   os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
   runtime.register_native_package_cleanup(os_state, os_module_state_cleanup);
 
-  NativeModuleBuilder builder(runtime, "os");
+#if defined(_WIN32)
+  NativeModuleBuilder builder(runtime, "nt");
+#else
+  NativeModuleBuilder builder(runtime, "posix");
+#endif
   builder.function("getcwd", os_getcwd)
       .function("getcwdb", os_getcwdb)
       .function("chdir", os_chdir)
@@ -1504,7 +1507,6 @@ void register_os_module(Runtime& runtime) {
       .function("access", os_access)
       .function("getenv", os_getenv)
       .function("fspath", os_fspath)
-      .value("path", path_module)
       .value("environ", env_dict)
       .value("F_OK", Value::int64(0))
       .value("R_OK", Value::int64(4))
@@ -1528,13 +1530,9 @@ void register_os_module(Runtime& runtime) {
       .value("pardir", Value::string(".."));
 #endif
   auto module = builder.finish();
-  runtime.register_module("os", module);
-  runtime.register_module("os.path", path_module);
 #if defined(_WIN32)
-  runtime.register_module("ntpath", path_module);
   runtime.register_module("nt", std::move(module));
 #else
-  runtime.register_module("posixpath", path_module);
   runtime.register_module("posix", std::move(module));
 #endif
 }

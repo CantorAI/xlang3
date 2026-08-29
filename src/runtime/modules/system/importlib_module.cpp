@@ -594,57 +594,6 @@ void register_importlib_module(Runtime& runtime) {
       "ModuleSpec",
       {{"__init__", runtime.make_native_function("ModuleSpec.__init__", module_spec_init)}});
 
-  NativeModuleBuilder machinery_builder(runtime, "importlib.machinery");
-  machinery_builder.value("ModuleSpec", module_spec_class)
-      .value("BuiltinImporter", builtin_importer)
-      .value("FrozenImporter", frozen_importer)
-      .value("PathFinder", path_finder)
-      .value("FileFinder", file_finder)
-      .value("SourceFileLoader", source_file_loader)
-      .value("SourcelessFileLoader", sourceless_file_loader)
-      .value("ExtensionFileLoader", extension_file_loader)
-      .value("NamespaceLoader", namespace_loader)
-      .value("SOURCE_SUFFIXES", Value::list({Value::string(".py")}))
-      .value("BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
-      .value("EXTENSION_SUFFIXES", Value::list({}));
-  Value machinery = machinery_builder.finish();
-  runtime.register_module("importlib.machinery", machinery);
-
-  NativeModuleBuilder abc_builder(runtime, "importlib.abc");
-  abc_builder.value("Loader", loader)
-      .value("ResourceLoader", resource_loader)
-      .value("InspectLoader", inspection_loader)
-      .value("ExecutionLoader", execution_loader)
-      .value("FileLoader", file_loader)
-      .value("SourceLoader", source_loader)
-      .value("MetaPathFinder", meta_path_finder)
-      .value("PathEntryFinder", path_entry_finder);
-  Value abc = abc_builder.finish();
-  runtime.register_module("importlib.abc", abc);
-
-  NativeModuleBuilder util_builder(runtime, "importlib.util");
-  util_builder.function("find_spec", importlib_find_spec)
-      .function("resolve_name", importlib_resolve_name)
-      .function("spec_from_file_location", importlib_spec_from_file_location)
-      .function("module_from_spec", importlib_module_from_spec);
-  Value util = util_builder.finish();
-  runtime.register_module("importlib.util", util);
-
-  NativeModuleBuilder metadata_builder(runtime, "importlib.metadata");
-  metadata_builder.function("distributions", importlib_metadata_distributions);
-  Value metadata = metadata_builder.finish();
-  runtime.register_module("importlib.metadata", metadata);
-  runtime.register_module("importlib_metadata", metadata);
-
-  NativeModuleBuilder resources_builder(runtime, "importlib.resources");
-  resources_builder.function("files", importlib_resources_files)
-      .function("read_binary", importlib_resources_read_binary)
-      .function("read_text", importlib_resources_read_text)
-      .function("is_resource", importlib_resources_is_resource);
-  Value resources = resources_builder.finish();
-  runtime.register_module("importlib.resources", resources);
-  runtime.register_module("importlib_resources", resources);
-
   NativeModuleBuilder frozen_builder(runtime, "_frozen_importlib");
   frozen_builder.value("__name__", Value::string("_frozen_importlib"))
       .value("BuiltinImporter", builtin_importer)
@@ -668,18 +617,6 @@ void register_importlib_module(Runtime& runtime) {
   Value external = external_builder.finish();
   runtime.register_module("_frozen_importlib_external", external);
   runtime.register_module("importlib._bootstrap_external", external);
-
-  NativeModuleBuilder builder(runtime, "importlib");
-  builder.function("import_module", importlib_import_module)
-      .function("invalidate_caches", importlib_invalidate_caches)
-      .value("abc", abc)
-      .value("machinery", machinery)
-      .value("util", util)
-      .value("metadata", metadata)
-      .value("resources", resources)
-      .value("_bootstrap", frozen)
-      .value("_bootstrap_external", external);
-  runtime.register_module("importlib", builder.finish());
   canonicalize_existing_builtin_import_loaders(runtime, builtin_importer, frozen_importer);
 
   Value sys;

@@ -206,7 +206,6 @@ Value make_warnings_module(Runtime& runtime, const char* module_name) {
 } // namespace
 
 void register_warnings_module(Runtime& runtime) {
-  runtime.register_module("warnings", make_warnings_module(runtime, "warnings"));
   runtime.register_module("_warnings", make_warnings_module(runtime, "_warnings"));
 }
 
