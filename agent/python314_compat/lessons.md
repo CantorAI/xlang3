@@ -227,3 +227,6 @@ shape the next iteration.
   used for edits, not a shell glob that may silently miss files. Existing
   unregistered or under-fixtured helpers should be covered or registered
   without duplicating their implementation.
+- When strengthening a native facade toward CPython behavior for valid inputs,
+  preserve existing compatibility semantics for deliberately accepted legacy
+  inputs unless the batch explicitly retires them with fixture coverage.

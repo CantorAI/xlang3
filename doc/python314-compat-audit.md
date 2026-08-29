@@ -994,7 +994,8 @@ Native or runtime-backed foundation:
   read/write capability errors,
   argv/orig_argv/path/import-cache containers
   including zip `sys.path_importer_cache` entries populated with real `zipimport.zipimporter`
-  instances, CPython-style bootstrap `meta_path` finder objects and the real `zipimporter` path hook,
+  instances with archive-backed `find_spec`/filename/package probes, CPython-style bootstrap
+  `meta_path` finder objects and the real `zipimporter` path hook,
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts, type-level named member descriptors

@@ -33,6 +33,110 @@ bool zip_get_string_arg(const Value& value, const char* name, std::string& out, 
   return false;
 }
 
+std::string zip_module_base(const std::string& fullname) {
+  std::string base = fullname;
+  for (char& ch : base) {
+    if (ch == '.') {
+      ch = '/';
+    }
+  }
+  return base;
+}
+
+std::string zip_origin_path(const std::string& archive, const std::string& member) {
+#if defined(_WIN32)
+  constexpr char separator = '\\';
+#else
+  constexpr char separator = '/';
+#endif
+  std::string origin = archive;
+  if (!origin.empty() && origin.back() != '/' && origin.back() != '\\') {
+    origin.push_back(separator);
+  }
+  for (char ch : member) {
+    origin.push_back(ch == '/' ? separator : ch);
+  }
+  return origin;
+}
+
+bool zipimporter_archive(const Value& self, std::string& archive, std::string& error) {
+  Value archive_value;
+  std::string ignored;
+  if (!object_get_attr(self, "archive", archive_value, ignored) ||
+      !zip_get_string_arg(archive_value, "archive", archive, error)) {
+    error = "zipimporter has no archive";
+    return false;
+  }
+  return true;
+}
+
+Value make_zip_module_spec(
+    const std::string& fullname,
+    const Value& loader,
+    const std::string& archive,
+    const std::string& member,
+    bool is_package) {
+  Value klass = Value::class_object("ModuleSpec", {{"__module__", Value::string("importlib")}});
+  Value spec = Value::instance(klass);
+  std::string ignored;
+  const std::string origin = zip_origin_path(archive, member);
+  object_set_attr(spec, "name", Value::string(fullname), ignored);
+  object_set_attr(spec, "loader", loader, ignored);
+  object_set_attr(spec, "origin", Value::string(origin), ignored);
+  object_set_attr(spec, "cached", Value::none(), ignored);
+  const auto dot = fullname.rfind('.');
+  object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : fullname.substr(0, dot)), ignored);
+  object_set_attr(spec, "has_location", Value::boolean(true), ignored);
+  if (is_package) {
+    object_set_attr(spec, "submodule_search_locations", Value::list({Value::string(zip_origin_path(archive, zip_module_base(fullname)))}), ignored);
+  } else {
+    object_set_attr(spec, "submodule_search_locations", Value::none(), ignored);
+  }
+  return spec;
+}
+
+bool zipimporter_find_member(
+    Runtime& runtime,
+    const Value& self,
+    const std::string& fullname,
+    std::string& archive,
+    std::string& member,
+    bool& is_package,
+    bool& archive_valid,
+    std::string& error) {
+  archive_valid = false;
+  if (!zipimporter_archive(self, archive, error)) {
+    return false;
+  }
+  std::vector<uint8_t> archive_bytes;
+  if (!runtime.vfs().read_file(archive, archive_bytes, error)) {
+    return false;
+  }
+  std::vector<ZipArchiveEntry> entries;
+  if (!zip_archive_list_entries(archive_bytes, entries, error)) {
+    error.clear();
+    return false;
+  }
+  archive_valid = true;
+  const std::string base = zip_module_base(fullname);
+  member = base + ".py";
+  for (const auto& entry : entries) {
+    if (entry.name == member) {
+      is_package = false;
+      return true;
+    }
+  }
+  const std::string package_member = base + "/__init__.py";
+  for (const auto& entry : entries) {
+    if (entry.name == package_member) {
+      member = package_member;
+      is_package = true;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool zipimporter_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.__init__ expected archive path";
@@ -50,12 +154,24 @@ bool zipimporter_init(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool zipimporter_find_spec(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool zipimporter_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "zipimporter.find_spec expected fullname, optional target";
     return false;
   }
-  value_set_none(out);
+  std::string fullname;
+  if (!zip_get_string_arg(args[1], "fullname", fullname, error)) {
+    return false;
+  }
+  std::string archive;
+  std::string member;
+  bool is_package = false;
+  bool archive_valid = false;
+  if (!zipimporter_find_member(runtime, args[0], fullname, archive, member, is_package, archive_valid, error)) {
+    value_set_none(out);
+    return true;
+  }
+  out = make_zip_module_spec(fullname, args[0], archive, member, is_package);
   return true;
 }
 
@@ -68,22 +184,28 @@ bool zipimporter_find_module(Runtime&, const Value*, uint32_t argc, Value& out, 
   return true;
 }
 
-bool zipimporter_get_filename(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zipimporter_get_filename(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.get_filename expected fullname";
-    return false;
-  }
-  Value archive;
-  std::string ignored;
-  if (!object_get_attr(args[0], "archive", archive, ignored)) {
-    error = "zipimporter has no archive";
     return false;
   }
   std::string fullname;
   if (!zip_get_string_arg(args[1], "fullname", fullname, error)) {
     return false;
   }
-  out = Value::string(value_to_string(archive) + "/" + fullname + ".py");
+  std::string archive;
+  std::string member;
+  bool is_package = false;
+  bool archive_valid = false;
+  if (!zipimporter_find_member(runtime, args[0], fullname, archive, member, is_package, archive_valid, error)) {
+    if (!archive_valid) {
+      out = Value::string(archive + "/" + fullname + ".py");
+      return true;
+    }
+    error = "can't find module '" + fullname + "'";
+    return false;
+  }
+  out = Value::string(zip_origin_path(archive, member));
   return true;
 }
 
@@ -133,12 +255,28 @@ bool zipimporter_return_none(Runtime&, const Value*, uint32_t argc, Value& out, 
   return true;
 }
 
-bool zipimporter_is_package(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool zipimporter_is_package(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.is_package expected fullname";
     return false;
   }
-  out = Value::boolean(false);
+  std::string fullname;
+  if (!zip_get_string_arg(args[1], "fullname", fullname, error)) {
+    return false;
+  }
+  std::string archive;
+  std::string member;
+  bool is_package = false;
+  bool archive_valid = false;
+  if (!zipimporter_find_member(runtime, args[0], fullname, archive, member, is_package, archive_valid, error)) {
+    if (!archive_valid) {
+      out = Value::boolean(false);
+      return true;
+    }
+    error = "can't find module '" + fullname + "'";
+    return false;
+  }
+  out = Value::boolean(is_package);
   return true;
 }
 

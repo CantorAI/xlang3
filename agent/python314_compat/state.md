@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys implementation isolated-interpreters metadata
+zipimporter archive-backed finder specs
 ```
 
 Current next loop:
