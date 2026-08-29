@@ -266,6 +266,7 @@ shape the next iteration.
   through surfaces such as `member_descriptor.__get__`, `__set__`, or
   `__delete__`.
 - CPython `sys` structseq reduction uses the tuple-backed sequence payload plus
-  a separate dict for named-only fields. `sys.flags.__reduce__()` must preserve
-  `gil`, `thread_inherit_context`, and `context_aware_warnings` there even
-  though they are excluded from `len(sys.flags)` and `__match_args__`.
+  a separate dict for named-only fields. `sys.flags.__reduce__()` and
+  `__reduce_ex__()` must preserve `gil`, `thread_inherit_context`, and
+  `context_aware_warnings` there even though they are excluded from
+  `len(sys.flags)` and `__match_args__`.

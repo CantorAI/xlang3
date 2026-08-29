@@ -1000,8 +1000,8 @@ Native or runtime-backed foundation:
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts and
-  CPython-style `__getnewargs__`/`__reduce__` payloads including `sys.flags`
-  named-only reduce fields, type-level named member descriptors
+  CPython-style `__getnewargs__`/`__reduce__`/`__reduce_ex__` payloads
+  including `sys.flags` named-only reduce fields, type-level named member descriptors
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
   descriptor repr, `inspect.ismemberdescriptor` visibility, and tuple-backed `__get__`
   including CPython-style `None` owner handling and wrong-receiver diagnostics
