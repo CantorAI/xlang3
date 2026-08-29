@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-member_descriptor.__get__ None-owner and wrong-receiver diagnostics
+member_descriptor readonly __set__/__delete__ behavior for tuple-backed fields
 ```
 
 Current next loop:

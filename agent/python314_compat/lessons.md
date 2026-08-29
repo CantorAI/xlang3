@@ -257,3 +257,7 @@ shape the next iteration.
   reject `__get__(None)` and `__get__(None, None)` with `__get__(None, None) is
   invalid`; wrong-receiver errors name the descriptor, owning type, and visible
   receiver type.
+- Tuple-backed member descriptors such as `sys.version_info.major` and
+  `time.struct_time.tm_year` are readonly: their `__set__`/`__delete__` should
+  raise `AttributeError: readonly attribute` for valid receivers while still
+  using descriptor wrong-receiver `TypeError` for unrelated objects.

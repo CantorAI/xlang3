@@ -707,6 +707,21 @@ std::string slot_descriptor_receiver_type_name(const Value& value) {
   return value_to_string(value);
 }
 
+std::string slot_descriptor_wrong_receiver_error(const SlotDescriptorObject& slot, const Value& receiver) {
+  return "descriptor '" + slot.name + "' for '" + slot.owner_name +
+         "' objects doesn't apply to a '" + slot_descriptor_receiver_type_name(receiver) + "' object";
+}
+
+bool slot_descriptor_applies_to_tuple_backed_object(const SlotDescriptorObject& slot, const Value& receiver) {
+  Value tuple_value;
+  std::string ignored;
+  if (!object_get_attr(receiver, "_tuple", tuple_value, ignored)) {
+    return false;
+  }
+  auto* tuple = value_as_tuple(tuple_value);
+  return tuple != nullptr && slot.index < tuple->items.size();
+}
+
 bool slot_descriptor_get_method(
     Runtime& runtime,
     const Value* args,
@@ -757,8 +772,7 @@ bool slot_descriptor_get_method(
         return true;
       }
     }
-    error = "descriptor '" + slot->name + "' for '" + slot->owner_name +
-            "' objects doesn't apply to a '" + slot_descriptor_receiver_type_name(args[1]) + "' object";
+    error = slot_descriptor_wrong_receiver_error(*slot, args[1]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -780,14 +794,24 @@ bool slot_descriptor_set_method(
     std::string& error,
     void*) {
   if (argc != 3) {
-    error = "member_descriptor.__set__ expected object and value";
+    error = "__set__ expected 2 arguments, got " + std::to_string(argc > 0 ? argc - 1 : 0);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* slot = value_as_slot_descriptor(args[0]);
   auto* instance = value_as_instance(args[1]);
-  if (slot == nullptr || instance == nullptr || slot->index >= instance_slot_count(instance)) {
-    error = "descriptor does not apply to this object";
+  if (slot == nullptr) {
+    error = "member_descriptor.__set__ expected descriptor self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
+    if (slot_descriptor_applies_to_tuple_backed_object(*slot, args[1])) {
+      error = "readonly attribute";
+      runtime.raise_class_error("AttributeError", error);
+      return false;
+    }
+    error = slot_descriptor_wrong_receiver_error(*slot, args[1]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -804,14 +828,24 @@ bool slot_descriptor_delete_method(
     std::string& error,
     void*) {
   if (argc != 2) {
-    error = "member_descriptor.__delete__ expected object";
+    error = "expected 1 argument, got " + std::to_string(argc > 0 ? argc - 1 : 0);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* slot = value_as_slot_descriptor(args[0]);
   auto* instance = value_as_instance(args[1]);
-  if (slot == nullptr || instance == nullptr || slot->index >= instance_slot_count(instance)) {
-    error = "descriptor does not apply to this object";
+  if (slot == nullptr) {
+    error = "member_descriptor.__delete__ expected descriptor self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
+    if (slot_descriptor_applies_to_tuple_backed_object(*slot, args[1])) {
+      error = "readonly attribute";
+      runtime.raise_class_error("AttributeError", error);
+      return false;
+    }
+    error = slot_descriptor_wrong_receiver_error(*slot, args[1]);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
