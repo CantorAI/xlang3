@@ -40,3 +40,9 @@ print(
     exc_message(lambda: sys.stdout.buffer.write(buffer=b"")) == "BufferedWriter.write() takes no keyword arguments",
     exc_message(lambda: sys.stdin.buffer.readable(x=1)) == "BufferedReader.readable() takes no keyword arguments",
 )
+print(
+    "buffer-noarg-diagnostics",
+    exc_message(lambda: sys.stdin.buffer.readable(1)) == "BufferedReader.readable() takes no arguments (1 given)",
+    exc_message(lambda: sys.stdout.buffer.flush(1)) == "BufferedWriter.flush() takes no arguments (1 given)",
+    exc_message(lambda: sys.stderr.buffer.fileno(1)) == "BufferedWriter.fileno() takes no arguments (1 given)",
+)

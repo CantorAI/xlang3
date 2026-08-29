@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys stdio binary buffer keyword diagnostics
+sys stdio binary buffer no-argument diagnostics
 ```
 
 Current next loop:

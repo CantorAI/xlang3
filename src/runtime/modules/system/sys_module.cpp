@@ -1130,11 +1130,16 @@ bool sys_stdio_binary_readline(Runtime& runtime, const Value* args, uint32_t arg
   return true;
 }
 
-bool raise_stdio_no_args_type_error(Runtime& runtime, std::string& error, const char* method, uint32_t argc);
+bool raise_stdio_no_args_type_error(
+    Runtime& runtime,
+    std::string& error,
+    const Value* args,
+    uint32_t argc,
+    const char* method);
 
 bool sys_stdio_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "flush", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "flush");
   }
   const char* kind = sys_stdio_kind(args[0]);
   if (kind != nullptr && std::string(kind) == "stderr") {
@@ -1146,24 +1151,37 @@ bool sys_stdio_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
-bool sys_stdio_close(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_stdio_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "close", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "close");
   }
   value_set_none(out);
   return true;
 }
 
-bool raise_stdio_no_args_type_error(Runtime& runtime, std::string& error, const char* method, uint32_t argc) {
+bool raise_stdio_no_args_type_error(
+    Runtime& runtime,
+    std::string& error,
+    const Value* args,
+    uint32_t argc,
+    const char* method) {
   const uint32_t given = argc == 0 ? 0 : argc - 1;
-  error = std::string("TextIOWrapper.") + method + "() takes no arguments (" + std::to_string(given) + " given)";
+  std::string class_name = "TextIOWrapper";
+  if (args != nullptr && argc > 0) {
+    if (auto* instance = value_as_instance(args[0])) {
+      if (auto* klass = value_as_class(instance->klass)) {
+        class_name = klass->name;
+      }
+    }
+  }
+  error = class_name + "." + method + "() takes no arguments (" + std::to_string(given) + " given)";
   runtime.raise_class_error("TypeError", error);
   return false;
 }
 
-bool sys_stdio_isatty(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_stdio_isatty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "isatty", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "isatty");
   }
   value_set_bool(out, false);
   return true;
@@ -1171,7 +1189,7 @@ bool sys_stdio_isatty(Runtime& runtime, const Value*, uint32_t argc, Value& out,
 
 bool sys_stdio_readable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "readable", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "readable");
   }
   const char* kind = sys_stdio_kind(args[0]);
   value_set_bool(out, kind != nullptr && std::string(kind) == "stdin");
@@ -1180,16 +1198,16 @@ bool sys_stdio_readable(Runtime& runtime, const Value* args, uint32_t argc, Valu
 
 bool sys_stdio_writable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "writable", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "writable");
   }
   const char* kind = sys_stdio_kind(args[0]);
   value_set_bool(out, kind == nullptr || std::string(kind) != "stdin");
   return true;
 }
 
-bool sys_stdio_seekable(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_stdio_seekable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "seekable", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "seekable");
   }
   value_set_bool(out, false);
   return true;
@@ -1197,7 +1215,7 @@ bool sys_stdio_seekable(Runtime& runtime, const Value*, uint32_t argc, Value& ou
 
 bool sys_stdio_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    return raise_stdio_no_args_type_error(runtime, error, "fileno", argc);
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "fileno");
   }
   const char* kind_text = sys_stdio_kind(args[0]);
   const std::string kind = kind_text == nullptr ? "stdout" : kind_text;

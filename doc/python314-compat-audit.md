@@ -990,7 +990,7 @@ Native or runtime-backed foundation:
   with CPython-style text signatures for common stdio methods, plus separate
   binary `sys.std*.buffer` objects with `_io.BufferedReader`/`BufferedWriter`
   metadata, bytes-returning/accepting read/write paths, and CPython-style
-  buffered-method keyword diagnostics,
+  buffered-method keyword and no-argument diagnostics,
   argv/orig_argv/path/import-cache containers
   including CPython-style bootstrap `meta_path` finder objects and the real `zipimporter` path hook,
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,

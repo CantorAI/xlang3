@@ -211,3 +211,7 @@ shape the next iteration.
 - `sys.std*.buffer` is a separate binary stream object, not an alias for the
   text wrapper. Keep the shared underlying standard stream ownership unchanged,
   but expose bytes at the buffered layer and strings at the TextIOWrapper layer.
+- Shared native method callbacks can still need receiver-specific diagnostics.
+  When one implementation backs multiple CPython-visible classes, derive the
+  displayed class name from the bound receiver instead of hardcoding the first
+  wrapper type.
