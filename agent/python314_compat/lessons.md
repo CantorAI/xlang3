@@ -295,3 +295,7 @@ shape the next iteration.
   paths. On Windows Python 3.14, `sys._vpath` is the literal `"..\\.."`;
   keep platform-specific probes before replacing such fields with generic
   placeholders.
+- CPython `sys._is_immortal()` does not mean "currently interned": `sys.intern()`
+  can return non-immortal strings for non-identifier text. Probe empty strings,
+  identifier strings, dynamic strings, and interned non-identifier strings
+  separately before mapping interning state to immortality.

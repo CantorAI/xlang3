@@ -223,7 +223,7 @@ sys-intern-type True True
 sys-intern-arity True True True
 sys-intern-arity True True True
 sys-intern-keyword True
-True True True False False
+True True True True False
 sys-is-immortal-arity True True
 sys-is-immortal-arity True
 sys-is-immortal-keyword True

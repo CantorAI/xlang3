@@ -446,10 +446,11 @@ Recent completed batches:
   writes a Graphviz-format empty tracelet graph, returns `None`, and raises
   catchable CPython-style `TypeError` diagnostics for missing/extra/bad-type
   arguments.
-- Added native `sys._is_immortal` for CPython 3.14 feature probes. XLang3
-  reports non-refcounted tagged singleton/scalar values as immortal and heap
-  objects as non-immortal, matching the runtime's actual ownership model
-  without adding a pure-Python facade.
+- Tightened native `sys._is_immortal` for CPython 3.14 feature probes. XLang3
+  now reports CPython-shaped singleton, cached small-int, empty tuple,
+  immortal identifier-string, and builtins type/singleton results while keeping
+  ordinary heap containers, custom classes, non-cached integers, dynamic
+  strings, and interned non-identifier strings non-immortal.
 - Expanded native `sys` structseq-like metadata: generated `version_info`,
   `flags`, `float_info`, `hash_info`, `thread_info`, and Windows
   `windows_version` type objects now expose CPython-style
@@ -1106,8 +1107,10 @@ Native or runtime-backed foundation:
   exceptions leave unhandled Python frames with CPython-style callback arguments,
   live explicit `RERAISE` dispatch for bare `raise` in active handlers with
   CPython-style callback arguments,
-  `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
-  docs and wrong-arity/keyword `TypeError` diagnostics,
+  `_is_immortal` for CPython-shaped singleton, cached small-int, empty tuple,
+  immortal identifier-string, builtins type/singleton, and ordinary non-immortal
+  object probes with CPython-style docs and wrong-arity/keyword `TypeError`
+  diagnostics,
   live-thread-id-keyed `_current_frames` snapshots with CPython-style keyword
   diagnostics, live-thread-id-keyed `_current_exceptions` with CPython-style
   keyword diagnostics, cache-clear hooks with CPython-style arity and keyword diagnostics,

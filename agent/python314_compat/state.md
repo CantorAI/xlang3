@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Windows CPython-shaped sys._vpath startup metadata
+CPython-shaped sys._is_immortal primitive probes
 ```
 
 Current next loop:

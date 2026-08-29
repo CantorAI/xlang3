@@ -1,0 +1,4 @@
+sys-is-immortal-singletons True True True True True
+sys-is-immortal-small-int-bounds False True True True False False
+sys-is-immortal-strings True True False False
+sys-is-immortal-objects True False True True False False

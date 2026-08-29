@@ -93,6 +93,27 @@ constexpr int64_t kMonitoringEventMask =
 constexpr int64_t kGetSizeofObjectOverhead = 32;
 constexpr const char* kSysStdioNativeType = "sys.TextIOWrapper";
 
+bool is_ascii_identifier_text(const std::string& text) {
+  if (text.empty()) {
+    return false;
+  }
+  auto is_alpha_or_underscore = [](char c) {
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+  };
+  auto is_alnum_or_underscore = [&](char c) {
+    return is_alpha_or_underscore(c) || (c >= '0' && c <= '9');
+  };
+  if (!is_alpha_or_underscore(text.front())) {
+    return false;
+  }
+  for (size_t i = 1; i < text.size(); ++i) {
+    if (!is_alnum_or_underscore(text[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 struct MonitoringCodeKey {
   const ir::Module* module = nullptr;
   uint32_t function_id = 0;
@@ -2484,7 +2505,41 @@ bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_bool(out, args[0].tag != ValueTag::Object);
+  const Value& value = args[0];
+  bool immortal = false;
+  switch (value.tag) {
+    case ValueTag::None:
+    case ValueTag::Bool:
+      immortal = true;
+      break;
+    case ValueTag::Int64:
+      immortal = value.as.i64 >= -5 && value.as.i64 <= 256;
+      break;
+    case ValueTag::Object:
+      if (auto* tuple = value_as_tuple(value)) {
+        immortal = tuple->items.empty();
+      } else if (auto* string = value_as_string(value)) {
+        const std::string text = string_object_to_string(*string);
+        immortal = text.empty() || (string_value_is_interned(value) && is_ascii_identifier_text(text));
+      } else if (value_as_class(value) != nullptr) {
+        Value module;
+        std::string ignored;
+        auto* module_string = object_get_attr(value, "__module__", module, ignored) ? value_as_string(module) : nullptr;
+        immortal = module_string != nullptr && string_object_to_string(*module_string) == "builtins";
+      } else if (auto* instance = value_as_instance(value)) {
+        auto* klass = value_as_class(instance->klass);
+        if (klass != nullptr && (klass->name == "ellipsis" || klass->name == "NotImplementedType")) {
+          Value module;
+          std::string ignored;
+          auto* module_string = object_get_attr(instance->klass, "__module__", module, ignored) ? value_as_string(module) : nullptr;
+          immortal = module_string != nullptr && string_object_to_string(*module_string) == "builtins";
+        }
+      }
+      break;
+    default:
+      break;
+  }
+  value_set_bool(out, immortal);
   return true;
 }
 
