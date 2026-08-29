@@ -201,7 +201,8 @@ sys-is-interned-arity True True
 sys-is-interned-keyword True
 sys-intern-type True True
 sys-intern-type True True
-sys-intern-arity True
+sys-intern-arity True True True
+sys-intern-arity True True True
 sys-intern-keyword True
 True True True False False
 sys-is-immortal-arity True True

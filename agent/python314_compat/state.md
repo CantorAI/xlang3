@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys getsizeof object overhead protocol
+sys intern arity diagnostics
 ```
 
 Current next loop:

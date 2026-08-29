@@ -840,7 +840,11 @@ for sys_intern_bad_value in (b"abc", 42):
 try:
     sys.intern()
 except TypeError as err:
-    print("sys-intern-arity", "one argument" in str(err) or "1 argument" in str(err))
+    print("sys-intern-arity", "sys.intern()" in str(err), "exactly one argument" in str(err), "0 given" in str(err))
+try:
+    sys.intern("xlang3", "extra")
+except TypeError as err:
+    print("sys-intern-arity", "sys.intern()" in str(err), "exactly one argument" in str(err), "2 given" in str(err))
 try:
     sys.intern(string="xlang3")
 except TypeError as err:

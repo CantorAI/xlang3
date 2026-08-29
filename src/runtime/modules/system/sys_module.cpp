@@ -1648,7 +1648,7 @@ std::string sys_type_name(Runtime& runtime, const Value& value) {
 
 bool sys_intern(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "intern() takes exactly one argument";
+    error = "sys.intern() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }

@@ -312,6 +312,9 @@ Recent completed batches:
 - Tightened native `sys.getsizeof`: valid callable `__sizeof__()` results now
   include the CPython object overhead, including bool-as-int returns, while
   preserving default fallback behavior for unusable protocol results.
+- Tightened native `sys.intern`: wrong-arity calls now raise catchable
+  CPython-style `TypeError` diagnostics naming `sys.intern()` and reporting the
+  given positional count.
 - Tightened native `time.strptime`: `%f` now accepts CPython-style one- to
   six-digit fractional seconds and discards the fraction while preserving the
   normalized `struct_time` fields; missing or trailing fractional input remains
