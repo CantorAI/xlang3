@@ -1184,8 +1184,8 @@ Native or runtime-backed foundation:
   hour acceptance for `%H`/`%I` and `%X`/`%R`/`%T`/`%r`/`%c` hour fields with
   two-space mismatch rejection,
   catchable `ValueError` failures including CPython-style format pre-validation
-  ordering for bad-directive and stray-percent rejection,
-  ISO directive validation failures, `%Y`/`%G` zero-year range rejection, and trailing-input rejection;
+  ordering for bad-directive, stray-percent, generic mismatch, and trailing-input
+  diagnostics, ISO directive validation failures, `%Y`/`%G` zero-year range rejection;
   broader locale-specific parsing and historical DST edge behavior remain pending
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers including

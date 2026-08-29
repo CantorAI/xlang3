@@ -27,3 +27,11 @@ print(time.mktime(time.localtime(0)) == 0.0)
 parsed = time.strptime("2024-02-29 11 pm", "%Y-%m-%d %I %P")
 print(parsed.tm_year, parsed.tm_mon, parsed.tm_mday, parsed.tm_hour, parsed.tm_yday, parsed.tm_wday)
 print(repr(parsed))
+try:
+    time.strptime("2026x", "%Y")
+except ValueError as err:
+    print("strptime-trailing-diagnostic", str(err) == "unconverted data remains: x")
+try:
+    time.strptime("2026 54 1", "%Y %U %w")
+except ValueError as err:
+    print("strptime-mismatch-diagnostic", str(err) == "time data '2026 54 1' does not match format '%Y %U %w'")

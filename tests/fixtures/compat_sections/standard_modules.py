@@ -2825,7 +2825,7 @@ for bad_strptime_args in [
     try:
         time.strptime(*bad_strptime_args)
     except ValueError as err:
-        print("strptime-trailing", "match format" in str(err) or "range" in str(err) or "out of range" in str(err))
+        print("strptime-trailing", "match format" in str(err) or "unconverted data remains" in str(err) or "range" in str(err) or "out of range" in str(err))
 for bad_strptime_iso_args, bad_strptime_iso_text in [
     (("2026 35 3", "%Y %V %u"), "incompatible with the year directive"),
     (("35 3", "%V %u"), "ISO week directive"),

@@ -584,6 +584,7 @@ bool parse_timezone_name(
 
 enum class StrptimeFailureReason {
   None,
+  TrailingData,
   IsoWeekWithCalendarYear,
   IsoWeekMissingIsoYear,
   IsoYearIncomplete,
@@ -603,6 +604,7 @@ bool parse_strptime_directives(
     char& unsupported_directive_char,
     bool& stray_percent,
     StrptimeFailureReason& failure_reason,
+    std::string& trailing_data,
     const TimeModuleState* state = nullptr) {
   size_t text_pos = 0;
   int parsed_yday = -1;
@@ -623,6 +625,7 @@ bool parse_strptime_directives(
   unsupported_directive_char = '\0';
   stray_percent = false;
   failure_reason = StrptimeFailureReason::None;
+  trailing_data.clear();
   for (size_t format_pos = 0; format_pos < format.size(); ++format_pos) {
     const char fmt = format[format_pos];
     if (std::isspace(static_cast<unsigned char>(fmt))) {
@@ -1014,6 +1017,8 @@ bool parse_strptime_directives(
     }
   }
   if (text_pos != text.size()) {
+    failure_reason = StrptimeFailureReason::TrailingData;
+    trailing_data = text.substr(text_pos);
     return false;
   }
   if (parsed_iso_week != -1 && saw_calendar_year) {
@@ -2407,6 +2412,7 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   char unsupported_directive_char = '\0';
   bool stray_percent = false;
   StrptimeFailureReason failure_reason = StrptimeFailureReason::None;
+  std::string trailing_data;
   if (!validate_strptime_format_directives(format, unsupported_directive, unsupported_directive_char, stray_percent)) {
     if (stray_percent) {
       error = "stray % in format '" + format + "'";
@@ -2417,11 +2423,13 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
-  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, unsupported_directive_char, stray_percent, failure_reason, state)) {
+  if (!parse_strptime_directives(text, format, tm, zone, gmtoff, explicit_year, unsupported_directive, unsupported_directive_char, stray_percent, failure_reason, trailing_data, state)) {
     if (stray_percent) {
       error = "stray % in format '" + format + "'";
     } else if (unsupported_directive) {
       error = std::string("'") + unsupported_directive_char + "' is a bad directive in format '" + format + "'";
+    } else if (failure_reason == StrptimeFailureReason::TrailingData) {
+      error = "unconverted data remains: " + trailing_data;
     } else if (failure_reason == StrptimeFailureReason::IsoWeekWithCalendarYear) {
       error = "ISO week directive '%V' is incompatible with the year directive '%Y'. Use the ISO year '%G' instead.";
     } else if (failure_reason == StrptimeFailureReason::IsoWeekMissingIsoYear) {
@@ -2435,7 +2443,7 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     } else if (failure_reason == StrptimeFailureReason::YearOutOfRange) {
       error = "year must be in 1..9999, not 0";
     } else {
-      error = "time data does not match format";
+      error = "time data " + value_to_repr(Value::string(text)) + " does not match format " + value_to_repr(Value::string(format));
     }
     runtime.raise_class_error("ValueError", error);
     return false;
