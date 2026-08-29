@@ -208,3 +208,6 @@ shape the next iteration.
   CPython exposes it on bound built-in methods. Forward `__text_signature__`
   through the bound-method attribute path instead of only storing it on the raw
   native callable.
+- `sys.std*.buffer` is a separate binary stream object, not an alias for the
+  text wrapper. Keep the shared underlying standard stream ownership unchanged,
+  but expose bytes at the buffered layer and strings at the TextIOWrapper layer.

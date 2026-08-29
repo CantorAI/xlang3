@@ -1021,6 +1021,96 @@ bool sys_stdio_readline(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool sys_stdio_binary_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "BufferedWriter.write() takes exactly one argument (" + std::to_string(given) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string data;
+  if (auto* bytes = value_as_bytes(args[1])) {
+    const auto view = bytes_object_view(*bytes);
+    data.assign(view.data(), view.size());
+  } else if (auto* bytearray = value_as_bytearray(args[1])) {
+    data = bytearray->value;
+  } else {
+    error = "a bytes-like object is required, not '" + sys_type_name(runtime, args[1]) + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
+  if (kind != nullptr && std::string(kind) == "stderr") {
+    std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
+  } else {
+    std::cout.write(data.data(), static_cast<std::streamsize>(data.size()));
+  }
+  out = Value::int64(static_cast<int64_t>(data.size()));
+  return true;
+}
+
+bool sys_stdio_binary_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "read expected at most 1 argument, got " + std::to_string(given);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t size = 1;
+  if (argc == 2) {
+    if (args[1].tag == ValueTag::None) {
+      size = -1;
+    } else if (!sys_bool_or_int_arg(args[1], size)) {
+      error = "argument should be integer or None, not '" + sys_type_name(runtime, args[1]) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (size < 0) {
+    std::ostringstream buffer;
+    buffer << std::cin.rdbuf();
+    out = Value::bytes(buffer.str());
+    return true;
+  }
+  std::string data(static_cast<size_t>(size), '\0');
+  std::cin.read(data.data(), static_cast<std::streamsize>(size));
+  data.resize(static_cast<size_t>(std::cin.gcount()));
+  out = Value::bytes(std::move(data));
+  return true;
+}
+
+bool sys_stdio_binary_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "readline expected at most 1 argument, got " + std::to_string(given);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t limit = -1;
+  if (argc == 2) {
+    if (args[1].tag == ValueTag::None) {
+      limit = -1;
+    } else if (!sys_bool_or_int_arg(args[1], limit)) {
+      error = "'" + sys_type_name(runtime, args[1]) + "' object cannot be interpreted as an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  std::string data;
+  while (limit < 0 || static_cast<int64_t>(data.size()) < limit) {
+    char ch = '\0';
+    if (!std::cin.get(ch)) {
+      break;
+    }
+    data.push_back(ch);
+    if (ch == '\n') {
+      break;
+    }
+  }
+  out = Value::bytes(std::move(data));
+  return true;
+}
+
 bool raise_stdio_no_args_type_error(Runtime& runtime, std::string& error, const char* method, uint32_t argc);
 
 bool sys_stdio_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1141,6 +1231,56 @@ Value make_sys_stdio_class(Runtime& runtime) {
   return Value::class_object("TextIOWrapper", std::move(attrs));
 }
 
+Value make_sys_stdio_buffer_class(Runtime& runtime, const char* class_name) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_io")});
+  attrs.push_back({"__qualname__", Value::string(class_name)});
+  const bool writer = std::string(class_name) == "BufferedWriter";
+  auto buffer_method = [&](const char* method, NativeFunctionCallback callback) {
+    Value function = runtime.make_native_function(
+        std::string("_io.") + class_name + "." + method,
+        callback,
+        const_cast<char*>(method),
+        nullptr,
+        nullptr,
+        false,
+        sys_stdio_no_keyword_args);
+    if (auto* native = value_as_native_function(function)) {
+      const std::string text_signature =
+          (std::string(method) == "read" || std::string(method) == "readline")
+              ? "($self, size=-1, /)"
+              : (std::string(method) == "write" ? (writer ? "($self, buffer, /)" : "($self, b, /)") : "($self, /)");
+      native->attrs_dict = new Value(Value::dict({
+          {Value::string("__name__"), Value::string(method)},
+          {Value::string("__qualname__"), Value::string(std::string(class_name) + "." + method)},
+          {Value::string("__text_signature__"), Value::string(text_signature)},
+      }));
+    }
+    return function;
+  };
+  attrs.push_back({"write", buffer_method("write", sys_stdio_binary_write)});
+  attrs.push_back({"read", buffer_method("read", sys_stdio_binary_read)});
+  attrs.push_back({"readline", buffer_method("readline", sys_stdio_binary_readline)});
+  attrs.push_back({"flush", buffer_method("flush", sys_stdio_flush)});
+  attrs.push_back({"close", buffer_method("close", sys_stdio_close)});
+  attrs.push_back({"isatty", buffer_method("isatty", sys_stdio_isatty)});
+  attrs.push_back({"readable", buffer_method("readable", sys_stdio_readable)});
+  attrs.push_back({"writable", buffer_method("writable", sys_stdio_writable)});
+  attrs.push_back({"seekable", buffer_method("seekable", sys_stdio_seekable)});
+  attrs.push_back({"fileno", buffer_method("fileno", sys_stdio_fileno)});
+  return Value::class_object(class_name, std::move(attrs));
+}
+
+Value make_sys_stdio_buffer(Runtime&, const Value& klass, const char* kind) {
+  Value stream = Value::instance(klass);
+  std::string ignored;
+  instance_set_native_data(stream, kSysStdioNativeType, const_cast<char*>(kind), nullptr, ignored);
+  object_set_attr(stream, "closed", Value::boolean(false), ignored);
+  object_set_attr(stream, "name", Value::string(std::string("<") + kind + ">"), ignored);
+  object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "rb" : "wb"), ignored);
+  return stream;
+}
+
 Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
   Value stream = Value::instance(klass);
   std::string ignored;
@@ -1151,7 +1291,6 @@ Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
   object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "r" : "w"), ignored);
   object_set_attr(stream, "newlines", Value::none(), ignored);
   object_set_attr(stream, "write_through", Value::boolean(false), ignored);
-  object_set_attr(stream, "buffer", stream, ignored);
   object_set_attr(stream, "closed", Value::boolean(false), ignored);
   const bool line_buffering = std::string(kind) != "stdout";
   object_set_attr(stream, "line_buffering", Value::boolean(line_buffering), ignored);
@@ -3311,9 +3450,17 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "stdlib_module_names", make_stdlib_module_names(), error);
   module_set_attr(sys, "modules", modules_ref, error);
   Value stdio_class = make_sys_stdio_class(runtime);
+  Value stdin_buffer_class = make_sys_stdio_buffer_class(runtime, "BufferedReader");
+  Value stdout_buffer_class = make_sys_stdio_buffer_class(runtime, "BufferedWriter");
   Value stdin_stream = make_sys_stdio(runtime, stdio_class, "stdin");
   Value stdout_stream = make_sys_stdio(runtime, stdio_class, "stdout");
   Value stderr_stream = make_sys_stdio(runtime, stdio_class, "stderr");
+  Value stdin_buffer = make_sys_stdio_buffer(runtime, stdin_buffer_class, "stdin");
+  Value stdout_buffer = make_sys_stdio_buffer(runtime, stdout_buffer_class, "stdout");
+  Value stderr_buffer = make_sys_stdio_buffer(runtime, stdout_buffer_class, "stderr");
+  object_set_attr(stdin_stream, "buffer", stdin_buffer, error);
+  object_set_attr(stdout_stream, "buffer", stdout_buffer, error);
+  object_set_attr(stderr_stream, "buffer", stderr_buffer, error);
   module_set_attr(sys, "stdin", stdin_stream, error);
   module_set_attr(sys, "stdout", stdout_stream, error);
   module_set_attr(sys, "stderr", stderr_stream, error);

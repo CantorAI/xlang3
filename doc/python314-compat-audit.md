@@ -987,7 +987,9 @@ Native or runtime-backed foundation:
   `line_buffering` startup attrs, and catchable keyword `TypeError` diagnostics
   plus CPython-style positional arity/type diagnostics for common stdio methods
   and text-returning `sys.stdin.read()`/`readline()` on the `_io.TextIOWrapper` surface
-  with CPython-style text signatures for common stdio methods,
+  with CPython-style text signatures for common stdio methods, plus separate
+  binary `sys.std*.buffer` objects with `_io.BufferedReader`/`BufferedWriter`
+  metadata and bytes-returning/accepting read/write paths,
   argv/orig_argv/path/import-cache containers
   including CPython-style bootstrap `meta_path` finder objects and the real `zipimporter` path hook,
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,

@@ -21,3 +21,8 @@ print(type(sys.stdin).__module__, type(sys.stdin).__qualname__, sys.stdin.mode, 
 print(sys.stdin.read.__text_signature__, sys.stdin.readline.__text_signature__)
 print(sys.stdout.write.__text_signature__, sys.stdout.flush.__text_signature__, sys.stderr.fileno.__text_signature__)
 print(sys.stdin.read.__doc__ is None, sys.stdout.write.__doc__ is None)
+print(type(sys.stdin.buffer).__module__, type(sys.stdin.buffer).__qualname__, sys.stdin.buffer is sys.stdin)
+print(type(sys.stdout.buffer).__module__, type(sys.stdout.buffer).__qualname__, sys.stdout.buffer is sys.stdout)
+print(type(sys.stdin.buffer.read(0)).__name__, repr(sys.stdin.buffer.read(0)))
+print(sys.stdout.buffer.write(b""), sys.stderr.buffer.write(bytearray(b"")))
+print(sys.stdin.buffer.read.__text_signature__, sys.stdout.buffer.write.__text_signature__)
