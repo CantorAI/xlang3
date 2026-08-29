@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys coroutine-origin helper docs
+sys full module doc fixture
 ```
 
 Current next loop:

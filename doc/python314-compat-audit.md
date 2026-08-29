@@ -1112,7 +1112,7 @@ Native or runtime-backed foundation:
   and keyword diagnostics, allocator-backed `_debugmallocstats` with active
   `sys.stderr` routing, CPython-style docs, text signature, and CPython-style
   keyword diagnostics,
-  CPython 3.14 startup metadata/hooks including CPython-shaped full `__doc__`,
+  CPython 3.14 startup metadata/hooks including exact fixture-covered CPython-shaped full `__doc__`,
   `__interactivehook__`/`_baserepl` keyword diagnostics and `_baserepl` text signature, and CPython-normal
   Windows `abiflags` absence while preserving non-Windows `abiflags`,
   CPython 3.14 `flags` named-only metadata for `gil`, `thread_inherit_context`,
