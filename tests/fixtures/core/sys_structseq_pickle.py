@@ -77,6 +77,23 @@ print("sys-structseq-construct-diagnostic", "dict-extra", catch(lambda: type(sys
 print("sys-structseq-construct-keyword", tuple(type(sys.int_info)(sequence=tuple(sys.int_info))) == tuple(sys.int_info))
 print("sys-structseq-construct-diagnostic", "duplicate-sequence", catch(lambda: type(sys.int_info)(tuple(sys.int_info), sequence=tuple(sys.int_info))))
 
+if hasattr(sys, "getwindowsversion"):
+    windows_version = sys.getwindowsversion()
+    windows_reduce = windows_version.__reduce__()
+    windows_reduce_ex = windows_version.__reduce_ex__(4)
+    expected_named = {"service_pack_major", "service_pack_minor", "suite_mask", "product_type", "platform_version"}
+    print(
+        "sys-windowsversion-structseq",
+        len(windows_version) == 5,
+        windows_version.n_fields == 10,
+        windows_version.n_sequence_fields == 5,
+        windows_version.n_unnamed_fields == 0,
+        isinstance(windows_reduce[1][1], dict),
+        set(windows_reduce[1][1]) == expected_named,
+        windows_reduce_ex[1][1] == windows_reduce[1][1],
+    )
+    print("sys-windowsversion-noninstantiable", catch(lambda: type(windows_version)(tuple(windows_version))))
+
 for name in ("__getnewargs__", "__reduce__", "__reduce_ex__"):
     method = getattr(sys.flags, name)
     print(

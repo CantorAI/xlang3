@@ -1196,7 +1196,8 @@ Value make_windows_version(Runtime& runtime) {
       },
       "sys",
       5,
-      "sys.getwindowsversion");
+      "sys.getwindowsversion",
+      false);
 }
 #endif
 

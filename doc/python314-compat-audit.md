@@ -1003,7 +1003,9 @@ Native or runtime-backed foundation:
   CPython-style `__getnewargs__`/`__reduce__`/`__reduce_ex__` payloads
   including `sys.flags` named-only reduce fields, CPython-style constructor
   behavior for instantiable `int_info`/`float_info`/`hash_info`/`thread_info`
-  plus non-instantiable `version_info`/`flags` diagnostics, type-level named member descriptors
+  plus non-instantiable `version_info`/`flags` diagnostics and Windows
+  `getwindowsversion` named-only reduce payload/non-instantiable constructor
+  diagnostics, type-level named member descriptors
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
   descriptor repr, `inspect.ismemberdescriptor` visibility, and tuple-backed `__get__`
   including CPython-style `None` owner handling and wrong-receiver diagnostics

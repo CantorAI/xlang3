@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys structseq constructor behavior for startup metadata
+sys getwindowsversion structseq reduce and constructor behavior
 ```
 
 Current next loop:

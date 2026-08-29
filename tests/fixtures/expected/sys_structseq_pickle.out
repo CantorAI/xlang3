@@ -30,6 +30,8 @@ sys-structseq-construct-diagnostic long ('TypeError', 'sys.int_info() takes a 4-
 sys-structseq-construct-diagnostic dict-extra ('TypeError', 'sys.int_info() got duplicate or unexpected field name(s)')
 sys-structseq-construct-keyword True
 sys-structseq-construct-diagnostic duplicate-sequence ('TypeError', "argument for structseq() given by name ('sequence') and position (1)")
+sys-windowsversion-structseq True True True True True True True
+sys-windowsversion-noninstantiable ('TypeError', "cannot create 'sys.getwindowsversion' instances")
 sys-structseq-method-meta __getnewargs__ __getnewargs__ flags.__getnewargs__ True True ($self, /)
 sys-structseq-method-meta __reduce__ __reduce__ flags.__reduce__ True True ($self, /)
 sys-structseq-method-meta __reduce_ex__ __reduce_ex__ flags.__reduce_ex__ True False ($self, protocol, /)

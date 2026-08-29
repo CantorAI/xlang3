@@ -275,3 +275,7 @@ shape the next iteration.
   `hash_info`, and `thread_info` reconstruct from a sequence plus optional
   named-field dict. Pickle payload support is incomplete unless the exposed
   constructor path accepts the same shape.
+- Windows `sys.getwindowsversion` is another non-instantiable `sys` structseq,
+  but its `__reduce__()` and `__reduce_ex__()` payloads still include named-only
+  fields such as `platform_version`. Do not infer constructibility from reduce
+  support.
