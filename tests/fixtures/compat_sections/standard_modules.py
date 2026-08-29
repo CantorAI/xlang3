@@ -803,6 +803,18 @@ print(sys._is_interned(sys_intern_identifier_literal), sys._is_interned(sys_inte
 unicode_interned_before = sys.getunicodeinternedsize()
 sys.intern("interned-size-probe")
 print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "CPython", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
+sys_stdlib_names = sys.stdlib_module_names
+print(
+    "sys-stdlib-module-names",
+    type(sys_stdlib_names).__name__ == "frozenset",
+    isinstance(sys_stdlib_names, frozenset),
+    len(sys_stdlib_names) == 297,
+    all(name in sys_stdlib_names for name in ("abc", "asyncio", "collections", "concurrent", "email", "sys", "time", "zipimport")),
+    "xml" in sys_stdlib_names,
+    "xml.etree" not in sys_stdlib_names,
+    "pip" not in sys_stdlib_names,
+    not hasattr(sys_stdlib_names, "add"),
+)
 unicode_interned_total = sys.getunicodeinternedsize()
 unicode_interned_nonimmortal = sys.getunicodeinternedsize(_only_immortal=False)
 unicode_interned_immortal = sys.getunicodeinternedsize(_only_immortal=True)

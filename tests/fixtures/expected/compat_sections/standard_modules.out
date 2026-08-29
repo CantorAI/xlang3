@@ -192,6 +192,7 @@ sys-getsizeof-keyword keyword-unexpected True
 True True False
 True False False True
 True True True True True True True
+sys-stdlib-module-names True True True True True True True True
 sys-getunicodeinternedsize-only-immortal True True True True True
 sys-getunicodeinternedsize-keyword True True
 sys-getunicodeinternedsize-diagnostic two-pos True True

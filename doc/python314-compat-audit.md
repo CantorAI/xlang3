@@ -384,6 +384,10 @@ Recent completed batches:
   The `frozenset` builtin now remains a class for `isinstance(...,
   frozenset)` probes while using a VM-backed constructor that returns immutable
   set storage.
+- Pinned Standard Modules fixture coverage for `sys.stdlib_module_names`:
+  the Python 3.14 top-level standard-library name set is now asserted as a
+  297-entry `frozenset`, with representative package/module membership,
+  dotted-submodule and third-party exclusions, and no mutable set API.
 - Expanded native `sys` async-generator hook configuration: added
   stateful `get_asyncgen_hooks()` / `set_asyncgen_hooks()` with positional
   and keyword updates, callable-or-`None` validation, and a structseq-like
