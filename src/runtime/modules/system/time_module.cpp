@@ -34,6 +34,8 @@ limitations under the License.
 
 #if defined(_WIN32)
 #include <cstdlib>
+#define NOMINMAX
+#include <windows.h>
 #endif
 
 namespace xlang3 {
@@ -119,6 +121,65 @@ std::string time_type_name(const Value& value) {
 int64_t duration_to_ns(std::chrono::nanoseconds value) {
   return static_cast<int64_t>(value.count());
 }
+
+#if defined(_WIN32)
+constexpr uint64_t kUnixEpochFiletimeTicks = 116444736000000000ULL;
+
+uint64_t filetime_ticks(const FILETIME& value) {
+  ULARGE_INTEGER combined{};
+  combined.LowPart = value.dwLowDateTime;
+  combined.HighPart = value.dwHighDateTime;
+  return combined.QuadPart;
+}
+
+uint64_t precise_system_time_ticks() {
+  FILETIME now{};
+  GetSystemTimePreciseAsFileTime(&now);
+  return filetime_ticks(now) - kUnixEpochFiletimeTicks;
+}
+
+long double qpc_seconds() {
+  LARGE_INTEGER counter{};
+  LARGE_INTEGER frequency{};
+  QueryPerformanceCounter(&counter);
+  QueryPerformanceFrequency(&frequency);
+  return static_cast<long double>(counter.QuadPart) / static_cast<long double>(frequency.QuadPart);
+}
+
+uint64_t filetime_pair_ticks(const FILETIME& kernel_time, const FILETIME& user_time) {
+  return filetime_ticks(kernel_time) + filetime_ticks(user_time);
+}
+
+uint64_t process_cpu_ticks() {
+  FILETIME creation_time{};
+  FILETIME exit_time{};
+  FILETIME kernel_time{};
+  FILETIME user_time{};
+  if (!GetProcessTimes(GetCurrentProcess(), &creation_time, &exit_time, &kernel_time, &user_time)) {
+    return 0;
+  }
+  return filetime_pair_ticks(kernel_time, user_time);
+}
+
+uint64_t thread_cpu_ticks() {
+  FILETIME creation_time{};
+  FILETIME exit_time{};
+  FILETIME kernel_time{};
+  FILETIME user_time{};
+  if (!GetThreadTimes(GetCurrentThread(), &creation_time, &exit_time, &kernel_time, &user_time)) {
+    return 0;
+  }
+  return filetime_pair_ticks(kernel_time, user_time);
+}
+
+int64_t seconds_to_ns(long double seconds) {
+  return static_cast<int64_t>(seconds * 1000000000.0L);
+}
+
+int64_t filetime_ticks_to_ns(uint64_t ticks) {
+  return static_cast<int64_t>(ticks * 100ULL);
+}
+#endif
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   auto* string = value_as_string(value);
@@ -2177,8 +2238,12 @@ bool time_time(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::s
   if (!no_args(runtime, argc, "time.time", error)) {
     return false;
   }
+#if defined(_WIN32)
+  out = Value::number(static_cast<double>(precise_system_time_ticks()) / 10000000.0);
+#else
   const auto now = std::chrono::system_clock::now().time_since_epoch();
   out = Value::number(std::chrono::duration<double>(now).count());
+#endif
   return true;
 }
 
@@ -2186,8 +2251,12 @@ bool time_time_ns(Runtime& runtime, const Value*, uint32_t argc, Value& out, std
   if (!no_args(runtime, argc, "time.time_ns", error)) {
     return false;
   }
+#if defined(_WIN32)
+  value_set_int64(out, filetime_ticks_to_ns(precise_system_time_ticks()));
+#else
   value_set_int64(out, duration_to_ns(std::chrono::duration_cast<std::chrono::nanoseconds>(
                          std::chrono::system_clock::now().time_since_epoch())));
+#endif
   return true;
 }
 
@@ -2195,8 +2264,12 @@ bool time_monotonic(Runtime& runtime, const Value*, uint32_t argc, Value& out, s
   if (!no_args(runtime, argc, "time.monotonic", error)) {
     return false;
   }
+#if defined(_WIN32)
+  out = Value::number(static_cast<double>(qpc_seconds()));
+#else
   const auto now = std::chrono::steady_clock::now().time_since_epoch();
   out = Value::number(std::chrono::duration<double>(now).count());
+#endif
   return true;
 }
 
@@ -2204,8 +2277,12 @@ bool time_monotonic_ns(Runtime& runtime, const Value*, uint32_t argc, Value& out
   if (!no_args(runtime, argc, "time.monotonic_ns", error)) {
     return false;
   }
+#if defined(_WIN32)
+  value_set_int64(out, seconds_to_ns(qpc_seconds()));
+#else
   value_set_int64(out, duration_to_ns(std::chrono::duration_cast<std::chrono::nanoseconds>(
                          std::chrono::steady_clock::now().time_since_epoch())));
+#endif
   return true;
 }
 
@@ -2255,7 +2332,11 @@ bool time_process_time(Runtime& runtime, const Value*, uint32_t argc, Value& out
   if (!no_args(runtime, argc, "time.process_time", error)) {
     return false;
   }
+#if defined(_WIN32)
+  out = Value::number(static_cast<double>(process_cpu_ticks()) / 10000000.0);
+#else
   out = Value::number(static_cast<double>(std::clock()) / static_cast<double>(CLOCKS_PER_SEC));
+#endif
   return true;
 }
 
@@ -2263,8 +2344,12 @@ bool time_process_time_ns(Runtime& runtime, const Value*, uint32_t argc, Value& 
   if (!no_args(runtime, argc, "time.process_time_ns", error)) {
     return false;
   }
+#if defined(_WIN32)
+  value_set_int64(out, filetime_ticks_to_ns(process_cpu_ticks()));
+#else
   const auto ticks = static_cast<int64_t>(std::clock());
   value_set_int64(out, static_cast<int64_t>((static_cast<long double>(ticks) * 1000000000.0L) / CLOCKS_PER_SEC));
+#endif
   return true;
 }
 
@@ -2272,14 +2357,24 @@ bool time_thread_time(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (!no_args(runtime, argc, "time.thread_time", error)) {
     return false;
   }
+#if defined(_WIN32)
+  out = Value::number(static_cast<double>(thread_cpu_ticks()) / 10000000.0);
+  return true;
+#else
   return time_process_time(runtime, args, 0, out, error, user_data);
+#endif
 }
 
 bool time_thread_time_ns(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (!no_args(runtime, argc, "time.thread_time_ns", error)) {
     return false;
   }
+#if defined(_WIN32)
+  value_set_int64(out, filetime_ticks_to_ns(thread_cpu_ticks()));
+  return true;
+#else
   return time_process_time_ns(runtime, args, 0, out, error, user_data);
+#endif
 }
 
 bool time_get_clock_info(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2297,15 +2392,35 @@ bool time_get_clock_info(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   name = string_object_to_string(*name_string);
   if (name == "time") {
+#if defined(_WIN32)
+    out = make_clock_info(runtime, true, false, 1e-7, "GetSystemTimePreciseAsFileTime()");
+#else
     out = make_clock_info(runtime, true, false, 1e-9, "std::chrono::system_clock");
+#endif
     return true;
   }
   if (name == "monotonic" || name == "perf_counter") {
+#if defined(_WIN32)
+    out = make_clock_info(runtime, false, true, 1e-7, "QueryPerformanceCounter()");
+#else
     out = make_clock_info(runtime, false, true, 1e-9, "std::chrono::steady_clock");
+#endif
     return true;
   }
-  if (name == "process_time" || name == "thread_time") {
+  if (name == "process_time") {
+#if defined(_WIN32)
+    out = make_clock_info(runtime, false, true, 1e-7, "GetProcessTimes()");
+#else
     out = make_clock_info(runtime, false, true, 1.0 / static_cast<double>(CLOCKS_PER_SEC), "std::clock");
+#endif
+    return true;
+  }
+  if (name == "thread_time") {
+#if defined(_WIN32)
+    out = make_clock_info(runtime, false, true, 1e-7, "GetThreadTimes()");
+#else
+    out = make_clock_info(runtime, false, true, 1.0 / static_cast<double>(CLOCKS_PER_SEC), "std::clock");
+#endif
     return true;
   }
   error = "unknown clock";

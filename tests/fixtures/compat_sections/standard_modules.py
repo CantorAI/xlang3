@@ -2337,6 +2337,19 @@ print(
     "adjustable=False" in clock_info_repr,
     "resolution=" in clock_info_repr,
 )
+if sys.platform == "win32":
+    windows_clock_infos = {name: time.get_clock_info(name) for name in ("time", "monotonic", "perf_counter", "process_time", "thread_time")}
+    print(
+        "time-clock-info-windows",
+        windows_clock_infos["time"].implementation == "GetSystemTimePreciseAsFileTime()",
+        windows_clock_infos["monotonic"].implementation == "QueryPerformanceCounter()",
+        windows_clock_infos["perf_counter"].implementation == "QueryPerformanceCounter()",
+        windows_clock_infos["process_time"].implementation == "GetProcessTimes()",
+        windows_clock_infos["thread_time"].implementation == "GetThreadTimes()",
+        all(info.resolution == 1e-7 for info in windows_clock_infos.values()),
+        windows_clock_infos["time"].adjustable is True and windows_clock_infos["time"].monotonic is False,
+        all(windows_clock_infos[name].adjustable is False and windows_clock_infos[name].monotonic is True for name in ("monotonic", "perf_counter", "process_time", "thread_time")),
+    )
 time_function_names = (
     "time",
     "time_ns",

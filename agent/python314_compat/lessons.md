@@ -303,3 +303,7 @@ shape the next iteration.
   immortal interned-string subset, not the live set of strings later added by
   `sys.intern()`. Track string immortality as object metadata instead of
   recomputing it from text shape or current interning state.
+- `time.get_clock_info()` is a contract for the actual clock primitive as well
+  as metadata. On Windows, route the public time/process/thread clocks through
+  the same OS APIs named in the CPython-visible implementation field instead of
+  publishing CPython-shaped backend names over generic C++ clock calls.

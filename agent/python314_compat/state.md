@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-CPython-shaped sys interned-string immortal count probes
+Windows-backed CPython-shaped time clock primitives and get_clock_info metadata
 ```
 
 Current next loop:

@@ -634,6 +634,7 @@ sys-exception-exit-docs True True True True
 True True True True True
 True False True True
 SimpleNamespace types SimpleNamespace True True True True True
+time-clock-info-windows True True True True True True True True
 True True True
 time-docs True True True True True True True
 time-text-signatures True True

@@ -1164,7 +1164,8 @@ Native or runtime-backed foundation:
   public callable metadata including CPython-shaped docs/text signatures and no-argument/keyword `TypeError` diagnostics naming each public API, `get_clock_info`
   with CPython-style `types.SimpleNamespace` type `__module__`/`__qualname__`/doc
   metadata and namespace repr plus arity/type/keyword/unknown-clock
-  diagnostics,
+  diagnostics and Windows CPython-shaped backend names/resolution for `time`,
+  `monotonic`, `perf_counter`, `process_time`, and `thread_time`,
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/keyword/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
   arguments plus CPython-style arity/type/keyword/non-finite diagnostics, `mktime` bool fields in
