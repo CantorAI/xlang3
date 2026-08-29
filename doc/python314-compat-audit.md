@@ -1101,7 +1101,7 @@ Native or runtime-backed foundation:
   keyword `TypeError` diagnostics,
   CPython-style runtime/config/frame/cache no-argument helper metadata including
   frame helper docs and frame/runtime/cache helper text signatures including CPU-count, remote-debug,
-  cache-clear/type-descriptor, and finalization helpers and Windows
+  cache-clear/type-descriptor helper docs, and finalization helpers and Windows
   `getwindowsversion` docs,
   catchable CPython-style `TypeError` arity failures for no-argument
   runtime/config/frame/cache/JIT probes plus keyword failures for covered
