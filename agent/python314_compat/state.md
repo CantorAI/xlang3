@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-zipimporter archive-backed exec_module execution
+zipimporter loader create_module/invalidate_caches protocol
 ```
 
 Current next loop:

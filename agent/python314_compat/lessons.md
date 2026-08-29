@@ -238,3 +238,6 @@ shape the next iteration.
 - Visible startup containers can intentionally differ from internal runtime
   search roots. For `-c`, publish CPython's empty-string `sys.path[0]` sentinel
   while preserving the resolved cwd import root for actual module lookup.
+- Import loader compatibility includes protocol no-ops such as
+  `create_module()` and `invalidate_caches()`. Add them to the real loader
+  object when `find_spec()` exposes that object through `ModuleSpec.loader`.

@@ -190,6 +190,24 @@ bool zipimporter_find_module(Runtime&, const Value*, uint32_t argc, Value& out, 
   return true;
 }
 
+bool zipimporter_create_module(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "zipimporter.create_module expected spec";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool zipimporter_invalidate_caches(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "zipimporter.invalidate_caches expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool zipimporter_get_filename(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.get_filename expected fullname";
@@ -495,6 +513,8 @@ Value make_zipimporter_class(Runtime& runtime) {
   attrs.push_back({"__init__", runtime.make_native_function("zipimport.zipimporter.__init__", zipimporter_init)});
   attrs.push_back({"find_spec", runtime.make_native_function("zipimport.zipimporter.find_spec", zipimporter_find_spec)});
   attrs.push_back({"find_module", runtime.make_native_function("zipimport.zipimporter.find_module", zipimporter_find_module)});
+  attrs.push_back({"create_module", runtime.make_native_function("zipimport.zipimporter.create_module", zipimporter_create_module)});
+  attrs.push_back({"invalidate_caches", runtime.make_native_function("zipimport.zipimporter.invalidate_caches", zipimporter_invalidate_caches)});
   attrs.push_back({"get_filename", runtime.make_native_function("zipimport.zipimporter.get_filename", zipimporter_get_filename)});
   attrs.push_back({"get_data", runtime.make_native_function("zipimport.zipimporter.get_data", zipimporter_get_data)});
   attrs.push_back({"get_code", runtime.make_native_function("zipimport.zipimporter.get_code", zipimporter_get_code)});

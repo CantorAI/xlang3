@@ -57,6 +57,8 @@ try:
         importer.get_source(module_name) == "VALUE = 314\n",
         type(module_code).__name__ == "code",
         module_code.co_filename.endswith(module_name + ".py"),
+        importer.create_module(module_spec) is None,
+        importer.invalidate_caches() is None,
         importer.is_package(module_name),
     )
     print(
