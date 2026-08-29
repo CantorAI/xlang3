@@ -2361,6 +2361,16 @@ print(
     all(getattr(time, name).__module__ == "time" for name in time_function_names),
     all(isinstance(getattr(time, name).__doc__, str) and len(getattr(time, name).__doc__) > 0 for name in time_function_names),
 )
+print(
+    "time-docs",
+    time.time.__doc__.startswith("time() -> floating-point number\n\nReturn the current time"),
+    time.time_ns.__doc__ == "time_ns() -> int\n\nReturn the current time in nanoseconds since the Epoch.",
+    time.process_time_ns.__doc__.startswith("process_time() -> int\n\nProcess time for profiling as nanoseconds:"),
+    "UTC (a.k.a.\nGMT)" in time.gmtime.__doc__,
+    "floating-point number for subsecond precision" in time.sleep.__doc__,
+    "mktime(gmtime(0)) will not generally return zero" in time.mktime.__doc__,
+    time.asctime.__doc__.endswith("is used."),
+)
 time_text_signatures = {
     "time": "($self, /)",
     "time_ns": "($self, /)",

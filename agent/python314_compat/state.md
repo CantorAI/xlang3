@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time callable text signatures
+time callable docs and text signatures
 ```
 
 Current next loop:

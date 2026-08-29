@@ -184,3 +184,11 @@ shape the next iteration.
   overload keyword-diagnostic `user_data` with `__text_signature__`; store text
   signatures explicitly in the native attrs dict and keep CPython-normal `None`
   for helpers that do not expose one.
+- Native callable docs can contain CPython quirks that do not follow from the
+  visible function name. For example, Python 3.14 reports
+  `process_time() -> int` for `time.process_time_ns.__doc__`, so probe docs
+  directly and fixture stable substrings or exact short docs.
+- The Standard Modules section runs close to the fixed 60-second full-suite
+  case timeout. If full validation times out there after the selected section
+  passes, stop new feature work, rerun the fixed selected comparison to isolate
+  marginal duration versus hang, and only rerun full validation after that check.
