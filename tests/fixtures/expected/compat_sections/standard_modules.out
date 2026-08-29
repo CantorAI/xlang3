@@ -678,6 +678,7 @@ time-mktime-diagnostic extra True
 time-mktime-diagnostic keyword True
 time-mktime-diagnostic type True
 time-mktime-diagnostic list-type True
+time-mktime-diagnostic attr-instance-type True
 time-mktime-diagnostic tuple-short True
 time-mktime-diagnostic tuple-long True
 time-mktime-diagnostic field-type True
@@ -686,6 +687,7 @@ time-asctime-diagnostic extra True
 time-asctime-diagnostic keyword True
 time-asctime-diagnostic type True
 time-asctime-diagnostic list-type True
+time-asctime-diagnostic attr-instance-type True
 time-asctime-diagnostic tuple-short True
 time-asctime-diagnostic tuple-long True
 time-asctime-diagnostic field-type True
@@ -698,6 +700,7 @@ time-strftime-diagnostic keyword True
 time-strftime-diagnostic format-type True
 time-strftime-diagnostic tuple-type True
 time-strftime-diagnostic list-type True
+time-strftime-diagnostic attr-instance-type True
 time-strftime-diagnostic tuple-short True
 time-strftime-diagnostic tuple-long True
 time-strftime-diagnostic field-type True

@@ -1658,34 +1658,24 @@ bool time_struct_time_repr_kw(
   return false;
 }
 
-bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error) {
+bool is_exact_struct_time_instance(const Value& value, const TimeModuleState* state) {
+  auto* instance = value_as_instance(value);
+  return instance != nullptr && state != nullptr && instance->klass.tag == state->struct_time_class.tag &&
+         instance->klass.as.obj == state->struct_time_class.as.obj;
+}
+
+bool tm_from_sequence_like(const Value& value, const TimeModuleState* state, std::tm& out, std::string& error) {
   std::vector<Value> items;
   if (auto* tuple = value_as_tuple(value)) {
     items = tuple->items;
-  } else if (value_as_instance(value) != nullptr) {
-    static const char* names[] = {
-        "tm_year",
-        "tm_mon",
-        "tm_mday",
-        "tm_hour",
-        "tm_min",
-        "tm_sec",
-        "tm_wday",
-        "tm_yday",
-        "tm_isdst",
-    };
-    items.reserve(9);
-    for (const char* name : names) {
-      Value attr;
-      std::string attr_error;
-      if (!object_get_attr(value, name, attr, attr_error)) {
-        error = "time tuple must have 9 elements";
-        return false;
-      }
-      items.push_back(std::move(attr));
+  } else if (is_exact_struct_time_instance(value, state)) {
+    TupleObject* tuple = nullptr;
+    if (!struct_time_tuple_storage(value, "__iter__", tuple, error)) {
+      return false;
     }
+    items = tuple->items;
   } else {
-    error = "time tuple must be tuple, list, or struct_time";
+    error = "Tuple or struct_time argument required";
     return false;
   }
   if (items.size() < 9) {
@@ -2301,15 +2291,16 @@ bool time_gmtime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "time.mktime() takes exactly one argument (" + std::to_string(argc) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::tm tm{};
-  if (!tm_from_sequence_like(args[0], tm, error)) {
-    if (value_as_tuple(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
+  auto* state = static_cast<TimeModuleState*>(user_data);
+  if (!tm_from_sequence_like(args[0], state, tm, error)) {
+    if (value_as_tuple(args[0]) == nullptr && !is_exact_struct_time_instance(args[0], state)) {
       error = "Tuple or struct_time argument required";
     } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
       error = "mktime(): illegal time tuple argument";
@@ -2326,7 +2317,7 @@ bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 1) {
     error = "strftime() takes at least 1 argument (0 given)";
     runtime.raise_class_error("TypeError", error);
@@ -2347,8 +2338,9 @@ bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   format = string_object_to_string(*format_string);
   std::tm tm{};
   if (argc == 2) {
-    if (!tm_from_sequence_like(args[1], tm, error)) {
-      if (value_as_tuple(args[1]) == nullptr && value_as_instance(args[1]) == nullptr) {
+    auto* state = static_cast<TimeModuleState*>(user_data);
+    if (!tm_from_sequence_like(args[1], state, tm, error)) {
+      if (value_as_tuple(args[1]) == nullptr && !is_exact_struct_time_instance(args[1], state)) {
         error = "Tuple or struct_time argument required";
       } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
         error = "strftime(): illegal time tuple argument";
@@ -2568,7 +2560,7 @@ bool time_strftime_kw(
   return time_strftime(runtime, args, argc, out, error, user_data);
 }
 
-bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc > 1) {
     error = "asctime expected at most 1 argument, got " + std::to_string(argc);
     runtime.raise_class_error("TypeError", error);
@@ -2578,8 +2570,9 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (argc == 0) {
     tm = tm_from_time_t(std::time(nullptr), false);
   } else {
-    if (!tm_from_sequence_like(args[0], tm, error)) {
-      if (value_as_tuple(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
+    auto* state = static_cast<TimeModuleState*>(user_data);
+    if (!tm_from_sequence_like(args[0], state, tm, error)) {
+      if (value_as_tuple(args[0]) == nullptr && !is_exact_struct_time_instance(args[0], state)) {
         error = "Tuple or struct_time argument required";
       } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
         error = "asctime(): illegal time tuple argument";
@@ -2840,16 +2833,16 @@ void register_time_module(Runtime& runtime) {
                            "Convert seconds since the Epoch to UTC.", state, time_gmtime_kw))
       .value("mktime", time_native_function(
                            runtime, "time.mktime", "mktime", time_mktime,
-                           "Convert a time tuple in local time to seconds since the Epoch.", nullptr, time_mktime_kw))
+                           "Convert a time tuple in local time to seconds since the Epoch.", state, time_mktime_kw))
       .value("strftime", time_native_function(
                              runtime, "time.strftime", "strftime", time_strftime,
-                             "Format a time tuple according to a format specification.", nullptr, time_strftime_kw))
+                             "Format a time tuple according to a format specification.", state, time_strftime_kw))
       .value("strptime", time_native_function(
                              runtime, "time.strptime", "strptime", time_strptime,
                              "Parse a string to a time tuple according to a format specification.", state, time_strptime_kw))
       .value("asctime", time_native_function(
                             runtime, "time.asctime", "asctime", time_asctime,
-                            "Convert a time tuple to a string.", nullptr, time_asctime_kw))
+                            "Convert a time tuple to a string.", state, time_asctime_kw))
       .value("ctime", time_native_function(
                          runtime, "time.ctime", "ctime", time_ctime,
                          "Convert a time in seconds since the Epoch to a string in local time.", nullptr, time_ctime_kw))

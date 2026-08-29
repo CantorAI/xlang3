@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time tuple-consumer list rejection
+time tuple-consumer attr-only instance rejection
 ```
 
 Current next loop:

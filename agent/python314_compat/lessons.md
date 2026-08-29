@@ -137,3 +137,6 @@ shape the next iteration.
 - Time tuple consumers and `time.struct_time` construction have different
   accepted input types as well as lengths: `mktime`/`strftime`/`asctime`
   reject lists, while `struct_time` construction accepts sequence inputs.
+- Attribute-compatible objects are not always acceptable to CPython C-style
+  APIs. `mktime`/`strftime`/`asctime` require a tuple or exact `time.struct_time`
+  instance, not an arbitrary object with `tm_*` fields.

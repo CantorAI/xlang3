@@ -1134,11 +1134,12 @@ Native or runtime-backed foundation:
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/keyword/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
   arguments plus CPython-style arity/type/keyword/non-finite diagnostics, `mktime` bool fields in
-  time tuples plus CPython-style arity/type/keyword/tuple-shape/field-type diagnostics, `strftime` with
-  CPython-style arity/type/keyword/time-tuple/field-type diagnostics, `strptime` with
+  time tuples plus CPython-style arity/type/keyword/tuple-shape/field-type and attr-only instance
+  rejection diagnostics, `strftime` with
+  CPython-style arity/type/keyword/time-tuple/field-type and attr-only instance rejection diagnostics, `strptime` with
   CPython-style entry-point arity/type/keyword diagnostics,
   `asctime` CPython-style default current-local-time behavior and
-  arity/type/keyword/time-tuple/field-type diagnostics,
+  arity/type/keyword/time-tuple/field-type plus attr-only instance rejection diagnostics,
   `asctime`/`ctime` CPython-style C-locale
   formatting including space-padded single-digit month days, `strftime` CPython-normal Windows
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`
