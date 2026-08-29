@@ -91,6 +91,7 @@ constexpr int64_t kMonitoringEventMask =
     kMonitoringEventReraise | kMonitoringEventCReturn | kMonitoringEventCRaise |
     kMonitoringEventBranch;
 constexpr int64_t kGetSizeofObjectOverhead = 32;
+constexpr const char* kSysStdioNativeType = "sys.TextIOWrapper";
 
 struct MonitoringCodeKey {
   const ir::Module* module = nullptr;
@@ -914,7 +915,26 @@ bool sys_path_arg(Runtime& runtime, const Value& value, std::string& out, std::s
   return false;
 }
 
-bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+const char* sys_stdio_kind(const Value& self) {
+  return static_cast<const char*>(instance_get_native_data(self, kSysStdioNativeType));
+}
+
+bool sys_stdio_no_keyword_args(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void* user_data) {
+  const char* method = static_cast<const char*>(user_data);
+  error = std::string("TextIOWrapper.") + method + "() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "stdio.write() expected data";
     runtime.raise_class_error("TypeError", error);
@@ -930,8 +950,8 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     }
     data += part;
   }
-  const char* kind = static_cast<const char*>(user_data);
-  if (std::string(kind) == "stderr") {
+  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
+  if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
   } else {
     std::cout.write(data.data(), static_cast<std::streamsize>(data.size()));
@@ -998,13 +1018,14 @@ bool sys_stdio_readline(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
-bool sys_stdio_flush(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool raise_stdio_no_args_type_error(Runtime& runtime, std::string& error, const char* method, uint32_t argc);
+
+bool sys_stdio_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "stdio.flush() expected no arguments";
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "flush", argc);
   }
-  const char* kind = static_cast<const char*>(user_data);
-  if (std::string(kind) == "stderr") {
+  const char* kind = sys_stdio_kind(args[0]);
+  if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.flush();
   } else {
     std::cout.flush();
@@ -1013,10 +1034,9 @@ bool sys_stdio_flush(Runtime&, const Value*, uint32_t argc, Value& out, std::str
   return true;
 }
 
-bool sys_stdio_close(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool sys_stdio_close(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "stdio.close() expected no arguments";
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "close", argc);
   }
   value_set_none(out);
   return true;
@@ -1037,21 +1057,21 @@ bool sys_stdio_isatty(Runtime& runtime, const Value*, uint32_t argc, Value& out,
   return true;
 }
 
-bool sys_stdio_readable(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool sys_stdio_readable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     return raise_stdio_no_args_type_error(runtime, error, "readable", argc);
   }
-  const char* kind = static_cast<const char*>(user_data);
-  value_set_bool(out, std::string(kind) == "stdin");
+  const char* kind = sys_stdio_kind(args[0]);
+  value_set_bool(out, kind != nullptr && std::string(kind) == "stdin");
   return true;
 }
 
-bool sys_stdio_writable(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool sys_stdio_writable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     return raise_stdio_no_args_type_error(runtime, error, "writable", argc);
   }
-  const char* kind = static_cast<const char*>(user_data);
-  value_set_bool(out, std::string(kind) != "stdin");
+  const char* kind = sys_stdio_kind(args[0]);
+  value_set_bool(out, kind == nullptr || std::string(kind) != "stdin");
   return true;
 }
 
@@ -1063,13 +1083,12 @@ bool sys_stdio_seekable(Runtime& runtime, const Value*, uint32_t argc, Value& ou
   return true;
 }
 
-bool sys_stdio_fileno(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool sys_stdio_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
-    error = "stdio.fileno() expected no arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return raise_stdio_no_args_type_error(runtime, error, "fileno", argc);
   }
-  const std::string kind = static_cast<const char*>(user_data);
+  const char* kind_text = sys_stdio_kind(args[0]);
+  const std::string kind = kind_text == nullptr ? "stdout" : kind_text;
   if (kind == "stdin") {
     value_set_int64(out, 0);
   } else if (kind == "stdout") {
@@ -1080,10 +1099,19 @@ bool sys_stdio_fileno(Runtime& runtime, const Value*, uint32_t argc, Value& out,
   return true;
 }
 
-Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind) {
+Value make_sys_stdio_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_io")});
+  attrs.push_back({"__qualname__", Value::string("TextIOWrapper")});
   auto stdio_method = [&](const char* method, NativeFunctionCallback callback) {
-    Value function = runtime.make_native_function(std::string("sys.") + kind + "." + method, callback, const_cast<char*>(kind));
+    Value function = runtime.make_native_function(
+        std::string("_io.TextIOWrapper.") + method,
+        callback,
+        const_cast<char*>(method),
+        nullptr,
+        nullptr,
+        false,
+        sys_stdio_no_keyword_args);
     if (auto* native = value_as_native_function(function)) {
       native->attrs_dict = new Value(Value::dict({
           {Value::string("__name__"), Value::string(method)},
@@ -1102,15 +1130,24 @@ Value make_sys_stdio(Runtime& runtime, const char* class_name, const char* kind)
   attrs.push_back({"writable", stdio_method("writable", sys_stdio_writable)});
   attrs.push_back({"seekable", stdio_method("seekable", sys_stdio_seekable)});
   attrs.push_back({"fileno", stdio_method("fileno", sys_stdio_fileno)});
-  Value klass = Value::class_object(class_name, std::move(attrs));
+  return Value::class_object("TextIOWrapper", std::move(attrs));
+}
+
+Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
   Value stream = Value::instance(klass);
   std::string ignored;
+  instance_set_native_data(stream, kSysStdioNativeType, const_cast<char*>(kind), nullptr, ignored);
   object_set_attr(stream, "encoding", Value::string("utf-8"), ignored);
   object_set_attr(stream, "errors", Value::string("strict"), ignored);
+  object_set_attr(stream, "name", Value::string(std::string("<") + kind + ">"), ignored);
+  object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "r" : "w"), ignored);
+  object_set_attr(stream, "newlines", Value::none(), ignored);
+  object_set_attr(stream, "write_through", Value::boolean(false), ignored);
   object_set_attr(stream, "buffer", stream, ignored);
   object_set_attr(stream, "closed", Value::boolean(false), ignored);
-  object_set_attr(stream, "line_buffering", Value::boolean(true), ignored);
-  object_set_attr(stream, "_line_buffering", Value::boolean(true), ignored);
+  const bool line_buffering = std::string(kind) != "stdout";
+  object_set_attr(stream, "line_buffering", Value::boolean(line_buffering), ignored);
+  object_set_attr(stream, "_line_buffering", Value::boolean(line_buffering), ignored);
   return stream;
 }
 
@@ -3240,9 +3277,10 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "builtin_module_names", make_builtin_module_names(), error);
   module_set_attr(sys, "stdlib_module_names", make_stdlib_module_names(), error);
   module_set_attr(sys, "modules", modules_ref, error);
-  Value stdin_stream = make_sys_stdio(runtime, "_XLang3Stdin", "stdin");
-  Value stdout_stream = make_sys_stdio(runtime, "_XLang3Stdout", "stdout");
-  Value stderr_stream = make_sys_stdio(runtime, "_XLang3Stderr", "stderr");
+  Value stdio_class = make_sys_stdio_class(runtime);
+  Value stdin_stream = make_sys_stdio(runtime, stdio_class, "stdin");
+  Value stdout_stream = make_sys_stdio(runtime, stdio_class, "stdout");
+  Value stderr_stream = make_sys_stdio(runtime, stdio_class, "stderr");
   module_set_attr(sys, "stdin", stdin_stream, error);
   module_set_attr(sys, "stdout", stdout_stream, error);
   module_set_attr(sys, "stderr", stderr_stream, error);

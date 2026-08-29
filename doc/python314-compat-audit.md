@@ -949,7 +949,10 @@ documented here.
 Native or runtime-backed foundation:
 
 - [~] `sys`: `modules`, `exc_info`/`exception` with CPython-style no-argument
-  and keyword `TypeError` diagnostics, stdio objects, argv/orig_argv/path/import-cache containers
+  and keyword `TypeError` diagnostics, stdio objects including shared `_io.TextIOWrapper`
+  type metadata, CPython-style stream `name`/`mode`/`newlines`/`write_through`/
+  `line_buffering` startup attrs, and catchable keyword `TypeError` diagnostics
+  for common stdio methods, argv/orig_argv/path/import-cache containers
   including CPython-style bootstrap `meta_path` finder objects and the real `zipimporter` path hook,
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/

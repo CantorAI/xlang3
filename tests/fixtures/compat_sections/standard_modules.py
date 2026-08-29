@@ -898,6 +898,31 @@ print(
     all(getattr(stream, name).__qualname__ == "TextIOWrapper." + name for stream in stdio_streams for name in stdio_method_names),
     all(getattr(getattr(stream, name), "__module__", None) is None and getattr(getattr(stream, name), "__doc__", None) is None for stream in stdio_streams for name in stdio_method_names),
 )
+print(
+    type(sys.stdin) is type(sys.stdout) is type(sys.stderr),
+    type(sys.stdin).__name__,
+    type(sys.stdin).__module__,
+    type(sys.stdin).__qualname__,
+    repr(type(sys.stdin)),
+)
+print(
+    (sys.stdin.name, sys.stdin.mode, sys.stdin.line_buffering, sys.stdin.write_through, sys.stdin.newlines),
+    (sys.stdout.name, sys.stdout.mode, sys.stdout.line_buffering, sys.stdout.write_through, sys.stdout.newlines),
+    (sys.stderr.name, sys.stderr.mode, sys.stderr.line_buffering, sys.stderr.write_through, sys.stderr.newlines),
+)
+sys_stdio_keyword_count = 0
+for sys_stdio_stream in stdio_streams:
+    for sys_stdio_method_name in stdio_method_names:
+        try:
+            getattr(sys_stdio_stream, sys_stdio_method_name)(x=1)
+        except TypeError as err:
+            sys_stdio_keyword_message = str(err)
+            if (
+                "TextIOWrapper." + sys_stdio_method_name in sys_stdio_keyword_message
+                and "takes no keyword arguments" in sys_stdio_keyword_message
+            ):
+                sys_stdio_keyword_count += 1
+print("sys-stdio-keyword-typeerrors", sys_stdio_keyword_count, len(stdio_streams) * len(stdio_method_names))
 for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
     ("stdin-readable", lambda: sys.stdin.readable(1), ("TextIOWrapper.readable", "takes no arguments", "1 given")),
     ("stdin-writable", lambda: sys.stdin.writable(1), ("TextIOWrapper.writable", "takes no arguments", "1 given")),
