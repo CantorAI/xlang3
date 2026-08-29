@@ -180,3 +180,7 @@ shape the next iteration.
 - `sys.displayhook` clears `builtins._` before invoking `repr(obj)`, not after.
   Protocol callbacks can observe hook state, so fixture both the callback-visible
   state and the final `_` value when changing displayhook ordering.
+- Native function metadata often has multiple CPython-visible channels. Do not
+  overload keyword-diagnostic `user_data` with `__text_signature__`; store text
+  signatures explicitly in the native attrs dict and keep CPython-normal `None`
+  for helpers that do not expose one.

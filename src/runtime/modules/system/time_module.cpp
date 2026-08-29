@@ -68,15 +68,20 @@ Value time_native_function(
     const std::string& doc,
     void* user_data = nullptr,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
-    const std::string& qualname_override = "") {
+    const std::string& qualname_override = "",
+    const std::string& text_signature = "") {
   Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
-    native->attrs_dict = new Value(Value::dict({
+    std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string("time")},
         {Value::string("__name__"), Value::string(function_name)},
         {Value::string("__qualname__"), Value::string(qualname_override.empty() ? function_name : qualname_override)},
         {Value::string("__doc__"), Value::string(doc)},
-    }));
+    };
+    if (!text_signature.empty()) {
+      attrs.emplace_back(Value::string("__text_signature__"), Value::string(text_signature));
+    }
+    native->attrs_dict = new Value(Value::dict(std::move(attrs)));
   }
   return function;
 }
@@ -2792,40 +2797,51 @@ void register_time_module(Runtime& runtime) {
   builder
       .value("time", time_native_function(
                          runtime, "time.time", "time", time_time,
-                         "Return the current time in seconds since the Epoch.", const_cast<char*>("time.time"), time_reject_keywords_kw))
+                         "Return the current time in seconds since the Epoch.", const_cast<char*>("time.time"), time_reject_keywords_kw,
+                         "", "($self, /)"))
       .value("time_ns", time_native_function(
                             runtime, "time.time_ns", "time_ns", time_time_ns,
-                            "Return the current time in nanoseconds since the Epoch.", const_cast<char*>("time.time_ns"), time_reject_keywords_kw))
+                            "Return the current time in nanoseconds since the Epoch.", const_cast<char*>("time.time_ns"), time_reject_keywords_kw,
+                            "", "($self, /)"))
       .value("monotonic", time_native_function(
                               runtime, "time.monotonic", "monotonic", time_monotonic,
-                              "Monotonic clock, cannot go backward.", const_cast<char*>("time.monotonic"), time_reject_keywords_kw))
+                              "Monotonic clock, cannot go backward.", const_cast<char*>("time.monotonic"), time_reject_keywords_kw,
+                              "", "($self, /)"))
       .value("monotonic_ns", time_native_function(
                                  runtime, "time.monotonic_ns", "monotonic_ns", time_monotonic_ns,
-                                 "Monotonic clock, cannot go backward, as nanoseconds.", const_cast<char*>("time.monotonic_ns"), time_reject_keywords_kw))
+                                 "Monotonic clock, cannot go backward, as nanoseconds.", const_cast<char*>("time.monotonic_ns"), time_reject_keywords_kw,
+                                 "", "($self, /)"))
       .value("perf_counter", time_native_function(
                                  runtime, "time.perf_counter", "perf_counter", time_perf_counter,
-                                 "Performance counter for benchmarking.", const_cast<char*>("time.perf_counter"), time_reject_keywords_kw))
+                                 "Performance counter for benchmarking.", const_cast<char*>("time.perf_counter"), time_reject_keywords_kw,
+                                 "", "($self, /)"))
       .value("perf_counter_ns", time_native_function(
                                     runtime, "time.perf_counter_ns", "perf_counter_ns", time_perf_counter_ns,
-                                    "Performance counter for benchmarking, as nanoseconds.", const_cast<char*>("time.perf_counter_ns"), time_reject_keywords_kw))
+                                    "Performance counter for benchmarking, as nanoseconds.", const_cast<char*>("time.perf_counter_ns"), time_reject_keywords_kw,
+                                    "", "($self, /)"))
       .value("process_time", time_native_function(
                                  runtime, "time.process_time", "process_time", time_process_time,
-                                 "Process time for profiling.", const_cast<char*>("time.process_time"), time_reject_keywords_kw))
+                                 "Process time for profiling.", const_cast<char*>("time.process_time"), time_reject_keywords_kw,
+                                 "", "($self, /)"))
       .value("process_time_ns", time_native_function(
                                     runtime, "time.process_time_ns", "process_time_ns", time_process_time_ns,
-                                    "Process time for profiling, as nanoseconds.", const_cast<char*>("time.process_time_ns"), time_reject_keywords_kw))
+                                    "Process time for profiling, as nanoseconds.", const_cast<char*>("time.process_time_ns"), time_reject_keywords_kw,
+                                    "", "($self, /)"))
       .value("thread_time", time_native_function(
                                 runtime, "time.thread_time", "thread_time", time_thread_time,
-                                "Thread time for profiling.", const_cast<char*>("time.thread_time"), time_reject_keywords_kw))
+                                "Thread time for profiling.", const_cast<char*>("time.thread_time"), time_reject_keywords_kw,
+                                "", "($self, /)"))
       .value("thread_time_ns", time_native_function(
                                    runtime, "time.thread_time_ns", "thread_time_ns", time_thread_time_ns,
-                                   "Thread time for profiling, as nanoseconds.", const_cast<char*>("time.thread_time_ns"), time_reject_keywords_kw))
+                                   "Thread time for profiling, as nanoseconds.", const_cast<char*>("time.thread_time_ns"), time_reject_keywords_kw,
+                                   "", "($self, /)"))
       .value("get_clock_info", time_native_function(
                                    runtime, "time.get_clock_info", "get_clock_info", time_get_clock_info,
                                    "Get information about the specified clock.", const_cast<char*>("get_clock_info"), time_reject_keywords_kw))
       .value("sleep", time_native_function(
                           runtime, "time.sleep", "sleep", time_sleep,
-                          "Delay execution for a given number of seconds.", nullptr, time_sleep_kw))
+                          "Delay execution for a given number of seconds.", nullptr, time_sleep_kw,
+                          "", "($self, object, /)"))
       .value("localtime", time_native_function(
                               runtime, "time.localtime", "localtime", time_localtime,
                               "Convert seconds since the Epoch to local time.", state, time_localtime_kw))
@@ -2834,7 +2850,8 @@ void register_time_module(Runtime& runtime) {
                            "Convert seconds since the Epoch to UTC.", state, time_gmtime_kw))
       .value("mktime", time_native_function(
                            runtime, "time.mktime", "mktime", time_mktime,
-                           "Convert a time tuple in local time to seconds since the Epoch.", state, time_mktime_kw))
+                           "Convert a time tuple in local time to seconds since the Epoch.", state, time_mktime_kw,
+                           "", "($self, object, /)"))
       .value("strftime", time_native_function(
                              runtime, "time.strftime", "strftime", time_strftime,
                              "Format a time tuple according to a format specification.", state, time_strftime_kw))

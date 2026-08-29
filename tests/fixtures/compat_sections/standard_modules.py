@@ -2361,6 +2361,26 @@ print(
     all(getattr(time, name).__module__ == "time" for name in time_function_names),
     all(isinstance(getattr(time, name).__doc__, str) and len(getattr(time, name).__doc__) > 0 for name in time_function_names),
 )
+time_text_signatures = {
+    "time": "($self, /)",
+    "time_ns": "($self, /)",
+    "monotonic": "($self, /)",
+    "monotonic_ns": "($self, /)",
+    "perf_counter": "($self, /)",
+    "perf_counter_ns": "($self, /)",
+    "process_time": "($self, /)",
+    "process_time_ns": "($self, /)",
+    "thread_time": "($self, /)",
+    "thread_time_ns": "($self, /)",
+    "sleep": "($self, object, /)",
+    "mktime": "($self, object, /)",
+}
+time_none_text_signatures = ("get_clock_info", "localtime", "gmtime", "ctime", "strftime", "strptime", "asctime")
+print(
+    "time-text-signatures",
+    all(getattr(time, name).__text_signature__ == signature for name, signature in time_text_signatures.items()),
+    all(getattr(time, name).__text_signature__ is None for name in time_none_text_signatures),
+)
 for clock_info_bad_name, clock_info_bad_call, clock_info_bad_error, clock_info_bad_parts in [
     ("missing", lambda: time.get_clock_info(), TypeError, ("takes exactly 1 argument", "0 given")),
     ("extra", lambda: time.get_clock_info("time", "x"), TypeError, ("takes exactly 1 argument", "2 given")),

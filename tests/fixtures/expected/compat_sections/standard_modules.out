@@ -634,6 +634,7 @@ True True True True True
 True False True True
 SimpleNamespace types SimpleNamespace True True True True True
 True True True
+time-text-signatures True True
 time-clock-info-diagnostic missing True
 time-clock-info-diagnostic extra True
 time-clock-info-diagnostic keyword True

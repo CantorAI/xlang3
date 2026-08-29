@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.displayhook builtins._ repr ordering
+time callable text signatures
 ```
 
 Current next loop:

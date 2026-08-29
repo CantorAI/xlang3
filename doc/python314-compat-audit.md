@@ -1129,7 +1129,7 @@ Native or runtime-backed foundation:
   event coverage beyond instruction/call/line/return/generator-resume-yield/throw/caught-exception/unwind/reraise paths pending
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns` with CPython-style
-  public callable metadata and no-argument/keyword `TypeError` diagnostics naming each public API, `get_clock_info`
+  public callable metadata including text signatures and no-argument/keyword `TypeError` diagnostics naming each public API, `get_clock_info`
   with CPython-style `types.SimpleNamespace` type `__module__`/`__qualname__`/doc
   metadata and namespace repr plus arity/type/keyword/unknown-clock
   diagnostics,
