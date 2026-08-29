@@ -104,7 +104,7 @@ XLANG3_VM_FLOW(PopExcept, xlang3::xlang_vm::ops::pop_except(exception_handlers, 
 XLANG3_VM_FLOW(Raise, xlang3::xlang_vm::ops::raise_op(in, regs, pending_exception_cause, pending_exception_explicit_cause, current_exception, result, raise_exception_value, normalize_exception))
 XLANG3_VM_FLOW(SetExceptionCause, xlang3::xlang_vm::ops::set_exception_cause(in, regs, pending_exception_cause, pending_exception_explicit_cause, result, normalize_exception))
 XLANG3_VM_FLOW(Reraise, xlang3::xlang_vm::ops::reraise(current_exception, raise_exception_value, raise_runtime_error, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }))
-XLANG3_VM_FAST(ClearException, xlang3::xlang_vm::ops::clear_exception(runtime_, current_exception))
+XLANG3_VM_FAST(ClearException, xlang3::xlang_vm::ops::clear_exception(runtime_, current_exception, previous_exceptions, active_exception_handler_depths, active_exception_handler_frames))
 XLANG3_VM_FAST(LoadException, xlang3::xlang_vm::ops::load_exception(in, regs, current_exception))
 XLANG3_VM_FAST(LoadExceptionType, xlang3::xlang_vm::ops::load_exception_type(in, runtime_, regs, current_exception))
 XLANG3_VM_FAST(MatchException, xlang3::xlang_vm::ops::match_exception(in, regs, exception_matches))

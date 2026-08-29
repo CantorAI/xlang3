@@ -981,8 +981,9 @@ documented here.
 
 Native or runtime-backed foundation:
 
-- [~] `sys`: `modules`, `exc_info`/`exception` with CPython-style no-argument
-  and keyword `TypeError` diagnostics, stdio objects including shared `_io.TextIOWrapper`
+- [~] `sys`: `modules`, `exc_info`/`exception` with nested handler-state
+  restoration, CPython-style no-argument and keyword `TypeError` diagnostics,
+  stdio objects including shared `_io.TextIOWrapper`
   type metadata, CPython-style stream `name`/`mode`/`newlines`/`write_through`/
   `line_buffering` startup attrs, and catchable keyword `TypeError` diagnostics
   plus CPython-style positional arity/type diagnostics for common stdio methods

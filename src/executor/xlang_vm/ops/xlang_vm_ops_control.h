@@ -192,9 +192,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow reraise(
   return raise_exception_value(current_exception) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
-XLANG3_HOT_INLINE void clear_exception(Runtime& runtime, Value& current_exception) {
-  value_set_invalid(current_exception);
-  runtime.clear_active_exception();
+XLANG3_HOT_INLINE void clear_exception(
+    Runtime& runtime,
+    Value& current_exception,
+    std::vector<Value>& previous_exceptions,
+    std::vector<size_t>& active_exception_handler_depths,
+    std::vector<size_t>& active_exception_handler_frames) {
+  if (!previous_exceptions.empty()) {
+    value_assign_fast(current_exception, previous_exceptions.back());
+    previous_exceptions.pop_back();
+    active_exception_handler_depths.pop_back();
+    active_exception_handler_frames.pop_back();
+  } else {
+    value_set_invalid(current_exception);
+  }
+  if (current_exception.tag == ValueTag::Invalid) {
+    runtime.clear_active_exception();
+  } else {
+    runtime.set_active_exception(current_exception);
+  }
 }
 
 XLANG3_HOT_INLINE void load_exception(

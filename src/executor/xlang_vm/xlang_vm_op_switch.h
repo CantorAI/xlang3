@@ -55,8 +55,9 @@ The row call sites may use these loop locals and helpers when needed:
     instr_cache
 
   Runtime/result/error flow:
-    runtime_, result, current_exception, execution_lock, generator,
-    frames, frame_count
+    runtime_, result, current_exception, previous_exceptions,
+    active_exception_handler_depths, active_exception_handler_frames,
+    execution_lock, generator, frames, frame_count
 
   Local loop helpers:
     raise_runtime_error, raise_exception_value, normalize_exception,

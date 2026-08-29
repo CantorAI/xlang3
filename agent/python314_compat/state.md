@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-zipimporter loader create_module/invalidate_caches protocol
+sys.exc_info/sys.exception nested handler-state restoration
 ```
 
 Current next loop:

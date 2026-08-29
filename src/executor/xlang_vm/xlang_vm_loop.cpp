@@ -626,6 +626,29 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  Value current_exception;
+  std::vector<Value> previous_exceptions;
+  std::vector<size_t> active_exception_handler_depths;
+  std::vector<size_t> active_exception_handler_frames;
+  Value pending_exception_cause;
+  bool pending_exception_explicit_cause = false;
+
+  auto restore_active_exception_context = [&]() {
+    if (!previous_exceptions.empty()) {
+      value_assign_fast(current_exception, previous_exceptions.back());
+      previous_exceptions.pop_back();
+      active_exception_handler_depths.pop_back();
+      active_exception_handler_frames.pop_back();
+    } else {
+      value_set_invalid(current_exception);
+    }
+    if (current_exception.tag == ValueTag::Invalid) {
+      runtime_.clear_active_exception();
+    } else {
+      runtime_.set_active_exception(current_exception);
+    }
+  };
+
   auto finish_frame = [&](const Value& return_value) -> bool {
     VMFrame& finished = frames[frame_count - 1];
     if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &return_value)) {
@@ -640,6 +663,9 @@ RuntimeResult Interpreter::run_function(
     const uint32_t return_dst = finished.return_dst;
     const bool has_caller = finished.has_caller;
     const FrameReturnMode return_mode = finished.return_mode;
+    while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
+      restore_active_exception_context();
+    }
     if (!has_caller) {
       value_assign_fast(result.value, return_value);
       --frame_count;
@@ -654,10 +680,6 @@ RuntimeResult Interpreter::run_function(
     }
     return true;
   };
-
-  Value current_exception;
-  Value pending_exception_cause;
-  bool pending_exception_explicit_cause = false;
 
   auto make_traceback_from_frames = [&]() -> Value {
     Value next = Value::none();
@@ -686,6 +708,8 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto dispatch_exception = [&](Value exception) -> bool {
+    Value previous_exception;
+    value_assign_fast(previous_exception, current_exception);
     if (value_as_instance(exception) != nullptr) {
       std::string ignored;
       Value traceback = make_traceback_from_frames();
@@ -721,6 +745,14 @@ RuntimeResult Interpreter::run_function(
     while (frame_count != 0) {
       auto& handlers = frames[frame_count - 1].exception_handlers;
       if (!handlers.empty()) {
+        const size_t handler_depth_before_pop = handlers.size();
+        while (!active_exception_handler_depths.empty() &&
+               handler_depth_before_pop <= active_exception_handler_depths.back()) {
+          value_assign_fast(previous_exception, previous_exceptions.back());
+          previous_exceptions.pop_back();
+          active_exception_handler_depths.pop_back();
+          active_exception_handler_frames.pop_back();
+        }
         const auto handler = handlers.back();
         handlers.pop_back();
         if (!emit_monitoring_event(
@@ -729,11 +761,20 @@ RuntimeResult Interpreter::run_function(
                 &current_exception)) {
           return false;
         }
+        previous_exceptions.push_back(previous_exception);
+        active_exception_handler_depths.push_back(handlers.size());
+        active_exception_handler_frames.push_back(frame_count);
         frames[frame_count - 1].ip = handler.ip;
         return true;
       }
       if (!emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventPyUnwind, &current_exception)) {
         return false;
+      }
+      while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
+        value_assign_fast(previous_exception, previous_exceptions.back());
+        previous_exceptions.pop_back();
+        active_exception_handler_depths.pop_back();
+        active_exception_handler_frames.pop_back();
       }
       --frame_count;
     }

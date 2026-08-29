@@ -241,3 +241,8 @@ shape the next iteration.
 - Import loader compatibility includes protocol no-ops such as
   `create_module()` and `invalidate_caches()`. Add them to the real loader
   object when `find_spec()` exposes that object through `ModuleSpec.loader`.
+- `sys.exception()`/`sys.exc_info()` state is scoped to active exception
+  handlers, not just the last raised exception. Nested handlers must restore
+  the previous handler exception on normal exit, while exceptions that propagate
+  out of a handler must discard that abandoned context before entering an
+  enclosing handler.

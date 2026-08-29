@@ -6,4 +6,8 @@ inner
 True
 False
 reraised again
+sys-exception-outer True True
+sys-exception-inner True True
+sys-exception-restored True True
+sys-exception-cleared True True True True
 (None, None, None)

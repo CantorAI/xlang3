@@ -38,4 +38,22 @@ except TypeError:
     except TypeError as err:
         print("reraised", err)
 
+try:
+    raise ValueError("outer-active")
+except ValueError as outer:
+    print("sys-exception-outer", sys.exception() is outer, sys.exc_info()[1] is outer)
+    try:
+        raise KeyError("inner-active")
+    except KeyError as inner:
+        print("sys-exception-inner", sys.exception() is inner, sys.exc_info()[1] is inner)
+    print("sys-exception-restored", sys.exception() is outer, sys.exc_info()[1] is outer)
+
+cleared_info = sys.exc_info()
+print(
+    "sys-exception-cleared",
+    sys.exception() is None,
+    cleared_info[0] is None,
+    cleared_info[1] is None,
+    cleared_info[2] is None,
+)
 print(sys.exc_info())
