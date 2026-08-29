@@ -273,8 +273,34 @@ bool builtin_ord(
   return true;
 }
 
+} // namespace
+
+bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, std::string& error) {
+  if (value_as_instance(value) != nullptr) {
+    Value str_method;
+    std::string attr_error;
+    if (attribute_get(value, "__str__", str_method, attr_error)) {
+      Value result;
+      if (!runtime_call_callable(runtime, str_method, nullptr, 0, result, error)) {
+        return false;
+      }
+      if (value_as_string(result) == nullptr) {
+        error = "__str__ returned non-string";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      out = result;
+      return true;
+    }
+  }
+  out = Value::string(value_to_string(value));
+  return true;
+}
+
+namespace {
+
 bool builtin_str(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     Value& out,
@@ -285,8 +311,7 @@ bool builtin_str(
     error = "str() expected 1 argument";
     return false;
   }
-  out = Value::string(value_to_string(args[0]));
-  return true;
+  return builtin_str_from_value(runtime, args[0], out, error);
 }
 
 } // namespace

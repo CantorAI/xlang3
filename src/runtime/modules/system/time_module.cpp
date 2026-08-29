@@ -2758,6 +2758,7 @@ void register_time_module(Runtime& runtime) {
           {"__new__", Value::static_method(time_native_function(runtime, "time.struct_time.__new__", "__new__", time_struct_time_new, "Create a new struct_time object.", nullptr, time_struct_time_new_kw, "struct_time.__new__"))},
           {"__init__", runtime.make_native_function("time.struct_time.__init__", time_struct_time_init, nullptr, nullptr, nullptr, false, time_struct_time_init_kw)},
           {"__repr__", runtime.make_native_function("time.struct_time.__repr__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
+          {"__str__", runtime.make_native_function("time.struct_time.__str__", time_struct_time_repr, nullptr, nullptr, nullptr, false, time_struct_time_repr_kw)},
           {"__getnewargs__", struct_time_getnewargs},
           {"__reduce__", struct_time_reduce},
           {"__reduce_ex__", struct_time_reduce_ex},

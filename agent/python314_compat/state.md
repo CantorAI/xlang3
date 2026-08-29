@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._clear_type_cache arity diagnostic
+time.struct_time str/repr parity
 ```
 
 Current next loop:

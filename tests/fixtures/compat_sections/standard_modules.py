@@ -2508,6 +2508,7 @@ constructed_keyword_dict_time = time.struct_time(sequence=(2026, 8, 26, 1, 2, 3,
 constructed_new_time = time.struct_time.__new__(time.struct_time, (2026, 8, 26, 1, 2, 3, 2, 238, -1))
 constructed_new_keyword_time = time.struct_time.__new__(time.struct_time, sequence=(2026, 8, 26, 1, 2, 3, 2, 238, -1), dict={"tm_zone": "NEW", "tm_gmtoff": 987})
 print("struct-time-new", constructed_new_time.tm_year, constructed_new_keyword_time.tm_zone, constructed_new_keyword_time.tm_gmtoff, time.struct_time.__new__.__name__, time.struct_time.__new__.__qualname__, time.struct_time.__new__.__doc__ is not None)
+print("struct-time-str-repr", str(epoch_utc) == repr(epoch_utc), str(constructed_time) == repr(constructed_time), str(epoch_utc).startswith("time.struct_time("))
 struct_time_getnewargs = constructed_zone_time.__getnewargs__()
 print("struct-time-getnewargs", isinstance(struct_time_getnewargs, tuple), len(struct_time_getnewargs), struct_time_getnewargs[0] == tuple(constructed_zone_time), len(struct_time_getnewargs[0]), time.struct_time.__getnewargs__.__name__, time.struct_time.__getnewargs__.__qualname__, getattr(time.struct_time.__getnewargs__, "__module__", None) is None, time.struct_time.__getnewargs__.__doc__ is None)
 struct_time_reduce = constructed_zone_time.__reduce__()

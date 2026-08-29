@@ -1086,8 +1086,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "decoding str is not supported";
       return false;
     }
-    out = Value::string(value_to_string(source));
-    return true;
+    return builtin_str_from_value(runtime, source, out, error);
   }
 
   if (constructor == XlangVMBuiltinConstructor::Bool) {

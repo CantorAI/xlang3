@@ -24,6 +24,7 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out);
 void register_exception_builtins(Runtime& runtime);
 void register_functional_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);
+bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, std::string& error);
 void register_sequence_builtins(Runtime& runtime);
 void register_raw_block_builtins(Runtime& runtime);
 void register_builtin_modules(Runtime& runtime);

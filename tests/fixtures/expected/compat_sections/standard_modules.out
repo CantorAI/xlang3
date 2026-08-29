@@ -727,6 +727,7 @@ time struct_time True 11 9 0 True True
 ('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
 member_descriptor builtins True 2026 Z True True
 struct-time-new 2026 NEW 987 __new__ struct_time.__new__ True
+struct-time-str-repr True True True
 struct-time-getnewargs True 1 True 9 __getnewargs__ tuple.__getnewargs__ True True
 struct-time-reduce True True X 123 True
 struct-time-reduce-metadata __reduce__ struct_time.__reduce__ True True __reduce_ex__ object.__reduce_ex__ True True

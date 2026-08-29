@@ -165,3 +165,6 @@ shape the next iteration.
   their own CPython-visible name in arity diagnostics. `sys._clear_type_cache`
   can share behavior with `_clear_internal_caches`, but its positional error
   must report `sys._clear_type_cache()`, not the callee helper.
+- Tuple-backed native types may need an explicit `__str__` even when `__repr__`
+  is correct. CPython displays `time.struct_time` with the named-field repr for
+  both `repr()` and `str()`, so cover both display entry points.
