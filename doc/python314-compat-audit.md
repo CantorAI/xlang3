@@ -405,6 +405,10 @@ Recent completed batches:
   immutable/scalar targets, plain `object()` instances, builtin native
   callables, and direct `staticmethod`/`classmethod` wrappers now raise
   catchable `AttributeError` instead of accepting hidden abstract markers.
+- Aligned direct `abc.abstractmethod()` immutable-type failures with CPython:
+  runtime builtin classes such as `type`, `object`, scalar types, and builtin
+  exception types now raise catchable `TypeError` instead of gaining mutable
+  `__isabstractmethod__` attributes.
 - Pinned Standard Modules fixture coverage for `sys.stdlib_module_names`:
   the Python 3.14 top-level standard-library name set is now asserted as a
   297-entry `frozenset`, with representative package/module membership,

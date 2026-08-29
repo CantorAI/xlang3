@@ -131,3 +131,6 @@ shape the next iteration.
   descriptor wrapper construction: direct staticmethod/classmethod/native
   callable targets should raise `AttributeError`, while `abstractstaticmethod`
   and `abstractclassmethod` still create marked wrappers.
+- Direct `abc.abstractmethod()` on runtime builtin classes fails with immutable
+  type `TypeError`, not marker-write `AttributeError`; identify builtin class
+  objects by runtime registry identity rather than visible `__module__` alone.

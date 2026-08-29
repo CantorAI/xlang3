@@ -462,6 +462,11 @@ for abstract_target in (
         abc.abstractmethod(abstract_target)
     except AttributeError as err:
         print("abc-abstractmethod-attr", "__isabstractmethod__" in str(err) or "attribute assignment" in str(err))
+for abstract_builtin_type in (type, object, int, str, Exception, BaseException):
+    try:
+        abc.abstractmethod(abstract_builtin_type)
+    except TypeError as err:
+        print("abc-abstractmethod-immutable-type", abstract_builtin_type.__name__ in str(err), "immutable type" in str(err))
 
 class AbstractDescriptorProbe:
     @abc.abstractclassmethod

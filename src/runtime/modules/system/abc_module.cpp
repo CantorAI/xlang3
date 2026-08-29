@@ -184,6 +184,15 @@ bool is_builtin_object_instance(const Value& value) {
   return module_name != nullptr && string_object_to_string(*module_name) == "builtins";
 }
 
+bool is_runtime_builtin_class(Runtime& runtime, const Value& value) {
+  auto* klass = value_as_class(value);
+  if (klass == nullptr) {
+    return false;
+  }
+  const Value* builtin = runtime.find_builtin(klass->name);
+  return builtin != nullptr && value_as_class(*builtin) == klass;
+}
+
 void add_abstract_name(std::vector<Value>& names, const std::string& name) {
   for (const auto& item : names) {
     auto* string = value_as_string(item);
@@ -624,6 +633,13 @@ bool abc_abstractmethod(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return abc_type_error(runtime, error, "abc.abstractmethod() expected function");
   }
   Value target = args[0];
+  if (is_runtime_builtin_class(runtime, target)) {
+    auto* klass = value_as_class(target);
+    error = "cannot set '__isabstractmethod__' attribute of immutable type '" +
+            std::string(klass != nullptr ? klass->name : "type") + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (value_as_native_function(target) != nullptr ||
       value_as_static_method(target) != nullptr ||
       value_as_class_method(target) != nullptr ||
