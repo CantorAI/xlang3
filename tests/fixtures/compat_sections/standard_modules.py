@@ -2191,7 +2191,16 @@ print(
 clock_info = time.get_clock_info("monotonic")
 print(clock_info.monotonic, clock_info.adjustable, clock_info.resolution > 0, isinstance(clock_info.implementation, str))
 clock_info_repr = repr(clock_info)
-print(type(clock_info).__name__, type(clock_info).__module__, clock_info_repr.startswith("namespace("), "monotonic=True" in clock_info_repr, "adjustable=False" in clock_info_repr, "resolution=" in clock_info_repr)
+print(
+    type(clock_info).__name__,
+    type(clock_info).__module__,
+    type(clock_info).__qualname__,
+    type(clock_info).__doc__ == "A simple attribute-based namespace.",
+    clock_info_repr.startswith("namespace("),
+    "monotonic=True" in clock_info_repr,
+    "adjustable=False" in clock_info_repr,
+    "resolution=" in clock_info_repr,
+)
 time_function_names = (
     "time",
     "time_ns",

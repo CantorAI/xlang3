@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys stdio TextIOWrapper positional and keyword diagnostics
+time.get_clock_info SimpleNamespace metadata
 ```
 
 Current next loop:

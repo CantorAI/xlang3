@@ -1095,7 +1095,8 @@ Native or runtime-backed foundation:
 - [~] `time`: `time`, `time_ns`, `monotonic`, `monotonic_ns`, `perf_counter`, `perf_counter_ns`, `process_time`,
   `process_time_ns`, `thread_time`, `thread_time_ns` with CPython-style
   public callable metadata and no-argument/keyword `TypeError` diagnostics naming each public API, `get_clock_info`
-  with CPython-style namespace type metadata/repr plus arity/type/keyword/unknown-clock
+  with CPython-style `types.SimpleNamespace` type `__module__`/`__qualname__`/doc
+  metadata and namespace repr plus arity/type/keyword/unknown-clock
   diagnostics,
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/keyword/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
