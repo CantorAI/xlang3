@@ -1389,8 +1389,12 @@ bool sys_clear_internal_caches(Runtime& runtime, const Value*, uint32_t argc, Va
   return true;
 }
 
-bool sys_clear_type_cache(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return sys_clear_internal_caches(runtime, args, argc, out, error, user_data);
+bool sys_clear_type_cache(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    return raise_sys_no_args_type_error(runtime, error, "sys._clear_type_cache", argc);
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool sys_clear_type_descriptors_immutable_type(const ClassObject& klass) {

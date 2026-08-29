@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-_abc function-qualified arity diagnostics
+sys._clear_type_cache arity diagnostic
 ```
 
 Current next loop:

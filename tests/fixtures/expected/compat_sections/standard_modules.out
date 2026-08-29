@@ -599,6 +599,7 @@ sys-noarg-typeerrors 25 25
 sys-noarg-diagnostic allocated True True
 sys-noarg-diagnostic encoding True True
 sys-noarg-diagnostic cpu True True
+sys-noarg-diagnostic clear_type_cache True True
 sys-noarg-diagnostic jit True True
 sys-noarg-diagnostic unicodeinterned True
 True True

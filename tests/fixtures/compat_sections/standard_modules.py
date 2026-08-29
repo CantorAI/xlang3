@@ -2168,6 +2168,7 @@ for sys_noarg_name, sys_noarg_probe in (
     ("allocated", sys.getallocatedblocks),
     ("encoding", sys.getdefaultencoding),
     ("cpu", sys._get_cpu_count_config),
+    ("clear_type_cache", sys._clear_type_cache),
     ("jit", sys._jit.is_available),
 ):
     try:

@@ -161,3 +161,7 @@ shape the next iteration.
   text, but `_abc_register`/`_abc_subclasscheck`/`_abc_instancecheck` use their
   short C helper names in `expected 2 arguments, got N` messages. Probe each
   helper family before sharing one arity formatter.
+- Native wrappers that delegate to an equivalent implementation still need
+  their own CPython-visible name in arity diagnostics. `sys._clear_type_cache`
+  can share behavior with `_clear_internal_caches`, but its positional error
+  must report `sys._clear_type_cache()`, not the callee helper.
