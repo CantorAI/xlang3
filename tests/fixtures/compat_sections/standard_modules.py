@@ -780,6 +780,13 @@ class SysSizeTypeErrorProbe:
     def __sizeof__(self):
         raise TypeError("bad-size")
 
+class SysSizeTypeErrorSubclass(TypeError):
+    pass
+
+class SysSizeTypeErrorSubclassProbe:
+    def __sizeof__(self):
+        raise SysSizeTypeErrorSubclass("bad-subclass-size")
+
 class SysSizeValueErrorProbe:
     def __sizeof__(self):
         raise ValueError("bad-size")
@@ -801,6 +808,11 @@ try:
 except TypeError as err:
     print("sys-getsizeof-return-type", "an integer is required" in str(err))
 print("sys-getsizeof-bool-overhead", sys.getsizeof(SysSizeBoolProbe()), sys.getsizeof(SysSizeBoolProbe(), 99))
+try:
+    sys.getsizeof(SysSizeTypeErrorSubclassProbe())
+except SysSizeTypeErrorSubclass as err:
+    print("sys-getsizeof-typeerror-subclass-reraises", type(err).__name__ == "SysSizeTypeErrorSubclass")
+print("sys-getsizeof-typeerror-subclass-default", sys.getsizeof(SysSizeTypeErrorSubclassProbe(), 404))
 print(sys.getsizeof(SysSizeTypeErrorProbe(), 99), sys.getsizeof(SysSizeDefaultProbe(), 101))
 print(sys.getsizeof(object=SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), default=202), sys.getsizeof(object=SysSizeDefaultProbe(), default=303))
 try:

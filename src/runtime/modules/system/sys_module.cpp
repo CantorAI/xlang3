@@ -1889,7 +1889,9 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
         if (runtime.take_pending_exception(pending)) {
           Value exception_type = runtime.exception_type(pending);
           auto* klass = value_as_class(exception_type);
-          if (klass != nullptr && klass->name == "TypeError") {
+          const Value* type_error_value = runtime.find_builtin("TypeError");
+          auto* type_error_class = type_error_value == nullptr ? nullptr : value_as_class(*type_error_value);
+          if (klass != nullptr && type_error_class != nullptr && class_is_subclass(klass, type_error_class)) {
             value_assign_fast(out, args[1]);
             return true;
           }

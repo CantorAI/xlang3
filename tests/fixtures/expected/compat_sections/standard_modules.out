@@ -192,6 +192,8 @@ sys-getsizeof-protocol-overhead 155 99
 sys-getsizeof-negative True
 sys-getsizeof-return-type True
 sys-getsizeof-bool-overhead 33 33
+sys-getsizeof-typeerror-subclass-reraises True
+sys-getsizeof-typeerror-subclass-default 404
 99 101
 155 202 303
 sys-getsizeof-reraises True

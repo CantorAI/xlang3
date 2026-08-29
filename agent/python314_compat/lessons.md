@@ -143,3 +143,7 @@ shape the next iteration.
 - `sys.getsizeof(obj, default)` falls back for missing/non-callable `__sizeof__`
   or a `TypeError` raised while calling it, but a successful `__sizeof__` call
   that returns a non-int still raises the normal `TypeError` diagnostic.
+- When a native compatibility fallback is keyed to a Python exception type,
+  match subclasses with `class_is_subclass` instead of checking the exact class
+  name; `sys.getsizeof(..., default)` treats `TypeError` subclasses like
+  `TypeError`.
