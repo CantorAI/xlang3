@@ -1019,8 +1019,9 @@ Native or runtime-backed foundation:
   `TypeError` diagnostics and `_is_interned` including CPython-style
   wrong-type/wrong-arity/keyword `TypeError` diagnostics, `getsizeof` with CPython-style
   keyword binding plus wrong-arity `TypeError` diagnostics and object-overhead-adjusted
-  `__sizeof__` protocol/default handling including bool-as-int return values, TypeError default
-  fallback including subclasses, CPython-style non-int return `TypeError`, and negative-result `ValueError`, `getrefcount` including
+  `__sizeof__` protocol/default handling including bool-as-int return values, non-callable
+  diagnostic, TypeError default fallback including subclasses, CPython-style non-int return
+  `TypeError`, and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity/keyword `TypeError` diagnostics,
   `getallocatedblocks` with CPython-style keyword `TypeError` diagnostics,
   `exit` including CPython-style `SystemExit.code`/string behavior and too-many-arguments/keyword

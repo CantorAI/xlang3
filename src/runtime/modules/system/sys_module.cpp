@@ -1878,7 +1878,7 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
         value_assign_fast(out, args[1]);
         return true;
       }
-      error = "__sizeof__ must be callable";
+      error = "'" + sys_type_name(runtime, sizeof_method) + "' object is not callable";
       runtime.raise_class_error("TypeError", error);
       return false;
     }

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.getsizeof TypeError-subclass default fallback
+sys.getsizeof non-callable __sizeof__ diagnostic
 ```
 
 Current next loop:

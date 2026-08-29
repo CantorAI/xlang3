@@ -147,3 +147,7 @@ shape the next iteration.
   match subclasses with `class_is_subclass` instead of checking the exact class
   name; `sys.getsizeof(..., default)` treats `TypeError` subclasses like
   `TypeError`.
+- For protocol helpers with optional default fallback, cover the no-default
+  diagnostic separately. `sys.getsizeof()` falls back for a non-callable
+  `__sizeof__` only when a default is supplied; otherwise it exposes the normal
+  non-callable TypeError text.

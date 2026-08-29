@@ -807,6 +807,10 @@ try:
     sys.getsizeof(SysSizeStringProbe())
 except TypeError as err:
     print("sys-getsizeof-return-type", "an integer is required" in str(err))
+try:
+    sys.getsizeof(SysSizeDefaultProbe())
+except TypeError as err:
+    print("sys-getsizeof-noncallable", "'int' object is not callable" in str(err))
 print("sys-getsizeof-bool-overhead", sys.getsizeof(SysSizeBoolProbe()), sys.getsizeof(SysSizeBoolProbe(), 99))
 try:
     sys.getsizeof(SysSizeTypeErrorSubclassProbe())
