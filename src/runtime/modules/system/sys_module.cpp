@@ -721,7 +721,7 @@ Value make_windows_version(Runtime& runtime) {
   const int64_t build = static_cast<int64_t>(version_info.dwBuildNumber);
   return make_structseq(
       runtime,
-      "windows_version",
+      "getwindowsversion",
       {
           {"major", Value::int64(major)},
           {"minor", Value::int64(minor)},

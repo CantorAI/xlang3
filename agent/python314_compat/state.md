@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-class metadata module/qualname primitives
+sys.getwindowsversion structseq type metadata
 ```
 
 Current next loop:

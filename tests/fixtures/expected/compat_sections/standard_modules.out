@@ -392,6 +392,7 @@ True True True True True
 True True True True True True True
 True True True True
 True 5 10 True
+sys-windowsversion-type getwindowsversion sys getwindowsversion <class 'sys.getwindowsversion'>
 10 platform_version
 True
 True 1 True

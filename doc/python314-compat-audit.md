@@ -389,6 +389,10 @@ Recent completed batches:
   CPython-style `__module__ == "builtins"` and `__qualname__`, class
   statements publish the defining module name, and `type(name, bases, ns)`
   fills missing class metadata from the active globals module.
+- Aligned Windows `sys.getwindowsversion()` structseq metadata: the result
+  type now uses CPython's public `sys.getwindowsversion` type name,
+  `__qualname__`, and type repr while preserving the existing field and
+  member descriptor coverage.
 - Pinned Standard Modules fixture coverage for `sys.stdlib_module_names`:
   the Python 3.14 top-level standard-library name set is now asserted as a
   297-entry `frozenset`, with representative package/module membership,

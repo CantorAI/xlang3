@@ -1428,6 +1428,7 @@ print(isinstance(sys.warnoptions, list), isinstance(sys._xoptions, dict), isinst
 print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib"), sys._framework == "", sys.winver == "3.14")
 windows_version = sys.getwindowsversion()
 print(windows_version.major >= 0, len(windows_version), windows_version.n_fields, isinstance(windows_version.platform_version, tuple))
+print("sys-windowsversion-type", type(windows_version).__name__, type(windows_version).__module__, type(windows_version).__qualname__, repr(type(windows_version)))
 print(type(windows_version).n_fields, type(windows_version).platform_version.__name__)
 print(repr(type(windows_version).major) == "<member 'major' of 'sys.getwindowsversion' objects>")
 print(isinstance(windows_version, tuple), windows_version.index(windows_version.platform), windows_version.count(windows_version.service_pack) >= 1)
