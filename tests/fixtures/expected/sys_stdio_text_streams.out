@@ -1,3 +1,6 @@
 str ''
 str ''
 _io TextIOWrapper r <stdin>
+($self, size=-1, /) ($self, size=-1, /)
+($self, text, /) ($self, /) ($self, /)
+True True

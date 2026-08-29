@@ -1697,7 +1697,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (name == "__qualname__") {
       return callable_qualname_attr(bound->function, out);
     }
-    if (name == "__module__" || name == "__doc__" || name == "__annotations__") {
+    if (name == "__module__" || name == "__doc__" || name == "__annotations__" || name == "__text_signature__") {
       return callable_metadata_attr(bound->function, name, out);
     }
     error = "method has no attribute '" + name + "'";

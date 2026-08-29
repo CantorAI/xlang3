@@ -204,3 +204,7 @@ shape the next iteration.
 - Native-backed objects exposed as `_io.TextIOWrapper` still need to honor the
   text-layer return contract. Keep byte-oriented plumbing below the public
   stdio methods; `sys.stdin.read()` and `readline()` return `str`, not `bytes`.
+- Metadata added to native functions must survive descriptor binding when
+  CPython exposes it on bound built-in methods. Forward `__text_signature__`
+  through the bound-method attribute path instead of only storing it on the raw
+  native callable.

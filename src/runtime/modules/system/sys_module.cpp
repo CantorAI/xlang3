@@ -1116,9 +1116,14 @@ Value make_sys_stdio_class(Runtime& runtime) {
         false,
         sys_stdio_no_keyword_args);
     if (auto* native = value_as_native_function(function)) {
+      const std::string text_signature =
+          (std::string(method) == "read" || std::string(method) == "readline")
+              ? "($self, size=-1, /)"
+              : (std::string(method) == "write" ? "($self, text, /)" : "($self, /)");
       native->attrs_dict = new Value(Value::dict({
           {Value::string("__name__"), Value::string(method)},
           {Value::string("__qualname__"), Value::string(std::string("TextIOWrapper.") + method)},
+          {Value::string("__text_signature__"), Value::string(text_signature)},
       }));
     }
     return function;
