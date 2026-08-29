@@ -1070,12 +1070,22 @@ def write_saved_session_id(config: dict, goal: str, output: str) -> None:
     print(f"Saved Codex session id: {matches[-1]}")
 
 
+def clear_saved_session(config: dict, goal: str) -> None:
+    for path in (session_id_path(config, goal), session_meta_path(config, goal)):
+        if path.exists():
+            path.unlink()
+
+
 def invoke_codex(config: dict, goal: str, command_template: str, prompt_path: Path, prompt: str) -> None:
     session_id = read_saved_session_id(config, goal)
     resume_template = default_codex_resume_command(config)
-    if session_id and resume_template:
+    use_resume = session_id and resume_template and not should_send_bootstrap(config, goal)
+    if use_resume:
         command_template = expand_session_command_template(config, resume_template, session_id)
         print(f"Resuming Codex session: {session_id}")
+    elif session_id and resume_template:
+        print(f"Ignoring stale Codex session for bootstrap: {session_id}")
+        clear_saved_session(config, goal)
 
     if not command_template:
         raise SystemExit(
