@@ -161,11 +161,19 @@ Value make_zipimporter_class(Runtime& runtime) {
 
 void register_zipimport_module(Runtime& runtime) {
   Value error_class = Value::class_object("ZipImportError", {});
+  Value zipimporter = make_zipimporter_class(runtime);
   NativeModuleBuilder builder(runtime, "zipimport");
-  builder.value("zipimporter", make_zipimporter_class(runtime))
+  builder.value("zipimporter", zipimporter)
       .value("ZipImportError", error_class)
       .value("_zip_directory_cache", Value::dict({}));
   runtime.register_module("zipimport", builder.finish());
+
+  Value sys;
+  std::string error;
+  if (runtime.import_module("sys", sys, error)) {
+    std::string ignored;
+    module_set_attr(sys, "path_hooks", Value::list({zipimporter}), ignored);
+  }
 }
 
 } // namespace xlang3

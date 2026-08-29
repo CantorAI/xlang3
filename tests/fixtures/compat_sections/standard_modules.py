@@ -731,6 +731,12 @@ print("sys-meta-path-bootstrap",
       [getattr(finder, "__module__", None) for finder in sys_meta_path_head],
       [repr(finder) for finder in sys_meta_path_head],
       all(hasattr(finder, "find_spec") for finder in sys_meta_path_head))
+import zipimport
+print("sys-path-hooks-zipimporter",
+      len(sys.path_hooks) >= 1,
+      sys.path_hooks[0] is zipimport.zipimporter,
+      sys.path_hooks[0].__module__,
+      repr(sys.path_hooks[0]))
 class SysSizeProbe:
     def __sizeof__(self):
         return 123
