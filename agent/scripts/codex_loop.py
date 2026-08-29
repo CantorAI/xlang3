@@ -344,7 +344,7 @@ def validate_codex_command(config: dict, command: str, output: str = "") -> str:
     if stripped in placeholders:
         raise SystemExit(
             f"Invalid Codex backend command: {stripped!r}. "
-            "Pass a real command or use --dry-run/--status."
+            "Configure a real command or use --status."
         )
     return expand_command_template(config, stripped, output)
 
@@ -983,7 +983,8 @@ def invoke_codex(config: dict, goal: str, command_template: str, prompt_path: Pa
 
     if not command_template:
         raise SystemExit(
-            "No Codex backend command configured. Pass --codex-command or use --dry-run."
+            "No Codex backend command configured. Pass --codex-command or set "
+            "[codex].command in agent/config.toml."
         )
 
     command = command_template
@@ -1231,7 +1232,6 @@ def main() -> int:
     )
     parser.add_argument("--codex-command", default="", help="Backend command. Use {prompt_file} or {prompt}; otherwise prompt file is appended.")
     parser.add_argument("--status", action="store_true", help="Show current goal/audit/resume status and exit.")
-    parser.add_argument("--dry-run", action="store_true", help="Write and print prompts without invoking Codex, building, testing, or committing.")
     parser.add_argument("--no-commit", action="store_true", help="Validate but do not commit.")
     parser.add_argument("--commit-message", default="", help="Commit message for validated changes.")
     parser.add_argument("--cmake", default="", help="Path to cmake.exe.")
@@ -1257,7 +1257,7 @@ def main() -> int:
     xlang3 = args.xlang3 or default_xlang3(config)
     python_exe = default_python(config)
     codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
-    cmake = resolve_cmake(args.cmake, config) if not args.dry_run and not args.skip_build else ""
+    cmake = resolve_cmake(args.cmake, config) if not args.skip_build else ""
 
     if args.reset_loop_state:
         clear_loop_state(config, goal)
@@ -1278,15 +1278,14 @@ def main() -> int:
         saved_state = read_loop_state(config, goal)
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
         if (
-            not args.dry_run
-            and not codex_command
+            not codex_command
             and resume_phase not in {"codex_done", "validated"}
         ):
             raise SystemExit(
                 "No Codex backend command configured. Pass --codex-command, "
-                "set [codex].command in agent/config.toml, or use --dry-run/--status."
+                "set [codex].command in agent/config.toml, or use --status."
             )
-        if not args.dry_run and resume_phase not in {"codex_done", "validated"}:
+        if resume_phase not in {"codex_done", "validated"}:
             preflight_codex_command(codex_command)
 
         iteration = 1
@@ -1404,13 +1403,6 @@ def main() -> int:
                     "baseline_stageable_paths": stageable_changes,
                 })
 
-                if args.dry_run:
-                    print()
-                    print("Dry run: compact prompt follows.")
-                    print(prompt)
-                    clear_loop_state(config, goal)
-                    break
-
                 write_loop_state(config, goal, {
                     "active": True,
                     "phase": "codex_running",
@@ -1452,8 +1444,6 @@ def main() -> int:
                         validate(cmake, xlang3, python_exe, args.skip_build, args.skip_tests)
                         break
                     except CommandFailure as exc:
-                        if args.dry_run:
-                            raise SystemExit(exc.returncode) from exc
                         if repair_attempt >= validation_repair_limit:
                             failure_log = write_failure_log(
                                 config,

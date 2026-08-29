@@ -72,7 +72,7 @@ Typical use:
 
 ```text
 powershell -ExecutionPolicy Bypass -File agent\run_python314_compat.ps1
-C:\Python\Python314\python.exe agent\scripts\codex_loop.py --dry-run
+C:\Python\Python314\python.exe agent\scripts\codex_loop.py --status
 ```
 
 To let the loop ask a Codex backend to do one batch, pass the backend command.
