@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys stdio TextIOWrapper metadata and keyword diagnostics
+sys stdio TextIOWrapper positional and keyword diagnostics
 ```
 
 Current next loop:

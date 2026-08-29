@@ -923,6 +923,21 @@ for sys_stdio_stream in stdio_streams:
             ):
                 sys_stdio_keyword_count += 1
 print("sys-stdio-keyword-typeerrors", sys_stdio_keyword_count, len(stdio_streams) * len(stdio_method_names))
+sys_stdio_positional_cases = [
+    ("read-many", lambda: sys.stdin.read(1, 2), ("read expected at most 1 argument", "got 2")),
+    ("read-type", lambda: sys.stdin.read("x"), ("argument should be integer or None", "str")),
+    ("readline-many", lambda: sys.stdin.readline(1, 2), ("readline expected at most 1 argument", "got 2")),
+    ("readline-type", lambda: sys.stdin.readline("x"), ("str", "cannot be interpreted as an integer")),
+    ("write-zero", lambda: sys.stdout.write(), ("TextIOWrapper.write", "exactly one argument", "0 given")),
+    ("write-many", lambda: sys.stdout.write("a", "b"), ("TextIOWrapper.write", "exactly one argument", "2 given")),
+    ("write-type", lambda: sys.stdout.write(1), ("write() argument must be str", "not int")),
+]
+for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in sys_stdio_positional_cases:
+    try:
+        sys_stdio_bad_call()
+    except TypeError as err:
+        sys_stdio_bad_message = str(err)
+        print("sys-stdio-positional-diagnostic", sys_stdio_bad_name, all(part in sys_stdio_bad_message for part in sys_stdio_bad_parts))
 for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
     ("stdin-readable", lambda: sys.stdin.readable(1), ("TextIOWrapper.readable", "takes no arguments", "1 given")),
     ("stdin-writable", lambda: sys.stdin.writable(1), ("TextIOWrapper.writable", "takes no arguments", "1 given")),

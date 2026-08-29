@@ -220,6 +220,13 @@ True True True
 True TextIOWrapper _io TextIOWrapper <class '_io.TextIOWrapper'>
 ('<stdin>', 'r', True, False, None) ('<stdout>', 'w', False, False, None) ('<stderr>', 'w', True, False, None)
 sys-stdio-keyword-typeerrors 30 30
+sys-stdio-positional-diagnostic read-many True
+sys-stdio-positional-diagnostic read-type True
+sys-stdio-positional-diagnostic readline-many True
+sys-stdio-positional-diagnostic readline-type True
+sys-stdio-positional-diagnostic write-zero True
+sys-stdio-positional-diagnostic write-many True
+sys-stdio-positional-diagnostic write-type True
 sys-stdio-capability-arity stdin-readable True
 sys-stdio-capability-arity stdin-writable True
 sys-stdio-capability-arity stdout-isatty True

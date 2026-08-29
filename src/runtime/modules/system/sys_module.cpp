@@ -935,20 +935,19 @@ bool sys_stdio_no_keyword_args(
 }
 
 bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2) {
-    error = "stdio.write() expected data";
+  if (argc != 2) {
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "TextIOWrapper.write() takes exactly one argument (" + std::to_string(given) + " given)";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string data;
-  for (uint32_t i = 1; i < argc; ++i) {
-    std::string part;
-    if (!bytes_or_string_text(args[i], part)) {
-      error = "stdio.write() data must be str or bytes";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    data += part;
+  if (auto* text = value_as_string(args[1])) {
+    data = string_object_to_string(*text);
+  } else {
+    error = "write() argument must be str, not " + sys_type_name(runtime, args[1]);
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
   if (kind != nullptr && std::string(kind) == "stderr") {
@@ -962,18 +961,20 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
 
 bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
-    error = "stdio.read() expected optional size";
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "read expected at most 1 argument, got " + std::to_string(given);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t size = 1;
   if (argc == 2) {
-    if (args[1].tag != ValueTag::Int64) {
-      error = "stdio.read() size must be int";
+    if (args[1].tag == ValueTag::None) {
+      size = -1;
+    } else if (!sys_bool_or_int_arg(args[1], size)) {
+      error = "argument should be integer or None, not '" + sys_type_name(runtime, args[1]) + "'";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    size = args[1].as.i64;
   }
   if (size < 0) {
     std::ostringstream buffer;
@@ -990,18 +991,20 @@ bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& o
 
 bool sys_stdio_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
-    error = "stdio.readline() expected optional size";
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "readline expected at most 1 argument, got " + std::to_string(given);
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t limit = -1;
   if (argc == 2) {
-    if (args[1].tag != ValueTag::Int64) {
-      error = "stdio.readline() size must be int";
+    if (args[1].tag == ValueTag::None) {
+      limit = -1;
+    } else if (!sys_bool_or_int_arg(args[1], limit)) {
+      error = "'" + sys_type_name(runtime, args[1]) + "' object cannot be interpreted as an integer";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    limit = args[1].as.i64;
   }
   std::string data;
   while (limit < 0 || static_cast<int64_t>(data.size()) < limit) {
