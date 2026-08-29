@@ -102,6 +102,66 @@ def task_path(config: dict, goal: str, selector: str) -> Path | None:
     return None
 
 
+def task_file_has_unfinished(path: Path) -> bool:
+    in_fence = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = CHECK_RE.match(line)
+        if match and match.group(1) != "x":
+            return True
+    return False
+
+
+def queued_task_paths(config: dict, goal: str) -> list[Path]:
+    goal_info = goal_config(config, goal)
+    queue_value = goal_info.get("queue", "")
+    folder = task_dir(config, goal)
+    paths: list[Path] = []
+    seen: set[Path] = set()
+
+    if queue_value:
+        queue_file = ROOT / queue_value
+        if queue_file.exists():
+            for line in queue_file.read_text(encoding="utf-8").splitlines():
+                match = re.search(r"`([^`]+\.md)`", line)
+                if not match:
+                    continue
+                raw = match.group(1).replace("\\", "/")
+                if not raw.startswith("tasks/"):
+                    continue
+                candidate = folder / Path(raw).name
+                candidate = candidate.resolve()
+                if candidate.exists() and candidate not in seen:
+                    paths.append(candidate)
+                    seen.add(candidate)
+
+    if folder.exists():
+        for candidate in sorted(folder.glob("*.md")):
+            resolved = candidate.resolve()
+            if resolved not in seen:
+                paths.append(resolved)
+                seen.add(resolved)
+
+    return paths
+
+
+def auto_task_selector(config: dict, goal: str) -> str:
+    for path in queued_task_paths(config, goal):
+        if task_file_has_unfinished(path):
+            return path.stem
+    return ""
+
+
+def resolve_section(config: dict, goal: str, selector: str) -> str:
+    if selector.strip().lower() in {"", "auto", "next"}:
+        return auto_task_selector(config, goal)
+    return selector
+
+
 def runs_dir(config: dict, goal: str) -> Path:
     return ROOT / goal_config(config, goal)["runs_dir"]
 
@@ -475,7 +535,7 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def read_compact_lessons(config: dict, goal: str, max_lines: int = 18) -> str:
+def read_compact_lessons(config: dict, goal: str, max_lines: int = 8) -> str:
     path = lessons_path(config, goal)
     if not path.exists():
         return "- No lessons recorded yet."
@@ -531,6 +591,7 @@ def control_source(
     goal: str,
     selector: str,
 ) -> tuple[Path, list[tuple[int, str]], str, bool]:
+    selector = resolve_section(config, goal, selector)
     task = task_path(config, goal, selector)
     if task:
         label = task.relative_to(ROOT).as_posix()
@@ -596,6 +657,13 @@ def audit_counts(config: dict, goal: str, section: str) -> tuple[int, int, int]:
     return checked, partial, missing
 
 
+def task_cursor(source_label: str, items: list[tuple[int, str, str]]) -> str:
+    if not items:
+        return f"file={source_label}; offset=done; line=done"
+    line = items[0][0]
+    return f"file={source_label}; offset={line - 1}; line={line}"
+
+
 def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int, str, str]]) -> str:
     next_items = "\n".join(
         f"- line {line}: [{mark}] {text}" for line, mark, text in items
@@ -608,7 +676,7 @@ def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int,
     build_command = build_command_text(config)
     fixture_command = fixture_command_text(config)
     section_fixture_command = section_fixture_command_text(config, section) if section else ""
-    cursor = f"{source_label}::{items[0][0] if items else 'done'}"
+    cursor = task_cursor(source_label, items)
     lessons = read_compact_lessons(config, goal)
     return f"""# XLang3 Python 3.14 Compatibility Batch
 
@@ -621,6 +689,13 @@ Make XLang3 runtime compatible with Python 3.14 so CPython standard-library
 .py files can run naturally on XLang3.
 
 Runtime doctrine:
+- XLang3 keeps its own runtime: `Value`, object/refcount model, XlangVM, native
+  module/package ABI, VFS, and IR execution are not CPython internals.
+- The compatibility target is Python 3.14 syntax and runtime behavior for pure
+  Python `.py` files, especially CPython `Lib/*.py` modules.
+- For system stdlib work, run the real CPython 3.14 library source first, then
+  implement the missing XLang3 runtime primitive or native dependency it
+  requires.
 - Fix runtime primitives first: object model, call binding, descriptors, import
   system, code/frame/traceback, exceptions, VFS/open/_io, and required native
   dependency modules.
@@ -628,6 +703,12 @@ Runtime doctrine:
   strategy.
 - Native C++ is correct for CPython native/core dependency modules and
   performance-critical product modules.
+- If a module is pure Python in CPython, do not add a public C++ module for it.
+  Examples: `abc`, `collections`, `queue`, `json`, `pathlib`, `inspect`,
+  `argparse`, `typing`, `subprocess`, and `zipfile`.
+- Mixed files may keep private/native dependency exports such as `_abc`,
+  `_collections`, `_queue`, `_io`, `_weakref`, `_opcode`, `_string`, `_pickle`,
+  `_struct`, `nt`/`posix`, `time`, `marshal`, `zlib`, `zipimport`, and `sys`.
 - No debugpy-only shortcuts.
 - No benchmark-specific code.
 - No stubs, placeholder facades, or fake compatibility.
@@ -809,13 +890,14 @@ def print_loop_status(config: dict, goal: str, section: str, limit: int) -> None
     current_state = read_loop_state(config, goal)
     checked, partial, missing = audit_counts(config, goal, section)
     items = unfinished_items(config, goal, section, limit)
-    source_path, _, _, is_task = control_source(config, goal, section)
+    source_path, _, source_label, is_task = control_source(config, goal, section)
 
     print(f"Repo: {ROOT}")
     print(f"Goal: {goal}")
     print(f"Task: {section or 'whole audit'}")
     print(f"Source: {source_path.relative_to(ROOT).as_posix()}")
     print(f"Mode: {'task folder' if is_task else 'legacy audit fallback'}")
+    print(f"Cursor: {task_cursor(source_label, items)}")
     print(f"Task counts: checked={checked}, partial={partial}, missing={missing}")
 
     if current_state.get("active"):
@@ -991,6 +1073,7 @@ def stageable(path: str) -> bool:
     normalized = path.replace("\\", "/")
     blocked_prefixes = (
         ".tmp_",
+        "agent/python314_compat/.agent_runs/",
         "build/",
         ".vs/",
         "tests/fixtures/.vs/",
@@ -1158,7 +1241,8 @@ def main() -> int:
     os.chdir(ROOT)
     config = load_config()
     goal = args.goal or config.get("default_goal", "")
-    section = args.section if args.section is not None else default_section(config, goal)
+    configured_section = args.section if args.section is not None else default_section(config, goal)
+    section = resolve_section(config, goal, configured_section)
     limit = args.limit if args.limit > 0 else default_limit(config, goal)
     commit_message = args.commit_message or default_commit_message(config, goal)
     iterations = args.iterations if args.iterations >= 0 else default_iterations(config, goal)
@@ -1293,6 +1377,8 @@ def main() -> int:
                     print("No unfinished rows remain in this task scope.")
                     clear_loop_state(config, goal)
                     break
+                _, _, source_label, _ = control_source(config, goal, active_section)
+                print(f"Task cursor: {task_cursor(source_label, items)}")
                 print("Next unfinished task rows:")
                 for line, mark, text in items:
                     print(f"[{mark}] line {line}: {text}")

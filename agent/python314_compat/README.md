@@ -34,6 +34,20 @@ The compact active task plan lives in:
 agent/python314_compat/tasks/
 ```
 
+Each file in that folder is a small task list. The loop can run one named task,
+for example `--section system_stdlib`, or `--section auto` to pick the first
+unfinished task from `queue.md`. Keep these files compact; they are the normal
+Codex prompt input.
+
+Loop prompts identify work with a compact cursor:
+
+```text
+file=agent/python314_compat/tasks/system_stdlib.md; offset=21; line=22
+```
+
+`offset` is the zero-based row offset in the task markdown file. `line` is the
+one-based editor line for human review.
+
 The old product audit remains as a legacy snapshot/reference in:
 
 ```text

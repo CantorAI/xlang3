@@ -47,3 +47,14 @@ With no arguments, the wrapper starts the Python compatibility loop using the
 defaults from `agent/config.toml`. The wrapper itself only launches Python; the
 Python script owns goal selection, backend command, resume, validation, commit,
 and push behavior.
+
+The default Python 3.14 goal reads compact task files from:
+
+```text
+agent\python314_compat\tasks\
+```
+
+Use `--section auto` to let the loop choose the first unfinished task listed in
+the goal queue. The current default task is `system_stdlib`, which focuses on
+running real CPython 3.14 `Lib/*.py` system modules and filling the XLang3
+runtime/native dependencies they require.

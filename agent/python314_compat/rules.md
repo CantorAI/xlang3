@@ -17,6 +17,8 @@ limitations under the License.
 - The final goal is Python 3.14 runtime compatibility, not debugpy-only support.
 - Prefer runtime compatibility over native reimplementation of pure Python
   standard-library modules.
+- For system stdlib work, run the real CPython 3.14 `Lib/*.py` module first,
+  identify the missing runtime/native dependency, and fix that dependency.
 - Do not implement or extend pure Python CPython stdlib modules as C++ facades.
   If a pure `Lib/*.py` module fails, fix the missing runtime primitive or native
   dependency it exposes.
