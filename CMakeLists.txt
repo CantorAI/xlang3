@@ -119,6 +119,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/dataclasses_module.cpp
   src/runtime/modules/system/dis_module.cpp
   src/runtime/modules/system/enum_module.cpp
+  src/runtime/modules/system/errno_module.cpp
   src/runtime/modules/system/fnmatch_glob_module.cpp
   src/runtime/modules/system/functools_module.cpp
   src/runtime/modules/system/getpass_module.cpp

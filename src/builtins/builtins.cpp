@@ -50,6 +50,7 @@ void register_core_builtins(Runtime& runtime) {
   register_ctypes_module(runtime);
   register_dis_module(runtime);
   register_enum_module(runtime);
+  register_errno_module(runtime);
   register_getpass_module(runtime);
   register_itertools_module(runtime);
   register_json_module(runtime);

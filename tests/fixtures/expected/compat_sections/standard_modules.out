@@ -1,3 +1,4 @@
+errno-native True True True True True True True
 2 hello UserWarning
 native
 original doc text True 5

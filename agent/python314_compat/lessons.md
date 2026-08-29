@@ -311,3 +311,7 @@ shape the next iteration.
   when possible. Touching shared inline VM constructor headers can force a long
   whole-VM optimized rebuild; reserve that path for behavior changes that truly
   need call/constructor dispatch changes.
+- When a pure-Python stdlib import fails through a missing native dependency,
+  keep the batch fixture scoped to the dependency being implemented. On Windows,
+  `shutil` reaches `_winapi` after `errno`, so validating `shutil` importability
+  belongs to a separate `_winapi` compatibility batch.

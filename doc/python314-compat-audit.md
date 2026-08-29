@@ -986,6 +986,9 @@ documented here.
 
 Native or runtime-backed foundation:
 
+- [x] `errno`: native built-in module metadata, platform-backed standard
+  errno constants, Windows WSA aliases, and CPython-style `errorcode` reverse
+  mapping covered by the Standard Modules Foundation fixture
 - [~] `sys`: `modules`, `exc_info`/`exception` with nested handler-state
   restoration, CPython-style no-argument and keyword `TypeError` diagnostics,
   stdio objects including shared `_io.TextIOWrapper`

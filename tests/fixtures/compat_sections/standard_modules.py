@@ -14,6 +14,9 @@
 # warnings facade: filters accepted and catch_warnings(record=True) captures warn().
 import warnings
 import _warnings
+import errno
+
+print("errno-native", errno.ENOENT == 2, errno.errorcode[errno.ENOENT] == "ENOENT", (errno.EWOULDBLOCK == errno.WSAEWOULDBLOCK and errno.errorcode[errno.WSAEWOULDBLOCK] == "WSAEWOULDBLOCK") if hasattr(errno, "WSAEWOULDBLOCK") else True, len(errno.errorcode) >= 50, errno.__spec__.origin == "built-in", errno.__spec__.loader is errno.__loader__, errno.__doc__.startswith("This module makes available standard errno"))
 
 warnings.simplefilter("always")
 with warnings.catch_warnings(record=True) as seen:

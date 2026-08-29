@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-ABC abstract descriptor decorator class-level marker metadata
+Native errno module constants and errorcode mapping
 ```
 
 Current next loop:

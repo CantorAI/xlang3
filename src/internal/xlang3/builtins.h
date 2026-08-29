@@ -78,6 +78,7 @@ void register_fnmatch_glob_modules(Runtime& runtime);
 void register_ctypes_module(Runtime& runtime);
 void register_dis_module(Runtime& runtime);
 void register_enum_module(Runtime& runtime);
+void register_errno_module(Runtime& runtime);
 void register_getpass_module(Runtime& runtime);
 void register_itertools_module(Runtime& runtime);
 void register_json_module(Runtime& runtime);
