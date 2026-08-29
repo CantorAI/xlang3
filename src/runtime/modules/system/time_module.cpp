@@ -431,6 +431,41 @@ bool parse_fixed_digits(const std::string& text, size_t& pos, size_t min_digits,
   return true;
 }
 
+bool parse_bounded_digits(
+    const std::string& text,
+    size_t& pos,
+    size_t min_digits,
+    size_t max_digits,
+    int min_value,
+    int max_value,
+    int& out) {
+  const size_t start = pos;
+  size_t probe = pos;
+  int value = 0;
+  if (!parse_fixed_digits(text, probe, min_digits, max_digits, value)) {
+    return false;
+  }
+  if (value >= min_value && value <= max_value) {
+    pos = probe;
+    out = value;
+    return true;
+  }
+
+  size_t consumed = probe - start;
+  while (consumed > min_digits) {
+    --consumed;
+    size_t candidate_pos = start;
+    int candidate = 0;
+    if (parse_fixed_digits(text, candidate_pos, consumed, consumed, candidate) &&
+        candidate >= min_value && candidate <= max_value) {
+      pos = candidate_pos;
+      out = candidate;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool consume_fractional_seconds(const std::string& text, size_t& pos) {
   const size_t start = pos;
   size_t count = 0;
@@ -692,13 +727,13 @@ bool parse_strptime_directives(
         explicit_year = true;
         break;
       case 'V':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 53) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 53, value)) {
           return false;
         }
         parsed_iso_week = value;
         break;
       case 'm':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 12, value)) {
           return false;
         }
         tm.tm_mon = value - 1;
@@ -708,7 +743,7 @@ bool parse_strptime_directives(
         if (text_pos < text.size() && text[text_pos] == ' ') {
           ++text_pos;
         }
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 31, value)) {
           return false;
         }
         tm.tm_mday = value;
@@ -718,7 +753,7 @@ bool parse_strptime_directives(
         if (text_pos < text.size() && text[text_pos] == ' ') {
           ++text_pos;
         }
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 31, value)) {
           return false;
         }
         tm.tm_mday = value;
@@ -726,7 +761,7 @@ bool parse_strptime_directives(
         break;
       case 'H':
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 23, value)) {
           return false;
         }
         tm.tm_hour = value;
@@ -735,14 +770,14 @@ bool parse_strptime_directives(
         if (text_pos < text.size() && text[text_pos] == ' ') {
           ++text_pos;
         }
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 23, value)) {
           return false;
         }
         tm.tm_hour = value;
         break;
       case 'I':
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 12, value)) {
           return false;
         }
         parsed_hour12 = value;
@@ -751,7 +786,7 @@ bool parse_strptime_directives(
         if (text_pos < text.size() && text[text_pos] == ' ') {
           ++text_pos;
         }
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 12, value)) {
           return false;
         }
         parsed_hour12 = value;
@@ -769,13 +804,13 @@ bool parse_strptime_directives(
         parsed_meridiem = value;
         break;
       case 'M':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 59, value)) {
           return false;
         }
         tm.tm_min = value;
         break;
       case 'S':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 61, value)) {
           return false;
         }
         tm.tm_sec = value;
@@ -786,19 +821,19 @@ bool parse_strptime_directives(
         }
         break;
       case 'j':
-        if (!parse_fixed_digits(text, text_pos, 1, 3, value) || value < 1 || value > 366) {
+        if (!parse_bounded_digits(text, text_pos, 1, 3, 1, 366, value)) {
           return false;
         }
         parsed_yday = value;
         break;
       case 'U':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 53) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 53, value)) {
           return false;
         }
         parsed_week_sunday = value;
         break;
       case 'W':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 53) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 53, value)) {
           return false;
         }
         parsed_week_monday = value;
@@ -860,63 +895,63 @@ bool parse_strptime_directives(
         break;
       case 'X':
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 23, value)) {
           return false;
         }
         tm.tm_hour = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 59, value)) {
           return false;
         }
         tm.tm_min = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 61, value)) {
           return false;
         }
         tm.tm_sec = value;
         break;
       case 'R':
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 23, value)) {
           return false;
         }
         tm.tm_hour = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 59, value)) {
           return false;
         }
         tm.tm_min = value;
         break;
       case 'T':
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 23, value)) {
           return false;
         }
         tm.tm_hour = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 59, value)) {
           return false;
         }
         tm.tm_min = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 61, value)) {
           return false;
         }
         tm.tm_sec = value;
         break;
       case 'r':
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 12, value)) {
           return false;
         }
         parsed_hour12 = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 59, value)) {
           return false;
         }
         tm.tm_min = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 61, value)) {
           return false;
         }
         tm.tm_sec = value;
@@ -930,12 +965,12 @@ bool parse_strptime_directives(
         parsed_meridiem = value;
         break;
       case 'x':
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 12) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 12, value)) {
           return false;
         }
         tm.tm_mon = value - 1;
         if (!consume_strptime_literal(text, text_pos, '/') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 1, 31, value)) {
           return false;
         }
         tm.tm_mday = value;
@@ -968,7 +1003,7 @@ bool parse_strptime_directives(
         if (!consume_required_strptime_spaces(text, text_pos)) {
           return false;
         }
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value < 1 || value > 31) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 1, 31, value)) {
           return false;
         }
         tm.tm_mday = value;
@@ -976,17 +1011,17 @@ bool parse_strptime_directives(
           return false;
         }
         consume_optional_strptime_hour_space(text, text_pos);
-        if (!parse_fixed_digits(text, text_pos, 1, 2, value) || value > 23) {
+        if (!parse_bounded_digits(text, text_pos, 1, 2, 0, 23, value)) {
           return false;
         }
         tm.tm_hour = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 59) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 59, value)) {
           return false;
         }
         tm.tm_min = value;
         if (!consume_strptime_literal(text, text_pos, ':') ||
-            !parse_fixed_digits(text, text_pos, 1, 2, value) || value > 61) {
+            !parse_bounded_digits(text, text_pos, 1, 2, 0, 61, value)) {
           return false;
         }
         tm.tm_sec = value;

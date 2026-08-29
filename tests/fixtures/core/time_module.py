@@ -35,3 +35,14 @@ try:
     time.strptime("2026 54 1", "%Y %U %w")
 except ValueError as err:
     print("strptime-mismatch-diagnostic", str(err) == "time data '2026 54 1' does not match format '%Y %U %w'")
+for bounded_text, bounded_format, bounded_tail in [
+    ("2026 01 32", "%Y %m %d", "2"),
+    ("23:60", "%H:%M", "0"),
+    ("23:59:62", "%H:%M:%S", "2"),
+    ("24", "%k", "4"),
+    ("13", "%l", "3"),
+]:
+    try:
+        time.strptime(bounded_text, bounded_format)
+    except ValueError as err:
+        print("strptime-bounded-diagnostic", bounded_text, str(err) == "unconverted data remains: " + bounded_tail)
