@@ -43,6 +43,7 @@ try:
         module_spec.origin.endswith(module_name + ".py"),
         module_spec.submodule_search_locations is None,
         importer.get_filename(module_name).endswith(module_name + ".py"),
+        importer.get_source(module_name) == "VALUE = 314\n",
         importer.is_package(module_name),
     )
     print(
@@ -51,6 +52,7 @@ try:
         package_spec.loader is importer,
         package_spec.origin.endswith("__init__.py"),
         package_spec.submodule_search_locations[0].endswith(package_name),
+        importer.get_source(package_name) == "NAME = 'pkg'\n",
         importer.is_package(package_name),
         importer.find_spec("xlang3_path_importer_cache_fixture_missing") is None,
     )

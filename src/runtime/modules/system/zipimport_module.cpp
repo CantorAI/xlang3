@@ -255,6 +255,43 @@ bool zipimporter_return_none(Runtime&, const Value*, uint32_t argc, Value& out, 
   return true;
 }
 
+bool zipimporter_get_source(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "zipimporter.get_source expected fullname";
+    return false;
+  }
+  std::string fullname;
+  if (!zip_get_string_arg(args[1], "fullname", fullname, error)) {
+    return false;
+  }
+  std::string archive;
+  std::string member;
+  bool is_package = false;
+  bool archive_valid = false;
+  if (!zipimporter_find_member(runtime, args[0], fullname, archive, member, is_package, archive_valid, error)) {
+    if (!archive_valid) {
+      value_set_none(out);
+      return true;
+    }
+    error = "can't find module '" + fullname + "'";
+    return false;
+  }
+  std::vector<uint8_t> archive_bytes;
+  if (!runtime.vfs().read_file(archive, archive_bytes, error)) {
+    return false;
+  }
+  ZipArchiveEntry entry;
+  if (!zip_archive_find_entry(archive_bytes, member, entry, error)) {
+    return false;
+  }
+  std::string source;
+  if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
+    return false;
+  }
+  out = Value::string(std::move(source));
+  return true;
+}
+
 bool zipimporter_is_package(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.is_package expected fullname";
@@ -289,7 +326,7 @@ Value make_zipimporter_class(Runtime& runtime) {
   attrs.push_back({"get_filename", runtime.make_native_function("zipimport.zipimporter.get_filename", zipimporter_get_filename)});
   attrs.push_back({"get_data", runtime.make_native_function("zipimport.zipimporter.get_data", zipimporter_get_data)});
   attrs.push_back({"get_code", runtime.make_native_function("zipimport.zipimporter.get_code", zipimporter_return_none)});
-  attrs.push_back({"get_source", runtime.make_native_function("zipimport.zipimporter.get_source", zipimporter_return_none)});
+  attrs.push_back({"get_source", runtime.make_native_function("zipimport.zipimporter.get_source", zipimporter_get_source)});
   attrs.push_back({"load_module", runtime.make_native_function("zipimport.zipimporter.load_module", zipimporter_return_none)});
   attrs.push_back({"is_package", runtime.make_native_function("zipimport.zipimporter.is_package", zipimporter_is_package)});
   return Value::class_object("zipimporter", std::move(attrs));

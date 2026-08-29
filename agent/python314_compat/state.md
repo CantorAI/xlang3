@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-zipimporter archive-backed finder specs
+zipimporter archive-backed source retrieval
 ```
 
 Current next loop:
