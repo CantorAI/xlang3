@@ -2248,6 +2248,7 @@ try:
     sys.stderr = sys_hook_stderr
     sys.displayhook(42)
     sys.__displayhook__("hook\ntext")
+    sys.displayhook("don" + chr(39) + "t")
     sys.displayhook(None)
     sys.excepthook(ValueError, ValueError("hooked"), None)
     sys.__excepthook__(RuntimeError, RuntimeError("defaulted"), None)
@@ -2261,6 +2262,7 @@ print(
     len(sys_hook_stdout.items),
     sys_hook_stdout.items[0].strip(),
     sys_hook_stdout.items[1].strip(),
+    sys_hook_stdout.items[2].strip() == "\"don't\"",
     len(sys_hook_stderr.items),
     "ValueError: hooked" in sys_hook_stderr.items[0],
     "RuntimeError: defaulted" in sys_hook_stderr.items[1],

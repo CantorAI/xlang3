@@ -174,3 +174,6 @@ shape the next iteration.
 - Protocol-return diagnostics often include the returned object's visible type.
   `sys.displayhook()` reports `__repr__ returned non-string (type int)`, so cover
   the error text, not just that a `TypeError` was raised.
+- Avoid hand-rolled display escaping when a shared `repr` primitive exists.
+  `sys.displayhook("don't")` must use CPython's quote-selection rules, so route
+  string output through `value_to_repr` instead of duplicating partial escaping.

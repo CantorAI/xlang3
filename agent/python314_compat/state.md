@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.displayhook non-string __repr__ diagnostics
+sys.displayhook string repr quote selection
 ```
 
 Current next loop:

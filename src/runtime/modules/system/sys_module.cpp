@@ -2150,28 +2150,8 @@ bool sys_set_builtin_underscore(Runtime& runtime, const Value& value, std::strin
 }
 
 bool sys_displayhook_repr(Runtime& runtime, const Value& value, std::string& text, std::string& error) {
-  if (auto* string = value_as_string(value)) {
-    text = "'";
-    for (const unsigned char ch : string_object_view(*string)) {
-      if (ch == '\\' || ch == '\'') {
-        text.push_back('\\');
-        text.push_back(static_cast<char>(ch));
-      } else if (ch == '\n') {
-        text += "\\n";
-      } else if (ch == '\r') {
-        text += "\\r";
-      } else if (ch == '\t') {
-        text += "\\t";
-      } else if (ch >= 32 && ch < 127) {
-        text.push_back(static_cast<char>(ch));
-      } else {
-        constexpr char hex[] = "0123456789abcdef";
-        text += "\\x";
-        text.push_back(hex[ch >> 4]);
-        text.push_back(hex[ch & 0xf]);
-      }
-    }
-    text.push_back('\'');
+  if (value_as_string(value) != nullptr) {
+    text = value_to_repr(value);
     return true;
   }
   if (value_as_instance(value) != nullptr) {

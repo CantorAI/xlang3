@@ -1032,7 +1032,7 @@ Native or runtime-backed foundation:
   CPython-style public hook callable metadata including text signatures and unraisable/breakpoint docs, and
   CPython-style default-hook arity `TypeError` diagnostics plus keyword
   rejection, `builtins._`, CPython-style default hook alias identity,
-  CPython-style displayhook string repr, and catchable hook arity `TypeError`,
+  CPython-style displayhook string repr including quote selection, and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered
   non-callable hooks, CPython-style `sys.addaudithook(hook=...)` keyword
