@@ -378,7 +378,8 @@ Value abc_native_function(
     const std::string& doc,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
     void* keyword_user_data = nullptr,
-    const char* text_signature = nullptr) {
+    const char* text_signature = nullptr,
+    bool is_abstract_descriptor = false) {
   Value function = runtime.make_native_function(qualified_name, callback, keyword_user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
@@ -389,6 +390,9 @@ Value abc_native_function(
     };
     if (text_signature != nullptr) {
       attrs.push_back({Value::string("__text_signature__"), Value::string(text_signature)});
+    }
+    if (is_abstract_descriptor) {
+      attrs.push_back({Value::string("__isabstractmethod__"), Value::boolean(true)});
     }
     native->attrs_dict = new Value(Value::dict(std::move(attrs)));
   }
@@ -1069,7 +1073,10 @@ void register_abc_module(Runtime& runtime) {
               "        @abstractmethod\n"
               "        def my_abstract_classmethod(cls, ...):\n"
               "            ...\n\n",
-              abc_abstractclassmethod_kw))
+              abc_abstractclassmethod_kw,
+              nullptr,
+              nullptr,
+              true))
       .value(
           "abstractstaticmethod",
           abc_native_function(
@@ -1085,7 +1092,10 @@ void register_abc_module(Runtime& runtime) {
               "        @abstractmethod\n"
               "        def my_abstract_staticmethod(...):\n"
               "            ...\n\n",
-              abc_abstractstaticmethod_kw))
+              abc_abstractstaticmethod_kw,
+              nullptr,
+              nullptr,
+              true))
       .value(
           "abstractproperty",
           abc_native_function(
@@ -1101,7 +1111,10 @@ void register_abc_module(Runtime& runtime) {
               "        @abstractmethod\n"
               "        def my_abstract_property(self):\n"
               "            ...\n\n",
-              abc_abstractproperty_kw));
+              abc_abstractproperty_kw,
+              nullptr,
+              nullptr,
+              true));
   runtime.register_module("abc", public_builder.finish());
 }
 

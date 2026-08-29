@@ -49,6 +49,7 @@ abc abc abc _abc ABCMeta ABC True True
 abc-class-docs True True True True
 abc-function-docs True True True True True True True
 abc-meta-method-docs True True True
+abc-abstract-descriptor-markers True True True
 abstractmethod register _abc_init True True
 True True
 True True

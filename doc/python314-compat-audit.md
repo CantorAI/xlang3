@@ -1228,7 +1228,9 @@ Native or runtime-backed foundation:
 - [x] `_thread` subset
 - [~] `abc` / `_abc`: native `ABCMeta`/`ABC`, `abstractmethod` markers including
   CPython-style `AttributeError` propagation for failed marker writes, keyword binding
-  for public abstract decorators/update helpers, and abstract descriptor decorators,
+  for public abstract decorators/update helpers, and abstract descriptor decorators
+  with CPython-style class-level `__isabstractmethod__` markers on
+  `abstractclassmethod`, `abstractstaticmethod`, and `abstractproperty`,
   including `abstractproperty` descriptor-level abstract markers for empty, setter-only,
   deleter-only, and full forms with CPython-normal unmarked accessors plus
   property getter-doc inheritance/recomputation across descriptor cloning while preserving explicit docs,

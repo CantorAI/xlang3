@@ -307,3 +307,7 @@ shape the next iteration.
   as metadata. On Windows, route the public time/process/thread clocks through
   the same OS APIs named in the CPython-visible implementation field instead of
   publishing CPython-shaped backend names over generic C++ clock calls.
+- Narrow metadata gaps on native module helpers should stay in the module helper
+  when possible. Touching shared inline VM constructor headers can force a long
+  whole-VM optimized rebuild; reserve that path for behavior changes that truly
+  need call/constructor dispatch changes.

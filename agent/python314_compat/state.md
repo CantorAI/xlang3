@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Windows-backed CPython-shaped time clock primitives and get_clock_info metadata
+ABC abstract descriptor decorator class-level marker metadata
 ```
 
 Current next loop:
