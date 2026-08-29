@@ -232,8 +232,9 @@ shape the next iteration.
   inputs unless the batch explicitly retires them with fixture coverage.
 - Archive-backed zipimporter execution should reuse the normal parse/lower/run
   module path and assert `sys.modules`, `__loader__`, `__spec__`, and `__file__`
-  metadata; keep non-zip legacy facade behavior separate when fixtures already
-  depend on it.
+  metadata; keep `load_module()` registration semantics separate from
+  `exec_module()`'s supplied-module execution, and keep non-zip legacy facade
+  behavior separate when fixtures already depend on it.
 - Visible startup containers can intentionally differ from internal runtime
   search roots. For `-c`, publish CPython's empty-string `sys.path[0]` sentinel
   while preserving the resolved cwd import root for actual module lookup.

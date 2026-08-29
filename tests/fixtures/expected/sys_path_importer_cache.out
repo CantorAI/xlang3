@@ -1,4 +1,5 @@
 path-importer-cache 314 True True True True
 path-importer-cache-spec xlang3_path_importer_cache_fixture_mod True True True True True True True False
 path-importer-cache-load xlang3_path_importer_cache_fixture_load 271 True True True True
+path-importer-cache-exec-module True 161 True True True True
 path-importer-cache-package-spec xlang3_path_importer_cache_fixture_pkg True True True True True True True True

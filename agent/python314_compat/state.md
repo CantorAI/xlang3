@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-command-mode sys.path[0] empty-string sentinel
+zipimporter archive-backed exec_module execution
 ```
 
 Current next loop:

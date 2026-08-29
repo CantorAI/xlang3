@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import importlib.util
 import sys
 import zipfile
 import zipimport
@@ -20,11 +21,13 @@ zip_path = "xlang3_path_importer_cache_fixture.zip"
 module_name = "xlang3_path_importer_cache_fixture_mod"
 package_name = "xlang3_path_importer_cache_fixture_pkg"
 load_name = "xlang3_path_importer_cache_fixture_load"
+exec_name = "xlang3_path_importer_cache_fixture_exec"
 try:
     with zipfile.ZipFile(zip_path, "w") as zf:
         zf.writestr(module_name + ".py", "VALUE = 314\n")
         zf.writestr(package_name + "/__init__.py", "NAME = 'pkg'\n")
         zf.writestr(load_name + ".py", "LOADED = 271\n")
+        zf.writestr(exec_name + ".py", "EXECED = 161\n")
     sys.path.insert(0, zip_path)
     module = __import__(module_name)
     importer = sys.path_importer_cache.get(zip_path)
@@ -33,6 +36,9 @@ try:
     module_code = importer.get_code(module_name)
     package_code = importer.get_code(package_name)
     loaded = importer.load_module(load_name)
+    exec_spec = importer.find_spec(exec_name)
+    exec_module = importlib.util.module_from_spec(exec_spec)
+    exec_result = importer.exec_module(exec_module)
     print(
         "path-importer-cache",
         module.VALUE,
@@ -63,6 +69,15 @@ try:
         sys.modules[load_name] is loaded,
     )
     print(
+        "path-importer-cache-exec-module",
+        exec_result is None,
+        exec_module.EXECED,
+        exec_module.__loader__ is importer,
+        exec_module.__spec__.loader is importer,
+        exec_module.__file__.endswith(exec_name + ".py"),
+        exec_name not in sys.modules,
+    )
+    print(
         "path-importer-cache-package-spec",
         package_spec.name,
         package_spec.loader is importer,
@@ -85,5 +100,7 @@ finally:
         del sys.modules[package_name]
     if load_name in sys.modules:
         del sys.modules[load_name]
+    if exec_name in sys.modules:
+        del sys.modules[exec_name]
     if os.path.exists(zip_path):
         os.remove(zip_path)
