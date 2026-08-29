@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-_abc helper metadata docs and text signatures
+abc/_abc CPython-shaped module import metadata
 ```
 
 Current next loop:

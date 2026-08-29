@@ -283,3 +283,7 @@ shape the next iteration.
   docs. For `_abc`, CPython exposes function-level `__qualname__` and
   `__text_signature__` on private helpers as well as public `abc.get_cache_token`,
   so route those through the shared native function attribute setup.
+- Import metadata stamped before startup source-path discovery can become stale:
+  CPython built-in and frozen loaders are class objects, not loader instances,
+  and frozen `ModuleSpec` entries use `origin='frozen'` with
+  `has_location=False` even when a compatibility `__file__` is published.

@@ -1226,6 +1226,8 @@ Native or runtime-backed foundation:
   including `ABC`/`ABCMeta` `__qualname__`, CPython-shaped multi-line class docs,
   public helper docs, `ABCMeta` method docs, and CPython-shaped `_abc` helper
   `__name__`/`__qualname__`/`__module__` metadata, docs, and text signatures,
+  plus CPython-shaped `_abc` built-in and `abc` frozen module `__package__`/
+  `__loader__`/`__spec__` metadata,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
   `_abc_init` class initialization for the CPython `abc.py` path,

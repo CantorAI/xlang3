@@ -250,7 +250,15 @@ Value make_import_metadata_class(const std::string& class_name, const std::strin
   return Value::class_object(class_name, std::move(attrs));
 }
 
+bool is_frozen_import_metadata_module(const std::string& name) {
+  return name == "abc" || name == "_frozen_importlib" || name == "_frozen_importlib_external" ||
+         name == "importlib._bootstrap" || name == "importlib._bootstrap_external";
+}
+
 Value make_runtime_loader(const std::string& class_name, const std::string& module_name) {
+  if (class_name == "BuiltinImporter" || class_name == "FrozenImporter") {
+    return make_import_metadata_class(class_name, "_frozen_importlib");
+  }
   auto loader = Value::instance(make_import_metadata_class(class_name, "_frozen_importlib"));
   std::string ignored;
   object_set_attr(loader, "name", Value::string(module_name), ignored);
@@ -270,7 +278,12 @@ Value make_runtime_module_spec(
   object_set_attr(spec, "cached", Value::none(), ignored);
   const auto dot = name.rfind('.');
   object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
-  object_set_attr(spec, "has_location", Value::boolean(origin.tag != ValueTag::None && value_to_string(origin) != "built-in"), ignored);
+  const std::string origin_text = origin.tag == ValueTag::None ? "" : value_to_string(origin);
+  object_set_attr(
+      spec,
+      "has_location",
+      Value::boolean(origin.tag != ValueTag::None && origin_text != "built-in" && origin_text != "frozen"),
+      ignored);
   object_set_attr(spec, "submodule_search_locations", submodule_search_locations, ignored);
   return spec;
 }
@@ -290,8 +303,10 @@ void ensure_module_import_metadata(Value& module, const std::string& name) {
   const bool has_path = module_get_attr(module, "__path__", path, ignored) && path.tag != ValueTag::Invalid;
   Value file;
   const bool has_file = module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::Invalid && file.tag != ValueTag::None;
-  Value loader = has_path && !has_file ? make_runtime_loader("NamespaceLoader", name)
-                                       : make_runtime_loader(has_file ? "SourceFileLoader" : "BuiltinImporter", name);
+  const bool is_frozen = is_frozen_import_metadata_module(name);
+  Value loader = is_frozen ? make_runtime_loader("FrozenImporter", name)
+                           : (has_path && !has_file ? make_runtime_loader("NamespaceLoader", name)
+                                                    : make_runtime_loader(has_file ? "SourceFileLoader" : "BuiltinImporter", name));
   if (!module_has_real_attr(module, "__loader__")) {
     module_set_attr(module, "__loader__", loader, ignored);
   } else {
@@ -299,7 +314,7 @@ void ensure_module_import_metadata(Value& module, const std::string& name) {
   }
 
   if (!module_has_real_attr(module, "__spec__")) {
-    Value origin = has_file ? file : (has_path ? Value::none() : Value::string("built-in"));
+    Value origin = is_frozen ? Value::string("frozen") : (has_file ? file : (has_path ? Value::none() : Value::string("built-in")));
     module_set_attr(module, "__spec__", make_runtime_module_spec(name, loader, origin, has_path ? path : Value::none()), ignored);
   }
 }

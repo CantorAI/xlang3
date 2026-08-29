@@ -15,6 +15,28 @@ import _abc
 import abc
 
 
+print(
+    "abc-module-metadata",
+    _abc.__package__ == "",
+    repr(_abc.__loader__) == "<class '_frozen_importlib.BuiltinImporter'>",
+    _abc.__spec__.name == "_abc",
+    _abc.__spec__.loader is _abc.__loader__,
+    _abc.__spec__.origin == "built-in",
+    _abc.__spec__.has_location is False,
+    hasattr(_abc, "__file__") is False,
+)
+
+print(
+    "abc-public-module-metadata",
+    abc.__package__ == "",
+    repr(abc.__loader__) == "<class '_frozen_importlib.FrozenImporter'>",
+    abc.__spec__.name == "abc",
+    abc.__spec__.loader is abc.__loader__,
+    abc.__spec__.origin == "frozen",
+    abc.__spec__.has_location is False,
+    hasattr(abc, "__file__") is True,
+)
+
 HELPERS = (
     ("get_cache_token", "($module, /)", ("opaque object", "virtual subclasses")),
     ("_abc_init", "($module, self, /)", ("class set-up", "abc module")),
