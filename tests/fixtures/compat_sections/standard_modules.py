@@ -2358,6 +2358,9 @@ for bad_strftime_format in ["%f", "%k", "%l", "%P", "%q", "%Q", "%s", "%"]:
     except ValueError as err:
         print("strftime-invalid", str(err) == "Invalid format string")
 # time structseq behavior and parsing.
+lambda_dict_literal = (lambda: {"tm_zone": "LD", "tm_gmtoff": 12})()
+lambda_set_literal = (lambda: {"alpha"})()
+print("lambda-container-literals", lambda_dict_literal["tm_zone"], lambda_dict_literal["tm_gmtoff"], "alpha" in lambda_set_literal)
 print(epoch_utc[0], len(epoch_utc), epoch_utc.n_sequence_fields, list(epoch_utc)[:3])
 print(epoch_utc.n_fields, epoch_utc.n_unnamed_fields, epoch_utc.tm_zone == "UTC", epoch_utc.tm_gmtoff == 0)
 print(time.struct_time.__module__, time.struct_time.__qualname__, time.struct_time.__doc__ is not None, time.struct_time.n_fields, time.struct_time.n_sequence_fields, time.struct_time.n_unnamed_fields, time.struct_time.tm_zone is not None, time.struct_time.tm_gmtoff is not None)
@@ -2414,6 +2417,7 @@ for struct_time_new_bad_name, struct_time_new_bad_call, struct_time_new_bad_part
     ("type", lambda: time.struct_time.__new__(time.struct_time, 42), ("constructor requires a sequence",)),
     ("unexpected", lambda: time.struct_time.__new__(time.struct_time, value=(1, 2, 3, 4, 5, 6, 7, 8, 9)), ("missing required argument", "sequence")),
     ("duplicate", lambda: time.struct_time.__new__(time.struct_time, (1, 2, 3, 4, 5, 6, 7, 8, 9), sequence=(1, 2, 3, 4, 5, 6, 7, 8, 9)), ("given by name", "sequence")),
+    ("dict-extra-field", lambda: time.struct_time.__new__(time.struct_time, (1, 2, 3, 4, 5, 6, 7, 8, 9), {"x": 1}), ("duplicate or unexpected field name",)),
     ("kw-extra", lambda: time.struct_time.__new__(time.struct_time, sequence=(1, 2, 3, 4, 5, 6, 7, 8, 9), dict={}, value=1), ("at most 2 keyword arguments", "3 given")),
 ]:
     try:
@@ -2578,6 +2582,7 @@ for bad_struct_time_name, bad_struct_time_call, bad_struct_time_parts in [
     ("extra-args", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {}, {}), ("takes at most 2 arguments", "3 given")),
     ("sequence-type", lambda: time.struct_time(1), ("constructor requires a sequence",)),
     ("dict-type", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), 1), ("takes a dict as second arg",)),
+    ("dict-extra-field", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1), {"x": 1}), ("duplicate or unexpected field name",)),
     ("short-sequence", lambda: time.struct_time((2026, 8, 26)), ("at least 9-sequence", "3-sequence given")),
     ("long-sequence", lambda: time.struct_time((2026, 8, 26, 1, 2, 3, 2, 238, -1, "X", 123, 0)), ("at most 11-sequence", "12-sequence given")),
     ("sequence-keyword-missing", lambda: time.struct_time(dict={}), ("missing required argument", "sequence")),

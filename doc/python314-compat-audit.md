@@ -1111,7 +1111,7 @@ Native or runtime-backed foundation:
   C-locale `%c`/`%r` composites plus invalid-format `ValueError` for `%k`/`%l`/`%P`/`%q`
   and trailing percent, constructible/indexable/iterable
   `struct_time` with CPython-style class `__module__`/`__qualname__`/doc metadata,
-  direct `struct_time.__new__` construction/metadata/keyword binding, tuple-backed
+  direct `struct_time.__new__` construction/metadata/keyword binding plus extra-field dict diagnostics, tuple-backed
   `__getnewargs__` payload/metadata/diagnostics, pickle-style
   `__reduce__`/`__reduce_ex__` payload/metadata/diagnostics, and constructor arity/type/sequence-length
   diagnostics and CPython 3.14-style instance/type `n_fields`/`n_sequence_fields`/
@@ -1120,7 +1120,7 @@ Native or runtime-backed foundation:
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
   descriptor repr, `inspect.ismemberdescriptor` visibility, and descriptor `__get__`,
   constructor `sequence=`/`dict=` keyword binding with CPython-style diagnostics, dict subclass
-  and extra-field handling through inherited `dict.__init__` with CPython-style descriptor
+  and extra-field handling including CPython-style duplicate/unexpected-field diagnostics through inherited `dict.__init__` with CPython-style descriptor
   diagnostics, long-sequence rejection, verbatim constructor preservation of sequence
   fields including irregular or non-int stored values, tuple-subclass identity with tuple-backed
   `count`/`index` including bool-as-int start/stop bounds and CPython-style arity/type/keyword

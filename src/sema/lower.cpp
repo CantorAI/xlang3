@@ -448,6 +448,19 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     for (const auto& item : list->items) items.push_back(clone_expr(*item));
     return std::make_unique<ast::ListExpr>(std::move(items));
   }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
+    entries.reserve(dict->entries.size());
+    for (const auto& entry : dict->entries) {
+      entries.push_back(std::make_pair(clone_expr(*entry.first), clone_expr(*entry.second)));
+    }
+    return std::make_unique<ast::DictExpr>(std::move(entries));
+  }
+  if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    std::vector<ast::ExprPtr> items;
+    for (const auto& item : set->items) items.push_back(clone_expr(*item));
+    return std::make_unique<ast::SetExpr>(std::move(items));
+  }
   if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
     auto out = std::make_unique<ast::ListCompExpr>(
         clone_expr(*comp->result),

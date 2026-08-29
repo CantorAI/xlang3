@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/value_hash.h"
 
@@ -162,14 +163,24 @@ const char* dict_view_name(DictIterationKind kind) {
   return "dict_keys";
 }
 
-DictObject* dict_source_from_view_or_dict(const Value& value, DictIterationKind& kind) {
+DictObject* dict_storage_from_value(const Value& value) {
   if (auto* dict = value_as_dict(value)) {
+    return dict;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    return value_as_dict(instance->mapping_storage);
+  }
+  return nullptr;
+}
+
+DictObject* dict_source_from_view_or_dict(const Value& value, DictIterationKind& kind) {
+  if (auto* dict = dict_storage_from_value(value)) {
     kind = DictIterationKind::Keys;
     return dict;
   }
   if (auto* view = value_as_dict_view(value)) {
     kind = view->kind;
-    return value_as_dict(view->source);
+    return dict_storage_from_value(view->source);
   }
   return nullptr;
 }
@@ -389,7 +400,7 @@ bool mapping_truthy(const Value& value) {
 }
 
 bool mapping_is_mapping(const Value& value) {
-  return value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr;
+  return dict_storage_from_value(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr;
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
@@ -520,7 +531,7 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
     error = "invalid dict iterator";
     return false;
   }
-  auto* dict = value_as_dict(it->source);
+  auto* dict = dict_storage_from_value(it->source);
   auto* module = value_as_module(it->source);
   if (dict == nullptr && module == nullptr) {
     error = "dict iterator source is invalid";

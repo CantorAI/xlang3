@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -1802,35 +1804,123 @@ bool struct_time_constructor_items(
 }
 
 bool struct_time_extra_fields_from_dict(
+    Runtime& runtime,
     const Value& dict_value,
     bool sequence_has_zone,
     bool sequence_has_gmtoff,
     Value& zone,
     Value& gmtoff,
     std::string& error) {
+  static constexpr const char* kDuplicateOrUnexpectedFields =
+      "time.struct_time() got duplicate or unexpected field name(s)";
   auto* dict = value_as_dict(dict_value);
   if (dict == nullptr) {
     if (auto* instance = value_as_instance(dict_value)) {
       dict = value_as_dict(instance->mapping_storage);
     }
   }
-  if (dict == nullptr) {
-    error = "time.struct_time() takes a dict as second arg, if any";
-    return false;
-  }
-  for (const auto& entry : dict->entries) {
-    auto* key = value_as_string(entry.first);
+
+  auto apply_entry = [&](const Value& raw_key, const Value& value) -> bool {
+    auto* key = value_as_string(raw_key);
     if (key == nullptr) {
-      error = "time.struct_time() got duplicate or unexpected field name(s)";
+      error = kDuplicateOrUnexpectedFields;
       return false;
     }
     const std::string name = string_object_to_string(*key);
     if (name == "tm_zone" && !sequence_has_zone) {
-      value_assign_fast(zone, entry.second);
+      value_assign_fast(zone, value);
     } else if (name == "tm_gmtoff" && !sequence_has_gmtoff) {
-      value_assign_fast(gmtoff, entry.second);
+      value_assign_fast(gmtoff, value);
     } else {
-      error = "time.struct_time() got duplicate or unexpected field name(s)";
+      error = kDuplicateOrUnexpectedFields;
+      return false;
+    }
+    return true;
+  };
+
+  if (dict != nullptr) {
+    for (const auto& entry : dict->entries) {
+      if (!apply_entry(entry.first, entry.second)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const Value* dict_type = runtime.find_builtin("dict");
+  const Value* isinstance_fn = runtime.find_builtin("isinstance");
+  bool is_dict_type = false;
+  if (dict_type != nullptr && isinstance_fn != nullptr) {
+    Value isinstance_args[2] = {dict_value, *dict_type};
+    Value isinstance_result;
+    if (runtime_call_callable(runtime, *isinstance_fn, isinstance_args, 2, isinstance_result, error)) {
+      is_dict_type = value_truthy(isinstance_result);
+    } else {
+      return false;
+    }
+  }
+  if (!is_dict_type) {
+    error = "time.struct_time() takes a dict as second arg, if any";
+    return false;
+  }
+
+  Value key_iterator;
+  std::string iter_error;
+  if (sequence_get_iter(dict_value, key_iterator, iter_error)) {
+    for (;;) {
+      bool done = false;
+      Value key;
+      if (!sequence_iter_next(key_iterator, done, key, error)) {
+        return false;
+      }
+      if (done) {
+        return true;
+      }
+      Value value;
+      if (!sequence_get_item(dict_value, key, value, error)) {
+        return false;
+      }
+      if (!apply_entry(key, value)) {
+        return false;
+      }
+    }
+  }
+
+  Value items_method;
+  std::string attr_error;
+  if (!attribute_get(dict_value, "items", items_method, attr_error)) {
+    error = "time.struct_time() takes a dict as second arg, if any";
+    return false;
+  }
+  Value items_view;
+  if (!runtime_call_callable(runtime, items_method, nullptr, 0, items_view, error)) {
+    return false;
+  }
+  Value iterator;
+  if (!sequence_get_iter(items_view, iterator, error)) {
+    Value receiver_arg = dict_value;
+    if (!runtime_call_callable(runtime, items_method, &receiver_arg, 1, items_view, error)) {
+      return false;
+    }
+    if (!sequence_get_iter(items_view, iterator, error)) {
+      return false;
+    }
+  }
+  for (;;) {
+    bool done = false;
+    Value pair;
+    if (!sequence_iter_next(iterator, done, pair, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+    auto* tuple = value_as_tuple(pair);
+    if (tuple == nullptr || tuple->items.size() != 2) {
+      error = kDuplicateOrUnexpectedFields;
+      return false;
+    }
+    if (!apply_entry(tuple->items[0], tuple->items[1])) {
       return false;
     }
   }
@@ -1886,7 +1976,7 @@ bool time_struct_time_new(Runtime& runtime, const Value* args, uint32_t argc, Va
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (argc == 3 && !struct_time_extra_fields_from_dict(args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
+  if (argc == 3 && !struct_time_extra_fields_from_dict(runtime, args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1987,7 +2077,7 @@ bool time_struct_time_init(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (argc == 3 && !struct_time_extra_fields_from_dict(args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
+  if (argc == 3 && !struct_time_extra_fields_from_dict(runtime, args[2], sequence_has_zone, sequence_has_gmtoff, zone, gmtoff, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }

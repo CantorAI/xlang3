@@ -686,6 +686,7 @@ strftime-invalid True
 strftime-invalid True
 strftime-invalid True
 strftime-invalid True
+lambda-container-literals LD 12 True
 1970 9 9 [1970, 1, 1]
 11 0 True True
 time struct_time True 11 9 0 True True
@@ -714,6 +715,7 @@ struct-time-new-diagnostic extra True
 struct-time-new-diagnostic type True
 struct-time-new-diagnostic unexpected True
 struct-time-new-diagnostic duplicate True
+struct-time-new-diagnostic dict-extra-field True
 struct-time-new-diagnostic kw-extra True
 dict-init-diagnostic missing True
 dict-init-diagnostic extra True
@@ -779,6 +781,7 @@ struct-time-diagnostic missing True
 struct-time-diagnostic extra-args True
 struct-time-diagnostic sequence-type True
 struct-time-diagnostic dict-type True
+struct-time-diagnostic dict-extra-field True
 struct-time-diagnostic short-sequence True
 struct-time-diagnostic long-sequence True
 struct-time-diagnostic sequence-keyword-missing True

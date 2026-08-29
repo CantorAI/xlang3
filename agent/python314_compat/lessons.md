@@ -114,3 +114,6 @@ shape the next iteration.
 - Exception detection cannot rely only on names ending in `Error` or
   `Exception`; CPython-visible builtins such as `SystemExit`, `GeneratorExit`,
   and `StopIteration` still need normal `BaseException` string/args behavior.
+- Lambda lowering reuses `clone_expr`; when adding expression forms, cover both
+  plain literals and comprehensions. Missing `DictExpr`/`SetExpr` clones can
+  silently turn lambda bodies into `None` even when normal function returns work.
