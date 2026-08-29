@@ -129,6 +129,7 @@ CORE_CASES = [
     "trace_local_and_exception",
     "sys_coroutine_origin_metadata",
     "sys_module_doc_metadata",
+    "sys_stdio_text_streams",
     "task_async",
     "asyncio_module",
     "async_syntax",

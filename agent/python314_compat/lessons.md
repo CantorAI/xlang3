@@ -201,3 +201,6 @@ shape the next iteration.
   Windows, and let partially valid parsers report leftover suffixes through the
   shared trailing-data path instead of converting them to generic mismatch
   errors.
+- Native-backed objects exposed as `_io.TextIOWrapper` still need to honor the
+  text-layer return contract. Keep byte-oriented plumbing below the public
+  stdio methods; `sys.stdin.read()` and `readline()` return `str`, not `bytes`.

@@ -979,13 +979,13 @@ bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   if (size < 0) {
     std::ostringstream buffer;
     buffer << std::cin.rdbuf();
-    out = Value::bytes(buffer.str());
+    out = Value::string(buffer.str());
     return true;
   }
   std::string data(static_cast<size_t>(size), '\0');
   std::cin.read(data.data(), static_cast<std::streamsize>(size));
   data.resize(static_cast<size_t>(std::cin.gcount()));
-  out = Value::bytes(std::move(data));
+  out = Value::string(std::move(data));
   return true;
 }
 
@@ -1017,7 +1017,7 @@ bool sys_stdio_readline(Runtime& runtime, const Value* args, uint32_t argc, Valu
       break;
     }
   }
-  out = Value::bytes(std::move(data));
+  out = Value::string(std::move(data));
   return true;
 }
 
