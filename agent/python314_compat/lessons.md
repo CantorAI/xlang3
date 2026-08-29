@@ -156,3 +156,8 @@ shape the next iteration.
   `_abc.get_cache_token() takes no keyword arguments`, so keyword callbacks may
   need explicit function-qualified user data rather than deriving names from the
   public registration site.
+- CPython `_abc` helper arity diagnostics are not uniform across helpers:
+  one-argument helpers use fully qualified `takes exactly one argument (N given)`
+  text, but `_abc_register`/`_abc_subclasscheck`/`_abc_instancecheck` use their
+  short C helper names in `expected 2 arguments, got N` messages. Probe each
+  helper family before sharing one arity formatter.

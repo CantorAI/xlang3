@@ -1204,7 +1204,7 @@ Native or runtime-backed foundation:
   direct `ABCMeta.__new__` construction with namespace attrs, ABC metadata, abstract-method computation,
   cache initialization, and virtual subclass registration/check behavior,
   abstract-class instantiation `TypeError`, cache-token/register/dump/reset helpers
-  with catchable `TypeError` argument and function-qualified CPython-style keyword validation,
+  with catchable function-qualified CPython-style `TypeError` arity and keyword validation,
   virtual subclass checks, direct-subclass no-op registration, inheritance-cycle rejection,
   `isinstance`/`issubclass` metaclass hook dispatch before direct subclass acceptance,
   and ABC `__subclasshook__` True/False/`NotImplemented` fallback behavior,

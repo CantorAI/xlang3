@@ -137,6 +137,7 @@ abc-helper-type True
 abc-helper-type True
 abc-helper-type True
 abc-helper-type True
+abc-helper-arity-names True
 abc-helper-keyword get_cache_token True
 abc-helper-keyword _abc_init True
 abc-helper-keyword _abc_register True

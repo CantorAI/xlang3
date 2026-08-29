@@ -561,7 +561,32 @@ for abc_bad_call in [
     try:
         abc_bad_call()
     except TypeError as err:
-        print("abc-helper-type", "expected" in str(err) or "arguments" in str(err))
+        print("abc-helper-type", "expected" in str(err) or "argument" in str(err))
+abc_arity_messages = {}
+for abc_arity_name, abc_arity_call in [
+    ("get_cache_token", lambda: abc.get_cache_token(1)),
+    ("_abc_init", lambda: _abc._abc_init()),
+    ("_abc_register", lambda: _abc._abc_register(NativeABC)),
+    ("_abc_subclasscheck", lambda: _abc._abc_subclasscheck(NativeABC)),
+    ("_abc_instancecheck", lambda: _abc._abc_instancecheck(NativeABC)),
+    ("_get_dump", lambda: _abc._get_dump()),
+    ("_reset_registry", lambda: _abc._reset_registry()),
+    ("_reset_caches", lambda: _abc._reset_caches()),
+]:
+    try:
+        abc_arity_call()
+    except TypeError as err:
+        abc_arity_messages[abc_arity_name] = str(err)
+print("abc-helper-arity-names", all([
+    "_abc.get_cache_token() takes no arguments (1 given)" in abc_arity_messages.get("get_cache_token", ""),
+    "_abc._abc_init() takes exactly one argument (0 given)" in abc_arity_messages.get("_abc_init", ""),
+    "_abc_register expected 2 arguments, got 1" in abc_arity_messages.get("_abc_register", ""),
+    "_abc_subclasscheck expected 2 arguments, got 1" in abc_arity_messages.get("_abc_subclasscheck", ""),
+    "_abc_instancecheck expected 2 arguments, got 1" in abc_arity_messages.get("_abc_instancecheck", ""),
+    "_abc._get_dump() takes exactly one argument (0 given)" in abc_arity_messages.get("_get_dump", ""),
+    "_abc._reset_registry() takes exactly one argument (0 given)" in abc_arity_messages.get("_reset_registry", ""),
+    "_abc._reset_caches() takes exactly one argument (0 given)" in abc_arity_messages.get("_reset_caches", ""),
+]))
 abc_keyword_messages = {}
 for abc_keyword_bad_name, abc_keyword_bad_call in [
     ("get_cache_token", lambda: abc.get_cache_token(x=1)),
