@@ -25,6 +25,7 @@ limitations under the License.
 #include <cstdlib>
 #include <filesystem>
 #include <random>
+#include <sstream>
 #include <system_error>
 
 #if defined(_WIN32)
@@ -53,6 +54,7 @@ struct ScandirState {
 struct OsModuleState {
   Value dir_entry_class;
   Value scandir_iterator_class;
+  Value stat_result_class;
 };
 
 void scandir_state_cleanup(void* data) {
@@ -287,14 +289,159 @@ std::string dir_entry_path(const Value& self) {
   return {};
 }
 
-Value make_stat_result(const VfsStat& stat) {
-  std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"st_ino", Value::int64(static_cast<int64_t>(stat.inode))});
-  attrs.push_back({"st_size", Value::int64(static_cast<int64_t>(stat.size))});
-  attrs.push_back({"st_mtime_ns", Value::int64(0)});
-  attrs.push_back({"st_mtime", Value::number(0.0)});
-  Value klass = Value::class_object("stat_result", std::move(attrs));
-  return Value::instance(std::move(klass));
+std::string stat_result_field_repr(const Value& value) {
+  if (value.tag == ValueTag::None) {
+    return "None";
+  }
+  if (value.tag == ValueTag::Bool) {
+    return value.as.b ? "True" : "False";
+  }
+  if (value.tag == ValueTag::Int64) {
+    return std::to_string(value.as.i64);
+  }
+  if (value.tag == ValueTag::Double) {
+    std::ostringstream stream;
+    stream << value.as.f64;
+    return stream.str();
+  }
+  if (auto* string = value_as_string(value)) {
+    return "'" + string_object_to_string(*string) + "'";
+  }
+  return value_to_string(value);
+}
+
+bool os_stat_result_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "descriptor '__repr__' of 'os.stat_result' object needs an argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc != 1) {
+    error = "expected 0 arguments, got " + std::to_string(argc - 1);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value stored;
+  std::string ignored;
+  if (object_get_attr(args[0], "__xlang3_string_value__", stored, ignored)) {
+    out = stored;
+    return true;
+  }
+  Value tuple_value;
+  TupleObject* tuple = nullptr;
+  if (!object_get_attr(args[0], "_tuple", tuple_value, ignored) || (tuple = value_as_tuple(tuple_value)) == nullptr) {
+    error = "descriptor '__repr__' requires a 'os.stat_result' object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  static const char* names[] = {
+      "st_mode",
+      "st_ino",
+      "st_dev",
+      "st_nlink",
+      "st_uid",
+      "st_gid",
+      "st_size",
+      "st_atime",
+      "st_mtime",
+      "st_ctime",
+  };
+  std::string text = "os.stat_result(";
+  for (size_t i = 0; i < 10 && i < tuple->items.size(); ++i) {
+    if (i != 0) {
+      text += ", ";
+    }
+    text += names[i];
+    text += "=";
+    text += stat_result_field_repr(tuple->items[i]);
+  }
+  text += ")";
+  out = Value::string(std::move(text));
+  return true;
+}
+
+bool os_stat_result_repr_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value&,
+    std::string& error,
+    void*) {
+  if (kwargc == 0) {
+    return true;
+  }
+  error = "wrapper __repr__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+Value stat_result_match_args() {
+  return Value::tuple({
+      Value::string("st_mode"),
+      Value::string("st_ino"),
+      Value::string("st_dev"),
+      Value::string("st_nlink"),
+      Value::string("st_uid"),
+      Value::string("st_gid"),
+      Value::string("st_size"),
+  });
+}
+
+Value make_stat_result_class(Runtime& runtime) {
+  const Value* tuple_base = runtime.find_builtin("tuple");
+  return Value::class_object(
+      "stat_result",
+      {
+          {"__module__", Value::string("os")},
+          {"__qualname__", Value::string("stat_result")},
+          {"__repr__", runtime.make_native_function("os.stat_result.__repr__", os_stat_result_repr, nullptr, nullptr, nullptr, false, os_stat_result_repr_kw)},
+          {"__str__", runtime.make_native_function("os.stat_result.__str__", os_stat_result_repr, nullptr, nullptr, nullptr, false, os_stat_result_repr_kw)},
+          {"n_sequence_fields", Value::int64(10)},
+          {"n_fields", Value::int64(20)},
+          {"n_unnamed_fields", Value::int64(3)},
+          {"st_mode", slot_descriptor("os.stat_result", "st_mode", 0)},
+          {"st_ino", slot_descriptor("os.stat_result", "st_ino", 1)},
+          {"st_dev", slot_descriptor("os.stat_result", "st_dev", 2)},
+          {"st_nlink", slot_descriptor("os.stat_result", "st_nlink", 3)},
+          {"st_uid", slot_descriptor("os.stat_result", "st_uid", 4)},
+          {"st_gid", slot_descriptor("os.stat_result", "st_gid", 5)},
+          {"st_size", slot_descriptor("os.stat_result", "st_size", 6)},
+          {"st_atime", slot_descriptor("os.stat_result", "st_atime", 7)},
+          {"st_mtime", slot_descriptor("os.stat_result", "st_mtime", 8)},
+          {"st_ctime", slot_descriptor("os.stat_result", "st_ctime", 9)},
+          {"st_atime_ns", Value::int64(0)},
+          {"st_mtime_ns", Value::int64(0)},
+          {"st_ctime_ns", Value::int64(0)},
+          {"st_birthtime", Value::none()},
+          {"st_birthtime_ns", Value::none()},
+          {"st_file_attributes", Value::int64(0)},
+          {"st_reparse_tag", Value::int64(0)},
+          {"__match_args__", stat_result_match_args()},
+      },
+      tuple_base != nullptr ? *tuple_base : Value::invalid());
+}
+
+Value make_stat_result(const Value& klass, const VfsStat& stat) {
+  const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
+  std::vector<Value> tuple_items = {
+      Value::int64(mode),
+      Value::int64(static_cast<int64_t>(stat.inode)),
+      Value::int64(0),
+      Value::int64(0),
+      Value::int64(0),
+      Value::int64(0),
+      Value::int64(static_cast<int64_t>(stat.size)),
+      Value::int64(0),
+      Value::int64(0),
+      Value::int64(0),
+  };
+
+  Value instance = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(instance, "_tuple", Value::tuple(tuple_items), ignored);
+  return instance;
 }
 
 bool dir_entry_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -379,16 +526,21 @@ bool dir_entry_is_symlink(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
-bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 1 || argc > 2) {
     error = "DirEntry.stat() expected optional follow_symlinks";
+    return false;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "DirEntry.stat() missing os module state";
     return false;
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
     return false;
   }
-  out = make_stat_result(stat);
+  out = make_stat_result(state->stat_result_class, stat);
   return true;
 }
 
@@ -418,14 +570,14 @@ bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
-Value make_dir_entry_class(Runtime& runtime) {
+Value make_dir_entry_class(Runtime& runtime, OsModuleState* os_state) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("os")});
   attrs.push_back({"inode", runtime.make_native_function("os.DirEntry.inode", dir_entry_inode)});
   attrs.push_back({"is_dir", runtime.make_native_function("os.DirEntry.is_dir", dir_entry_is_dir, nullptr, nullptr, nullptr, false, dir_entry_is_dir_kw)});
   attrs.push_back({"is_file", runtime.make_native_function("os.DirEntry.is_file", dir_entry_is_file, nullptr, nullptr, nullptr, false, dir_entry_is_file_kw)});
   attrs.push_back({"is_symlink", runtime.make_native_function("os.DirEntry.is_symlink", dir_entry_is_symlink)});
-  attrs.push_back({"stat", runtime.make_native_function("os.DirEntry.stat", dir_entry_stat, nullptr, nullptr, nullptr, false, dir_entry_stat_kw)});
+  attrs.push_back({"stat", runtime.make_native_function("os.DirEntry.stat", dir_entry_stat, os_state, nullptr, nullptr, false, dir_entry_stat_kw)});
   return Value::class_object("DirEntry", std::move(attrs));
 }
 
@@ -740,9 +892,14 @@ bool os_makedirs_kw(
   return os_makedirs_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
-bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "os.stat() expected one argument";
+    return false;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "os.stat() missing os module state";
     return false;
   }
   PathArg path;
@@ -753,19 +910,7 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   if (!runtime.vfs().stat(path.text, stat, error)) {
     return false;
   }
-  const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
-  out = Value::tuple({
-      Value::int64(mode),
-      Value::int64(static_cast<int64_t>(stat.inode)),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(static_cast<int64_t>(stat.size)),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
-  });
+  out = make_stat_result(state->stat_result_class, stat);
   return true;
 }
 
@@ -1329,7 +1474,8 @@ void register_os_module(Runtime& runtime) {
   Value path_module = make_os_path_module(runtime);
   Value env_dict = Value::dict({});
   auto* os_state = new OsModuleState();
-  os_state->dir_entry_class = make_dir_entry_class(runtime);
+  os_state->stat_result_class = make_stat_result_class(runtime);
+  os_state->dir_entry_class = make_dir_entry_class(runtime, os_state);
   os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
   runtime.register_native_package_cleanup(os_state, os_module_state_cleanup);
 
@@ -1353,7 +1499,8 @@ void register_os_module(Runtime& runtime) {
       .function("rmdir", os_rmdir)
       .function("rename", os_rename)
       .function("replace", os_replace)
-      .function("stat", os_stat)
+      .value("stat", runtime.make_native_function("os.stat", os_stat, os_state))
+      .value("stat_result", os_state->stat_result_class)
       .function("access", os_access)
       .function("getenv", os_getenv)
       .function("fspath", os_fspath)

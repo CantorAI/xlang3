@@ -319,3 +319,7 @@ shape the next iteration.
   runtime gaps before import completes; on Windows the next observed blocker is
   `os.stat_result`, so do not claim `shutil` importability from `_winapi`
   constants/function coverage alone.
+- CPython stdlib modules can depend on structseq type identity before they call
+  deeper APIs. On Windows, after `os.stat_result` is present, `shutil.py` next
+  reaches the low-level `os.open` surface; keep `stat_result` fixtures scoped to
+  tuple/type/named-field behavior and handle fd APIs in a separate `os` batch.

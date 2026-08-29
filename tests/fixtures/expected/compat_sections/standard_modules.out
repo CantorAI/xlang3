@@ -947,11 +947,12 @@ True True
 alpha\gamma beta.txt alpha
 True False True True
 True 3 True
+os-stat-result stat_result os True True 10 20 10 3 True True True True os stat_result ('st_mode', 'st_ino', 'st_dev', 'st_nlink', 'st_uid', 'st_gid', 'st_size')
 True 3 True
 True True
 True True True
 scandir-closed
-True False False True True
+True False False True True True
 True
 True True True
 xlang3_pathlib_section.txt xlang3_pathlib_section .txt ['.txt']

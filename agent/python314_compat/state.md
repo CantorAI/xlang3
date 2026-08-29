@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native _winapi CopyFile2 and NeedCurrentDirectoryForExePath surface
+os.stat_result tuple-subclass surface for os.stat and DirEntry.stat
 ```
 
 Current next loop:

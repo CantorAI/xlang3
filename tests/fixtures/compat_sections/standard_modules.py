@@ -34,7 +34,6 @@ with open(winapi_dst) as winapi_file:
 for winapi_path in (winapi_src, winapi_dst):
     os.remove(winapi_path)
 print("winapi-native", _winapi.COPY_FILE_COPY_SYMLINK == 2048, _winapi.ERROR_ACCESS_DENIED == 5, isinstance(_winapi.NeedCurrentDirectoryForExePath("cmd"), bool), winapi_copied == "winapi-copy", _winapi.NeedCurrentDirectoryForExePath.__text_signature__ == "($module, exe_name, /)", _winapi.NeedCurrentDirectoryForExePath.__doc__ is None, "CopyFile2 API" in _winapi.CopyFile2.__doc__)
-
 warnings.simplefilter("always")
 with warnings.catch_warnings(record=True) as seen:
     warnings.warn("hello")
@@ -3065,6 +3064,8 @@ os.mkdir(os_dir)
 with open(os_dir + "/created.txt", "w") as f:
     f.write("abc")
 print(os.path.lexists(os_dir), os.path.getsize(os_dir + "/created.txt"), os.access(os_dir + "/created.txt", os.F_OK))
+stat_result = os.stat(os_dir)
+print("os-stat-result", type(stat_result).__name__, type(stat_result).__module__, isinstance(stat_result, os.stat_result), isinstance(stat_result, tuple), len(stat_result), stat_result.n_fields, stat_result.n_sequence_fields, stat_result.n_unnamed_fields, stat_result.st_mode == stat_result[0], stat_result.st_size == stat_result[6], stat_result.st_mtime_ns == 0, repr(stat_result).startswith("os.stat_result("), os.stat_result.__module__, os.stat_result.__qualname__, os.stat_result.__match_args__)
 os.rename(os_dir + "/created.txt", os_dir + "/renamed.txt")
 with open(os_dir + "/replaced.txt", "w") as f:
     f.write("old")
@@ -3091,7 +3092,8 @@ with os.scandir(compat_fixture_dir) as entries:
     for entry in entries:
         if entry.name == "standard_modules.py":
             found_standard = True
-            print(entry.is_file(follow_symlinks=False), entry.is_dir(follow_symlinks=True), entry.is_symlink(), entry.inode() > 0, entry.stat(follow_symlinks=False).st_size > 0)
+            entry_stat = entry.stat(follow_symlinks=False)
+            print(entry.is_file(follow_symlinks=False), entry.is_dir(follow_symlinks=True), entry.is_symlink(), entry.inode() > 0, entry_stat.st_size > 0, entry_stat.__class__ is os.stat_result)
     print(found_standard)
 
 # Path-like bytes inputs produce bytes names and paths.
