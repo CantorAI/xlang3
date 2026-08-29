@@ -2149,9 +2149,9 @@ bool sys_set_builtin_underscore(Runtime& runtime, const Value& value, std::strin
   return module_set_attr(builtins, "_", value, error);
 }
 
-std::string sys_displayhook_repr(const Value& value) {
+bool sys_displayhook_repr(Runtime& runtime, const Value& value, std::string& text, std::string& error) {
   if (auto* string = value_as_string(value)) {
-    std::string text = "'";
+    text = "'";
     for (const unsigned char ch : string_object_view(*string)) {
       if (ch == '\\' || ch == '\'') {
         text.push_back('\\');
@@ -2172,9 +2172,28 @@ std::string sys_displayhook_repr(const Value& value) {
       }
     }
     text.push_back('\'');
-    return text;
+    return true;
   }
-  return value_to_string(value);
+  if (value_as_instance(value) != nullptr) {
+    Value repr_method;
+    std::string attr_error;
+    if (attribute_get(value, "__repr__", repr_method, attr_error)) {
+      Value result;
+      if (!runtime_call_callable(runtime, repr_method, nullptr, 0, result, error)) {
+        return false;
+      }
+      auto* repr_string = value_as_string(result);
+      if (repr_string == nullptr) {
+        error = "__repr__ returned non-string";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      text = string_object_to_string(*repr_string);
+      return true;
+    }
+  }
+  text = value_to_repr(value);
+  return true;
 }
 
 bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2184,8 +2203,12 @@ bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   if (args[0].tag != ValueTag::None) {
+    std::string display_text;
+    if (!sys_displayhook_repr(runtime, args[0], display_text, error)) {
+      return false;
+    }
     if (!sys_set_builtin_underscore(runtime, Value::none(), error) ||
-        !sys_write_stream(runtime, "stdout", sys_displayhook_repr(args[0]) + "\n", error) ||
+        !sys_write_stream(runtime, "stdout", display_text + "\n", error) ||
         !sys_set_builtin_underscore(runtime, args[0], error)) {
       return false;
     }

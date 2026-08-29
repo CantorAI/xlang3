@@ -168,3 +168,6 @@ shape the next iteration.
 - Tuple-backed native types may need an explicit `__str__` even when `__repr__`
   is correct. CPython displays `time.struct_time` with the named-field repr for
   both `repr()` and `str()`, so cover both display entry points.
+- User-facing output hooks must use descriptor-aware display conversion, not the
+  low-level value formatter. `sys.displayhook(obj)` is a `repr(obj)` surface and
+  must honor native instance `__repr__` methods such as `time.struct_time`.

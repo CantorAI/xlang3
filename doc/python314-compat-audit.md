@@ -1027,7 +1027,8 @@ Native or runtime-backed foundation:
   `exit` including CPython-style `SystemExit.code`/string behavior and too-many-arguments/keyword
   `TypeError` diagnostics, CPython-style exception/interner/size helper
   metadata including `exc_info`/`exception`/`exit` and `intern`/`getsizeof`/`getrefcount`
-  docs plus exception/exit and interner/refcount helper text signatures, display/exception hooks with stdio routing,
+  docs plus exception/exit and interner/refcount helper text signatures, display/exception hooks with stdio routing
+  including descriptor-aware displayhook repr dispatch,
   CPython-style public hook callable metadata including text signatures and unraisable/breakpoint docs, and
   CPython-style default-hook arity `TypeError` diagnostics plus keyword
   rejection, `builtins._`, CPython-style default hook alias identity,
