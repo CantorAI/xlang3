@@ -177,3 +177,6 @@ shape the next iteration.
 - Avoid hand-rolled display escaping when a shared `repr` primitive exists.
   `sys.displayhook("don't")` must use CPython's quote-selection rules, so route
   string output through `value_to_repr` instead of duplicating partial escaping.
+- `sys.displayhook` clears `builtins._` before invoking `repr(obj)`, not after.
+  Protocol callbacks can observe hook state, so fixture both the callback-visible
+  state and the final `_` value when changing displayhook ordering.

@@ -2183,12 +2183,14 @@ bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   if (args[0].tag != ValueTag::None) {
+    if (!sys_set_builtin_underscore(runtime, Value::none(), error)) {
+      return false;
+    }
     std::string display_text;
     if (!sys_displayhook_repr(runtime, args[0], display_text, error)) {
       return false;
     }
-    if (!sys_set_builtin_underscore(runtime, Value::none(), error) ||
-        !sys_write_stream(runtime, "stdout", display_text + "\n", error) ||
+    if (!sys_write_stream(runtime, "stdout", display_text + "\n", error) ||
         !sys_set_builtin_underscore(runtime, args[0], error)) {
       return false;
     }

@@ -1031,7 +1031,7 @@ Native or runtime-backed foundation:
   including descriptor-aware displayhook repr dispatch and CPython-style non-string `__repr__` return diagnostics,
   CPython-style public hook callable metadata including text signatures and unraisable/breakpoint docs, and
   CPython-style default-hook arity `TypeError` diagnostics plus keyword
-  rejection, `builtins._`, CPython-style default hook alias identity,
+  rejection, `builtins._` displayhook pre-clear/final-value behavior, CPython-style default hook alias identity,
   CPython-style displayhook string repr including quote selection, and catchable hook arity `TypeError`,
   `breakpointhook`/`__breakpointhook__` no-op behavior including keyword-call support,
   audit hook dispatch including CPython-style call-time failure for registered

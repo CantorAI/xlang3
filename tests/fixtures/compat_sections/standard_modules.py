@@ -2250,6 +2250,13 @@ try:
     sys.__displayhook__("hook\ntext")
     sys.displayhook("don" + chr(39) + "t")
     sys.displayhook(None)
+    sys_displayhook_repr_seen = []
+    class SysDisplayhookUnderscoreProbe:
+        def __repr__(self):
+            sys_displayhook_repr_seen.append(builtins._ is None)
+            return "underscore-probe"
+    builtins._ = "old-value"
+    sys.displayhook(SysDisplayhookUnderscoreProbe())
     sys.excepthook(ValueError, ValueError("hooked"), None)
     sys.__excepthook__(RuntimeError, RuntimeError("defaulted"), None)
     sys.unraisablehook(object())
@@ -2263,6 +2270,8 @@ print(
     sys_hook_stdout.items[0].strip(),
     sys_hook_stdout.items[1].strip(),
     sys_hook_stdout.items[2].strip() == "\"don't\"",
+    sys_hook_stdout.items[3].strip(),
+    sys_displayhook_repr_seen == [True],
     len(sys_hook_stderr.items),
     "ValueError: hooked" in sys_hook_stderr.items[0],
     "RuntimeError: defaulted" in sys_hook_stderr.items[1],
