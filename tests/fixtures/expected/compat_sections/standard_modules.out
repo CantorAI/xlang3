@@ -660,6 +660,7 @@ time-mktime-diagnostic missing True
 time-mktime-diagnostic extra True
 time-mktime-diagnostic keyword True
 time-mktime-diagnostic type True
+time-mktime-diagnostic tuple-short True
 time-mktime-diagnostic field-type True
 Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
 time-asctime-diagnostic extra True

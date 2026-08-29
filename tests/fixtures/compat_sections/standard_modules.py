@@ -2310,6 +2310,7 @@ for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
     ("extra", lambda: time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, -1), 1), ("takes exactly one argument", "2 given")),
     ("keyword", lambda: time.mktime(t=(1970, 1, 1, 0, 0, 0, 3, 1, -1)), ("takes no keyword arguments",)),
     ("type", lambda: time.mktime("x"), ("Tuple or struct_time argument required",)),
+    ("tuple-short", lambda: time.mktime((1, 2)), ("mktime(): illegal time tuple argument",)),
     ("field-type", lambda: time.mktime((1970.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:

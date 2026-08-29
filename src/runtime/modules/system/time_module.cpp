@@ -2223,6 +2223,8 @@ bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (!tm_from_sequence_like(args[0], tm, error)) {
     if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
       error = "Tuple or struct_time argument required";
+    } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
+      error = "mktime(): illegal time tuple argument";
     }
     runtime.raise_class_error("TypeError", error);
     return false;

@@ -1101,7 +1101,7 @@ Native or runtime-backed foundation:
   `sleep` bool-as-int zero-delay handling plus CPython-style arity/type/keyword/negative
   duration diagnostics, `localtime`, `gmtime`, and `ctime` bool timestamp
   arguments plus CPython-style arity/type/keyword/non-finite diagnostics, `mktime` bool fields in
-  time tuples plus CPython-style arity/type/keyword/field-type diagnostics, `strftime` with
+  time tuples plus CPython-style arity/type/keyword/tuple-shape/field-type diagnostics, `strftime` with
   CPython-style arity/type/keyword/time-tuple/field-type diagnostics, `strptime` with
   CPython-style entry-point arity/type/keyword diagnostics,
   `asctime` CPython-style default current-local-time behavior and
