@@ -100,6 +100,27 @@ bool is_auto_internable_string(std::string_view value) {
   return true;
 }
 
+bool is_auto_immortal_string(std::string_view value) {
+  if (value.empty()) {
+    return true;
+  }
+  auto is_alpha_or_underscore = [](unsigned char ch) {
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_';
+  };
+  auto is_alnum_or_underscore = [&](unsigned char ch) {
+    return is_alpha_or_underscore(ch) || (ch >= '0' && ch <= '9');
+  };
+  if (!is_alpha_or_underscore(static_cast<unsigned char>(value.front()))) {
+    return false;
+  }
+  for (size_t i = 1; i < value.size(); ++i) {
+    if (!is_alnum_or_underscore(static_cast<unsigned char>(value[i]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool interned_string_equal(const Value& interned, std::string_view value) {
   auto* string = value_as_string(interned);
   return string != nullptr && string_object_view(*string) == value;
@@ -192,14 +213,22 @@ std::string format_double_text(double value) {
 }
 #endif
 
-Value intern_string_view(std::string_view value) {
+Value intern_string_view(std::string_view value, bool immortal = true) {
   auto& table = interned_string_table();
   for (const auto& item : table) {
     if (interned_string_equal(item, value)) {
+      if (immortal) {
+        if (auto* string = value_as_string(item)) {
+          string->immortal = true;
+        }
+      }
       return item;
     }
   }
   Value interned = make_plain_string(value);
+  if (auto* string = value_as_string(interned)) {
+    string->immortal = immortal;
+  }
   table.push_back(interned);
   return interned;
 }
@@ -723,7 +752,7 @@ Value Value::string(std::string value) {
 
 Value Value::string_view(std::string_view value) {
   if (is_auto_internable_string(value)) {
-    return intern_string_view(value);
+    return intern_string_view(value, is_auto_immortal_string(value));
   }
   return make_plain_string(value);
 }
@@ -741,7 +770,7 @@ Value intern_string_value(const Value& value) {
   if (string == nullptr) {
     return Value::invalid();
   }
-  return intern_string_view(string_object_view(*string));
+  return intern_string_view(string_object_view(*string), false);
 }
 
 bool string_value_is_interned(const Value& value) {
@@ -753,8 +782,24 @@ bool string_value_is_interned(const Value& value) {
   return false;
 }
 
+bool string_value_is_immortal_interned(const Value& value) {
+  auto* string = value_as_string(value);
+  return string != nullptr && string->immortal && string_value_is_interned(value);
+}
+
 int64_t interned_string_count() {
   return static_cast<int64_t>(interned_string_table().size());
+}
+
+int64_t immortal_interned_string_count() {
+  int64_t count = 0;
+  for (const auto& item : interned_string_table()) {
+    auto* string = value_as_string(item);
+    if (string != nullptr && string->immortal) {
+      ++count;
+    }
+  }
+  return count;
 }
 
 Value Value::bytes(std::string value) {

@@ -134,6 +134,7 @@ CORE_CASES = [
     "sys_cpu_count_config",
     "sys_command_path",
     "sys_is_immortal",
+    "sys_unicode_interned_size",
     "sys_module_doc_metadata",
     "sys_stdio_text_streams",
     "sys_path_importer_cache",

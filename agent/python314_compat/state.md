@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-CPython-shaped sys._is_immortal primitive probes
+CPython-shaped sys interned-string immortal count probes
 ```
 
 Current next loop:

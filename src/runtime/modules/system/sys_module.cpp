@@ -93,27 +93,6 @@ constexpr int64_t kMonitoringEventMask =
 constexpr int64_t kGetSizeofObjectOverhead = 32;
 constexpr const char* kSysStdioNativeType = "sys.TextIOWrapper";
 
-bool is_ascii_identifier_text(const std::string& text) {
-  if (text.empty()) {
-    return false;
-  }
-  auto is_alpha_or_underscore = [](char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
-  };
-  auto is_alnum_or_underscore = [&](char c) {
-    return is_alpha_or_underscore(c) || (c >= '0' && c <= '9');
-  };
-  if (!is_alpha_or_underscore(text.front())) {
-    return false;
-  }
-  for (size_t i = 1; i < text.size(); ++i) {
-    if (!is_alnum_or_underscore(text[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-
 struct MonitoringCodeKey {
   const ir::Module* module = nullptr;
   uint32_t function_id = 0;
@@ -2495,7 +2474,7 @@ bool sys_getunicodeinternedsize_kw(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_int64(out, value_truthy(*kwargs[0].value) ? 0 : interned_string_count());
+  value_set_int64(out, value_truthy(*kwargs[0].value) ? immortal_interned_string_count() : interned_string_count());
   return true;
 }
 
@@ -2518,9 +2497,8 @@ bool sys_is_immortal(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     case ValueTag::Object:
       if (auto* tuple = value_as_tuple(value)) {
         immortal = tuple->items.empty();
-      } else if (auto* string = value_as_string(value)) {
-        const std::string text = string_object_to_string(*string);
-        immortal = text.empty() || (string_value_is_interned(value) && is_ascii_identifier_text(text));
+      } else if (value_as_string(value) != nullptr) {
+        immortal = string_value_is_immortal_interned(value);
       } else if (value_as_class(value) != nullptr) {
         Value module;
         std::string ignored;

@@ -299,3 +299,7 @@ shape the next iteration.
   can return non-immortal strings for non-identifier text. Probe empty strings,
   identifier strings, dynamic strings, and interned non-identifier strings
   separately before mapping interning state to immortality.
+- `sys.getunicodeinternedsize(_only_immortal=True)` counts the interpreter's
+  immortal interned-string subset, not the live set of strings later added by
+  `sys.intern()`. Track string immortality as object metadata instead of
+  recomputing it from text shape or current interning state.

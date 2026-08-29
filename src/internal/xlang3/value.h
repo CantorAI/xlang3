@@ -153,6 +153,7 @@ struct StringObject {
   uint32_t size = 0;
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
+  bool immortal = false;
   // Immutable string bytes follow this object in the same allocation block.
 };
 
@@ -492,7 +493,9 @@ inline std::string string_object_to_string(const StringObject& value) {
 
 Value intern_string_value(const Value& value);
 bool string_value_is_interned(const Value& value);
+bool string_value_is_immortal_interned(const Value& value);
 int64_t interned_string_count();
+int64_t immortal_interned_string_count();
 
 XLANG3_HOT_INLINE size_t utf8_codepoint_width(unsigned char ch) {
   if ((ch & 0x80u) == 0) return 1;

@@ -1,0 +1,5 @@
+sys-unicode-interned-size-baseline True True True
+sys-unicode-interned-size-before False False False False
+sys-unicode-interned-size-identifier True False True True
+sys-unicode-interned-size-spaced True False True True
+sys-unicode-interned-size-falsey True

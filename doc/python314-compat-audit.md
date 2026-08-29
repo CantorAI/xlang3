@@ -451,6 +451,10 @@ Recent completed batches:
   immortal identifier-string, and builtins type/singleton results while keeping
   ordinary heap containers, custom classes, non-cached integers, dynamic
   strings, and interned non-identifier strings non-immortal.
+- Backed `sys.getunicodeinternedsize(_only_immortal=True)` with the runtime's
+  immortal interned-string metadata instead of a placeholder count. New
+  `sys.intern()` calls increase the total interned-string count without
+  promoting those user-interned strings into the immortal subset.
 - Expanded native `sys` structseq-like metadata: generated `version_info`,
   `flags`, `float_info`, `hash_info`, `thread_info`, and Windows
   `windows_version` type objects now expose CPython-style
@@ -1022,7 +1026,8 @@ Native or runtime-backed foundation:
   CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` tuple plus `_home`
   and Windows `_vpath` metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
   `float_repr_style`, `getunicodeinternedsize` with CPython-style
-  positional and keyword diagnostics,
+  positional/keyword diagnostics and `_only_immortal=True` backed by the
+  runtime's immortal interned-string subset,
   `_get_cpu_count_config` with CPython-style default sentinel result, docs,
   text signature, and positional/keyword diagnostics, and `is_remote_debug_enabled`
   with CPython-style keyword diagnostics,
@@ -1032,7 +1037,9 @@ Native or runtime-backed foundation:
   `_dump_tracelets(outpath)` empty-graph file emission for str/bytes/path-like paths
   with CPython-style arity/type/keyword/`__fspath__` return diagnostics and text
   signature, default/filesystem encoding helpers with CPython-style keyword
-  diagnostics and text signatures, `getunicodeinternedsize(_only_immortal=...)` binding, arity diagnostics, and text signature, recursion-limit
+  diagnostics and text signatures, `getunicodeinternedsize(_only_immortal=...)`
+  binding, arity diagnostics, text signature, and total-versus-immortal interned
+  string count behavior, recursion-limit
   helpers including bool-as-int bounds, CPython-style `getrecursionlimit`/`setrecursionlimit`
   docs and text signatures, and CPython-style getter/setter keyword
   diagnostics plus setter arity/type `TypeError` and low-limit `ValueError`
