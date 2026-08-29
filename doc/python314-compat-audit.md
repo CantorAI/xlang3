@@ -1089,7 +1089,7 @@ Native or runtime-backed foundation:
   live-thread-id-keyed `_current_frames` snapshots with CPython-style keyword
   diagnostics, live-thread-id-keyed `_current_exceptions` with CPython-style
   keyword diagnostics, cache-clear hooks with CPython-style arity and keyword diagnostics,
-  configurable coroutine-origin tracking helpers including getter keyword
+  configurable coroutine-origin tracking helpers including CPython-shaped docs, getter keyword
   diagnostics, `depth=` setter keyword binding, bool-as-int setter handling and
   CPython-style arity/type/keyword/negative-depth diagnostics,
   async-generator hook configuration with structseq-like `asyncgen_hooks`

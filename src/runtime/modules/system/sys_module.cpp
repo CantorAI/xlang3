@@ -4250,7 +4250,10 @@ void register_sys_module(Runtime& runtime) {
           "set_coroutine_origin_tracking_depth",
           sys_set_coroutine_origin_tracking_depth,
           nullptr,
-          "Enable or disable origin tracking for coroutine objects in this thread.",
+          "Enable or disable origin tracking for coroutine objects in this thread.\n\n"
+          "Coroutine objects will track 'depth' frames of traceback information\n"
+          "about where they came from, available in their cr_origin attribute.\n\n"
+          "Set a depth of 0 to disable.",
           sys_set_coroutine_origin_tracking_depth_kw,
           "($module, /, depth)"),
       error);
