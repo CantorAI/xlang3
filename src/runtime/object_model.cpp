@@ -1152,7 +1152,7 @@ std::string object_model_to_string(const Value& value) {
   }
   if (auto* instance = value_as_instance(value)) {
     if (auto* klass = value_as_class(instance->klass)) {
-      if (is_exception_class_name(klass->name)) {
+      if (is_exception_class_name(klass->name) || class_has_builtin_base_name(klass, "BaseException")) {
         for (const auto& attr : instance->attrs) {
           if (attr.first == "message") {
             return value_to_string(attr.second);

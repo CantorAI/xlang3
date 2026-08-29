@@ -404,6 +404,21 @@ Value make_memory_stream_class(Runtime& runtime, const char* name, const char* t
   return Value::class_object(name, std::move(attrs));
 }
 
+Value make_unsupported_operation_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("io")});
+  attrs.push_back({"__qualname__", Value::string("UnsupportedOperation")});
+  Value klass = Value::class_object("UnsupportedOperation", std::move(attrs));
+  std::string ignored;
+  if (const Value* os_error = runtime.find_builtin("OSError")) {
+    class_set_base(klass, *os_error, ignored);
+  }
+  if (const Value* value_error = runtime.find_builtin("ValueError")) {
+    class_set_base(klass, *value_error, ignored);
+  }
+  return klass;
+}
+
 void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value& string_io, const Value& bytes_io) {
   if (const Value* open = runtime.find_builtin("open")) {
     builder.value("open", *open);
@@ -439,13 +454,16 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
 void register_io_module(Runtime& runtime) {
   Value string_io = make_memory_stream_class(runtime, "StringIO", "_io.StringIO", string_io_init);
   Value bytes_io = make_memory_stream_class(runtime, "BytesIO", "_io.BytesIO", bytes_io_init);
+  Value unsupported_operation = make_unsupported_operation_class(runtime);
 
   NativeModuleBuilder low_level(runtime, "_io");
   add_io_exports(low_level, runtime, string_io, bytes_io);
+  low_level.value("UnsupportedOperation", unsupported_operation);
   runtime.register_module("_io", low_level.finish());
 
   NativeModuleBuilder high_level(runtime, "io");
   add_io_exports(high_level, runtime, std::move(string_io), std::move(bytes_io));
+  high_level.value("UnsupportedOperation", std::move(unsupported_operation));
   runtime.register_module("io", high_level.finish());
 }
 

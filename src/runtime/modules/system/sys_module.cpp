@@ -1047,6 +1047,20 @@ bool sys_stdio_binary_write(Runtime& runtime, const Value* args, uint32_t argc, 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
+  if (kind != nullptr && std::string(kind) == "stdin") {
+    error = "write";
+    Value io_module;
+    Value unsupported_operation;
+    std::string ignored;
+    if (runtime.import_module("io", io_module, ignored) &&
+        module_get_attr(io_module, "UnsupportedOperation", unsupported_operation, ignored)) {
+      runtime.set_pending_exception(runtime.make_exception_from_class(std::move(unsupported_operation), error));
+    } else {
+      runtime.raise_class_error("OSError", error);
+    }
+    return false;
+  }
   std::string data;
   if (auto* bytes = value_as_bytes(args[1])) {
     const auto view = bytes_object_view(*bytes);
@@ -1058,7 +1072,6 @@ bool sys_stdio_binary_write(Runtime& runtime, const Value* args, uint32_t argc, 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
   if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
   } else {
@@ -1080,10 +1093,24 @@ bool sys_stdio_binary_read(Runtime& runtime, const Value* args, uint32_t argc, V
     if (args[1].tag == ValueTag::None) {
       size = -1;
     } else if (!sys_bool_or_int_arg(args[1], size)) {
-      error = "argument should be integer or None, not '" + sys_type_name(runtime, args[1]) + "'";
+      error = "'" + sys_type_name(runtime, args[1]) + "' object cannot be interpreted as an integer";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
+  }
+  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
+  if (kind != nullptr && std::string(kind) != "stdin") {
+    error = "read";
+    Value io_module;
+    Value unsupported_operation;
+    std::string ignored;
+    if (runtime.import_module("io", io_module, ignored) &&
+        module_get_attr(io_module, "UnsupportedOperation", unsupported_operation, ignored)) {
+      runtime.set_pending_exception(runtime.make_exception_from_class(std::move(unsupported_operation), error));
+    } else {
+      runtime.raise_class_error("OSError", error);
+    }
+    return false;
   }
   if (size < 0) {
     std::ostringstream buffer;

@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import sys
 
 read_empty = sys.stdin.read(0)
@@ -26,6 +27,13 @@ print(type(sys.stdout.buffer).__module__, type(sys.stdout.buffer).__qualname__, 
 print(type(sys.stdin.buffer.read(0)).__name__, repr(sys.stdin.buffer.read(0)))
 print(sys.stdout.buffer.write(b""), sys.stderr.buffer.write(bytearray(b"")))
 print(sys.stdin.buffer.read.__text_signature__, sys.stdout.buffer.write.__text_signature__)
+print(
+    "unsupported-operation-metadata",
+    io.UnsupportedOperation.__module__,
+    io.UnsupportedOperation.__qualname__,
+    issubclass(io.UnsupportedOperation, OSError),
+    issubclass(io.UnsupportedOperation, ValueError),
+)
 
 def exc_message(func):
     try:
@@ -45,4 +53,24 @@ print(
     exc_message(lambda: sys.stdin.buffer.readable(1)) == "BufferedReader.readable() takes no arguments (1 given)",
     exc_message(lambda: sys.stdout.buffer.flush(1)) == "BufferedWriter.flush() takes no arguments (1 given)",
     exc_message(lambda: sys.stderr.buffer.fileno(1)) == "BufferedWriter.fileno() takes no arguments (1 given)",
+)
+
+def exc_detail(func):
+    try:
+        result = func()
+    except Exception as err:
+        return type(err).__module__, type(err).__name__, str(err)
+    return "OK", type(result).__name__, repr(result)
+
+print(
+    "buffer-capability",
+    exc_detail(lambda: sys.stdin.buffer.write("x")) == ("io", "UnsupportedOperation", "write"),
+    exc_detail(lambda: sys.stdout.buffer.read(0)) == ("io", "UnsupportedOperation", "read"),
+    exc_detail(lambda: sys.stderr.buffer.read(None)) == ("io", "UnsupportedOperation", "read"),
+    exc_detail(lambda: sys.stdout.buffer.read("x")) == (
+        "builtins",
+        "TypeError",
+        "'str' object cannot be interpreted as an integer",
+    ),
+    exc_detail(lambda: sys.stderr.buffer.readline(0)) == ("OK", "bytes", "b''"),
 )

@@ -215,3 +215,7 @@ shape the next iteration.
   When one implementation backs multiple CPython-visible classes, derive the
   displayed class name from the bound receiver instead of hardcoding the first
   wrapper type.
+- Module-defined exception classes still need normal `BaseException` display
+  behavior. Do not key exception `str()` rendering only on class names ending in
+  `Error`/`Exception`; CPython classes such as `io.UnsupportedOperation` inherit
+  the message behavior without matching those suffixes.

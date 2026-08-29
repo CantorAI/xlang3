@@ -9,5 +9,7 @@ _io BufferedWriter False
 bytes b''
 0 0
 ($self, size=-1, /) ($self, buffer, /)
+unsupported-operation-metadata io UnsupportedOperation True True
 buffer-keyword-diagnostics True True True
 buffer-noarg-diagnostics True True True
+buffer-capability True True True True True
