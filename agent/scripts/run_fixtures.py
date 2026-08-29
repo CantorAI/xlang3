@@ -129,6 +129,7 @@ CORE_CASES = [
     "trace_local_and_exception",
     "sys_coroutine_origin_metadata",
     "sys_cpu_count_config",
+    "sys_command_path",
     "sys_module_doc_metadata",
     "sys_stdio_text_streams",
     "sys_path_importer_cache",

@@ -992,9 +992,9 @@ Native or runtime-backed foundation:
   metadata, bytes-returning/accepting read/write paths, and CPython-style
   buffered-method keyword and no-argument diagnostics plus `io.UnsupportedOperation`
   read/write capability errors,
-  argv/orig_argv/path/import-cache containers
-  including zip `sys.path_importer_cache` entries populated with real `zipimport.zipimporter`
-instances with archive-backed `find_spec`/filename/source/code/load-module/package probes, CPython-style bootstrap
+  argv/orig_argv/path/import-cache containers including CPython-style command-mode
+  `sys.path[0]` empty-string sentinel and zip `sys.path_importer_cache` entries populated with real
+  `zipimport.zipimporter` instances with archive-backed `find_spec`/filename/source/code/load-module/package probes, CPython-style bootstrap
   `meta_path` finder objects and the real `zipimporter` path hook,
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/

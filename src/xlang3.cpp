@@ -30,6 +30,7 @@ limitations under the License.
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #if defined(_WIN32)
 #include <fcntl.h>
@@ -224,6 +225,27 @@ bool publish_process_sys_attrs(xlang3::Runtime& runtime, int argc, char** argv, 
     return false;
   }
   return true;
+}
+
+bool publish_command_sys_path(xlang3::Runtime& runtime, const xlang3::RunConfig& config, std::string& error) {
+  if (!runtime.publish_sys_path(error)) {
+    return false;
+  }
+  if (config.launch_mode != xlang3::RunConfig::LaunchMode::Command) {
+    return true;
+  }
+  xlang3::Value sys;
+  if (!runtime.import_module("sys", sys, error)) {
+    return false;
+  }
+  const auto& roots = runtime.import_roots();
+  std::vector<xlang3::Value> values;
+  values.reserve(roots.empty() ? 1 : roots.size());
+  values.push_back(xlang3::Value::string(""));
+  for (size_t i = 1; i < roots.size(); ++i) {
+    values.push_back(xlang3::Value::string(roots[i].string()));
+  }
+  return xlang3::module_set_attr(sys, "path", xlang3::Value::list(std::move(values)), error);
 }
 
 bool run_source(
@@ -537,7 +559,7 @@ int main(int argc, char** argv) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }
-  if (!runtime.publish_sys_path(argv_error)) {
+  if (!publish_command_sys_path(runtime, config, argv_error)) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }

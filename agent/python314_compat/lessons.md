@@ -234,3 +234,6 @@ shape the next iteration.
   module path and assert `sys.modules`, `__loader__`, `__spec__`, and `__file__`
   metadata; keep non-zip legacy facade behavior separate when fixtures already
   depend on it.
+- Visible startup containers can intentionally differ from internal runtime
+  search roots. For `-c`, publish CPython's empty-string `sys.path[0]` sentinel
+  while preserving the resolved cwd import root for actual module lookup.
