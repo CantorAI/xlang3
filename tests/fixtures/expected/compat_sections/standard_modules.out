@@ -176,11 +176,11 @@ sys-startup-hook-keyword _baserepl True
 True True True True True
 sys-meta-path-bootstrap ['BuiltinImporter', 'FrozenImporter', 'PathFinder'] ['_frozen_importlib', '_frozen_importlib', '_frozen_importlib_external'] ["<class '_frozen_importlib.BuiltinImporter'>", "<class '_frozen_importlib.FrozenImporter'>", "<class '_frozen_importlib_external.PathFinder'>"] True
 sys-path-hooks-zipimporter True True zipimport <class 'zipimport.zipimporter'>
-123 99
+sys-getsizeof-protocol-overhead 155 99
 sys-getsizeof-negative True
-1 1
+sys-getsizeof-bool-overhead 33 33
 99 101
-123 202 303
+155 202 303
 sys-getsizeof-reraises True
 sys-getsizeof-arity True True
 sys-getsizeof-arity True True

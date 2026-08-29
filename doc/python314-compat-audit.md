@@ -309,6 +309,9 @@ Recent completed batches:
 - Tightened native `sys.getsizeof`: callable `__sizeof__()` results of
   `True`/`False` are now accepted with bool-as-int semantics instead of
   falling through to default handling or raising `TypeError`.
+- Tightened native `sys.getsizeof`: valid callable `__sizeof__()` results now
+  include the CPython object overhead, including bool-as-int returns, while
+  preserving default fallback behavior for unusable protocol results.
 - Tightened native `time.strptime`: `%f` now accepts CPython-style one- to
   six-digit fractional seconds and discards the fraction while preserving the
   normalized `struct_time` fields; missing or trailing fractional input remains
@@ -971,8 +974,8 @@ Native or runtime-backed foundation:
   with runtime canonicalization plus CPython-style wrong-type/wrong-arity/keyword
   `TypeError` diagnostics and `_is_interned` including CPython-style
   wrong-type/wrong-arity/keyword `TypeError` diagnostics, `getsizeof` with CPython-style
-  keyword binding plus wrong-arity `TypeError` diagnostics and `__sizeof__`
-  protocol/default handling including bool-as-int return values, TypeError default
+  keyword binding plus wrong-arity `TypeError` diagnostics and object-overhead-adjusted
+  `__sizeof__` protocol/default handling including bool-as-int return values, TypeError default
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity/keyword `TypeError` diagnostics,
   `getallocatedblocks` with CPython-style keyword `TypeError` diagnostics,

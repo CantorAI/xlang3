@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys legacy windows fsencoding docs
+sys getsizeof object overhead protocol
 ```
 
 Current next loop:

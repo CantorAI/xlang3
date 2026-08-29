@@ -90,6 +90,7 @@ constexpr int64_t kMonitoringEventMask =
     kMonitoringEventExceptionHandled | kMonitoringEventPyUnwind | kMonitoringEventPyThrow |
     kMonitoringEventReraise | kMonitoringEventCReturn | kMonitoringEventCRaise |
     kMonitoringEventBranch;
+constexpr int64_t kGetSizeofObjectOverhead = 32;
 
 struct MonitoringCodeKey {
   const ir::Module* module = nullptr;
@@ -1857,11 +1858,12 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       }
       return false;
     }
+    int64_t reported_size = 0;
     if (size.tag == ValueTag::Bool) {
-      value_set_int64(out, size.as.b ? 1 : 0);
-      return true;
-    }
-    if (size.tag != ValueTag::Int64) {
+      reported_size = size.as.b ? 1 : 0;
+    } else if (size.tag == ValueTag::Int64) {
+      reported_size = size.as.i64;
+    } else {
       if (argc == 2) {
         value_assign_fast(out, args[1]);
         return true;
@@ -1870,12 +1872,12 @@ bool sys_getsizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    if (size.as.i64 < 0) {
+    if (reported_size < 0) {
       error = "__sizeof__() should return >= 0";
       runtime.raise_class_error("ValueError", error);
       return false;
     }
-    value_assign_fast(out, size);
+    value_set_int64(out, reported_size + kGetSizeofObjectOverhead);
     return true;
   }
   value_set_int64(out, shallow_sizeof(args[0]));

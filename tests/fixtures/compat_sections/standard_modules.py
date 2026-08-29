@@ -744,7 +744,7 @@ class SysSizeProbe:
 class SysSizeDefaultProbe:
     __sizeof__ = 42
 
-print(sys.getsizeof(SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), 99))
+print("sys-getsizeof-protocol-overhead", sys.getsizeof(SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), 99))
 class SysSizeNegativeProbe:
     def __sizeof__(self):
         return -1
@@ -765,7 +765,7 @@ try:
     sys.getsizeof(SysSizeNegativeProbe(), 99)
 except ValueError as err:
     print("sys-getsizeof-negative", ">= 0" in str(err))
-print(sys.getsizeof(SysSizeBoolProbe()), sys.getsizeof(SysSizeBoolProbe(), 99))
+print("sys-getsizeof-bool-overhead", sys.getsizeof(SysSizeBoolProbe()), sys.getsizeof(SysSizeBoolProbe(), 99))
 print(sys.getsizeof(SysSizeTypeErrorProbe(), 99), sys.getsizeof(SysSizeDefaultProbe(), 101))
 print(sys.getsizeof(object=SysSizeProbe()), sys.getsizeof(SysSizeDefaultProbe(), default=202), sys.getsizeof(object=SysSizeDefaultProbe(), default=303))
 try:
