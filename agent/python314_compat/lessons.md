@@ -261,3 +261,7 @@ shape the next iteration.
   `time.struct_time.tm_year` are readonly: their `__set__`/`__delete__` should
   raise `AttributeError: readonly attribute` for valid receivers while still
   using descriptor wrong-receiver `TypeError` for unrelated objects.
+- Native descriptor wrapper methods need their CPython wrapper-style keyword
+  rejection text; a generic native-function keyword failure should not leak
+  through surfaces such as `member_descriptor.__get__`, `__set__`, or
+  `__delete__`.

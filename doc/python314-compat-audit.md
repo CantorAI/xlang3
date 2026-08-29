@@ -1003,7 +1003,8 @@ Native or runtime-backed foundation:
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
   descriptor repr, `inspect.ismemberdescriptor` visibility, and tuple-backed `__get__`
   including CPython-style `None` owner handling and wrong-receiver diagnostics
-  plus readonly `__set__`/`__delete__` behavior and diagnostics,
+  plus `__get__`/`__set__`/`__delete__` keyword rejection and readonly
+  `__set__`/`__delete__` behavior and diagnostics,
   tuple inheritance, sequence iteration, tuple-backed `count`/`index` including bool-as-int
   start/stop bounds and CPython-style arity/type/keyword diagnostics plus
   out-of-range `IndexError`, CPython-style named-field `repr` including double precision with arity/type/keyword diagnostics,
@@ -1170,7 +1171,8 @@ Native or runtime-backed foundation:
   with CPython-style `builtins` type-module metadata, owning-class `__objclass__`,
   descriptor repr, `inspect.ismemberdescriptor` visibility, and descriptor `__get__`
   including CPython-style `None` owner handling and wrong-receiver diagnostics
-  plus readonly `__set__`/`__delete__` behavior and diagnostics,
+  plus `__get__`/`__set__`/`__delete__` keyword rejection and readonly
+  `__set__`/`__delete__` behavior and diagnostics,
   constructor `sequence=`/`dict=` keyword binding with CPython-style diagnostics, dict subclass
   and extra-field handling including CPython-style duplicate/unexpected-field diagnostics through inherited `dict.__init__` with CPython-style descriptor
   diagnostics, long-sequence rejection, verbatim constructor preservation of sequence

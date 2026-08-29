@@ -854,6 +854,26 @@ bool slot_descriptor_delete_method(
   return true;
 }
 
+bool slot_descriptor_no_keyword_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)args;
+  (void)argc;
+  (void)kwargs;
+  (void)kwargc;
+  (void)out;
+  const char* method = static_cast<const char*>(user_data);
+  error = std::string("wrapper ") + method + "() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool code_lines_method(
     Runtime& runtime,
     const Value* args,
@@ -1290,15 +1310,45 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__get__") {
-      out = Value::bound_method(object, Value::native_function(0, "member_descriptor.__get__", slot_descriptor_get_method));
+      out = Value::bound_method(
+          object,
+          Value::native_function(
+              0,
+              "member_descriptor.__get__",
+              slot_descriptor_get_method,
+              const_cast<char*>("__get__"),
+              nullptr,
+              nullptr,
+              false,
+              slot_descriptor_no_keyword_method));
       return true;
     }
     if (name == "__set__") {
-      out = Value::bound_method(object, Value::native_function(0, "member_descriptor.__set__", slot_descriptor_set_method));
+      out = Value::bound_method(
+          object,
+          Value::native_function(
+              0,
+              "member_descriptor.__set__",
+              slot_descriptor_set_method,
+              const_cast<char*>("__set__"),
+              nullptr,
+              nullptr,
+              false,
+              slot_descriptor_no_keyword_method));
       return true;
     }
     if (name == "__delete__") {
-      out = Value::bound_method(object, Value::native_function(0, "member_descriptor.__delete__", slot_descriptor_delete_method));
+      out = Value::bound_method(
+          object,
+          Value::native_function(
+              0,
+              "member_descriptor.__delete__",
+              slot_descriptor_delete_method,
+              const_cast<char*>("__delete__"),
+              nullptr,
+              nullptr,
+              false,
+              slot_descriptor_no_keyword_method));
       return true;
     }
     error = "member descriptor has no attribute '" + name + "'";
