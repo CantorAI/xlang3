@@ -315,3 +315,7 @@ shape the next iteration.
   keep the batch fixture scoped to the dependency being implemented. On Windows,
   `shutil` reaches `_winapi` after `errno`, so validating `shutil` importability
   belongs to a separate `_winapi` compatibility batch.
+- After `_winapi` import succeeds, CPython `shutil.py` can still expose ordinary
+  runtime gaps before import completes; on Windows the next observed blocker is
+  `os.stat_result`, so do not claim `shutil` importability from `_winapi`
+  constants/function coverage alone.

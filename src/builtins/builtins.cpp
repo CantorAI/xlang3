@@ -82,6 +82,9 @@ void register_core_builtins(Runtime& runtime) {
   register_pickle_module(runtime);
   register_subprocess_module(runtime);
   register_tokenize_module(runtime);
+#if defined(_WIN32)
+  register_winapi_module(runtime);
+#endif
   register_winreg_module(runtime);
   register_zlib_module(runtime);
   register_zipfile_module(runtime);

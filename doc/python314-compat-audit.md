@@ -989,6 +989,10 @@ Native or runtime-backed foundation:
 - [x] `errno`: native built-in module metadata, platform-backed standard
   errno constants, Windows WSA aliases, and CPython-style `errorcode` reverse
   mapping covered by the Standard Modules Foundation fixture
+- [~] `_winapi`: Windows native built-in module with CPython-style metadata for
+  the covered surface, `CopyFile2` and `NeedCurrentDirectoryForExePath` backed
+  by Win32 APIs, and representative constants used by CPython `shutil`; broader
+  `_winapi` process, handle, wait, and error-object surfaces remain pending
 - [~] `sys`: `modules`, `exc_info`/`exception` with nested handler-state
   restoration, CPython-style no-argument and keyword `TypeError` diagnostics,
   stdio objects including shared `_io.TextIOWrapper`

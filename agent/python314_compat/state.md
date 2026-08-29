@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-Native errno module constants and errorcode mapping
+Native _winapi CopyFile2 and NeedCurrentDirectoryForExePath surface
 ```
 
 Current next loop:

@@ -165,6 +165,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/types_module.cpp
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp
+  src/runtime/modules/system/winapi_module.cpp
   src/runtime/modules/system/winreg_module.cpp
   src/runtime/modules/system/xmlrpc_http_module.cpp
   src/runtime/modules/system/zlib_module.cpp
