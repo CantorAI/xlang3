@@ -1,0 +1,6 @@
+dump-tracelets True True True
+dump-tracelets True True True
+dump-tracelets True True True
+dump-tracelets True True True
+dump-tracelets-bad-fspath ('TypeError', 'expected BadPath.__fspath__() to return str or bytes, not int')
+dump-tracelets-raising-fspath ('RuntimeError', 'fspath-boom')

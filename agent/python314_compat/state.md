@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.exc_info/sys.exception nested handler-state restoration
+sys._dump_tracelets path-like empty-graph emission and __fspath__ diagnostics
 ```
 
 Current next loop:

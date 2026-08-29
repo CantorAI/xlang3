@@ -133,6 +133,7 @@ CORE_CASES = [
     "sys_module_doc_metadata",
     "sys_stdio_text_streams",
     "sys_path_importer_cache",
+    "sys_dump_tracelets",
     "task_async",
     "asyncio_module",
     "async_syntax",

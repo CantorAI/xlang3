@@ -908,6 +908,10 @@ bool sys_path_arg(Runtime& runtime, const Value& value, std::string& out, std::s
       out.assign(view.data(), view.size());
       return true;
     }
+    error = "expected " + sys_type_name(runtime, value) + ".__fspath__() to return str or bytes, not " +
+            sys_type_name(runtime, result);
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
 
   error = "expected str, bytes or os.PathLike object, not " + sys_type_name(runtime, value);

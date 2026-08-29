@@ -246,3 +246,7 @@ shape the next iteration.
   the previous handler exception on normal exit, while exceptions that propagate
   out of a handler must discard that abandoned context before entering an
   enclosing handler.
+- Shared path converters must preserve CPython's distinct path-protocol error
+  surfaces: objects with no usable path protocol report `expected str, bytes or
+  os.PathLike object, not T`, while a present `__fspath__()` that returns the
+  wrong type reports `expected T.__fspath__() to return str or bytes, not R`.
