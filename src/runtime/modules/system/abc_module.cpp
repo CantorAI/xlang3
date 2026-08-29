@@ -64,9 +64,13 @@ bool abc_type_error(Runtime& runtime, std::string& error, std::string message) {
   return false;
 }
 
-bool abc_no_keyword_args(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t kwargc, Value&, std::string& error, void*) {
+bool abc_no_keyword_args(Runtime& runtime, const Value*, uint32_t, const NativeKeywordArg*, uint32_t kwargc, Value&, std::string& error, void* user_data) {
   if (kwargc == 0) {
     return true;
+  }
+  const char* name = static_cast<const char*>(user_data);
+  if (name != nullptr && name[0] != '\0') {
+    return abc_type_error(runtime, error, std::string(name) + "() takes no keyword arguments");
   }
   return abc_type_error(runtime, error, "takes no keyword arguments");
 }
@@ -364,8 +368,9 @@ Value abc_native_function(
     const std::string& function_name,
     NativeFunctionCallback callback,
     const std::string& doc,
-    NativeKeywordFunctionCallback keyword_callback = nullptr) {
-  Value function = runtime.make_native_function(qualified_name, callback, nullptr, nullptr, nullptr, false, keyword_callback);
+    NativeKeywordFunctionCallback keyword_callback = nullptr,
+    void* keyword_user_data = nullptr) {
+  Value function = runtime.make_native_function(qualified_name, callback, keyword_user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__module__"), Value::string(module_name)},
@@ -814,22 +819,30 @@ void register_abc_module(Runtime& runtime) {
   builder.value("__doc__", Value::string("Module contains fast helpers for abc.py."))
       .value(
           "get_cache_token",
-          abc_native_function(runtime, "_abc", "_abc.get_cache_token", "get_cache_token", abc_get_cache_token, "Returns the current ABC cache token.", abc_no_keyword_args))
-      .value("_abc_init", abc_native_function(runtime, "_abc", "_abc._abc_init", "_abc_init", abc_init, "Internal ABC class initialization.", abc_no_keyword_args))
+          abc_native_function(
+              runtime,
+              "_abc",
+              "_abc.get_cache_token",
+              "get_cache_token",
+              abc_get_cache_token,
+              "Returns the current ABC cache token.",
+              abc_no_keyword_args,
+              const_cast<char*>("_abc.get_cache_token")))
+      .value("_abc_init", abc_native_function(runtime, "_abc", "_abc._abc_init", "_abc_init", abc_init, "Internal ABC class initialization.", abc_no_keyword_args, const_cast<char*>("_abc._abc_init")))
       .value(
           "_abc_register",
-          abc_native_function(runtime, "_abc", "_abc._abc_register", "_abc_register", abc_register, "Register a virtual subclass of an ABC.", abc_no_keyword_args))
+          abc_native_function(runtime, "_abc", "_abc._abc_register", "_abc_register", abc_register, "Register a virtual subclass of an ABC.", abc_no_keyword_args, const_cast<char*>("_abc._abc_register")))
       .value(
           "_abc_instancecheck",
-          abc_native_function(runtime, "_abc", "_abc._abc_instancecheck", "_abc_instancecheck", abc_instancecheck, "Internal ABC instance check.", abc_no_keyword_args))
+          abc_native_function(runtime, "_abc", "_abc._abc_instancecheck", "_abc_instancecheck", abc_instancecheck, "Internal ABC instance check.", abc_no_keyword_args, const_cast<char*>("_abc._abc_instancecheck")))
       .value(
           "_abc_subclasscheck",
-          abc_native_function(runtime, "_abc", "_abc._abc_subclasscheck", "_abc_subclasscheck", abc_subclasscheck, "Internal ABC subclass check.", abc_no_keyword_args))
-      .value("_get_dump", abc_native_function(runtime, "_abc", "_abc._get_dump", "_get_dump", abc_get_dump, "Return ABC registry and cache snapshots.", abc_no_keyword_args))
+          abc_native_function(runtime, "_abc", "_abc._abc_subclasscheck", "_abc_subclasscheck", abc_subclasscheck, "Internal ABC subclass check.", abc_no_keyword_args, const_cast<char*>("_abc._abc_subclasscheck")))
+      .value("_get_dump", abc_native_function(runtime, "_abc", "_abc._get_dump", "_get_dump", abc_get_dump, "Return ABC registry and cache snapshots.", abc_no_keyword_args, const_cast<char*>("_abc._get_dump")))
       .value(
           "_reset_registry",
-          abc_native_function(runtime, "_abc", "_abc._reset_registry", "_reset_registry", abc_reset_registry, "Clear the ABC registry.", abc_no_keyword_args))
-      .value("_reset_caches", abc_native_function(runtime, "_abc", "_abc._reset_caches", "_reset_caches", abc_reset_caches, "Clear ABC caches.", abc_no_keyword_args));
+          abc_native_function(runtime, "_abc", "_abc._reset_registry", "_reset_registry", abc_reset_registry, "Clear the ABC registry.", abc_no_keyword_args, const_cast<char*>("_abc._reset_registry")))
+      .value("_reset_caches", abc_native_function(runtime, "_abc", "_abc._reset_caches", "_reset_caches", abc_reset_caches, "Clear ABC caches.", abc_no_keyword_args, const_cast<char*>("_abc._reset_caches")));
   runtime.register_module("_abc", builder.finish());
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
@@ -906,7 +919,8 @@ void register_abc_module(Runtime& runtime) {
               "The token is an opaque object (supporting equality testing) identifying\n"
               "the current version of the ABC cache for virtual subclasses.  The token\n"
               "changes with every call to register() on any ABC.",
-              abc_no_keyword_args))
+              abc_no_keyword_args,
+              const_cast<char*>("_abc.get_cache_token")))
       .value(
           "abstractmethod",
           abc_native_function(

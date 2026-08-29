@@ -145,6 +145,7 @@ abc-helper-keyword _abc_instancecheck True
 abc-helper-keyword _get_dump True
 abc-helper-keyword _reset_registry True
 abc-helper-keyword _reset_caches True
+abc-helper-keyword-names True
 abc-update-keyword True
 True True True
 True True True

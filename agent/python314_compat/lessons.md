@@ -151,3 +151,8 @@ shape the next iteration.
   diagnostic separately. `sys.getsizeof()` falls back for a non-callable
   `__sizeof__` only when a default is supplied; otherwise it exposes the normal
   non-callable TypeError text.
+- Public Python aliases for native helper functions can still expose native
+  module names in CPython diagnostics. `abc.get_cache_token(x=...)` reports
+  `_abc.get_cache_token() takes no keyword arguments`, so keyword callbacks may
+  need explicit function-qualified user data rather than deriving names from the
+  public registration site.

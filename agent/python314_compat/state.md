@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.getsizeof non-callable __sizeof__ diagnostic
+_abc function-qualified keyword diagnostics
 ```
 
 Current next loop:

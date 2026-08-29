@@ -562,6 +562,7 @@ for abc_bad_call in [
         abc_bad_call()
     except TypeError as err:
         print("abc-helper-type", "expected" in str(err) or "arguments" in str(err))
+abc_keyword_messages = {}
 for abc_keyword_bad_name, abc_keyword_bad_call in [
     ("get_cache_token", lambda: abc.get_cache_token(x=1)),
     ("_abc_init", lambda: _abc._abc_init(self=NativeABC)),
@@ -575,7 +576,18 @@ for abc_keyword_bad_name, abc_keyword_bad_call in [
     try:
         abc_keyword_bad_call()
     except TypeError as err:
-        print("abc-helper-keyword", abc_keyword_bad_name, "takes no keyword arguments" in str(err))
+        abc_keyword_messages[abc_keyword_bad_name] = str(err)
+        print("abc-helper-keyword", abc_keyword_bad_name, "takes no keyword arguments" in abc_keyword_messages[abc_keyword_bad_name])
+print("abc-helper-keyword-names", all([
+    "_abc.get_cache_token() takes no keyword arguments" in abc_keyword_messages.get("get_cache_token", ""),
+    "_abc._abc_init() takes no keyword arguments" in abc_keyword_messages.get("_abc_init", ""),
+    "_abc._abc_register() takes no keyword arguments" in abc_keyword_messages.get("_abc_register", ""),
+    "_abc._abc_subclasscheck() takes no keyword arguments" in abc_keyword_messages.get("_abc_subclasscheck", ""),
+    "_abc._abc_instancecheck() takes no keyword arguments" in abc_keyword_messages.get("_abc_instancecheck", ""),
+    "_abc._get_dump() takes no keyword arguments" in abc_keyword_messages.get("_get_dump", ""),
+    "_abc._reset_registry() takes no keyword arguments" in abc_keyword_messages.get("_reset_registry", ""),
+    "_abc._reset_caches() takes no keyword arguments" in abc_keyword_messages.get("_reset_caches", ""),
+]))
 print("abc-update-keyword", abc.update_abstractmethods(cls=ConcreteABC) is ConcreteABC)
 
 # numbers: numeric ABC hierarchy and virtual builtin scalar registrations.
