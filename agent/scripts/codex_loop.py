@@ -311,7 +311,7 @@ def expand_session_command_template(config: dict, command: str, session_id: str)
 
 
 def default_section(config: dict, goal: str) -> str:
-    return goal_config(config, goal).get("default_section", "")
+    return goal_config(config, goal).get("default_section", "auto")
 
 
 def default_limit(config: dict, goal: str) -> int:
