@@ -1173,12 +1173,13 @@ Native or runtime-backed foundation:
   directives plus CPython-style ISO directive conflict `ValueError` diagnostics,
   `%z` UTC offsets through `tm_gmtoff` including CPython-permissive
   large offset hours, UTC/GMT and platform `time.tzname` `%Z` metadata including lowercase spelling preservation,
-  C-locale `%a`/`%A` weekday names, `%b`/`%h`/`%B` month names,
+  C-locale `%a`/`%A` weekday names, `%b`/`%B` month names plus CPython-normal
+  Windows `%h` bad-directive rejection,
   `%c`/`%x`/`%X`/`%R`/`%T`/`%r` composite directives including single-digit day spacing,
   space-padded `%d`/`%e` days, and CPython 3.14 `%k`/`%l` blank-padded
   24-hour/12-hour clocks plus lowercase `%P` AM/PM handling,
   `%z` compact seconds/fractional-second offset acceptance with rejected lowercase/malformed
-  offsets, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
+  offsets and malformed fractional-offset trailing-data diagnostics, `%f` fractional-second acceptance/discarding, invalid calendar-date rejection,
   CPython-style whitespace matching for format and `%c` composite whitespace runs
   including tab/run input and missing-whitespace rejection, single-space-padded
   hour acceptance for `%H`/`%I` and `%X`/`%R`/`%T`/`%r`/`%c` hour fields with

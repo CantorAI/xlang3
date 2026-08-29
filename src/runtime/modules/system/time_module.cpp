@@ -557,6 +557,7 @@ bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) 
       return false;
     }
     if (pos < text.size() && text[pos] == '.') {
+      const size_t fraction_start = pos;
       ++pos;
       size_t fraction_digits = 0;
       while (pos < text.size() && fraction_digits < 6 && std::isdigit(static_cast<unsigned char>(text[pos]))) {
@@ -564,10 +565,7 @@ bool parse_timezone_offset(const std::string& text, size_t& pos, Value& gmtoff) 
         ++fraction_digits;
       }
       if (fraction_digits == 0) {
-        return false;
-      }
-      if (pos < text.size() && std::isdigit(static_cast<unsigned char>(text[pos]))) {
-        return false;
+        pos = fraction_start;
       }
     }
   }
@@ -879,7 +877,6 @@ bool parse_strptime_directives(
         saw_weekday = true;
         break;
       case 'b':
-      case 'h':
         if (!consume_case_word(text, text_pos, {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}, value)) {
           return false;
         }

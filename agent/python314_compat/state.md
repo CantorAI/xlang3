@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-time strptime bounded numeric diagnostics
+time strptime timezone trailing diagnostics
 ```
 
 Current next loop:

@@ -14,3 +14,6 @@ strptime-bounded-diagnostic 23:60 True
 strptime-bounded-diagnostic 23:59:62 True
 strptime-bounded-diagnostic 24 True
 strptime-bounded-diagnostic 13 True
+strptime-tz-trailing-diagnostic +05:30:45.1234567 True
+strptime-tz-trailing-diagnostic +05:30:45. True
+strptime-percent-h-diagnostic True

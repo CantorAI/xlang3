@@ -196,3 +196,8 @@ shape the next iteration.
   metadata-only assertions to that monolithic section as an isolated batch.
   Prefer a focused already-run fixture or defer the metadata expansion until the
   section runtime has headroom.
+- Directive aliases can be platform-specific in CPython `strptime`. Probe the
+  active Python 3.14 build before accepting POSIX aliases such as `%h` on
+  Windows, and let partially valid parsers report leftover suffixes through the
+  shared trailing-data path instead of converting them to generic mismatch
+  errors.

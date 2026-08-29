@@ -46,3 +46,15 @@ for bounded_text, bounded_format, bounded_tail in [
         time.strptime(bounded_text, bounded_format)
     except ValueError as err:
         print("strptime-bounded-diagnostic", bounded_text, str(err) == "unconverted data remains: " + bounded_tail)
+for tz_text, tz_tail in [
+    ("+05:30:45.1234567", "7"),
+    ("+05:30:45.", "."),
+]:
+    try:
+        time.strptime(tz_text, "%z")
+    except ValueError as err:
+        print("strptime-tz-trailing-diagnostic", tz_text, str(err) == "unconverted data remains: " + tz_tail)
+try:
+    time.strptime("Sep 06 2026", "%h %d %Y")
+except ValueError as err:
+    print("strptime-percent-h-diagnostic", str(err) == "'h' is a bad directive in format '%h %d %Y'")
