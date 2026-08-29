@@ -1077,8 +1077,9 @@ Native or runtime-backed foundation:
   package/loader/spec metadata, helper function metadata including text
   signatures, tool IDs, event constants,
   tool-name reservation/freeing plus `clear_tool_id` preserving reservation/local masks while clearing global events/callbacks,
-  global/local event masks, callback replacement, restart/all-events
-  helpers, CPython-style `events` `types.SimpleNamespace` metadata/repr,
+  global/local event masks, callback replacement, restart helpers, `_all_events()`
+  global event-name to tool-bitmask snapshots excluding local-only masks,
+  CPython-style `events` `types.SimpleNamespace` metadata/repr,
   C return/raise event-set validation including paired-mask rejection, inactive-tool local-event rejection,
   bool-as-int tool/event IDs, single C return/raise callback registration, and catchable validation failures,
   live global and code-local `PY_START`/`PY_RETURN`/`LINE`/`INSTRUCTION` callback dispatch with

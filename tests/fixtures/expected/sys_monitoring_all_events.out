@@ -1,0 +1,7 @@
+monitoring-all-events-empty True
+True
+True
+monitoring-all-events-used True
+monitoring-all-events-global 8 16 24 False
+monitoring-all-events-local-ignored 8 16 24 False
+monitoring-all-events-cleared True

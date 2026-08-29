@@ -250,3 +250,6 @@ shape the next iteration.
   surfaces: objects with no usable path protocol report `expected str, bytes or
   os.PathLike object, not T`, while a present `__fspath__()` that returns the
   wrong type reports `expected T.__fspath__() to return str or bytes, not R`.
+- `sys.monitoring._all_events()` reports global events as `event_name -> tool
+  bitmask` using `1 << tool_id`; local-only event masks do not appear in this
+  snapshot.

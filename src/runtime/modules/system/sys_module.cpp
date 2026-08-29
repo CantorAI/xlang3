@@ -3041,7 +3041,46 @@ bool sys_monitoring_all_events(Runtime& runtime, const Value*, uint32_t argc, Va
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.monitoring._all_events", argc);
   }
-  out = Value::dict({});
+  struct MonitoringEventName {
+    const char* name;
+    int64_t event;
+  };
+  static constexpr MonitoringEventName kEventNames[] = {
+      {"PY_START", kMonitoringEventPyStart},
+      {"PY_RESUME", kMonitoringEventPyResume},
+      {"PY_RETURN", kMonitoringEventPyReturn},
+      {"PY_YIELD", kMonitoringEventPyYield},
+      {"CALL", kMonitoringEventCall},
+      {"LINE", kMonitoringEventLine},
+      {"INSTRUCTION", kMonitoringEventInstruction},
+      {"JUMP", kMonitoringEventJump},
+      {"BRANCH_LEFT", kMonitoringEventBranchLeft},
+      {"BRANCH_RIGHT", kMonitoringEventBranchRight},
+      {"STOP_ITERATION", kMonitoringEventStopIteration},
+      {"RAISE", kMonitoringEventRaise},
+      {"EXCEPTION_HANDLED", kMonitoringEventExceptionHandled},
+      {"PY_UNWIND", kMonitoringEventPyUnwind},
+      {"PY_THROW", kMonitoringEventPyThrow},
+      {"RERAISE", kMonitoringEventReraise},
+      {"C_RETURN", kMonitoringEventCReturn},
+      {"C_RAISE", kMonitoringEventCRaise},
+      {"BRANCH", kMonitoringEventBranch},
+  };
+
+  std::vector<std::pair<Value, Value>> entries;
+  for (const auto& named_event : kEventNames) {
+    int64_t tool_mask = 0;
+    for (size_t tool_id = 0; tool_id < g_monitoring_tools.size(); ++tool_id) {
+      const auto& tool = g_monitoring_tools[tool_id];
+      if (tool.name.tag != ValueTag::None && (tool.events & named_event.event) != 0) {
+        tool_mask |= (int64_t{1} << tool_id);
+      }
+    }
+    if (tool_mask != 0) {
+      entries.emplace_back(Value::string(named_event.name), Value::int64(tool_mask));
+    }
+  }
+  out = Value::dict(std::move(entries));
   return true;
 }
 

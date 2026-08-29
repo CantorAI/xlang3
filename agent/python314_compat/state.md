@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys._dump_tracelets path-like empty-graph emission and __fspath__ diagnostics
+sys.monitoring._all_events global event-to-tool bitmask snapshots
 ```
 
 Current next loop:
