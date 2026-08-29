@@ -2339,6 +2339,7 @@ for time_mktime_bad_name, time_mktime_bad_call, time_mktime_bad_parts in [
     ("keyword", lambda: time.mktime(t=(1970, 1, 1, 0, 0, 0, 3, 1, -1)), ("takes no keyword arguments",)),
     ("type", lambda: time.mktime("x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.mktime((1, 2)), ("mktime(): illegal time tuple argument",)),
+    ("tuple-long", lambda: time.mktime((2026, 1, 2, 3, 4, 5, 6, 7, 8, 9)), ("mktime(): illegal time tuple argument",)),
     ("field-type", lambda: time.mktime((1970.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:
@@ -2352,6 +2353,7 @@ for time_asctime_bad_name, time_asctime_bad_call, time_asctime_bad_parts in [
     ("keyword", lambda: time.asctime(t=(2026, 1, 1, 0, 0, 0, 3, 1, -1)), ("takes no keyword arguments",)),
     ("type", lambda: time.asctime("x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.asctime((1, 2)), ("illegal time tuple argument",)),
+    ("tuple-long", lambda: time.asctime((2026, 1, 2, 3, 4, 5, 6, 7, 8, 9)), ("illegal time tuple argument",)),
     ("field-type", lambda: time.asctime((2026.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:
@@ -2373,6 +2375,7 @@ for time_strftime_bad_name, time_strftime_bad_call, time_strftime_bad_parts in [
     ("format-type", lambda: time.strftime(1), ("argument 1 must be str", "int")),
     ("tuple-type", lambda: time.strftime("%Y", "x"), ("Tuple or struct_time argument required",)),
     ("tuple-short", lambda: time.strftime("%Y", (1, 2)), ("illegal time tuple argument",)),
+    ("tuple-long", lambda: time.strftime("%Y", (2026, 1, 2, 3, 4, 5, 6, 7, 8, 9)), ("illegal time tuple argument",)),
     ("field-type", lambda: time.strftime("%Y", (2026.0, 1, 1, 0, 0, 0, 3, 1, -1)), ("float", "cannot be interpreted as an integer")),
 ]:
     try:

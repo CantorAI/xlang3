@@ -665,12 +665,14 @@ time-mktime-diagnostic extra True
 time-mktime-diagnostic keyword True
 time-mktime-diagnostic type True
 time-mktime-diagnostic tuple-short True
+time-mktime-diagnostic tuple-long True
 time-mktime-diagnostic field-type True
 Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
 time-asctime-diagnostic extra True
 time-asctime-diagnostic keyword True
 time-asctime-diagnostic type True
 time-asctime-diagnostic tuple-short True
+time-asctime-diagnostic tuple-long True
 time-asctime-diagnostic field-type True
 time-asctime-default True True True True True True True
 Wed Jan  1 00:01:00 2026 2026 01 01 00 01 00 001 True
@@ -681,6 +683,7 @@ time-strftime-diagnostic keyword True
 time-strftime-diagnostic format-type True
 time-strftime-diagnostic tuple-type True
 time-strftime-diagnostic tuple-short True
+time-strftime-diagnostic tuple-long True
 time-strftime-diagnostic field-type True
 strftime-invalid True
 strftime-invalid True

@@ -1694,8 +1694,8 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
     error = "time tuple must have 9 elements";
     return false;
   }
-  if (items.size() > 11) {
-    error = "time.struct_time() takes an at most 11-sequence";
+  if (items.size() > 9) {
+    error = "time tuple must have 9 elements";
     return false;
   }
   int year = 0;

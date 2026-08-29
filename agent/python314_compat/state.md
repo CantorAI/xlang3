@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.getwindowsversion structseq type metadata
+time tuple consumer long-sequence rejection
 ```
 
 Current next loop:

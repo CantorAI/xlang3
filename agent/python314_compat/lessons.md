@@ -121,3 +121,6 @@ shape the next iteration.
   effects. `type(name, bases, namespace)` can bypass `type.__new__`, so class
   `__module__`/`__qualname__` defaults need coverage for both direct `type()`
   construction and class statements.
+- Shared time tuple helpers have different contracts depending on caller:
+  `time.struct_time` construction accepts 10/11-field extra metadata, while
+  `mktime`/`strftime`/`asctime` consume exactly 9-field time tuples.

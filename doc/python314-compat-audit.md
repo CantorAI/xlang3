@@ -393,6 +393,10 @@ Recent completed batches:
   type now uses CPython's public `sys.getwindowsversion` type name,
   `__qualname__`, and type repr while preserving the existing field and
   member descriptor coverage.
+- Aligned `time` tuple consumers with CPython tuple-shape validation:
+  `mktime()`, `strftime()`, and `asctime()` now reject longer-than-9
+  sequence inputs as illegal time tuples, while leaving `struct_time`
+  construction's 10/11-field extra metadata path intact.
 - Pinned Standard Modules fixture coverage for `sys.stdlib_module_names`:
   the Python 3.14 top-level standard-library name set is now asserted as a
   297-entry `frozenset`, with representative package/module membership,
