@@ -230,3 +230,7 @@ shape the next iteration.
 - When strengthening a native facade toward CPython behavior for valid inputs,
   preserve existing compatibility semantics for deliberately accepted legacy
   inputs unless the batch explicitly retires them with fixture coverage.
+- Archive-backed zipimporter execution should reuse the normal parse/lower/run
+  module path and assert `sys.modules`, `__loader__`, `__spec__`, and `__file__`
+  metadata; keep non-zip legacy facade behavior separate when fixtures already
+  depend on it.

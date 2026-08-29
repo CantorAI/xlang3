@@ -19,10 +19,12 @@ import zipimport
 zip_path = "xlang3_path_importer_cache_fixture.zip"
 module_name = "xlang3_path_importer_cache_fixture_mod"
 package_name = "xlang3_path_importer_cache_fixture_pkg"
+load_name = "xlang3_path_importer_cache_fixture_load"
 try:
     with zipfile.ZipFile(zip_path, "w") as zf:
         zf.writestr(module_name + ".py", "VALUE = 314\n")
         zf.writestr(package_name + "/__init__.py", "NAME = 'pkg'\n")
+        zf.writestr(load_name + ".py", "LOADED = 271\n")
     sys.path.insert(0, zip_path)
     module = __import__(module_name)
     importer = sys.path_importer_cache.get(zip_path)
@@ -30,6 +32,7 @@ try:
     package_spec = importer.find_spec(package_name)
     module_code = importer.get_code(module_name)
     package_code = importer.get_code(package_name)
+    loaded = importer.load_module(load_name)
     print(
         "path-importer-cache",
         module.VALUE,
@@ -49,6 +52,15 @@ try:
         type(module_code).__name__ == "code",
         module_code.co_filename.endswith(module_name + ".py"),
         importer.is_package(module_name),
+    )
+    print(
+        "path-importer-cache-load",
+        loaded.__name__,
+        loaded.LOADED,
+        loaded.__loader__ is importer,
+        loaded.__spec__.loader is importer,
+        loaded.__file__.endswith(load_name + ".py"),
+        sys.modules[load_name] is loaded,
     )
     print(
         "path-importer-cache-package-spec",
@@ -71,5 +83,7 @@ finally:
         del sys.modules[module_name]
     if package_name in sys.modules:
         del sys.modules[package_name]
+    if load_name in sys.modules:
+        del sys.modules[load_name]
     if os.path.exists(zip_path):
         os.remove(zip_path)

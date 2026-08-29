@@ -15,11 +15,16 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/interpreter.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/parser.h"
+#include "xlang3/sema.h"
 #include "xlang3/vfs.h"
 
 #include "zip_archive.h"
+
+#include <memory>
 
 namespace xlang3 {
 
@@ -302,6 +307,78 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
   return runtime_call_callable(runtime, *compile_builtin, compile_args, 3, out, error);
 }
 
+bool zipimporter_load_module(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "zipimporter.load_module expected fullname";
+    return false;
+  }
+  std::string fullname;
+  if (!zip_get_string_arg(args[1], "fullname", fullname, error)) {
+    return false;
+  }
+  std::string archive;
+  std::string member;
+  bool is_package = false;
+  bool archive_valid = false;
+  if (!zipimporter_find_member(runtime, args[0], fullname, archive, member, is_package, archive_valid, error)) {
+    if (!archive_valid) {
+      value_set_none(out);
+      return true;
+    }
+    error = "can't find module '" + fullname + "'";
+    return false;
+  }
+  std::vector<uint8_t> archive_bytes;
+  if (!runtime.vfs().read_file(archive, archive_bytes, error)) {
+    return false;
+  }
+  ZipArchiveEntry entry;
+  if (!zip_archive_find_entry(archive_bytes, member, entry, error)) {
+    return false;
+  }
+  std::string source;
+  if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
+    return false;
+  }
+
+  auto parsed = parse_source(source);
+  if (!parsed.errors.empty()) {
+    error = "parse error importing module '" + fullname + "': " + parsed.errors.front();
+    return false;
+  }
+  auto lowered = lower_to_ir(parsed.module);
+  if (!lowered.errors.empty()) {
+    error = "lower error importing module '" + fullname + "': " + lowered.errors.front();
+    return false;
+  }
+
+  const std::string origin = zip_origin_path(archive, member);
+  Value module_value = Value::module(fullname);
+  std::string ignored;
+  module_set_attr(module_value, "__name__", Value::string(fullname), ignored);
+  module_set_attr(module_value, "__file__", Value::string(origin), ignored);
+  const auto dot = fullname.rfind('.');
+  module_set_attr(module_value, "__package__", Value::string(is_package ? fullname : (dot == std::string::npos ? "" : fullname.substr(0, dot))), ignored);
+  module_set_attr(module_value, "__loader__", args[0], ignored);
+  module_set_attr(module_value, "__spec__", make_zip_module_spec(fullname, args[0], archive, member, is_package), ignored);
+  if (is_package) {
+    module_set_attr(module_value, "__path__", Value::list({Value::string(zip_origin_path(archive, zip_module_base(fullname)))}), ignored);
+  }
+
+  auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
+  module_ir->source_file = origin;
+  runtime.register_module(fullname, module_value);
+  Interpreter interpreter(runtime);
+  RuntimeResult result = interpreter.run_module(*module_ir, module_value, module_ir);
+  if (!result.errors.empty()) {
+    runtime.unregister_module(fullname);
+    error = "runtime error importing module '" + fullname + "': " + result.errors.front();
+    return false;
+  }
+  out = std::move(module_value);
+  return true;
+}
+
 bool zipimporter_get_source(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.get_source expected fullname";
@@ -374,7 +451,7 @@ Value make_zipimporter_class(Runtime& runtime) {
   attrs.push_back({"get_data", runtime.make_native_function("zipimport.zipimporter.get_data", zipimporter_get_data)});
   attrs.push_back({"get_code", runtime.make_native_function("zipimport.zipimporter.get_code", zipimporter_get_code)});
   attrs.push_back({"get_source", runtime.make_native_function("zipimport.zipimporter.get_source", zipimporter_get_source)});
-  attrs.push_back({"load_module", runtime.make_native_function("zipimport.zipimporter.load_module", zipimporter_return_none)});
+  attrs.push_back({"load_module", runtime.make_native_function("zipimport.zipimporter.load_module", zipimporter_load_module)});
   attrs.push_back({"is_package", runtime.make_native_function("zipimport.zipimporter.is_package", zipimporter_is_package)});
   return Value::class_object("zipimporter", std::move(attrs));
 }
