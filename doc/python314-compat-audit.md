@@ -1036,7 +1036,7 @@ Native or runtime-backed foundation:
   live explicit `RERAISE` dispatch for bare `raise` in active handlers with
   CPython-style callback arguments,
   `_is_immortal` for XLang3 tagged singleton/scalar values with CPython-style
-  wrong-arity/keyword `TypeError` diagnostics,
+  docs and wrong-arity/keyword `TypeError` diagnostics,
   live-thread-id-keyed `_current_frames` snapshots with CPython-style keyword
   diagnostics, live-thread-id-keyed `_current_exceptions` with CPython-style
   keyword diagnostics, cache-clear hooks with CPython-style keyword diagnostics,

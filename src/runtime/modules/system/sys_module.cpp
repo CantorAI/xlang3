@@ -3561,7 +3561,8 @@ void register_sys_module(Runtime& runtime) {
           "_is_immortal",
           sys_is_immortal,
           nullptr,
-          "Return True if the given object is \"immortal\" per PEP 683.",
+          "Return True if the given object is \"immortal\" per PEP 683.\n\n"
+          "This function should be used for specialized purposes only.",
           sys_is_immortal_kw,
           "($module, op, /)"),
       error);

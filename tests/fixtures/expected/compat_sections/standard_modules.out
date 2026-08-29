@@ -212,7 +212,7 @@ sys-getallocatedblocks-keyword True
 sys-getrefcount-arity True True
 sys-getrefcount-arity True
 sys-getrefcount-keyword True
-sys-helper-docs True True True
+sys-helper-docs True True True True
 sys-interner-size-text-signatures True True
 True False True 2 False False True False
 True True True

@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys version startup string
+sys _is_immortal docs
 ```
 
 Current next loop:
