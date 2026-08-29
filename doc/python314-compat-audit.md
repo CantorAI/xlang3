@@ -1059,7 +1059,7 @@ Native or runtime-backed foundation:
   runtime/config/frame/cache/JIT helpers,
   `_stdlib_dir`, `_framework`, Windows `winver`/`dllhandle`, `getwindowsversion`
   with CPython-style text signature and keyword diagnostics,
-  stateful `_enablelegacywindowsfsencoding` with CPython-style text signature
+  stateful `_enablelegacywindowsfsencoding` with CPython-style docs, text signature,
   and keyword diagnostics, allocator-backed `_debugmallocstats` with active
   `sys.stderr` routing, CPython-style docs, text signature, and CPython-style
   keyword diagnostics,

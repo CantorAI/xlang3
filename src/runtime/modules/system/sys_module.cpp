@@ -4023,7 +4023,11 @@ void register_sys_module(Runtime& runtime) {
           "_enablelegacywindowsfsencoding",
           sys_enablelegacywindowsfsencoding,
           const_cast<char*>("sys._enablelegacywindowsfsencoding"),
-          "Changes the default filesystem encoding to mbcs:replace.",
+          "Changes the default filesystem encoding to mbcs:replace.\n\n"
+          "This is done for consistency with earlier versions of Python. See PEP\n"
+          "529 for more information.\n\n"
+          "This is equivalent to defining the PYTHONLEGACYWINDOWSFSENCODING\n"
+          "environment variable before launching Python.",
           sys_no_keyword_args,
           "($module, /)"),
       error);
