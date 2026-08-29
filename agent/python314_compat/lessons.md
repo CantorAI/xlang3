@@ -127,3 +127,7 @@ shape the next iteration.
 - `sys.exit(status)` does not behave like direct `SystemExit(status)` for tuple
   statuses: CPython unpacks tuple status through exception normalization before
   computing `SystemExit.args` and `code`.
+- Direct `abc.abstractmethod()` marker writes are stricter than deprecated ABC
+  descriptor wrapper construction: direct staticmethod/classmethod/native
+  callable targets should raise `AttributeError`, while `abstractstaticmethod`
+  and `abstractclassmethod` still create marked wrappers.

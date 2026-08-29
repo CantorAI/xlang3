@@ -98,6 +98,10 @@ abc-abstractproperty-method-diagnostic deleter-keyword True
 abc-abstractproperty-method-diagnostic deleter-receiver True
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
 classmethod True True AbstractDescriptorProbe
 staticmethod True True static
 property True missing prop

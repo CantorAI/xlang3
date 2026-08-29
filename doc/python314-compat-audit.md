@@ -401,6 +401,10 @@ Recent completed batches:
   values are now unpacked into `SystemExit.args`, producing `code is None`
   for `sys.exit(())`, a scalar code for one-item tuples, and the tuple itself
   for multi-item tuples without changing direct `SystemExit(tuple)` calls.
+- Aligned direct `abc.abstractmethod()` marker-write failures with CPython:
+  immutable/scalar targets, plain `object()` instances, builtin native
+  callables, and direct `staticmethod`/`classmethod` wrappers now raise
+  catchable `AttributeError` instead of accepting hidden abstract markers.
 - Pinned Standard Modules fixture coverage for `sys.stdlib_module_names`:
   the Python 3.14 top-level standard-library name set is now asserted as a
   297-entry `frozenset`, with representative package/module membership,

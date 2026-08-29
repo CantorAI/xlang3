@@ -450,7 +450,14 @@ for property_diagnostic_name, property_diagnostic_call, property_diagnostic_mess
         property_diagnostic_call()
     except TypeError as err:
         print("abc-abstractproperty-method-diagnostic", property_diagnostic_name, str(err) == property_diagnostic_message)
-for abstract_target in (42, property(lambda self: 1)):
+for abstract_target in (
+    42,
+    property(lambda self: 1),
+    object(),
+    len,
+    staticmethod(lambda: 1),
+    classmethod(lambda cls: 1),
+):
     try:
         abc.abstractmethod(abstract_target)
     except AttributeError as err:

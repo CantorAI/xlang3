@@ -167,6 +167,23 @@ bool value_has_abstract_marker(const Value& value) {
   return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
 }
 
+bool is_builtin_object_instance(const Value& value) {
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || klass->name != "object") {
+    return false;
+  }
+  Value module;
+  std::string ignored;
+  auto* module_name = object_get_attr(instance->klass, "__module__", module, ignored)
+      ? value_as_string(module)
+      : nullptr;
+  return module_name != nullptr && string_object_to_string(*module_name) == "builtins";
+}
+
 void add_abstract_name(std::vector<Value>& names, const std::string& name) {
   for (const auto& item : names) {
     auto* string = value_as_string(item);
@@ -607,6 +624,14 @@ bool abc_abstractmethod(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return abc_type_error(runtime, error, "abc.abstractmethod() expected function");
   }
   Value target = args[0];
+  if (value_as_native_function(target) != nullptr ||
+      value_as_static_method(target) != nullptr ||
+      value_as_class_method(target) != nullptr ||
+      is_builtin_object_instance(target)) {
+    error = "object does not support attribute assignment";
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
   if (!object_set_attr(target, "__isabstractmethod__", Value::boolean(true), error)) {
     runtime.raise_class_error("AttributeError", error);
     return false;
