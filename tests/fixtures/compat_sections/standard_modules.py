@@ -907,6 +907,7 @@ for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
         print("sys-stdio-capability-arity", sys_stdio_bad_name, all(part in sys_stdio_bad_message for part in sys_stdio_bad_parts))
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
+print("sys-version-shape", sys.version.startswith("3.14.7 (tags/v3.14.7:823f032, "), "[MSC v." in sys.version, "64 bit (AMD64)" in sys.version, "XLang3" not in sys.version)
 print(sys._git[0], sys._git[1].startswith("tags/v3.14."), len(sys._git), isinstance(sys._vpath, str), sys._home is None, sys.float_repr_style)
 print("sys-git-metadata", sys._git == ("CPython", "tags/v3.14.7", "823f032"))
 print(isinstance(sys._stdlib_dir, str), sys._framework == "", (sys.platform == "win32") == hasattr(sys, "winver"), (sys.platform == "win32") == hasattr(sys, "dllhandle"), hasattr(sys, "abiflags") == (sys.platform != "win32"))

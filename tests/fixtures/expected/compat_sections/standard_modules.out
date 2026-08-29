@@ -221,6 +221,7 @@ sys-stdio-capability-arity stdin-writable True
 sys-stdio-capability-arity stdout-isatty True
 sys-stdio-capability-arity stderr-seekable True
 3 14 7 xlang3-314
+sys-version-shape True True True True
 CPython True 3 True True short
 sys-git-metadata True
 True True True True True

@@ -3189,7 +3189,16 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "argv", Value::list({}), error);
   module_set_attr(sys, "orig_argv", Value::list({Value::string(executable_path())}), error);
   module_set_attr(sys, "version_info", make_version_info(runtime), error);
-  module_set_attr(sys, "version", Value::string("3.14.7 (XLang3)"), error);
+  module_set_attr(sys,
+                  "version",
+                  Value::string(
+#if defined(_WIN32)
+                      "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]"
+#else
+                      "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [GCC]"
+#endif
+                      ),
+                  error);
   module_set_attr(sys, "hexversion", Value::int64(0x030e07f0), error);
   module_set_attr(sys, "api_version", Value::int64(1013), error);
 #if !defined(_WIN32)
