@@ -16,9 +16,6 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 
-#include <utility>
-#include <vector>
-
 namespace xlang3 {
 
 namespace {
@@ -36,69 +33,6 @@ bool opcode_zero(Runtime&, const Value*, uint32_t, Value& out, std::string&, voi
 bool opcode_empty_list(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
   out = Value::list({});
   return true;
-}
-
-Value make_opcode_int_list(std::initializer_list<int64_t> values) {
-  std::vector<Value> items;
-  items.reserve(values.size());
-  for (int64_t value : values) {
-    items.push_back(Value::int64(value));
-  }
-  return Value::list(std::move(items));
-}
-
-Value make_cmp_op() {
-  return Value::list({
-      Value::string("<"),
-      Value::string("<="),
-      Value::string("=="),
-      Value::string("!="),
-      Value::string(">"),
-      Value::string(">="),
-  });
-}
-
-Value make_opcode_map() {
-  return Value::dict({
-      {Value::string("CACHE"), Value::int64(0)},
-      {Value::string("NOP"), Value::int64(27)},
-      {Value::string("RETURN_VALUE"), Value::int64(35)},
-      {Value::string("BINARY_OP"), Value::int64(44)},
-      {Value::string("CALL"), Value::int64(52)},
-      {Value::string("CALL_KW"), Value::int64(55)},
-      {Value::string("EXTENDED_ARG"), Value::int64(69)},
-      {Value::string("LOAD_CONST"), Value::int64(82)},
-      {Value::string("LOAD_FAST"), Value::int64(84)},
-      {Value::string("LOAD_NAME"), Value::int64(93)},
-      {Value::string("STORE_FAST"), Value::int64(112)},
-      {Value::string("RESUME"), Value::int64(128)},
-  });
-}
-
-Value make_opcode_names() {
-  std::vector<Value> names;
-  names.reserve(267);
-  for (int64_t i = 0; i < 267; ++i) {
-    names.push_back(Value::string("<" + std::to_string(i) + ">"));
-  }
-  const std::pair<int, const char*> known[] = {
-      {0, "CACHE"},
-      {27, "NOP"},
-      {35, "RETURN_VALUE"},
-      {44, "BINARY_OP"},
-      {52, "CALL"},
-      {55, "CALL_KW"},
-      {69, "EXTENDED_ARG"},
-      {82, "LOAD_CONST"},
-      {84, "LOAD_FAST"},
-      {93, "LOAD_NAME"},
-      {112, "STORE_FAST"},
-      {128, "RESUME"},
-  };
-  for (const auto& item : known) {
-    names[static_cast<size_t>(item.first)] = Value::string(item.second);
-  }
-  return Value::list(std::move(names));
 }
 
 } // namespace

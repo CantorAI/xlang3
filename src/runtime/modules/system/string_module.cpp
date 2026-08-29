@@ -14,34 +14,11 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
-#include "xlang3/attribute.h"
-#include "xlang3/functional_iterators.h"
-#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
-#include "xlang3/object_model.h"
-#include "xlang3/sequence.h"
 
 namespace xlang3 {
 
 namespace {
-
-bool value_sequence_to_vector(const Value& value, std::vector<Value>& out, std::string& error) {
-  Value iterator;
-  if (!sequence_get_iter(value, iterator, error)) {
-    return false;
-  }
-  while (true) {
-    bool done = false;
-    Value item;
-    if (!sequence_iter_next(iterator, done, item, error)) {
-      return false;
-    }
-    if (done) {
-      return true;
-    }
-    out.push_back(std::move(item));
-  }
-}
 
 struct FormatChunk {
   std::string literal;
@@ -172,92 +149,6 @@ bool formatter_field_name_split(Runtime&, const Value* args, uint32_t argc, Valu
     }
   }
   out = Value::tuple({Value::string(field.substr(0, split)), Value::list(std::move(lookups))});
-  return true;
-}
-
-bool formatter_format(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2) {
-    error = "Formatter.format() expected format_string";
-    return false;
-  }
-  Value method;
-  if (!attribute_get(args[1], "format", method, error)) {
-    return false;
-  }
-  return runtime_call_callable(runtime, method, argc > 2 ? args + 2 : nullptr, argc > 2 ? argc - 2 : 0, out, error);
-}
-
-bool formatter_vformat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 4) {
-    error = "Formatter.vformat() expected format_string, args, kwargs";
-    return false;
-  }
-  Value method;
-  if (!attribute_get(args[1], "format", method, error)) {
-    return false;
-  }
-  std::vector<Value> call_args;
-  if (!value_sequence_to_vector(args[2], call_args, error)) {
-    return false;
-  }
-  return runtime_call_callable(runtime, method, call_args.empty() ? nullptr : call_args.data(), static_cast<uint32_t>(call_args.size()), out, error);
-}
-
-bool formatter_parse(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* data) {
-  if (argc != 2) {
-    error = "Formatter.parse() expected format_string";
-    return false;
-  }
-  return formatter_parser(runtime, args + 1, 1, out, error, data);
-}
-
-bool formatter_get_value(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 4) {
-    error = "Formatter.get_value() expected key, args, kwargs";
-    return false;
-  }
-  if (args[1].tag == ValueTag::Int64) {
-    return sequence_get_item(args[2], args[1], out, error);
-  }
-  if (auto* dict = value_as_dict(args[3])) {
-    for (const auto& entry : dict->entries) {
-      if (value_to_string(entry.first) == value_to_string(args[1])) {
-        out = entry.second;
-        return true;
-      }
-    }
-  }
-  error = "Formatter.get_value() key not found";
-  return false;
-}
-
-bool formatter_format_field(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 3) {
-    error = "Formatter.format_field() expected value and optional format_spec";
-    return false;
-  }
-  const Value* format_builtin = runtime.find_builtin("format");
-  if (format_builtin == nullptr) {
-    out = Value::string(value_to_string(args[1]));
-    return true;
-  }
-  Value call_args[2] = {args[1], argc == 3 ? args[2] : Value::string("")};
-  return runtime_call_callable(runtime, *format_builtin, call_args, argc == 3 ? 2 : 1, out, error);
-}
-
-bool formatter_convert_field(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3) {
-    error = "Formatter.convert_field() expected value and conversion";
-    return false;
-  }
-  if (auto* conversion = value_as_string(args[2])) {
-    const std::string conv = string_object_to_string(*conversion);
-    if (conv == "s" || conv == "r" || conv == "a") {
-      out = Value::string(value_to_string(args[1]));
-      return true;
-    }
-  }
-  out = args[1];
   return true;
 }
 

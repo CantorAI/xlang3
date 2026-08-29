@@ -181,20 +181,6 @@ bool weakref_getweakrefs(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool weakref_finalize(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2) {
-    error = "weakref.finalize() expected object and callback";
-    return false;
-  }
-  std::vector<Value> items;
-  items.reserve(argc);
-  for (uint32_t i = 0; i < argc; ++i) {
-    items.push_back(args[i]);
-  }
-  out = Value::tuple(std::move(items));
-  return true;
-}
-
 void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
   Value ref_factory = runtime.make_native_function("weakref.ref", weakref_ref);
   Value proxy_factory = runtime.make_native_function("weakref.proxy", weakref_proxy);
