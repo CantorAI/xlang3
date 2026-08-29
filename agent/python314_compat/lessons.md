@@ -111,3 +111,6 @@ shape the next iteration.
   publish the already-created runtime objects from the later registration step
   instead of inventing placeholder objects or forcing a broader registration
   reorder.
+- Exception detection cannot rely only on names ending in `Error` or
+  `Exception`; CPython-visible builtins such as `SystemExit`, `GeneratorExit`,
+  and `StopIteration` still need normal `BaseException` string/args behavior.

@@ -29,6 +29,13 @@ bool is_exception_class_name(const std::string& name) {
          name == "TypeError" ||
          name == "ValueError" ||
          name == "ImportError" ||
+         name == "BaseExceptionGroup" ||
+         name == "ExceptionGroup" ||
+         name == "GeneratorExit" ||
+         name == "KeyboardInterrupt" ||
+         name == "StopAsyncIteration" ||
+         name == "StopIteration" ||
+         name == "SystemExit" ||
          name == "Error" ||
          name == "DatabaseError" ||
          name == "OperationalError" ||

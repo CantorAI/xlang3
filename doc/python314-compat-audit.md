@@ -315,6 +315,10 @@ Recent completed batches:
 - Tightened native `sys.intern`: wrong-arity calls now raise catchable
   CPython-style `TypeError` diagnostics naming `sys.intern()` and reporting the
   given positional count.
+- Tightened native `SystemExit`/`sys.exit`: built-in exception string conversion
+  now recognizes non-`Exception`/`Error` exception class names, `SystemExit`
+  construction populates `code`, and `sys.exit` status values drive CPython-style
+  `str(err)` output.
 - Tightened native `time.strptime`: `%f` now accepts CPython-style one- to
   six-digit fractional seconds and discards the fraction while preserving the
   normalized `struct_time` fields; missing or trailing fractional input remains
@@ -982,7 +986,7 @@ Native or runtime-backed foundation:
   fallback and negative-result `ValueError`, `getrefcount` including
   CPython-style wrong-arity/keyword `TypeError` diagnostics,
   `getallocatedblocks` with CPython-style keyword `TypeError` diagnostics,
-  `exit` including CPython-style too-many-arguments/keyword
+  `exit` including CPython-style `SystemExit.code`/string behavior and too-many-arguments/keyword
   `TypeError` diagnostics, CPython-style exception/interner/size helper
   metadata including `exc_info`/`exception`/`exit` and `intern`/`getsizeof`/`getrefcount`
   docs plus exception/exit and interner/refcount helper text signatures, display/exception hooks with stdio routing,

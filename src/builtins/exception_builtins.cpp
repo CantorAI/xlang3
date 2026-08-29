@@ -36,13 +36,31 @@ bool exception_init(
   for (uint32_t i = 1; i < argc; ++i) {
     exception_args.push_back(args[i]);
   }
-  Value message = argc == 2 ? args[1] : Value::string("");
+  Value args_tuple = Value::tuple(exception_args);
+  Value message = Value::string("");
+  if (argc == 2) {
+    value_assign_fast(message, args[1]);
+  } else if (argc > 2) {
+    value_assign_fast(message, args_tuple);
+  }
   std::string ignored;
   if (!object_set_attr(const_cast<Value&>(args[0]), "message", message, ignored)) {
     error = "Exception.__init__() self is invalid";
     return false;
   }
-  object_set_attr(const_cast<Value&>(args[0]), "args", Value::tuple(std::move(exception_args)), ignored);
+  object_set_attr(const_cast<Value&>(args[0]), "args", std::move(args_tuple), ignored);
+  if (auto* instance = value_as_instance(args[0])) {
+    if (auto* klass = value_as_class(instance->klass);
+        klass != nullptr && (klass->name == "SystemExit" || class_has_builtin_base_name(klass, "SystemExit"))) {
+      Value code = Value::none();
+      if (argc == 2) {
+        value_assign_fast(code, args[1]);
+      } else if (argc > 2) {
+        value_assign_fast(code, message);
+      }
+      object_set_attr(const_cast<Value&>(args[0]), "code", code, ignored);
+    }
+  }
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__context__", Value::none(), ignored);

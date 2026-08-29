@@ -2027,6 +2027,7 @@ bool sys_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   std::string ignored;
   object_set_attr(exception, "code", argc == 0 ? Value::none() : args[0], ignored);
   object_set_attr(exception, "args", argc == 0 ? Value::tuple({}) : Value::tuple({args[0]}), ignored);
+  object_set_attr(exception, "message", argc == 0 ? Value::string("") : args[0], ignored);
   runtime.set_pending_exception(std::move(exception));
   value_set_none(out);
   return false;

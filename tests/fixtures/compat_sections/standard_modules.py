@@ -2052,9 +2052,15 @@ for sys_exception_state_name, sys_exception_state_call in [
         sys_exception_state_message = str(err)
         print("sys-exception-state-arity", sys_exception_state_name, "takes no arguments" in sys_exception_state_message, "1 given" in sys_exception_state_message)
 try:
+    sys.exit()
+except SystemExit as err:
+    print("sys-exit-empty", err.code is None, str(err) == "", err.args == ())
+try:
     sys.exit(5)
 except SystemExit as err:
-    print(err.code)
+    print("sys-exit-code", err.code, str(err), err.args == (5,))
+sys_exit_multi = SystemExit(1, 2)
+print("system-exit-constructor", str(SystemExit()) == "", str(SystemExit(None)) == "None", sys_exit_multi.code == (1, 2), str(sys_exit_multi) == "(1, 2)")
 try:
     sys.exit(1, 2)
 except TypeError as err:
