@@ -219,3 +219,7 @@ shape the next iteration.
   behavior. Do not key exception `str()` rendering only on class names ending in
   `Error`/`Exception`; CPython classes such as `io.UnsupportedOperation` inherit
   the message behavior without matching those suffixes.
+- Import compatibility includes visible cache side effects. When the runtime
+  bypasses CPython's path-hook dispatch with a native fast path, mirror
+  `sys.path_importer_cache` entries for the selected path item so stdlib code
+  observing import state sees the expected importer object.

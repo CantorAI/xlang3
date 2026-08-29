@@ -130,6 +130,7 @@ CORE_CASES = [
     "sys_coroutine_origin_metadata",
     "sys_module_doc_metadata",
     "sys_stdio_text_streams",
+    "sys_path_importer_cache",
     "task_async",
     "asyncio_module",
     "async_syntax",

@@ -15,7 +15,9 @@ limitations under the License.
 #include "xlang3/import_loader.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
 #include "xlang3/sequence.h"
@@ -42,6 +44,7 @@ struct ModuleFile {
   bool is_package = false;
   bool is_namespace_package = false;
   bool is_zip_source = false;
+  std::string path_importer_cache_key;
 };
 
 std::vector<std::string> split_module_name(const std::string& name) {
@@ -115,6 +118,7 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
     out.is_package = false;
     out.is_namespace_package = false;
     out.is_zip_source = true;
+    out.path_importer_cache_key = archive_string;
     return true;
   }
   error.clear();
@@ -127,9 +131,42 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
     out.is_package = true;
     out.is_namespace_package = false;
     out.is_zip_source = true;
+    out.path_importer_cache_key = archive_string;
     return true;
   }
   return false;
+}
+
+void cache_zip_path_importer(Runtime& runtime, const std::string& archive_path) {
+  if (archive_path.empty()) {
+    return;
+  }
+  Value sys;
+  std::string ignored;
+  if (!runtime.import_module("sys", sys, ignored)) {
+    return;
+  }
+  Value cache;
+  if (!module_get_attr(sys, "path_importer_cache", cache, ignored) || value_as_dict(cache) == nullptr) {
+    return;
+  }
+  Value existing;
+  if (mapping_get_item(cache, Value::string(archive_path), existing, ignored)) {
+    return;
+  }
+  Value zipimport_module;
+  if (!runtime.import_module("zipimport", zipimport_module, ignored)) {
+    return;
+  }
+  Value zipimporter_class;
+  if (!module_get_attr(zipimport_module, "zipimporter", zipimporter_class, ignored) ||
+      value_as_class(zipimporter_class) == nullptr) {
+    return;
+  }
+  Value importer = Value::instance(std::move(zipimporter_class));
+  object_set_attr(importer, "archive", Value::string(archive_path), ignored);
+  object_set_attr(importer, "prefix", Value::string(""), ignored);
+  mapping_set_item(cache, Value::string(archive_path), importer, ignored);
 }
 
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
@@ -292,6 +329,9 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   if (!find_module_file(runtime, name, module_file)) {
     error = "module '" + name + "' not found";
     return false;
+  }
+  if (module_file.is_zip_source) {
+    cache_zip_path_importer(runtime, module_file.path_importer_cache_key);
   }
   trace_import_timing(name, "found", import_start);
 
