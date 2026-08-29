@@ -947,7 +947,7 @@ Native or runtime-backed foundation:
   descriptor repr, `inspect.ismemberdescriptor` visibility, and tuple-backed `__get__`,
   tuple inheritance, sequence iteration, tuple-backed `count`/`index` including bool-as-int
   start/stop bounds and CPython-style arity/type/keyword diagnostics plus
-  out-of-range `IndexError`, CPython-style named-field `repr` with arity/type/keyword diagnostics,
+  out-of-range `IndexError`, CPython-style named-field `repr` including double precision with arity/type/keyword diagnostics,
   type-level `__module__`/`__qualname__` metadata and CPython-style type reprs, and type-level `__match_args__`,
   `implementation` metadata with CPython-style SimpleNamespace type metadata
   including `__qualname__` and doc text plus namespace-style repr, CPython-shaped `builtin_module_names`,

@@ -103,3 +103,7 @@ shape the next iteration.
   metadata while eliding `builtins`; setting those attrs alone can still leave
   CPython-visible `<class 'module.name'>` mismatches if the shared repr path
   uses only the internal class name.
+- Float display precision is a shared value-model primitive. Low default C++
+  stream precision can leak into structseq reprs such as `sys.float_info`, so
+  fix the central float formatter and cover both the structseq repr and direct
+  `repr()`/`str()` cases.

@@ -1333,6 +1333,7 @@ try:
 except IndexError as err:
     print("sys-flags-index-error", "range" in str(err) or "out of range" in str(err))
 print(isinstance(sys.float_info, tuple), sys.float_info.count(sys.float_info.radix), sys.float_info.index(sys.float_info.radix), list(sys.float_info)[-1])
+print("sys-float-info-repr-precision", "1.7976931348623157e+308" in repr(sys.float_info), "2.2250738585072014e-308" in repr(sys.float_info), "2.220446049250313e-16" in repr(sys.float_info), repr(1.0) == "1.0", str(1000000.0) == "1000000.0", repr(1e-6) == "1e-06")
 print(isinstance(sys.hash_info, tuple), sys.hash_info.index(sys.hash_info.algorithm), sys.hash_info.count(sys.hash_info.cutoff) >= 1)
 print(isinstance(sys.thread_info, tuple), sys.thread_info.index(sys.thread_info.name), sys.thread_info.count(sys.thread_info.name))
 print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe"), sys.prefix != "")

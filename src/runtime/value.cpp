@@ -30,11 +30,14 @@ limitations under the License.
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cctype>
 #include <cmath>
 #include <cstring>
+#include <iomanip>
 #include <limits>
 #include <new>
+#include <system_error>
 #include <vector>
 #if defined(XLANG3_EMBEDDED)
 #include <cstdio>
@@ -110,6 +113,84 @@ Value make_plain_string(std::string_view value) {
   v.as.obj = &obj->header;
   return v;
 }
+
+#if !defined(XLANG3_EMBEDDED)
+std::string normalize_float_text(std::string text) {
+  for (char& ch : text) {
+    if (ch == 'E') {
+      ch = 'e';
+    }
+  }
+
+  const size_t exponent_pos = text.find('e');
+  if (exponent_pos != std::string::npos) {
+    const std::string exponent_text = text.substr(exponent_pos + 1);
+    if (exponent_text.empty()) {
+      return text;
+    }
+    size_t exponent_digits_pos = 0;
+    bool exponent_negative = false;
+    if (exponent_text[0] == '+' || exponent_text[0] == '-') {
+      exponent_negative = exponent_text[0] == '-';
+      exponent_digits_pos = 1;
+    }
+    int exponent = 0;
+    const char* first = exponent_text.data() + exponent_digits_pos;
+    const char* last = exponent_text.data() + exponent_text.size();
+    auto [ptr, ec] = std::from_chars(first, last, exponent);
+    if (ec == std::errc() && ptr == last && !exponent_negative && exponent >= 0 && exponent < 16) {
+      std::string mantissa = text.substr(0, exponent_pos);
+      bool negative = false;
+      if (!mantissa.empty() && mantissa[0] == '-') {
+        negative = true;
+        mantissa.erase(mantissa.begin());
+      }
+      size_t decimal_pos = mantissa.find('.');
+      if (decimal_pos == std::string::npos) {
+        decimal_pos = mantissa.size();
+      } else {
+        mantissa.erase(decimal_pos, 1);
+      }
+      const size_t new_decimal_pos = decimal_pos + static_cast<size_t>(exponent);
+      if (new_decimal_pos >= mantissa.size()) {
+        mantissa.append(new_decimal_pos - mantissa.size(), '0');
+        mantissa += ".0";
+      } else {
+        mantissa.insert(new_decimal_pos, 1, '.');
+      }
+      if (negative) {
+        mantissa.insert(mantissa.begin(), '-');
+      }
+      return mantissa;
+    }
+    return text;
+  }
+
+  if (text != "nan" && text != "inf" && text != "-inf" && text.find('.') == std::string::npos) {
+    text += ".0";
+  }
+  return text;
+}
+
+std::string format_double_text(double value) {
+  if (std::isnan(value)) {
+    return "nan";
+  }
+  if (std::isinf(value)) {
+    return value < 0 ? "-inf" : "inf";
+  }
+
+  char buffer[128];
+  auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+  if (ec == std::errc()) {
+    return normalize_float_text(std::string(buffer, ptr));
+  }
+
+  std::ostringstream os;
+  os << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  return normalize_float_text(os.str());
+}
+#endif
 
 Value intern_string_view(std::string_view value) {
   auto& table = interned_string_table();
@@ -1062,9 +1143,7 @@ std::string value_to_string(const Value& value) {
 #if defined(XLANG3_EMBEDDED)
       return format_f64(value.as.f64);
 #else
-      std::ostringstream os;
-      os << value.as.f64;
-      return os.str();
+      return format_double_text(value.as.f64);
 #endif
     }
     case ValueTag::Object:

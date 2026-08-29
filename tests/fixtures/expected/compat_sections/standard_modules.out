@@ -365,6 +365,7 @@ True True 17 True
 1 17 4300
 sys-flags-index-error True
 True 1 9 1
+sys-float-info-repr-precision True True True True True True
 True 5 True
 True 0 1
 1114111 True True True
