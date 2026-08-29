@@ -558,6 +558,7 @@ bool collect_members(const Value& object, std::vector<std::pair<std::string, Val
     return true;
   }
   if (auto* instance = value_as_instance(object)) {
+    append_member(members, "__class__", instance->klass);
     for (const auto& entry : instance->attrs) {
       append_member(members, entry.first, entry.second);
     }

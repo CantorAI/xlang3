@@ -25,6 +25,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
@@ -513,6 +514,28 @@ XLANG3_HOT_INLINE DictObject* xlang_vm_type_namespace_dict(const Value& value) {
   return nullptr;
 }
 
+XLANG3_HOT_INLINE bool xlang_vm_inline_class_attrs_have(
+    const std::vector<std::pair<std::string, Value>>& attrs,
+    const std::string& name) {
+  for (const auto& attr : attrs) {
+    if (attr.first == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE std::string xlang_vm_inline_current_module_name(Runtime& runtime) {
+  Value name_value;
+  std::string ignored;
+  if (module_get_attr(runtime.current_globals_module(), "__name__", name_value, ignored)) {
+    if (auto* name = value_as_string(name_value)) {
+      return string_object_to_string(*name);
+    }
+  }
+  return "__main__";
+}
+
 XLANG3_HOT_INLINE bool xlang_vm_value_has_abstract_marker(const Value& value) {
   Value marker;
   std::string ignored;
@@ -977,7 +1000,14 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     metaclass.tag = ValueTag::Object;
     metaclass.as.obj = const_cast<Object*>(&klass.header);
     retain(metaclass);
-    out = Value::class_object(string_object_to_string(*name), std::move(attrs), base, {}, std::move(metaclass));
+    std::string class_name = string_object_to_string(*name);
+    if (!xlang_vm_inline_class_attrs_have(attrs, "__module__")) {
+      attrs.push_back({"__module__", Value::string(xlang_vm_inline_current_module_name(runtime))});
+    }
+    if (!xlang_vm_inline_class_attrs_have(attrs, "__qualname__")) {
+      attrs.push_back({"__qualname__", Value::string(class_name)});
+    }
+    out = Value::class_object(class_name, std::move(attrs), base, {}, std::move(metaclass));
     if (bases->items.size() > 1) {
       for (size_t i = 1; i < bases->items.size(); ++i) {
         if (!class_set_base(out, bases->items[i], error)) {

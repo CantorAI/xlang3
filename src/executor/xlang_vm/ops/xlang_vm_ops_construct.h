@@ -18,6 +18,7 @@ limitations under the License.
 #include "../xlang_vm_op_switch.h"
 
 #include "xlang3/object_model.h"
+#include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
 #include <memory>
@@ -26,6 +27,28 @@ limitations under the License.
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+XLANG3_HOT_INLINE bool xlang_vm_class_attrs_have(
+    const std::vector<std::pair<std::string, Value>>& attrs,
+    const std::string& name) {
+  for (const auto& attr : attrs) {
+    if (attr.first == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE std::string xlang_vm_current_module_name(const Value& globals_module) {
+  Value name_value;
+  std::string ignored;
+  if (module_get_attr(globals_module, "__name__", name_value, ignored)) {
+    if (auto* name = value_as_string(name_value)) {
+      return string_object_to_string(*name);
+    }
+  }
+  return "__main__";
+}
 
 XLANG3_HOT_INLINE bool xlang_vm_class_slot_conflicts(
     const std::vector<std::pair<std::string, uint32_t>>& attrs,
@@ -60,6 +83,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
     const ir::Function& fn,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
+    const Value& globals_module,
     RuntimeResult& result) {
   if (in.a >= fn.names.size() || in.b >= fn.class_attrs.size() || in.c >= fn.class_instance_slots.size()) {
     result.errors.push_back("invalid class data");
@@ -82,6 +106,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
     attr_order.push_back(attr.first);
     attrs.push_back(std::make_pair(attr.first, regs[attr.second]));
   }
+  const std::string class_name = fn.names[in.a];
+  if (!xlang_vm_class_attrs_have(attrs, "__module__")) {
+    attrs.push_back({"__module__", Value::string(xlang_vm_current_module_name(globals_module))});
+  }
+  if (!xlang_vm_class_attrs_have(attrs, "__qualname__")) {
+    attrs.push_back({"__qualname__", Value::string(class_name)});
+  }
   Value base = Value::invalid();
   if (const auto* object_base = runtime.find_builtin(XlangVMNames::object_type)) {
     value_assign_fast(base, *object_base);
@@ -91,7 +122,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
     value_assign_fast(metaclass, *type_type);
   }
   regs[in.dst] = Value::class_object(
-      fn.names[in.a],
+      class_name,
       std::move(attrs),
       std::move(base),
       fn.class_instance_slots[in.c],

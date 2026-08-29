@@ -731,6 +731,21 @@ print("sys-meta-path-bootstrap",
       [getattr(finder, "__module__", None) for finder in sys_meta_path_head],
       [repr(finder) for finder in sys_meta_path_head],
       all(hasattr(finder, "find_spec") for finder in sys_meta_path_head))
+print("sys-meta-path-metatype",
+      [type(finder).__name__ for finder in sys_meta_path_head],
+      [type(finder).__module__ for finder in sys_meta_path_head],
+      [type(finder).__qualname__ for finder in sys_meta_path_head])
+class SysClassMetadataProbe:
+    pass
+SysTypeConstructedMetadataProbe = type("SysTypeConstructedMetadataProbe", (), {})
+print("class-metadata-module-qualname",
+      type.__module__, type.__qualname__,
+      object.__module__, object.__qualname__,
+      int.__module__, int.__qualname__,
+      BaseException.__module__, BaseException.__qualname__,
+      SystemExit.__module__, SystemExit.__qualname__,
+      SysClassMetadataProbe.__module__, SysClassMetadataProbe.__qualname__,
+      SysTypeConstructedMetadataProbe.__module__, SysTypeConstructedMetadataProbe.__qualname__)
 import zipimport
 print("sys-path-hooks-zipimporter",
       len(sys.path_hooks) >= 1,

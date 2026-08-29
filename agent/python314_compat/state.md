@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys.stdlib_module_names fixture coverage
+class metadata module/qualname primitives
 ```
 
 Current next loop:

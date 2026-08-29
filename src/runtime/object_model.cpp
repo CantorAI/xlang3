@@ -1011,6 +1011,9 @@ Value Value::class_object(
     update_special_attr_flags(*obj, attr.first);
     obj->attrs[std::move(attr.first)] = std::move(attr.second);
   }
+  if (obj->attrs.find("__qualname__") == obj->attrs.end()) {
+    obj->attrs.emplace("__qualname__", Value::string(obj->name));
+  }
   for (auto& slot : instance_slots) {
     if (!obj->restrict_instance_attrs ||
         std::find(obj->instance_slot_names.begin(), obj->instance_slot_names.end(), slot) !=

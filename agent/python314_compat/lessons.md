@@ -117,3 +117,7 @@ shape the next iteration.
 - Lambda lowering reuses `clone_expr`; when adding expression forms, cover both
   plain literals and comprehensions. Missing `DictExpr`/`SetExpr` clones can
   silently turn lambda bodies into `None` even when normal function returns work.
+- Builtin constructor fast paths must mirror native `__new__` metadata side
+  effects. `type(name, bases, namespace)` can bypass `type.__new__`, so class
+  `__module__`/`__qualname__` defaults need coverage for both direct `type()`
+  construction and class statements.

@@ -175,6 +175,8 @@ sys-startup-hook-keyword __interactivehook__ True
 sys-startup-hook-keyword _baserepl True
 True True True True True
 sys-meta-path-bootstrap ['BuiltinImporter', 'FrozenImporter', 'PathFinder'] ['_frozen_importlib', '_frozen_importlib', '_frozen_importlib_external'] ["<class '_frozen_importlib.BuiltinImporter'>", "<class '_frozen_importlib.FrozenImporter'>", "<class '_frozen_importlib_external.PathFinder'>"] True
+sys-meta-path-metatype ['type', 'type', 'type'] ['builtins', 'builtins', 'builtins'] ['type', 'type', 'type']
+class-metadata-module-qualname builtins type builtins object builtins int builtins BaseException builtins SystemExit __main__ SysClassMetadataProbe __main__ SysTypeConstructedMetadataProbe
 sys-path-hooks-zipimporter True True zipimport <class 'zipimport.zipimporter'>
 sys-getsizeof-protocol-overhead 155 99
 sys-getsizeof-negative True

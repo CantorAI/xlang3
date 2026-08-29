@@ -71,6 +71,8 @@ bool exception_init(
 
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.emplace_back("__module__", Value::string("builtins"));
+  attrs.emplace_back("__qualname__", Value::string(name));
   attrs.emplace_back("__init__", runtime.make_native_function(std::string(name) + ".__init__", exception_init));
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }

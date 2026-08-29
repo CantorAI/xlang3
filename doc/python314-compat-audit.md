@@ -384,6 +384,11 @@ Recent completed batches:
   The `frozenset` builtin now remains a class for `isinstance(...,
   frozenset)` probes while using a VM-backed constructor that returns immutable
   set storage.
+- Expanded class metadata primitives used by `sys.meta_path` bootstrap
+  finders and stdlib introspection: builtin classes now expose
+  CPython-style `__module__ == "builtins"` and `__qualname__`, class
+  statements publish the defining module name, and `type(name, bases, ns)`
+  fills missing class metadata from the active globals module.
 - Pinned Standard Modules fixture coverage for `sys.stdlib_module_names`:
   the Python 3.14 top-level standard-library name set is now asserted as a
   297-entry `frozenset`, with representative package/module membership,

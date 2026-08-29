@@ -50,7 +50,7 @@ XLANG3_VM_FLOW(ImportModule, xlang3::xlang_vm::ops::import_module(in, fn, runtim
 XLANG3_VM_FLOW(ImportFrom, xlang3::xlang_vm::ops::import_from(in, fn, runtime_, regs, globals_module, result, raise_import_error))
 XLANG3_VM_FLOW(ImportStar, xlang3::xlang_vm::ops::import_star(in, fn, runtime_, globals_module, result, raise_import_error))
 XLANG3_VM_FLOW(RawBlock, xlang3::xlang_vm::ops::raw_block(in, fn, runtime_, locals, fn_obj_closure, globals_module, globals_, globals_version_, result, raise_runtime_error))
-XLANG3_VM_FLOW(MakeClass, xlang3::xlang_vm::ops::make_class(in, fn, runtime_, regs, result))
+XLANG3_VM_FLOW(MakeClass, xlang3::xlang_vm::ops::make_class(in, fn, runtime_, regs, globals_module, result))
 XLANG3_VM_FLOW(MakeFunction, xlang3::xlang_vm::ops::make_function(in, fn, regs, globals_module, module_owner, result))
 XLANG3_VM_FLOW(SetFunctionAnnotations, xlang3::xlang_vm::ops::set_function_annotations(in, fn, regs, result))
 XLANG3_VM_FLOW(SetFunctionKwDefaults, xlang3::xlang_vm::ops::set_function_kwdefaults(in, fn, regs, result))

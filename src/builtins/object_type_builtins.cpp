@@ -35,6 +35,26 @@ Value make_dict_fromkeys_classmethod();
 
 namespace {
 
+bool class_attrs_have(const std::vector<std::pair<std::string, Value>>& attrs, const std::string& name) {
+  for (const auto& attr : attrs) {
+    if (attr.first == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::string current_module_name(Runtime& runtime) {
+  Value name_value;
+  std::string ignored;
+  if (module_get_attr(runtime.current_globals_module(), "__name__", name_value, ignored)) {
+    if (auto* name = value_as_string(name_value)) {
+      return string_object_to_string(*name);
+    }
+  }
+  return "__main__";
+}
+
 std::string builtin_value_type_name(Runtime& runtime, const Value& value) {
   Value type;
   if (runtime_type_of_value(runtime, value, type)) {
@@ -665,7 +685,15 @@ bool builtin_type_new(
     value_assign_fast(base, bases->items[0]);
   }
 
-  out = Value::class_object(string_object_to_string(*name), std::move(attrs), base, {}, args[0]);
+  std::string class_name = string_object_to_string(*name);
+  if (!class_attrs_have(attrs, "__module__")) {
+    attrs.push_back({"__module__", Value::string(current_module_name(runtime))});
+  }
+  if (!class_attrs_have(attrs, "__qualname__")) {
+    attrs.push_back({"__qualname__", Value::string(class_name)});
+  }
+
+  out = Value::class_object(class_name, std::move(attrs), base, {}, args[0]);
   for (size_t i = 1; i < bases->items.size(); ++i) {
     if (!class_set_base(out, bases->items[i], error)) {
       runtime.raise_class_error("TypeError", error);
@@ -705,7 +733,7 @@ void register_builtin_type(Runtime& runtime, const char* name, const Value& obje
       name,
       Value::class_object(
           name,
-          {{"__module__", Value::string("builtins")}},
+          {{"__module__", Value::string("builtins")}, {"__qualname__", Value::string(name)}},
           object_base,
           {},
           std::move(metaclass)));
@@ -878,6 +906,8 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
 
 void register_object_type_builtins(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> object_attrs;
+  object_attrs.push_back({"__module__", Value::string("builtins")});
+  object_attrs.push_back({"__qualname__", Value::string("object")});
   object_attrs.push_back({"__new__", Value::native_function(0, "object.__new__", builtin_object_new)});
   object_attrs.push_back({"__init__", Value::native_function(0, "object.__init__", builtin_object_init)});
   object_attrs.push_back({"__getattribute__", Value::native_function(0, "object.__getattribute__", builtin_object_getattribute)});
@@ -889,6 +919,8 @@ void register_object_type_builtins(Runtime& runtime) {
   Value type_type = Value::class_object(
       "type",
       {
+          {"__module__", Value::string("builtins")},
+          {"__qualname__", Value::string("type")},
           {"__new__", Value::native_function(0, "type.__new__", builtin_type_new)},
           {"__prepare__", Value::native_function(0, "type.__prepare__", builtin_type_prepare)},
       },
