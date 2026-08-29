@@ -627,6 +627,7 @@ sys-hook-keyword excepthook True
 sys-hook-keyword __excepthook__ True
 sys-hook-keyword unraisablehook True
 sys-hook-keyword __unraisablehook__ True
+sys-displayhook-repr-type True True
 sys-hook-docs True True True True
 sys-exception-exit-docs True True True True
 True True True True True

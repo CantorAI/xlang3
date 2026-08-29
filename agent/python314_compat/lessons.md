@@ -171,3 +171,6 @@ shape the next iteration.
 - User-facing output hooks must use descriptor-aware display conversion, not the
   low-level value formatter. `sys.displayhook(obj)` is a `repr(obj)` surface and
   must honor native instance `__repr__` methods such as `time.struct_time`.
+- Protocol-return diagnostics often include the returned object's visible type.
+  `sys.displayhook()` reports `__repr__ returned non-string (type int)`, so cover
+  the error text, not just that a `TypeError` was raised.

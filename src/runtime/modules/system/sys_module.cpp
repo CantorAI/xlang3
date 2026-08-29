@@ -2184,7 +2184,7 @@ bool sys_displayhook_repr(Runtime& runtime, const Value& value, std::string& tex
       }
       auto* repr_string = value_as_string(result);
       if (repr_string == nullptr) {
-        error = "__repr__ returned non-string";
+        error = "__repr__ returned non-string (type " + sys_type_name(runtime, result) + ")";
         runtime.raise_class_error("TypeError", error);
         return false;
       }
