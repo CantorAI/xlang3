@@ -1,0 +1,5 @@
+cpu-count-config-value -1 int
+cpu-count-config-doc Private function for getting PyConfig.cpu_count
+cpu-count-config-signature ($module, /)
+cpu-count-config-positional ('TypeError', 'sys._get_cpu_count_config() takes no arguments (1 given)')
+cpu-count-config-keyword ('TypeError', 'sys._get_cpu_count_config() takes no keyword arguments')

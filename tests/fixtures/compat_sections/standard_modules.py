@@ -1056,7 +1056,7 @@ print(sys._git[0], sys._git[1].startswith("tags/v3.14."), len(sys._git), isinsta
 print("sys-git-metadata", sys._git == ("CPython", "tags/v3.14.7", "823f032"))
 print(isinstance(sys._stdlib_dir, str), sys._framework == "", (sys.platform == "win32") == hasattr(sys, "winver"), (sys.platform == "win32") == hasattr(sys, "dllhandle"), hasattr(sys, "abiflags") == (sys.platform != "win32"))
 implementation_repr = repr(sys.implementation)
-print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xlang3-314'" in implementation_repr, "version=sys.version_info(" in implementation_repr, "supports_isolated_interpreters=False" in implementation_repr)
+print(implementation_repr.startswith("namespace(name='xlang3'"), "cache_tag='xlang3-314'" in implementation_repr, "version=sys.version_info(" in implementation_repr, "supports_isolated_interpreters=True" in implementation_repr)
 print(type(sys.implementation).__name__, type(sys.implementation).__module__, type(sys.implementation).__qualname__, type(sys.implementation).__doc__ == "A simple attribute-based namespace.", repr(sys.implementation).startswith("namespace("))
 print(sys.implementation.supports_isolated_interpreters, sys.is_stack_trampoline_active(), sys._jit.is_enabled(), sys._jit.is_active(), sys._jit.is_available())
 print((sys.platform == "win32" and not hasattr(sys.implementation, "_multiarch")) or (sys.platform != "win32" and hasattr(sys.implementation, "_multiarch")))

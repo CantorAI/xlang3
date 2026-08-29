@@ -1010,8 +1010,9 @@ Native or runtime-backed foundation:
   metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
   `float_repr_style`, `getunicodeinternedsize` with CPython-style
   positional and keyword diagnostics,
-  `_get_cpu_count_config` and `is_remote_debug_enabled` with CPython-style
-  keyword diagnostics,
+  `_get_cpu_count_config` with CPython-style default sentinel result, docs,
+  text signature, and positional/keyword diagnostics, and `is_remote_debug_enabled`
+  with CPython-style keyword diagnostics,
   `_settraceallthreads`/`_setprofileallthreads`, `_clear_type_descriptors` with
   CPython-style arity/type/keyword/immutable-type errors including given-count and
   offending-type diagnostics,
@@ -1061,7 +1062,7 @@ Native or runtime-backed foundation:
   current-frame arguments for covered native callable paths, plus
   `threading.settrace`/`threading.setprofile` inheritance for new Python-thread
   targets with native-path execution-lock parity,
-  `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
+  CPython-shaped `implementation.supports_isolated_interpreters`, CPython-normal Windows `implementation._multiarch`
   absence while preserving non-Windows `_multiarch`, stack-trampoline probes
   including CPython-style callable metadata including `deactivate_stack_trampoline`
   docs and text signatures, no-argument keyword diagnostics,

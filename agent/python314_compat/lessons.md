@@ -223,3 +223,7 @@ shape the next iteration.
   bypasses CPython's path-hook dispatch with a native fast path, mirror
   `sys.path_importer_cache` entries for the selected path item so stdlib code
   observing import state sees the expected importer object.
+- Before adding a native helper body, search with the same recursive file walk
+  used for edits, not a shell glob that may silently miss files. Existing
+  unregistered or under-fixtured helpers should be covered or registered
+  without duplicating their implementation.

@@ -3549,13 +3549,13 @@ void register_sys_module(Runtime& runtime) {
 #if !defined(_WIN32)
   object_set_attr(implementation, "_multiarch", Value::string(""), error);
 #endif
-  object_set_attr(implementation, "supports_isolated_interpreters", Value::boolean(false), error);
+  object_set_attr(implementation, "supports_isolated_interpreters", Value::boolean(true), error);
   Value implementation_version;
   object_get_attr(implementation, "version", implementation_version, error);
   std::string implementation_repr =
       "namespace(name='xlang3', cache_tag='xlang3-314', version=" +
       value_to_string(implementation_version) +
-      ", hexversion=51251184, supports_isolated_interpreters=False";
+      ", hexversion=51251184, supports_isolated_interpreters=True";
 #if !defined(_WIN32)
   implementation_repr += ", _multiarch=''";
 #endif
