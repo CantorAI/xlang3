@@ -192,3 +192,7 @@ shape the next iteration.
   case timeout. If full validation times out there after the selected section
   passes, stop new feature work, rerun the fixed selected comparison to isolate
   marginal duration versus hang, and only rerun full validation after that check.
+- When a section fixture is already near the fixed case timeout, do not add
+  metadata-only assertions to that monolithic section as an isolated batch.
+  Prefer a focused already-run fixture or defer the metadata expansion until the
+  section runtime has headroom.
