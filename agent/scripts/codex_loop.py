@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import json
 import os
 import re
@@ -186,11 +187,22 @@ def session_id_path(config: dict, goal: str) -> Path:
     return runs_dir(config, goal) / "codex_session_id.txt"
 
 
+def session_meta_path(config: dict, goal: str) -> Path:
+    return runs_dir(config, goal) / "codex_session_meta.json"
+
+
 def lessons_path(config: dict, goal: str) -> Path:
     configured = goal_config(config, goal).get("lessons", "")
     if configured:
         return ROOT / configured
     return ROOT / "agent" / goal / "lessons.md"
+
+
+def goal_folder(config: dict, goal: str) -> Path:
+    configured = goal_config(config, goal).get("folder", "")
+    if configured:
+        return ROOT / configured
+    return ROOT / "agent" / goal
 
 
 def default_xlang3(config: dict) -> str:
@@ -560,6 +572,63 @@ def read_compact_lessons(config: dict, goal: str, max_lines: int = 8) -> str:
     return "\n".join(lessons[-max_lines:])
 
 
+def file_sha256(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bootstrap_hashes(config: dict, goal: str) -> dict[str, str]:
+    folder = goal_folder(config, goal)
+    return {
+        "goal": file_sha256(folder / "goal.md"),
+        "rules": file_sha256(folder / "rules.md"),
+        "module_policy": file_sha256(folder / "context" / "module_policy.md"),
+    }
+
+
+def read_session_meta(config: dict, goal: str) -> dict:
+    path = session_meta_path(config, goal)
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def write_session_meta(config: dict, goal: str) -> None:
+    session_id = read_saved_session_id(config, goal)
+    if not session_id:
+        return
+    path = session_meta_path(config, goal)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "session_id": session_id,
+                "bootstrap_sent": True,
+                "hashes": bootstrap_hashes(config, goal),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def should_send_bootstrap(config: dict, goal: str) -> bool:
+    session_id = read_saved_session_id(config, goal)
+    if not session_id:
+        return True
+    meta = read_session_meta(config, goal)
+    if meta.get("session_id") != session_id:
+        return True
+    if not meta.get("bootstrap_sent"):
+        return True
+    return meta.get("hashes") != bootstrap_hashes(config, goal)
+
+
 def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
     if not section:
         for index, line in enumerate(lines):
@@ -668,7 +737,13 @@ def task_cursor(source_label: str, items: list[tuple[int, str, str]]) -> str:
     return f"file={source_label}; offset={line - 1}; line={line}"
 
 
-def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int, str, str]]) -> str:
+def compose_prompt(
+    config: dict,
+    goal: str,
+    section: str,
+    items: list[tuple[int, str, str]],
+    include_bootstrap: bool,
+) -> str:
     next_items = "\n".join(
         f"- line {line}: [{mark}] {text}" for line, mark, text in items
     )
@@ -682,11 +757,12 @@ def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int,
     section_fixture_command = section_fixture_command_text(config, section) if section else ""
     cursor = task_cursor(source_label, items)
     lessons = read_compact_lessons(config, goal)
-    return f"""# XLang3 Python 3.14 Compatibility Batch
+    if include_bootstrap:
+        header = f"""# XLang3 Python 3.14 Compatibility Batch
 
-This is a compact cursor-extracted context. Use the task file and cursor below
-as the control plane. Do not reread the legacy giant audit unless something is
-ambiguous.
+This prompt includes the session bootstrap because this is a new Codex session
+or the goal/rules/module-policy files changed. Later iterations in this same
+session should receive only delta prompts unless those files change again.
 
 Goal:
 Make XLang3 runtime compatible with Python 3.14 so CPython standard-library
@@ -747,7 +823,23 @@ Runtime doctrine:
 - Update agent/python314_compat/lessons.md if this batch exposes a reusable
   mistake pattern, compatibility trap, or workflow lesson.
 - The loop will build, test, commit, and push after your work.
+"""
+    else:
+        header = f"""# XLang3 Python 3.14 Compatibility Delta
 
+Use the bootstrap instructions already present in this Codex session. Do not
+reread the legacy giant audit unless this task item is ambiguous.
+
+Stable context status:
+- goal/rules/module-policy hashes are unchanged for this session.
+- continue following runtime-first Python 3.14 compatibility.
+- do not add public C++ facades for pure CPython stdlib modules.
+- use real CPython `Lib/*.py` first, then fix XLang3 runtime/native dependency
+  gaps with fixture coverage.
+- the outer loop will build, test, commit, and push after your work.
+"""
+
+    return f"""{header}
 Fixed local scripts:
 - Build: {build_command}
 - Full fixture validation: {fixture_command}
@@ -768,19 +860,19 @@ Selected task:
 Agent goal:
 {goal}
 
-Lessons from previous iterations:
-{lessons}
-
 Task counts:
 - checked: {checked}
 - partial: {partial}
 - missing: {missing}
 
+Implement one coherent compatibility batch now. Do not scan unrelated audit
+sections; update only the task rows affected by this batch.
+
 Next unfinished task rows from the cursor:
 {next_items}
 
-Implement one coherent compatibility batch now. Do not scan unrelated audit
-sections; update only the task rows affected by this batch.
+Lessons from previous iterations:
+{lessons}
 """
 
 
@@ -903,10 +995,14 @@ def print_loop_status(config: dict, goal: str, section: str, limit: int) -> None
     print(f"Mode: {'task folder' if is_task else 'legacy audit fallback'}")
     print(f"Cursor: {task_cursor(source_label, items)}")
     print(f"Task counts: checked={checked}, partial={partial}, missing={missing}")
+    session_id = read_saved_session_id(config, goal)
+    print(f"Codex session: {session_id or 'none'}")
+    print(f"Next prompt kind: {'bootstrap' if should_send_bootstrap(config, goal) else 'delta'}")
 
     if current_state.get("active"):
         print(f"Saved loop phase: {current_state.get('phase', '')}")
         print(f"Saved prompt: {current_state.get('prompt_path', '')}")
+        print(f"Saved prompt kind: {'bootstrap' if current_state.get('bootstrap_prompt') else 'delta'}")
     else:
         print("Saved loop phase: none")
 
@@ -1296,6 +1392,7 @@ def main() -> int:
             stageable_changes = changed_paths()
             current_prompt_path = saved_state.get("prompt_path", "")
             current_baseline_paths = saved_state.get("baseline_stageable_paths", stageable_changes)
+            current_bootstrap_prompt = bool(saved_state.get("bootstrap_prompt", False))
 
             print()
             print("=" * 72)
@@ -1334,10 +1431,13 @@ def main() -> int:
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                        "bootstrap_prompt": current_bootstrap_prompt,
                     })
                     write_loop_state(config, goal, running_state)
                     try:
                         invoke_codex(config, goal, codex_command, prompt_path, prompt)
+                        if current_bootstrap_prompt:
+                            write_session_meta(config, goal)
                     except SystemExit:
                         retry_state = dict(saved_state)
                         retry_state.update({
@@ -1348,6 +1448,7 @@ def main() -> int:
                             "prompt_path": str(prompt_path),
                             "iteration": iteration,
                             "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                            "bootstrap_prompt": current_bootstrap_prompt,
                         })
                         write_loop_state(config, goal, retry_state)
                         raise
@@ -1360,6 +1461,7 @@ def main() -> int:
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                        "bootstrap_prompt": current_bootstrap_prompt,
                     })
                     write_loop_state(config, goal, done_state)
                     resume_phase = "codex_done"
@@ -1386,7 +1488,14 @@ def main() -> int:
                 for line, mark, text in items:
                     print(f"[{mark}] line {line}: {text}")
 
-                prompt = compose_prompt(config, goal, active_section, items)
+                current_bootstrap_prompt = should_send_bootstrap(config, goal)
+                prompt = compose_prompt(
+                    config,
+                    goal,
+                    active_section,
+                    items,
+                    current_bootstrap_prompt,
+                )
                 prompt_path = write_prompt(config, goal, prompt, iteration)
                 current_prompt_path = str(prompt_path)
                 current_baseline_paths = stageable_changes
@@ -1401,6 +1510,7 @@ def main() -> int:
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
                     "baseline_stageable_paths": stageable_changes,
+                    "bootstrap_prompt": current_bootstrap_prompt,
                 })
 
                 write_loop_state(config, goal, {
@@ -1411,9 +1521,12 @@ def main() -> int:
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
                     "baseline_stageable_paths": stageable_changes,
+                    "bootstrap_prompt": current_bootstrap_prompt,
                 })
                 try:
                     invoke_codex(config, goal, codex_command, prompt_path, prompt)
+                    if current_bootstrap_prompt:
+                        write_session_meta(config, goal)
                 except SystemExit:
                     write_loop_state(config, goal, {
                         "active": True,
@@ -1423,6 +1536,7 @@ def main() -> int:
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": stageable_changes,
+                        "bootstrap_prompt": current_bootstrap_prompt,
                     })
                     raise
                 write_loop_state(config, goal, {
@@ -1433,6 +1547,7 @@ def main() -> int:
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
                     "baseline_stageable_paths": stageable_changes,
+                    "bootstrap_prompt": current_bootstrap_prompt,
                 })
 
             if resume_phase == "codex_done" or not resume_phase:

@@ -43,6 +43,14 @@ extracts only the active unfinished rows and passes a cursor like:
 file=agent/python314_compat/tasks/system_stdlib.md; offset=7; line=8
 ```
 
+Prompt behavior:
+
+- New Codex session, or changed `goal.md`/`rules.md`/`module_policy.md`:
+  bootstrap prompt plus current task.
+- Same Codex session with unchanged hashes: delta prompt with only the current
+  task cursor, unfinished rows, and compact lessons tail.
+- Repair prompt: validation failure log plus the current task context.
+
 Validation is deterministic:
 
 ```text
