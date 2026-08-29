@@ -397,6 +397,10 @@ Recent completed batches:
   `mktime()`, `strftime()`, and `asctime()` now reject longer-than-9
   sequence inputs as illegal time tuples, while leaving `struct_time`
   construction's 10/11-field extra metadata path intact.
+- Aligned `time` tuple-consumer type validation with CPython: `mktime()`,
+  `strftime()`, and `asctime()` now reject plain list inputs with the
+  `Tuple or struct_time argument required` `TypeError`, while preserving
+  list/sequence acceptance for `time.struct_time(...)` construction.
 - Aligned `sys.exit()` tuple-status normalization with CPython: tuple status
   values are now unpacked into `SystemExit.args`, producing `code is None`
   for `sys.exit(())`, a scalar code for one-item tuples, and the tuple itself

@@ -1662,8 +1662,6 @@ bool tm_from_sequence_like(const Value& value, std::tm& out, std::string& error)
   std::vector<Value> items;
   if (auto* tuple = value_as_tuple(value)) {
     items = tuple->items;
-  } else if (auto* list = value_as_list(value)) {
-    items = list->items;
   } else if (value_as_instance(value) != nullptr) {
     static const char* names[] = {
         "tm_year",
@@ -2311,7 +2309,7 @@ bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
   std::tm tm{};
   if (!tm_from_sequence_like(args[0], tm, error)) {
-    if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
+    if (value_as_tuple(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
       error = "Tuple or struct_time argument required";
     } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
       error = "mktime(): illegal time tuple argument";
@@ -2350,7 +2348,7 @@ bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   std::tm tm{};
   if (argc == 2) {
     if (!tm_from_sequence_like(args[1], tm, error)) {
-      if (value_as_tuple(args[1]) == nullptr && value_as_list(args[1]) == nullptr && value_as_instance(args[1]) == nullptr) {
+      if (value_as_tuple(args[1]) == nullptr && value_as_instance(args[1]) == nullptr) {
         error = "Tuple or struct_time argument required";
       } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
         error = "strftime(): illegal time tuple argument";
@@ -2581,7 +2579,7 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     tm = tm_from_time_t(std::time(nullptr), false);
   } else {
     if (!tm_from_sequence_like(args[0], tm, error)) {
-      if (value_as_tuple(args[0]) == nullptr && value_as_list(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
+      if (value_as_tuple(args[0]) == nullptr && value_as_instance(args[0]) == nullptr) {
         error = "Tuple or struct_time argument required";
       } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
         error = "asctime(): illegal time tuple argument";

@@ -134,3 +134,6 @@ shape the next iteration.
 - Direct `abc.abstractmethod()` on runtime builtin classes fails with immutable
   type `TypeError`, not marker-write `AttributeError`; identify builtin class
   objects by runtime registry identity rather than visible `__module__` alone.
+- Time tuple consumers and `time.struct_time` construction have different
+  accepted input types as well as lengths: `mktime`/`strftime`/`asctime`
+  reject lists, while `struct_time` construction accepts sequence inputs.
