@@ -34,10 +34,12 @@ The compact active task plan lives in:
 agent/python314_compat/tasks/
 ```
 
-Each file in that folder is a small task list. The loop can run one named task,
-for example `--section system_stdlib`, or `--section auto` to pick the first
-unfinished task from `queue.md`. Keep these files compact; they are the normal
-Codex prompt input.
+Each file in that folder is a small task list. `queue.md` stores task IDs such
+as `system_stdlib`, not file paths; the loop maps IDs through `tasks_dir` from
+`agent/config.toml`. The loop can run one named task, for example
+`--section system_stdlib`, or `--section auto` to pick the first unfinished task
+from `queue.md`. Keep these files compact; they are the normal Codex prompt
+input.
 
 Loop prompts identify work with a compact cursor:
 

@@ -14,26 +14,27 @@ limitations under the License.
 -->
 # Queue
 
-This queue is implemented as compact task files under
-`agent/python314_compat/tasks/`. The legacy audit in
-`doc/python314-compat-audit.md` is reference material, not the normal loop input.
+This queue lists compact task IDs. The loop maps each ID through
+`tasks_dir` in `agent/config.toml`; queue rows must not include `tasks/` or
+`.md`. The legacy audit in `doc/python314-compat-audit.md` is reference
+material, not the normal loop input.
 
 P0 runtime compatibility:
 
-- `tasks/system_stdlib.md`
-- `tasks/native_sys_time_audit.md`
-- `tasks/standard_modules.md`
-- `tasks/native_dependencies.md`
-- `tasks/filesystem_io.md`
-- `tasks/runtime_core.md`
+- `system_stdlib`
+- `native_sys_time_audit`
+- `standard_modules`
+- `native_dependencies`
+- `filesystem_io`
+- `runtime_core`
 
 P1 native dependency modules:
 
-- `tasks/builtin_functions.md`
-- `tasks/builtin_types.md`
-- `tasks/async_threads.md`
+- `builtin_functions`
+- `builtin_types`
+- `async_threads`
 
 P2 CPython standard-library probes:
 
-- `tasks/debugger.md`
-- `tasks/deferred_exact_cpython.md`
+- `debugger`
+- `deferred_exact_cpython`

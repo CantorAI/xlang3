@@ -88,10 +88,12 @@ def task_path(config: dict, goal: str, selector: str) -> Path | None:
     if not selector or not folder.exists():
         return None
 
-    direct = Path(selector)
+    if "/" in selector or "\\" in selector:
+        return None
+
     candidates = []
-    if direct.suffix == ".md":
-        candidates.append(folder / direct.name)
+    if selector.endswith(".md"):
+        candidates.append(folder / Path(selector).name)
     else:
         candidates.append(folder / f"{selector}.md")
         candidates.append(folder / f"{task_slug(selector)}.md")
@@ -127,13 +129,15 @@ def queued_task_paths(config: dict, goal: str) -> list[Path]:
         queue_file = ROOT / queue_value
         if queue_file.exists():
             for line in queue_file.read_text(encoding="utf-8").splitlines():
-                match = re.search(r"`([^`]+\.md)`", line)
+                match = re.search(r"`([^`]+)`", line)
                 if not match:
                     continue
-                raw = match.group(1).replace("\\", "/")
-                if not raw.startswith("tasks/"):
+                task_id = match.group(1).strip()
+                if not task_id or "/" in task_id or "\\" in task_id:
                     continue
-                candidate = folder / Path(raw).name
+                candidate = task_path(config, goal, task_id)
+                if candidate is None:
+                    continue
                 candidate = candidate.resolve()
                 if candidate.exists() and candidate not in seen:
                     paths.append(candidate)
