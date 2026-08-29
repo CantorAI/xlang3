@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-abc/_abc CPython-shaped module import metadata
+canonical built-in/frozen import loader identity
 ```
 
 Current next loop:

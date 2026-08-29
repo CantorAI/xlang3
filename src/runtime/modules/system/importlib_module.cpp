@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
@@ -98,6 +99,44 @@ Value make_module_spec_for_file(const std::string& name, const std::string& path
   const auto dot = name.rfind('.');
   object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
   return spec;
+}
+
+bool object_string_attr_equals(const Value& object, const char* name, const char* expected) {
+  Value value;
+  std::string ignored;
+  if (!object_get_attr(object, name, value, ignored)) {
+    return false;
+  }
+  auto* string = value_as_string(value);
+  return string != nullptr && string_object_to_string(*string) == expected;
+}
+
+void canonicalize_existing_builtin_import_loaders(Runtime& runtime, const Value& builtin_importer, const Value& frozen_importer) {
+  auto* modules = value_as_dict(runtime.module_registry_dict());
+  if (modules == nullptr) {
+    return;
+  }
+  for (auto& entry : modules->entries) {
+    Value& module = entry.second;
+    if (value_as_module(module) == nullptr) {
+      continue;
+    }
+    Value spec;
+    std::string ignored;
+    if (!module_get_attr(module, "__spec__", spec, ignored)) {
+      continue;
+    }
+    Value loader;
+    if (object_string_attr_equals(spec, "origin", "built-in")) {
+      value_assign_fast(loader, builtin_importer);
+    } else if (object_string_attr_equals(spec, "origin", "frozen")) {
+      value_assign_fast(loader, frozen_importer);
+    } else {
+      continue;
+    }
+    module_set_attr(module, "__loader__", loader, ignored);
+    object_set_attr(spec, "loader", loader, ignored);
+  }
 }
 
 bool importlib_loader_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -641,6 +680,7 @@ void register_importlib_module(Runtime& runtime) {
       .value("_bootstrap", frozen)
       .value("_bootstrap_external", external);
   runtime.register_module("importlib", builder.finish());
+  canonicalize_existing_builtin_import_loaders(runtime, builtin_importer, frozen_importer);
 
   Value sys;
   std::string error;

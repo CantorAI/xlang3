@@ -12,7 +12,10 @@
 # limitations under the License.
 
 import _abc
+import _frozen_importlib
 import abc
+import importlib.machinery
+import sys
 
 
 print(
@@ -35,6 +38,14 @@ print(
     abc.__spec__.origin == "frozen",
     abc.__spec__.has_location is False,
     hasattr(abc, "__file__") is True,
+)
+
+print(
+    "abc-bootstrap-loader-identity",
+    sys.__loader__ is importlib.machinery.BuiltinImporter,
+    _abc.__loader__ is importlib.machinery.BuiltinImporter,
+    abc.__loader__ is importlib.machinery.FrozenImporter,
+    _frozen_importlib.__loader__ is importlib.machinery.FrozenImporter,
 )
 
 HELPERS = (

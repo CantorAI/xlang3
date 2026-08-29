@@ -1,5 +1,6 @@
 abc-module-metadata True True True True True True True
 abc-public-module-metadata True True True True True True True
+abc-bootstrap-loader-identity True True True True
 abc-native-helper-metadata get_cache_token True True True True True
 abc-native-helper-metadata _abc_init True True True True True
 abc-native-helper-metadata _abc_register True True True True True

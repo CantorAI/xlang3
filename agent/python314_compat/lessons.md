@@ -287,3 +287,7 @@ shape the next iteration.
   CPython built-in and frozen loaders are class objects, not loader instances,
   and frozen `ModuleSpec` entries use `origin='frozen'` with
   `has_location=False` even when a compatibility `__file__` is published.
+- Early native modules are registered before `importlib.machinery` creates the
+  public bootstrap classes. Canonicalize existing built-in/frozen module
+  `__loader__` and `__spec__.loader` values once those classes exist so identity
+  checks against `BuiltinImporter` and `FrozenImporter` match CPython.

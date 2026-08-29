@@ -996,7 +996,8 @@ Native or runtime-backed foundation:
   argv/orig_argv/path/import-cache containers including CPython-style command-mode
   `sys.path[0]` empty-string sentinel and zip `sys.path_importer_cache` entries populated with real
   `zipimport.zipimporter` instances with archive-backed `find_spec`/create-module/invalidate-caches/filename/source/code/load-module/exec-module/package probes, CPython-style bootstrap
-  `meta_path` finder objects and the real `zipimporter` path hook,
+  `meta_path` finder objects, canonical built-in/frozen module loader identity,
+  and the real `zipimporter` path hook,
   CPython-shaped `version`, version/platform/prefix/executable fields including `_base_executable`,
   `exec_prefix`, `base_exec_prefix`, and CPython-normal `real_prefix` absence, structseq-like `version_info`/`flags`/`int_info`/
   `float_info`/`hash_info`/`thread_info` with instance/type field counts and
@@ -1227,7 +1228,7 @@ Native or runtime-backed foundation:
   public helper docs, `ABCMeta` method docs, and CPython-shaped `_abc` helper
   `__name__`/`__qualname__`/`__module__` metadata, docs, and text signatures,
   plus CPython-shaped `_abc` built-in and `abc` frozen module `__package__`/
-  `__loader__`/`__spec__` metadata,
+  `__loader__`/`__spec__` metadata with canonical `importlib.machinery` loader identity,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
   `_abc_init` class initialization for the CPython `abc.py` path,
