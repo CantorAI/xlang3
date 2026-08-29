@@ -55,6 +55,7 @@ CORE_CASES = [
     "object_attribute_hooks",
     "descriptor_protocol",
     "member_descriptor_get",
+    "abc_module_metadata",
     "sys_structseq_pickle",
     "code_traceback_model",
     "mro_model",

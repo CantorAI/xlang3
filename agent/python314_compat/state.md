@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-sys getwindowsversion structseq reduce and constructor behavior
+_abc helper metadata docs and text signatures
 ```
 
 Current next loop:

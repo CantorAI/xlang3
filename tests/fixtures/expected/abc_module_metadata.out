@@ -1,0 +1,9 @@
+abc-native-helper-metadata get_cache_token True True True True True
+abc-native-helper-metadata _abc_init True True True True True
+abc-native-helper-metadata _abc_register True True True True True
+abc-native-helper-metadata _abc_instancecheck True True True True True
+abc-native-helper-metadata _abc_subclasscheck True True True True True
+abc-native-helper-metadata _get_dump True True True True True
+abc-native-helper-metadata _reset_registry True True True True True
+abc-native-helper-metadata _reset_caches True True True True True
+abc-public-cache-token-metadata True True True True True

@@ -1224,7 +1224,8 @@ Native or runtime-backed foundation:
   and catchable CPython-style `property.getter`/`setter`/`deleter` arity, receiver-type, and keyword diagnostics,
   CPython-style `abc`/`_abc` class/function/module metadata for the covered native surface
   including `ABC`/`ABCMeta` `__qualname__`, CPython-shaped multi-line class docs,
-  public helper docs, and `ABCMeta` method docs,
+  public helper docs, `ABCMeta` method docs, and CPython-shaped `_abc` helper
+  `__name__`/`__qualname__`/`__module__` metadata, docs, and text signatures,
   computed `__abstractmethods__` for ABCMeta-created classes, inherited abstract-method clearing
   through concrete overrides, `abc.update_abstractmethods` recomputation after class mutation,
   `_abc_init` class initialization for the CPython `abc.py` path,

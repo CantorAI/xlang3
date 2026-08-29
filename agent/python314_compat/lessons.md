@@ -279,3 +279,7 @@ shape the next iteration.
   but its `__reduce__()` and `__reduce_ex__()` payloads still include named-only
   fields such as `platform_version`. Do not infer constructibility from reduce
   support.
+- Native helper metadata includes small pickle/inspect-facing details beyond
+  docs. For `_abc`, CPython exposes function-level `__qualname__` and
+  `__text_signature__` on private helpers as well as public `abc.get_cache_token`,
+  so route those through the shared native function attribute setup.

@@ -377,14 +377,20 @@ Value abc_native_function(
     NativeFunctionCallback callback,
     const std::string& doc,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
-    void* keyword_user_data = nullptr) {
+    void* keyword_user_data = nullptr,
+    const char* text_signature = nullptr) {
   Value function = runtime.make_native_function(qualified_name, callback, keyword_user_data, nullptr, nullptr, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
-    native->attrs_dict = new Value(Value::dict({
+    std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
         {Value::string("__name__"), Value::string(function_name)},
+        {Value::string("__qualname__"), Value::string(function_name)},
         {Value::string("__doc__"), Value::string(doc)},
-    }));
+    };
+    if (text_signature != nullptr) {
+      attrs.push_back({Value::string("__text_signature__"), Value::string(text_signature)});
+    }
+    native->attrs_dict = new Value(Value::dict(std::move(attrs)));
   }
   return function;
 }
@@ -836,24 +842,99 @@ void register_abc_module(Runtime& runtime) {
               "_abc.get_cache_token",
               "get_cache_token",
               abc_get_cache_token,
-              "Returns the current ABC cache token.",
+              "Returns the current ABC cache token.\n\n"
+              "The token is an opaque object (supporting equality testing) identifying\n"
+              "the current version of the ABC cache for virtual subclasses.  The token\n"
+              "changes with every call to register() on any ABC.",
               abc_no_keyword_args,
-              const_cast<char*>("_abc.get_cache_token")))
-      .value("_abc_init", abc_native_function(runtime, "_abc", "_abc._abc_init", "_abc_init", abc_init, "Internal ABC class initialization.", abc_no_keyword_args, const_cast<char*>("_abc._abc_init")))
+              const_cast<char*>("_abc.get_cache_token"),
+              "($module, /)"))
+      .value("_abc_init",
+             abc_native_function(
+                 runtime,
+                 "_abc",
+                 "_abc._abc_init",
+                 "_abc_init",
+                 abc_init,
+                 "Internal ABC helper for class set-up. Should be never used outside abc module.",
+                 abc_no_keyword_args,
+                 const_cast<char*>("_abc._abc_init"),
+                 "($module, self, /)"))
       .value(
           "_abc_register",
-          abc_native_function(runtime, "_abc", "_abc._abc_register", "_abc_register", abc_register, "Register a virtual subclass of an ABC.", abc_no_keyword_args, const_cast<char*>("_abc._abc_register")))
+          abc_native_function(
+              runtime,
+              "_abc",
+              "_abc._abc_register",
+              "_abc_register",
+              abc_register,
+              "Internal ABC helper for subclasss registration. Should be never used outside abc module.",
+              abc_no_keyword_args,
+              const_cast<char*>("_abc._abc_register"),
+              "($module, self, subclass, /)"))
       .value(
           "_abc_instancecheck",
-          abc_native_function(runtime, "_abc", "_abc._abc_instancecheck", "_abc_instancecheck", abc_instancecheck, "Internal ABC instance check.", abc_no_keyword_args, const_cast<char*>("_abc._abc_instancecheck")))
+          abc_native_function(
+              runtime,
+              "_abc",
+              "_abc._abc_instancecheck",
+              "_abc_instancecheck",
+              abc_instancecheck,
+              "Internal ABC helper for instance checks. Should be never used outside abc module.",
+              abc_no_keyword_args,
+              const_cast<char*>("_abc._abc_instancecheck"),
+              "($module, self, instance, /)"))
       .value(
           "_abc_subclasscheck",
-          abc_native_function(runtime, "_abc", "_abc._abc_subclasscheck", "_abc_subclasscheck", abc_subclasscheck, "Internal ABC subclass check.", abc_no_keyword_args, const_cast<char*>("_abc._abc_subclasscheck")))
-      .value("_get_dump", abc_native_function(runtime, "_abc", "_abc._get_dump", "_get_dump", abc_get_dump, "Return ABC registry and cache snapshots.", abc_no_keyword_args, const_cast<char*>("_abc._get_dump")))
+          abc_native_function(
+              runtime,
+              "_abc",
+              "_abc._abc_subclasscheck",
+              "_abc_subclasscheck",
+              abc_subclasscheck,
+              "Internal ABC helper for subclasss checks. Should be never used outside abc module.",
+              abc_no_keyword_args,
+              const_cast<char*>("_abc._abc_subclasscheck"),
+              "($module, self, subclass, /)"))
+      .value("_get_dump",
+             abc_native_function(
+                 runtime,
+                 "_abc",
+                 "_abc._get_dump",
+                 "_get_dump",
+                 abc_get_dump,
+                 "Internal ABC helper for cache and registry debugging.\n\n"
+                 "Return shallow copies of registry, of both caches, and\n"
+                 "negative cache version. Don't call this function directly,\n"
+                 "instead use ABC._dump_registry() for a nice repr.",
+                 abc_no_keyword_args,
+                 const_cast<char*>("_abc._get_dump"),
+                 "($module, self, /)"))
       .value(
           "_reset_registry",
-          abc_native_function(runtime, "_abc", "_abc._reset_registry", "_reset_registry", abc_reset_registry, "Clear the ABC registry.", abc_no_keyword_args, const_cast<char*>("_abc._reset_registry")))
-      .value("_reset_caches", abc_native_function(runtime, "_abc", "_abc._reset_caches", "_reset_caches", abc_reset_caches, "Clear ABC caches.", abc_no_keyword_args, const_cast<char*>("_abc._reset_caches")));
+          abc_native_function(
+              runtime,
+              "_abc",
+              "_abc._reset_registry",
+              "_reset_registry",
+              abc_reset_registry,
+              "Internal ABC helper to reset registry of a given class.\n\n"
+              "Should be only used by refleak.py",
+              abc_no_keyword_args,
+              const_cast<char*>("_abc._reset_registry"),
+              "($module, self, /)"))
+      .value("_reset_caches",
+             abc_native_function(
+                 runtime,
+                 "_abc",
+                 "_abc._reset_caches",
+                 "_reset_caches",
+                 abc_reset_caches,
+                 "Internal ABC helper to reset both caches of a given class.\n\n"
+                 "Should be only used by refleak.py",
+                 abc_no_keyword_args,
+                 const_cast<char*>("_abc._reset_caches"),
+                 "($module, self, /)"));
   runtime.register_module("_abc", builder.finish());
 
   std::vector<std::pair<std::string, Value>> abc_meta_attrs;
@@ -931,7 +1012,8 @@ void register_abc_module(Runtime& runtime) {
               "the current version of the ABC cache for virtual subclasses.  The token\n"
               "changes with every call to register() on any ABC.",
               abc_no_keyword_args,
-              const_cast<char*>("_abc.get_cache_token")))
+              const_cast<char*>("_abc.get_cache_token"),
+              "($module, /)"))
       .value(
           "abstractmethod",
           abc_native_function(
