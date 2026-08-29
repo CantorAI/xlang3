@@ -291,3 +291,7 @@ shape the next iteration.
   public bootstrap classes. Canonicalize existing built-in/frozen module
   `__loader__` and `__spec__.loader` values once those classes exist so identity
   checks against `BuiltinImporter` and `FrozenImporter` match CPython.
+- CPython startup metadata can encode build-tree constants rather than runtime
+  paths. On Windows Python 3.14, `sys._vpath` is the literal `"..\\.."`;
+  keep platform-specific probes before replacing such fields with generic
+  placeholders.

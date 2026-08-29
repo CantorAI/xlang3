@@ -13,6 +13,9 @@
 
 import sys
 
+
+EXPECTED_SYS_VPATH = "..\\.." if sys.platform == "win32" else ""
+
 EXPECTED_SYS_DOC = """This module provides access to some objects used or maintained by the
 interpreter and to functions that interact strongly with the interpreter.
 
@@ -92,3 +95,4 @@ print(sys.__doc__ == EXPECTED_SYS_DOC)
 print(len(sys.__doc__), len(EXPECTED_SYS_DOC))
 print(sys.__doc__.splitlines()[0] == EXPECTED_SYS_DOC.splitlines()[0])
 print(sys.__doc__.endswith("settrace() -- set the global debug tracing function\n"))
+print("sys-vpath-metadata", sys._vpath == EXPECTED_SYS_VPATH, repr(sys._vpath))

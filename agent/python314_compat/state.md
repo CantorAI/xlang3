@@ -30,7 +30,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-canonical built-in/frozen import loader identity
+Windows CPython-shaped sys._vpath startup metadata
 ```
 
 Current next loop:

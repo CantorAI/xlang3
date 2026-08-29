@@ -890,7 +890,8 @@ sys_intern_spaced_canonical = sys.intern(sys_intern_spaced_literal)
 print(sys._is_interned(sys_intern_identifier_literal), sys._is_interned(sys_intern_spaced_literal), sys_intern_spaced_canonical is sys_intern_spaced_literal, sys._is_interned(sys_intern_spaced_canonical))
 unicode_interned_before = sys.getunicodeinternedsize()
 sys.intern("interned-size-probe")
-print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "CPython", sys._vpath == "", sys._home is None, sys.float_repr_style == "short")
+expected_sys_vpath = "..\\.." if sys.platform == "win32" else ""
+print(sys.getunicodeinternedsize() >= unicode_interned_before, isinstance(sys._git, tuple), len(sys._git) == 3, sys._git[0] == "CPython", sys._vpath == expected_sys_vpath, sys._home is None, sys.float_repr_style == "short")
 sys_stdlib_names = sys.stdlib_module_names
 print(
     "sys-stdlib-module-names",
@@ -1053,6 +1054,7 @@ for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
 print("sys-version-shape", sys.version.startswith("3.14.7 (tags/v3.14.7:823f032, "), "[MSC v." in sys.version, "64 bit (AMD64)" in sys.version, "XLang3" not in sys.version)
 print(sys._git[0], sys._git[1].startswith("tags/v3.14."), len(sys._git), isinstance(sys._vpath, str), sys._home is None, sys.float_repr_style)
+print("sys-vpath-metadata", sys._vpath == expected_sys_vpath, repr(sys._vpath))
 print("sys-git-metadata", sys._git == ("CPython", "tags/v3.14.7", "823f032"))
 print(isinstance(sys._stdlib_dir, str), sys._framework == "", (sys.platform == "win32") == hasattr(sys, "winver"), (sys.platform == "win32") == hasattr(sys, "dllhandle"), hasattr(sys, "abiflags") == (sys.platform != "win32"))
 implementation_repr = repr(sys.implementation)

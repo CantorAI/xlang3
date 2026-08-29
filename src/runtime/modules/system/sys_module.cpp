@@ -3985,7 +3985,14 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(sys, "abiflags", Value::string(""), error);
 #endif
   module_set_attr(sys, "_git", Value::tuple({Value::string("CPython"), Value::string("tags/v3.14.7"), Value::string("823f032")}), error);
-  module_set_attr(sys, "_vpath", Value::string(""), error);
+  module_set_attr(sys, "_vpath", Value::string(
+#if defined(_WIN32)
+                                      "..\\.."
+#else
+                                      ""
+#endif
+                                      ),
+                  error);
   module_set_attr(sys, "_home", Value::none(), error);
   module_set_attr(sys, "float_repr_style", Value::string("short"), error);
   module_set_attr(sys, "platform", Value::string(

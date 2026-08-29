@@ -1018,8 +1018,8 @@ Native or runtime-backed foundation:
   type-level `__module__`/`__qualname__` metadata and CPython-style type reprs, and type-level `__match_args__`,
   `implementation` metadata with CPython-style SimpleNamespace type metadata
   including `__qualname__` and doc text plus namespace-style repr, CPython-shaped `builtin_module_names`,
-  CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` tuple plus `_vpath`/`_home`
-  metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
+  CPython 3.14 top-level frozen `stdlib_module_names`, CPython-shaped `_git` tuple plus `_home`
+  and Windows `_vpath` metadata, `_stdlib_dir`/`_framework` and Windows-only `winver`/`dllhandle`/`abiflags` startup shape,
   `float_repr_style`, `getunicodeinternedsize` with CPython-style
   positional and keyword diagnostics,
   `_get_cpu_count_config` with CPython-style default sentinel result, docs,
