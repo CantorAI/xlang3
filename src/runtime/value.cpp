@@ -2119,6 +2119,46 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
   if (value_is_set_like_operand(lhs) && value_is_set_like_operand(rhs)) {
     return set_like_compare_value(op, lhs, rhs, out, error);
   }
+  if (auto* left = value_as_list(lhs)) {
+    if (auto* right = value_as_list(rhs)) {
+      const size_t common = std::min(left->items.size(), right->items.size());
+      int ordering = 0;
+      for (size_t i = 0; i < common; ++i) {
+        Value equal;
+        if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
+          return false;
+        }
+        if (equal.tag == ValueTag::Bool && equal.as.b) {
+          continue;
+        }
+        if (op == "==" || op == "!=") {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+        Value less;
+        if (!value_compare("<", left->items[i], right->items[i], less, error)) {
+          return false;
+        }
+        ordering = (less.tag == ValueTag::Bool && less.as.b) ? -1 : 1;
+        break;
+      }
+      if (ordering == 0 && left->items.size() != right->items.size()) {
+        ordering = left->items.size() < right->items.size() ? -1 : 1;
+      }
+      if (op == "==") result = ordering == 0;
+      else if (op == "!=") result = ordering != 0;
+      else if (op == "<") result = ordering < 0;
+      else if (op == "<=") result = ordering <= 0;
+      else if (op == ">") result = ordering > 0;
+      else if (op == ">=") result = ordering >= 0;
+      else {
+        error = "unknown comparison operator";
+        return false;
+      }
+      value_set_bool(out, result);
+      return true;
+    }
+  }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
       lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
       lhs.as.obj->kind == ObjectKind::Tuple && rhs.as.obj->kind == ObjectKind::Tuple) {

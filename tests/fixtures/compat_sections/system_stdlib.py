@@ -15,11 +15,14 @@
 # Python files under C:/Python/Python314/Lib rather than public native facades.
 import abc
 import collections
+import _collections_abc
 import codecs
 import encodings
 import enum
 import io
+import queue
 import types
+import weakref
 
 
 def source_lib_module(module):
@@ -50,7 +53,38 @@ print(
 print(
     "system-stdlib-collections",
     source_lib_package(collections),
+    source_lib_module(_collections_abc),
     collections.deque.__module__ == "collections",
+    list(collections.deque([1, 2, 3])) == [1, 2, 3],
+    isinstance(collections.UserDict({"a": 1}), collections.abc.MutableMapping),
+)
+q = queue.SimpleQueue()
+q.put("first")
+q.put("second")
+print(
+    "system-stdlib-queue",
+    source_lib_module(queue),
+    q.qsize(),
+    q.get(),
+    q.get_nowait(),
+    q.empty(),
+)
+
+
+class WeakBox:
+    pass
+
+
+box = WeakBox()
+ref = weakref.ref(box)
+dictionary = weakref.WeakKeyDictionary()
+dictionary[box] = "live"
+print(
+    "system-stdlib-weakref",
+    source_lib_module(weakref),
+    ref() is box,
+    weakref.getweakrefcount(box) >= 1,
+    list(dictionary.values()),
 )
 print(
     "system-stdlib-enum",

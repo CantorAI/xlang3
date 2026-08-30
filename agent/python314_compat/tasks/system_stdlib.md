@@ -24,12 +24,15 @@ fixture coverage, then update the row truthfully.
   support, UTF-8 lookup/encode/decode flow, and VFS-backed import behavior
   without adding public C++ facades for those pure Python modules.
 
-- [ ] `collections`, `_collections_abc`, `queue`, and `weakref`
-  Coverage: `_collections.deque`, `_queue.SimpleQueue`, and `_weakref` native
-  foundations exist.
-  Remaining: run real `collections`, `_collections_abc`, `queue`, and
-  `weakref.py`; implement missing native helpers such as weak lifetime cleanup
-  and `_weakref._remove_dead_weakref` without restoring public facades.
+- [x] `collections`, `_collections_abc`, `queue`, and `weakref`
+  Coverage: real CPython 3.14 `collections` package, `_collections_abc.py`,
+  `queue.py`, and `weakref.py` import from `C:/Python/Python314/Lib`; the
+  `system_stdlib` fixture asserts source-backed module/package paths,
+  `_collections.deque` iteration into `list`, ABC-backed `UserDict`
+  `MutableMapping` recognition, `queue.SimpleQueue` put/get/qsize/empty, and
+  `weakref.ref` plus `WeakKeyDictionary` behavior. Runtime coverage added for
+  structural list comparison so source-backed collections tests use normal
+  Python equality rather than object identity.
 
 - [ ] `json`, `pickle`, `copy`, and `copyreg`
   Coverage: `_pickle`, `marshal`, and `_struct` native dependencies exist.

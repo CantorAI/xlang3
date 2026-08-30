@@ -50,6 +50,37 @@ XLANG3_HOT_INLINE std::string xlang_vm_current_module_name(const Value& globals_
   return "__main__";
 }
 
+XLANG3_HOT_INLINE void xlang_vm_collect_set_name_descriptors(
+    const std::vector<std::pair<std::string, Value>>& attrs,
+    std::vector<std::pair<std::string, Value>>& descriptors) {
+  for (const auto& attr : attrs) {
+    Value set_name;
+    std::string ignored;
+    if (object_get_attr(attr.second, "__set_name__", set_name, ignored)) {
+      descriptors.push_back({attr.first, std::move(set_name)});
+    }
+  }
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_call_set_name_descriptors(
+    Runtime& runtime,
+    const Value& cls,
+    const std::vector<std::pair<std::string, Value>>& descriptors,
+    std::string& error) {
+  for (const auto& descriptor : descriptors) {
+    Value name_arg = Value::string(descriptor.first);
+    Value call_args[] = {cls, name_arg};
+    Value ignored;
+    if (!runtime_call_callable(runtime, descriptor.second, call_args, 2, ignored, error)) {
+      if (error.empty()) {
+        error = "Error calling __set_name__";
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
 XLANG3_HOT_INLINE bool xlang_vm_class_slot_conflicts(
     const std::vector<std::pair<std::string, uint32_t>>& attrs,
     const std::vector<std::string>& slots,
@@ -113,6 +144,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
   if (!xlang_vm_class_attrs_have(attrs, "__qualname__")) {
     attrs.push_back({"__qualname__", Value::string(class_name)});
   }
+  std::vector<std::pair<std::string, Value>> set_name_descriptors;
+  xlang_vm_collect_set_name_descriptors(attrs, set_name_descriptors);
   Value base = Value::invalid();
   if (const auto* object_base = runtime.find_builtin(XlangVMNames::object_type)) {
     value_assign_fast(base, *object_base);
@@ -127,6 +160,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
       std::move(base),
       fn.class_instance_slots[in.c],
       std::move(metaclass));
+  std::string set_name_error;
+  if (!xlang_vm_call_set_name_descriptors(runtime, regs[in.dst], set_name_descriptors, set_name_error)) {
+    result.errors.push_back(set_name_error);
+    return XlangVMOpFlow::ReturnResult;
+  }
   if (auto* klass = value_as_class(regs[in.dst])) {
     klass->definition_attr_order = std::move(attr_order);
   }

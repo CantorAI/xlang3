@@ -525,6 +525,37 @@ XLANG3_HOT_INLINE bool xlang_vm_inline_class_attrs_have(
   return false;
 }
 
+XLANG3_HOT_INLINE void xlang_vm_collect_set_name_descriptors(
+    const std::vector<std::pair<std::string, Value>>& attrs,
+    std::vector<std::pair<std::string, Value>>& descriptors) {
+  for (const auto& attr : attrs) {
+    Value set_name;
+    std::string ignored;
+    if (object_get_attr(attr.second, "__set_name__", set_name, ignored)) {
+      descriptors.push_back({attr.first, std::move(set_name)});
+    }
+  }
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_call_set_name_descriptors(
+    Runtime& runtime,
+    const Value& cls,
+    const std::vector<std::pair<std::string, Value>>& descriptors,
+    std::string& error) {
+  for (const auto& descriptor : descriptors) {
+    Value name_arg = Value::string(descriptor.first);
+    Value call_args[] = {cls, name_arg};
+    Value ignored;
+    if (!runtime_call_callable(runtime, descriptor.second, call_args, 2, ignored, error)) {
+      if (error.empty()) {
+        error = "Error calling __set_name__";
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
 XLANG3_HOT_INLINE std::string xlang_vm_inline_current_module_name(Runtime& runtime) {
   Value name_value;
   std::string ignored;
@@ -659,6 +690,15 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_inherited_builtin_cons
     return XlangVMBuiltinConstructor::Bytes;
   }
   return XlangVMBuiltinConstructor::Unknown;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_class_is_builtin_module_class(const ClassObject& klass) {
+  auto it = klass.attrs.find("__module__");
+  if (it == klass.attrs.end()) {
+    return true;
+  }
+  auto* module_name = value_as_string(it->second);
+  return module_name != nullptr && string_object_to_string(*module_name) == "builtins";
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
@@ -799,6 +839,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Value& out,
     std::string& error) {
   auto constructor = xlang_vm_find_builtin_constructor(klass.name);
+  if (constructor != XlangVMBuiltinConstructor::Unknown && !xlang_vm_class_is_builtin_module_class(klass)) {
+    constructor = XlangVMBuiltinConstructor::Unknown;
+  }
   if (constructor == XlangVMBuiltinConstructor::Unknown) {
     constructor = xlang_vm_find_inherited_builtin_constructor(klass);
   }
@@ -1007,7 +1050,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     if (!xlang_vm_inline_class_attrs_have(attrs, "__qualname__")) {
       attrs.push_back({"__qualname__", Value::string(class_name)});
     }
+    std::vector<std::pair<std::string, Value>> set_name_descriptors;
+    xlang_vm_collect_set_name_descriptors(attrs, set_name_descriptors);
     out = Value::class_object(class_name, std::move(attrs), base, {}, std::move(metaclass));
+    if (!xlang_vm_call_set_name_descriptors(runtime, out, set_name_descriptors, error)) {
+      return false;
+    }
     if (bases->items.size() > 1) {
       for (size_t i = 1; i < bases->items.size(); ++i) {
         if (!class_set_base(out, bases->items[i], error)) {
