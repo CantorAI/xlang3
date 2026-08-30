@@ -71,6 +71,7 @@ void register_codecs_module(Runtime& runtime);
 void register_unicodedata_module(Runtime& runtime);
 void register_struct_module(Runtime& runtime);
 void register_signal_module(Runtime& runtime);
+void register_sre_module(Runtime& runtime);
 void register_collections_module(Runtime& runtime);
 void register_queue_module(Runtime& runtime);
 void register_importlib_module(Runtime& runtime);

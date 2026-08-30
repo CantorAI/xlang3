@@ -578,6 +578,15 @@ bool struct_method_iter_unpack(Runtime& runtime, const Value* args, uint32_t arg
   return struct_iter_unpack(runtime, call_args, 2, out, error, data);
 }
 
+bool struct_clearcache(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "_struct._clearcache() expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 } // namespace
 
 void register_struct_module(Runtime& runtime) {
@@ -600,12 +609,14 @@ void register_struct_module(Runtime& runtime) {
           {"iter_unpack", runtime.make_native_function("struct.Struct.iter_unpack", struct_method_iter_unpack)},
       });
   NativeModuleBuilder builder(runtime, "_struct");
-  builder.function("calcsize", struct_calcsize)
+  builder.value("__doc__", Value::string("Functions to convert between Python values and C structs."))
+      .function("calcsize", struct_calcsize)
       .function("pack", struct_pack)
       .function("pack_into", struct_pack_into)
       .function("unpack", struct_unpack)
       .function("unpack_from", struct_unpack_from)
       .function("iter_unpack", struct_iter_unpack)
+      .function("_clearcache", struct_clearcache)
       .value("Struct", g_struct_class)
       .value("error", g_struct_error_class);
   runtime.register_module("_struct", builder.finish());

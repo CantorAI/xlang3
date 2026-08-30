@@ -461,6 +461,8 @@ enum class XlangVMBuiltinConstructor : uint8_t {
   ClassMethod,
   StaticMethod,
   Super,
+  Module,
+  Method,
 };
 
 struct XlangVMBuiltinConstructorSpec {
@@ -664,6 +666,8 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
       {XlangVMNames::builtin_classmethod, XlangVMBuiltinConstructor::ClassMethod},
       {XlangVMNames::builtin_staticmethod, XlangVMBuiltinConstructor::StaticMethod},
       {XlangVMNames::builtin_super, XlangVMBuiltinConstructor::Super},
+      {XlangVMNames::builtin_module, XlangVMBuiltinConstructor::Module},
+      {XlangVMNames::builtin_method, XlangVMBuiltinConstructor::Method},
   };
   for (const auto& spec : specs) {
     if (name == spec.name) {
@@ -693,6 +697,9 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_inherited_builtin_cons
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_class_is_builtin_module_class(const ClassObject& klass) {
+  if (klass.name == XlangVMNames::builtin_module) {
+    return true;
+  }
   auto it = klass.attrs.find("__module__");
   if (it == klass.attrs.end()) {
     return true;
@@ -1543,16 +1550,29 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Property) {
-    if (!reject_constructor_keywords()) return false;
+    if (!reject_constructor_keywords_except({"fget", "fset", "fdel", "doc"})) return false;
     if (constructor_args.size() > 4) {
       error = "property() expected at most 4 arguments";
       return false;
     }
+    const char* property_names[] = {"fget", "fset", "fdel", "doc"};
+    for (size_t i = 0; i < constructor_args.size() && i < std::size(property_names); ++i) {
+      if (find_constructor_keyword(property_names[i]) != nullptr) {
+        error = std::string("property() got multiple values for argument '") + property_names[i] + "'";
+        return false;
+      }
+    }
+    auto property_arg = [&](size_t index, const char* name) -> Value {
+      if (const Value* keyword = find_constructor_keyword(name)) {
+        return *keyword;
+      }
+      return constructor_args.size() > index ? constructor_args.get(index) : Value::none();
+    };
     out = Value::property(
-        constructor_args.size() > 0 ? constructor_args.get(0) : Value::none(),
-        constructor_args.size() > 1 ? constructor_args.get(1) : Value::none(),
-        constructor_args.size() > 2 ? constructor_args.get(2) : Value::none(),
-        constructor_args.size() > 3 ? constructor_args.get(3) : Value::none());
+        property_arg(0, "fget"),
+        property_arg(1, "fset"),
+        property_arg(2, "fdel"),
+        property_arg(3, "doc"));
     return true;
   }
 
@@ -1603,6 +1623,33 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     out = Value::super_object(std::move(klass), std::move(self));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Module) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() < 1 || constructor_args.size() > 2) {
+      error = "module() expected name and optional doc";
+      return false;
+    }
+    auto* name = value_as_string(constructor_args.get(0));
+    if (name == nullptr) {
+      error = "module name must be a string";
+      return false;
+    }
+    out = Value::module(string_object_to_string(*name));
+    std::string ignored;
+    module_set_attr(out, "__doc__", constructor_args.size() == 2 ? constructor_args.get(1) : Value::none(), ignored);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Method) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 2) {
+      error = "method() expected function and instance";
+      return false;
+    }
+    out = Value::bound_method(constructor_args.get(1), constructor_args.get(0));
     return true;
   }
 

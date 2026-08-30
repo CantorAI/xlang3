@@ -40,6 +40,8 @@ struct PythonNames {
   static constexpr const char* builtin_classmethod = "classmethod";
   static constexpr const char* builtin_staticmethod = "staticmethod";
   static constexpr const char* builtin_super = "super";
+  static constexpr const char* builtin_module = "module";
+  static constexpr const char* builtin_method = "method";
 
   static constexpr const char* builtin_len = "len";
 

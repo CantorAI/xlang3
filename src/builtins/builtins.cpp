@@ -43,6 +43,7 @@ void register_core_builtins(Runtime& runtime) {
   register_unicodedata_module(runtime);
   register_struct_module(runtime);
   register_signal_module(runtime);
+  register_sre_module(runtime);
   register_collections_module(runtime);
   register_queue_module(runtime);
   register_importlib_module(runtime);

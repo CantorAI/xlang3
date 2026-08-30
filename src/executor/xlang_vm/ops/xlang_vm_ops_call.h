@@ -262,6 +262,7 @@ XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
 template <
     typename MakeGeneratorIfNeeded,
     typename PushFrame,
+    typename CallBuiltinTypeConstructor,
     typename AnalyzeConstMethod,
     typename AnalyzeSelfBinaryMethod,
     typename ExecuteSelfBinaryMethod,
@@ -285,6 +286,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     XlangRuntimeExecutionGuard& execution_lock,
     MakeGeneratorIfNeeded&& make_generator_if_needed,
     PushFrame&& push_frame,
+    CallBuiltinTypeConstructor&& call_builtin_type_constructor_fn,
     AnalyzeConstMethod&& analyze_const_method_fn,
     AnalyzeSelfBinaryMethod&& analyze_self_binary_method_fn,
     ExecuteSelfBinaryMethod&& execute_self_binary_method_fn,
@@ -811,6 +813,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         return XlangVMOpFlow::Next;
       }
     }
+    std::string constructor_error;
+    if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
+      if (value_as_class(regs[in.dst]) == nullptr) {
+        return XlangVMOpFlow::Next;
+      }
+      return call_metaclass_init_after_type_new(
+          method,
+          regs[in.dst],
+          call_args,
+          module,
+          module_owner,
+          runtime,
+          native_call_args,
+          ip,
+          in.dst,
+          result,
+          execution_lock,
+          make_generator_if_needed,
+          push_frame,
+          raise_runtime_error,
+          raise_exception_value);
+    }
+    if (!constructor_error.empty()) {
+      if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
+      return XlangVMOpFlow::ReturnResult;
+    }
     Value instance = Value::instance(method);
     CallArgsView init_args = call_args;
     init_args.leading = &instance;
@@ -1063,6 +1091,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
         return XlangVMOpFlow::Next;
       }
     }
+    auto early_own_new_it = klass->attrs.find("__new__");
+    if (early_own_new_it != klass->attrs.end() && !xlang_vm_class_is_builtin_module_class(*klass)) {
+      Value new_callable;
+      if (auto* static_method = value_as_static_method(early_own_new_it->second)) {
+        value_assign_fast(new_callable, static_method->function);
+      } else {
+        value_assign_fast(new_callable, early_own_new_it->second);
+      }
+      CallArgsView new_args = call_args;
+      new_args.leading = &callee;
+      new_args.leading_count = 1;
+      if (!xlang3::xlang_vm::ops::call_callable_value_ex(
+              runtime,
+              new_callable,
+              new_args,
+              module,
+              module_owner,
+              in.dst,
+              ip,
+              native_call_args,
+              native_keyword_args,
+              execution_lock,
+              regs[in.dst],
+              pushed_frame,
+              make_generator_if_needed,
+              push_frame,
+              raise_runtime_error,
+              raise_exception_value)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+      return XlangVMOpFlow::Next;
+    }
     if (auto* metaclass = value_as_class(klass->metaclass)) {
       Value meta_call;
       std::string meta_call_error;
@@ -1157,6 +1219,39 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
           push_frame,
           raise_runtime_error,
           raise_exception_value);
+    }
+    auto own_new_it = klass->attrs.find("__new__");
+    if (own_new_it != klass->attrs.end() && !xlang_vm_class_is_builtin_module_class(*klass)) {
+      Value new_callable;
+      if (auto* static_method = value_as_static_method(own_new_it->second)) {
+        value_assign_fast(new_callable, static_method->function);
+      } else {
+        value_assign_fast(new_callable, own_new_it->second);
+      }
+      CallArgsView new_args = call_args;
+      new_args.leading = &callee;
+      new_args.leading_count = 1;
+      if (!xlang3::xlang_vm::ops::call_callable_value(
+              runtime,
+              new_callable,
+              new_args,
+              module,
+              module_owner,
+              in.dst,
+              ip,
+              native_call_args,
+              execution_lock,
+              regs[in.dst],
+              pushed_frame,
+              make_generator_if_needed,
+              push_frame,
+              raise_runtime_error,
+              raise_exception_value)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+      return XlangVMOpFlow::Next;
     }
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
       return call_metaclass_init_after_type_new(
@@ -1423,6 +1518,39 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         value_assign_fast(regs[in.dst], enum_member);
         return XlangVMOpFlow::Next;
       }
+    }
+    auto early_own_new_it = klass->attrs.find("__new__");
+    if (early_own_new_it != klass->attrs.end() && !xlang_vm_class_is_builtin_module_class(*klass)) {
+      Value new_callable;
+      if (auto* static_method = value_as_static_method(early_own_new_it->second)) {
+        value_assign_fast(new_callable, static_method->function);
+      } else {
+        value_assign_fast(new_callable, early_own_new_it->second);
+      }
+      CallArgsView new_args = call_args;
+      new_args.leading = &callee;
+      new_args.leading_count = 1;
+      if (!xlang3::xlang_vm::ops::call_callable_value(
+              runtime,
+              new_callable,
+              new_args,
+              module,
+              module_owner,
+              in.dst,
+              ip,
+              native_call_args,
+              execution_lock,
+              regs[in.dst],
+              pushed_frame,
+              make_generator_if_needed,
+              push_frame,
+              raise_runtime_error,
+              raise_exception_value)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+      return XlangVMOpFlow::Next;
     }
     if (auto* metaclass = value_as_class(klass->metaclass)) {
       Value meta_call;

@@ -3,5 +3,6 @@ system-stdlib-types True True True True True
 system-stdlib-collections True True True True True
 system-stdlib-queue True 2 first second True
 system-stdlib-weakref True True True ['live']
+system-stdlib-json-pickle-copy True True True True 2 [1, 2] 7
 system-stdlib-enum True True True ['strict', 'conform', 'eject', 'keep']
 system-stdlib-io-codecs True True True utf_8 b'x' y

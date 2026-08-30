@@ -17,10 +17,14 @@ import abc
 import collections
 import _collections_abc
 import codecs
+import copy
+import copyreg
 import encodings
 import enum
 import io
+import json
 import queue
+import pickle
 import types
 import weakref
 
@@ -85,6 +89,19 @@ print(
     ref() is box,
     weakref.getweakrefcount(box) >= 1,
     list(dictionary.values()),
+)
+json_data = json.loads('{"name":"xlang3","items":[1,2,3],"enabled":true}')
+copied = copy.copy({"a": [1, 2]})
+payload = pickle.loads(pickle.dumps({"k": 7}))
+print(
+    "system-stdlib-json-pickle-copy",
+    source_lib_package(json),
+    source_lib_module(copy),
+    source_lib_module(copyreg),
+    source_lib_module(pickle),
+    json_data["items"][1],
+    copied["a"],
+    payload["k"],
 )
 print(
     "system-stdlib-enum",

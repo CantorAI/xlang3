@@ -124,6 +124,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/signal_module.cpp
   src/runtime/modules/system/socket_select_module.cpp
+  src/runtime/modules/system/sre_module.cpp
   src/runtime/modules/system/source_encoding.cpp
   src/runtime/modules/system/stat_module.cpp
   src/runtime/modules/system/string_module.cpp

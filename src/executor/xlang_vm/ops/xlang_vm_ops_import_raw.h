@@ -25,6 +25,33 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+XLANG3_HOT_INLINE std::string resolve_relative_import_name(const std::string& name, Value& globals_module) {
+  if (name.empty() || name.front() != '.') {
+    return name;
+  }
+  std::string package;
+  std::string ignored;
+  Value package_value;
+  if (module_get_attr(globals_module, "__package__", package_value, ignored)) {
+    if (auto* string = value_as_string(package_value)) {
+      package = string_object_to_string(*string);
+    }
+  }
+  size_t dots = 0;
+  while (dots < name.size() && name[dots] == '.') {
+    ++dots;
+  }
+  for (size_t i = 1; i < dots && !package.empty(); ++i) {
+    const auto cut = package.rfind('.');
+    package = cut == std::string::npos ? std::string() : package.substr(0, cut);
+  }
+  const std::string tail = name.substr(dots);
+  if (tail.empty()) {
+    return package;
+  }
+  return package.empty() ? tail : package + "." + tail;
+}
+
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow import_module(
     const ir::Instr& in,
@@ -57,33 +84,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow import_from(
     result.errors.push_back("invalid from import");
     return XlangVMOpFlow::ReturnResult;
   }
-  std::string module_name = fn.names[in.a];
-  if (!module_name.empty() && module_name.front() == '.') {
-    std::string package;
-    std::string ignored;
-    Value package_value;
-    if (module_get_attr(globals_module, "__package__", package_value, ignored)) {
-      if (auto* string = value_as_string(package_value)) {
-        package = string_object_to_string(*string);
-      }
-    }
-    size_t dots = 0;
-    while (dots < module_name.size() && module_name[dots] == '.') {
-      ++dots;
-    }
-    for (size_t i = 1; i < dots && !package.empty(); ++i) {
-      const auto cut = package.rfind('.');
-      package = cut == std::string::npos ? std::string() : package.substr(0, cut);
-    }
-    const std::string tail = module_name.substr(dots);
-    module_name = package;
-    if (!tail.empty()) {
-      if (!module_name.empty()) {
-        module_name += ".";
-      }
-      module_name += tail;
-    }
-  }
+  const std::string module_name = resolve_relative_import_name(fn.names[in.a], globals_module);
   std::string error;
   if (!runtime.import_from(module_name, fn.names[in.b], regs[in.dst], error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -104,7 +105,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow import_star(
     return XlangVMOpFlow::ReturnResult;
   }
   std::string error;
-  if (!runtime.import_star(fn.names[in.dst], globals_module, error)) {
+  const std::string module_name = resolve_relative_import_name(fn.names[in.dst], globals_module);
+  if (!runtime.import_star(module_name, globals_module, error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

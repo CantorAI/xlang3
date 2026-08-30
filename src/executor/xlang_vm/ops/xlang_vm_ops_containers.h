@@ -86,28 +86,62 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
   }
   regs[in.dst] = Value::dict_reserved(fn.dict_items[in.a].size());
   auto* dict = value_as_dict(regs[in.dst]);
-  for (const auto& pair : fn.dict_items[in.a]) {
-    if (pair.first >= regs.size() || pair.second >= regs.size()) {
-      result.errors.push_back("invalid dict item register");
-      return XlangVMOpFlow::ReturnResult;
-    }
+  auto assign_entry = [&](const Value& key, const Value& value, std::string& error) -> bool {
     size_t ignored_hash = 0;
-    std::string error;
-    if (!value_hash_key(regs[pair.first], ignored_hash, error)) {
-      return raise_exception_value(runtime.make_exception("TypeError", error))
-                 ? XlangVMOpFlow::ContinueLoop
-                 : XlangVMOpFlow::ReturnResult;
+    if (!value_hash_key(key, ignored_hash, error)) {
+      return false;
     }
     bool replaced = false;
     for (auto& entry : dict->entries) {
-      if (value_key_equal(entry.first, regs[pair.first])) {
-        value_assign_fast(entry.second, regs[pair.second]);
+      if (value_key_equal(entry.first, key)) {
+        value_assign_fast(entry.second, value);
         replaced = true;
         break;
       }
     }
     if (!replaced) {
-      dict->entries.emplace_back(regs[pair.first], regs[pair.second]);
+      dict->entries.emplace_back(key, value);
+    }
+    return true;
+  };
+  for (const auto& pair : fn.dict_items[in.a]) {
+    if (pair.second >= regs.size() || (pair.first != UINT32_MAX && pair.first >= regs.size())) {
+      result.errors.push_back("invalid dict item register");
+      return XlangVMOpFlow::ReturnResult;
+    }
+    std::string error;
+    if (pair.first == UINT32_MAX) {
+      Value iterator;
+      if (!runtime_get_iter(runtime, regs[pair.second], iterator, error)) {
+        return raise_exception_value(runtime.make_exception("TypeError", error))
+                   ? XlangVMOpFlow::ContinueLoop
+                   : XlangVMOpFlow::ReturnResult;
+      }
+      while (true) {
+        bool done = false;
+        Value key;
+        if (!sequence_iter_next(iterator, done, key, error)) {
+          return raise_exception_value(runtime.make_exception("TypeError", error))
+                     ? XlangVMOpFlow::ContinueLoop
+                     : XlangVMOpFlow::ReturnResult;
+        }
+        if (done) {
+          break;
+        }
+        Value value;
+        if (!mapping_get_item(regs[pair.second], key, value, error) ||
+            !assign_entry(key, value, error)) {
+          return raise_exception_value(runtime.make_exception("TypeError", error))
+                     ? XlangVMOpFlow::ContinueLoop
+                     : XlangVMOpFlow::ReturnResult;
+        }
+      }
+      continue;
+    }
+    if (!assign_entry(regs[pair.first], regs[pair.second], error)) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
     }
   }
   return XlangVMOpFlow::Next;
@@ -661,6 +695,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         if (runtime_call_callable(runtime, getitem, &call_arg, 1, regs[in.dst], error)) {
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
         }
       }
     }

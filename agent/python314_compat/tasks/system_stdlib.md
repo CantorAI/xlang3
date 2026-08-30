@@ -34,10 +34,15 @@ fixture coverage, then update the row truthfully.
   structural list comparison so source-backed collections tests use normal
   Python equality rather than object identity.
 
-- [ ] `json`, `pickle`, `copy`, and `copyreg`
-  Coverage: `_pickle`, `marshal`, and `_struct` native dependencies exist.
-  Remaining: run CPython pure modules on top of runtime/native support; do not
-  revive native `json` or public `pickle` facades.
+- [x] `json`, `pickle`, `copy`, and `copyreg`
+  Coverage: real CPython 3.14 `json`, `pickle.py`, `copy.py`, and
+  `copyreg.py` import from `C:/Python/Python314/Lib`; the `system_stdlib`
+  fixture asserts source-backed module paths plus `json.loads`, `copy.copy`,
+  and `pickle.dumps`/`pickle.loads` round trips. Runtime coverage added for
+  relative star imports, dict unpacking in literals, exact-builtin constructor
+  shadowing, owned user-class `__new__` dispatch for int subclasses, native
+  `_sre` import/Pattern/Match basics used by CPython `re`, and missing
+  `_struct` exports required by `struct.py`.
 
 - [ ] `traceback`, `inspect`, `linecache`, and `logging`
   Coverage: frame/debug foundations exist.
