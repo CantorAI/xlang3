@@ -91,6 +91,7 @@ enum class ObjectKind : uint32_t {
   Frame,
   Traceback,
   File,
+  GenericAlias,
   TypeParam,
 };
 
@@ -255,6 +256,7 @@ struct Value {
   static Value class_method(Value function);
   static Value super_object(Value klass, Value self);
   static Value property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract = false, bool doc_from_getter = false);
+  static Value generic_alias(Value origin, Value args);
   static Value type_param(std::string name);
 };
 
@@ -416,6 +418,12 @@ struct TypeParamObject {
   std::string name;
   Value bound;
   Value default_value;
+};
+
+struct GenericAliasObject {
+  Object header;
+  Value origin;
+  Value args;
 };
 
 struct CodeObject {
@@ -594,6 +602,13 @@ XLANG3_HOT_INLINE TypeParamObject* value_as_type_param(const Value& value) {
   return reinterpret_cast<TypeParamObject*>(value.as.obj);
 }
 
+XLANG3_HOT_INLINE GenericAliasObject* value_as_generic_alias(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::GenericAlias) {
+    return nullptr;
+  }
+  return reinterpret_cast<GenericAliasObject*>(value.as.obj);
+}
+
 struct FileObject {
   Object header;
   FileSystem* fs = nullptr;
@@ -754,6 +769,7 @@ bool value_truthy(const Value& value);
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error);

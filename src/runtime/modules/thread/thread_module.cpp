@@ -118,7 +118,8 @@ Value register_low_level_thread_module(Runtime& runtime) {
       .function("allocate_lock", thread_allocate_lock)
       .function("get_ident", thread_get_ident)
       .function("exit", thread_exit)
-      .value("LockType", xlang_thread_make_lock_class(runtime));
+      .value("LockType", xlang_thread_make_lock_class(runtime))
+      .value("RLock", xlang_thread_make_rlock_class(runtime));
   auto module = builder.finish();
   runtime.register_module("_thread", module);
   return module;

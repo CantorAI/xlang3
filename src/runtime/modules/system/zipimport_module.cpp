@@ -143,13 +143,21 @@ bool zipimporter_find_member(
   return false;
 }
 
-bool zipimporter_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zipimporter_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "zipimporter.__init__ expected archive path";
     return false;
   }
   std::string archive;
   if (!zip_get_string_arg(args[1], "archive path", archive, error)) {
+    return false;
+  }
+  std::vector<uint8_t> archive_bytes;
+  std::vector<ZipArchiveEntry> entries;
+  if (!runtime.vfs().read_file(archive, archive_bytes, error) ||
+      !zip_archive_list_entries(archive_bytes, entries, error)) {
+    error = "not a Zip file: " + archive;
+    runtime.raise_class_error("ImportError", error);
     return false;
   }
   Value self = args[0];

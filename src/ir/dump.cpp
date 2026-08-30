@@ -78,6 +78,7 @@ const char* op_name(Op op) {
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
+    case Op::MatMul: return "MatMul";
     case Op::Div: return "Div";
     case Op::FloorDiv: return "FloorDiv";
     case Op::Mod: return "Mod";

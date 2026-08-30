@@ -5,16 +5,24 @@ Do not re-create public pure-Python modules in C++. For each row, run the real
 CPython library source, identify the missing runtime/native dependency, add
 fixture coverage, then update the row truthfully.
 
-- [ ] `abc`, `types`, and `enum`
-  Coverage: public imports currently reach `C:/Python/Python314/Lib`, but fail
-  on runtime object-model behavior such as `super()`/descriptor/class metadata.
-  Remaining: fix runtime semantics and native `_abc` gaps needed by real
-  `abc.py`, `types.py`, and `enum.py`.
+- [x] `abc`, `types`, and `enum`
+  Coverage: real CPython 3.14 `abc.py`, `types.py`, and `enum.py` import from
+  `C:/Python/Python314/Lib`; the `system_stdlib` section fixture asserts
+  source-backed module paths, public class/module ownership, `types` descriptor
+  type discovery, and `enum.FlagBoundary` values. Runtime coverage added for
+  zero-argument `super()` classmethod/metaclass first-argument binding,
+  descriptor `__set_name__`, inherited metaclass `__prepare__`, dict-subclass
+  prepared namespace writes, function descriptor `__get__`, multiple-base MRO
+  preservation, builtin constructor identity when user classes shadow builtin
+  names, `object.__format__`/reduction sentinels, stable `None.__new__`, and
+  `str.__new__`/immutable-subclass initialization needed by `StrEnum`.
 
-- [ ] `io`, `encodings`, and `codecs`
-  Coverage: `_io` and `_codecs` native foundations exist.
-  Remaining: make CPython `io.py`, `encodings`, and common codec paths run
-  through VFS-backed source import without public C++ facades.
+- [x] `io`, `encodings`, and `codecs`
+  Coverage: real CPython 3.14 `io.py`, `codecs.py`, and `encodings` package
+  import from `C:/Python/Python314/Lib`; the `system_stdlib` section fixture
+  asserts source-backed module/package paths, `_codecs.register` search-hook
+  support, UTF-8 lookup/encode/decode flow, and VFS-backed import behavior
+  without adding public C++ facades for those pure Python modules.
 
 - [ ] `collections`, `_collections_abc`, `queue`, and `weakref`
   Coverage: `_collections.deque`, `_queue.SimpleQueue`, and `_weakref` native

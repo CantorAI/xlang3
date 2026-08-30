@@ -229,6 +229,27 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
       return XlangVMOpFlow::Next;
     }
   }
+  if (value_as_instance(regs[in.dst]) != nullptr) {
+    Value setitem;
+    std::string attr_error;
+    if (object_get_class_attr_for_instance(regs[in.dst], "__setitem__", setitem, attr_error)) {
+      if (auto* native = value_as_native_function(setitem);
+          native == nullptr || native->name != "dict.__setitem__") {
+        Value call_args[3] = {regs[in.dst], regs[in.a], regs[in.b]};
+        Value ignored;
+        std::string call_error;
+        if (runtime_call_callable(runtime, setitem, call_args, 3, ignored, call_error)) {
+          return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
+        return raise_runtime_error(call_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+    }
+  }
   std::string error;
   if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
     if (error.find("not hashable") != std::string::npos) {
@@ -698,6 +719,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     }
   }
   std::string error;
+  if (value_as_instance(regs[in.dst]) != nullptr) {
+    Value setitem;
+    std::string attr_error;
+    if (object_get_attr(regs[in.dst], "__setitem__", setitem, attr_error)) {
+      Value call_args[2] = {regs[in.a], regs[in.b]};
+      Value ignored;
+      if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
+        return XlangVMOpFlow::Next;
+      }
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  }
   if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
     if (value_as_instance(regs[in.dst]) != nullptr) {
       Value setitem;
@@ -749,12 +787,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
+    Runtime& runtime,
     RuntimeResult& result,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   const uint32_t first_output = in.dst;
   const uint32_t source = in.a;
   const uint32_t before_count = in.b;
@@ -768,7 +808,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
   std::string error;
   Value iterator;
   if (!sequence_get_iter(regs[source], iterator, error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    Value iter_method;
+    std::string attr_error;
+    if (!object_get_attr(regs[source], "__iter__", iter_method, attr_error)) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    Value iter_result;
+    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (!sequence_get_iter(iter_result, iterator, error)) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
   }
   std::vector<Value> values;
   for (;;) {

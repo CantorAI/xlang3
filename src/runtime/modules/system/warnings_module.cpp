@@ -207,6 +207,7 @@ Value make_warnings_module(Runtime& runtime, const char* module_name) {
 
 void register_warnings_module(Runtime& runtime) {
   runtime.register_module("_warnings", make_warnings_module(runtime, "_warnings"));
+  runtime.register_module("warnings", make_warnings_module(runtime, "warnings"));
 }
 
 } // namespace xlang3

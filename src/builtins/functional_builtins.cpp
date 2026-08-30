@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/ir.h"
 #include "xlang3/mapping.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/module_object.h"
@@ -274,6 +275,22 @@ bool copy_dict_to_module(const Value& dict_value, Value& module, std::string& er
   return true;
 }
 
+bool copy_module_to_dict(const Value& module_value, Value& dict_value, std::string& error) {
+  auto* module = value_as_module(module_value);
+  if (module == nullptr || value_as_dict(dict_value) == nullptr) {
+    return false;
+  }
+  for (const auto& entry : module->name_to_slot) {
+    if (entry.second >= module->slots.size()) {
+      continue;
+    }
+    if (!mapping_set_item(dict_value, Value::string(entry.first), module->slots[entry.second], error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool eval_globals_from_args(
     Runtime& runtime,
     const Value* args,
@@ -327,6 +344,21 @@ bool builtin_identity(
   return true;
 }
 
+bool value_is_callable(Runtime&, const Value& value) {
+  if (value_as_function(value) != nullptr ||
+      value_as_native_function(value) != nullptr ||
+      value_as_bound_method(value) != nullptr ||
+      value_as_class(value) != nullptr) {
+    return true;
+  }
+  if (value_as_instance(value) != nullptr) {
+    Value call_attr;
+    std::string ignored;
+    return object_get_class_attr_for_instance(value, "__call__", call_attr, ignored);
+  }
+  return false;
+}
+
 bool builtin_classmethod(
     Runtime& runtime,
     const Value* args,
@@ -337,10 +369,7 @@ bool builtin_classmethod(
   if (argc != 1) {
     return raise_type_error(runtime, "classmethod() expected 1 argument", error);
   }
-  if (!value_truthy(Value::boolean(
-          value_as_function(args[0]) != nullptr ||
-          value_as_native_function(args[0]) != nullptr ||
-          value_as_bound_method(args[0]) != nullptr))) {
+  if (!value_is_callable(runtime, args[0])) {
     return raise_type_error(runtime, "classmethod() argument must be callable", error);
   }
   out = Value::class_method(args[0]);
@@ -357,10 +386,7 @@ bool builtin_staticmethod(
   if (argc != 1) {
     return raise_type_error(runtime, "staticmethod() expected 1 argument", error);
   }
-  if (!value_truthy(Value::boolean(
-          value_as_function(args[0]) != nullptr ||
-          value_as_native_function(args[0]) != nullptr ||
-          value_as_bound_method(args[0]) != nullptr))) {
+  if (!value_is_callable(runtime, args[0])) {
     return raise_type_error(runtime, "staticmethod() argument must be callable", error);
   }
   out = Value::static_method(args[0]);
@@ -369,12 +395,17 @@ bool builtin_staticmethod(
 
 bool infer_super_defining_class(Runtime& runtime, const Value& self, Value& out, std::string& error) {
   auto* instance = value_as_instance(self);
-  if (instance == nullptr) {
-    error = "super(): current self is not an instance";
+  Value subject_class;
+  if (instance != nullptr) {
+    value_assign_fast(subject_class, instance->klass);
+  } else if (value_as_class(self) != nullptr) {
+    value_assign_fast(subject_class, self);
+  } else {
+    error = "super(): current self is not an instance or class";
     return false;
   }
   Value mro_value;
-  if (!object_get_attr(instance->klass, "__mro__", mro_value, error)) {
+  if (!object_get_attr(subject_class, "__mro__", mro_value, error)) {
     return false;
   }
   auto* mro = value_as_tuple(mro_value);
@@ -414,8 +445,24 @@ bool infer_super_defining_class(Runtime& runtime, const Value& self, Value& out,
     value_assign_fast(out, defining_class);
     return true;
   }
-  value_assign_fast(out, instance->klass);
+  value_assign_fast(out, subject_class);
   return true;
+}
+
+bool current_super_first_argument(Runtime& runtime, const Value& locals, Value& out) {
+  std::string ignored;
+  const auto* owner = runtime.current_frame_module_owner();
+  if (owner != nullptr && *owner) {
+    const uint32_t function_id = runtime.current_frame_function_id();
+    if (function_id < (*owner)->functions.size() && !(*owner)->functions[function_id].params.empty()) {
+      const auto& first_name = (*owner)->functions[function_id].params[0];
+      if (!first_name.empty() && mapping_get_item(locals, Value::string(first_name), out, ignored)) {
+        return true;
+      }
+    }
+  }
+  return mapping_get_item(locals, Value::string("self"), out, ignored) ||
+         mapping_get_item(locals, Value::string("cls"), out, ignored);
 }
 
 bool builtin_super(
@@ -439,7 +486,7 @@ bool builtin_super(
     value_assign_fast(self, args[1]);
   } else {
     Value locals = runtime.current_locals_snapshot();
-    if (!mapping_get_item(locals, Value::string("self"), self, error)) {
+    if (!current_super_first_argument(runtime, locals, self)) {
       return raise_type_error(runtime, "super(): no current instance", error);
     }
     if (!infer_super_defining_class(runtime, self, klass, error)) {
@@ -453,7 +500,7 @@ bool builtin_super(
 }
 
 bool builtin_callable(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     Value& out,
@@ -463,11 +510,7 @@ bool builtin_callable(
     error = "callable() expected 1 argument";
     return false;
   }
-  out = Value::boolean(
-      value_as_function(args[0]) != nullptr ||
-      value_as_native_function(args[0]) != nullptr ||
-      value_as_bound_method(args[0]) != nullptr ||
-      value_as_class(args[0]) != nullptr);
+  out = Value::boolean(value_is_callable(runtime, args[0]));
   return true;
 }
 
@@ -563,6 +606,33 @@ bool builtin_zip(
   }
   out = functional_zip_iterator(std::move(iterators));
   return true;
+}
+
+bool builtin_reversed(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    return raise_type_error(runtime, "reversed() expected 1 argument", error);
+  }
+  Value length_value;
+  if (!sequence_len(args[0], length_value, error) || length_value.tag != ValueTag::Int64) {
+    return raise_type_error(runtime, "object is not reversible", error);
+  }
+  std::vector<Value> values;
+  values.reserve(static_cast<size_t>(length_value.as.i64 < 0 ? 0 : length_value.as.i64));
+  for (int64_t i = length_value.as.i64; i > 0; --i) {
+    Value item;
+    if (!sequence_get_item(args[0], Value::int64(i - 1), item, error)) {
+      return raise_type_error(runtime, error.empty() ? "object is not reversible" : error, error);
+    }
+    values.push_back(std::move(item));
+  }
+  Value reversed_list = Value::list(std::move(values));
+  return runtime_get_iter(runtime, reversed_list, out, error);
 }
 
 bool builtin_sum(
@@ -871,6 +941,29 @@ bool builtin_setattr(
   return true;
 }
 
+bool builtin_delattr(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    return raise_type_error(runtime, "delattr() expected 2 arguments", error);
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    return raise_type_error(runtime, "delattr(): attribute name must be string", error);
+  }
+  Value target = args[0];
+  if (!object_delete_attr(target, string_object_to_string(*name), error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool builtin_hasattr(
     Runtime& runtime,
     const Value* args,
@@ -1134,8 +1227,9 @@ bool builtin_exec(
   if (argc < 1 || argc > 3) {
     return raise_type_error(runtime, "exec() expected 1 to 3 arguments", error);
   }
-  if (argc >= 2 && value_as_module(args[1]) == nullptr && args[1].tag != ValueTag::None) {
-    return raise_type_error(runtime, "exec() globals must be a module in this XLang3 phase", error);
+  const bool globals_is_dict = argc >= 2 && value_as_dict(args[1]) != nullptr;
+  if (argc >= 2 && value_as_module(args[1]) == nullptr && !globals_is_dict && args[1].tag != ValueTag::None) {
+    return raise_type_error(runtime, "exec() globals must be a dict or module", error);
   }
   if (argc == 3 && args[2].tag != ValueTag::None) {
     return raise_type_error(runtime, "exec() explicit locals are not supported yet", error);
@@ -1155,7 +1249,16 @@ bool builtin_exec(
     }
   }
 
-  Value globals_module = argc >= 2 && value_as_module(args[1]) != nullptr ? args[1] : runtime.current_globals_module();
+  Value globals_module;
+  if (globals_is_dict) {
+    globals_module = Value::module("<exec>");
+    module_set_attr(globals_module, "__name__", Value::string("<exec>"), error);
+    if (!copy_dict_to_module(args[1], globals_module, error)) {
+      return false;
+    }
+  } else {
+    globals_module = argc >= 2 && value_as_module(args[1]) != nullptr ? args[1] : runtime.current_globals_module();
+  }
   if (value_as_module(globals_module) == nullptr) {
     error = "exec() has no active globals module";
     runtime.raise_class_error("RuntimeError", error);
@@ -1168,7 +1271,14 @@ bool builtin_exec(
   if (code->mode == "eval") {
     return raise_type_error(runtime, "exec() code object must not be compiled with mode 'eval'", error);
   }
-  return run_code_object(runtime, *code, std::move(globals_module), out, error);
+  if (!run_code_object(runtime, *code, globals_module, out, error)) {
+    return false;
+  }
+  if (globals_is_dict) {
+    Value globals_dict = args[1];
+    return copy_module_to_dict(globals_module, globals_dict, error);
+  }
+  return true;
 }
 
 bool builtin_repr(
@@ -1626,6 +1736,7 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("callable", builtin_callable);
   runtime.register_native_builtin("enumerate", builtin_enumerate);
   runtime.register_native_builtin("zip", builtin_zip);
+  runtime.register_native_builtin("reversed", builtin_reversed);
   runtime.register_native_builtin("map", builtin_map);
   runtime.register_native_builtin("filter", builtin_filter);
   runtime.register_native_builtin("sum", builtin_sum);
@@ -1648,6 +1759,7 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("__import__", builtin_import, nullptr, false, builtin_import_kw);
   runtime.register_native_builtin("getattr", builtin_getattr);
   runtime.register_native_builtin("setattr", builtin_setattr);
+  runtime.register_native_builtin("delattr", builtin_delattr);
   runtime.register_native_builtin("hasattr", builtin_hasattr);
   runtime.register_native_builtin("dir", builtin_dir);
   runtime.register_native_builtin("vars", builtin_vars);

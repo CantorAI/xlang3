@@ -235,10 +235,11 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_bit_xor(const Value& lhs, const Value& rhs,
 XLANG3_HOT_INLINE bool xlang_vm_fast_shift_left(const Value& lhs, const Value& rhs, Value& out, bool& bad_shift) {
   bad_shift = false;
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  if (rhs.as.i64 < 0 || rhs.as.i64 >= 63) {
+  if (rhs.as.i64 < 0) {
     bad_shift = true;
     return false;
   }
+  if (rhs.as.i64 >= 63) return false;
   value_set_int64(out, lhs.as.i64 << rhs.as.i64);
   return true;
 }

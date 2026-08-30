@@ -51,6 +51,7 @@ struct InstanceObject {
   Object header;
   Value klass;
   Value mapping_storage;
+  Value sequence_storage;
   uint32_t slot_count = 0;
   std::string native_type;
   void* native_data = nullptr;

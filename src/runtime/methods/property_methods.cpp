@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 
@@ -135,6 +136,62 @@ bool property_deleter_kw(Runtime& runtime, const Value*, uint32_t, const NativeK
   return property_method_keyword_error(runtime, "deleter", error);
 }
 
+bool property_descriptor_get_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "property.__get__ expected 1 or 2 arguments";
+    return false;
+  }
+  auto* property = value_as_property(args[0]);
+  if (property == nullptr) {
+    return property_method_receiver_error(runtime, args[0], "__get__", error);
+  }
+  if (args[1].tag == ValueTag::None) {
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  if (property->fget.tag == ValueTag::None || property->fget.tag == ValueTag::Invalid) {
+    error = "unreadable attribute";
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, property->fget, &args[1], 1, out, error);
+}
+
+bool property_descriptor_set_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "property.__set__ expected 2 arguments";
+    return false;
+  }
+  auto* property = value_as_property(args[0]);
+  if (property == nullptr) {
+    return property_method_receiver_error(runtime, args[0], "__set__", error);
+  }
+  if (property->fset.tag == ValueTag::None || property->fset.tag == ValueTag::Invalid) {
+    error = "can't set attribute";
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  Value call_args[2] = {args[1], args[2]};
+  return runtime_call_callable(runtime, property->fset, call_args, 2, out, error);
+}
+
+bool property_descriptor_delete_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "property.__delete__ expected 1 argument";
+    return false;
+  }
+  auto* property = value_as_property(args[0]);
+  if (property == nullptr) {
+    return property_method_receiver_error(runtime, args[0], "__delete__", error);
+  }
+  if (property->fdel.tag == ValueTag::None || property->fdel.tag == ValueTag::Invalid) {
+    error = "can't delete attribute";
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, property->fdel, &args[1], 1, out, error);
+}
+
 } // namespace
 
 bool property_get_method(const Value& object, const std::string& name, Value& out) {
@@ -183,6 +240,9 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
   }
 
   static constexpr BuiltinMethodSpec methods[] = {
+      {"__get__", "property.__get__", property_descriptor_get_method},
+      {"__set__", "property.__set__", property_descriptor_set_method},
+      {"__delete__", "property.__delete__", property_descriptor_delete_method},
       {"getter", "property.getter", property_getter_method, nullptr, false, property_getter_kw},
       {"setter", "property.setter", property_setter_method, nullptr, false, property_setter_kw},
       {"deleter", "property.deleter", property_deleter_method, nullptr, false, property_deleter_kw},

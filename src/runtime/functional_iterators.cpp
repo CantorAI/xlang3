@@ -118,6 +118,17 @@ Value functional_protocol_iterator(Runtime* runtime, Value iterator) {
   return value;
 }
 
+Value functional_getitem_iterator(Runtime* runtime, Value iterable) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ProtocolIteratorObject>(ObjectKind::ProtocolIterator);
+  obj->runtime = runtime;
+  obj->iterator = std::move(iterable);
+  obj->use_getitem = true;
+  value.as.obj = &obj->header;
+  return value;
+}
+
 bool value_is_functional_iterator(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return false;
@@ -240,6 +251,55 @@ bool runtime_call_callable(
     return true;
   }
 
+  if (auto* klass = value_as_class(callable)) {
+    auto own_new_it = klass->attrs.find("__new__");
+    if (!class_has_builtin_base_name(klass, "type") &&
+        own_new_it != klass->attrs.end() &&
+        (value_as_function(own_new_it->second) != nullptr || value_as_native_function(own_new_it->second) != nullptr)) {
+      std::vector<Value> new_args;
+      new_args.reserve(static_cast<size_t>(argc) + 1);
+      new_args.push_back(callable);
+      for (uint32_t i = 0; i < argc; ++i) {
+        new_args.push_back(args[i]);
+      }
+      return runtime_call_callable(
+          runtime,
+          own_new_it->second,
+          new_args.data(),
+          static_cast<uint32_t>(new_args.size()),
+          out,
+          error);
+    }
+
+    Value instance = Value::instance(callable);
+    Value init;
+    std::string init_error;
+    if (object_get_attr(instance, "__init__", init, init_error)) {
+      Value ignored;
+      if (!runtime_call_callable(runtime, init, args, argc, ignored, error)) {
+        return false;
+      }
+    } else {
+      if (argc != 0) {
+        return raise_type_error(runtime, "class construction expected no arguments", error);
+      }
+    }
+    value_assign_fast(out, instance);
+    return true;
+  }
+
+  if (auto* instance = value_as_instance(callable)) {
+    Value call_method;
+    std::string call_error;
+    if (object_get_attr(callable, "__call__", call_method, call_error)) {
+      if (auto* bound = value_as_bound_method(call_method)) {
+        if (value_as_instance(bound->self) == value_as_instance(callable)) {
+          return runtime_call_callable(runtime, call_method, args, argc, out, error);
+        }
+      }
+    }
+  }
+
   if (auto* bound = value_as_bound_method(callable)) {
     std::vector<Value> bound_args;
     bound_args.reserve(static_cast<size_t>(argc) + 1);
@@ -264,9 +324,50 @@ bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::
     return true;
   }
 
+  if (auto* klass = value_as_class(iterable)) {
+    if (klass->metaclass.tag != ValueTag::Invalid) {
+      Value meta_iter;
+      std::string meta_error;
+      if (object_lookup_class_attr(klass->metaclass, "__iter__", meta_iter, meta_error)) {
+        Value iter_method;
+        if (auto* method = value_as_static_method(meta_iter)) {
+          value_assign_fast(iter_method, method->function);
+        } else if (auto* method = value_as_class_method(meta_iter)) {
+          Value function;
+          value_assign_fast(function, method->function);
+          iter_method = Value::bound_method(klass->metaclass, std::move(function));
+        } else if (value_as_function(meta_iter) != nullptr || value_as_native_function(meta_iter) != nullptr) {
+          iter_method = Value::bound_method(iterable, std::move(meta_iter));
+        } else {
+          value_assign_fast(iter_method, meta_iter);
+        }
+        Value iter_result;
+        std::string call_error;
+        if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+          error = call_error.empty() ? "__iter__ call failed" : call_error;
+          return false;
+        }
+        std::string concrete_error;
+        if (sequence_get_iter(iter_result, out, concrete_error)) {
+          error.clear();
+          return true;
+        }
+        error = concrete_error.empty() ? "__iter__ returned non-iterator" : concrete_error;
+        return false;
+      }
+    }
+  }
+
   Value iter_method;
   std::string attr_error;
   if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
+    Value getitem_method;
+    std::string getitem_error;
+    if (attribute_get(iterable, "__getitem__", getitem_method, getitem_error)) {
+      out = functional_getitem_iterator(&runtime, iterable);
+      error.clear();
+      return true;
+    }
     error = error.empty() ? "object is not iterable" : error;
     return false;
   }
@@ -453,6 +554,30 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
     if (obj->runtime == nullptr) {
       error = "protocol iterator has no runtime";
       return false;
+    }
+    if (obj->use_getitem) {
+      Value getitem;
+      std::string attr_error;
+      if (!attribute_get(obj->iterator, "__getitem__", getitem, attr_error)) {
+        error = attr_error;
+        return false;
+      }
+      Value index = Value::int64(static_cast<int64_t>(obj->index));
+      if (!runtime_call_callable(*obj->runtime, getitem, &index, 1, out, error)) {
+        Value pending;
+        if (obj->runtime->take_pending_exception(pending)) {
+          if (auto* klass = value_as_class(obj->runtime->exception_type(pending)); klass != nullptr && klass->name == "IndexError") {
+            done = true;
+            value_set_none(out);
+            return true;
+          }
+          obj->runtime->set_pending_exception(std::move(pending));
+        }
+        return false;
+      }
+      ++obj->index;
+      done = false;
+      return true;
     }
     Value next_method;
     std::string attr_error;

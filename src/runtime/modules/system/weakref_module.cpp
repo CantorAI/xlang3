@@ -14,8 +14,10 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/value_hash.h"
 
 namespace xlang3 {
 
@@ -86,6 +88,21 @@ bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
+bool weakref_reference_hash(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.__hash__() expected self";
+    return false;
+  }
+  Value target;
+  const Value& hash_target = weakref_get_target(args[0], target) ? target : args[0];
+  size_t hash = 0;
+  if (!value_hash_key(hash_target, hash, error)) {
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(hash));
+  return true;
+}
+
 bool weakref_reference_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "weakref.ReferenceType() expected object and optional callback";
@@ -113,6 +130,7 @@ Value weakref_reference_type(Runtime& runtime) {
   attrs.push_back({"__module__", Value::string("weakref")});
   attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
   attrs.push_back({"__call__", runtime.make_native_function("weakref.ReferenceType.__call__", weakref_reference_call)});
+  attrs.push_back({"__hash__", runtime.make_native_function("weakref.ReferenceType.__hash__", weakref_reference_hash)});
   reference_type = Value::class_object("ReferenceType", std::move(attrs));
   return reference_type;
 }
@@ -181,16 +199,31 @@ bool weakref_getweakrefs(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool weakref_remove_dead_weakref(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "_weakref._remove_dead_weakref() expected dict and key";
+    return false;
+  }
+  Value mapping = args[0];
+  std::string ignored;
+  (void)mapping_delete_item(mapping, args[1], ignored);
+  value_set_none(out);
+  return true;
+}
+
 void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
-  Value ref_factory = runtime.make_native_function("weakref.ref", weakref_ref);
   Value proxy_factory = runtime.make_native_function("weakref.proxy", weakref_proxy);
-  builder.value("ref", ref_factory)
-      .value("ReferenceType", weakref_reference_type(runtime))
+  Value reference_type = weakref_reference_type(runtime);
+  Value proxy_type = Value::class_object("ProxyType", {{"__module__", Value::string("weakref")}});
+  Value callable_proxy_type = Value::class_object("CallableProxyType", {{"__module__", Value::string("weakref")}});
+  builder.value("ref", reference_type)
+      .value("ReferenceType", std::move(reference_type))
       .value("proxy", proxy_factory)
-      .value("ProxyType", proxy_factory)
-      .value("CallableProxyType", std::move(proxy_factory))
+      .value("ProxyType", std::move(proxy_type))
+      .value("CallableProxyType", std::move(callable_proxy_type))
       .function("getweakrefcount", weakref_getweakrefcount)
-      .function("getweakrefs", weakref_getweakrefs);
+      .function("getweakrefs", weakref_getweakrefs)
+      .function("_remove_dead_weakref", weakref_remove_dead_weakref);
 }
 
 } // namespace

@@ -79,13 +79,22 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
   int64_t start = 0;
   int64_t stop = 0;
   int64_t step = 1;
+  bool stop_is_unbounded = false;
   if (argc == 2) {
-    if (!int_arg(args[1], stop)) {
+    if (args[1].tag == ValueTag::None) {
+      stop_is_unbounded = true;
+    } else if (!int_arg(args[1], stop)) {
       error = "islice stop must be int";
       return false;
     }
   } else {
-    if (!int_arg(args[1], start) || !int_arg(args[2], stop)) {
+    if (!int_arg(args[1], start)) {
+      error = "islice start/stop must be int";
+      return false;
+    }
+    if (args[2].tag == ValueTag::None) {
+      stop_is_unbounded = true;
+    } else if (!int_arg(args[2], stop)) {
       error = "islice start/stop must be int";
       return false;
     }
@@ -94,7 +103,7 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
       return false;
     }
   }
-  if (start < 0 || stop < 0) {
+  if (start < 0 || (!stop_is_unbounded && stop < 0)) {
     error = "islice indices must be non-negative";
     return false;
   }
@@ -103,7 +112,7 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   std::vector<Value> values;
-  for (int64_t index = 0; index < stop;) {
+  for (int64_t index = 0; stop_is_unbounded || index < stop;) {
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
@@ -117,7 +126,7 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
     }
     ++index;
   }
-  out = Value::list(std::move(values));
+  out = Value::sequence_iterator(Value::list(std::move(values)), 0);
   return true;
 }
 

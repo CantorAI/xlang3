@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/value_hash.h"
 
+#include "xlang3/object_model.h"
 #include "xlang3/set_object.h"
 
 #include <functional>
@@ -53,9 +54,69 @@ bool is_binary_like_value(const Value& value) {
   return value_as_bytes(value) != nullptr || value_as_bytearray(value) != nullptr || value_as_memoryview(value) != nullptr;
 }
 
+bool string_payload_view(const Value& value, std::string_view& out) {
+  if (auto* string = value_as_string(value)) {
+    out = string_object_view(*string);
+    return true;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return false;
+  }
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_string_value__") {
+      if (auto* string = value_as_string(attr.second)) {
+        out = string_object_view(*string);
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
+bool int_payload_value(const Value& value, int64_t& out) {
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return false;
+  }
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_int_value__") {
+      if (attr.second.tag == ValueTag::Int64) {
+        out = attr.second.as.i64;
+        return true;
+      }
+      if (attr.second.tag == ValueTag::Bool) {
+        out = attr.second.as.b ? 1 : 0;
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
 } // namespace
 
 bool value_key_equal(const Value& lhs, const Value& rhs) {
+  int64_t left_int = 0;
+  int64_t right_int = 0;
+  if (int_payload_value(lhs, left_int) && int_payload_value(rhs, right_int)) {
+    return left_int == right_int;
+  }
+  std::string_view left_string;
+  std::string_view right_string;
+  if (string_payload_view(lhs, left_string) && string_payload_view(rhs, right_string)) {
+    return left_string == right_string;
+  }
   if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Int64) {
     return (lhs.as.b ? 1 : 0) == rhs.as.i64;
   }
@@ -141,6 +202,18 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       out = std::hash<double>{}(value.as.f64);
       return true;
     case ValueTag::Object:
+      {
+        int64_t int_payload = 0;
+        if (int_payload_value(value, int_payload)) {
+          out = std::hash<int64_t>{}(int_payload);
+          return true;
+        }
+        std::string_view string_payload;
+        if (string_payload_view(value, string_payload)) {
+          out = std::hash<std::string_view>{}(string_payload);
+          return true;
+        }
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         out = std::hash<std::string_view>{}(string_object_view(*reinterpret_cast<StringObject*>(value.as.obj)));
         return true;

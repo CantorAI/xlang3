@@ -26,6 +26,7 @@ bin_dir = "C:/Users/shaw9/AppData/Local/OpenAI/Codex/bin"
 command = "\"{codex}\" exec --dangerously-bypass-approvals-and-sandbox -C \"{root}\" -"
 resume_command = "\"{codex}\" exec resume --dangerously-bypass-approvals-and-sandbox \"{session_id}\" -"
 commit_message_command = "\"{codex}\" exec --sandbox read-only -C \"{root}\" -o \"{output}\" -"
+backend_timeout_seconds = 3600
 
 [goals.python314_compat]
 title = "XLang3 Python 3.14 Compatibility"

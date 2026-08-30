@@ -103,6 +103,20 @@ bool normalize_index(int64_t raw_index, uint64_t size, uint64_t& out) {
   return true;
 }
 
+int64_t range_length(int64_t start, int64_t stop, int64_t step) {
+  if (step > 0) {
+    if (start >= stop) {
+      return 0;
+    }
+    return ((stop - start - 1) / step) + 1;
+  }
+  if (start <= stop) {
+    return 0;
+  }
+  const int64_t neg_step = -step;
+  return ((start - stop - 1) / neg_step) + 1;
+}
+
 bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::string& error) {
   is_none = value.tag == ValueTag::None;
   if (is_none) {
@@ -386,6 +400,10 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (value_as_generator(iterable) != nullptr) {
     return generator_get_iter(iterable, out, error);
   }
+  if (value_as_range_iterator(iterable) != nullptr || value_as_sequence_iterator(iterable) != nullptr) {
+    value_assign_fast(out, iterable);
+    return true;
+  }
   if (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr && iterable.as.obj->kind == ObjectKind::File) {
     auto* file = reinterpret_cast<FileObject*>(iterable.as.obj);
     if (file->closed) {
@@ -398,15 +416,6 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (value_is_functional_iterator(iterable)) {
     value_assign_fast(out, iterable);
     return true;
-  }
-  if (value_as_class(iterable) != nullptr) {
-    Value member_list;
-    std::string attr_error;
-    if (object_lookup_class_attr(iterable, "_member_list_", member_list, attr_error) &&
-        value_as_list(member_list) != nullptr) {
-      out = Value::sequence_iterator(member_list, 0);
-      return true;
-    }
   }
   if (value_as_list(iterable) != nullptr ||
       (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
@@ -422,6 +431,20 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (struct_sequence_storage(iterable, struct_tuple)) {
     out = Value::sequence_iterator(struct_tuple, 0);
     return true;
+  }
+  if (auto* instance = value_as_instance(iterable)) {
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      out = Value::sequence_iterator(instance->sequence_storage, 0);
+      return true;
+    }
+    Value data;
+    std::string ignored;
+    if (object_get_attr(iterable, "data", data, ignored)) {
+      if (sequence_get_iter(data, out, ignored)) {
+        error.clear();
+        return true;
+      }
+    }
   }
   error = "object is not iterable";
   return false;
@@ -505,6 +528,44 @@ bool sequence_list_append(Value& list, const Value& item, std::string& error) {
 }
 
 bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error) {
+  if (value_as_class(object) != nullptr) {
+    Value args;
+    if (value_as_tuple(index) != nullptr) {
+      value_assign_fast(args, index);
+    } else {
+      args = Value::tuple({index});
+    }
+    out = Value::generic_alias(object, std::move(args));
+    return true;
+  }
+  if (auto* range = value_as_range(object)) {
+    const int64_t length = range_length(range->start, range->stop, range->step);
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, length, start, stop, step, error)) {
+        return false;
+      }
+      const int64_t new_start = range->start + start * range->step;
+      const int64_t new_step = range->step * step;
+      const int64_t new_length = range_length(start, stop, step);
+      const int64_t new_stop = new_start + new_step * new_length;
+      out = Value::range(new_start, new_stop, new_step);
+      return true;
+    }
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(length), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    out = Value::int64(range->start + static_cast<int64_t>(resolved) * range->step);
+    return true;
+  }
   if (auto* list = value_as_list(object)) {
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
@@ -548,6 +609,9 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_get_item(instance->mapping_storage, index, out, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_get_item(instance->sequence_storage, index, out, error);
     }
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Tuple) {
@@ -779,6 +843,9 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
   if (auto* instance = value_as_instance(object)) {
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_set_item(instance->mapping_storage, index, item, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_set_item(instance->sequence_storage, index, item, error);
     }
   }
   if (auto* bytearray = value_as_bytearray(object)) {
@@ -1054,6 +1121,9 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_len(instance->mapping_storage, out, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_len(instance->sequence_storage, out, error);
     }
   }
   if (value_as_set(value) != nullptr) {

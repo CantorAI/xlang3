@@ -319,6 +319,46 @@ void ensure_module_import_metadata(Value& module, const std::string& name) {
   }
 }
 
+bool module_spec_origin_is(const Value& module, const char* expected) {
+  Value spec;
+  std::string ignored;
+  if (!module_get_attr(module, "__spec__", spec, ignored)) {
+    return false;
+  }
+  Value origin;
+  if (!object_get_attr(spec, "origin", origin, ignored)) {
+    return false;
+  }
+  auto* text = value_as_string(origin);
+  return text != nullptr && string_object_to_string(*text) == expected;
+}
+
+void canonicalize_module_loader_from_bootstrap(std::unordered_map<std::string, Value>& modules, Value& module) {
+  if (value_as_module(module) == nullptr) {
+    return;
+  }
+  const bool builtin_origin = module_spec_origin_is(module, "built-in");
+  const bool frozen_origin = module_spec_origin_is(module, "frozen");
+  if (!builtin_origin && !frozen_origin) {
+    return;
+  }
+  auto bootstrap_it = modules.find("_frozen_importlib");
+  if (bootstrap_it == modules.end()) {
+    return;
+  }
+  Value loader;
+  std::string ignored;
+  const char* loader_name = builtin_origin ? "BuiltinImporter" : "FrozenImporter";
+  if (!module_get_attr(bootstrap_it->second, loader_name, loader, ignored)) {
+    return;
+  }
+  module_set_attr(module, "__loader__", loader, ignored);
+  Value spec;
+  if (module_get_attr(module, "__spec__", spec, ignored)) {
+    object_set_attr(spec, "loader", loader, ignored);
+  }
+}
+
 } // namespace
 
 void Runtime::initialize() {
@@ -979,6 +1019,7 @@ void Runtime::register_module(std::string name, Value module) {
   modules_[std::move(name)] = std::move(module);
   auto it = modules_.find(key);
   if (it != modules_.end() && modules_dict_.tag != ValueTag::Invalid) {
+    canonicalize_module_loader_from_bootstrap(modules_, it->second);
     std::string ignored;
     mapping_set_item(modules_dict_, Value::string(key), it->second, ignored);
   }
@@ -1027,6 +1068,16 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   }
   auto it = modules_.find(name);
   if (it == modules_.end()) {
+    if (modules_dict_.tag != ValueTag::Invalid) {
+      Value registry_module;
+      std::string registry_error;
+      if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error) &&
+          value_as_module(registry_module) != nullptr) {
+        modules_[name] = registry_module;
+        value_assign_fast(out, registry_module);
+        return true;
+      }
+    }
 #if !defined(XLANG3_EMBEDDED)
     std::string native_error;
     if (import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error)) {
@@ -1071,6 +1122,12 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   }
   if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
     return true;
+  }
+  if (resolved_module == "builtins" || resolved_module == "_builtins") {
+    if (const auto* builtin = find_builtin(attr_name)) {
+      value_assign_fast(out, *builtin);
+      return true;
+    }
   }
 
   std::string submodule_error;

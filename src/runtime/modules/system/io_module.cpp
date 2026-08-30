@@ -419,21 +419,40 @@ Value make_unsupported_operation_class(Runtime& runtime) {
   return klass;
 }
 
+bool io_text_encoding(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "_io.text_encoding() expected one or two arguments";
+    return false;
+  }
+  if (args[0].tag != ValueTag::None) {
+    value_assign_fast(out, args[0]);
+  } else {
+    out = Value::string("locale");
+  }
+  return true;
+}
+
 void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value& string_io, const Value& bytes_io) {
   if (const Value* open = runtime.find_builtin("open")) {
     builder.value("open", *open);
   }
-  Value io_base = Value::class_object("IOBase", {});
-  Value raw_io_base = Value::class_object("RawIOBase", {}, io_base);
-  Value text_io_base = Value::class_object("TextIOBase", {});
-  Value buffered_io_base = Value::class_object("BufferedIOBase", {}, io_base);
+  const std::vector<std::pair<std::string, Value>> base_attrs = {{"__doc__", Value::none()}};
+  Value io_base = Value::class_object("_IOBase", base_attrs);
+  Value raw_io_base = Value::class_object("_RawIOBase", base_attrs, io_base);
+  Value text_io_base = Value::class_object("_TextIOBase", base_attrs);
+  Value buffered_io_base = Value::class_object("_BufferedIOBase", base_attrs, io_base);
   Value file_io = Value::class_object("FileIO", {}, raw_io_base);
   Value buffered_reader = Value::class_object("BufferedReader", {}, buffered_io_base);
   Value buffered_writer = Value::class_object("BufferedWriter", {}, buffered_io_base);
   Value buffered_random = Value::class_object("BufferedRandom", {}, buffered_io_base);
   Value buffered_rw_pair = Value::class_object("BufferedRWPair", {}, buffered_io_base);
   Value text_io_wrapper = Value::class_object("TextIOWrapper", {}, text_io_base);
-  builder.value("IOBase", io_base)
+  Value incremental_newline_decoder = Value::class_object("IncrementalNewlineDecoder", {});
+  builder.value("_IOBase", io_base)
+      .value("_RawIOBase", raw_io_base)
+      .value("_TextIOBase", text_io_base)
+      .value("_BufferedIOBase", buffered_io_base)
+      .value("IOBase", io_base)
       .value("RawIOBase", raw_io_base)
       .value("TextIOBase", text_io_base)
       .value("BufferedIOBase", buffered_io_base)
@@ -443,10 +462,12 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       .value("BufferedRandom", buffered_random)
       .value("BufferedRWPair", buffered_rw_pair)
       .value("TextIOWrapper", text_io_wrapper)
+      .value("IncrementalNewlineDecoder", incremental_newline_decoder)
       .value("StringIO", string_io)
       .value("BytesIO", bytes_io)
       .value("open_code", runtime.make_native_function("io.open_code", io_open_code))
-      .value("DEFAULT_BUFFER_SIZE", Value::int64(8192));
+      .value("text_encoding", runtime.make_native_function("_io.text_encoding", io_text_encoding))
+      .value("DEFAULT_BUFFER_SIZE", Value::int64(131072));
 }
 
 } // namespace
@@ -459,6 +480,9 @@ void register_io_module(Runtime& runtime) {
   NativeModuleBuilder low_level(runtime, "_io");
   add_io_exports(low_level, runtime, string_io, bytes_io);
   low_level.value("UnsupportedOperation", unsupported_operation);
+  if (const Value* blocking_io_error = runtime.find_builtin("BlockingIOError")) {
+    low_level.value("BlockingIOError", *blocking_io_error);
+  }
   runtime.register_module("_io", low_level.finish());
 }
 

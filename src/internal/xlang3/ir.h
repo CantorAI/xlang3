@@ -106,6 +106,7 @@ enum class Op : uint16_t {
   Add,
   Sub,
   Mul,
+  MatMul,
   Div,
   FloorDiv,
   Mod,

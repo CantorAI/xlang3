@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
@@ -24,6 +25,13 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+bool dict_len_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.__len__", error)) {
+    return false;
+  }
+  return mapping_len(args[0], out, error);
+}
 
 bool dict_get_method_impl(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 && argc != 3) {
@@ -71,6 +79,73 @@ bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   out = mapping_items_view(args[0]);
+  return true;
+}
+
+bool dict_getitem_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__getitem__", error)) {
+    return false;
+  }
+  return mapping_get_item(args[0], args[1], out, error);
+}
+
+bool dict_delitem_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__delitem__", error)) {
+    return false;
+  }
+  Value target = args[0];
+  if (!mapping_delete_item(target, args[1], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool dict_contains_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__contains__", error)) {
+    return false;
+  }
+  Value ignored;
+  std::string get_error;
+  if (mapping_get_item(args[0], args[1], ignored, get_error)) {
+    value_set_bool(out, true);
+    return true;
+  }
+  error.clear();
+  value_set_bool(out, false);
+  return true;
+}
+
+bool dict_eq_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__eq__", error)) {
+    return false;
+  }
+  auto* left = value_as_dict(args[0]);
+  auto* right = value_as_dict(args[1]);
+  if (left == nullptr || right == nullptr) {
+    value_set_bool(out, false);
+    return true;
+  }
+  if (left->entries.size() != right->entries.size()) {
+    value_set_bool(out, false);
+    return true;
+  }
+  for (const auto& entry : left->entries) {
+    Value right_value;
+    if (!mapping_get_item(args[1], entry.first, right_value, error)) {
+      value_set_bool(out, false);
+      return true;
+    }
+    Value equal;
+    if (!value_compare("==", entry.second, right_value, equal, error)) {
+      return false;
+    }
+    if (!value_truthy(equal)) {
+      value_set_bool(out, false);
+      return true;
+    }
+  }
+  value_set_bool(out, true);
   return true;
 }
 
@@ -279,6 +354,23 @@ bool dict_update_method_kw(
   return true;
 }
 
+bool dict_setitem_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 3, "dict.__setitem__", error)) {
+    return false;
+  }
+  Value target = args[0];
+  if (auto* instance = value_as_instance(target)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      target = instance->mapping_storage;
+    }
+  }
+  if (!mapping_set_item(target, args[1], args[2], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool dict_fromkeys_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "dict.fromkeys expected iterable and optional value";
@@ -312,23 +404,47 @@ Value make_dict_fromkeys_classmethod() {
   return Value::class_method(Value::native_function(0, "dict.fromkeys", dict_fromkeys_method));
 }
 
+static constexpr BuiltinMethodSpec kDictMethods[] = {
+    {"__contains__", "dict.__contains__", dict_contains_method},
+    {"__delitem__", "dict.__delitem__", dict_delitem_method},
+    {"__eq__", "dict.__eq__", dict_eq_method},
+    {"__getitem__", "dict.__getitem__", dict_getitem_method},
+    {"__len__", "dict.__len__", dict_len_method},
+    {"__setitem__", "dict.__setitem__", dict_setitem_method},
+    {"clear", "dict.clear", dict_clear_method},
+    {"copy", "dict.copy", dict_copy_method},
+    {"get", "dict.get", dict_get_method_impl},
+    {"items", "dict.items", dict_items_method},
+    {"keys", "dict.keys", dict_keys_method},
+    {"pop", "dict.pop", dict_pop_method},
+    {"popitem", "dict.popitem", dict_popitem_method},
+    {"setdefault", "dict.setdefault", dict_setdefault_method},
+    {"update", "dict.update", dict_update_method, nullptr, false, dict_update_method_kw},
+    {"values", "dict.values", dict_values_method},
+};
+
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_dict(object) == nullptr && value_as_module(object) == nullptr) {
     return false;
   }
-  static constexpr BuiltinMethodSpec methods[] = {
-      {"clear", "dict.clear", dict_clear_method},
-      {"copy", "dict.copy", dict_copy_method},
-      {"get", "dict.get", dict_get_method_impl},
-      {"items", "dict.items", dict_items_method},
-      {"keys", "dict.keys", dict_keys_method},
-      {"pop", "dict.pop", dict_pop_method},
-      {"popitem", "dict.popitem", dict_popitem_method},
-      {"setdefault", "dict.setdefault", dict_setdefault_method},
-      {"update", "dict.update", dict_update_method, nullptr, false, dict_update_method_kw},
-      {"values", "dict.values", dict_values_method},
-  };
-  return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
+  return bind_builtin_method_from_table(object, name, kDictMethods, std::size(kDictMethods), out);
+}
+
+bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class) {
+  for (const auto& method : kDictMethods) {
+    dict_class.attrs[method.name] =
+        runtime.make_native_function(
+            method.full_name,
+            method.callback,
+            nullptr,
+            nullptr,
+            nullptr,
+            method.fast_releases_vm_lock,
+            method.keyword_callback);
+  }
+  dict_class.has_descriptors = true;
+  ++dict_class.version;
+  return true;
 }
 
 } // namespace xlang3

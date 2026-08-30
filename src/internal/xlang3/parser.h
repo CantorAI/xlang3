@@ -90,6 +90,7 @@ enum class TokenKind {
   PlusAssign,
   MinusAssign,
   StarAssign,
+  AtAssign,
   DoubleStarAssign,
   SlashAssign,
   DoubleSlashAssign,

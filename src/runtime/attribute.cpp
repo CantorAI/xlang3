@@ -17,12 +17,35 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
 
 namespace xlang3 {
 
 namespace {
 
+bool none_new_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 0) {
+    error = "NoneType.__new__(): not enough arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* klass = value_as_class(args[0]);
+  if (klass == nullptr || klass->name != "NoneType") {
+    const std::string receiver = klass == nullptr ? value_to_string(args[0]) : klass->name;
+    error = "NoneType.__new__(" + receiver + "): " + receiver + " is not a subtype of NoneType";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
+  if (object.tag == ValueTag::None && name == "__new__") {
+    static Value none_new = Value::native_function(0, "NoneType.__new__", none_new_method);
+    value_assign_fast(out, none_new);
+    return true;
+  }
   return list_get_method(object, name, out) ||
          tuple_get_method(object, name, out) ||
          dict_get_method(object, name, out) ||
@@ -66,7 +89,8 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
       value_as_traceback(object) != nullptr || value_as_class(object) != nullptr ||
       value_as_instance(object) != nullptr || value_as_super(object) != nullptr ||
       value_as_static_method(object) != nullptr || value_as_class_method(object) != nullptr ||
-      value_as_slot_descriptor(object) != nullptr || value_as_type_param(object) != nullptr) {
+      value_as_slot_descriptor(object) != nullptr || value_as_type_param(object) != nullptr ||
+      value_as_generic_alias(object) != nullptr) {
     return object_get_attr(object, name, out, error);
   }
   if (get_builtin_method(object, name, out)) {

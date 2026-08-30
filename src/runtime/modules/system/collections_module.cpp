@@ -314,6 +314,8 @@ bool deque_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std:
 
 Value make_deque_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("collections")});
+  attrs.push_back({"__qualname__", Value::string("deque")});
   attrs.push_back({"__init__", runtime.make_native_function("_collections.deque.__init__", deque_init)});
   attrs.push_back({"append", runtime.make_native_function("_collections.deque.append", deque_append)});
   attrs.push_back({"appendleft", runtime.make_native_function("_collections.deque.appendleft", deque_appendleft)});

@@ -3627,6 +3627,59 @@ bool sys_monitoring_dispatch_event(
 
 namespace {
 
+bool simple_namespace_init_kw(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "types.SimpleNamespace.__init__ expected no positional arguments";
+    return false;
+  }
+  Value& self = const_cast<Value&>(args[0]);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (!object_set_attr(self, kwargs[i].name, *kwargs[i].value, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool simple_namespace_init(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return simple_namespace_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+Value make_simple_namespace_class(Runtime& runtime) {
+  return Value::class_object(
+      "SimpleNamespace",
+      {{"__module__", Value::string("types")},
+       {"__qualname__", Value::string("SimpleNamespace")},
+       {"__doc__", Value::string("A simple attribute-based namespace.")},
+       {"__init__",
+        runtime.make_native_function(
+            "types.SimpleNamespace.__init__",
+            simple_namespace_init,
+            nullptr,
+            nullptr,
+            nullptr,
+            false,
+            simple_namespace_init_kw)}});
+}
+
 Value make_monitoring_events() {
   Value events = Value::instance(Value::class_object(
       "SimpleNamespace",
@@ -4078,11 +4131,7 @@ void register_sys_module(Runtime& runtime) {
   module_set_attr(
       sys,
       "implementation",
-      Value::instance(Value::class_object(
-          "SimpleNamespace",
-          {{"__module__", Value::string("types")},
-           {"__qualname__", Value::string("SimpleNamespace")},
-           {"__doc__", Value::string("A simple attribute-based namespace.")}})),
+      Value::instance(make_simple_namespace_class(runtime)),
       error);
   Value implementation;
   module_get_attr(sys, "implementation", implementation, error);

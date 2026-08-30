@@ -404,7 +404,7 @@ bool mapping_is_mapping(const Value& value) {
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
-  auto* dict = value_as_dict(object);
+  auto* dict = dict_storage_from_value(object);
   if (!ensure_hashable(key, error)) {
     return false;
   }
@@ -436,7 +436,7 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
 }
 
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error) {
-  auto* dict = value_as_dict(object);
+  auto* dict = dict_storage_from_value(object);
   if (!ensure_hashable(key, error)) {
     return false;
   }
@@ -463,7 +463,7 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
 }
 
 bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
-  auto* dict = value_as_dict(object);
+  auto* dict = dict_storage_from_value(object);
   if (!ensure_hashable(key, error)) {
     return false;
   }

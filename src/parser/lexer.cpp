@@ -441,6 +441,10 @@ LexResult Lexer::tokenize() {
         uint32_t logical_end_line = line_no;
         int bracket_depth = 0;
         bool explicit_continue = false;
+        if (prefix_start > indent) {
+          (void)update_line_join_state(line.substr(0, prefix_start), bracket_depth, explicit_continue);
+          explicit_continue = false;
+        }
         bool should_join = update_line_join_state(logical_line, bracket_depth, explicit_continue);
         while (should_join && line_index + 1 < lines.size()) {
           if (explicit_continue) {
@@ -528,17 +532,52 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
           closed = true;
         }
       } else {
+        int fstring_brace_depth = 0;
+        char fstring_expr_quote = '\0';
         while (i < line_text.size()) {
-          if (line_text[i] == quote) {
+          const char current = line_text[i];
+          if (prefix.fstring && fstring_expr_quote != '\0') {
+            value.push_back(current);
+            ++i;
+            if (current == '\\' && i < line_text.size()) {
+              value.push_back(line_text[i++]);
+              continue;
+            }
+            if (current == fstring_expr_quote) {
+              fstring_expr_quote = '\0';
+            }
+            continue;
+          }
+          if (prefix.fstring && fstring_brace_depth > 0 && (current == '\'' || current == '"')) {
+            fstring_expr_quote = current;
+            value.push_back(line_text[i++]);
+            continue;
+          }
+          if (prefix.fstring && current == '{') {
+            if (i + 1 < line_text.size() && line_text[i + 1] == '{' && fstring_brace_depth == 0) {
+              value.push_back(line_text[i++]);
+              value.push_back(line_text[i++]);
+              continue;
+            }
+            ++fstring_brace_depth;
+            value.push_back(line_text[i++]);
+            continue;
+          }
+          if (prefix.fstring && current == '}' && fstring_brace_depth > 0) {
+            --fstring_brace_depth;
+            value.push_back(line_text[i++]);
+            continue;
+          }
+          if (current == quote && (!prefix.fstring || fstring_brace_depth == 0)) {
             closed = true;
             break;
           }
-          if (!prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+          if (!prefix.raw && current == '\\' && i + 1 < line_text.size()) {
             value.push_back(line_text[i++]);
             value.push_back(line_text[i++]);
             continue;
           }
-          if (prefix.raw && line_text[i] == '\\' && i + 1 < line_text.size()) {
+          if (prefix.raw && current == '\\' && i + 1 < line_text.size()) {
             value.push_back(line_text[i++]);
             value.push_back(line_text[i++]);
             continue;
@@ -662,6 +701,7 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
     if (two == "+=") { emit(TokenKind::PlusAssign, two, line_no, col); i += 2; continue; }
     if (two == "-=") { emit(TokenKind::MinusAssign, two, line_no, col); i += 2; continue; }
     if (two == "*=") { emit(TokenKind::StarAssign, two, line_no, col); i += 2; continue; }
+    if (two == "@=") { emit(TokenKind::AtAssign, two, line_no, col); i += 2; continue; }
     if (two == "/=") { emit(TokenKind::SlashAssign, two, line_no, col); i += 2; continue; }
     if (two == "%=") { emit(TokenKind::PercentAssign, two, line_no, col); i += 2; continue; }
     if (two == "&=") { emit(TokenKind::AmpAssign, two, line_no, col); i += 2; continue; }

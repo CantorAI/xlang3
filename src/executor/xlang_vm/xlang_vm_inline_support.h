@@ -1518,7 +1518,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     const Value& function = constructor_args.get(0);
     if (value_as_function(function) == nullptr &&
         value_as_native_function(function) == nullptr &&
-        value_as_bound_method(function) == nullptr) {
+        value_as_bound_method(function) == nullptr &&
+        value_as_class(function) == nullptr) {
       error = klass.name + "() argument must be callable";
       return false;
     }

@@ -20,6 +20,7 @@ limitations under the License.
 #include <chrono>
 #include <cctype>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <unordered_set>
 
@@ -624,7 +625,7 @@ ast::ExprPtr Parser::parse_for_target() {
     while (match(TokenKind::Newline) || match(TokenKind::Indent) || match(TokenKind::Dedent)) {
     }
   };
-  auto parse_one = [&]() -> ast::ExprPtr {
+  std::function<ast::ExprPtr()> parse_one = [&]() -> ast::ExprPtr {
     if (match(TokenKind::Star)) {
       const Token name = peek();
       if (name.kind != TokenKind::Identifier && !is_soft_identifier_token(name.kind)) {
@@ -640,7 +641,7 @@ ast::ExprPtr Parser::parse_for_target() {
       if (!check(TokenKind::RParen)) {
         do {
           skip_target_layout();
-          items.push_back(parse_for_target());
+          items.push_back(parse_one());
           skip_target_layout();
         } while (match(TokenKind::Comma) && (skip_target_layout(), !check(TokenKind::RParen)));
       }
@@ -653,7 +654,7 @@ ast::ExprPtr Parser::parse_for_target() {
       if (!check(TokenKind::RBracket)) {
         do {
           skip_target_layout();
-          items.push_back(parse_for_target());
+          items.push_back(parse_one());
           skip_target_layout();
         } while (match(TokenKind::Comma) && (skip_target_layout(), !check(TokenKind::RBracket)));
       }
@@ -882,6 +883,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
     if (match(TokenKind::PlusAssign)) return "+";
     if (match(TokenKind::MinusAssign)) return "-";
     if (match(TokenKind::StarAssign)) return "*";
+    if (match(TokenKind::AtAssign)) return "@";
     if (match(TokenKind::SlashAssign)) return "/";
     if (match(TokenKind::DoubleSlashAssign)) return "//";
     if (match(TokenKind::PercentAssign)) return "%";
@@ -1222,7 +1224,7 @@ ast::ExprPtr Parser::parse_await() {
     if (is_simple_statement_end() || check(TokenKind::RParen) || check(TokenKind::RBracket) || check(TokenKind::RBrace)) {
       return std::make_unique<ast::YieldExpr>(std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None), from);
     }
-    return std::make_unique<ast::YieldExpr>(parse_await(), from);
+    return std::make_unique<ast::YieldExpr>(from ? parse_await() : parse_expression(), from);
   }
   return parse_lambda();
 }
@@ -1371,6 +1373,7 @@ ast::ExprPtr Parser::parse_factor() {
   while (true) {
     std::string op;
     if (match(TokenKind::Star)) op = "*";
+    else if (match(TokenKind::At)) op = "@";
     else if (match(TokenKind::Slash)) op = "/";
     else if (match(TokenKind::DoubleSlash)) op = "//";
     else if (match(TokenKind::Percent)) op = "%";
@@ -1665,6 +1668,21 @@ ast::ExprPtr Parser::parse_primary() {
     if (match(TokenKind::RBrace)) {
       return std::make_unique<ast::DictExpr>(std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>>{});
     }
+    if (match(TokenKind::DoubleStar)) {
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
+      entries.push_back(std::make_pair(ast::ExprPtr{}, parse_conditional()));
+      while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
+        if (match(TokenKind::DoubleStar)) {
+          entries.push_back(std::make_pair(ast::ExprPtr{}, parse_conditional()));
+          continue;
+        }
+        auto key = parse_conditional();
+        consume(TokenKind::Colon, "expected ':' after dict key");
+        entries.push_back(std::make_pair(std::move(key), parse_conditional()));
+      }
+      consume(TokenKind::RBrace, "expected '}' after dict literal");
+      return std::make_unique<ast::DictExpr>(std::move(entries));
+    }
     auto first = parse_conditional();
     if (match(TokenKind::Colon)) {
       auto value = parse_conditional();
@@ -1687,6 +1705,10 @@ ast::ExprPtr Parser::parse_primary() {
       std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
       entries.push_back(std::make_pair(std::move(first), std::move(value)));
       while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
+        if (match(TokenKind::DoubleStar)) {
+          entries.push_back(std::make_pair(ast::ExprPtr{}, parse_conditional()));
+          continue;
+        }
         auto key = parse_conditional();
         consume(TokenKind::Colon, "expected ':' after dict key");
         entries.push_back(std::make_pair(std::move(key), parse_conditional()));

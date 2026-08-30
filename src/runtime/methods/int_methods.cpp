@@ -20,6 +20,27 @@ namespace xlang3 {
 
 namespace {
 
+bool int_bit_length_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "int.bit_length expected no arguments";
+    return false;
+  }
+  if (args[0].tag != ValueTag::Int64) {
+    error = "int.bit_length target must be int";
+    return false;
+  }
+  uint64_t value = args[0].as.i64 < 0
+      ? static_cast<uint64_t>(-(args[0].as.i64 + 1)) + 1u
+      : static_cast<uint64_t>(args[0].as.i64);
+  int64_t bits = 0;
+  while (value != 0) {
+    ++bits;
+    value >>= 1u;
+  }
+  value_set_int64(out, bits);
+  return true;
+}
+
 bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
     error = "int.to_bytes expected value, length, and byteorder";
@@ -62,6 +83,7 @@ bool int_get_method(const Value& object, const std::string& name, Value& out) {
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {
+      {"bit_length", "int.bit_length", int_bit_length_method},
       {"to_bytes", "int.to_bytes", int_to_bytes_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);

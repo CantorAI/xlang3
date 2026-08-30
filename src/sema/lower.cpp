@@ -2472,6 +2472,13 @@ private:
     for (const auto& base_expr : klass.bases) {
       base_regs.push_back(lower_expr(*base_expr));
     }
+    if (metaclass_reg == UINT32_MAX && !base_regs.empty()) {
+      const auto type_reg = new_reg();
+      emit(ir::Op::LoadGlobal, type_reg, add_name("type"));
+      metaclass_reg = new_reg();
+      emit(ir::Op::Call, metaclass_reg, type_reg, add_call_args({base_regs[0]}));
+      metaclass_supports_prepare = true;
+    }
 
     uint32_t name_reg = UINT32_MAX;
     uint32_t bases_reg = UINT32_MAX;
@@ -2496,7 +2503,11 @@ private:
       }
       const auto key = new_reg();
       emit(ir::Op::LoadConst, key, add_const(Value::string(name)));
-      emit(ir::Op::DictSet, namespace_reg, key, reg);
+      const auto setitem_reg = new_reg();
+      emit(ir::Op::LoadAttr, setitem_reg, namespace_reg, add_name("__setitem__"));
+      const auto ignored = new_reg();
+      emit(ir::Op::Call, ignored, setitem_reg, add_call_args({key, reg}));
+      emit(ir::Op::Pop, 0, ignored);
     };
     auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
       const std::string hidden_name = "#class." + klass.name + "." + name;
@@ -2694,6 +2705,7 @@ private:
     if (op == "+") return ir::Op::Add;
     if (op == "-") return ir::Op::Sub;
     if (op == "*") return ir::Op::Mul;
+    if (op == "@") return ir::Op::MatMul;
     if (op == "/") return ir::Op::Div;
     if (op == "//") return ir::Op::FloorDiv;
     if (op == "%") return ir::Op::Mod;
@@ -3424,6 +3436,7 @@ private:
       if (bin->op == "+") emit(ir::Op::Add, reg, lhs, rhs);
       else if (bin->op == "-") emit(ir::Op::Sub, reg, lhs, rhs);
       else if (bin->op == "*") emit(ir::Op::Mul, reg, lhs, rhs);
+      else if (bin->op == "@") emit(ir::Op::MatMul, reg, lhs, rhs);
       else if (bin->op == "/") emit(ir::Op::Div, reg, lhs, rhs);
       else if (bin->op == "//") emit(ir::Op::FloorDiv, reg, lhs, rhs);
       else if (bin->op == "%") emit(ir::Op::Mod, reg, lhs, rhs);
@@ -3571,7 +3584,7 @@ private:
     if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
       std::vector<std::pair<uint32_t, uint32_t>> item_regs;
       for (const auto& entry : dict->entries) {
-        const auto key = lower_expr(*entry.first);
+        const auto key = entry.first ? lower_expr(*entry.first) : UINT32_MAX;
         const auto value = lower_expr(*entry.second);
         item_regs.push_back(std::make_pair(key, value));
       }

@@ -27,6 +27,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
+#include <cctype>
 #include <string_view>
 
 namespace xlang3 {
@@ -66,12 +67,31 @@ InstanceObject* allocate_instance_object() {
   return allocate_object_model<InstanceObject>(ObjectKind::Instance);
 }
 
+bool function_descriptor_get_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "function.__get__ expected 1 or 2 arguments";
+    return false;
+  }
+  if (value_as_function(args[0]) == nullptr) {
+    error = "descriptor '__get__' requires a function object";
+    return false;
+  }
+  if (args[1].tag == ValueTag::None) {
+    value_assign_fast(out, args[0]);
+  } else {
+    out = Value::bound_method(args[1], args[0]);
+  }
+  return true;
+}
+
+
 void recycle_instance_object(InstanceObject* instance) {
   if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
     instance->native_data_cleanup(instance->native_data);
   }
   instance->klass = Value::invalid();
   instance->mapping_storage = Value::invalid();
+  instance->sequence_storage = Value::invalid();
   instance->native_type.clear();
   instance->native_data = nullptr;
   instance->native_data_cleanup = nullptr;
@@ -140,6 +160,10 @@ bool value_is_enum_auto_sentinel(const Value& value) {
   if (instance == nullptr) {
     return false;
   }
+  if (auto* klass = value_as_class(instance->klass);
+      klass != nullptr && (klass->name == "auto" || class_display_name(*klass) == "enum.auto")) {
+    return true;
+  }
   for (const auto& attr : instance->attrs) {
     if (attr.first == "__xlang3_enum_auto__" && value_truthy(attr.second)) {
       return true;
@@ -174,6 +198,27 @@ bool enum_value_map_lookup(const std::vector<std::pair<Value, Value>>& map, cons
   return false;
 }
 
+bool enum_class_has_base_name(const ClassObject& klass, std::string_view name) {
+  if (klass.name == name) {
+    return true;
+  }
+  for (const auto& base : klass.bases) {
+    auto* base_class = value_as_class(base);
+    if (base_class != nullptr && enum_class_has_base_name(*base_class, name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::string enum_auto_generated_name_value(const std::string& name) {
+  std::string value = name;
+  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+  return value;
+}
+
 bool finalize_enum_class(ClassObject& klass) {
   if (klass.attrs.find("__xlang3_enum_finalized__") != klass.attrs.end()) {
     return true;
@@ -182,6 +227,11 @@ bool finalize_enum_class(ClassObject& klass) {
     return true;
   }
   if (!attr_truthy_marker(&klass, "__xlang3_enum_marker__")) {
+    return true;
+  }
+  if (klass.attrs.find("_member_names_") != klass.attrs.end() ||
+      klass.attrs.find("_member_map_") != klass.attrs.end() ||
+      klass.attrs.find("_value2member_map_") != klass.attrs.end()) {
     return true;
   }
 
@@ -214,7 +264,11 @@ bool finalize_enum_class(ClassObject& klass) {
   for (auto& candidate : candidates) {
     Value raw_value = candidate.second;
     if (value_is_enum_auto_sentinel(raw_value)) {
-      raw_value = Value::int64(next_auto_value);
+      if (enum_class_has_base_name(klass, "str")) {
+        raw_value = Value::string(enum_auto_generated_name_value(candidate.first));
+      } else {
+        raw_value = Value::int64(next_auto_value);
+      }
     }
     if (raw_value.tag == ValueTag::Int64 && raw_value.as.i64 >= next_auto_value) {
       next_auto_value = raw_value.as.i64 + 1;
@@ -234,7 +288,13 @@ bool finalize_enum_class(ClassObject& klass) {
     }
     instance->attrs.push_back({"name", Value::string(candidate.first)});
     instance->attrs.push_back({"value", raw_value});
-    instance->attrs.push_back({"__xlang3_string_value__", Value::string(klass.name + "." + candidate.first)});
+    instance->attrs.push_back({"_name_", Value::string(candidate.first)});
+    instance->attrs.push_back({"_value_", raw_value});
+    if (enum_class_has_base_name(klass, "str")) {
+      instance->attrs.push_back({"__xlang3_string_value__", raw_value});
+    } else {
+      instance->attrs.push_back({"__xlang3_string_value__", Value::string(klass.name + "." + candidate.first)});
+    }
     klass.attrs[candidate.first] = member;
     members.push_back({Value::string(candidate.first), member});
     value_members.push_back({raw_value, member});
@@ -1099,11 +1159,17 @@ Value Value::class_object(
     }
   }
   const size_t inherited_slot_count = obj->instance_slot_names.size();
+  bool has_explicit_slots = false;
   for (auto& attr : attrs) {
+    if (attr.first == "__new__" &&
+        (value_as_function(attr.second) != nullptr || value_as_native_function(attr.second) != nullptr)) {
+      attr.second = Value::static_method(attr.second);
+    }
     if (object_value_is_descriptor(attr.second)) {
       obj->has_descriptors = true;
     }
     if (attr.first == "__slots__") {
+      has_explicit_slots = true;
       obj->restrict_instance_attrs = true;
       obj->allow_instance_dict = false;
       obj->allow_weakref = false;
@@ -1114,6 +1180,9 @@ Value Value::class_object(
   }
   if (obj->attrs.find("__qualname__") == obj->attrs.end()) {
     obj->attrs.emplace("__qualname__", Value::string(obj->name));
+  }
+  if (!has_explicit_slots) {
+    obj->allow_weakref = true;
   }
   for (auto& slot : instance_slots) {
     if (!obj->restrict_instance_attrs ||
@@ -1154,6 +1223,9 @@ Value Value::instance(Value klass) {
         class_has_builtin_base_name(klass_obj, "OrderedDict") ||
         class_has_builtin_base_name(klass_obj, "defaultdict")) {
       obj->mapping_storage = Value::dict({});
+    }
+    if (class_has_builtin_base_name(klass_obj, "list")) {
+      obj->sequence_storage = Value::list({});
     }
   }
   if (obj->slot_count == 0) {
@@ -1372,6 +1444,23 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     return false;
   }
 
+  if (auto* generic_alias = value_as_generic_alias(object)) {
+    if (name == "__origin__") {
+      value_assign_fast(out, generic_alias->origin);
+      return true;
+    }
+    if (name == "__args__") {
+      value_assign_fast(out, generic_alias->args);
+      return true;
+    }
+    if (name == "__parameters__") {
+      out = Value::tuple({});
+      return true;
+    }
+    error = "GenericAlias object has no attribute '" + name + "'";
+    return false;
+  }
+
   if (auto* view = value_as_memoryview(object)) {
     if (view->released) {
       error = "operation forbidden on released memoryview object";
@@ -1511,6 +1600,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "__globals__") {
       value_assign_fast(out, function->globals_module);
+      return true;
+    }
+    if (name == "__get__") {
+      out = Value::bound_method(object, Value::native_function(0, "function.__get__", function_descriptor_get_method));
       return true;
     }
     if (name == "__closure__") {
@@ -1955,7 +2048,11 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(function, method->function);
       out = Value::bound_method(super->klass, std::move(function));
     } else if (value_as_function(attr) != nullptr || value_as_native_function(attr) != nullptr) {
-      out = Value::bound_method(super->self, attr);
+      if (name == "__new__") {
+        value_assign_fast(out, attr);
+      } else {
+        out = Value::bound_method(super->self, attr);
+      }
     } else {
       value_assign_fast(out, attr);
     }
@@ -2005,6 +2102,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (!class_lookup_attr(klass, name, out, error)) {
+      if (name == "__members__" && class_lookup_attr(klass, "_member_map_", out, error)) {
+        return true;
+      }
       auto* metaclass = value_as_class(klass->metaclass);
       if (metaclass != nullptr) {
         Value meta_attr;
@@ -2058,6 +2158,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     Value class_attr;
     if (!class_lookup_attr(klass, name, class_attr, error)) {
       if (value_as_dict(instance->mapping_storage) != nullptr && dict_get_method(instance->mapping_storage, name, out)) {
+        return true;
+      }
+      if (value_as_list(instance->sequence_storage) != nullptr && list_get_method(instance->sequence_storage, name, out)) {
         return true;
       }
       error = "object has no attribute '" + name + "'";
@@ -2443,9 +2546,10 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   std::vector<std::string> own_slots;
   if (!klass_obj->has_explicit_bases) {
     own_slots = klass_obj->instance_slot_names;
-    klass_obj->bases.clear();
-    klass_obj->instance_slot_names.clear();
-    klass_obj->instance_slot_indices.clear();
+    if (klass_obj->bases.empty()) {
+      klass_obj->instance_slot_names.clear();
+      klass_obj->instance_slot_indices.clear();
+    }
     klass_obj->has_explicit_bases = true;
   }
   klass_obj->bases.push_back(base);

@@ -245,8 +245,20 @@ bool bytes_find_common(
   }
   std::string_view text;
   std::string_view needle;
-  if (!get_bytes_like_view(args[0], "bytes.find target", text, error) ||
-      !get_bytes_like_view(args[1], "bytes.find sub", needle, error)) {
+  char needle_byte = '\0';
+  if (!get_bytes_like_view(args[0], "bytes.find target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag == ValueTag::Int64) {
+    if (args[1].as.i64 < 0 || args[1].as.i64 > 255) {
+      error = "byte must be in range(0, 256)";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    needle_byte = static_cast<char>(args[1].as.i64);
+    needle = std::string_view(&needle_byte, 1);
+  } else if (!get_bytes_like_view(args[1], "bytes.find sub", needle, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1125,6 +1137,33 @@ bool memoryview_exit_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool bytes_translate_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "bytes.translate expected a translation table";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view text;
+  std::string_view table;
+  if (!get_bytes_like_view(args[0], "bytes.translate target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.translate table", table, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (table.size() != 256) {
+    error = "translation table must be 256 characters long";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string translated;
+  translated.resize(text.size());
+  for (size_t i = 0; i < text.size(); ++i) {
+    translated[i] = table[static_cast<unsigned char>(text[i])];
+  }
+  out = value_as_bytearray(args[0]) != nullptr ? Value::bytearray(std::move(translated)) : Value::bytes(std::move(translated));
+  return true;
+}
+
 } // namespace
 
 bool bytes_get_method(const Value& object, const std::string& name, Value& out) {
@@ -1149,6 +1188,7 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
       {"split", "bytes.split", bytes_split_method},
       {"startswith", "bytes.startswith", bytes_startswith_method},
       {"strip", "bytes.strip", bytes_strip_method},
+      {"translate", "bytes.translate", bytes_translate_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }
@@ -1182,6 +1222,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"split", "bytearray.split", bytes_split_method},
       {"startswith", "bytearray.startswith", bytes_startswith_method},
       {"strip", "bytearray.strip", bytes_strip_method},
+      {"translate", "bytearray.translate", bytes_translate_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }

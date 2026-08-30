@@ -17,10 +17,13 @@ import datetime as _dt
 import hashlib
 import json
 import os
+import queue
 import re
 import shlex
 import shutil
 import subprocess
+import threading
+import time
 import tomllib
 import msvcrt
 from pathlib import Path
@@ -505,7 +508,26 @@ def run_with_input(command: str, stdin_text: str) -> None:
         raise SystemExit(result.returncode)
 
 
-def run_with_input_tee(command: str, stdin_text: str) -> str:
+def terminate_process_tree(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            cwd=ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    else:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+
+
+def run_with_input_tee(command: str, stdin_text: str, *, timeout_seconds: int = 3600) -> str:
     print()
     print("==", command)
     process = subprocess.Popen(
@@ -526,9 +548,43 @@ def run_with_input_tee(command: str, stdin_text: str) -> str:
     process.stdin.close()
 
     captured: list[str] = []
-    for line in process.stdout:
+    lines: queue.Queue[str | None] = queue.Queue()
+
+    def reader() -> None:
+        assert process.stdout is not None
+        for line in process.stdout:
+            lines.put(line)
+        lines.put(None)
+
+    reader_thread = threading.Thread(target=reader, daemon=True)
+    reader_thread.start()
+
+    deadline = time.monotonic() + timeout_seconds
+    stdout_closed = False
+    while not stdout_closed:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            terminate_process_tree(process)
+            output = "".join(captured)
+            raise SystemExit(
+                "Codex backend timed out after "
+                f"{timeout_seconds} seconds. The prompt/state were preserved; "
+                "rerun the loop to repair or continue.\n"
+                f"Command: {command}\n"
+                f"Captured output tail:\n{output[-4000:]}"
+            )
+        try:
+            line = lines.get(timeout=min(0.25, remaining))
+        except queue.Empty:
+            if process.poll() is not None and not reader_thread.is_alive():
+                break
+            continue
+        if line is None:
+            stdout_closed = True
+            continue
         print(line, end="")
         captured.append(line)
+
     return_code = process.wait()
     output = "".join(captured)
     if return_code != 0:
@@ -1102,7 +1158,8 @@ def invoke_codex(config: dict, goal: str, command_template: str, prompt_path: Pa
         print()
         print("== Codex backend")
         print(f"Prompt file: {prompt_path}")
-        output = run_with_input_tee(command, prompt)
+        timeout_seconds = int(config.get("codex", {}).get("backend_timeout_seconds", 3600))
+        output = run_with_input_tee(command, prompt, timeout_seconds=timeout_seconds)
         write_saved_session_id(config, goal, output)
         print("Codex backend finished.")
         return

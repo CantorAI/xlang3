@@ -24,6 +24,7 @@ limitations under the License.
 #include <filesystem>
 #include <random>
 #include <sstream>
+#include <thread>
 
 #if defined(_WIN32)
 #include <process.h>
@@ -229,6 +230,19 @@ bool os_getppid(Runtime&, const Value*, uint32_t argc, Value& out, std::string& 
 #else
   value_set_int64(out, static_cast<int64_t>(getppid()));
 #endif
+  return true;
+}
+
+bool os_cpu_count(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "os.cpu_count", error)) {
+    return false;
+  }
+  unsigned count = std::thread::hardware_concurrency();
+  if (count == 0) {
+    out = Value::none();
+  } else {
+    value_set_int64(out, static_cast<int64_t>(count));
+  }
   return true;
 }
 
@@ -994,6 +1008,7 @@ void register_os_module(Runtime& runtime) {
       .function("urandom", os_urandom)
       .function("getpid", os_getpid)
       .function("getppid", os_getppid)
+      .function("cpu_count", os_cpu_count)
       .function("_exit", os_exit)
       .function("listdir", os_listdir)
       .value("scandir", runtime.make_native_function("os.scandir", os_scandir, os_state))
@@ -1015,6 +1030,10 @@ void register_os_module(Runtime& runtime) {
       .value("R_OK", Value::int64(4))
       .value("W_OK", Value::int64(2))
       .value("X_OK", Value::int64(1))
+      .value("supports_dir_fd", Value::frozenset({}))
+      .value("supports_effective_ids", Value::frozenset({}))
+      .value("supports_fd", Value::frozenset({}))
+      .value("supports_follow_symlinks", Value::frozenset({}))
 #if defined(_WIN32)
       .value("name", Value::string("nt"))
       .value("sep", Value::string("\\"))

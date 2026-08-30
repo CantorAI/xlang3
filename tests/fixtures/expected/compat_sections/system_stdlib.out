@@ -1,0 +1,5 @@
+system-stdlib-abc True True True True
+system-stdlib-types True True True True True
+system-stdlib-collections True True
+system-stdlib-enum True True True ['strict', 'conform', 'eject', 'keep']
+system-stdlib-io-codecs True True True utf-8 b'x' y

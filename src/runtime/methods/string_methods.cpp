@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
@@ -988,6 +990,110 @@ bool string_join_fast_method(
   return join_string_values(sep, items, out, error);
 }
 
+bool string_maketrans_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) {
+    error = "str.maketrans expected 1 to 3 arguments";
+    return false;
+  }
+  if (argc == 1) {
+    auto* dict = value_as_dict(args[0]);
+    if (dict == nullptr) {
+      error = "if you give only one argument to maketrans it must be a dict";
+      return false;
+    }
+    out = Value::dict({});
+    for (const auto& entry : dict->entries) {
+      Value key;
+      if (auto* text = value_as_string(entry.first)) {
+        auto view = string_object_view(*text);
+        if (view.size() != 1) {
+          error = "string keys in translate table must be of length 1";
+          return false;
+        }
+        key = Value::int64(static_cast<unsigned char>(view.data()[0]));
+      } else {
+        value_assign_fast(key, entry.first);
+      }
+      if (!mapping_set_item(out, key, entry.second, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  memory::X3StringView from;
+  memory::X3StringView to;
+  if (!get_string_view_checked(args[0], "str.maketrans x", from, error) ||
+      !get_string_view_checked(args[1], "str.maketrans y", to, error)) {
+    return false;
+  }
+  if (from.size != to.size) {
+    error = "the first two maketrans arguments must have equal length";
+    return false;
+  }
+  out = Value::dict({});
+  for (size_t i = 0; i < from.size; ++i) {
+    if (!mapping_set_item(
+            out,
+            Value::int64(static_cast<unsigned char>(from.data[i])),
+            Value::int64(static_cast<unsigned char>(to.data[i])),
+            error)) {
+      return false;
+    }
+  }
+  if (argc == 3) {
+    memory::X3StringView delete_chars;
+    if (!get_string_view_checked(args[2], "str.maketrans z", delete_chars, error)) {
+      return false;
+    }
+    for (size_t i = 0; i < delete_chars.size; ++i) {
+      if (!mapping_set_item(out, Value::int64(static_cast<unsigned char>(delete_chars.data[i])), Value::none(), error)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool string_translate_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "str.translate expected 1 argument";
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.translate target", text, error)) {
+    return false;
+  }
+  std::string result;
+  result.reserve(text.size);
+  for (size_t i = 0; i < text.size; ++i) {
+    const unsigned char ch = static_cast<unsigned char>(text.data[i]);
+    Value replacement;
+    std::string lookup_error;
+    if (!mapping_get_item(args[1], Value::int64(static_cast<int64_t>(ch)), replacement, lookup_error)) {
+      result.push_back(static_cast<char>(ch));
+      continue;
+    }
+    if (replacement.tag == ValueTag::None) {
+      continue;
+    }
+    if (replacement.tag == ValueTag::Int64) {
+      if (replacement.as.i64 < 0 || replacement.as.i64 > 255) {
+        error = "character mapping must be in range(256)";
+        return false;
+      }
+      result.push_back(static_cast<char>(replacement.as.i64));
+      continue;
+    }
+    memory::X3StringView replacement_text;
+    if (!get_string_view_checked(replacement, "str.translate replacement", replacement_text, error)) {
+      return false;
+    }
+    result.append(replacement_text.data, replacement_text.size);
+  }
+  out = Value::string(std::move(result));
+  return true;
+}
+
 bool string_format_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "str.format expected at least 1 argument";
@@ -1529,6 +1635,38 @@ bool string_isascii_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool string_isidentifier_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "str.isidentifier", error)) {
+    return false;
+  }
+  memory::X3StringView text;
+  if (!get_string_view_checked(args[0], "str.isidentifier target", text, error)) {
+    return false;
+  }
+  if (text.size == 0) {
+    value_set_bool(out, false);
+    return true;
+  }
+  auto is_start = [](unsigned char ch) {
+    return ch == '_' || std::isalpha(ch) != 0 || ch >= 0x80;
+  };
+  auto is_continue = [&](unsigned char ch) {
+    return is_start(ch) || std::isdigit(ch) != 0;
+  };
+  if (!is_start(static_cast<unsigned char>(text.data[0]))) {
+    value_set_bool(out, false);
+    return true;
+  }
+  for (size_t i = 1; i < text.size; ++i) {
+    if (!is_continue(static_cast<unsigned char>(text.data[i]))) {
+      value_set_bool(out, false);
+      return true;
+    }
+  }
+  value_set_bool(out, true);
+  return true;
+}
+
 bool string_isdecimal_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return string_char_class_method(args, argc, out, error, "str.isdecimal", StringCharClassKind::Digit);
 }
@@ -1889,6 +2027,7 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"isascii", "str.isascii", string_isascii_method},
     {"isdecimal", "str.isdecimal", string_isdecimal_method},
     {"isdigit", "str.isdigit", string_isdigit_method},
+    {"isidentifier", "str.isidentifier", string_isidentifier_method},
     {"islower", "str.islower", string_islower_method},
     {"isnumeric", "str.isnumeric", string_isnumeric_method},
     {"isspace", "str.isspace", string_isspace_method},
@@ -1898,6 +2037,8 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"ljust", "str.ljust", string_ljust_method},
     {"lower", "str.lower", string_lower_method, string_lower_fast_method},
     {"lstrip", "str.lstrip", string_lstrip_method, string_lstrip_fast_method},
+    {"maketrans", "str.maketrans", string_maketrans_method},
+    {"translate", "str.translate", string_translate_method},
     {"partition", "str.partition", string_partition_method},
     {"removeprefix", "str.removeprefix", string_removeprefix_method},
     {"removesuffix", "str.removesuffix", string_removesuffix_method},
@@ -1925,6 +2066,21 @@ const BuiltinMethodSpec* find_string_method_spec(const std::string& name) {
     }
   }
   return nullptr;
+}
+
+bool string_install_class_methods(Runtime& runtime, ClassObject& string_class) {
+  for (const auto& method : kStringMethods) {
+    string_class.attrs[method.name] = runtime.make_native_function(
+        method.full_name,
+        method.callback,
+        nullptr,
+        nullptr,
+        method.fast_callback,
+        method.fast_releases_vm_lock,
+        method.keyword_callback);
+  }
+  ++string_class.version;
+  return true;
 }
 
 const BuiltinMethodSpec* string_find_method_spec(const Value& object, const std::string& name) {

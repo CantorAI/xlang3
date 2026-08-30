@@ -194,6 +194,9 @@ target_include_directories(${xlang3_runtime_target}
 )
 
 target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
+if(MSVC)
+  target_compile_options(${xlang3_runtime_target} PRIVATE /MP)
+endif()
 endforeach()
 
 target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)

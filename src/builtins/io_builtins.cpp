@@ -474,6 +474,7 @@ bool builtin_open(
       }
     } else if (!parsed.writable) {
       error = "file not found: " + path;
+      runtime.raise_class_error("FileNotFoundError", error);
       return false;
     }
   }

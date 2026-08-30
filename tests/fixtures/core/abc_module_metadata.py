@@ -76,7 +76,7 @@ print(
     "abc-public-cache-token-metadata",
     abc.get_cache_token.__name__ == "get_cache_token",
     abc.get_cache_token.__qualname__ == "get_cache_token",
-    abc.get_cache_token.__module__ == "abc",
+    abc.get_cache_token.__module__ == "_abc",
     abc.get_cache_token.__text_signature__ == "($module, /)",
     "opaque object" in abc.get_cache_token.__doc__,
 )

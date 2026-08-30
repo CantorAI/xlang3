@@ -123,6 +123,10 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     out = Value::string(module->name);
     return true;
   }
+  if (name == "__dict__") {
+    value_assign_fast(out, object);
+    return true;
+  }
   if (name == "__spec__") {
     auto spec_it = module->name_to_slot.find(name);
     if (spec_it != module->name_to_slot.end() && spec_it->second < module->slots.size()) {

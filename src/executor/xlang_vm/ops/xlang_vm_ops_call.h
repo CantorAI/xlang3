@@ -883,7 +883,7 @@ XLANG3_HOT_INLINE bool try_call_metaclass_new(
   auto* metaclass = value_as_class(metaclass_value);
   if (metaclass == nullptr || metaclass->name == XlangVMNames::builtin_type ||
       !class_has_builtin_base_name(metaclass, XlangVMNames::builtin_type) ||
-      original_args.size() != 3 || original_args.has_keywords() || original_args.has_expansion()) {
+      original_args.size() != 3 || original_args.has_expansion()) {
     return false;
   }
 
@@ -1093,6 +1093,33 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
         }
         if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
         return XlangVMOpFlow::Next;
+      }
+    }
+    if (klass->name == XlangVMNames::builtin_type && call_args.size() == 3 && !call_args.has_expansion()) {
+      if (auto* bases = value_as_tuple(call_args.get(1)); bases != nullptr && !bases->items.empty()) {
+        if (auto* base_class = value_as_class(bases->items[0])) {
+          if (value_as_class(base_class->metaclass) != nullptr) {
+            if (try_call_metaclass_new(
+                    base_class->metaclass,
+                    call_args,
+                    module,
+                    module_owner,
+                    runtime,
+                    native_call_args,
+                    ip,
+                    in.dst,
+                    regs[in.dst],
+                    pushed_frame,
+                    execution_lock,
+                    make_generator_if_needed,
+                    push_frame,
+                    raise_runtime_error,
+                    raise_exception_value)) {
+              if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+              return XlangVMOpFlow::Next;
+            }
+          }
+        }
       }
     }
     std::string constructor_error;

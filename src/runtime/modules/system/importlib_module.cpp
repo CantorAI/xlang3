@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -199,6 +200,38 @@ bool importlib_loader_get_data(Runtime& runtime, const Value* args, uint32_t arg
   return true;
 }
 
+bool importlib_loader_get_code(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_code expected self and fullname";
+    return false;
+  }
+  Value path_value;
+  std::string ignored;
+  if (!object_get_attr(args[0], "path", path_value, ignored)) {
+    value_set_none(out);
+    return true;
+  }
+  std::string path;
+  if (!get_string_arg(path_value, "loader path", path, error)) {
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(path, bytes, error)) {
+    return false;
+  }
+  const Value* compile_builtin = runtime.find_builtin("compile");
+  if (compile_builtin == nullptr) {
+    error = "compile builtin is not registered";
+    return false;
+  }
+  Value compile_args[3] = {
+      Value::string(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size())),
+      Value::string(path),
+      Value::string("exec"),
+  };
+  return runtime_call_callable(runtime, *compile_builtin, compile_args, 3, out, error);
+}
+
 bool importlib_loader_exec_module(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "loader.exec_module expected self and module";
@@ -245,6 +278,41 @@ bool importlib_loader_exec_module(Runtime& runtime, const Value* args, uint32_t 
   return true;
 }
 
+Value make_source_file_loader(Runtime& runtime, const std::string& name, const Value& path) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_frozen_importlib_external")});
+  attrs.push_back({"__name__", Value::string("SourceFileLoader")});
+  attrs.push_back({"__init__", runtime.make_native_function("SourceFileLoader.__init__", importlib_loader_init)});
+  attrs.push_back({"create_module", runtime.make_native_function("SourceFileLoader.create_module", importlib_loader_create_module)});
+  attrs.push_back({"exec_module", runtime.make_native_function("SourceFileLoader.exec_module", importlib_loader_exec_module)});
+  attrs.push_back({"get_filename", runtime.make_native_function("SourceFileLoader.get_filename", importlib_loader_get_filename)});
+  attrs.push_back({"get_data", runtime.make_native_function("SourceFileLoader.get_data", importlib_loader_get_data)});
+  attrs.push_back({"get_code", runtime.make_native_function("SourceFileLoader.get_code", importlib_loader_get_code)});
+  Value loader = Value::instance(Value::class_object("SourceFileLoader", std::move(attrs)));
+  std::string ignored;
+  object_set_attr(loader, "name", Value::string(name), ignored);
+  object_set_attr(loader, "path", path, ignored);
+  return loader;
+}
+
+void normalize_file_module_spec_loader(Runtime& runtime, const std::string& name, Value& module, Value& spec) {
+  Value file;
+  std::string ignored;
+  if (!module_get_attr(module, "__file__", file, ignored) || file.tag == ValueTag::Invalid || file.tag == ValueTag::None) {
+    return;
+  }
+  Value loader;
+  if (object_get_attr(spec, "loader", loader, ignored)) {
+    Value get_code;
+    if (object_get_attr(loader, "get_code", get_code, ignored)) {
+      return;
+    }
+  }
+  Value fixed_loader = make_source_file_loader(runtime, name, file);
+  object_set_attr(spec, "loader", fixed_loader, ignored);
+  module_set_attr(module, "__loader__", fixed_loader, ignored);
+}
+
 bool importlib_finder_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "finder.find_spec expected fullname";
@@ -260,9 +328,11 @@ bool importlib_finder_find_spec(Runtime& runtime, const Value* args, uint32_t ar
   if (runtime.has_registered_module(name) && runtime.import_module(name, module, ignored)) {
     std::string ignored;
     if (module_get_attr(module, "__spec__", out, ignored) && out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
+      normalize_file_module_spec_loader(runtime, name, module, out);
       return true;
     }
     out = make_module_spec(name, module);
+    normalize_file_module_spec_loader(runtime, name, module, out);
     return true;
   }
   value_set_none(out);
@@ -281,6 +351,7 @@ Value make_loader_class(Runtime& runtime, const std::string& name) {
   attrs.push_back({"exec_module", runtime.make_native_function(name + ".exec_module", importlib_loader_exec_module)});
   attrs.push_back({"get_filename", runtime.make_native_function(name + ".get_filename", importlib_loader_get_filename)});
   attrs.push_back({"get_data", runtime.make_native_function(name + ".get_data", importlib_loader_get_data)});
+  attrs.push_back({"get_code", runtime.make_native_function(name + ".get_code", importlib_loader_get_code)});
   return make_simple_class(name, std::move(attrs));
 }
 
@@ -355,9 +426,11 @@ bool importlib_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (runtime.import_module(name, module, import_error)) {
     std::string ignored;
     if (module_get_attr(module, "__spec__", out, ignored) && out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
+      normalize_file_module_spec_loader(runtime, name, module, out);
       return true;
     }
     out = make_module_spec(name, module);
+    normalize_file_module_spec_loader(runtime, name, module, out);
     return true;
   }
   value_set_none(out);
@@ -436,6 +509,73 @@ bool importlib_module_from_spec(Runtime&, const Value* args, uint32_t argc, Valu
   if (object_get_attr(args[0], "parent", parent, ignored)) {
     module_set_attr(out, "__package__", parent, ignored);
   }
+  return true;
+}
+
+bool bootstrap_resolve_name(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "importlib._bootstrap._resolve_name() expected name, package, level";
+    return false;
+  }
+  std::string name;
+  std::string package;
+  int64_t level = 0;
+  if (!get_string_arg(args[0], "_resolve_name name", name, error) ||
+      !get_string_arg(args[1], "_resolve_name package", package, error)) {
+    return false;
+  }
+  if (args[2].tag != ValueTag::Int64) {
+    error = "_resolve_name level must be int";
+    return false;
+  }
+  level = args[2].as.i64;
+  for (int64_t i = 1; i < level && !package.empty(); ++i) {
+    const auto dot = package.rfind('.');
+    package = dot == std::string::npos ? std::string() : package.substr(0, dot);
+  }
+  if (!name.empty()) {
+    if (!package.empty()) {
+      package += ".";
+    }
+    package += name;
+  }
+  out = Value::string(package);
+  return true;
+}
+
+bool bootstrap_spec_from_loader(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2) {
+    error = "spec_from_loader() expected name and loader";
+    return false;
+  }
+  std::string name;
+  if (!get_string_arg(args[0], "spec_from_loader name", name, error)) {
+    return false;
+  }
+  out = make_module_spec_for_file(name, "", args[1]);
+  return true;
+}
+
+bool bootstrap_external_cache_from_source(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "cache_from_source() expected path";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool bootstrap_external_decode_source(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "decode_source() expected source bytes";
+    return false;
+  }
+  if (auto* bytes = value_as_bytes(args[0])) {
+    const auto view = bytes_object_view(*bytes);
+    out = Value::string(std::string(view.data(), view.size()));
+    return true;
+  }
+  value_assign_fast(out, args[0]);
   return true;
 }
 
@@ -564,6 +704,48 @@ bool importlib_metadata_distributions(Runtime&, const Value*, uint32_t argc, Val
   return true;
 }
 
+bool bootstrap_external_pack_uint32(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "_pack_uint32() expected an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const uint32_t value = static_cast<uint32_t>(args[0].as.i64);
+  std::string bytes;
+  bytes.push_back(static_cast<char>(value & 0xff));
+  bytes.push_back(static_cast<char>((value >> 8) & 0xff));
+  bytes.push_back(static_cast<char>((value >> 16) & 0xff));
+  bytes.push_back(static_cast<char>((value >> 24) & 0xff));
+  out = Value::bytes(std::move(bytes));
+  return true;
+}
+
+bool bootstrap_external_unpack_uint32(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_unpack_uint32() expected bytes";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* bytes = value_as_bytes(args[0]);
+  if (bytes == nullptr) {
+    error = "_unpack_uint32() expected bytes";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto view = bytes_object_view(*bytes);
+  if (view.size() != 4) {
+    error = "_unpack_uint32() expected 4 bytes";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  const uint32_t value = static_cast<unsigned char>(view[0]) |
+                         (static_cast<uint32_t>(static_cast<unsigned char>(view[1])) << 8) |
+                         (static_cast<uint32_t>(static_cast<unsigned char>(view[2])) << 16) |
+                         (static_cast<uint32_t>(static_cast<unsigned char>(view[3])) << 24);
+  out = Value::int64(value);
+  return true;
+}
+
 } // namespace
 
 void register_importlib_module(Runtime& runtime) {
@@ -580,8 +762,10 @@ void register_importlib_module(Runtime& runtime) {
   Value path_entry_finder = make_finder_class(runtime, "PathEntryFinder");
   Value path_finder = make_finder_class(runtime, "PathFinder");
   Value file_finder = make_finder_class(runtime, "FileFinder");
+  Value windows_registry_finder = make_finder_class(runtime, "WindowsRegistryFinder");
   Value builtin_importer = make_finder_class(runtime, "BuiltinImporter");
   Value frozen_importer = make_finder_class(runtime, "FrozenImporter");
+  Value apple_framework_loader = make_loader_class(runtime, "AppleFrameworkLoader");
   Value namespace_loader = make_loader_class(runtime, "NamespaceLoader");
 
   std::string ignored;
@@ -589,16 +773,29 @@ void register_importlib_module(Runtime& runtime) {
   object_set_attr(frozen_importer, "__module__", Value::string("_frozen_importlib"), ignored);
   object_set_attr(path_finder, "__module__", Value::string("_frozen_importlib_external"), ignored);
   object_set_attr(file_finder, "__module__", Value::string("_frozen_importlib_external"), ignored);
+  object_set_attr(windows_registry_finder, "__module__", Value::string("_frozen_importlib_external"), ignored);
+  object_set_attr(apple_framework_loader, "__module__", Value::string("_frozen_importlib_external"), ignored);
 
   Value module_spec_class = make_simple_class(
       "ModuleSpec",
       {{"__init__", runtime.make_native_function("ModuleSpec.__init__", module_spec_init)}});
 
   NativeModuleBuilder frozen_builder(runtime, "_frozen_importlib");
+  Value bootstrap_import;
+  if (const auto* import_builtin = runtime.find_builtin("__import__")) {
+    value_assign_fast(bootstrap_import, *import_builtin);
+  } else {
+    value_set_none(bootstrap_import);
+  }
   frozen_builder.value("__name__", Value::string("_frozen_importlib"))
       .value("BuiltinImporter", builtin_importer)
       .value("FrozenImporter", frozen_importer)
-      .value("ModuleSpec", module_spec_class);
+      .value("ModuleSpec", module_spec_class)
+      .value("__import__", bootstrap_import)
+      .function("module_from_spec", importlib_module_from_spec)
+      .function("_resolve_name", bootstrap_resolve_name)
+      .function("spec_from_loader", bootstrap_spec_from_loader)
+      .function("_find_spec", importlib_find_spec);
   Value frozen = frozen_builder.finish();
   runtime.register_module("_frozen_importlib", frozen);
   runtime.register_module("importlib._bootstrap", frozen);
@@ -606,14 +803,25 @@ void register_importlib_module(Runtime& runtime) {
   NativeModuleBuilder external_builder(runtime, "_frozen_importlib_external");
   external_builder.value("__name__", Value::string("_frozen_importlib_external"))
       .value("FileFinder", file_finder)
+      .value("WindowsRegistryFinder", windows_registry_finder)
       .value("PathFinder", path_finder)
       .value("SourceFileLoader", source_file_loader)
       .value("SourcelessFileLoader", sourceless_file_loader)
       .value("ExtensionFileLoader", extension_file_loader)
+      .value("AppleFrameworkLoader", apple_framework_loader)
       .value("NamespaceLoader", namespace_loader)
       .value("SOURCE_SUFFIXES", Value::list({Value::string(".py")}))
       .value("BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
-      .value("EXTENSION_SUFFIXES", Value::list({}));
+      .value("DEBUG_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
+      .value("OPTIMIZED_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
+      .value("EXTENSION_SUFFIXES", Value::list({}))
+      .value("MAGIC_NUMBER", Value::bytes(std::string("\0\0\0\0", 4)))
+      .function("cache_from_source", bootstrap_external_cache_from_source)
+      .function("source_from_cache", bootstrap_external_cache_from_source)
+      .function("decode_source", bootstrap_external_decode_source)
+      .function("spec_from_file_location", importlib_spec_from_file_location)
+      .function("_pack_uint32", bootstrap_external_pack_uint32)
+      .function("_unpack_uint32", bootstrap_external_unpack_uint32);
   Value external = external_builder.finish();
   runtime.register_module("_frozen_importlib_external", external);
   runtime.register_module("importlib._bootstrap_external", external);

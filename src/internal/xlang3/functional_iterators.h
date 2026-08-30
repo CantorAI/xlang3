@@ -64,6 +64,8 @@ struct ProtocolIteratorObject {
   Object header;
   Runtime* runtime = nullptr;
   Value iterator;
+  bool use_getitem = false;
+  uint64_t index = 0;
 };
 
 Value functional_enumerate_iterator(Value iterator, int64_t start);
@@ -73,6 +75,7 @@ Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterat
 Value functional_callable_iterator(Runtime* runtime, Value callable, Value sentinel);
 Value functional_chain_iterator(std::vector<Value> iterators);
 Value functional_protocol_iterator(Runtime* runtime, Value iterator);
+Value functional_getitem_iterator(Runtime* runtime, Value iterable);
 
 bool value_is_functional_iterator(const Value& value);
 void functional_iterator_release_object(Object* object);
