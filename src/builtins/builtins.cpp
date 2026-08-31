@@ -16,6 +16,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+void register_tokenize_module(Runtime& runtime);
+
 void register_core_builtins(Runtime& runtime) {
   register_object_type_builtins(runtime);
   register_exception_builtins(runtime);
@@ -31,6 +33,7 @@ void register_core_builtins(Runtime& runtime) {
   register_abc_module(runtime);
   register_atexit_module(runtime);
   register_ast_module(runtime);
+  register_binascii_module(runtime);
   register_io_module(runtime);
   register_os_module(runtime);
   register_stat_module(runtime);
@@ -44,7 +47,9 @@ void register_core_builtins(Runtime& runtime) {
   register_struct_module(runtime);
   register_signal_module(runtime);
   register_sre_module(runtime);
+  register_tokenize_module(runtime);
   register_collections_module(runtime);
+  register_typing_module(runtime);
   register_queue_module(runtime);
   register_importlib_module(runtime);
   register_weakref_module(runtime);
@@ -52,6 +57,7 @@ void register_core_builtins(Runtime& runtime) {
   register_opcode_module(runtime);
   register_pickle_module(runtime);
 #if defined(_WIN32)
+  register_msvcrt_module(runtime);
   register_winapi_module(runtime);
 #endif
   register_winreg_module(runtime);
@@ -62,7 +68,6 @@ void register_core_builtins(Runtime& runtime) {
   register_thread_modules(runtime);
 #ifndef XLANG3_EMBEDDED
   register_task_modules(runtime);
-  register_asyncio_module(runtime);
 #endif
 }
 

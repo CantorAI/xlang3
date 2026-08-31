@@ -5,7 +5,8 @@
   Remaining: none for the current dependency surface.
 
 - [x] _thread subset
-  Coverage: `tests/fixtures/core/threading_module.py`
+  Coverage: current `_thread` smoke coverage; full CPython `Lib/threading.py`
+  coverage remains in `async_threads.md`.
   Remaining: none for the current subset.
 
 - [~] _winapi
@@ -35,4 +36,3 @@
 - [~] _pickle and marshal
   Coverage: `tests/fixtures/core/sys_structseq_pickle.py`
   Remaining: full protocol compatibility, recursive object graphs, persistent ids, extension codes, and marshal code-object parity.
-

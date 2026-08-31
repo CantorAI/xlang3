@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# warnings facade: filters accepted and catch_warnings(record=True) captures warn().
+# warnings: CPython Lib/warnings.py runs on top of the native _warnings layer.
 import warnings
 import _warnings
 import errno
@@ -269,8 +269,8 @@ known, unknown = parser2.parse_known_args(["--mode", "slow", "--unknown", "value
 print(known.mode, unknown, "usage: tool" in parser2.format_usage(), "demo parser" in parser2.format_help())
 try:
     parser2.parse_args(["--mode", "bad"])
-except Exception as exc:
-    print("argparse-error", "invalid choice" in str(exc))
+except SystemExit as exc:
+    print("argparse-error", exc.code == 2)
 
 # ast: constructible nodes, field iteration, dumping, walking, and literal_eval foundations.
 const_node = ast.Constant(9)
@@ -650,9 +650,16 @@ print(numbers.Integral.register(MyIntegral) is MyIntegral, issubclass(MyIntegral
 # typing: aliases, decorators, TypeVar, NewType, Generic, and Protocol foundations.
 import typing
 
-T = typing.TypeVar("T", int, str, bound=object, covariant=True)
+T = typing.TypeVar("T", int, str, covariant=True)
+BoundT = typing.TypeVar("BoundT", bound=object)
 UserId = typing.NewType("UserId", int)
-print(T.__name__, len(T.__constraints__), T.__bound__.__name__, T.__covariant__)
+try:
+    typing.TypeVar("BadT", int, str, bound=object)
+except TypeError as exc:
+    bad_typevar_message = str(exc).startswith("Constraints cannot be combined")
+else:
+    bad_typevar_message = False
+print(T.__name__, len(T.__constraints__), T.__bound__ is None, T.__covariant__, BoundT.__bound__.__name__, bad_typevar_message)
 print(UserId(5), UserId.__name__, UserId.__supertype__.__name__)
 print(typing.cast(str, "x"), typing.List[int].__name__, typing.Optional[int].__name__)
 
@@ -672,7 +679,7 @@ print(FinalClass.__name__, issubclass(Proto, typing.Protocol), issubclass(Box, t
 import __future__
 
 feature = __future__.annotations
-print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
+print(__future__.all_feature_names[-1], feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
 print("annotations" in __future__.all_feature_names, __future__.CO_FUTURE_ANNOTATIONS == feature.compiler_flag, "all_feature_names" in __future__.__all__)
 
 # enum: class constants become members, aliases reuse members, auto increments, value lookup works, and unique rejects aliases.
@@ -716,25 +723,6 @@ mode_combo = Mode.R | Mode.X
 print(perm_combo.name, perm_combo.value, perm_combo.__repr__(), perm_combo.__str__())
 print((perm_combo & Perm.READ) is Perm.READ, (perm_combo ^ Perm.WRITE) is Perm.READ, (~Perm.READ) is Perm.WRITE)
 print(mode_combo.name, mode_combo.value, isinstance(mode_combo, Mode), (mode_combo & Mode.X) is Mode.X)
-
-# ctypes: scalar values, pointer/byref contents, buffers, simple Structure defaults, wintypes, and WinDLL facade.
-import ctypes
-from ctypes import wintypes
-
-ct_value = ctypes.c_int(5)
-ct_ptr = ctypes.pointer(ct_value)
-ct_ref = ctypes.byref(ct_value)
-print(ct_value.value, ct_ptr.contents is ct_value, ct_ref.contents is ct_value)
-print(ctypes.cast(ct_ptr, ctypes.POINTER(ctypes.c_int)).contents is ct_value, ctypes.addressof(ct_value) != 0)
-print(ctypes.memmove(ct_ptr, ct_ref, 1) is ct_ptr, ctypes.memset(ct_ptr, 0, 1) is ct_ptr)
-print(len(ctypes.create_string_buffer(3)), len(ctypes.create_string_buffer(b"abc")))
-
-class CPoint(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_int), ("y", ctypes.c_int)]
-
-ct_point = CPoint()
-print(ct_point.x, ct_point.y, ctypes.sizeof(ct_point), ctypes.sizeof(ctypes.c_int))
-print(wintypes.MAX_PATH, wintypes.DWORD is ctypes.c_uint, ctypes.windll.kernel32.OpenProcess(1, 0, 1))
 
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
 import codecs

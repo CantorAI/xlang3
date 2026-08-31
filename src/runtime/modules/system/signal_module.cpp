@@ -187,10 +187,6 @@ void register_signal_module(Runtime& runtime) {
   auto* state = new SignalState();
   runtime.register_native_package_cleanup(state, [](void* data) { delete static_cast<SignalState*>(data); });
 
-  NativeModuleBuilder public_module(runtime, "signal");
-  fill_signal_module(runtime, public_module, state);
-  runtime.register_module("signal", public_module.finish());
-
   NativeModuleBuilder private_module(runtime, "_signal");
   fill_signal_module(runtime, private_module, state);
   runtime.register_module("_signal", private_module.finish());

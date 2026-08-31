@@ -62,11 +62,9 @@ void xlang_thread_join_runtime_threads(Runtime* runtime);
 bool xlang_thread_is_alive_state(XlangThreadState& state);
 bool xlang_lock_acquire_value(const Value& lock, bool blocking, std::string& error);
 bool xlang_lock_release_value(const Value& lock, std::string& error);
-void xlang_thread_state_cleanup(void* data);
 void xlang_lock_state_cleanup(void* data);
 void xlang_rlock_state_cleanup(void* data);
 
-Value xlang_thread_make_thread_class(Runtime& runtime);
 Value xlang_thread_make_lock_class(Runtime& runtime);
 Value xlang_thread_make_rlock_class(Runtime& runtime);
 Value xlang_thread_make_lock_instance(Runtime& runtime);

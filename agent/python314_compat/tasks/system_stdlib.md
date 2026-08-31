@@ -44,10 +44,18 @@ fixture coverage, then update the row truthfully.
   `_sre` import/Pattern/Match basics used by CPython `re`, and missing
   `_struct` exports required by `struct.py`.
 
-- [ ] `traceback`, `inspect`, `linecache`, and `logging`
-  Coverage: frame/debug foundations exist.
-  Remaining: complete real code/frame/source/traceback objects so these Python
-  modules work from CPython `Lib`.
+- [~] `textwrap`, `_colorize`, `traceback`, `inspect`, `dataclasses`, `linecache`, and `logging`
+  Coverage: real CPython 3.14 source modules import from `C:/Python/Python314/Lib`
+  and the `system_stdlib` section fixture covers source-backed module paths,
+  `inspect.signature(object)`, dataclass construction, `_colorize.can_colorize`,
+  and `logging.getLogger`. Runtime/native primitive fixes added for `_tokenize`,
+  f-string embedded-expression lexing, annotation storage, tuple subclass
+  construction, type/member descriptor lookup, memoryview item sizing, `nt`
+  terminal-color probes, bytearray/bytes concatenation, and `_sre` character
+  class translation.
+  Remaining: this path is correct but much too slow because XLang3 is interpreting
+  CPython's pure-Python `re._parser` and `re._compiler` for complex regexes;
+  exact frame/source/traceback formatting and full regex semantics remain pending.
 
 - [ ] `os`, `os.path`, `ntpath`, `posixpath`, `pathlib`, `glob`, and `fnmatch`
   Coverage: native `nt`/`posix`, `_stat`, VFS, and file basics exist.

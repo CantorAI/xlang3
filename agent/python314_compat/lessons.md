@@ -8,13 +8,16 @@ batches.
 - The goal is Python 3.14 runtime compatibility. Do not optimize for debugpy,
   benchmarks, or isolated fixture tricks.
 - Pure Python CPython stdlib modules should run from the real `Lib/*.py` source.
-  Do not add public C++ facades for modules such as `abc`, `collections`,
-  `queue`, `json`, `pathlib`, `inspect`, `argparse`, `typing`, `subprocess`, or
-  `zipfile`.
+  Do not add public C++ facades for modules such as `asyncio`, `ctypes`,
+  `threading`, `warnings`, `signal`, `abc`, `collections`, `queue`, `json`,
+  `pathlib`, `inspect`, `argparse`, `typing`, `subprocess`, or `zipfile`.
 - Native C++ is for XLang3 runtime primitives, builtins/builtin types, CPython
   native dependency modules, and product-specific accelerated modules.
 - When a pure stdlib import fails, fix the runtime primitive or native
   dependency it exposes. Do not make the import pass with a stub.
+- The `ctypes` cleanup is the canonical example: do not register native
+  `ctypes`/`ctypes.wintypes`; implement `_ctypes` and let CPython's
+  `Lib/ctypes` package run.
 
 ## Validation
 
@@ -191,14 +194,10 @@ batches.
   surfaces during unrelated workflows. Python 3.14 `tokenize.py` requires an
   `_tokenize.TokenizerIter` export even when traceback formatting does not
   actually request token generation.
-- Traceback imports `_colorize` for optional color decisions and theme fields.
-  A native facade must accept the keyword forms used by traceback
-  (`can_colorize(file=...)`, `get_theme(force_no_color=...)`) even when it
-  intentionally returns a no-color theme.
-- If a native facade already owns compatibility behavior for a public stdlib
-  module, register the public module name too. Falling through to newer pure
-  Python wrappers can introduce unrelated private-module dependencies such as
-  Python 3.14 `warnings.py` importing `_py_warnings`.
+- Traceback imports private helper modules such as `_colorize` for optional
+  behavior. If a private native dependency is required, implement that private
+  dependency directly; do not register public stdlib modules such as
+  `traceback`, `warnings`, or `tokenize` as C++ facades.
 - `itertools.islice` must accept `None` for an unbounded stop and return an
   iterator, not a materialized list. Traceback uses
   `next(islice(code.co_positions(), instruction_index // 2, None))`.
@@ -215,10 +214,9 @@ batches.
   methods on `klass()`. `traceback.StackSummary(list)` requires list-derived
   instances to keep subclass identity while delegating list storage for
   `append`, indexing, length, and iteration.
-- A focused native facade is preferable to falling into a pure stdlib module
-  whose dependency graph exceeds the runtime surface being validated. The core
-  traceback fixture needs public formatting APIs, not the full Python 3.14
-  traceback/tokenize/colorize implementation stack.
+- If a pure stdlib dependency graph exposes many missing runtime features, keep
+  fixing the runtime/native dependency surface. Do not replace the public
+  stdlib module with a smaller C++ facade.
 - `linecache` reads Python source through `tokenize.open`, so a native tokenize
   facade must preserve source encoding behavior for BOM UTF-8 and first/second
   line `coding:` cookies instead of returning a generic binary wrapper.

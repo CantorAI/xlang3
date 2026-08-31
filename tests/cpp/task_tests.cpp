@@ -50,22 +50,5 @@ int main() {
     xlang3::test::expect_true(result, output == "[4, 9, 16]\n", "task.await_all should preserve list order");
   }
 
-  {
-    std::string output;
-    auto run = xlang3::test::run_source(
-        "import asyncio\n"
-        "\n"
-        "def add(a, b):\n"
-        "    return a + b\n"
-        "\n"
-        "t = asyncio.create_task(add, (5, 7))\n"
-        "print(asyncio.run(t))\n"
-        "print(asyncio.run(add, (30, 12)))\n",
-        output);
-    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
-    result.ok = result.ok && run.ok;
-    xlang3::test::expect_true(result, output == "12\n42\n", "asyncio facade should run tasks and callables");
-  }
-
   return xlang3::test::finish(result);
 }

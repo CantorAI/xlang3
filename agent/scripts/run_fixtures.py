@@ -94,7 +94,6 @@ CORE_CASES = [
     "io_module_streams",
     "imp_stat_modules",
     "collections_queue_modules",
-    "collections_queue_facades",
     "types_module",
     "traceback_module",
     "linecache_module",
@@ -126,8 +125,6 @@ CORE_CASES = [
     "class_dynamic_attrs",
     "context_managers",
     "builtin_methods",
-    "threading_module",
-    "trace_hooks",
     "trace_events",
     "trace_local_and_exception",
     "sys_coroutine_origin_metadata",
@@ -141,9 +138,7 @@ CORE_CASES = [
     "sys_dump_tracelets",
     "sys_monitoring_all_events",
     "task_async",
-    "asyncio_module",
     "async_syntax",
-    "async_protocols",
     "closures",
     "nonlocal_counter",
 ]
@@ -173,7 +168,11 @@ NEGATIVE_CASES = [
 
 
 def normalize(text: str) -> str:
-    return text.replace("\r\n", "\n").rstrip()
+    normalized = text.replace("\r\n", "\n")
+    root = str(ROOT)
+    normalized = normalized.replace(root + "\\", "")
+    normalized = normalized.replace(root.replace("\\", "/") + "/", "")
+    return normalized.rstrip()
 
 
 def read_expected(path: Path) -> str:

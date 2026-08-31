@@ -1,11 +1,15 @@
 # Pure Stdlib Shim Cleanup
 
 - [x] remove pure Python stdlib C++ shims from the build and source tree
-  Coverage: Release build without facade sources; registration/source-reference search is clean.
+  Coverage: Release build without facade sources; `agent/scripts/check_module_boundaries.py`.
   Remaining: none for the removed facades.
 
 - [x] split mixed native/facade modules
-  Coverage: registration scan confirms public facades are no longer registered for `abc`, `ast`, `io`, `queue`, `pickle`, `string`, `weakref`, `collections`, `opcode`, `types`, `locale`, `json`, `argparse`, `inspect`, `pathlib`, `re`, `typing`, `subprocess`, or `zipfile`.
+  Coverage: `agent/scripts/check_module_boundaries.py` confirms public
+  facades are no longer registered for `asyncio`, `ctypes`, `threading`,
+  `warnings`, `signal`, `abc`, `ast`, `io`, `queue`, `pickle`, `string`,
+  `weakref`, `collections`, `opcode`, `types`, `locale`, `json`, `argparse`,
+  `inspect`, `pathlib`, `re`, `typing`, `subprocess`, or `zipfile`.
   Remaining: none for top-level facade registration removal.
 
 - [x] remove pure facade source files

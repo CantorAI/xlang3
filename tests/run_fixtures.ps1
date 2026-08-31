@@ -76,7 +76,6 @@ $cases = @(
     "io_module_streams",
     "imp_stat_modules",
     "collections_queue_modules",
-    "collections_queue_facades",
     "types_module",
     "traceback_module",
     "linecache_module",
@@ -108,14 +107,10 @@ $cases = @(
     "class_dynamic_attrs",
     "context_managers",
     "builtin_methods",
-    "threading_module",
-    "trace_hooks",
     "trace_events",
     "trace_local_and_exception",
     "task_async",
-    "asyncio_module",
     "async_syntax",
-    "async_protocols",
     "closures",
     "nonlocal_counter"
 )

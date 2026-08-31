@@ -125,4 +125,8 @@ Value register_low_level_thread_module(Runtime& runtime) {
   return module;
 }
 
+void register_thread_modules(Runtime& runtime) {
+  (void)register_low_level_thread_module(runtime);
+}
+
 } // namespace xlang3

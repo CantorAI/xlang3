@@ -155,9 +155,9 @@ True True True
 True True True
 True True True
 True True True
-T 2 object True
+T 2 True True object True
 5 UserId int
-x List Optional
+x List Union
 FinalClass True True False
 annotations 3 None 16777216
 True True True
@@ -169,12 +169,6 @@ unique-error
 READ|WRITE 3 <Perm.READ|WRITE: 3> Perm.READ|WRITE
 True True True
 R|X 5 True True
-5 True True
-True True
-True True
-3 3
-0 0 64 64
-260 True 1
 True True .
 GetPassWarning True True
 1234.5 1234.5 1234 1234.5

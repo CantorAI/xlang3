@@ -3,7 +3,8 @@
 XLang3 compatibility is runtime-first.
 
 Pure Python CPython standard-library modules must run from Python source. Do
-not satisfy them by adding public C++ facades.
+not satisfy them by adding public C++ facades. This is an enforced product
+boundary, not a preference.
 
 Native C++ belongs in:
 
@@ -19,6 +20,11 @@ Native C++ belongs in:
 When `import typing`, `import inspect`, `import argparse`, or another pure
 stdlib module fails, fix the runtime/native dependency it exposes. Do not add a
 native public module just to make the import pass.
+
+If a CPython module is implemented in `Lib/*.py`, XLang3 must not register that
+same public name from C++. Implement the native dependency layer instead:
+`ctypes` needs `_ctypes`, `threading` needs `_thread`, `warnings` needs
+`_warnings`, and `signal` needs `_signal`.
 
 Task rows are done only when the real CPython-compatible behavior is
 fixture-covered.

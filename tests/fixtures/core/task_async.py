@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import task
-import asyncio
 
 def add(a, b):
     return a + b
@@ -24,5 +23,3 @@ print(t.join())
 
 items = [task.spawn(square, (2,)), task.spawn(square, (3,))]
 print(task.await_all(items))
-
-print(asyncio.run(add, (7, 8)))

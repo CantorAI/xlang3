@@ -96,12 +96,10 @@ set(XLANG3_RUNTIME_SOURCES
 set(XLANG3_THREAD_RUNTIME_SOURCES
   src/runtime/modules/thread/runtime_lock.cpp
   src/runtime/modules/thread/thread_module.cpp
-  src/runtime/modules/thread/threading_module.cpp
   src/runtime/modules/thread/thread_objects.cpp
 )
 
 set(XLANG3_TASK_RUNTIME_SOURCES
-  src/runtime/modules/task/asyncio_module.cpp
   src/runtime/modules/task/task_module.cpp
   src/runtime/modules/task/task_objects.cpp
 )
@@ -110,6 +108,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/abc_module.cpp
   src/runtime/modules/system/ast_module.cpp
   src/runtime/modules/system/atexit_module.cpp
+  src/runtime/modules/system/binascii_module.cpp
   src/runtime/modules/system/codecs_module.cpp
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/errno_module.cpp
@@ -118,6 +117,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
   src/runtime/modules/system/marshal_module.cpp
+  src/runtime/modules/system/msvcrt_module.cpp
   src/runtime/modules/system/opcode_module.cpp
   src/runtime/modules/system/os_module.cpp
   src/runtime/modules/system/pickle_module.cpp
@@ -131,6 +131,8 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/struct_module.cpp
   src/runtime/modules/system/sys_module.cpp
   src/runtime/modules/system/time_module.cpp
+  src/runtime/modules/system/tokenize_module.cpp
+  src/runtime/modules/system/typing_module.cpp
   src/runtime/modules/system/unicodedata_module.cpp
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp
@@ -250,7 +252,6 @@ add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
 add_xlang3_cpp_test(xlang3_debug_session_tests tests/cpp/debug_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_dap_session_tests tests/cpp/dap_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
-add_xlang3_cpp_test(xlang3_threading_tests tests/cpp/threading_tests.cpp)
 add_xlang3_cpp_test(xlang3_task_tests tests/cpp/task_tests.cpp)
 add_xlang3_cpp_test(xlang3_ir_codec_tests tests/cpp/ir_codec_tests.cpp)
 
