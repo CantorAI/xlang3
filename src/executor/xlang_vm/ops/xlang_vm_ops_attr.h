@@ -80,6 +80,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   }
   const auto& slot_value = instance_slot_at(instance, descriptor.index);
   if (slot_value.tag == ValueTag::Invalid) {
+    Value tuple_value;
+    std::string tuple_error;
+    if (object_get_attr(receiver, "_tuple", tuple_value, tuple_error)) {
+      if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && descriptor.index < tuple->items.size()) {
+        value_assign_fast(out, tuple->items[descriptor.index]);
+        return XlangVMOpFlow::Next;
+      }
+    }
     return raise_runtime_error("object has no attribute '" + descriptor.name + "'")
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
@@ -278,6 +286,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   if (in.b >= fn.names.size()) {
     result.errors.push_back("invalid attribute name");
     return XlangVMOpFlow::ReturnResult;
+  }
+  if (fn.names[in.b] == "__class__" && runtime_type_of_value(runtime, regs[in.a], regs[in.dst])) {
+    return XlangVMOpFlow::Next;
   }
   if (auto* hook_instance = value_as_instance(regs[in.a])) {
     auto* hook_class = value_as_class(hook_instance->klass);
@@ -595,6 +606,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
   }
   if (!store_attr_cached(regs[in.dst], fn.names[in.a], regs[in.b], instr_cache[ip].attr, error)) {
+    if (error == "object does not support attribute assignment" ||
+        error.find("read-only") != std::string::npos) {
+      return raise_exception_value(runtime.make_exception("AttributeError", error))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (error.find("immutable type") != std::string::npos) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
@@ -758,17 +780,27 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow load_instance_slot(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   auto* instance = value_as_instance(regs[in.a]);
   if (instance == nullptr || in.b >= instance_slot_count(instance)) {
     return raise_runtime_error("invalid instance slot load") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   const auto& slot_value = instance_slot_at(instance, in.b);
   if (slot_value.tag == ValueTag::Invalid) {
+    Value tuple_value;
+    std::string tuple_error;
+    if (object_get_attr(regs[in.a], "_tuple", tuple_value, tuple_error)) {
+      if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && in.b < tuple->items.size()) {
+        value_assign_fast(regs[in.dst], tuple->items[in.b]);
+        return XlangVMOpFlow::Next;
+      }
+    }
     if (auto* klass = value_as_class(instance->klass)) {
       if (in.b < klass->instance_slot_names.size()) {
         std::string error;
@@ -777,7 +809,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_instance_slot(
         }
       }
     }
-    return raise_runtime_error("object has no attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    std::string attr_name;
+    if (auto* klass = value_as_class(instance->klass)) {
+      if (in.b < klass->instance_slot_names.size()) {
+        attr_name = klass->instance_slot_names[in.b];
+      }
+    }
+    const std::string message = attr_name.empty() ? "object has no attribute" : "object has no attribute '" + attr_name + "'";
+    return raise_exception_value(runtime.make_exception("AttributeError", message))
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
   }
   value_assign_fast(regs[in.dst], slot_value);
   return XlangVMOpFlow::Next;

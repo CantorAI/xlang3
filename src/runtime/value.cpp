@@ -39,6 +39,11 @@ limitations under the License.
 #include <new>
 #include <system_error>
 #include <vector>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #if defined(XLANG3_EMBEDDED)
 #include <cstdio>
 #else
@@ -978,7 +983,8 @@ Value Value::native_function(
     void (*user_data_cleanup)(void*),
     NativeFastCallCallback fast_callback,
     bool fast_releases_vm_lock,
-    NativeKeywordFunctionCallback keyword_callback) {
+    NativeKeywordFunctionCallback keyword_callback,
+    bool bind_as_descriptor) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
@@ -988,6 +994,7 @@ Value Value::native_function(
   obj->keyword_callback = keyword_callback;
   obj->fast_callback = fast_callback;
   obj->fast_releases_vm_lock = fast_releases_vm_lock;
+  obj->bind_as_descriptor = bind_as_descriptor;
   obj->user_data = user_data;
   obj->user_data_cleanup = user_data_cleanup;
   v.as.obj = &obj->header;
@@ -1061,6 +1068,22 @@ Value Value::file(FileSystem* fs, std::string path, std::string mode, std::strin
   obj->mode = std::move(mode);
   obj->buffer = std::move(buffer);
   obj->writable = writable;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::fd_file(int fd, std::string name, std::string mode, bool readable, bool writable, bool binary, bool closefd) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FileObject>(ObjectKind::File);
+  obj->path = std::move(name);
+  obj->mode = std::move(mode);
+  obj->readable = readable;
+  obj->writable = writable;
+  obj->binary = binary;
+  obj->fd_backed = true;
+  obj->fd = fd;
+  obj->closefd = closefd;
   v.as.obj = &obj->header;
   return v;
 }
@@ -1172,6 +1195,14 @@ void release(const Value& value) {
       delete value_as_property(value);
       break;
     case ObjectKind::File:
+      if (auto* file = as_file(value.as.obj); file != nullptr && file->fd_backed && file->closefd && file->fd >= 0 && !file->closed) {
+#if defined(_WIN32)
+        _close(file->fd);
+#else
+        close(file->fd);
+#endif
+        file->fd = -1;
+      }
       delete as_file(value.as.obj);
       break;
     case ObjectKind::GenericAlias:
@@ -1323,6 +1354,8 @@ std::string value_to_repr(const Value& value) {
   return value_to_string(value);
 }
 
+const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch);
+
 bool string_percent_arg(
     const Value& args,
     size_t& tuple_index,
@@ -1337,6 +1370,15 @@ bool string_percent_arg(
     return true;
   }
   if (auto* tuple = value_as_tuple(args)) {
+    if (tuple_index >= tuple->items.size()) {
+      error = "not enough arguments for format string";
+      return false;
+    }
+    value_assign_fast(out, tuple->items[tuple_index++]);
+    return true;
+  }
+  Value tuple_scratch;
+  if (const auto* tuple = value_as_tuple_or_tuple_backed(args, tuple_scratch)) {
     if (tuple_index >= tuple->items.size()) {
       error = "not enough arguments for format string";
       return false;
@@ -1397,10 +1439,38 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
       }
     }
 
+    bool left_align = false;
+    char pad_char = ' ';
     while (i < format.size() && std::strchr("#0- +", format[i]) != nullptr) {
+      if (format[i] == '-') {
+        left_align = true;
+      } else if (format[i] == '0' && !left_align) {
+        pad_char = '0';
+      }
+      ++i;
+    }
+    int64_t width = 0;
+    bool has_width = false;
+    if (i < format.size() && format[i] == '*') {
+      Value width_arg;
+      if (!string_percent_arg(rhs, tuple_index, std::string(), width_arg, error)) {
+        return false;
+      }
+      if (width_arg.tag != ValueTag::Int64) {
+        error = "* wants int";
+        return false;
+      }
+      width = width_arg.as.i64;
+      if (width < 0) {
+        left_align = true;
+        width = -width;
+      }
+      has_width = true;
       ++i;
     }
     while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+      has_width = true;
+      width = width * 10 + static_cast<int64_t>(format[i] - '0');
       ++i;
     }
     if (i < format.size() && format[i] == '.') {
@@ -1422,11 +1492,14 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
       return false;
     }
 
+    std::string formatted;
     switch (format[i]) {
       case 's':
+        formatted = value_to_string(arg);
+        break;
       case 'r':
       case 'a':
-        result += value_to_string(arg);
+        formatted = value_to_repr(arg);
         break;
       case 'd':
       case 'i':
@@ -1435,7 +1508,7 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
           error = "%d format requires an integer";
           return false;
         }
-        result += std::to_string(arg.as.i64);
+        formatted = std::to_string(arg.as.i64);
         break;
       case 'f':
       case 'F':
@@ -1448,18 +1521,32 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
           return false;
         }
 #if defined(XLANG3_EMBEDDED)
-        result += format_f64(as_double(arg));
+        formatted = format_f64(as_double(arg));
 #else
-        result += std::to_string(as_double(arg));
+        formatted = std::to_string(as_double(arg));
 #endif
         break;
       default:
         error = "unsupported format character";
         return false;
     }
+    if (has_width && width > static_cast<int64_t>(formatted.size())) {
+      const size_t pad_count = static_cast<size_t>(width - static_cast<int64_t>(formatted.size()));
+      if (left_align) {
+        result += formatted;
+        result.append(pad_count, ' ');
+      } else {
+        result.append(pad_count, pad_char);
+        result += formatted;
+      }
+    } else {
+      result += formatted;
+    }
   }
 
-  if (auto* tuple = value_as_tuple(rhs); tuple != nullptr && tuple_index < tuple->items.size()) {
+  Value tuple_scratch;
+  const auto* tuple = value_as_tuple_or_tuple_backed(rhs, tuple_scratch);
+  if (tuple != nullptr && tuple_index < tuple->items.size()) {
     error = "not all arguments converted during string formatting";
     return false;
   }
@@ -1551,6 +1638,10 @@ bool value_truthy(const Value& value) {
         return set_truthy(value);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Instance) {
+        bool native_truth = true;
+        if (instance_native_truthy(value, native_truth)) {
+          return native_truth;
+        }
         Value bool_method;
         std::string ignored;
         if (object_get_class_attr_for_instance(value, "__bool__", bool_method, ignored)) {
@@ -1563,6 +1654,25 @@ bool value_truthy(const Value& value) {
       return true;
   }
   return false;
+}
+
+const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch) {
+  if (auto* tuple = value_as_tuple(value)) {
+    return tuple;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || !class_has_builtin_base_name(klass, "tuple")) {
+    return nullptr;
+  }
+  std::string ignored;
+  if (!object_get_attr(value, "_tuple", scratch, ignored)) {
+    return nullptr;
+  }
+  return value_as_tuple(scratch);
 }
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
@@ -1606,6 +1716,23 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     out = Value::bytes(std::move(bytes));
     return true;
   }
+  if (auto* left_array = value_as_bytearray(lhs)) {
+    std::string right_bytes;
+    if (auto* right = value_as_bytes(rhs)) {
+      right_bytes = bytes_object_to_string(*right);
+    } else if (auto* right = value_as_bytearray(rhs)) {
+      right_bytes = right->value;
+    } else {
+      error = "unsupported operands for +";
+      return false;
+    }
+    std::string bytes;
+    bytes.reserve(left_array->value.size() + right_bytes.size());
+    bytes.append(left_array->value);
+    bytes.append(right_bytes);
+    out = Value::bytearray(std::move(bytes));
+    return true;
+  }
   if (auto* left = value_as_list(lhs)) {
     if (auto* right = value_as_list(rhs)) {
       std::vector<Value> items;
@@ -1620,8 +1747,10 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
       return true;
     }
   }
-  if (auto* left = value_as_tuple(lhs)) {
-    if (auto* right = value_as_tuple(rhs)) {
+  Value left_tuple_scratch;
+  Value right_tuple_scratch;
+  if (auto* left = value_as_tuple_or_tuple_backed(lhs, left_tuple_scratch)) {
+    if (auto* right = value_as_tuple_or_tuple_backed(rhs, right_tuple_scratch)) {
       std::vector<Value> items;
       items.reserve(left->items.size() + right->items.size());
       for (const auto& item : left->items) {
@@ -1720,44 +1849,56 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     out = Value::tuple(std::move(repeated));
     return true;
   };
+  auto repeat_count = [](const Value& value, int64_t& count) {
+    if (value.tag == ValueTag::Int64) {
+      count = value.as.i64;
+      return true;
+    }
+    if (value.tag == ValueTag::Bool) {
+      count = value.as.b ? 1 : 0;
+      return true;
+    }
+    return false;
+  };
+  int64_t count = 0;
   if (auto* text = value_as_string(lhs)) {
-    if (rhs.tag == ValueTag::Int64) {
-      return repeat_string(text, rhs.as.i64);
+    if (repeat_count(rhs, count)) {
+      return repeat_string(text, count);
     }
   }
   if (auto* text = value_as_string(rhs)) {
-    if (lhs.tag == ValueTag::Int64) {
-      return repeat_string(text, lhs.as.i64);
+    if (repeat_count(lhs, count)) {
+      return repeat_string(text, count);
     }
   }
   if (auto* bytes = value_as_bytes(lhs)) {
-    if (rhs.tag == ValueTag::Int64) {
-      return repeat_bytes(bytes, rhs.as.i64);
+    if (repeat_count(rhs, count)) {
+      return repeat_bytes(bytes, count);
     }
   }
   if (auto* bytes = value_as_bytes(rhs)) {
-    if (lhs.tag == ValueTag::Int64) {
-      return repeat_bytes(bytes, lhs.as.i64);
+    if (repeat_count(lhs, count)) {
+      return repeat_bytes(bytes, count);
     }
   }
   if (auto* list = value_as_list(lhs)) {
-    if (rhs.tag == ValueTag::Int64) {
-      return repeat_list(list, rhs.as.i64);
+    if (repeat_count(rhs, count)) {
+      return repeat_list(list, count);
     }
   }
   if (auto* list = value_as_list(rhs)) {
-    if (lhs.tag == ValueTag::Int64) {
-      return repeat_list(list, lhs.as.i64);
+    if (repeat_count(lhs, count)) {
+      return repeat_list(list, count);
     }
   }
   if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr && lhs.as.obj->kind == ObjectKind::Tuple) {
-    if (rhs.tag == ValueTag::Int64) {
-      return repeat_tuple(reinterpret_cast<TupleObject*>(lhs.as.obj), rhs.as.i64);
+    if (repeat_count(rhs, count)) {
+      return repeat_tuple(reinterpret_cast<TupleObject*>(lhs.as.obj), count);
     }
   }
   if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr && rhs.as.obj->kind == ObjectKind::Tuple) {
-    if (lhs.tag == ValueTag::Int64) {
-      return repeat_tuple(reinterpret_cast<TupleObject*>(rhs.as.obj), lhs.as.i64);
+    if (repeat_count(lhs, count)) {
+      return repeat_tuple(reinterpret_cast<TupleObject*>(rhs.as.obj), count);
     }
   }
   if (is_number(lhs) && is_number(rhs)) {

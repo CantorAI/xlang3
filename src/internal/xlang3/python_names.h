@@ -27,6 +27,7 @@ struct PythonNames {
   static constexpr const char* builtin_bool = "bool";
   static constexpr const char* builtin_int = "int";
   static constexpr const char* builtin_float = "float";
+  static constexpr const char* builtin_slice = "slice";
   static constexpr const char* builtin_range = "range";
   static constexpr const char* builtin_list = "list";
   static constexpr const char* builtin_tuple = "tuple";

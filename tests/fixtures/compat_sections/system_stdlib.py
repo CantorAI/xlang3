@@ -19,14 +19,21 @@ import _collections_abc
 import codecs
 import copy
 import copyreg
+import dataclasses
 import encodings
 import enum
+import inspect
 import io
 import json
+import linecache
+import logging
 import queue
 import pickle
+import textwrap
+import traceback
 import types
 import weakref
+import _colorize
 
 
 def source_lib_module(module):
@@ -118,4 +125,26 @@ print(
     codecs.lookup("utf-8").name,
     "x".encode("utf-8"),
     bytes([121]).decode("utf-8"),
+)
+
+
+# Inspect/traceback/logging pull several CPython source helpers through import.
+@dataclasses.dataclass
+class DataPoint:
+    value: int = 1
+
+
+print(
+    "system-stdlib-source-helpers",
+    source_lib_module(textwrap),
+    source_lib_module(traceback),
+    source_lib_module(inspect),
+    source_lib_module(dataclasses),
+    source_lib_package(logging),
+    source_lib_module(linecache),
+    source_lib_module(_colorize),
+    type(inspect.signature(object)).__name__,
+    DataPoint(7).value,
+    logging.getLogger("xlang3").name,
+    _colorize.can_colorize(),
 )

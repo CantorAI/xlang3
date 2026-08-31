@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace xlang3 {
@@ -56,8 +57,12 @@ struct CallableIteratorObject {
 
 struct ChainIteratorObject {
   Object header;
+  Runtime* runtime = nullptr;
   std::vector<Value> iterators;
+  Value outer_iterator;
+  Value current_iterator;
   size_t index = 0;
+  bool from_iterable = false;
 };
 
 struct ProtocolIteratorObject {
@@ -74,6 +79,7 @@ Value functional_map_iterator(Runtime* runtime, Value callable, std::vector<Valu
 Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterator);
 Value functional_callable_iterator(Runtime* runtime, Value callable, Value sentinel);
 Value functional_chain_iterator(std::vector<Value> iterators);
+Value functional_chain_from_iterable_iterator(Runtime* runtime, Value outer_iterator);
 Value functional_protocol_iterator(Runtime* runtime, Value iterator);
 Value functional_getitem_iterator(Runtime* runtime, Value iterable);
 
@@ -87,6 +93,14 @@ bool runtime_call_callable(
     const Value& callable,
     const Value* args,
     uint32_t argc,
+    Value& out,
+    std::string& error);
+bool runtime_call_callable_kw(
+    Runtime& runtime,
+    const Value& callable,
+    const Value* args,
+    uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
     Value& out,
     std::string& error);
 

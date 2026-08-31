@@ -233,8 +233,18 @@ std::string dump_module(const Module& module) {
       if (spec.star_arg != UINT32_MAX) {
         os << " *r" << spec.star_arg;
       }
+      for (auto reg : spec.star_args) {
+        if (reg != spec.star_arg) {
+          os << " *r" << reg;
+        }
+      }
       if (spec.kw_star_arg != UINT32_MAX) {
         os << " **r" << spec.kw_star_arg;
+      }
+      for (auto reg : spec.kw_star_args) {
+        if (reg != spec.kw_star_arg) {
+          os << " **r" << reg;
+        }
       }
       os << "\n";
     }

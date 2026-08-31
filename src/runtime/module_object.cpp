@@ -110,6 +110,13 @@ std::string module_to_string(const Value& value) {
   if (module == nullptr) {
     return "<module>";
   }
+  Value file;
+  std::string ignored;
+  if (module_get_attr(value, "__file__", file, ignored)) {
+    if (auto* text = value_as_string(file)) {
+      return "<module '" + module->name + "' from '" + string_object_to_string(*text) + "'>";
+    }
+  }
   return "<module '" + module->name + "'>";
 }
 
@@ -225,7 +232,8 @@ NativeModuleBuilder& NativeModuleBuilder::function(
           nullptr,
           fast_callback,
           fast_releases_vm_lock,
-          keyword_callback));
+          keyword_callback,
+          false));
   return *this;
 }
 

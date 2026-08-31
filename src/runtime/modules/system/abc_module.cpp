@@ -268,8 +268,26 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
   Value hook;
   std::string hook_error;
   if (object_get_attr(abc_class, "__subclasshook__", hook, hook_error)) {
+    Value hook_callable;
+    std::vector<Value> hook_args;
+    if (auto* bound = value_as_bound_method(hook)) {
+      value_assign_fast(hook_callable, bound->function);
+      hook_args.push_back(bound->self);
+    } else {
+      value_assign_fast(hook_callable, hook);
+      if (value_as_function(hook_callable) != nullptr || value_as_native_function(hook_callable) != nullptr) {
+        hook_args.push_back(abc_class);
+      }
+    }
+    hook_args.push_back(subclass);
     Value hook_result;
-    if (!runtime_call_callable(runtime, hook, &subclass, 1, hook_result, error)) {
+    if (!runtime_call_callable(
+            runtime,
+            hook_callable,
+            hook_args.empty() ? nullptr : hook_args.data(),
+            static_cast<uint32_t>(hook_args.size()),
+            hook_result,
+            error)) {
       return false;
     }
     const Value* not_implemented = runtime.find_builtin("NotImplemented");

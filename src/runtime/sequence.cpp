@@ -742,12 +742,29 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       error = "sequence index must be int";
       return false;
     }
+    size_t logical_size = storage.size;
+    size_t itemsize = 1;
+    const MemoryViewObject* memory_view = nullptr;
+    if (object.as.obj->kind == ObjectKind::MemoryView) {
+      memory_view = reinterpret_cast<const MemoryViewObject*>(object.as.obj);
+      itemsize = memoryview_format_itemsize(memory_view->format);
+      if (itemsize == 0 || itemsize > storage.size || (storage.size % itemsize) != 0) {
+        error = "unsupported memoryview format";
+        return false;
+      }
+      logical_size = storage.size / itemsize;
+    }
     uint64_t resolved = 0;
-    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(storage.size), resolved)) {
+    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(logical_size), resolved)) {
       error = "index out of range";
       return false;
     }
-    value_set_int64(out, static_cast<unsigned char>(storage.data[static_cast<size_t>(resolved)]));
+    const size_t byte_offset = static_cast<size_t>(resolved) * itemsize;
+    uint64_t value = 0;
+    for (size_t i = 0; i < itemsize; ++i) {
+      value |= static_cast<uint64_t>(static_cast<unsigned char>(storage.data[byte_offset + i])) << (i * 8u);
+    }
+    value_set_int64(out, static_cast<int64_t>(value));
     return true;
   }
   if (instance_get_native_data(object, "typing._Alias") != nullptr) {
@@ -1108,7 +1125,7 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
       error = "operation forbidden on released memoryview object";
       return false;
     }
-    value_set_int64(out, static_cast<int64_t>(view->size));
+    value_set_int64(out, static_cast<int64_t>(memoryview_item_count(*view)));
     return true;
   }
   if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr) {
@@ -1118,6 +1135,14 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     Value struct_tuple;
     if (struct_sequence_storage(value, struct_tuple)) {
       return sequence_len(struct_tuple, out, error);
+    }
+    Value bytes_payload;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_bytes_value__", bytes_payload, ignored)) {
+      if (auto* bytes = value_as_bytes(bytes_payload)) {
+        value_set_int64(out, static_cast<int64_t>(bytes->size));
+        return true;
+      }
     }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_len(instance->mapping_storage, out, error);

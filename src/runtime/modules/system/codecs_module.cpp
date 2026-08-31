@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -50,6 +51,9 @@ std::string canonical_encoding(std::string name) {
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
+  }
+  if (name == "437" || name == "cp437" || name == "ibm437") {
+    return "cp437";
   }
   if (name == "idna") {
     return "idna";
@@ -295,7 +299,7 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return hex_encode(data, out);
   }
-  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1" || encoding == "idna") {
+  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1" || encoding == "cp437" || encoding == "idna") {
     std::string text;
     if (!value_text(value, text)) {
       error = "codecs.encode expected str";
@@ -310,6 +314,13 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     } else if (encoding == "latin_1") {
       std::string encoded = latin1_encode_text(runtime, text, errors, error);
       if (!error.empty()) {
+        return false;
+      }
+      out = Value::bytes(std::move(encoded));
+    } else if (encoding == "cp437") {
+      std::string encoded;
+      if (!cp437_encode_text(text, errors, encoded, error)) {
+        runtime.raise_class_error("UnicodeEncodeError", error);
         return false;
       }
       out = Value::bytes(std::move(encoded));
@@ -339,7 +350,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return hex_decode(data, out, error);
   }
-  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1" || encoding == "idna") {
+  if (encoding == "utf_8" || encoding == "utf_8_sig" || encoding == "ascii" || encoding == "latin_1" || encoding == "cp437" || encoding == "idna") {
     std::string data;
     if (!value_bytes_text(value, data)) {
       error = "codecs.decode expected bytes-like";
@@ -353,6 +364,8 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
       out = Value::string(std::move(decoded));
     } else if (encoding == "latin_1") {
       out = Value::string(latin1_decode_text(data));
+    } else if (encoding == "cp437") {
+      out = Value::string(cp437_decode_bytes(data));
     } else if (encoding == "idna") {
       std::string decoded = ascii_decode_text(runtime, data, errors, error);
       if (!error.empty()) {
@@ -464,7 +477,7 @@ bool codecs_lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   const std::string name = canonical_encoding(string_object_to_string(*value_as_string(args[0])));
-  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" && name != "idna" && name != "hex") {
+  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" && name != "cp437" && name != "idna" && name != "hex") {
     if (codec_lookup_via_registry(runtime, name, out, error)) {
       return true;
     }

@@ -40,6 +40,112 @@ std::string trim_ascii(std::string_view text) {
   return std::string(text.substr(first, last - first));
 }
 
+int fstring_hex_digit(char ch) {
+  if (ch >= '0' && ch <= '9') return ch - '0';
+  if (ch >= 'a' && ch <= 'f') return 10 + ch - 'a';
+  if (ch >= 'A' && ch <= 'F') return 10 + ch - 'A';
+  return -1;
+}
+
+void append_fstring_utf8(uint32_t value, std::string& out) {
+  if (value <= 0x7F) {
+    out.push_back(static_cast<char>(value));
+  } else if (value <= 0x7FF) {
+    out.push_back(static_cast<char>(0xC0 | (value >> 6)));
+    out.push_back(static_cast<char>(0x80 | (value & 0x3F)));
+  } else if (value <= 0xFFFF) {
+    out.push_back(static_cast<char>(0xE0 | (value >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((value >> 6) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | (value & 0x3F)));
+  } else {
+    out.push_back(static_cast<char>(0xF0 | (value >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((value >> 12) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | ((value >> 6) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | (value & 0x3F)));
+  }
+}
+
+bool append_fstring_hex_escape(std::string_view text, size_t& i, size_t digits, std::string& out) {
+  if (i + digits > text.size()) {
+    return false;
+  }
+  uint32_t value = 0;
+  for (size_t n = 0; n < digits; ++n) {
+    const int digit = fstring_hex_digit(text[i + n]);
+    if (digit < 0) {
+      return false;
+    }
+    value = (value << 4) | static_cast<uint32_t>(digit);
+  }
+  i += digits;
+  append_fstring_utf8(value, out);
+  return true;
+}
+
+std::string decode_fstring_literal(std::string_view text, bool raw) {
+  if (raw) {
+    return std::string(text);
+  }
+  std::string out;
+  out.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    if (text[i] != '\\' || i + 1 >= text.size()) {
+      out.push_back(text[i++]);
+      continue;
+    }
+    ++i;
+    const char esc = text[i++];
+    switch (esc) {
+      case 'n': out.push_back('\n'); break;
+      case 'r': out.push_back('\r'); break;
+      case 't': out.push_back('\t'); break;
+      case 'b': out.push_back('\b'); break;
+      case 'f': out.push_back('\f'); break;
+      case 'a': out.push_back('\a'); break;
+      case 'v': out.push_back('\v'); break;
+      case '\\':
+      case '\'':
+      case '"':
+        out.push_back(esc);
+        break;
+      case 'x':
+        if (!append_fstring_hex_escape(text, i, 2, out)) out += "\\x";
+        break;
+      case 'u':
+        if (!append_fstring_hex_escape(text, i, 4, out)) out += "\\u";
+        break;
+      case 'U':
+        if (!append_fstring_hex_escape(text, i, 8, out)) out += "\\U";
+        break;
+      default:
+        out.push_back(esc);
+        break;
+    }
+  }
+  return out;
+}
+
+size_t skip_quoted_fstring_field_text(std::string_view text, size_t i) {
+  const char quote = text[i];
+  const bool triple = i + 2 < text.size() && text[i + 1] == quote && text[i + 2] == quote;
+  i += triple ? 3 : 1;
+  while (i < text.size()) {
+    if (text[i] == '\\' && i + 1 < text.size()) {
+      i += 2;
+      continue;
+    }
+    if (triple) {
+      if (i + 2 < text.size() && text[i] == quote && text[i + 1] == quote && text[i + 2] == quote) {
+        return i + 3;
+      }
+    } else if (text[i] == quote) {
+      return i + 1;
+    }
+    ++i;
+  }
+  return i;
+}
+
 bool append_pattern_capture_name(std::vector<std::string>& names, const std::string& name) {
   if (name == "_") {
     return true;
@@ -169,7 +275,7 @@ bool is_statement_recovery_boundary(TokenKind kind) {
 
 } // namespace
 
-std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
+std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text, bool raw) {
   std::vector<ast::FStringExpr::Part> parts;
   std::string literal;
   for (size_t i = 0; i < text.size();) {
@@ -180,12 +286,16 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
         continue;
       }
       if (!literal.empty()) {
-        parts.push_back(ast::FStringExpr::Part{false, std::move(literal)});
+        parts.push_back(ast::FStringExpr::Part{false, decode_fstring_literal(literal, raw)});
         literal.clear();
       }
       const size_t expr_start = ++i;
       int depth = 0;
       while (i < text.size()) {
+        if (text[i] == '\'' || text[i] == '"') {
+          i = skip_quoted_fstring_field_text(text, i);
+          continue;
+        }
         if (text[i] == '(' || text[i] == '[' || text[i] == '{') {
           ++depth;
         } else if ((text[i] == ')' || text[i] == ']' || text[i] == '}') && depth > 0) {
@@ -204,7 +314,13 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
       size_t spec_pos = std::string_view::npos;
       for (size_t j = 0; j < field.size(); ++j) {
         const char field_ch = field[j];
-        if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
+        if (field_ch == '\'' || field_ch == '"') {
+          j = skip_quoted_fstring_field_text(field, j);
+          if (j == 0) {
+            break;
+          }
+          --j;
+        } else if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
           ++nested_depth;
         } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
           --nested_depth;
@@ -224,7 +340,13 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
       nested_depth = 0;
       for (size_t j = 0; j < expr_text.size(); ++j) {
         const char field_ch = expr_text[j];
-        if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
+        if (field_ch == '\'' || field_ch == '"') {
+          j = skip_quoted_fstring_field_text(expr_text, j);
+          if (j == 0) {
+            break;
+          }
+          --j;
+        } else if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
           ++nested_depth;
         } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
           --nested_depth;
@@ -269,7 +391,7 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
     literal.push_back(text[i++]);
   }
   if (!literal.empty()) {
-    parts.push_back(ast::FStringExpr::Part{false, std::move(literal)});
+    parts.push_back(ast::FStringExpr::Part{false, decode_fstring_literal(literal, raw)});
   }
   return parts;
 }
@@ -1594,7 +1716,7 @@ ast::ExprPtr Parser::parse_primary() {
         }
         has_fstring = true;
       }
-      auto parts = parse_fstring_parts(previous().text);
+      auto parts = parse_fstring_parts(previous().text, previous().is_raw_string);
       for (auto& part : parts) {
         fstring_parts.push_back(std::move(part));
       }

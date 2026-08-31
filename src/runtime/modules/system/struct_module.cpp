@@ -62,13 +62,21 @@ bool struct_fail(Runtime& runtime, const std::string& message, std::string& erro
 }
 
 bool get_format(const Value& value, std::string& out, std::string& error) {
-  auto* text = value_as_string(value);
-  if (text == nullptr) {
-    error = "struct format must be str";
-    return false;
+  if (auto* text = value_as_string(value)) {
+    out = string_object_to_string(*text);
+    return true;
   }
-  out = string_object_to_string(*text);
-  return true;
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    out.assign(view.data(), view.size());
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    out = bytearray->value;
+    return true;
+  }
+  error = "struct format must be str or bytes";
+  return false;
 }
 
 uint32_t primitive_size(char ch) {

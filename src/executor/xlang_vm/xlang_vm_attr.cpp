@@ -37,8 +37,7 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         value_assign_fast(out, slot_value);
         return true;
       }
-      error = "object has no attribute '" + name + "'";
-      return false;
+      cache.kind = AttrSiteKind::Empty;
     }
     if (klass != nullptr &&
         cache.kind == AttrSiteKind::InstanceAttr &&
@@ -106,6 +105,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     const Value& value,
     AttrSiteCache& cache,
     std::string& error) {
+  if (name == "__class__") {
+    cache.kind = AttrSiteKind::Empty;
+    return object_set_attr(object, name, value, error);
+  }
   if (auto* instance = value_as_instance(object)) {
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr &&

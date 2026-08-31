@@ -149,17 +149,20 @@ bool dict_eq_method(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
-bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 && argc != 3) {
     error = "dict.pop expected 2 or 3 arguments, got " + std::to_string(argc);
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (!mapping_is_mapping(args[0])) {
     error = "dict.pop target is not a mapping";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   size_t ignored = 0;
   if (!value_hash_key(args[1], ignored, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   Value target = args[0];
@@ -174,6 +177,7 @@ bool dict_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
     return true;
   }
   error = "key not found";
+  runtime.raise_class_error("KeyError", error);
   return false;
 }
 
@@ -242,15 +246,7 @@ bool dict_setdefault_method(Runtime&, const Value* args, uint32_t argc, Value& o
 }
 
 bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& source, std::string& error) {
-  if (auto* source_dict = value_as_dict(source)) {
-    for (const auto& entry : source_dict->entries) {
-      if (!mapping_set_item(target, entry.first, entry.second, error)) {
-        return false;
-      }
-    }
-    return true;
-  }
-  if (value_as_module(source) != nullptr) {
+  if (mapping_is_mapping(source)) {
     Value iterator;
     if (!mapping_get_iter(source, iterator, error)) {
       return false;

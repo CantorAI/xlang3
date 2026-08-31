@@ -127,6 +127,7 @@ struct Token {
   uint32_t line = 1;
   uint32_t column = 1;
   bool is_triple_string = false;
+  bool is_raw_string = false;
 };
 
 struct LexResult {
@@ -145,7 +146,7 @@ struct ParseExpressionResult {
   std::vector<std::string> errors;
 };
 
-std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text);
+std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text, bool raw = false);
 
 class Lexer {
 public:
@@ -153,8 +154,8 @@ public:
   LexResult tokenize();
 
 private:
-  void emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string = false);
-  void emit_owned(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string = false);
+  void emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string = false, bool is_raw_string = false);
+  void emit_owned(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string = false, bool is_raw_string = false);
   void tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t indent);
 
   std::string_view source_;

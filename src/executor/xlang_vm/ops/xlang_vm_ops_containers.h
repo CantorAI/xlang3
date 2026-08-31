@@ -416,7 +416,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::MemoryView:
-          value_set_int64(regs[in.dst], static_cast<int64_t>(reinterpret_cast<MemoryViewObject*>(regs[in.a].as.obj)->size));
+          value_set_int64(regs[in.dst], static_cast<int64_t>(memoryview_item_count(*reinterpret_cast<MemoryViewObject*>(regs[in.a].as.obj))));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::Dict:
@@ -471,7 +471,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
         }
         return XlangVMOpFlow::Next;
       case ObjectKind::MemoryView:
-        value_set_int64(regs[in.dst], static_cast<int64_t>(value_as_memoryview(regs[in.a])->size));
+        value_set_int64(regs[in.dst], static_cast<int64_t>(memoryview_item_count(*value_as_memoryview(regs[in.a]))));
         xlang_vm_cache_note_hit(cache);
         if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
           xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
@@ -731,6 +731,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     XlangVMSmallRegisterBuffer& regs,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
+  std::string& error = xlang_vm_native_error_scratch();
+  error.clear();
+  auto raise_set_item_error = [&]() -> XlangVMOpFlow {
+    const std::string& mapped_error = error;
+    bool is_mapping_miss = mapped_error == "key not found" && value_as_dict(regs[in.dst]) != nullptr;
+    if (!is_mapping_miss) {
+      if (auto* instance = value_as_instance(regs[in.dst])) {
+        is_mapping_miss = value_as_dict(instance->mapping_storage) != nullptr;
+      }
+    }
+    if (is_mapping_miss) {
+      return raise_exception_value(runtime.make_exception("KeyError", value_to_string(regs[in.a])))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
+    if (mapped_error == "index out of range") {
+      return raise_exception_value(runtime.make_exception("IndexError", mapped_error)) ? XlangVMOpFlow::ContinueLoop
+                                                                                       : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(mapped_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  };
+
   if (regs[in.a].tag == ValueTag::Int64 && regs[in.b].tag == ValueTag::Int64 &&
       regs[in.b].as.i64 >= 0 && regs[in.b].as.i64 <= 255 &&
       regs[in.dst].tag == ValueTag::Object && regs[in.dst].as.obj != nullptr) {
@@ -757,7 +779,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       }
     }
   }
-  std::string error;
   if (value_as_instance(regs[in.dst]) != nullptr) {
     Value setitem;
     std::string attr_error;
@@ -792,7 +813,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
         }
       }
     }
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_set_item_error();
   }
   return XlangVMOpFlow::Next;
 }

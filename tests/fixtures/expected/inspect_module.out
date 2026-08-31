@@ -5,15 +5,15 @@ True
 True
 True
 <frame object>
-[]
+[<FrameInfo object>]
 __class__
 m
-math
+TypeError True
 hello
 world
-  a
+a
 b
-abc False
+abc True
 True True
 ['a', 'b'] 3 2
 {}

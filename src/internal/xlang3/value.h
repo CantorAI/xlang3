@@ -144,6 +144,7 @@ struct NativeFunctionObject {
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
   bool fast_releases_vm_lock = false;
+  bool bind_as_descriptor = true;
   void* user_data = nullptr;
   void (*user_data_cleanup)(void*) = nullptr;
   Value* attrs_dict = nullptr;
@@ -211,7 +212,13 @@ struct Value {
   static Value range(int64_t start, int64_t stop, int64_t step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
   static Value sequence_iterator(Value source, uint64_t index);
-  static Value generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async = false, bool is_coroutine = false);
+  static Value generator(
+      Runtime* runtime,
+      Value function,
+      std::vector<Value> args,
+      bool is_async = false,
+      bool is_coroutine = false,
+      bool args_bound = false);
   static Value module(std::string name);
   static Value cell(Value value);
   static Value function(uint32_t function_id, std::vector<Value> closure);
@@ -242,8 +249,10 @@ struct Value {
       void (*user_data_cleanup)(void*) = nullptr,
       NativeFastCallCallback fast_callback = nullptr,
       bool fast_releases_vm_lock = false,
-      NativeKeywordFunctionCallback keyword_callback = nullptr);
+      NativeKeywordFunctionCallback keyword_callback = nullptr,
+      bool bind_as_descriptor = true);
   static Value file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable);
+  static Value fd_file(int fd, std::string name, std::string mode, bool readable, bool writable, bool binary, bool closefd);
   static Value class_object(
       std::string name,
       std::vector<std::pair<std::string, Value>> attrs,
@@ -456,6 +465,38 @@ struct MemoryViewObject {
   bool released = false;
 };
 
+XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
+  if (format.empty()) {
+    return 1;
+  }
+  switch (format.back()) {
+    case 'B':
+    case 'b':
+    case 'c':
+      return 1;
+    case 'H':
+    case 'h':
+      return 2;
+    case 'I':
+    case 'i':
+    case 'L':
+    case 'l':
+    case 'f':
+      return 4;
+    case 'Q':
+    case 'q':
+    case 'd':
+      return 8;
+    default:
+      return 0;
+  }
+}
+
+XLANG3_HOT_INLINE size_t memoryview_item_count(const MemoryViewObject& view) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  return itemsize == 0 ? view.size : view.size / itemsize;
+}
+
 struct PropertyObject {
   Object header;
   Value fget;
@@ -626,6 +667,9 @@ struct FileObject {
   bool binary = false;
   bool closed = false;
   bool devnull = false;
+  bool fd_backed = false;
+  int fd = -1;
+  bool closefd = true;
 };
 
 XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {

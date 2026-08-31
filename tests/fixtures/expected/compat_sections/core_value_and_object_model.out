@@ -31,10 +31,10 @@ x True
 slot-deleted
 slot-blocked
 5 6
-12 False int-child
-34 False str-child
-1.5 False float-child
-2 False bytes-child
+12 True int-child
+34 True str-child
+1.5 True float-child
+2 True bytes-child
 data-get instance-non-data
 data-set:ok
 9

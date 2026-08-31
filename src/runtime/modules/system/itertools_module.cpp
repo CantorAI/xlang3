@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
 #include <algorithm>
@@ -289,6 +290,19 @@ bool itertools_chain(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     iterators.push_back(std::move(iterator));
   }
   out = functional_chain_iterator(std::move(iterators));
+  return true;
+}
+
+bool itertools_chain_from_iterable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "itertools.chain.from_iterable() expected iterable";
+    return false;
+  }
+  Value iterator;
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
+    return false;
+  }
+  out = functional_chain_from_iterable_iterator(&runtime, std::move(iterator));
   return true;
 }
 
@@ -648,6 +662,15 @@ bool itertools_tee(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 
 void register_itertools_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "itertools");
+  Value chain = runtime.make_native_function("itertools.chain", itertools_chain);
+  {
+    std::string error;
+    object_set_attr(
+        chain,
+        "from_iterable",
+        runtime.make_native_function("itertools.chain.from_iterable", itertools_chain_from_iterable),
+        error);
+  }
   builder.function("count", itertools_count)
       .function("islice", itertools_islice)
       .function("takewhile", itertools_takewhile)
@@ -655,7 +678,7 @@ void register_itertools_module(Runtime& runtime) {
       .function("filterfalse", itertools_filterfalse)
       .function("compress", itertools_compress)
       .function("repeat", itertools_repeat)
-      .function("chain", itertools_chain)
+      .value("chain", std::move(chain))
       .function("batched", itertools_batched)
       .function("product", itertools_product)
       .function("combinations", itertools_combinations)

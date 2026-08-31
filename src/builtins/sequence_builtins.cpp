@@ -19,6 +19,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#include <cstring>
+
 namespace xlang3 {
 
 namespace {
@@ -105,6 +107,15 @@ bool builtin_range(
   }
   out = Value::range(start, stop, step);
   return true;
+}
+
+Value noninterned_string_value(const std::string& text) {
+  Value out = Value::string_uninitialized(text.size());
+  auto* string = value_as_string(out);
+  if (string != nullptr && !text.empty()) {
+    std::memcpy(string_object_mutable_data(*string), text.data(), text.size());
+  }
+  return out;
 }
 
 bool builtin_len(
@@ -276,7 +287,13 @@ bool builtin_ord(
 } // namespace
 
 bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, std::string& error) {
-  if (value_as_instance(value) != nullptr) {
+  if (auto* instance = value_as_instance(value)) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr && klass->attrs.find("__str__") == klass->attrs.end() &&
+        class_has_builtin_base_name(klass, "int")) {
+      out = noninterned_string_value(value_to_string(value));
+      return true;
+    }
     Value str_method;
     std::string attr_error;
     if (attribute_get(value, "__str__", str_method, attr_error)) {
@@ -293,7 +310,7 @@ bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, st
       return true;
     }
   }
-  out = Value::string(value_to_string(value));
+  out = noninterned_string_value(value_to_string(value));
   return true;
 }
 

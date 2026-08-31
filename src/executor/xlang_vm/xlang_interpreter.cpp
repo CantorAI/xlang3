@@ -75,6 +75,14 @@ RuntimeResult Interpreter::run_module(
         return result;
       }
     }
+    if (!module_get_attr(globals_module, "__annotations__", existing, error) || existing.tag == ValueTag::Invalid) {
+      error.clear();
+      if (!module_set_attr(globals_module, "__annotations__", Value::dict({}), error)) {
+        result.errors.push_back(error);
+        return result;
+      }
+    }
+    runtime_.register_module(name, globals_module);
   }
   static const std::vector<Value> empty_closure;
   static const std::vector<Value> empty_defaults;

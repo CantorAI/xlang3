@@ -1159,8 +1159,20 @@ private:
 
   uint32_t lower_annotation(const ast::Expr& annotation) {
     if (!future_annotations_) {
-      return lower_expr(annotation);
+      if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&annotation);
+          literal != nullptr && literal->kind == ast::LiteralExpr::Kind::String) {
+        const auto reg = new_reg();
+        emit(ir::Op::LoadConst, reg, add_const(Value::string(literal->text)));
+        return reg;
+      }
+      return lower_annotation_stringized(annotation);
     }
+    const auto reg = new_reg();
+    emit(ir::Op::LoadConst, reg, add_const(Value::string(annotation_expr_to_string(annotation))));
+    return reg;
+  }
+
+  uint32_t lower_annotation_stringized(const ast::Expr& annotation) {
     const auto reg = new_reg();
     emit(ir::Op::LoadConst, reg, add_const(Value::string(annotation_expr_to_string(annotation))));
     return reg;
@@ -1477,7 +1489,6 @@ private:
     for (const auto& name : assignment_names(*comp.target_expr)) {
       targets.insert(resolve_name(name));
     }
-    collect_expression_captures(*comp.iterable, targets, names, seen);
     if (comp.filter != nullptr) {
       collect_expression_captures(*comp.filter, targets, names, seen);
     }
@@ -1591,6 +1602,18 @@ private:
     emit(ir::Op::Return, 0, reg);
   }
 
+  struct ActiveFinalizer {
+    enum class Kind {
+      TryFinally,
+      WithExit,
+    };
+
+    Kind kind = Kind::TryFinally;
+    const std::vector<ast::StmtPtr>* body = nullptr;
+    uint32_t manager = 0;
+    bool is_async = false;
+  };
+
   void lower_finalizer_body(const std::vector<ast::StmtPtr>& body) {
     const auto saved = std::move(active_finalizers_);
     active_finalizers_.clear();
@@ -1598,10 +1621,30 @@ private:
     active_finalizers_ = std::move(saved);
   }
 
+  void emit_with_normal_exit(uint32_t manager, bool is_async) {
+    const auto none_type = new_reg();
+    const auto none_value = new_reg();
+    const auto none_tb = new_reg();
+    const auto none_const = add_const(Value::none());
+    emit(ir::Op::LoadConst, none_type, none_const);
+    emit(ir::Op::LoadConst, none_value, none_const);
+    emit(ir::Op::LoadConst, none_tb, none_const);
+    uint32_t exit_result =
+        emit_call_method(manager, is_async ? "__aexit__" : "__exit__", {none_type, none_value, none_tb});
+    if (is_async) {
+      exit_result = emit_await_value(exit_result);
+    }
+    emit(ir::Op::Pop, 0, exit_result);
+  }
+
   void lower_active_finalizers() {
     const auto saved = active_finalizers_;
     for (auto it = saved.rbegin(); it != saved.rend(); ++it) {
-      lower_finalizer_body(**it);
+      if (it->kind == ActiveFinalizer::Kind::TryFinally) {
+        lower_finalizer_body(*it->body);
+      } else {
+        emit_with_normal_exit(it->manager, it->is_async);
+      }
     }
   }
 
@@ -1872,7 +1915,7 @@ private:
     }
 
     const auto setup = emit_jump(ir::Op::SetupExcept);
-    active_finalizers_.push_back(&stmt.finally_body);
+    active_finalizers_.push_back({ActiveFinalizer::Kind::TryFinally, &stmt.finally_body, 0, false});
     lower_try_except_core(stmt);
     active_finalizers_.pop_back();
     emit(ir::Op::PopExcept);
@@ -1923,21 +1966,12 @@ private:
       emit(ir::Op::Pop, 0, entered);
     }
     const auto setup = emit_jump(ir::Op::SetupWith, manager);
+    active_finalizers_.push_back({ActiveFinalizer::Kind::WithExit, nullptr, manager, stmt.is_async});
     lower_body(stmt.body);
+    active_finalizers_.pop_back();
     emit(ir::Op::PopExcept);
-    const auto none_type = new_reg();
-    const auto none_value = new_reg();
-    const auto none_tb = new_reg();
     const auto none_const = add_const(Value::none());
-    emit(ir::Op::LoadConst, none_type, none_const);
-    emit(ir::Op::LoadConst, none_value, none_const);
-    emit(ir::Op::LoadConst, none_tb, none_const);
-    uint32_t exit_result =
-        emit_call_method(manager, stmt.is_async ? "__aexit__" : "__exit__", {none_type, none_value, none_tb});
-    if (stmt.is_async) {
-      exit_result = emit_await_value(exit_result);
-    }
-    emit(ir::Op::Pop, 0, exit_result);
+    emit_with_normal_exit(manager, stmt.is_async);
     const auto done = emit_jump(ir::Op::Jump);
     patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
     const auto exc_type = new_reg();
@@ -2376,8 +2410,34 @@ private:
     return reg;
   }
 
+  static bool decorator_name_is(const ast::Expr& expr, std::string_view name) {
+    if (auto* direct = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      return direct->name == name;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      return attr->name == name;
+    }
+    return false;
+  }
+
+  static bool disables_instance_slot_lowering(const ast::FunctionDef& fn) {
+    if (fn.name == "__init_subclass__") {
+      return true;
+    }
+    for (const auto& decorator : fn.decorators) {
+      if (decorator == nullptr) {
+        continue;
+      }
+      if (decorator_name_is(*decorator, "classmethod") || decorator_name_is(*decorator, "staticmethod")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true, std::string qualname_parent = {}) {
     std::vector<std::pair<std::string, uint32_t>> attrs;
+    std::vector<ir::CallKeywordArg> class_keywords;
     uint32_t metaclass_reg = UINT32_MAX;
     bool metaclass_supports_prepare = false;
     for (const auto& keyword : klass.keywords) {
@@ -2388,7 +2448,7 @@ private:
           metaclass_supports_prepare = name->name == "type" || class_infos_.find(name->name) != class_infos_.end();
         }
       } else {
-        emit(ir::Op::Pop, 0, value);
+        class_keywords.push_back(ir::CallKeywordArg{keyword.first, value});
       }
     }
     const std::string& parent_qualname = qualname_parent.empty() ? qualname_prefix_ : qualname_parent;
@@ -2397,9 +2457,20 @@ private:
     std::unordered_set<std::string> seen_own_instance_slots;
     std::vector<std::string> match_args;
     const std::string class_doc = docstring_from_body(klass.body);
-    if (!class_doc.empty()) {
+    bool use_dynamic_namespace = false;
+    for (const auto& stmt : klass.body) {
+      if (dynamic_cast<const ast::IfStmt*>(stmt.get()) != nullptr) {
+        use_dynamic_namespace = true;
+        break;
+      }
+    }
+    {
       const auto doc_reg = new_reg();
-      emit(ir::Op::LoadConst, doc_reg, add_const(Value::string(class_doc)));
+      if (class_doc.empty()) {
+        emit(ir::Op::LoadConst, doc_reg, add_const(Value::none()));
+      } else {
+        emit(ir::Op::LoadConst, doc_reg, add_const(Value::string(class_doc)));
+      }
       attrs.push_back(std::make_pair("__doc__", doc_reg));
     }
     bool has_explicit_slots = false;
@@ -2418,7 +2489,7 @@ private:
     if (!has_explicit_slots && klass.bases.empty()) {
       for (const auto& stmt : klass.body) {
         if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
-          if (!fn->params.empty()) {
+          if (!fn->params.empty() && !disables_instance_slot_lowering(*fn)) {
             for (const auto& child : fn->body) {
               collect_self_attr_slots_stmt(*child, fn->params[0], own_instance_slots, seen_own_instance_slots);
             }
@@ -2479,6 +2550,11 @@ private:
       emit(ir::Op::Call, metaclass_reg, type_reg, add_call_args({base_regs[0]}));
       metaclass_supports_prepare = true;
     }
+    if (metaclass_reg == UINT32_MAX && !class_keywords.empty()) {
+      metaclass_reg = new_reg();
+      emit(ir::Op::LoadGlobal, metaclass_reg, add_name("type"));
+      metaclass_supports_prepare = true;
+    }
 
     uint32_t name_reg = UINT32_MAX;
     uint32_t bases_reg = UINT32_MAX;
@@ -2491,7 +2567,14 @@ private:
       const auto prepare_reg = new_reg();
       emit(ir::Op::LoadAttr, prepare_reg, metaclass_reg, add_name("__prepare__"));
       namespace_reg = new_reg();
-      emit(ir::Op::Call, namespace_reg, prepare_reg, add_call_args({name_reg, bases_reg}));
+      if (class_keywords.empty()) {
+        emit(ir::Op::Call, namespace_reg, prepare_reg, add_call_args({name_reg, bases_reg}));
+      } else {
+        ir::CallSpec prepare_spec;
+        prepare_spec.positional = {name_reg, bases_reg};
+        prepare_spec.keywords = class_keywords;
+        emit(ir::Op::CallEx, namespace_reg, prepare_reg, add_call_spec(std::move(prepare_spec)));
+      }
     }
 
     std::unordered_map<std::string, std::string> saved_aliases;
@@ -2523,6 +2606,18 @@ private:
       store_named_value(name, reg);
       add_to_prepared_namespace(name, reg);
     };
+    if (use_dynamic_namespace && namespace_reg == UINT32_MAX) {
+      if (metaclass_reg == UINT32_MAX) {
+        metaclass_reg = new_reg();
+        emit(ir::Op::LoadGlobal, metaclass_reg, add_name("type"));
+      }
+      name_reg = new_reg();
+      emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
+      bases_reg = new_reg();
+      emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      namespace_reg = new_reg();
+      emit(ir::Op::MakeDict, namespace_reg, add_dict_items({}));
+    }
     for (const auto& attr : attrs) {
       add_to_prepared_namespace(attr.first, attr.second);
     }
@@ -2535,18 +2630,23 @@ private:
       bind_class_attr_alias("__type_params__", attr_reg);
     }
 
-    for (const auto& stmt : klass.body) {
-      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
+    auto lower_class_body_stmt = [&](auto&& self, const ast::Stmt& stmt) -> void {
+      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+        const bool use_instance_slots = !use_dynamic_namespace && !disables_instance_slot_lowering(*fn);
         const auto attr_reg = apply_decorators(
-            lower_function_value(*fn, fn->params.empty() ? std::string{} : fn->params[0], class_info.slots, class_qualname),
+            lower_function_value(
+                *fn,
+                (use_instance_slots && !fn->params.empty()) ? fn->params[0] : std::string{},
+                use_instance_slots ? class_info.slots : std::unordered_map<std::string, uint32_t>{},
+                class_qualname),
             fn->decorators);
         attrs.push_back(std::make_pair(fn->name, attr_reg));
         bind_class_attr_alias(fn->name, attr_reg);
-      } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
+      } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
         const auto attr_reg = lower_expr(*assign->value);
         attrs.push_back(std::make_pair(assign->name, attr_reg));
         bind_class_attr_alias(assign->name, attr_reg);
-      } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(stmt.get())) {
+      } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
         const auto attr_reg = lower_expr(*assign->value);
         for (const auto& target : assign->targets) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(target.get())) {
@@ -2554,7 +2654,7 @@ private:
             bind_class_attr_alias(name->name, attr_reg);
           }
         }
-      } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(stmt.get())) {
+      } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
         if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
           const auto key_reg = new_reg();
           emit(ir::Op::LoadConst, key_reg, add_const(Value::string(name->name)));
@@ -2567,11 +2667,33 @@ private:
             bind_class_attr_alias(name->name, attr_reg);
           }
         }
-      } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(stmt.get())) {
+      } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(&stmt)) {
         const auto attr_reg = lower_class_def(*nested, false, class_qualname);
         attrs.push_back(std::make_pair(nested->name, attr_reg));
         bind_class_attr_alias(nested->name, attr_reg);
+      } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+        size_t jf = 0;
+        if (!try_emit_local_const_condition_jump(*ifs->condition, jf)) {
+          const auto cond = lower_expr(*ifs->condition);
+          jf = emit_jump(ir::Op::JumpIfFalse, cond);
+        }
+        for (const auto& child : ifs->then_body) {
+          self(self, *child);
+        }
+        const auto jend = emit_jump(ir::Op::Jump);
+        patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+        for (const auto& child : ifs->else_body) {
+          self(self, *child);
+        }
+        patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+        const auto reg = lower_expr(*expr_stmt->expr);
+        emit(ir::Op::Pop, 0, reg);
       }
+    };
+
+    for (const auto& stmt : klass.body) {
+      lower_class_body_stmt(lower_class_body_stmt, *stmt);
     }
 
     if (!class_annotations.empty()) {
@@ -2611,7 +2733,16 @@ private:
         namespace_reg = new_reg();
         emit(ir::Op::MakeDict, namespace_reg, add_dict_items(std::move(namespace_items)));
       }
-      emit(ir::Op::Call, reg, metaclass_reg, add_call_args({name_reg, bases_reg, namespace_reg}));
+      const auto build_class_reg = new_reg();
+      emit(ir::Op::LoadGlobal, build_class_reg, add_name("__xlang3_build_class_from_namespace__"));
+      if (class_keywords.empty()) {
+        emit(ir::Op::Call, reg, build_class_reg, add_call_args({metaclass_reg, name_reg, bases_reg, namespace_reg}));
+      } else {
+        ir::CallSpec class_spec;
+        class_spec.positional = {metaclass_reg, name_reg, bases_reg, namespace_reg};
+        class_spec.keywords = std::move(class_keywords);
+        emit(ir::Op::CallEx, reg, build_class_reg, add_call_spec(std::move(class_spec)));
+      }
     }
     const auto decorated_reg = apply_decorators(reg, klass.decorators);
     if (store_name) {
@@ -2833,6 +2964,15 @@ private:
       return;
     }
     if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+      if (is_module_) {
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+          const auto annotations = new_reg();
+          emit(ir::Op::LoadGlobal, annotations, add_name("__annotations__"));
+          const auto key = new_reg();
+          emit(ir::Op::LoadConst, key, add_const(Value::string(name->name)));
+          emit(ir::Op::SetItem, annotations, key, lower_annotation(*assign->annotation));
+        }
+      }
       if (assign->value == nullptr) {
         return;
       }
@@ -3276,6 +3416,8 @@ private:
   }
 
   uint32_t lower_generator_expr(const ast::GeneratorExpr& comp) {
+    const std::string eager_iterable_name = "#genexpr.iterable0";
+    const auto eager_iterable = lower_expr(*comp.iterable);
     const auto free_vars = closure_names_for_generator(comp);
     for (const auto& name : free_vars) {
       if (sema::contains(local_name_set_, name)) {
@@ -3283,9 +3425,13 @@ private:
       }
     }
     FunctionLowerer child_lowerer(
-        module_, "#genexpr", {}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, false, false, 0, false,
+        module_, "#genexpr", {eager_iterable_name}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, false, false, 0, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
-    const auto clauses = child_lowerer.generator_comp_clauses(comp);
+    ast::NameExpr eager_iterable_expr(eager_iterable_name);
+    auto clauses = child_lowerer.generator_comp_clauses(comp);
+    if (!clauses.empty()) {
+      clauses[0].iterable = &eager_iterable_expr;
+    }
     child_lowerer.lower_comprehension_clauses(
         clauses, 0, 0, [&]() {
           const auto value = child_lowerer.lower_expr(*comp.result);
@@ -3307,7 +3453,7 @@ private:
     }
     emit(ir::Op::MakeFunction, callee, function_id, add_function_closure(std::move(closure_regs)), UINT32_MAX);
     const auto dst = new_reg();
-    emit(ir::Op::Call, dst, callee, add_call_args({}));
+    emit(ir::Op::Call, dst, callee, add_call_args({eager_iterable}));
     return dst;
   }
 
@@ -3478,9 +3624,15 @@ private:
         for (const auto& arg : call->call_args) {
           const auto value = lower_expr(*arg.value);
           if (arg.kw_star) {
-            spec.kw_star_arg = value;
+            if (spec.kw_star_arg == UINT32_MAX) {
+              spec.kw_star_arg = value;
+            }
+            spec.kw_star_args.push_back(value);
           } else if (arg.star) {
-            spec.star_arg = value;
+            if (spec.star_arg == UINT32_MAX) {
+              spec.star_arg = value;
+            }
+            spec.star_args.push_back(value);
           } else if (!arg.name.empty()) {
             spec.keywords.push_back(ir::CallKeywordArg{arg.name, value});
           } else {
@@ -3723,7 +3875,7 @@ private:
   std::unordered_map<std::string, uint32_t> name_ids_;
   sema::NameSet hidden_locals_;
   std::unordered_map<std::string, std::string> name_aliases_;
-  std::vector<const std::vector<ast::StmtPtr>*> active_finalizers_;
+  std::vector<ActiveFinalizer> active_finalizers_;
   std::vector<std::vector<size_t>> loop_break_jumps_;
   std::vector<uint32_t> loop_continue_targets_;
   uint32_t next_hidden_local_ = 0;

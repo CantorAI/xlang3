@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
@@ -54,6 +55,9 @@ std::string canonical_encoding(std::string name) {
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
+  }
+  if (name == "437" || name == "cp437" || name == "ibm437") {
+    return "cp437";
   }
   return name;
 }
@@ -99,8 +103,8 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
     encoding = canonical_encoding(std::move(encoding));
-    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" && encoding != "latin_1") {
-      error = "only utf-8/ascii/latin-1 encoding is supported";
+    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" && encoding != "latin_1" && encoding != "cp437") {
+      error = "only utf-8/ascii/latin-1/cp437 encoding is supported";
       return false;
     }
   }
@@ -134,6 +138,10 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   if (encoding == "latin_1") {
     out = Value::string(latin1_decode_text(text));
+    return true;
+  }
+  if (encoding == "cp437") {
+    out = Value::string(cp437_decode_bytes(text));
     return true;
   }
   if (encoding == "utf_8_sig") {
@@ -835,9 +843,15 @@ bool memoryview_tolist_method(Runtime&, const Value* args, uint32_t argc, Value&
     error = "operation forbidden on released memoryview object";
     return false;
   }
+  const size_t itemsize = memoryview_format_itemsize(view->format);
+  if (itemsize == 0 || itemsize > view->size || (view->size % itemsize) != 0) {
+    error = "unsupported memoryview format";
+    return false;
+  }
   std::vector<Value> items;
-  items.reserve(view->size);
-  for (size_t i = 0; i < view->size; ++i) {
+  const size_t item_count = view->size / itemsize;
+  items.reserve(item_count);
+  for (size_t i = 0; i < item_count; ++i) {
     Value item;
     if (!sequence_get_item(args[0], Value::int64(static_cast<int64_t>(i)), item, error)) {
       return false;
@@ -1052,8 +1066,13 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
   if (!get_string_arg(args[1], "memoryview.cast format", format, error)) {
     return false;
   }
-  if (format != "B" && format != "b" && format != "c") {
-    error = "memoryview.cast only supports byte-sized formats";
+  const size_t itemsize = memoryview_format_itemsize(format);
+  if (itemsize == 0) {
+    error = "memoryview.cast unsupported format";
+    return false;
+  }
+  if ((view->size % itemsize) != 0) {
+    error = "memoryview: length is not a multiple of itemsize";
     return false;
   }
   if (argc == 3 && args[2].tag != ValueTag::None) {
@@ -1061,10 +1080,10 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
     const ListObject* shape_list = value_as_list(args[2]);
     const auto valid_tuple = shape_tuple != nullptr && shape_tuple->items.size() == 1 &&
                              shape_tuple->items[0].tag == ValueTag::Int64 &&
-                             shape_tuple->items[0].as.i64 == static_cast<int64_t>(view->size);
+                             shape_tuple->items[0].as.i64 == static_cast<int64_t>(view->size / itemsize);
     const auto valid_list = shape_list != nullptr && shape_list->items.size() == 1 &&
                             shape_list->items[0].tag == ValueTag::Int64 &&
-                            shape_list->items[0].as.i64 == static_cast<int64_t>(view->size);
+                            shape_list->items[0].as.i64 == static_cast<int64_t>(view->size / itemsize);
     if (!valid_tuple && !valid_list) {
       error = "memoryview.cast only supports one-dimensional byte shape";
       return false;

@@ -100,7 +100,7 @@ XLANG3_HOT_INLINE bool xlang_vm_class_slot_conflicts(
       continue;
     }
     for (const auto& attr : attrs) {
-      if (attr.first == slot) {
+      if (attr.first == slot && attr.first != "__doc__") {
         error = "'" + slot + "' in __slots__ conflicts with class variable";
         return true;
       }
@@ -266,11 +266,33 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_function_kwdefaults(
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow set_class_base(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     RaiseRuntimeError&& raise_runtime_error) {
   std::string error;
   if (!class_set_base(regs[in.dst], regs[in.a], error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  Value hook;
+  if (object_lookup_class_attr(regs[in.a], "__init_subclass__", hook, error)) {
+    Value ignored;
+    bool ok = true;
+    if (auto* method = value_as_class_method(hook)) {
+      Value call_args[] = {regs[in.dst]};
+      ok = runtime_call_callable(runtime, method->function, call_args, 1, ignored, error);
+    } else if (auto* static_method = value_as_static_method(hook)) {
+      ok = runtime_call_callable(runtime, static_method->function, nullptr, 0, ignored, error);
+    } else if (value_as_function(hook) != nullptr || value_as_native_function(hook) != nullptr) {
+      Value call_args[] = {regs[in.dst]};
+      ok = runtime_call_callable(runtime, hook, call_args, 1, ignored, error);
+    } else {
+      ok = runtime_call_callable(runtime, hook, nullptr, 0, ignored, error);
+    }
+    if (!ok) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  } else {
+    error.clear();
   }
   return XlangVMOpFlow::Next;
 }

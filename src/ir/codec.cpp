@@ -490,6 +490,10 @@ bool write_call_specs(Writer& w, const std::vector<CallSpec>& specs, std::string
     }
     w.u32(spec.star_arg);
     w.u32(spec.kw_star_arg);
+    if (!write_u32_vector(w, spec.star_args, error) ||
+        !write_u32_vector(w, spec.kw_star_args, error)) {
+      return false;
+    }
   }
   return true;
 }
@@ -505,6 +509,10 @@ bool read_call_specs(Reader& r, std::vector<CallSpec>& specs, std::string& error
         !read_call_keyword_args(r, spec.keywords, error) ||
         !r.u32(spec.star_arg) ||
         !r.u32(spec.kw_star_arg)) {
+      return false;
+    }
+    if (!read_u32_vector(r, spec.star_args, error) ||
+        !read_u32_vector(r, spec.kw_star_args, error)) {
       return false;
     }
   }

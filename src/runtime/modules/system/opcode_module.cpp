@@ -35,6 +35,11 @@ bool opcode_empty_list(Runtime&, const Value*, uint32_t, Value& out, std::string
   return true;
 }
 
+bool opcode_get_executor(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+  value_set_none(out);
+  return true;
+}
+
 } // namespace
 
 void register_opcode_module(Runtime& runtime) {
@@ -50,7 +55,8 @@ void register_opcode_module(Runtime& runtime) {
       .function("get_intrinsic1_descs", opcode_empty_list)
       .function("get_intrinsic2_descs", opcode_empty_list)
       .function("get_special_method_names", opcode_empty_list)
-      .function("get_nb_ops", opcode_empty_list);
+      .function("get_nb_ops", opcode_empty_list)
+      .function("get_executor", opcode_get_executor);
   runtime.register_module("_opcode", private_builder.finish());
 }
 

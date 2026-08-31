@@ -47,6 +47,8 @@ struct CallSpec {
   std::vector<CallKeywordArg> keywords;
   uint32_t star_arg = UINT32_MAX;
   uint32_t kw_star_arg = UINT32_MAX;
+  std::vector<uint32_t> star_args;
+  std::vector<uint32_t> kw_star_args;
 };
 
 enum class Op : uint16_t {

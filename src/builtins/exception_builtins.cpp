@@ -96,12 +96,11 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "BufferError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "EOFError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "ExceptionGroup", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ExceptionGroup", *runtime.find_builtin("BaseExceptionGroup"));
   {
     std::string ignored;
     Value exception_group = *runtime.find_builtin("ExceptionGroup");
     class_set_base(exception_group, *runtime.find_builtin("Exception"), ignored);
-    class_set_base(exception_group, *runtime.find_builtin("BaseExceptionGroup"), ignored);
   }
   register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ModuleNotFoundError", *runtime.find_builtin("ImportError"));
@@ -140,6 +139,7 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "StopAsyncIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "SyntaxError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "_IncompleteInputError", *runtime.find_builtin("SyntaxError"));
   register_exception_class(runtime, "IndentationError", *runtime.find_builtin("SyntaxError"));
   register_exception_class(runtime, "TabError", *runtime.find_builtin("IndentationError"));
   register_exception_class(runtime, "SystemError", *runtime.find_builtin("Exception"));

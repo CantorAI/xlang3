@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -28,9 +30,236 @@ namespace {
 
 constexpr const char* kDequeNativeType = "_collections.deque";
 
+struct TupleGetterState {
+  int64_t index = 0;
+};
+
 struct DequeState {
   std::deque<Value> items;
 };
+
+bool collections_value_is_callable(Runtime& runtime, const Value& value) {
+  if (value_as_function(value) != nullptr ||
+      value_as_native_function(value) != nullptr ||
+      value_as_bound_method(value) != nullptr ||
+      value_as_class(value) != nullptr) {
+    return true;
+  }
+  Value call;
+  std::string ignored;
+  return object_get_attr(value, "__call__", call, ignored);
+}
+
+bool collections_update_mapping_or_pairs(Runtime& runtime, Value& target, const Value& source, std::string& error) {
+  if (mapping_is_mapping(source)) {
+    Value iterator;
+    if (!mapping_get_iter(source, iterator, error)) {
+      return false;
+    }
+    for (;;) {
+      bool done = false;
+      Value key;
+      if (!mapping_iter_next(iterator, done, key, error)) {
+        return false;
+      }
+      if (done) {
+        return true;
+      }
+      Value value;
+      if (!mapping_get_item(source, key, value, error) || !mapping_set_item(target, key, value, error)) {
+        return false;
+      }
+    }
+  }
+
+  Value iterator;
+  if (!runtime_get_iter(runtime, source, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value pair;
+    if (!sequence_iter_next(iterator, done, pair, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    Value key;
+    Value value;
+    if (auto* tuple = value_as_tuple(pair)) {
+      if (tuple->items.size() != 2) {
+        error = "dictionary update sequence element has length " + std::to_string(tuple->items.size()) + "; 2 is required";
+        return false;
+      }
+      key = tuple->items[0];
+      value = tuple->items[1];
+    } else if (auto* list = value_as_list(pair)) {
+      if (list->items.size() != 2) {
+        error = "dictionary update sequence element has length " + std::to_string(list->items.size()) + "; 2 is required";
+        return false;
+      }
+      key = list->items[0];
+      value = list->items[1];
+    } else {
+      error = "dictionary update sequence element is not a pair";
+      return false;
+    }
+    if (!mapping_set_item(target, key, value, error)) {
+      return false;
+    }
+  }
+}
+
+void tuplegetter_cleanup(void* data) {
+  delete static_cast<TupleGetterState*>(data);
+}
+
+bool tuplegetter_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "_tuplegetter getter expected instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<TupleGetterState*>(user_data);
+  if (state == nullptr) {
+    error = "_tuplegetter getter state is missing";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  Value index = Value::int64(state->index);
+  if (!sequence_get_item(args[0], index, out, error)) {
+    runtime.raise_class_error("IndexError", error);
+    return false;
+  }
+  return true;
+}
+
+bool collections_tuplegetter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2 || args[0].tag != ValueTag::Int64) {
+    error = "_collections._tuplegetter() expected index and optional doc";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value doc = Value::none();
+  if (argc == 2) {
+    value_assign_fast(doc, args[1]);
+  }
+  auto* state = new TupleGetterState{args[0].as.i64};
+  Value getter = runtime.make_native_function(
+      "_collections._tuplegetter.get",
+      tuplegetter_get,
+      state,
+      tuplegetter_cleanup);
+  out = Value::property(std::move(getter), Value::none(), Value::none(), std::move(doc));
+  return true;
+}
+
+bool defaultdict_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1) {
+    error = "defaultdict.__init__ expected self";
+    return false;
+  }
+  if (argc > 3) {
+    error = "defaultdict expected at most 2 positional arguments";
+    return false;
+  }
+  const Value factory = argc >= 2 ? args[1] : Value::none();
+  if (factory.tag != ValueTag::None && !collections_value_is_callable(runtime, factory)) {
+    error = "first argument must be callable or None";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  if (!object_set_attr(target, "default_factory", factory, error)) {
+    return false;
+  }
+  if (argc == 3 && !collections_update_mapping_or_pairs(runtime, target, args[2], error)) {
+    return false;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (!mapping_set_item(target, Value::string(kwargs[i].name), *kwargs[i].value, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool defaultdict_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return defaultdict_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool defaultdict_missing(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "defaultdict.__missing__ expected key";
+    return false;
+  }
+  Value factory;
+  if (!object_get_attr(args[0], "default_factory", factory, error)) {
+    return false;
+  }
+  if (factory.tag == ValueTag::None) {
+    error = "key not found";
+    runtime.raise_class_error("KeyError", error);
+    return false;
+  }
+  if (!runtime_call_callable(runtime, factory, nullptr, 0, out, error)) {
+    return false;
+  }
+  Value target = args[0];
+  if (!mapping_set_item(target, args[1], out, error)) {
+    return false;
+  }
+  return true;
+}
+
+bool defaultdict_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "defaultdict.__getitem__ expected key";
+    return false;
+  }
+  if (mapping_get_item(args[0], args[1], out, error)) {
+    return true;
+  }
+  error.clear();
+  return defaultdict_missing(runtime, args, argc, out, error, nullptr);
+}
+
+bool defaultdict_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "defaultdict.copy expected no arguments";
+    return false;
+  }
+  Value factory;
+  if (!object_get_attr(args[0], "default_factory", factory, error)) {
+    return false;
+  }
+  const Value* defaultdict_class = runtime.find_builtin("defaultdict");
+  if (defaultdict_class == nullptr) {
+    error = "defaultdict class is not registered";
+    return false;
+  }
+  Value copied = Value::instance(*defaultdict_class);
+  Value init_args[] = {copied, factory, mapping_copy(args[0])};
+  Value ignored;
+  if (!defaultdict_init(runtime, init_args, 3, ignored, error, nullptr)) {
+    return false;
+  }
+  out = std::move(copied);
+  return true;
+}
 
 DequeState* deque_state(const Value& self, std::string& error) {
   auto* state = static_cast<DequeState*>(instance_get_native_data(self, kDequeNativeType));
@@ -42,6 +271,11 @@ DequeState* deque_state(const Value& self, std::string& error) {
 
 void deque_cleanup(void* data) {
   delete static_cast<DequeState*>(data);
+}
+
+bool deque_truthy(const void* data) {
+  auto* state = static_cast<const DequeState*>(data);
+  return state != nullptr && !state->items.empty();
 }
 
 bool deque_extend_from_iterable(Runtime& runtime, DequeState& state, const Value& iterable, bool left, std::string& error) {
@@ -85,6 +319,9 @@ bool deque_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   }
   if (!instance_set_native_data(args[0], kDequeNativeType, state, deque_cleanup, error)) {
     delete state;
+    return false;
+  }
+  if (!instance_set_native_truthy(args[0], deque_truthy, error)) {
     return false;
   }
   value_set_none(out);
@@ -333,13 +570,52 @@ Value make_deque_class(Runtime& runtime) {
   return Value::class_object("deque", std::move(attrs));
 }
 
+Value make_defaultdict_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("collections")});
+  attrs.push_back({"__qualname__", Value::string("defaultdict")});
+  attrs.push_back({"__init__", runtime.make_native_function(
+        "_collections.defaultdict.__init__",
+        defaultdict_init,
+        nullptr,
+        nullptr,
+        nullptr,
+        false,
+        defaultdict_init_kw)});
+  attrs.push_back({"__getitem__", runtime.make_native_function("_collections.defaultdict.__getitem__", defaultdict_getitem)});
+  attrs.push_back({"__missing__", runtime.make_native_function("_collections.defaultdict.__missing__", defaultdict_missing)});
+  attrs.push_back({"copy", runtime.make_native_function("_collections.defaultdict.copy", defaultdict_copy)});
+  Value base = runtime.find_builtin("dict") != nullptr ? *runtime.find_builtin("dict") : Value::invalid();
+  Value klass = Value::class_object("defaultdict", std::move(attrs), std::move(base));
+  if (auto* class_object = value_as_class(klass)) {
+    dict_install_class_methods(runtime, *class_object);
+    class_object->attrs["__init__"] = runtime.make_native_function(
+        "_collections.defaultdict.__init__",
+        defaultdict_init,
+        nullptr,
+        nullptr,
+        nullptr,
+        false,
+        defaultdict_init_kw);
+    class_object->attrs["__getitem__"] = runtime.make_native_function("_collections.defaultdict.__getitem__", defaultdict_getitem);
+    class_object->attrs["__missing__"] = runtime.make_native_function("_collections.defaultdict.__missing__", defaultdict_missing);
+    class_object->attrs["copy"] = runtime.make_native_function("_collections.defaultdict.copy", defaultdict_copy);
+    ++class_object->version;
+  }
+  return klass;
+}
+
 } // namespace
 
 void register_collections_module(Runtime& runtime) {
   Value deque_class = make_deque_class(runtime);
+  Value defaultdict_class = make_defaultdict_class(runtime);
+  runtime.register_builtin("defaultdict", defaultdict_class);
 
   NativeModuleBuilder builder(runtime, "_collections");
   builder.value("deque", deque_class);
+  builder.value("defaultdict", defaultdict_class);
+  builder.function("_tuplegetter", collections_tuplegetter);
   runtime.register_module("_collections", builder.finish());
 }
 

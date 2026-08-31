@@ -65,7 +65,13 @@ void raise_stop_iteration_with_value(Runtime& runtime, const Value& return_value
 
 } // namespace
 
-Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async, bool is_coroutine) {
+Value Value::generator(
+    Runtime* runtime,
+    Value function,
+    std::vector<Value> args,
+    bool is_async,
+    bool is_coroutine,
+    bool args_bound) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_generator_object<GeneratorObject>(ObjectKind::Generator);
@@ -74,6 +80,7 @@ Value Value::generator(Runtime* runtime, Value function, std::vector<Value> args
   obj->args = std::move(args);
   obj->is_async = is_async;
   obj->is_coroutine = is_coroutine;
+  obj->args_bound = args_bound;
   value_set_none(obj->return_value);
   v.as.obj = &obj->header;
   return v;
@@ -147,7 +154,9 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
   value_assign_fast(obj->pending_send, value);
   obj->has_pending_send = true;
   Interpreter interpreter(*obj->runtime);
+  obj->running = true;
   RuntimeResult result = interpreter.resume_generator(*obj, out, done);
+  obj->running = false;
   if (done) {
     obj->done = true;
   }
@@ -172,7 +181,9 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
     Interpreter interpreter(*obj->runtime);
     bool done = false;
     Value yielded;
+    obj->running = true;
     RuntimeResult result = interpreter.resume_generator(*obj, yielded, done);
+    obj->running = false;
     if (!result.errors.empty()) {
       if (result.errors.front().find("GeneratorExit") == std::string::npos) {
         error = result.errors.front();
@@ -230,7 +241,9 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   obj->started = true;
   Interpreter interpreter(*obj->runtime);
   bool done = false;
+  obj->running = true;
   RuntimeResult result = interpreter.resume_generator(*obj, out, done);
+  obj->running = false;
   if (done) {
     obj->done = true;
   }
@@ -494,6 +507,41 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
   auto* generator = value_as_generator(object);
   if (generator == nullptr) {
     return false;
+  }
+  if (name == "gi_running" || name == "ag_running" || name == "cr_running") {
+    value_set_bool(out, generator->running);
+    return true;
+  }
+  if (name == "gi_suspended" || name == "ag_suspended" || name == "cr_suspended") {
+    value_set_bool(out, generator->started && !generator->running && !generator->done);
+    return true;
+  }
+  if (name == "gi_frame" || name == "ag_frame" || name == "cr_frame") {
+    if (generator->done) {
+      value_set_none(out);
+      return true;
+    }
+    if (auto* function = value_as_function(generator->function)) {
+      out = Value::frame(
+          function->module,
+          function->function_id,
+          function->globals_module,
+          0,
+          Value::dict({}),
+          Value::none(),
+          Value::none());
+      return true;
+    }
+    value_set_none(out);
+    return true;
+  }
+  if (name == "gi_code" || name == "ag_code" || name == "cr_code") {
+    if (auto* function = value_as_function(generator->function)) {
+      out = Value::code(function->module, function->function_id);
+      return true;
+    }
+    value_set_none(out);
+    return true;
   }
   if ((name == "__aiter__" || name == "__anext__" || name == "asend" || name == "athrow" || name == "aclose") &&
       (!generator->is_async || generator->is_coroutine)) {

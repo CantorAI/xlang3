@@ -200,31 +200,69 @@ SocketState* socket_state(const Value& self, std::string& error) {
   return state;
 }
 
+bool socket_int_arg(const Value& value, int64_t& out) {
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  Value attr;
+  std::string ignored;
+  if ((object_get_attr(value, "__xlang3_int_value__", attr, ignored) ||
+       object_get_attr(value, "_value_", attr, ignored)) &&
+      attr.tag == ValueTag::Int64) {
+    out = attr.as.i64;
+    return true;
+  }
+  return false;
+}
+
+void socket_set_instance_attr(const Value& self, const std::string& name, const Value& value) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return;
+  }
+  for (auto& attr : instance->attrs) {
+    if (attr.first == name) {
+      value_assign_fast(attr.second, value);
+      return;
+    }
+  }
+  instance->attrs.push_back({name, value});
+}
+
 bool socket_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 4) {
-    error = "socket.__init__() expected optional family, type, proto";
+  if (argc < 1 || argc > 5) {
+    error = "socket.__init__() expected optional family, type, proto, fileno";
     return false;
   }
   auto* state = new SocketState();
-  if (argc >= 2 && args[1].tag == ValueTag::Int64) {
-    state->family = args[1].as.i64;
+  int64_t int_value = 0;
+  if (argc >= 2 && socket_int_arg(args[1], int_value)) {
+    state->family = int_value;
   }
-  if (argc >= 3 && args[2].tag == ValueTag::Int64) {
-    state->type = args[2].as.i64;
+  if (argc >= 3 && socket_int_arg(args[2], int_value)) {
+    state->type = int_value;
   }
-  if (argc >= 4 && args[3].tag == ValueTag::Int64) {
-    state->proto = args[3].as.i64;
+  if (argc >= 4 && socket_int_arg(args[3], int_value)) {
+    state->proto = int_value;
+  }
+  if (argc >= 5 && args[4].tag != ValueTag::None && socket_int_arg(args[4], int_value)) {
+    state->fd = static_cast<NativeSocket>(int_value);
+    state->closed = state->fd == kInvalidSocket;
   }
   value_set_none(state->timeout);
   if (!instance_set_native_data(args[0], "_socket.socket", state, socket_cleanup, error)) {
     delete state;
     return false;
   }
-  Value self = args[0];
-  object_set_attr(self, "family", Value::int64(state->family), error);
-  object_set_attr(self, "type", Value::int64(state->type), error);
-  object_set_attr(self, "proto", Value::int64(state->proto), error);
-  object_set_attr(self, "__xlang3_string_value__", Value::string("<socket.socket fd=-1>"), error);
+  socket_set_instance_attr(args[0], "family", Value::int64(state->family));
+  socket_set_instance_attr(args[0], "type", Value::int64(state->type));
+  socket_set_instance_attr(args[0], "proto", Value::int64(state->proto));
+  socket_set_instance_attr(args[0], "__xlang3_string_value__", Value::string("<socket.socket fd=-1>"));
   value_set_none(out);
   return true;
 }

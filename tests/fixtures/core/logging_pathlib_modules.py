@@ -1,11 +1,12 @@
 import logging
 import os
+import sys
 from pathlib import Path, PurePath
 
 
-logging.basicConfig(logging.INFO)
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logging.debug("hidden")
-logging.info("hello", "world")
+logging.info("hello %s", "world")
 
 log = logging.getLogger("demo")
 log.warning("careful")

@@ -211,6 +211,8 @@ XLANG3_HOT_INLINE void clear_exception(
   } else {
     runtime.set_active_exception(current_exception);
   }
+  Value ignored_pending;
+  runtime.take_pending_exception(ignored_pending);
 }
 
 XLANG3_HOT_INLINE void load_exception(

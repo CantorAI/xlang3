@@ -25,6 +25,7 @@ struct FormatChunk {
   std::string field;
   std::string spec;
   std::string conversion;
+  bool has_field = false;
 };
 
 bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chunks, std::string& error) {
@@ -45,6 +46,7 @@ bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chun
       std::string field_text = text.substr(i + 1, close - i - 1);
       FormatChunk chunk;
       chunk.literal = literal;
+      chunk.has_field = true;
       literal.clear();
       const size_t bang = field_text.find('!');
       const size_t colon = field_text.find(':');
@@ -100,8 +102,8 @@ bool formatter_parser(Runtime&, const Value* args, uint32_t argc, Value& out, st
   for (const auto& chunk : chunks) {
     result.push_back(Value::tuple({
         Value::string(chunk.literal),
-        chunk.field.empty() ? Value::none() : Value::string(chunk.field),
-        chunk.spec.empty() ? Value::none() : Value::string(chunk.spec),
+        chunk.has_field ? Value::string(chunk.field) : Value::none(),
+        chunk.has_field ? Value::string(chunk.spec) : Value::none(),
         chunk.conversion.empty() ? Value::none() : Value::string(chunk.conversion),
     }));
   }
@@ -148,7 +150,16 @@ bool formatter_field_name_split(Runtime&, const Value* args, uint32_t argc, Valu
       ++i;
     }
   }
-  out = Value::tuple({Value::string(field.substr(0, split)), Value::list(std::move(lookups))});
+  const std::string first = field.substr(0, split);
+  bool first_is_index = !first.empty();
+  for (char ch : first) {
+    if (!std::isdigit(static_cast<unsigned char>(ch))) {
+      first_is_index = false;
+      break;
+    }
+  }
+  Value first_value = first_is_index ? Value::int64(std::stoll(first)) : Value::string(first);
+  out = Value::tuple({std::move(first_value), Value::list(std::move(lookups))});
   return true;
 }
 

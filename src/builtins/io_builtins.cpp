@@ -14,10 +14,13 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
 
 #include <cctype>
+#include <climits>
+#include <string>
 
 namespace xlang3 {
 
@@ -40,6 +43,7 @@ struct OpenOptions {
   std::string newline;
   bool newline_is_none = true;
   int64_t buffering = -1;
+  bool closefd = true;
 };
 
 std::string normalize_name(std::string text) {
@@ -51,6 +55,9 @@ std::string normalize_name(std::string text) {
     }
   }
   if (text == "utf8" || text == "u8" || text == "cp65001") {
+    return "utf_8";
+  }
+  if (text == "locale") {
     return "utf_8";
   }
   if (text == "latin1" || text == "latin_1" || text == "iso8859_1" || text == "iso_8859_1") {
@@ -147,12 +154,25 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
   return true;
 }
 
-bool get_path_arg(const Value& value, const char* name, std::string& out, std::string& error) {
+bool get_path_arg(Runtime& runtime, const Value& value, const char* name, std::string& out, std::string& error) {
   if (get_string_arg(value, name, out, error)) {
     return true;
   }
   std::string ignored;
   Value path_value;
+  if (object_get_attr(value, "__fspath__", path_value, ignored)) {
+    Value result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, path_value, nullptr, 0, result, call_error)) {
+      error = call_error.empty() ? std::string(name) + " __fspath__ failed" : call_error;
+      return false;
+    }
+    if (get_string_arg(result, name, out, error)) {
+      return true;
+    }
+    error = std::string(name) + " __fspath__ returned non-string";
+    return false;
+  }
   if (object_get_attr(value, "__xlang3_string_value__", path_value, ignored) && value_as_string(path_value) != nullptr) {
     out = string_object_to_string(*value_as_string(path_value));
     error.clear();
@@ -309,6 +329,7 @@ bool apply_open_option(const std::string& key, const Value& value, OpenOptions& 
       error = "open closefd must be bool";
       return false;
     }
+    options.closefd = value.as.b;
     return true;
   }
   if (key == "opener") {
@@ -340,6 +361,20 @@ bool is_devnull_path(const std::string& path) {
 #endif
 }
 
+bool print_value_text(Runtime& runtime, const Value& value, std::string& out, std::string& error) {
+  Value text_value;
+  if (!builtin_str_from_value(runtime, value, text_value, error)) {
+    return false;
+  }
+  auto* text = value_as_string(text_value);
+  if (text == nullptr) {
+    error = "str() returned non-string";
+    return false;
+  }
+  out = string_object_to_string(*text);
+  return true;
+}
+
 bool builtin_print(
     Runtime& runtime,
     const Value* args,
@@ -347,13 +382,16 @@ bool builtin_print(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)error;
   (void)user_data;
   for (uint32_t i = 0; i < argc; ++i) {
     if (i != 0) {
       runtime.write_output(' ');
     }
-    runtime.write_output(value_to_string(args[i]));
+    std::string text;
+    if (!print_value_text(runtime, args[i], text, error)) {
+      return false;
+    }
+    runtime.write_output(text);
   }
   runtime.write_output('\n');
   value_set_none(out);
@@ -395,7 +433,11 @@ bool builtin_print_kw(
     if (i != 0) {
       runtime.write_output(sep);
     }
-    runtime.write_output(value_to_string(args[i]));
+    std::string text;
+    if (!print_value_text(runtime, args[i], text, error)) {
+      return false;
+    }
+    runtime.write_output(text);
   }
   runtime.write_output(end);
   value_set_none(out);
@@ -413,11 +455,7 @@ bool builtin_open(
     error = "open expected between 1 and 8 arguments, got " + std::to_string(argc);
     return false;
   }
-  std::string path;
   std::string mode = "r";
-  if (!get_path_arg(args[0], "open path", path, error)) {
-    return false;
-  }
   if (argc >= 2 && !get_string_arg(args[1], "open mode", mode, error)) {
     return false;
   }
@@ -430,6 +468,37 @@ bool builtin_open(
 
   OpenMode parsed;
   if (!parse_open_mode(mode, parsed, error)) {
+    return false;
+  }
+
+  if (args[0].tag == ValueTag::Int64) {
+    const int64_t fd_value = args[0].as.i64;
+    if (fd_value < 0 || fd_value > static_cast<int64_t>(INT_MAX)) {
+      error = "open file descriptor out of range";
+      return false;
+    }
+    if (parsed.exclusive || parsed.append || parsed.create || parsed.truncate) {
+      error = "open file descriptor mode is not supported for creating or truncating files";
+      return false;
+    }
+    out = Value::fd_file(
+        static_cast<int>(fd_value),
+        std::to_string(fd_value),
+        mode,
+        parsed.readable,
+        parsed.writable,
+        parsed.binary,
+        options.closefd);
+    auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+    file->encoding = options.encoding;
+    file->errors = options.errors;
+    file->newline = options.newline;
+    file->newline_is_none = options.newline_is_none;
+    return true;
+  }
+
+  std::string path;
+  if (!get_path_arg(runtime, args[0], "open path", path, error)) {
     return false;
   }
 
@@ -510,7 +579,7 @@ bool builtin_open_kw(
   OpenOptions options;
   positional.reserve(2);
   positional.push_back(args[0]);
-  if (argc == 2) {
+  if (argc >= 2) {
     positional.push_back(args[1]);
   }
   if (!apply_open_positional_options(args, argc, options, error)) {

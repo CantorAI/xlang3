@@ -371,6 +371,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
   module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
+  module_set_attr(module_value, "__annotations__", Value::dict({}), attr_error);
   if (module_file.is_package) {
     module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
   }

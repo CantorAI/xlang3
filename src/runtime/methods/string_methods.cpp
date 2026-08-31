@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
@@ -131,6 +132,9 @@ std::string canonical_encoding(std::string name) {
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
+  }
+  if (name == "437" || name == "cp437" || name == "ibm437") {
+    return "cp437";
   }
   return name;
 }
@@ -471,19 +475,72 @@ bool string_lstrip_body(const Value& value, const Value* chars_value, Value& out
   return true;
 }
 
-bool string_startswith_body(const Value& value, const Value& prefix_value, Value& out, std::string& error) {
+bool string_index_arg(const Value& value, int64_t default_value, int64_t length, int64_t& out, std::string& error) {
+  if (value.tag == ValueTag::None) {
+    out = default_value;
+    return true;
+  }
+  if (value.tag != ValueTag::Int64) {
+    error = "slice indices must be integers or None";
+    return false;
+  }
+  out = value.as.i64;
+  if (out < 0) {
+    out += length;
+    if (out < 0) {
+      out = 0;
+    }
+  }
+  if (out > length) {
+    out = length;
+  }
+  return true;
+}
+
+bool string_bounds_from_args(memory::X3StringView text, const Value* start_value, const Value* end_value, size_t& start, size_t& end, std::string& error) {
+  const int64_t length = static_cast<int64_t>(text.size);
+  int64_t start_i = 0;
+  int64_t end_i = length;
+  if (start_value != nullptr && !string_index_arg(*start_value, 0, length, start_i, error)) {
+    return false;
+  }
+  if (end_value != nullptr && !string_index_arg(*end_value, length, length, end_i, error)) {
+    return false;
+  }
+  if (end_i < start_i) {
+    end_i = start_i;
+  }
+  start = static_cast<size_t>(start_i);
+  end = static_cast<size_t>(end_i);
+  return true;
+}
+
+bool string_startswith_body(
+    const Value& value,
+    const Value& prefix_value,
+    const Value* start_value,
+    const Value* end_value,
+    Value& out,
+    std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.startswith target", text, error)) {
     return false;
   }
+  size_t start = 0;
+  size_t end = text.size;
+  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+    return false;
+  }
+  const size_t span = end - start;
+  const char* span_data = text.data == nullptr ? "" : text.data + start;
   if (auto* tuple = value_as_tuple(prefix_value)) {
     for (uint32_t i = 0; i < tuple->items.size(); ++i) {
       memory::X3StringView prefix;
       if (!get_string_view_checked(tuple->items[i], "str.startswith prefix", prefix, error)) {
         return false;
       }
-      if (prefix.size <= text.size &&
-          (prefix.size == 0 || std::memcmp(text.data, prefix.data, prefix.size) == 0)) {
+      if (prefix.size <= span &&
+          (prefix.size == 0 || std::memcmp(span_data, prefix.data, prefix.size) == 0)) {
         value_set_bool(out, true);
         return true;
       }
@@ -495,25 +552,38 @@ bool string_startswith_body(const Value& value, const Value& prefix_value, Value
   if (!get_string_view_checked(prefix_value, "str.startswith prefix", prefix, error)) {
     return false;
   }
-  value_set_bool(out, prefix.size <= text.size &&
-                          (prefix.size == 0 || std::memcmp(text.data, prefix.data, prefix.size) == 0));
+  value_set_bool(out, prefix.size <= span &&
+                          (prefix.size == 0 || std::memcmp(span_data, prefix.data, prefix.size) == 0));
   return true;
 }
 
-bool string_endswith_body(const Value& value, const Value& suffix_value, Value& out, std::string& error) {
+bool string_endswith_body(
+    const Value& value,
+    const Value& suffix_value,
+    const Value* start_value,
+    const Value* end_value,
+    Value& out,
+    std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.endswith target", text, error)) {
     return false;
   }
+  size_t start = 0;
+  size_t end = text.size;
+  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+    return false;
+  }
+  const size_t span = end - start;
+  const char* span_data = text.data == nullptr ? "" : text.data + start;
   if (auto* tuple = value_as_tuple(suffix_value)) {
     for (uint32_t i = 0; i < tuple->items.size(); ++i) {
       memory::X3StringView suffix;
       if (!get_string_view_checked(tuple->items[i], "str.endswith suffix", suffix, error)) {
         return false;
       }
-      if (suffix.size <= text.size &&
+      if (suffix.size <= span &&
           (suffix.size == 0 ||
-           std::memcmp(text.data + (text.size - suffix.size), suffix.data, suffix.size) == 0)) {
+           std::memcmp(span_data + (span - suffix.size), suffix.data, suffix.size) == 0)) {
         value_set_bool(out, true);
         return true;
       }
@@ -525,13 +595,19 @@ bool string_endswith_body(const Value& value, const Value& suffix_value, Value& 
   if (!get_string_view_checked(suffix_value, "str.endswith suffix", suffix, error)) {
     return false;
   }
-  value_set_bool(out, suffix.size <= text.size &&
+  value_set_bool(out, suffix.size <= span &&
                           (suffix.size == 0 ||
-                           std::memcmp(text.data + (text.size - suffix.size), suffix.data, suffix.size) == 0));
+                           std::memcmp(span_data + (span - suffix.size), suffix.data, suffix.size) == 0));
   return true;
 }
 
-bool string_find_body(const Value& value, const Value& needle_value, Value& out, std::string& error) {
+bool string_find_body(
+    const Value& value,
+    const Value& needle_value,
+    const Value* start_value,
+    const Value* end_value,
+    Value& out,
+    std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.find target", text, error)) {
     return false;
@@ -540,17 +616,29 @@ bool string_find_body(const Value& value, const Value& needle_value, Value& out,
   if (!get_string_view_checked(needle_value, "str.find substring", needle, error)) {
     return false;
   }
+  size_t start = 0;
+  size_t end = text.size;
+  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+    return false;
+  }
+  const auto span = memory::X3StringView{text.data == nullptr ? nullptr : text.data + start, static_cast<uint32_t>(end - start)};
   if (needle.size == 1) {
-    const void* pos = std::memchr(text.data, static_cast<unsigned char>(needle.data[0]), text.size);
-    value_set_int64(out, pos == nullptr ? -1 : static_cast<int64_t>(static_cast<const char*>(pos) - text.data));
+    const void* pos = std::memchr(span.data, static_cast<unsigned char>(needle.data[0]), span.size);
+    value_set_int64(out, pos == nullptr ? -1 : static_cast<int64_t>(start + (static_cast<const char*>(pos) - span.data)));
     return true;
   }
-  const auto pos = as_view(text).find(as_view(needle));
-  value_set_int64(out, pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
+  const auto pos = as_view(span).find(as_view(needle));
+  value_set_int64(out, pos == std::string::npos ? -1 : static_cast<int64_t>(start + pos));
   return true;
 }
 
-bool string_rfind_body(const Value& value, const Value& needle_value, Value& out, std::string& error) {
+bool string_rfind_body(
+    const Value& value,
+    const Value& needle_value,
+    const Value* start_value,
+    const Value* end_value,
+    Value& out,
+    std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.rfind target", text, error)) {
     return false;
@@ -559,8 +647,14 @@ bool string_rfind_body(const Value& value, const Value& needle_value, Value& out
   if (!get_string_view_checked(needle_value, "str.rfind substring", needle, error)) {
     return false;
   }
-  const auto pos = as_view(text).rfind(as_view(needle));
-  value_set_int64(out, pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
+  size_t start = 0;
+  size_t end = text.size;
+  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+    return false;
+  }
+  const auto span = memory::X3StringView{text.data == nullptr ? nullptr : text.data + start, static_cast<uint32_t>(end - start)};
+  const auto pos = as_view(span).rfind(as_view(needle));
+  value_set_int64(out, pos == std::string::npos ? -1 : static_cast<int64_t>(start + pos));
   return true;
 }
 
@@ -731,10 +825,13 @@ bool string_lstrip_fast_method(
 }
 
 bool string_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "str.startswith", error)) {
+  if (argc < 2 || argc > 4) {
+    error = "str.startswith expected 1 to 3 arguments";
     return false;
   }
-  return string_startswith_body(args[0], args[1], out, error);
+  const Value* start_value = argc >= 3 ? &args[2] : nullptr;
+  const Value* end_value = argc >= 4 ? &args[3] : nullptr;
+  return string_startswith_body(args[0], args[1], start_value, end_value, out, error);
 }
 
 bool string_startswith_fast_method(
@@ -747,18 +844,24 @@ bool string_startswith_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.startswith expected 1 argument";
+  if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
+      leading == nullptr || registers == nullptr || register_args == nullptr) {
+    error = "str.startswith expected 1 to 3 arguments";
     return false;
   }
-  return string_startswith_body(leading[0], registers[register_args[0]], out, error);
+  const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
+  const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
+  return string_startswith_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
 }
 
 bool string_endswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "str.endswith", error)) {
+  if (argc < 2 || argc > 4) {
+    error = "str.endswith expected 1 to 3 arguments";
     return false;
   }
-  return string_endswith_body(args[0], args[1], out, error);
+  const Value* start_value = argc >= 3 ? &args[2] : nullptr;
+  const Value* end_value = argc >= 4 ? &args[3] : nullptr;
+  return string_endswith_body(args[0], args[1], start_value, end_value, out, error);
 }
 
 bool string_endswith_fast_method(
@@ -771,18 +874,24 @@ bool string_endswith_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.endswith expected 1 argument";
+  if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
+      leading == nullptr || registers == nullptr || register_args == nullptr) {
+    error = "str.endswith expected 1 to 3 arguments";
     return false;
   }
-  return string_endswith_body(leading[0], registers[register_args[0]], out, error);
+  const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
+  const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
+  return string_endswith_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
 }
 
 bool string_find_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "str.find", error)) {
+  if (argc < 2 || argc > 4) {
+    error = "str.find expected 1 to 3 arguments";
     return false;
   }
-  return string_find_body(args[0], args[1], out, error);
+  const Value* start_value = argc >= 3 ? &args[2] : nullptr;
+  const Value* end_value = argc >= 4 ? &args[3] : nullptr;
+  return string_find_body(args[0], args[1], start_value, end_value, out, error);
 }
 
 bool string_find_fast_method(
@@ -795,11 +904,14 @@ bool string_find_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.find expected 1 argument";
+  if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
+      leading == nullptr || registers == nullptr || register_args == nullptr) {
+    error = "str.find expected 1 to 3 arguments";
     return false;
   }
-  return string_find_body(leading[0], registers[register_args[0]], out, error);
+  const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
+  const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
+  return string_find_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
 }
 
 bool string_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -810,18 +922,24 @@ bool string_count_method(Runtime&, const Value* args, uint32_t argc, Value& out,
 }
 
 bool string_rfind_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "str.rfind", error)) {
+  if (argc < 2 || argc > 4) {
+    error = "str.rfind expected 1 to 3 arguments";
     return false;
   }
-  return string_rfind_body(args[0], args[1], out, error);
+  const Value* start_value = argc >= 3 ? &args[2] : nullptr;
+  const Value* end_value = argc >= 4 ? &args[3] : nullptr;
+  return string_rfind_body(args[0], args[1], start_value, end_value, out, error);
 }
 
 bool string_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "str.index", error)) {
+  if (argc < 2 || argc > 4) {
+    error = "str.index expected 1 to 3 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!string_find_body(args[0], args[1], out, error)) {
+  const Value* start_value = argc >= 3 ? &args[2] : nullptr;
+  const Value* end_value = argc >= 4 ? &args[3] : nullptr;
+  if (!string_find_body(args[0], args[1], start_value, end_value, out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -834,11 +952,14 @@ bool string_index_method(Runtime& runtime, const Value* args, uint32_t argc, Val
 }
 
 bool string_rindex_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "str.rindex", error)) {
+  if (argc < 2 || argc > 4) {
+    error = "str.rindex expected 1 to 3 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!string_rfind_body(args[0], args[1], out, error)) {
+  const Value* start_value = argc >= 3 ? &args[2] : nullptr;
+  const Value* end_value = argc >= 4 ? &args[3] : nullptr;
+  if (!string_rfind_body(args[0], args[1], start_value, end_value, out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1278,8 +1399,8 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   for (auto& ch : errors) {
     ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
   }
-  if (encoding != "ascii" && encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "latin_1") {
-    error = "only utf-8/ascii/latin-1 encoding is supported";
+  if (encoding != "ascii" && encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "latin_1" && encoding != "cp437") {
+    error = "only utf-8/ascii/latin-1/cp437 encoding is supported";
     return false;
   }
   if (encoding == "ascii") {
@@ -1316,6 +1437,15 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   if (encoding == "latin_1") {
     std::string encoded = latin1_encode_text(runtime, as_view(text), errors, error);
     if (!error.empty()) {
+      return false;
+    }
+    out = Value::bytes(std::move(encoded));
+    return true;
+  }
+  if (encoding == "cp437") {
+    std::string encoded;
+    if (!cp437_encode_text(as_view(text), errors, encoded, error)) {
+      runtime.raise_class_error("UnicodeEncodeError", error);
       return false;
     }
     out = Value::bytes(std::move(encoded));

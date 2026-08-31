@@ -39,6 +39,21 @@ bool zip_get_string_arg(const Value& value, const char* name, std::string& out, 
   return false;
 }
 
+bool raise_zipimport_error(Runtime& runtime, const std::string& message, std::string& error) {
+  error = message;
+  Value module;
+  std::string ignored;
+  if (runtime.import_module("zipimport", module, ignored)) {
+    Value klass;
+    if (module_get_attr(module, "ZipImportError", klass, ignored) && value_as_class(klass) != nullptr) {
+      runtime.set_pending_exception(runtime.make_exception_from_class(std::move(klass), error));
+      return false;
+    }
+  }
+  runtime.raise_class_error("ImportError", error);
+  return false;
+}
+
 std::string zip_module_base(const std::string& fullname) {
   std::string base = fullname;
   for (char& ch : base) {
@@ -234,8 +249,7 @@ bool zipimporter_get_filename(Runtime& runtime, const Value* args, uint32_t argc
       out = Value::string(archive + "/" + fullname + ".py");
       return true;
     }
-    error = "can't find module '" + fullname + "'";
-    return false;
+    return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   out = Value::string(zip_origin_path(archive, member));
   return true;
@@ -305,8 +319,7 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
       value_set_none(out);
       return true;
     }
-    error = "can't find module '" + fullname + "'";
-    return false;
+    return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   std::vector<uint8_t> archive_bytes;
   if (!runtime.vfs().read_file(archive, archive_bytes, error)) {
@@ -351,8 +364,7 @@ bool zipimporter_execute_module(
       error.clear();
       return true;
     }
-    error = "can't find module '" + fullname + "'";
-    return false;
+    return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   found = true;
   std::vector<uint8_t> archive_bytes;
@@ -393,6 +405,12 @@ bool zipimporter_execute_module(
 
   auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
   module_ir->source_file = origin;
+  Value previous_module;
+  bool had_previous_module = false;
+  if (!register_module && runtime.has_registered_module(fullname)) {
+    std::string previous_error;
+    had_previous_module = runtime.import_module(fullname, previous_module, previous_error);
+  }
   if (register_module) {
     runtime.register_module(fullname, module_value);
   }
@@ -401,9 +419,20 @@ bool zipimporter_execute_module(
   if (!result.errors.empty()) {
     if (register_module) {
       runtime.unregister_module(fullname);
+    } else if (had_previous_module) {
+      runtime.register_module(fullname, std::move(previous_module));
+    } else {
+      runtime.unregister_module(fullname);
     }
     error = "runtime error importing module '" + fullname + "': " + result.errors.front();
     return false;
+  }
+  if (!register_module) {
+    if (had_previous_module) {
+      runtime.register_module(fullname, std::move(previous_module));
+    } else {
+      runtime.unregister_module(fullname);
+    }
   }
   return true;
 }
@@ -446,8 +475,7 @@ bool zipimporter_exec_module(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   }
   if (!found) {
-    error = "can't find module '" + fullname + "'";
-    return false;
+    return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   value_set_none(out);
   return true;
@@ -471,8 +499,7 @@ bool zipimporter_get_source(Runtime& runtime, const Value* args, uint32_t argc, 
       value_set_none(out);
       return true;
     }
-    error = "can't find module '" + fullname + "'";
-    return false;
+    return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   std::vector<uint8_t> archive_bytes;
   if (!runtime.vfs().read_file(archive, archive_bytes, error)) {
@@ -508,8 +535,7 @@ bool zipimporter_is_package(Runtime& runtime, const Value* args, uint32_t argc, 
       out = Value::boolean(false);
       return true;
     }
-    error = "can't find module '" + fullname + "'";
-    return false;
+    return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   out = Value::boolean(is_package);
   return true;

@@ -67,7 +67,7 @@ print(zipfile.is_zipfile(archive), zipfile.is_zipfile(source))
 with zipfile.ZipFile(archive, "r") as zf:
     extracted = zf.extract("hello.txt", "xlang3_zip_extract")
     zf.extractall("xlang3_zip_extract_all", ["folder/source.txt"])
-    print(extracted)
+    print(extracted.replace("\\", "/"))
 
 with open("xlang3_zip_extract/hello.txt", "r") as f:
     print(f.read())

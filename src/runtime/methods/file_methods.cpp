@@ -21,6 +21,14 @@ limitations under the License.
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
+#include <cstring>
+
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace xlang3 {
 namespace {
@@ -73,6 +81,9 @@ std::string normalize_name(std::string text) {
     }
   }
   if (text == "utf8" || text == "u8" || text == "cp65001") {
+    return "utf_8";
+  }
+  if (text == "locale") {
     return "utf_8";
   }
   if (text == "latin1" || text == "latin_1" || text == "iso8859_1" || text == "iso_8859_1") {
@@ -165,6 +176,9 @@ bool flush_file(FileObject& file, std::string& error) {
   if (file.devnull) {
     return true;
   }
+  if (file.fd_backed) {
+    return true;
+  }
   if (!file.writable) {
     return true;
   }
@@ -182,6 +196,104 @@ bool flush_file(FileObject& file, std::string& error) {
       reinterpret_cast<const uint8_t*>(bytes.data()),
       bytes.size(),
       error);
+}
+
+bool fd_read_some(FileObject& file, size_t requested, std::string& out, std::string& error) {
+  if (file.fd < 0) {
+    error = "file descriptor is closed";
+    return false;
+  }
+  constexpr size_t kChunkSize = 8192;
+  const size_t chunk_size = requested == static_cast<size_t>(-1) ? kChunkSize : std::min(requested, kChunkSize);
+  std::string chunk(chunk_size, '\0');
+#if defined(_WIN32)
+  const int read_count = _read(file.fd, chunk.data(), static_cast<unsigned int>(chunk.size()));
+#else
+  const ssize_t read_count = read(file.fd, chunk.data(), chunk.size());
+#endif
+  if (read_count < 0) {
+    error = std::string("file descriptor read failed: ") + std::strerror(errno);
+    return false;
+  }
+  chunk.resize(static_cast<size_t>(read_count));
+  out += chunk;
+  file.cursor += static_cast<size_t>(read_count);
+  return true;
+}
+
+bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string& error) {
+  out.clear();
+  if (requested >= 0) {
+    size_t remaining = static_cast<size_t>(requested);
+    while (remaining > 0) {
+      const size_t before = out.size();
+      if (!fd_read_some(file, remaining, out, error)) {
+        return false;
+      }
+      const size_t got = out.size() - before;
+      if (got == 0) {
+        break;
+      }
+      remaining -= got;
+    }
+    return true;
+  }
+  for (;;) {
+    const size_t before = out.size();
+    if (!fd_read_some(file, static_cast<size_t>(-1), out, error)) {
+      return false;
+    }
+    if (out.size() == before) {
+      return true;
+    }
+  }
+}
+
+bool fd_write(FileObject& file, std::string_view bytes, std::string& error) {
+  if (file.fd < 0) {
+    error = "file descriptor is closed";
+    return false;
+  }
+  size_t offset = 0;
+  while (offset < bytes.size()) {
+#if defined(_WIN32)
+    const int written = _write(
+        file.fd,
+        bytes.data() + offset,
+        static_cast<unsigned int>(std::min<size_t>(bytes.size() - offset, 0x7fffffffu)));
+#else
+    const ssize_t written = write(file.fd, bytes.data() + offset, bytes.size() - offset);
+#endif
+    if (written < 0) {
+      error = std::string("file descriptor write failed: ") + std::strerror(errno);
+      return false;
+    }
+    if (written == 0) {
+      error = "file descriptor write made no progress";
+      return false;
+    }
+    offset += static_cast<size_t>(written);
+    file.cursor += static_cast<size_t>(written);
+  }
+  return true;
+}
+
+bool fd_close(FileObject& file, std::string& error) {
+  if (!file.fd_backed || file.fd < 0 || !file.closefd) {
+    file.closed = true;
+    return true;
+  }
+#if defined(_WIN32)
+  if (_close(file.fd) != 0) {
+#else
+  if (close(file.fd) != 0) {
+#endif
+    error = std::string("file descriptor close failed: ") + std::strerror(errno);
+    return false;
+  }
+  file.fd = -1;
+  file.closed = true;
+  return true;
 }
 
 void file_read_result(FileObject& file, std::string data, Value& out) {
@@ -204,6 +316,22 @@ bool file_read_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (!file->readable) {
     error = "file is not readable";
     return false;
+  }
+  if (file->fd_backed) {
+    int64_t requested = -1;
+    if (argc == 2) {
+      if (args[1].tag != ValueTag::Int64) {
+        error = "file.read size must be int";
+        return false;
+      }
+      requested = args[1].as.i64;
+    }
+    std::string data;
+    if (!fd_read(*file, requested, data, error)) {
+      return false;
+    }
+    file_read_result(*file, std::move(data), out);
+    return true;
   }
   size_t size = file->buffer.size() - std::min(file->cursor, file->buffer.size());
   if (argc == 2) {
@@ -246,6 +374,20 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
     return false;
   }
+  if (file->fd_backed) {
+    std::string storage;
+    std::string_view bytes(text);
+    if (!file->binary) {
+      storage = translate_newlines_for_write(std::move(text), *file);
+      bytes = storage;
+    }
+    if (!fd_write(*file, bytes, error)) {
+      return false;
+    }
+    const size_t written = file->binary ? bytes.size() : utf8_codepoint_count(std::string(bytes));
+    value_set_int64(out, static_cast<int64_t>(written));
+    return true;
+  }
   const size_t written = file->binary ? text.size() : utf8_codepoint_count(text);
   if (file->append) {
     file->cursor = file->buffer.size();
@@ -274,6 +416,37 @@ bool file_readline_method(Runtime&, const Value* args, uint32_t argc, Value& out
   if (!file->readable) {
     error = "file is not readable";
     return false;
+  }
+  if (file->fd_backed) {
+    std::string data;
+    std::string one;
+    int64_t remaining = -1;
+    if (argc == 2) {
+      if (args[1].tag != ValueTag::Int64) {
+        error = "file.readline size must be int";
+        return false;
+      }
+      if (args[1].as.i64 >= 0) {
+        remaining = args[1].as.i64;
+      }
+    }
+    while (remaining != 0) {
+      if (!fd_read(*file, 1, one, error)) {
+        return false;
+      }
+      if (one.empty()) {
+        break;
+      }
+      data += one;
+      if (one[0] == '\n') {
+        break;
+      }
+      if (remaining > 0) {
+        --remaining;
+      }
+    }
+    file_read_result(*file, std::move(data), out);
+    return true;
   }
   size_t limit = file->buffer.size();
   if (argc == 2) {
@@ -370,6 +543,29 @@ bool file_writelines_method(Runtime& runtime, const Value* args, uint32_t argc, 
     error = "file is not writable";
     return false;
   }
+  if (file->fd_backed) {
+    Value iterator;
+    if (!runtime_get_iter(runtime, args[1], iterator, error)) {
+      return false;
+    }
+    for (;;) {
+      bool done = false;
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+      Value ignored;
+      const Value write_args[] = {args[0], item};
+      if (!file_write_method(runtime, write_args, 2, ignored, error, nullptr)) {
+        return false;
+      }
+    }
+    value_set_none(out);
+    return true;
+  }
   if (file->devnull) {
     value_set_none(out);
     return true;
@@ -405,6 +601,20 @@ bool file_seek_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (file == nullptr) {
     return false;
   }
+  if (file->fd_backed) {
+#if defined(_WIN32)
+    const __int64 pos = _lseeki64(file->fd, static_cast<__int64>(args[1].as.i64), static_cast<int>(argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0));
+#else
+    const off_t pos = lseek(file->fd, static_cast<off_t>(args[1].as.i64), static_cast<int>(argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0));
+#endif
+    if (pos < 0) {
+      error = std::string("file descriptor seek failed: ") + std::strerror(errno);
+      return false;
+    }
+    file->cursor = static_cast<size_t>(pos);
+    value_set_int64(out, static_cast<int64_t>(pos));
+    return true;
+  }
   int64_t base = 0;
   const int64_t whence = argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0;
   if (whence == 0) {
@@ -434,6 +644,16 @@ bool file_tell_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (file == nullptr) {
     return false;
   }
+  if (file->fd_backed) {
+#if defined(_WIN32)
+    const __int64 pos = _telli64(file->fd);
+#else
+    const off_t pos = lseek(file->fd, 0, SEEK_CUR);
+#endif
+    if (pos >= 0) {
+      file->cursor = static_cast<size_t>(pos);
+    }
+  }
   value_set_int64(out, static_cast<int64_t>(file->cursor));
   return true;
 }
@@ -454,11 +674,18 @@ bool file_close_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!method_check_argc(argc, 1, "file.close", error)) {
     return false;
   }
-  auto* file = require_file(args[0], "file.close", error);
-  if (file == nullptr || !flush_file(*file, error)) {
+  if (args[0].tag != ValueTag::Object || args[0].as.obj == nullptr || args[0].as.obj->kind != ObjectKind::File) {
+    error = "file.close target is not a file";
     return false;
   }
-  file->closed = true;
+  auto* file = reinterpret_cast<FileObject*>(args[0].as.obj);
+  if (file->closed) {
+    value_set_none(out);
+    return true;
+  }
+  if (!flush_file(*file, error) || !fd_close(*file, error)) {
+    return false;
+  }
   value_set_none(out);
   return true;
 }
@@ -524,7 +751,7 @@ bool file_isatty_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool file_fileno_method(Runtime& runtime, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
+bool file_fileno_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.fileno", error)) {
     return false;
   }
@@ -532,9 +759,13 @@ bool file_fileno_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (file == nullptr) {
     return false;
   }
-  error = "fileno";
-  runtime.raise_class_error("OSError", error);
-  return false;
+  if (!file->fd_backed || file->fd < 0) {
+    error = "fileno";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, file->fd);
+  return true;
 }
 
 bool file_truncate_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -549,6 +780,20 @@ bool file_truncate_method(Runtime&, const Value* args, uint32_t argc, Value& out
   if (!file->writable) {
     error = "file is not writable";
     return false;
+  }
+  if (file->fd_backed) {
+#if defined(_WIN32)
+    const int result = _chsize_s(file->fd, static_cast<__int64>(argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : file->cursor));
+#else
+    const int result = ftruncate(file->fd, static_cast<off_t>(argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : file->cursor));
+#endif
+    if (result != 0) {
+      error = std::string("file descriptor truncate failed: ") + std::strerror(errno);
+      return false;
+    }
+    const int64_t size = argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : static_cast<int64_t>(file->cursor);
+    value_set_int64(out, size);
+    return true;
   }
   size_t size = file->cursor;
   if (argc == 2) {
@@ -613,8 +858,12 @@ bool file_exit_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (!method_check_argc(argc, 4, "file.__exit__", error)) {
     return false;
   }
-  auto* file = require_file(args[0], "file.__exit__", error);
-  if (file == nullptr || !flush_file(*file, error)) {
+  if (args[0].tag != ValueTag::Object || args[0].as.obj == nullptr || args[0].as.obj->kind != ObjectKind::File) {
+    error = "file.__exit__ target is not a file";
+    return false;
+  }
+  auto* file = reinterpret_cast<FileObject*>(args[0].as.obj);
+  if (!file->closed && (!flush_file(*file, error) || !fd_close(*file, error))) {
     return false;
   }
   file->closed = true;

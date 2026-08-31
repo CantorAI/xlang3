@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
+#include <cctype>
 #include <deque>
 #include <string>
 #include <unordered_map>
@@ -118,8 +119,83 @@ Value node_class(AstState* state, const char* name) {
   return it == state->classes.end() ? Value::invalid() : it->second;
 }
 
+Value ast_instance(AstState* state, const char* name) {
+  Value klass = node_class(state, name);
+  if (klass.tag == ValueTag::Invalid) {
+    return Value::invalid();
+  }
+  return Value::instance(klass);
+}
+
+Value make_empty_arguments(AstState* state, std::string& error) {
+  Value args = ast_instance(state, "arguments");
+  if (args.tag == ValueTag::Invalid) {
+    return args;
+  }
+  object_set_attr(args, "posonlyargs", Value::list({}), error);
+  object_set_attr(args, "args", Value::list({}), error);
+  object_set_attr(args, "vararg", Value::none(), error);
+  object_set_attr(args, "kwonlyargs", Value::list({}), error);
+  object_set_attr(args, "kw_defaults", Value::list({}), error);
+  object_set_attr(args, "kwarg", Value::none(), error);
+  object_set_attr(args, "defaults", Value::list({}), error);
+  return args;
+}
+
+bool parse_simple_function_ast(Runtime&, AstState* state, std::string_view source, Value& out, std::string& error) {
+  std::string_view text = source;
+  while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) {
+    text.remove_prefix(1);
+  }
+  if (text.substr(0, 4) != "def ") {
+    return false;
+  }
+  text.remove_prefix(4);
+  size_t name_end = 0;
+  while (name_end < text.size() &&
+         (std::isalnum(static_cast<unsigned char>(text[name_end])) || text[name_end] == '_')) {
+    ++name_end;
+  }
+  if (name_end == 0 || name_end >= text.size() || text[name_end] != '(') {
+    return false;
+  }
+  std::string name(text.substr(0, name_end));
+  size_t close = text.find(')', name_end + 1);
+  if (close == std::string_view::npos) {
+    return false;
+  }
+  std::string_view params = text.substr(name_end + 1, close - name_end - 1);
+  if (params.find_first_not_of(" \t\r\n") != std::string_view::npos) {
+    return false;
+  }
+
+  Value module = ast_instance(state, "Module");
+  Value function = ast_instance(state, "FunctionDef");
+  Value pass = ast_instance(state, "Pass");
+  if (module.tag == ValueTag::Invalid || function.tag == ValueTag::Invalid || pass.tag == ValueTag::Invalid) {
+    error = "missing _ast class";
+    return false;
+  }
+  Value args = make_empty_arguments(state, error);
+  if (args.tag == ValueTag::Invalid) {
+    error = "missing _ast arguments class";
+    return false;
+  }
+
+  object_set_attr(function, "name", Value::string(name), error);
+  object_set_attr(function, "args", args, error);
+  object_set_attr(function, "body", Value::list({pass}), error);
+  object_set_attr(function, "decorator_list", Value::list({}), error);
+  object_set_attr(function, "returns", Value::none(), error);
+  object_set_attr(function, "type_comment", Value::none(), error);
+  object_set_attr(module, "body", Value::list({function}), error);
+  object_set_attr(module, "type_ignores", Value::list({}), error);
+  value_assign_fast(out, module);
+  return true;
+}
+
 bool ast_parse_kw(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     const NativeKeywordArg* kwargs,
@@ -156,6 +232,11 @@ bool ast_parse_kw(
     mode = string_object_to_string(*mode_string);
   }
   auto* state = static_cast<AstState*>(user_data);
+  Value parsed;
+  if (mode == "exec" && parse_simple_function_ast(runtime, state, string_object_to_string(*source), parsed, error)) {
+    value_assign_fast(out, parsed);
+    return true;
+  }
   Value klass = mode == "eval" ? node_class(state, "Expression") : node_class(state, "Module");
   out = Value::instance(klass);
   object_set_attr(out, "source", args[0], error);

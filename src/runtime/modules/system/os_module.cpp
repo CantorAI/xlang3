@@ -20,15 +20,23 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <random>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 #if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
 #include <process.h>
+#include <sys/stat.h>
+#include <windows.h>
 #else
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -37,6 +45,41 @@ namespace xlang3 {
 namespace {
 
 constexpr const char* kScandirIteratorNativeType = "os.ScandirIterator";
+
+Value make_process_environ_dict() {
+  std::vector<std::pair<Value, Value>> entries;
+#if defined(_WIN32)
+  LPCH block = GetEnvironmentStringsA();
+  if (block != nullptr) {
+    for (LPCCH current = block; current[0] != '\0'; current += std::strlen(current) + 1) {
+      std::string_view item(current);
+      const size_t equals = item.find('=');
+      if (equals == std::string_view::npos || equals == 0) {
+        continue;
+      }
+      entries.push_back({
+          Value::string(std::string(item.substr(0, equals))),
+          Value::string(std::string(item.substr(equals + 1)))});
+    }
+    FreeEnvironmentStringsA(block);
+  }
+#else
+  extern char** environ;
+  if (environ != nullptr) {
+    for (char** current = environ; *current != nullptr; ++current) {
+      std::string_view item(*current);
+      const size_t equals = item.find('=');
+      if (equals == std::string_view::npos) {
+        continue;
+      }
+      entries.push_back({
+          Value::string(std::string(item.substr(0, equals))),
+          Value::string(std::string(item.substr(equals + 1)))});
+    }
+  }
+#endif
+  return Value::dict(std::move(entries));
+}
 
 struct PathArg {
   std::string text;
@@ -53,7 +96,10 @@ struct OsModuleState {
   Value dir_entry_class;
   Value scandir_iterator_class;
   Value stat_result_class;
+  Value terminal_size_class;
 };
+
+Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines);
 
 void scandir_state_cleanup(void* data) {
   delete static_cast<ScandirState*>(data);
@@ -233,6 +279,130 @@ bool os_getppid(Runtime&, const Value*, uint32_t argc, Value& out, std::string& 
   return true;
 }
 
+bool os_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    runtime.raise_class_error("TypeError", "open() expected path, flags, optional mode and dir_fd");
+    error = "open() expected path, flags, optional mode and dir_fd";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "open path", path, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = "open flags must be int";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int mode = 0666;
+  if (argc >= 3 && args[2].tag != ValueTag::None) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "open mode must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    mode = static_cast<int>(args[2].as.i64);
+  }
+  if (argc >= 4 && args[3].tag != ValueTag::None) {
+    error = "dir_fd is not supported yet";
+    runtime.raise_class_error("NotImplementedError", error);
+    return false;
+  }
+
+#if defined(_WIN32)
+  const int fd = _open(path.text.c_str(), static_cast<int>(args[1].as.i64), mode);
+#else
+  const int fd = ::open(path.text.c_str(), static_cast<int>(args[1].as.i64), static_cast<mode_t>(mode));
+#endif
+  if (fd < 0) {
+    error = "open failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, fd);
+  return true;
+}
+
+bool os_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "close() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const int rc = _close(static_cast<int>(args[0].as.i64));
+#else
+  const int rc = ::close(static_cast<int>(args[0].as.i64));
+#endif
+  if (rc != 0) {
+    error = "close failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+    error = "read() expected fd and length";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].as.i64 < 0) {
+    error = "negative read length";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string buffer;
+  buffer.resize(static_cast<size_t>(args[1].as.i64));
+#if defined(_WIN32)
+  const int count = _read(static_cast<int>(args[0].as.i64), buffer.data(), static_cast<unsigned int>(buffer.size()));
+#else
+  const ssize_t count = ::read(static_cast<int>(args[0].as.i64), buffer.data(), buffer.size());
+#endif
+  if (count < 0) {
+    error = "read failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  buffer.resize(static_cast<size_t>(count));
+  out = Value::bytes(std::move(buffer));
+  return true;
+}
+
+bool os_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "write() expected fd and bytes-like data";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string owned;
+  std::string_view data;
+  if (auto* bytes = value_as_bytes(args[1])) {
+    data = bytes_object_view(*bytes);
+  } else if (auto* bytearray = value_as_bytearray(args[1])) {
+    data = std::string_view(bytearray->value.data(), bytearray->value.size());
+  } else {
+    error = "write data must be bytes-like";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const int count = _write(static_cast<int>(args[0].as.i64), data.data(), static_cast<unsigned int>(data.size()));
+#else
+  const ssize_t count = ::write(static_cast<int>(args[0].as.i64), data.data(), data.size());
+#endif
+  if (count < 0) {
+    error = "write failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(count));
+  return true;
+}
+
 bool os_cpu_count(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "os.cpu_count", error)) {
     return false;
@@ -244,6 +414,47 @@ bool os_cpu_count(Runtime&, const Value*, uint32_t argc, Value& out, std::string
     value_set_int64(out, static_cast<int64_t>(count));
   }
   return true;
+}
+
+bool os_get_terminal_size(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc > 1) {
+    error = "os.get_terminal_size() expected optional fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t fd = 1;
+  if (argc == 1) {
+    if (args[0].tag != ValueTag::Int64) {
+      error = "os.get_terminal_size() fd must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    fd = args[0].as.i64;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+#if defined(_WIN32)
+  intptr_t os_handle = _get_osfhandle(static_cast<int>(fd));
+  if (os_handle == -1) {
+    error = "bad file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  CONSOLE_SCREEN_BUFFER_INFO info{};
+  if (!GetConsoleScreenBufferInfo(reinterpret_cast<HANDLE>(os_handle), &info)) {
+    error = "could not query terminal size";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const int64_t columns = static_cast<int64_t>(info.srWindow.Right - info.srWindow.Left + 1);
+  const int64_t lines = static_cast<int64_t>(info.srWindow.Bottom - info.srWindow.Top + 1);
+  out = make_terminal_size(state->terminal_size_class, columns, lines);
+  return true;
+#else
+  (void)state;
+  error = "terminal size query is not implemented for this platform";
+  runtime.raise_class_error("OSError", error);
+  return false;
+#endif
 }
 
 bool os_exit(Runtime&, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
@@ -436,6 +647,9 @@ Value make_stat_result_class(Runtime& runtime) {
 
 Value make_stat_result(const Value& klass, const VfsStat& stat) {
   const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
+  const double atime = static_cast<double>(stat.atime_ns) / 1000000000.0;
+  const double mtime = static_cast<double>(stat.mtime_ns) / 1000000000.0;
+  const double ctime = static_cast<double>(stat.ctime_ns) / 1000000000.0;
   std::vector<Value> tuple_items = {
       Value::int64(mode),
       Value::int64(static_cast<int64_t>(stat.inode)),
@@ -444,14 +658,45 @@ Value make_stat_result(const Value& klass, const VfsStat& stat) {
       Value::int64(0),
       Value::int64(0),
       Value::int64(static_cast<int64_t>(stat.size)),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
+      Value::number(atime),
+      Value::number(mtime),
+      Value::number(ctime),
   };
 
   Value instance = Value::instance(klass);
   std::string ignored;
   object_set_attr(instance, "_tuple", Value::tuple(tuple_items), ignored);
+  return instance;
+}
+
+Value terminal_size_match_args() {
+  return Value::tuple({
+      Value::string("columns"),
+      Value::string("lines"),
+  });
+}
+
+Value make_terminal_size_class(Runtime& runtime) {
+  const Value* tuple_base = runtime.find_builtin("tuple");
+  return Value::class_object(
+      "terminal_size",
+      {
+          {"__module__", Value::string("os")},
+          {"__qualname__", Value::string("terminal_size")},
+          {"n_sequence_fields", Value::int64(2)},
+          {"n_fields", Value::int64(2)},
+          {"n_unnamed_fields", Value::int64(0)},
+          {"columns", slot_descriptor("os.terminal_size", "columns", 0)},
+          {"lines", slot_descriptor("os.terminal_size", "lines", 1)},
+          {"__match_args__", terminal_size_match_args()},
+      },
+      tuple_base != nullptr ? *tuple_base : Value::invalid());
+}
+
+Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines) {
+  Value instance = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(instance, "_tuple", Value::tuple({Value::int64(columns), Value::int64(lines)}), ignored);
   return instance;
 }
 
@@ -921,8 +1166,40 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   if (!runtime.vfs().stat(path.text, stat, error)) {
     return false;
   }
+  if (stat.kind == VfsNodeKind::Missing) {
+    error = "file not found: " + path.text;
+    runtime.raise_class_error("FileNotFoundError", error);
+    return false;
+  }
   out = make_stat_result(state->stat_result_class, stat);
   return true;
+}
+
+bool os_stat_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1) {
+    error = "os.stat() expected one argument";
+    return false;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const char* name = kwargs[i].name;
+    if (name == nullptr || kwargs[i].value == nullptr) {
+      error = "os.stat() keyword argument is invalid";
+      return false;
+    }
+    if (std::string(name) != "follow_symlinks") {
+      error = std::string("os.stat() got unexpected keyword argument '") + name + "'";
+      return false;
+    }
+  }
+  return os_stat(runtime, args, argc, out, error, user_data);
 }
 
 bool os_access(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -962,12 +1239,12 @@ bool os_getenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_fspath(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "os.fspath() expected one argument";
     return false;
   }
-  if (value_as_string(args[0]) != nullptr) {
+  if (value_as_string(args[0]) != nullptr || value_as_bytes(args[0]) != nullptr) {
     value_assign_fast(out, args[0]);
     return true;
   }
@@ -981,16 +1258,42 @@ bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
     value_assign_fast(out, path_value);
     return true;
   }
+  Value fspath;
+  if (object_get_attr(args[0], "__fspath__", fspath, ignored)) {
+    Value result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, fspath, nullptr, 0, result, call_error)) {
+      error = call_error.empty() ? "__fspath__ failed" : call_error;
+      return false;
+    }
+    if (value_as_string(result) != nullptr || value_as_bytes(result) != nullptr) {
+      value_assign_fast(out, result);
+      return true;
+    }
+    error = "__fspath__() must return str or bytes";
+    return false;
+  }
   error = "expected str, bytes or os.PathLike object";
   return false;
 }
 
+#if defined(_WIN32)
+bool os_supports_virtual_terminal(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "nt._supports_virtual_terminal", error)) {
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+#endif
+
 } // namespace
 
 void register_os_module(Runtime& runtime) {
-  Value env_dict = Value::dict({});
+  Value env_dict = make_process_environ_dict();
   auto* os_state = new OsModuleState();
   os_state->stat_result_class = make_stat_result_class(runtime);
+  os_state->terminal_size_class = make_terminal_size_class(runtime);
   os_state->dir_entry_class = make_dir_entry_class(runtime, os_state);
   os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
   runtime.register_native_package_cleanup(os_state, os_module_state_cleanup);
@@ -1006,9 +1309,14 @@ void register_os_module(Runtime& runtime) {
       .function("fsencode", os_fsencode)
       .function("fsdecode", os_fsdecode)
       .function("urandom", os_urandom)
+      .function("open", os_open)
+      .function("close", os_close)
+      .function("read", os_read)
+      .function("write", os_write)
       .function("getpid", os_getpid)
       .function("getppid", os_getppid)
       .function("cpu_count", os_cpu_count)
+      .value("get_terminal_size", runtime.make_native_function("os.get_terminal_size", os_get_terminal_size, os_state))
       .function("_exit", os_exit)
       .function("listdir", os_listdir)
       .value("scandir", runtime.make_native_function("os.scandir", os_scandir, os_state))
@@ -1020,16 +1328,48 @@ void register_os_module(Runtime& runtime) {
       .function("rmdir", os_rmdir)
       .function("rename", os_rename)
       .function("replace", os_replace)
-      .value("stat", runtime.make_native_function("os.stat", os_stat, os_state))
+      .value("stat", runtime.make_native_function("os.stat", os_stat, os_state, nullptr, nullptr, false, os_stat_kw))
       .value("stat_result", os_state->stat_result_class)
+      .value("terminal_size", os_state->terminal_size_class)
       .function("access", os_access)
       .function("getenv", os_getenv)
       .function("fspath", os_fspath)
+#if defined(_WIN32)
+      .function("_supports_virtual_terminal", os_supports_virtual_terminal)
+#endif
       .value("environ", env_dict)
       .value("F_OK", Value::int64(0))
       .value("R_OK", Value::int64(4))
       .value("W_OK", Value::int64(2))
       .value("X_OK", Value::int64(1))
+#if defined(_WIN32)
+      .value("O_RDONLY", Value::int64(_O_RDONLY))
+      .value("O_WRONLY", Value::int64(_O_WRONLY))
+      .value("O_RDWR", Value::int64(_O_RDWR))
+      .value("O_APPEND", Value::int64(_O_APPEND))
+      .value("O_CREAT", Value::int64(_O_CREAT))
+      .value("O_TRUNC", Value::int64(_O_TRUNC))
+      .value("O_EXCL", Value::int64(_O_EXCL))
+      .value("O_TEXT", Value::int64(_O_TEXT))
+      .value("O_BINARY", Value::int64(_O_BINARY))
+      .value("O_NOINHERIT", Value::int64(_O_NOINHERIT))
+#ifdef _O_TEMPORARY
+      .value("O_TEMPORARY", Value::int64(_O_TEMPORARY))
+#endif
+#ifdef _O_SHORT_LIVED
+      .value("O_SHORT_LIVED", Value::int64(_O_SHORT_LIVED))
+#endif
+      .value("O_NONBLOCK", Value::int64(0))
+#else
+      .value("O_RDONLY", Value::int64(O_RDONLY))
+      .value("O_WRONLY", Value::int64(O_WRONLY))
+      .value("O_RDWR", Value::int64(O_RDWR))
+      .value("O_APPEND", Value::int64(O_APPEND))
+      .value("O_CREAT", Value::int64(O_CREAT))
+      .value("O_TRUNC", Value::int64(O_TRUNC))
+      .value("O_EXCL", Value::int64(O_EXCL))
+      .value("O_NONBLOCK", Value::int64(O_NONBLOCK))
+#endif
       .value("supports_dir_fd", Value::frozenset({}))
       .value("supports_effective_ids", Value::frozenset({}))
       .value("supports_fd", Value::frozenset({}))

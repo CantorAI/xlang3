@@ -24,7 +24,7 @@ MetaConstructed
 EnumShapedConstructed:ok
 10 20
 SetNameTarget tracked
-['marker'] prepared
+['__doc__', 'marker'] prepared
 True Child
 True 7 True
 True True True

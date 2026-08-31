@@ -117,7 +117,8 @@ bool is_raw_string_prefix(char ch) {
 }
 
 bool is_string_prefix_char(char ch) {
-  return ch == 'r' || ch == 'R' || ch == 'b' || ch == 'B' || ch == 'f' || ch == 'F' || ch == 'u' || ch == 'U';
+  return ch == 'r' || ch == 'R' || ch == 'b' || ch == 'B' || ch == 'f' || ch == 'F' ||
+         ch == 't' || ch == 'T' || ch == 'u' || ch == 'U';
 }
 
 int hex_digit(char ch) {
@@ -218,7 +219,22 @@ std::string decode_string_content(std::string_view text, bool raw, bool bytes) {
         }
         break;
       default:
-        out.push_back(esc);
+        if (esc >= '0' && esc <= '7') {
+          uint32_t value = static_cast<uint32_t>(esc - '0');
+          size_t digits = 1;
+          while (digits < 3 && i < text.size() && text[i] >= '0' && text[i] <= '7') {
+            value = (value << 3u) | static_cast<uint32_t>(text[i] - '0');
+            ++i;
+            ++digits;
+          }
+          if (bytes) {
+            out.push_back(static_cast<char>(value & 0xffu));
+          } else {
+            append_utf8(value, out);
+          }
+        } else {
+          out.push_back(esc);
+        }
         break;
     }
   }
@@ -254,6 +270,7 @@ StringPrefix detect_string_prefix_for_quote(std::string_view line, size_t quote_
     if (ch == 'r' || ch == 'R') raw = true;
     else if (ch == 'b' || ch == 'B') bytes = true;
     else if (ch == 'f' || ch == 'F') fstring = true;
+    else if (ch == 't' || ch == 'T') {}
     else if (ch == 'u' || ch == 'U') {}
     else valid = false;
   }
@@ -347,19 +364,43 @@ void remove_trailing_backslash(std::string& line) {
   }
 }
 
+void append_joined_line(std::string& logical_line, std::string_view line) {
+  logical_line.push_back(' ');
+  logical_line += std::string(trim_left_ascii(trim_inline_comment_for_join(line)));
+}
+
+void append_triple_string_tail(std::string& logical_line,
+                               const std::vector<SourceLine>& lines,
+                               size_t& line_index,
+                               uint32_t& logical_end_line,
+                               const TripleStringStart& triple_start) {
+  const auto opener = triple_start.opener;
+  std::string_view current = lines[line_index].text;
+  size_t content = triple_start.prefix.quote + 3;
+  size_t close = current.find(opener, content);
+  while (close == std::string_view::npos && line_index + 1 < lines.size()) {
+    const auto next_line = lines[++line_index];
+    logical_end_line = next_line.line;
+    current = next_line.text;
+    logical_line.push_back('\n');
+    logical_line.append(current);
+    close = current.find(opener);
+  }
+}
+
 } // namespace
 
 Lexer::Lexer(std::string_view source) : source_(source) {}
 
-void Lexer::emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string) {
-  tokens_.push_back(Token{kind, text, line, column, is_triple_string});
+void Lexer::emit(TokenKind kind, std::string_view text, uint32_t line, uint32_t column, bool is_triple_string, bool is_raw_string) {
+  tokens_.push_back(Token{kind, text, line, column, is_triple_string, is_raw_string});
 }
 
-void Lexer::emit_owned(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string) {
+void Lexer::emit_owned(TokenKind kind, std::string text, uint32_t line, uint32_t column, bool is_triple_string, bool is_raw_string) {
   auto owned = std::make_unique<std::string>(std::move(text));
   const std::string_view view(*owned);
   owned_text_.push_back(std::move(owned));
-  tokens_.push_back(Token{kind, view, line, column, is_triple_string});
+  tokens_.push_back(Token{kind, view, line, column, is_triple_string, is_raw_string});
 }
 
 LexResult Lexer::tokenize() {
@@ -433,9 +474,11 @@ LexResult Lexer::tokenize() {
           break;
         }
       }
-      value = decode_string_content(value, prefix.raw, prefix.bytes);
       const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
-      emit_owned(kind, std::move(value), start_line_no, static_cast<uint32_t>(prefix_start + 1), true);
+      if (!prefix.fstring) {
+        value = decode_string_content(value, prefix.raw, prefix.bytes);
+      }
+      emit_owned(kind, std::move(value), start_line_no, static_cast<uint32_t>(prefix_start + 1), true, prefix.raw);
       if (suffix.find_first_not_of(" \t") != std::string::npos) {
         std::string logical_line(std::string(indent, ' ') + suffix);
         uint32_t logical_end_line = line_no;
@@ -452,8 +495,11 @@ LexResult Lexer::tokenize() {
           }
           const auto next_line = lines[++line_index];
           logical_end_line = next_line.line;
-          logical_line.push_back(' ');
-          logical_line += std::string(trim_left_ascii(trim_inline_comment_for_join(next_line.text)));
+          append_joined_line(logical_line, next_line.text);
+          const auto continued_triple = find_first_triple_string_start(next_line.text, 0);
+          if (continued_triple.found) {
+            append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
+          }
           should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
         }
         auto owned = std::make_unique<std::string>(std::move(logical_line));
@@ -478,8 +524,11 @@ LexResult Lexer::tokenize() {
       }
       const auto next_line = lines[++line_index];
       logical_end_line = next_line.line;
-      logical_line.push_back(' ');
-      logical_line += std::string(trim_left_ascii(trim_inline_comment_for_join(next_line.text)));
+      append_joined_line(logical_line, next_line.text);
+      const auto continued_triple = find_first_triple_string_start(next_line.text, 0);
+      if (continued_triple.found) {
+        append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
+      }
       should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
     }
 
@@ -592,9 +641,11 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       if (!is_triple) {
         ++i;
       }
-      value = decode_string_content(value, prefix.raw, prefix.bytes);
       const TokenKind kind = prefix.bytes ? TokenKind::Bytes : (prefix.fstring ? TokenKind::FString : TokenKind::String);
-      emit_owned(kind, std::move(value), line_no, col, is_triple);
+      if (!prefix.fstring) {
+        value = decode_string_content(value, prefix.raw, prefix.bytes);
+      }
+      emit_owned(kind, std::move(value), line_no, col, is_triple, prefix.raw);
       continue;
     }
     if (std::isalpha(static_cast<unsigned char>(ch)) || ch == '_') {
@@ -683,6 +734,25 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
         }
       }
       emit(is_double ? TokenKind::Double : TokenKind::Integer, line_text.substr(start, i - start), line_no, col);
+      continue;
+    }
+    if (ch == '.' && i + 1 < line_text.size() && std::isdigit(static_cast<unsigned char>(line_text[i + 1]))) {
+      size_t start = i++;
+      while (i < line_text.size() &&
+             (std::isdigit(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
+        ++i;
+      }
+      if (i < line_text.size() && (line_text[i] == 'e' || line_text[i] == 'E')) {
+        ++i;
+        if (i < line_text.size() && (line_text[i] == '+' || line_text[i] == '-')) {
+          ++i;
+        }
+        while (i < line_text.size() &&
+               (std::isdigit(static_cast<unsigned char>(line_text[i])) || line_text[i] == '_')) {
+          ++i;
+        }
+      }
+      emit(TokenKind::Double, line_text.substr(start, i - start), line_no, col);
       continue;
     }
     auto three = i + 2 < line_text.size() ? line_text.substr(i, 3) : std::string_view{};

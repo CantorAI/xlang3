@@ -20,6 +20,6 @@ path = "xlang3_runpy_path.py"
 with open(path, "w") as f:
     f.write("x = 4\ny = x + 5\n")
 
-path_ns = runpy.run_path(path, "custom_name")
+path_ns = runpy.run_path(path, run_name="custom_name")
 print(path_ns["__name__"])
 print(path_ns["y"])

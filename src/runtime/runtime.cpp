@@ -1000,7 +1000,8 @@ Value Runtime::make_native_function(
     void (*user_data_cleanup)(void*),
     NativeFastCallCallback fast_callback,
     bool fast_releases_vm_lock,
-    NativeKeywordFunctionCallback keyword_callback) {
+    NativeKeywordFunctionCallback keyword_callback,
+    bool bind_as_descriptor) {
   const uint32_t native_id = next_native_id_++;
   return Value::native_function(
       native_id,
@@ -1010,7 +1011,8 @@ Value Runtime::make_native_function(
       user_data_cleanup,
       fast_callback,
       fast_releases_vm_lock,
-      keyword_callback);
+      keyword_callback,
+      bind_as_descriptor);
 }
 
 void Runtime::register_module(std::string name, Value module) {
