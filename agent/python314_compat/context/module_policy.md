@@ -2,6 +2,11 @@
 
 XLang3 compatibility is runtime-first.
 
+The required order is:
+
+1. Keep CPython `Lib/*.py` modules running from their real Python source.
+2. Fix the XLang3 runtime/native dependency exposed by the failure.
+
 Pure Python CPython standard-library modules must run from Python source. Do
 not satisfy them by adding public C++ facades. This is an enforced product
 boundary, not a preference.

@@ -2,9 +2,10 @@
 
 - The product goal is Python 3.14 runtime compatibility, not debugpy-only,
   benchmark-only, or fixture-only progress.
-- Run real CPython 3.14 `Lib/*.py` modules first. When they fail, fix the
-  missing XLang3 runtime primitive, builtin behavior, import/VFS behavior, or
-  native dependency module.
+- Non-negotiable order: first keep real CPython 3.14 `Lib/*.py` modules
+  running from source; second, when they fail, fix the missing XLang3 runtime
+  primitive, builtin behavior, import/VFS behavior, or native dependency
+  module.
 - Enforced boundary: do not implement or extend public C++ facades for pure
   Python CPython stdlib modules. Examples include `asyncio`, `ctypes`,
   `threading`, `warnings`, `signal`, `abc`, `collections`, `queue`, `json`,

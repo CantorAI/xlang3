@@ -637,6 +637,7 @@ def file_sha256(path: Path) -> str:
 def bootstrap_hashes(config: dict, goal: str) -> dict[str, str]:
     folder = goal_folder(config, goal)
     return {
+        "system_prompt": file_sha256(folder / "system_prompt.md"),
         "goal": file_sha256(folder / "goal.md"),
         "rules": file_sha256(folder / "rules.md"),
         "module_policy": file_sha256(folder / "context" / "module_policy.md"),
@@ -813,8 +814,17 @@ def compose_prompt(
     section_fixture_command = section_fixture_command_text(config, section) if section else ""
     cursor = task_cursor(source_label, items)
     lessons = read_compact_lessons(config, goal)
+    system_prompt_path = goal_folder(config, goal) / "system_prompt.md"
+    system_prompt = read_text(system_prompt_path).strip() if system_prompt_path.exists() else ""
+    if not system_prompt:
+        system_prompt = (
+            "Keep CPython Lib/*.py modules running from source; when they fail, "
+            "fix XLang3 runtime/native dependencies instead of public C++ facades."
+        )
     if include_bootstrap:
         header = f"""# XLang3 Python 3.14 Compatibility Batch
+
+{system_prompt}
 
 This prompt includes the session bootstrap because this is a new Codex session
 or the goal/rules/module-policy files changed. Later iterations in this same
@@ -889,6 +899,8 @@ reread the legacy giant audit unless this task item is ambiguous.
 Stable context status:
 - goal/rules/module-policy hashes are unchanged for this session.
 - continue following runtime-first Python 3.14 compatibility.
+- keep CPython `Lib/*.py` modules running from source first; fix XLang3
+  runtime/native dependencies second.
 - do not add public C++ facades for pure CPython stdlib modules.
 - use real CPython `Lib/*.py` first, then fix XLang3 runtime/native dependency
   gaps with fixture coverage.

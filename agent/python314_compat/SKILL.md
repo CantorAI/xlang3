@@ -4,6 +4,7 @@ Use this goal package for XLang3 Python 3.14 compatibility work.
 
 Read before choosing a batch:
 
+- `agent/python314_compat/system_prompt.md`
 - `agent/python314_compat/goal.md`
 - `agent/python314_compat/rules.md`
 - `agent/python314_compat/context/module_policy.md`
