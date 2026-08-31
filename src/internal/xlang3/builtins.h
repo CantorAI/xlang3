@@ -69,6 +69,7 @@ void register_warnings_module(Runtime& runtime);
 void register_errno_module(Runtime& runtime);
 void register_itertools_module(Runtime& runtime);
 void register_codecs_module(Runtime& runtime);
+void register_contextvars_module(Runtime& runtime);
 void register_unicodedata_module(Runtime& runtime);
 void register_struct_module(Runtime& runtime);
 void register_signal_module(Runtime& runtime);

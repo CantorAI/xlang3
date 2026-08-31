@@ -1065,6 +1065,7 @@ bool Runtime::execute_raw_block(
 
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
   static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
+  static const bool diag_missing_imports = std::getenv("XLANG3_DIAG_MISSING_IMPORTS") != nullptr;
   if (trace_imports) {
     std::cerr << "xlang3 import: " << name << "\n";
   }
@@ -1099,6 +1100,18 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       error = python_error + "; native package candidates tried:\n" + native_error + "\n" + prefixed_native_error;
     } else {
       error = native_error.empty() ? python_error : native_error;
+    }
+    if (diag_missing_imports) {
+      std::cerr << "XLANG3_MISSING_IMPORT name=\"" << name << "\"";
+      if (python_source_not_found) {
+        std::cerr << " python_source=\"not_found\"";
+      } else if (!python_error.empty()) {
+        std::cerr << " python_source=\"error\"";
+      }
+      if (!native_error.empty()) {
+        std::cerr << " native=\"tried\"";
+      }
+      std::cerr << "\n";
     }
 #else
     error = "module '" + name + "' not found in embedded runtime";

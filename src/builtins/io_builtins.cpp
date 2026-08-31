@@ -375,6 +375,34 @@ bool print_value_text(Runtime& runtime, const Value& value, std::string& out, st
   return true;
 }
 
+bool print_write_text(Runtime& runtime, const Value& file, const std::string& text, std::string& error) {
+  if (file.tag == ValueTag::None) {
+    runtime.write_output(text);
+    return true;
+  }
+  Value write_method;
+  if (!object_get_attr(file, "write", write_method, error)) {
+    error = "print file must have a write method";
+    return false;
+  }
+  Value text_arg = Value::string(text);
+  Value ignored;
+  return runtime_call_callable(runtime, write_method, &text_arg, 1, ignored, error);
+}
+
+bool print_flush_file(Runtime& runtime, const Value& file, std::string& error) {
+  if (file.tag == ValueTag::None) {
+    return true;
+  }
+  Value flush_method;
+  if (!object_get_attr(file, "flush", flush_method, error)) {
+    error = "print file must have a flush method";
+    return false;
+  }
+  Value ignored;
+  return runtime_call_callable(runtime, flush_method, nullptr, 0, ignored, error);
+}
+
 bool builtin_print(
     Runtime& runtime,
     const Value* args,
@@ -409,6 +437,9 @@ bool builtin_print_kw(
     void*) {
   std::string sep = " ";
   std::string end = "\n";
+  Value file;
+  value_set_none(file);
+  bool flush = false;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const char* name = kwargs[i].name;
     const Value* value = kwargs[i].value;
@@ -417,29 +448,44 @@ bool builtin_print_kw(
       return false;
     }
     if (std::string(name) == "sep") {
-      if (!get_string_arg(*value, "print sep", sep, error)) {
+      if (value->tag == ValueTag::None) {
+        sep = " ";
+      } else if (!get_string_arg(*value, "print sep", sep, error)) {
         return false;
       }
     } else if (std::string(name) == "end") {
-      if (!get_string_arg(*value, "print end", end, error)) {
+      if (value->tag == ValueTag::None) {
+        end = "\n";
+      } else if (!get_string_arg(*value, "print end", end, error)) {
         return false;
       }
+    } else if (std::string(name) == "file") {
+      file = *value;
+    } else if (std::string(name) == "flush") {
+      flush = value_truthy(*value);
     } else {
       error = std::string("print got unexpected keyword argument '") + name + "'";
       return false;
     }
   }
+  std::string output;
   for (uint32_t i = 0; i < argc; ++i) {
     if (i != 0) {
-      runtime.write_output(sep);
+      output += sep;
     }
     std::string text;
     if (!print_value_text(runtime, args[i], text, error)) {
       return false;
     }
-    runtime.write_output(text);
+    output += text;
   }
-  runtime.write_output(end);
+  output += end;
+  if (!print_write_text(runtime, file, output, error)) {
+    return false;
+  }
+  if (flush && !print_flush_file(runtime, file, error)) {
+    return false;
+  }
   value_set_none(out);
   return true;
 }

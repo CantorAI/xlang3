@@ -230,3 +230,7 @@ batches.
 - Before changing line-oriented expected output, verify newline ownership
   against the target interpreter. `linecache.getline`/`updatecache` entries
   include trailing newlines, so `print(line)` produces visible blank lines.
+- For a probe that appears to hang during import, first rerun the smallest case
+  with `XLANG3_DIAG_MISSING_IMPORTS=1` or `XLANG3_DIAG_MISSING_LOOKUPS=1`.
+  These runtime markers are for diagnosis only; do not convert the missing
+  public Python module into a native facade.

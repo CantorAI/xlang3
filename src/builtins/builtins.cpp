@@ -43,6 +43,7 @@ void register_core_builtins(Runtime& runtime) {
   register_errno_module(runtime);
   register_itertools_module(runtime);
   register_codecs_module(runtime);
+  register_contextvars_module(runtime);
   register_unicodedata_module(runtime);
   register_struct_module(runtime);
   register_signal_module(runtime);
