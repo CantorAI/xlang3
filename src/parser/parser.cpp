@@ -1270,7 +1270,11 @@ ast::ExprPtr Parser::parse_expression() {
 }
 
 ast::ExprPtr Parser::parse_named_expression() {
-  auto expr = parse_tuple();
+  return parse_tuple();
+}
+
+ast::ExprPtr Parser::parse_assignment_expression() {
+  auto expr = parse_conditional();
   if (match(TokenKind::ColonEqual)) {
     auto* name = dynamic_cast<ast::NameExpr*>(expr.get());
     if (name == nullptr) {
@@ -1284,7 +1288,7 @@ ast::ExprPtr Parser::parse_named_expression() {
 }
 
 ast::ExprPtr Parser::parse_tuple() {
-  auto first = parse_conditional();
+  auto first = parse_assignment_expression();
   if (!match(TokenKind::Comma)) {
     return first;
   }
@@ -1292,7 +1296,7 @@ ast::ExprPtr Parser::parse_tuple() {
   std::vector<ast::ExprPtr> items;
   items.push_back(std::move(first));
   while (!is_tuple_item_boundary(peek().kind)) {
-    items.push_back(parse_conditional());
+    items.push_back(parse_assignment_expression());
     if (!match(TokenKind::Comma)) {
       break;
     }
@@ -1540,19 +1544,19 @@ ast::ExprPtr Parser::parse_call() {
           ast::CallExpr::Arg arg;
           if (match(TokenKind::DoubleStar)) {
             arg.kw_star = true;
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             simple_positional = false;
           } else if (match(TokenKind::Star)) {
             arg.star = true;
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             simple_positional = false;
           } else if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
             arg.name = std::string(advance().text);
             advance();
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             simple_positional = false;
           } else {
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             if (simple_positional && args.empty() && match(TokenKind::KwFor)) {
               arg.value = finish_generator_expression(std::move(arg.value));
               args.push_back(std::move(arg));
@@ -1726,7 +1730,13 @@ ast::ExprPtr Parser::parse_primary() {
     }
     return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, std::move(literal_text));
   }
-  if (match(TokenKind::Bytes)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bytes, std::string(previous().text));
+  if (check(TokenKind::Bytes)) {
+    std::string literal_text;
+    while (match(TokenKind::Bytes)) {
+      literal_text += std::string(previous().text);
+    }
+    return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bytes, std::move(literal_text));
+  }
   if (match(TokenKind::Ellipsis)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Ellipsis);
   if (match(TokenKind::KwTrue)) {
     auto lit = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bool);

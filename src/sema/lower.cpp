@@ -2543,11 +2543,14 @@ private:
     for (const auto& base_expr : klass.bases) {
       base_regs.push_back(lower_expr(*base_expr));
     }
+    uint32_t bases_reg = UINT32_MAX;
     if (metaclass_reg == UINT32_MAX && !base_regs.empty()) {
-      const auto type_reg = new_reg();
-      emit(ir::Op::LoadGlobal, type_reg, add_name("type"));
+      bases_reg = new_reg();
+      emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      const auto select_metaclass_reg = new_reg();
+      emit(ir::Op::LoadGlobal, select_metaclass_reg, add_name("__xlang3_select_metaclass__"));
       metaclass_reg = new_reg();
-      emit(ir::Op::Call, metaclass_reg, type_reg, add_call_args({base_regs[0]}));
+      emit(ir::Op::Call, metaclass_reg, select_metaclass_reg, add_call_args({bases_reg}));
       metaclass_supports_prepare = true;
     }
     if (metaclass_reg == UINT32_MAX && !class_keywords.empty()) {
@@ -2557,13 +2560,14 @@ private:
     }
 
     uint32_t name_reg = UINT32_MAX;
-    uint32_t bases_reg = UINT32_MAX;
     uint32_t namespace_reg = UINT32_MAX;
     if (metaclass_reg != UINT32_MAX && metaclass_supports_prepare) {
       name_reg = new_reg();
       emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
-      bases_reg = new_reg();
-      emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      if (bases_reg == UINT32_MAX) {
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      }
       const auto prepare_reg = new_reg();
       emit(ir::Op::LoadAttr, prepare_reg, metaclass_reg, add_name("__prepare__"));
       namespace_reg = new_reg();
@@ -2613,8 +2617,10 @@ private:
       }
       name_reg = new_reg();
       emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
-      bases_reg = new_reg();
-      emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      if (bases_reg == UINT32_MAX) {
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      }
       namespace_reg = new_reg();
       emit(ir::Op::MakeDict, namespace_reg, add_dict_items({}));
     }
@@ -2728,8 +2734,10 @@ private:
         }
         name_reg = new_reg();
         emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
-        bases_reg = new_reg();
-        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+        if (bases_reg == UINT32_MAX) {
+          bases_reg = new_reg();
+          emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+        }
         namespace_reg = new_reg();
         emit(ir::Op::MakeDict, namespace_reg, add_dict_items(std::move(namespace_items)));
       }

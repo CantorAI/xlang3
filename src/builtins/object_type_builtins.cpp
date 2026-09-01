@@ -34,8 +34,11 @@ limitations under the License.
 namespace xlang3 {
 
 Value make_dict_fromkeys_classmethod();
+bool choose_compatible_metaclass(Value& current, const Value& candidate, std::string& error);
 
 namespace {
+
+bool resolve_class_bases(Runtime& runtime, TupleObject* bases, std::vector<Value>& resolved_bases, std::string& error);
 
 bool class_attrs_have(const std::vector<std::pair<std::string, Value>>& attrs, const std::string& name) {
   for (const auto& attr : attrs) {
@@ -960,6 +963,31 @@ bool builtin_tuple_new(
   return true;
 }
 
+bool try_int_conversion_protocol(Runtime& runtime, const Value& value, int64_t& parsed, std::string& error) {
+  Value convert_method;
+  Value converted;
+  std::string call_error;
+  if (!(object_get_attr(value, "__int__", convert_method, call_error) ||
+        object_get_attr(value, "__index__", convert_method, call_error))) {
+    return false;
+  }
+  if (!runtime_call_callable(runtime, convert_method, nullptr, 0, converted, call_error)) {
+    error = call_error;
+    return false;
+  }
+  if (converted.tag == ValueTag::Int64) {
+    parsed = converted.as.i64;
+    return true;
+  }
+  if (converted.tag == ValueTag::Bool) {
+    parsed = converted.as.b ? 1 : 0;
+    return true;
+  }
+  error = "__int__ returned non-int";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool builtin_int_new(
     Runtime& runtime,
     const Value* args,
@@ -1029,9 +1057,17 @@ bool builtin_int_new(
         return false;
       }
     } else {
-      error = "int.__new__ value must be a string, bytes-like object, number, or bool";
-      runtime.raise_class_error("TypeError", error);
-      return false;
+      std::string protocol_error;
+      if (argc != 3 && try_int_conversion_protocol(runtime, args[1], parsed, protocol_error)) {
+        // Protocol conversion succeeded.
+      } else if (!protocol_error.empty()) {
+        error = protocol_error;
+        return false;
+      } else {
+        error = "int.__new__ value must be a string, bytes-like object, number, or bool";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
     }
   }
 
@@ -1108,19 +1144,16 @@ bool builtin_type_new_impl(
   }
 
   Value base = Value::invalid();
-  if (bases->items.empty()) {
+  std::vector<Value> resolved_bases;
+  if (!resolve_class_bases(runtime, bases, resolved_bases, error)) {
+    return false;
+  }
+  if (resolved_bases.empty()) {
     if (const auto* object_type = runtime.find_builtin("object")) {
       value_assign_fast(base, *object_type);
     }
   } else {
-    for (const auto& item : bases->items) {
-      if (value_as_class(item) == nullptr) {
-        error = "type.__new__ bases must be classes";
-        runtime.raise_class_error("TypeError", error);
-        return false;
-      }
-    }
-    value_assign_fast(base, bases->items[0]);
+    value_assign_fast(base, resolved_bases[0]);
   }
 
   std::string class_name = string_object_to_string(*name);
@@ -1133,8 +1166,8 @@ bool builtin_type_new_impl(
 
   auto descriptor_attrs = attrs;
   out = Value::class_object(class_name, std::move(attrs), base, {}, args[0]);
-  for (size_t i = 1; i < bases->items.size(); ++i) {
-    if (!class_set_base(out, bases->items[i], error)) {
+  for (size_t i = 1; i < resolved_bases.size(); ++i) {
+    if (!class_set_base(out, resolved_bases[i], error)) {
       runtime.raise_class_error("TypeError", error);
       return false;
     }
@@ -1250,6 +1283,72 @@ bool builtin_build_class_from_namespace(
     std::string& error,
     void* user_data) {
   return builtin_build_class_from_namespace_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool resolve_class_bases(Runtime& runtime, TupleObject* bases, std::vector<Value>& resolved_bases, std::string& error) {
+  if (bases == nullptr) {
+    error = "bases must be a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  resolved_bases.clear();
+  resolved_bases.reserve(bases->items.size());
+  for (const auto& base : bases->items) {
+    if (auto* alias = value_as_generic_alias(base)) {
+      if (value_as_class(alias->origin) == nullptr) {
+        error = "__mro_entries__ resolved base is not a class";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      resolved_bases.push_back(alias->origin);
+    } else if (value_as_class(base) != nullptr) {
+      resolved_bases.push_back(base);
+    } else {
+      error = "bases must be classes";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool builtin_select_metaclass(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "__xlang3_select_metaclass__ expected bases";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* bases = value_as_tuple(args[0]);
+  if (bases == nullptr) {
+    error = "__xlang3_select_metaclass__ bases must be a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto* type_type = runtime.find_builtin("type");
+  if (type_type == nullptr) {
+    error = "type is not initialized";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  std::vector<Value> resolved_bases;
+  if (!resolve_class_bases(runtime, bases, resolved_bases, error)) {
+    return false;
+  }
+  value_assign_fast(out, *type_type);
+  for (const auto& base : resolved_bases) {
+    auto* base_class = value_as_class(base);
+    if (!choose_compatible_metaclass(out, base_class->metaclass, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return true;
 }
 
 bool builtin_type_prepare(
@@ -2002,12 +2101,16 @@ void register_object_type_builtins(Runtime& runtime) {
           nullptr,
           false,
           builtin_build_class_from_namespace_kw));
+  runtime.register_builtin(
+      "__xlang3_select_metaclass__",
+      runtime.make_native_function("__xlang3_select_metaclass__", builtin_select_metaclass));
 
   register_builtin_type(runtime, "NoneType", object_type);
   register_builtin_type(runtime, "int", object_type);
   if (const auto* int_value = runtime.find_builtin("int")) {
     if (auto* int_class = value_as_class(*int_value)) {
       int_class->attrs["__new__"] = Value::native_function(0, "int.__new__", builtin_int_new);
+      int_install_class_methods(runtime, *int_class);
       ++int_class->version;
     }
   }

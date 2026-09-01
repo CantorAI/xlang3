@@ -415,6 +415,8 @@ bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::s
   return true;
 }
 
+} // namespace
+
 bool choose_compatible_metaclass(Value& current, const Value& candidate, std::string& error) {
   auto* candidate_class = value_as_class(candidate);
   if (candidate_class == nullptr) {
@@ -452,6 +454,8 @@ bool choose_compatible_metaclass(Value& current, const Value& candidate, std::st
   error = "metaclass conflict: the metaclass of a derived class must be a non-strict subclass of the metaclasses of all its bases";
   return false;
 }
+
+namespace {
 
 bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name) {
   std::vector<const ClassObject*> mro;

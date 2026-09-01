@@ -1325,6 +1325,34 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
       return true;
     }
+    if (constructor_args.size() == 1) {
+      Value convert_method;
+      Value converted;
+      std::string call_error;
+      if ((object_get_attr(value, "__int__", convert_method, call_error) ||
+           object_get_attr(value, "__index__", convert_method, call_error))) {
+        if (!runtime_call_callable(runtime, convert_method, nullptr, 0, converted, call_error)) {
+          error = call_error;
+          return false;
+        }
+        if (converted.tag == ValueTag::Int64) {
+          if (!finish_int(converted.as.i64)) {
+            error = "int subclass construction failed";
+            return false;
+          }
+          return true;
+        }
+        if (converted.tag == ValueTag::Bool) {
+          if (!finish_int(converted.as.b ? 1 : 0)) {
+            error = "int subclass construction failed";
+            return false;
+          }
+          return true;
+        }
+        error = "__int__ returned non-int";
+        return false;
+      }
+    }
     int base = 10;
     if (constructor_args.size() == 2) {
       if (constructor_args.get(1).tag != ValueTag::Int64) {

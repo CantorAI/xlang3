@@ -34,7 +34,7 @@ limitations under the License.
 #endif
 #elif defined(_MSC_VER)
 #define XLANG3_FORCE_INLINE __forceinline
-#define XLANG3_HOT_INLINE __forceinline
+#define XLANG3_HOT_INLINE inline
 #define XLANG3_NOINLINE __declspec(noinline)
 #elif defined(__clang__) || defined(__GNUC__)
 #define XLANG3_FORCE_INLINE inline __attribute__((always_inline))

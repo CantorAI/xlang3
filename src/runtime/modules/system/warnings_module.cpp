@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 
 namespace xlang3 {
@@ -25,26 +27,97 @@ bool none_entry(Runtime&, const Value*, uint32_t, Value& out, std::string&, void
   return true;
 }
 
-bool warnings_warn(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+const Value* find_builtin_or_error(Runtime& runtime, const char* name, std::string& error) {
+  const Value* value = runtime.find_builtin(name);
+  if (value == nullptr) {
+    error = std::string("missing builtin '") + name + "'";
+    runtime.raise_class_error("RuntimeError", error);
+  }
+  return value;
+}
+
+bool warnings_warn_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
   if (argc < 1) {
     error = "warnings.warn() expected message";
     runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  Value category;
+  if (argc >= 2 && args[1].tag != ValueTag::None) {
+    value_assign_fast(category, args[1]);
+  } else if (const Value* user_warning = find_builtin_or_error(runtime, "UserWarning", error)) {
+    value_assign_fast(category, *user_warning);
+  } else {
+    return false;
+  }
+
+  Value source = Value::none();
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string key(kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (key == "category" && kwargs[i].value->tag != ValueTag::None) {
+      value_assign_fast(category, *kwargs[i].value);
+    } else if (key == "source") {
+      value_assign_fast(source, *kwargs[i].value);
+    }
+  }
+
+  Value warnings_module;
+  if (!runtime.import_module("warnings", warnings_module, error)) {
+    return false;
+  }
+
+  Value warning_message_class;
+  if (!module_get_attr(warnings_module, "WarningMessage", warning_message_class, error)) {
+    return false;
+  }
+
+  Value showwarnmsg;
+  if (!module_get_attr(warnings_module, "_showwarnmsg", showwarnmsg, error)) {
+    return false;
+  }
+
+  Value filename = Value::string("<string>");
+  Value lineno = Value::int64(1);
+  Value file = Value::none();
+  Value line = Value::none();
+  Value message_args[] = {args[0], category, filename, lineno, file, line, source};
+  Value warning_message;
+  if (!runtime_call_callable(runtime, warning_message_class, message_args, 7, warning_message, error)) {
+    return false;
+  }
+
+  if (!runtime_call_callable(runtime, showwarnmsg, &warning_message, 1, out, error)) {
     return false;
   }
   value_set_none(out);
   return true;
 }
 
+bool warnings_warn(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return warnings_warn_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
 bool warnings_warn_keywords(
     Runtime& runtime,
     const Value* args,
     uint32_t argc,
-    const NativeKeywordArg*,
-    uint32_t,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
     Value& out,
     std::string& error,
-    void* user_data) {
-  return warnings_warn(runtime, args, argc, out, error, user_data);
+    void*) {
+  return warnings_warn_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
 Value make_warnings_module(Runtime& runtime) {

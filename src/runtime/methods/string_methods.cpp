@@ -1459,30 +1459,46 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
-Value split_whitespace(memory::X3StringView text) {
+Value split_whitespace(memory::X3StringView text, int64_t maxsplit = -1) {
   auto text_view = as_view(text);
   size_t count = 0;
   bool in_word = false;
-  for (const unsigned char ch : text_view) {
-    const bool space = string_ascii_isspace(ch);
-    if (!space && !in_word) {
-      ++count;
+  if (maxsplit < 0) {
+    for (const unsigned char ch : text_view) {
+      const bool space = string_ascii_isspace(ch);
+      if (!space && !in_word) {
+        ++count;
+      }
+      in_word = !space;
     }
-    in_word = !space;
+  } else {
+    count = static_cast<size_t>(maxsplit) + 1;
   }
   Value out = Value::list_reserved(count);
   auto* list = value_as_list(out);
   size_t i = 0;
+  int64_t splits = 0;
   while (i < text_view.size()) {
     while (i < text_view.size() && string_ascii_isspace(static_cast<unsigned char>(text_view[i]))) {
       ++i;
     }
     const size_t start = i;
+    if (maxsplit >= 0 && splits >= maxsplit) {
+      size_t end = text_view.size();
+      while (end > start && string_ascii_isspace(static_cast<unsigned char>(text_view[end - 1]))) {
+        --end;
+      }
+      if (end > start) {
+        list->items.push_back(make_string_range_unchecked(text, start, end - start));
+      }
+      return out;
+    }
     while (i < text_view.size() && !string_ascii_isspace(static_cast<unsigned char>(text_view[i]))) {
       ++i;
     }
     if (i > start) {
       list->items.push_back(make_string_range_unchecked(text, start, i - start));
+      ++splits;
     }
   }
   return out;
@@ -1492,7 +1508,8 @@ bool split_separator(
     memory::X3StringView text,
     memory::X3StringView sep,
     Value& out,
-    std::string& error) {
+    std::string& error,
+    int64_t maxsplit = -1) {
   auto text_view = as_view(text);
   auto sep_view = as_view(sep);
   if (sep_view.empty()) {
@@ -1502,28 +1519,41 @@ bool split_separator(
   if (sep_view.size() == 1) {
     const char sep_ch = sep_view[0];
     size_t count = 1;
+    int64_t seen = 0;
     for (const auto ch : text_view) {
       if (ch == sep_ch) {
         ++count;
+        if (maxsplit >= 0 && ++seen >= maxsplit) {
+          break;
+        }
       }
     }
     Value result = Value::list_reserved(count);
     auto* list = value_as_list(result);
     size_t start = 0;
+    int64_t splits = 0;
     for (size_t i = 0; i < text_view.size(); ++i) {
-      if (text_view[i] == sep_ch) {
+      if (text_view[i] == sep_ch && (maxsplit < 0 || splits < maxsplit)) {
         list->items.push_back(make_string_range_unchecked(text, start, i - start));
         start = i + 1;
+        ++splits;
       }
     }
     list->items.push_back(make_string_range_unchecked(text, start, text_view.size() - start));
     value_move_assign_fast(out, result);
     return true;
   }
-  Value result = Value::list_reserved(count_non_overlapping_matches(text, sep, -1) + 1);
+  const int64_t reserved_matches = maxsplit < 0 ? count_non_overlapping_matches(text, sep, -1) : maxsplit;
+  Value result = Value::list_reserved(static_cast<size_t>(reserved_matches < 0 ? 0 : reserved_matches) + 1);
   auto* list = value_as_list(result);
   size_t start = 0;
+  int64_t splits = 0;
   while (true) {
+    if (maxsplit >= 0 && splits >= maxsplit) {
+      list->items.push_back(make_string_range_unchecked(text, start, text_view.size() - start));
+      value_move_assign_fast(out, result);
+      return true;
+    }
     const size_t pos = text_view.find(sep_view, start);
     if (pos == std::string::npos) {
       list->items.push_back(make_string_range_unchecked(text, start, text_view.size() - start));
@@ -1532,30 +1562,197 @@ bool split_separator(
     }
     list->items.push_back(make_string_range_unchecked(text, start, pos - start));
     start = pos + sep_view.size();
+    ++splits;
   }
 }
 
-bool string_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 && argc != 2) {
-    error = "str.split expected 1 or 2 arguments, got " + std::to_string(argc);
+bool split_args(
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    memory::X3StringView& text,
+    const Value*& sep_value,
+    int64_t& maxsplit,
+    std::string& error) {
+  if (argc < 1 || argc > 3) {
+    error = "str.split expected target, optional sep, and optional maxsplit";
     return false;
   }
-  memory::X3StringView text;
   if (!get_string_view_checked(args[0], "str.split target", text, error)) {
     return false;
   }
-  if (argc == 1) {
-    out = split_whitespace(text);
-  } else {
-    memory::X3StringView sep;
-    if (!get_string_view_checked(args[1], "str.split separator", sep, error)) {
+  sep_value = argc >= 2 ? &args[1] : nullptr;
+  maxsplit = -1;
+  if (argc >= 3) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "str.split maxsplit must be int";
       return false;
     }
-    if (!split_separator(text, sep, out, error)) {
+    maxsplit = args[2].as.i64;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (name == "sep") {
+      if (sep_value != nullptr) {
+        error = "str.split got multiple values for argument 'sep'";
+        return false;
+      }
+      sep_value = kwargs[i].value;
+    } else if (name == "maxsplit") {
+      if (argc >= 3) {
+        error = "str.split got multiple values for argument 'maxsplit'";
+        return false;
+      }
+      if (kwargs[i].value->tag != ValueTag::Int64) {
+        error = "str.split maxsplit must be int";
+        return false;
+      }
+      maxsplit = kwargs[i].value->as.i64;
+    } else {
+      error = "str.split got an unexpected keyword argument '" + std::string(name) + "'";
       return false;
     }
   }
   return true;
+}
+
+bool split_common(
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  memory::X3StringView text;
+  const Value* sep_value = nullptr;
+  int64_t maxsplit = -1;
+  if (!split_args(args, argc, kwargs, kwargc, text, sep_value, maxsplit, error)) {
+    return false;
+  }
+  if (sep_value == nullptr || sep_value->tag == ValueTag::None) {
+    out = split_whitespace(text, maxsplit);
+  } else {
+    memory::X3StringView sep;
+    if (!get_string_view_checked(*sep_value, "str.split separator", sep, error)) {
+      return false;
+    }
+    if (!split_separator(text, sep, out, error, maxsplit)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+Value rsplit_whitespace(memory::X3StringView text, int64_t maxsplit = -1) {
+  auto text_view = as_view(text);
+  std::vector<Value> items;
+  size_t end = text_view.size();
+  int64_t splits = 0;
+  while (end > 0) {
+    while (end > 0 && string_ascii_isspace(static_cast<unsigned char>(text_view[end - 1]))) {
+      --end;
+    }
+    if (end == 0) {
+      break;
+    }
+    if (maxsplit >= 0 && splits >= maxsplit) {
+      size_t start = 0;
+      while (start < end && string_ascii_isspace(static_cast<unsigned char>(text_view[start]))) {
+        ++start;
+      }
+      if (end > start) {
+        items.push_back(make_string_range_unchecked(text, start, end - start));
+      }
+      break;
+    }
+    size_t start = end;
+    while (start > 0 && !string_ascii_isspace(static_cast<unsigned char>(text_view[start - 1]))) {
+      --start;
+    }
+    items.push_back(make_string_range_unchecked(text, start, end - start));
+    end = start;
+    ++splits;
+  }
+  std::reverse(items.begin(), items.end());
+  return Value::list(std::move(items));
+}
+
+bool rsplit_separator(
+    memory::X3StringView text,
+    memory::X3StringView sep,
+    Value& out,
+    std::string& error,
+    int64_t maxsplit = -1) {
+  auto text_view = as_view(text);
+  auto sep_view = as_view(sep);
+  if (sep_view.empty()) {
+    error = "empty separator";
+    return false;
+  }
+  std::vector<Value> items;
+  size_t end = text_view.size();
+  int64_t splits = 0;
+  while (maxsplit < 0 || splits < maxsplit) {
+    const size_t search_pos = end == 0 ? 0 : end - 1;
+    const size_t pos = text_view.rfind(sep_view, search_pos);
+    if (pos == std::string_view::npos || pos + sep_view.size() > end) {
+      break;
+    }
+    items.push_back(make_string_range_unchecked(text, pos + sep_view.size(), end - pos - sep_view.size()));
+    end = pos;
+    ++splits;
+    if (end == 0) {
+      break;
+    }
+  }
+  items.push_back(make_string_range_unchecked(text, 0, end));
+  std::reverse(items.begin(), items.end());
+  out = Value::list(std::move(items));
+  return true;
+}
+
+bool rsplit_common(
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  memory::X3StringView text;
+  const Value* sep_value = nullptr;
+  int64_t maxsplit = -1;
+  if (!split_args(args, argc, kwargs, kwargc, text, sep_value, maxsplit, error)) {
+    return false;
+  }
+  if (sep_value == nullptr || sep_value->tag == ValueTag::None) {
+    out = rsplit_whitespace(text, maxsplit);
+  } else {
+    memory::X3StringView sep;
+    if (!get_string_view_checked(*sep_value, "str.rsplit separator", sep, error)) {
+      return false;
+    }
+    if (!rsplit_separator(text, sep, out, error, maxsplit)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool string_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return split_common(args, argc, nullptr, 0, out, error);
+}
+
+bool string_split_kw_method(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return split_common(args, argc, kwargs, kwargc, out, error);
 }
 
 bool string_split_fast_method(
@@ -2101,9 +2298,21 @@ bool string_splitlines_method(Runtime&, const Value* args, uint32_t argc, Value&
 }
 
 bool string_rsplit_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  // The current split implementation has no maxsplit path yet. For the common
-  // one-argument/two-argument forms, right-split is equivalent to split.
-  return string_split_method(runtime, args, argc, out, error, user_data);
+  (void)runtime;
+  (void)user_data;
+  return rsplit_common(args, argc, nullptr, 0, out, error);
+}
+
+bool string_rsplit_kw_method(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return rsplit_common(args, argc, kwargs, kwargc, out, error);
 }
 
 bool string_expandtabs_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2177,9 +2386,9 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"rindex", "str.rindex", string_rindex_method},
     {"rjust", "str.rjust", string_rjust_method},
     {"rpartition", "str.rpartition", string_rpartition_method},
-    {"rsplit", "str.rsplit", string_rsplit_method},
+    {"rsplit", "str.rsplit", string_rsplit_method, nullptr, false, string_rsplit_kw_method},
     {"rstrip", "str.rstrip", string_rstrip_method, string_rstrip_fast_method},
-    {"split", "str.split", string_split_method, string_split_fast_method},
+    {"split", "str.split", string_split_method, string_split_fast_method, false, string_split_kw_method},
     {"splitlines", "str.splitlines", string_splitlines_method},
     {"startswith", "str.startswith", string_startswith_method, string_startswith_fast_method},
     {"strip", "str.strip", string_strip_method, string_strip_fast_method},

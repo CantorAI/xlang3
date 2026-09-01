@@ -192,6 +192,7 @@ private:
   bool is_match_statement_start() const;
   ast::ExprPtr parse_expression();
   ast::ExprPtr parse_named_expression();
+  ast::ExprPtr parse_assignment_expression();
   ast::ExprPtr parse_tuple();
   ast::ExprPtr parse_conditional();
   ast::ExprPtr parse_or();

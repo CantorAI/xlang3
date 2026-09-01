@@ -81,6 +81,15 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
   return out;
 }
 
+bool is_python_source_root(const std::filesystem::path& root) {
+  const auto leaf = root.filename().string();
+  if (leaf == "Lib" || leaf == "lib" || leaf == "site-packages") {
+    return true;
+  }
+  const auto parent = root.parent_path().filename().string();
+  return parent == "site-packages";
+}
+
 std::string metadata_attr_name(const char* key) {
   return std::string("__xlang3_") + key + "__";
 }
@@ -492,6 +501,9 @@ std::vector<std::filesystem::path> collect_native_library_candidates(
   std::vector<std::filesystem::path> out;
   out.reserve(runtime.import_roots().size() * 6);
   for (const auto& root : runtime.import_roots()) {
+    if (is_python_source_root(root)) {
+      continue;
+    }
     std::vector<std::string> package_names;
     if (mode == NativePackageLookupMode::ExactNameOnly) {
       package_names.push_back(name);

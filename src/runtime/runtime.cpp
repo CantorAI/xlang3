@@ -181,8 +181,6 @@ void add_default_python_lib_roots(Runtime& runtime) {
   }
 #if defined(_WIN32)
   add_import_root_if_dir(runtime, "C:/Python/Python314/Lib");
-  add_import_root_if_dir(runtime, "C:/Python/Python313/Lib");
-  add_import_root_if_dir(runtime, "C:/Python/Python312/Lib");
 #else
   add_import_root_if_dir(runtime, "/usr/local/lib/python3.14");
   add_import_root_if_dir(runtime, "/usr/lib/python3.14");
@@ -1082,15 +1080,16 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       }
     }
 #if !defined(XLANG3_EMBEDDED)
-    std::string native_error;
-    if (import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error)) {
-      return true;
-    }
     std::string python_error;
     if (import_python_module(*this, name, out, python_error)) {
       return true;
     }
     const bool python_source_not_found = python_error == "module '" + name + "' not found";
+    std::string native_error;
+    if (python_source_not_found &&
+        import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error)) {
+      return true;
+    }
     std::string prefixed_native_error;
     if (python_source_not_found &&
         import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error)) {
