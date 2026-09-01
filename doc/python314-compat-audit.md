@@ -1379,8 +1379,10 @@ High-level pure-Python stdlib modules must be source-backed:
 - [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
   on top of native `_signal`; real OS delivery/thread semantics pending.
 - [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
-- [~] `socket`: public module must run from CPython 3.14 `Lib/socket.py`
-  on top of native `_socket`; connect/bind/send/recv pending.
+- [~] `socket`: public module runs from CPython 3.14 `Lib/socket.py`
+  on top of native `_socket`; basic socket construction, family/type
+  metadata, timeout get/set, and close are covered by the process/socket
+  probe. Real connect/bind/send/recv and network error semantics pending.
 - [~] `queue`: public module must run from CPython 3.14 `Lib/queue.py`
   on top of native `_queue` and `_thread`; blocking/wakeup semantics pending.
 - [~] `string`: public module must run from CPython 3.14 `Lib/string`
@@ -1393,9 +1395,12 @@ High-level pure-Python stdlib modules must be source-backed:
   exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
 - [~] `subprocess`: public module must run from CPython 3.14
   `Lib/subprocess.py` on top of native `_winapi`, `os`, file/pipe, and process
-  primitives. POSIX process launch, exact file-handle inheritance, text-mode
-  `Popen.communicate`, advanced lifecycle/session/group semantics, and full
-  CPython edge behavior pending.
+  primitives. Basic Windows `subprocess.run([sys.executable, "-c", ...],
+  capture_output=True, text=True, timeout=...)` now launches the active
+  XLang3-compatible executable and captures stdout/stderr through the source
+  module. POSIX process launch, exact file-handle inheritance, advanced
+  `Popen.communicate`, lifecycle/session/group semantics, and full CPython
+  edge behavior pending.
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
   `_get_preferred_schemes`, `_expand_vars`, `_get_sysconfigdata_name`, `is_python_build`,
   config filename helpers, common config-var helpers, and makefile-variable expansion;

@@ -74,7 +74,10 @@ fixture coverage, then update the row truthfully.
   CPython 3.14 `Lib/threading.py` now imports over XLang3's `_thread`
   primitives, and the system stdlib probe covers `current_thread`,
   `active_count`, `Thread.start`, target execution, `Thread.join`, `is_alive`,
-  `ident`, and `stack_size`.
+  `ident`, and `stack_size`. CPython 3.14 `Lib/subprocess.py` and
+  `Lib/socket.py` import from source; the process/socket probe covers
+  `subprocess.run([sys.executable, "-c", ...], capture_output=True, text=True)`,
+  basic `socket.socket` construction/timeout/close, and empty `select.select`.
   Remaining: complete truthful process/socket primitives for `subprocess` and
   networking, full `_thread._local` per-thread storage, exact daemon/shutdown
   lifecycle, condition/lock edge cases, profile/trace propagation parity, and
