@@ -26,6 +26,10 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
     Value& out,
     std::string& error) {
   if (auto* instance = value_as_instance(object)) {
+    if (instance->native_get_attr != nullptr) {
+      cache.kind = AttrSiteKind::Empty;
+      return attribute_get(object, name, out, error);
+    }
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr &&
         cache.kind == AttrSiteKind::InstanceSlot &&
@@ -110,6 +114,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     return object_set_attr(object, name, value, error);
   }
   if (auto* instance = value_as_instance(object)) {
+    if (instance->native_set_attr != nullptr) {
+      cache.kind = AttrSiteKind::Empty;
+      return object_set_attr(object, name, value, error);
+    }
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr &&
         cache.kind == AttrSiteKind::InstanceSlot &&

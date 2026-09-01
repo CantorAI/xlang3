@@ -24,4 +24,22 @@ print("before", worker.is_alive(), worker.ident is None)
 worker.start()
 worker.join()
 print("after", values, worker.is_alive(), worker.ident is not None)
+
+# threading.local must store attributes per native thread, not on the shared
+# instance object.
+local = threading.local()
+local.value = "main"
+local_values = []
+
+def set_local_from_worker():
+    local_values.append(hasattr(local, "value"))
+    local.value = "worker"
+    local_values.append(local.value)
+    local_values.append(local.__dict__ == {"value": "worker"})
+
+local_worker = threading.Thread(target=set_local_from_worker)
+local_worker.start()
+local_worker.join()
+print("local", local.value, local.__dict__, local_values)
+
 print("stack", threading.stack_size())

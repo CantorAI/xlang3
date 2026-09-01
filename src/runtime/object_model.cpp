@@ -96,6 +96,9 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->native_data = nullptr;
   instance->native_data_cleanup = nullptr;
   instance->native_data_truthy = nullptr;
+  instance->native_get_attr = nullptr;
+  instance->native_set_attr = nullptr;
+  instance->native_delete_attr = nullptr;
   for (uint32_t i = 0; i < instance->slot_count && i < 8; ++i) {
     value_set_invalid(instance->inline_slots[i]);
   }
@@ -2246,6 +2249,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return false;
     }
     if (name == "__dict__") {
+      if (instance->native_get_attr != nullptr && instance->native_get_attr(object, name, out, error)) {
+        return true;
+      }
       if (klass->restrict_instance_attrs && !klass->allow_instance_dict) {
         error = "object has no attribute '__dict__'";
         return false;
@@ -2262,6 +2268,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         entries.push_back({Value::string(attr.first), attr.second});
       }
       out = Value::dict(std::move(entries));
+      return true;
+    }
+    if (instance->native_get_attr != nullptr && instance->native_get_attr(object, name, out, error)) {
       return true;
     }
     auto slot_it = klass->instance_slot_indices.find(name);
@@ -2605,6 +2614,9 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       value_assign_fast(instance->klass, value);
       return true;
     }
+    if (instance->native_set_attr != nullptr && instance->native_set_attr(object, name, value, error)) {
+      return true;
+    }
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
@@ -2714,6 +2726,9 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   }
   if (auto* instance = value_as_instance(object)) {
     auto* klass = value_as_class(instance->klass);
+    if (instance->native_delete_attr != nullptr && instance->native_delete_attr(object, name, error)) {
+      return true;
+    }
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
@@ -2905,6 +2920,9 @@ bool instance_set_native_data(
   instance_obj->native_data = native_data;
   instance_obj->native_data_cleanup = native_data_cleanup;
   instance_obj->native_data_truthy = nullptr;
+  instance_obj->native_get_attr = nullptr;
+  instance_obj->native_set_attr = nullptr;
+  instance_obj->native_delete_attr = nullptr;
   return true;
 }
 
@@ -2932,6 +2950,23 @@ bool instance_native_truthy(const Value& instance, bool& out) {
     return false;
   }
   out = instance_obj->native_data_truthy(instance_obj->native_data);
+  return true;
+}
+
+bool instance_set_native_attr_hooks(
+    Value instance,
+    NativeInstanceGetAttr get_attr,
+    NativeInstanceSetAttr set_attr,
+    NativeInstanceDeleteAttr delete_attr,
+    std::string& error) {
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr) {
+    error = "object is not an instance";
+    return false;
+  }
+  instance_obj->native_get_attr = get_attr;
+  instance_obj->native_set_attr = set_attr;
+  instance_obj->native_delete_attr = delete_attr;
   return true;
 }
 

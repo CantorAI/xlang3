@@ -15,12 +15,14 @@ limitations under the License.
 #include "thread_objects.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
 #include "runtime_lock.h"
 
 #include <chrono>
 #include <cstdio>
 #include <memory>
+#include <unordered_map>
 
 namespace xlang3 {
 
@@ -29,6 +31,7 @@ namespace {
 constexpr const char* kLockNativeType = "_thread.LockType";
 constexpr const char* kRLockNativeType = "_thread.RLock";
 constexpr const char* kThreadHandleNativeType = "_thread._ThreadHandle";
+constexpr const char* kThreadLocalNativeType = "_thread._local";
 
 std::mutex g_thread_registry_mutex;
 std::vector<std::shared_ptr<XlangThreadState>> g_thread_registry;
@@ -37,6 +40,11 @@ struct XlangThreadHandleState {
   std::shared_ptr<XlangThreadState> thread;
   int64_t ident = 0;
   bool done = false;
+};
+
+struct XlangThreadLocalState {
+  std::mutex mutex;
+  std::unordered_map<int64_t, std::shared_ptr<Value>> attrs_by_thread;
 };
 
 XlangLockState* lock_state_from_self(const Value& self, std::string& error) {
@@ -997,6 +1005,68 @@ bool thread_handle_set_done(
   return true;
 }
 
+XlangThreadLocalState* thread_local_state_from_self(const Value& self, std::string& error) {
+  auto* state = static_cast<XlangThreadLocalState*>(instance_get_native_data(self, kThreadLocalNativeType));
+  if (state == nullptr) {
+    error = "invalid thread local object";
+  }
+  return state;
+}
+
+std::shared_ptr<Value> thread_local_attrs_for_current_thread(XlangThreadLocalState& state) {
+  const int64_t ident = xlang_thread_current_ident();
+  std::lock_guard<std::mutex> lock(state.mutex);
+  auto it = state.attrs_by_thread.find(ident);
+  if (it != state.attrs_by_thread.end()) {
+    return it->second;
+  }
+  auto inserted = state.attrs_by_thread.emplace(ident, std::make_shared<Value>(Value::dict({})));
+  return inserted.first->second;
+}
+
+void xlang_thread_local_state_cleanup(void* data) {
+  delete static_cast<XlangThreadLocalState*>(data);
+}
+
+bool thread_local_get_attr(const Value& self, const std::string& name, Value& out, std::string& error) {
+  auto* state = thread_local_state_from_self(self, error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::shared_ptr<Value> attrs = thread_local_attrs_for_current_thread(*state);
+  if (name == "__dict__") {
+    value_assign_fast(out, *attrs);
+    return true;
+  }
+  return mapping_get_item(*attrs, Value::string(name), out, error);
+}
+
+bool thread_local_set_attr(Value& self, const std::string& name, const Value& value, std::string& error) {
+  if (name == "__dict__" || name == "__class__") {
+    error = "attribute '" + name + "' is read-only";
+    return false;
+  }
+  auto* state = thread_local_state_from_self(self, error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::shared_ptr<Value> attrs = thread_local_attrs_for_current_thread(*state);
+  return mapping_set_item(*attrs, Value::string(name), value, error);
+}
+
+bool thread_local_delete_attr(Value& self, const std::string& name, std::string& error) {
+  if (name == "__dict__" || name == "__class__") {
+    error = "attribute '" + name + "' is read-only";
+    return false;
+  }
+  auto* state = thread_local_state_from_self(self, error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::shared_ptr<Value> attrs = thread_local_attrs_for_current_thread(*state);
+  return mapping_delete_item(*attrs, Value::string(name), error);
+}
+
 bool thread_local_init(
     Runtime& runtime,
     const Value* args,
@@ -1008,6 +1078,15 @@ bool thread_local_init(
   (void)user_data;
   if (argc != 1) {
     error = "_local.__init__ expected no arguments";
+    return false;
+  }
+  auto* state = new XlangThreadLocalState();
+  if (!instance_set_native_data(args[0], kThreadLocalNativeType, state, xlang_thread_local_state_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  Value self = args[0];
+  if (!instance_set_native_attr_hooks(self, thread_local_get_attr, thread_local_set_attr, thread_local_delete_attr, error)) {
     return false;
   }
   value_set_none(out);

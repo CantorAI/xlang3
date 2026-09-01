@@ -23,6 +23,10 @@ limitations under the License.
 
 namespace xlang3 {
 
+using NativeInstanceGetAttr = bool (*)(const Value& self, const std::string& name, Value& out, std::string& error);
+using NativeInstanceSetAttr = bool (*)(Value& self, const std::string& name, const Value& value, std::string& error);
+using NativeInstanceDeleteAttr = bool (*)(Value& self, const std::string& name, std::string& error);
+
 struct ClassObject {
   Object header;
   std::string name;
@@ -57,6 +61,9 @@ struct InstanceObject {
   void* native_data = nullptr;
   void (*native_data_cleanup)(void*) = nullptr;
   bool (*native_data_truthy)(const void*) = nullptr;
+  NativeInstanceGetAttr native_get_attr = nullptr;
+  NativeInstanceSetAttr native_set_attr = nullptr;
+  NativeInstanceDeleteAttr native_delete_attr = nullptr;
   Value inline_slots[8];
   std::vector<Value> overflow_slots;
   std::vector<std::pair<std::string, Value>> attrs;
@@ -185,5 +192,11 @@ bool instance_set_native_data(
 void* instance_get_native_data(const Value& instance, const std::string& native_type);
 bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std::string& error);
 bool instance_native_truthy(const Value& instance, bool& out);
+bool instance_set_native_attr_hooks(
+    Value instance,
+    NativeInstanceGetAttr get_attr,
+    NativeInstanceSetAttr set_attr,
+    NativeInstanceDeleteAttr delete_attr,
+    std::string& error);
 
 } // namespace xlang3
