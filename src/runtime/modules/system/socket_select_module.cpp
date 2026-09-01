@@ -56,6 +56,8 @@ using NativeSocket = int;
 constexpr NativeSocket kInvalidSocket = -1;
 #endif
 
+Value g_default_socket_timeout;
+
 struct SocketState {
   int64_t family = kAfInet;
   int64_t type = kSockStream;
@@ -65,6 +67,7 @@ struct SocketState {
   int64_t port = 0;
   Value timeout;
   NativeSocket fd = kInvalidSocket;
+  bool blocking = true;
 };
 
 void close_native_socket(NativeSocket fd) {
@@ -110,6 +113,15 @@ std::string socket_last_error_text(const char* operation) {
 #endif
 }
 
+bool socket_last_error_would_block() {
+#ifdef _WIN32
+  const int code = WSAGetLastError();
+  return code == WSAEWOULDBLOCK || code == WSAEINPROGRESS || code == WSAEALREADY;
+#else
+  return errno == EWOULDBLOCK || errno == EAGAIN || errno == EINPROGRESS || errno == EALREADY;
+#endif
+}
+
 NativeSocket make_native_socket(SocketState& state, std::string& error) {
   if (!ensure_socket_runtime(error)) {
     return kInvalidSocket;
@@ -125,6 +137,37 @@ NativeSocket make_native_socket(SocketState& state, std::string& error) {
   state.fd = fd;
   state.closed = false;
   return fd;
+}
+
+bool apply_socket_blocking(SocketState& state, bool blocking, std::string& error) {
+  NativeSocket fd = make_native_socket(state, error);
+  if (fd == kInvalidSocket) {
+    return false;
+  }
+#ifdef _WIN32
+  u_long mode = blocking ? 0 : 1;
+  if (ioctlsocket(fd, FIONBIO, &mode) != 0) {
+    error = socket_last_error_text("ioctlsocket");
+    return false;
+  }
+#else
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags < 0) {
+    error = socket_last_error_text("fcntl");
+    return false;
+  }
+  if (blocking) {
+    flags &= ~O_NONBLOCK;
+  } else {
+    flags |= O_NONBLOCK;
+  }
+  if (fcntl(fd, F_SETFL, flags) != 0) {
+    error = socket_last_error_text("fcntl");
+    return false;
+  }
+#endif
+  state.blocking = blocking;
+  return true;
 }
 
 bool value_to_host_port(const Value& value, std::string& host, int64_t& port, std::string& error) {
@@ -254,7 +297,7 @@ bool socket_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
     state->fd = static_cast<NativeSocket>(int_value);
     state->closed = state->fd == kInvalidSocket;
   }
-  value_set_none(state->timeout);
+  value_assign_fast(state->timeout, g_default_socket_timeout);
   if (!instance_set_native_data(args[0], "_socket.socket", state, socket_cleanup, error)) {
     delete state;
     return false;
@@ -306,6 +349,60 @@ bool socket_settimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   value_assign_fast(state->timeout, args[1]);
+  if (args[1].tag == ValueTag::None) {
+    if (!apply_socket_blocking(*state, true, error)) {
+      return false;
+    }
+  } else {
+    if (!apply_socket_blocking(*state, false, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool socket_setblocking(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "socket.setblocking() expected flag";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  const bool blocking = value_truthy(args[1]);
+  if (!apply_socket_blocking(*state, blocking, error)) {
+    return false;
+  }
+  if (blocking) {
+    value_set_none(state->timeout);
+  } else {
+    state->timeout = Value::number(0.0);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool socket_getdefaulttimeout(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "getdefaulttimeout() takes no arguments";
+    return false;
+  }
+  value_assign_fast(out, g_default_socket_timeout);
+  return true;
+}
+
+bool socket_setdefaulttimeout(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "setdefaulttimeout() expected timeout";
+    return false;
+  }
+  if (args[0].tag != ValueTag::None && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double) {
+    error = "setdefaulttimeout() timeout must be a number or None";
+    return false;
+  }
+  value_assign_fast(g_default_socket_timeout, args[0]);
   value_set_none(out);
   return true;
 }
@@ -399,7 +496,41 @@ bool socket_getsockname(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (state == nullptr) {
     return false;
   }
+  update_socket_address_from_fd(*state);
   out = Value::tuple({Value::string(state->host), Value::int64(state->port)});
+  return true;
+}
+
+bool socket_getpeername(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.getpeername() expected no arguments";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) {
+    return false;
+  }
+  sockaddr_in address;
+  std::memset(&address, 0, sizeof(address));
+#ifdef _WIN32
+  int length = sizeof(address);
+#else
+  socklen_t length = sizeof(address);
+#endif
+  if (::getpeername(fd, reinterpret_cast<sockaddr*>(&address), &length) != 0) {
+    error = socket_last_error_text("getpeername");
+    return false;
+  }
+  char host[INET_ADDRSTRLEN] = {};
+  std::string host_text = "127.0.0.1";
+  if (inet_ntop(AF_INET, &address.sin_addr, host, sizeof(host)) != nullptr) {
+    host_text = host;
+  }
+  out = Value::tuple({Value::string(host_text), Value::int64(ntohs(address.sin_port))});
   return true;
 }
 
@@ -472,7 +603,43 @@ bool socket_accept(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool socket_connect(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_accept_fd(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket._accept() expected no arguments";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) {
+    return false;
+  }
+  sockaddr_in peer;
+  std::memset(&peer, 0, sizeof(peer));
+#ifdef _WIN32
+  int peer_length = sizeof(peer);
+#else
+  socklen_t peer_length = sizeof(peer);
+#endif
+  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  if (accepted == kInvalidSocket) {
+    error = socket_last_error_text("accept");
+    return false;
+  }
+
+  char peer_host[INET_ADDRSTRLEN] = {};
+  std::string peer_host_text = "127.0.0.1";
+  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) != nullptr) {
+    peer_host_text = peer_host;
+  }
+  Value peer_address = Value::tuple({Value::string(peer_host_text), Value::int64(ntohs(peer.sin_port))});
+  out = Value::tuple({Value::int64(static_cast<int64_t>(accepted)), peer_address});
+  return true;
+}
+
+bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.connect() expected address";
     return false;
@@ -495,6 +662,10 @@ bool socket_connect(Runtime&, const Value* args, uint32_t argc, Value& out, std:
     return false;
   }
   if (::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
+    if (!state->blocking && socket_last_error_would_block()) {
+      runtime.raise_class_error("BlockingIOError", socket_last_error_text("connect"));
+      return false;
+    }
     error = socket_last_error_text("connect");
     return false;
   }
@@ -718,11 +889,14 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"close", runtime.make_native_function("_socket.socket.close", socket_close)});
   attrs.push_back({"fileno", runtime.make_native_function("_socket.socket.fileno", socket_fileno)});
   attrs.push_back({"settimeout", runtime.make_native_function("_socket.socket.settimeout", socket_settimeout)});
+  attrs.push_back({"setblocking", runtime.make_native_function("_socket.socket.setblocking", socket_setblocking)});
   attrs.push_back({"gettimeout", runtime.make_native_function("_socket.socket.gettimeout", socket_gettimeout)});
   attrs.push_back({"setsockopt", runtime.make_native_function("_socket.socket.setsockopt", socket_setsockopt)});
   attrs.push_back({"bind", runtime.make_native_function("_socket.socket.bind", socket_bind)});
   attrs.push_back({"listen", runtime.make_native_function("_socket.socket.listen", socket_listen)});
   attrs.push_back({"getsockname", runtime.make_native_function("_socket.socket.getsockname", socket_getsockname)});
+  attrs.push_back({"getpeername", runtime.make_native_function("_socket.socket.getpeername", socket_getpeername)});
+  attrs.push_back({"_accept", runtime.make_native_function("_socket.socket._accept", socket_accept_fd)});
   attrs.push_back({"accept", runtime.make_native_function("_socket.socket.accept", socket_accept)});
   attrs.push_back({"connect", runtime.make_native_function("_socket.socket.connect", socket_connect)});
   attrs.push_back({"send", runtime.make_native_function("_socket.socket.send", socket_send)});
@@ -764,16 +938,54 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("TCP_KEEPCNT", Value::int64(16))
 #endif
       .value("SO_KEEPALIVE", Value::int64(SO_KEEPALIVE))
-      .value("SOL_SOCKET", Value::int64(1))
-      .value("SO_REUSEADDR", Value::int64(2))
+      .value("SOL_SOCKET", Value::int64(SOL_SOCKET))
+      .value("SO_REUSEADDR", Value::int64(SO_REUSEADDR))
       .value("SO_EXCLUSIVEADDRUSE", Value::int64(-5))
       .value("SOMAXCONN", Value::int64(128))
       .value("SHUT_RD", Value::int64(0))
       .value("SHUT_WR", Value::int64(1))
       .value("SHUT_RDWR", Value::int64(2))
+#ifdef AI_PASSIVE
+      .value("AI_PASSIVE", Value::int64(AI_PASSIVE))
+#else
+      .value("AI_PASSIVE", Value::int64(1))
+#endif
+#ifdef AI_CANONNAME
+      .value("AI_CANONNAME", Value::int64(AI_CANONNAME))
+#else
+      .value("AI_CANONNAME", Value::int64(2))
+#endif
+#ifdef AI_NUMERICHOST
+      .value("AI_NUMERICHOST", Value::int64(AI_NUMERICHOST))
+#else
+      .value("AI_NUMERICHOST", Value::int64(4))
+#endif
+#ifdef AI_NUMERICSERV
+      .value("AI_NUMERICSERV", Value::int64(AI_NUMERICSERV))
+#else
+      .value("AI_NUMERICSERV", Value::int64(8))
+#endif
+#ifdef AI_ALL
+      .value("AI_ALL", Value::int64(AI_ALL))
+#else
+      .value("AI_ALL", Value::int64(256))
+#endif
+#ifdef AI_ADDRCONFIG
+      .value("AI_ADDRCONFIG", Value::int64(AI_ADDRCONFIG))
+#else
+      .value("AI_ADDRCONFIG", Value::int64(1024))
+#endif
+#ifdef AI_V4MAPPED
+      .value("AI_V4MAPPED", Value::int64(AI_V4MAPPED))
+#else
+      .value("AI_V4MAPPED", Value::int64(2048))
+#endif
       .value("timeout", Value::string("socket.timeout"))
       .value("error", socket_error)
       .value("socket", socket_class)
+      .value("SocketType", socket_class)
+      .function("getdefaulttimeout", socket_getdefaulttimeout)
+      .function("setdefaulttimeout", socket_setdefaulttimeout)
       .function("gethostname", socket_gethostname)
       .function("getaddrinfo", socket_getaddrinfo);
 }
@@ -790,6 +1002,8 @@ bool select_select(Runtime&, const Value* args, uint32_t argc, Value& out, std::
 } // namespace
 
 void register_socket_modules(Runtime& runtime) {
+  value_set_none(g_default_socket_timeout);
+
   Value socket_class = make_socket_class(runtime);
 
   NativeModuleBuilder low_level(runtime, "_socket");

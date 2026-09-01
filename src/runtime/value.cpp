@@ -1746,6 +1746,45 @@ const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scr
   return value_as_tuple(scratch);
 }
 
+const char* value_binary_type_name(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::Invalid: return "invalid";
+    case ValueTag::None: return "NoneType";
+    case ValueTag::Bool: return "bool";
+    case ValueTag::Int64: return "int";
+    case ValueTag::Double: return "float";
+    case ValueTag::Object:
+      if (value.as.obj == nullptr) {
+        return "object";
+      }
+      switch (value.as.obj->kind) {
+        case ObjectKind::String: return "str";
+        case ObjectKind::BigInt: return "int";
+        case ObjectKind::Bytes: return "bytes";
+        case ObjectKind::ByteArray: return "bytearray";
+        case ObjectKind::MemoryView: return "memoryview";
+        case ObjectKind::Slice: return "slice";
+        case ObjectKind::Tuple: return "tuple";
+        case ObjectKind::List: return "list";
+        case ObjectKind::Dict: return "dict";
+        case ObjectKind::Set: return "set";
+        case ObjectKind::Module: return "module";
+        case ObjectKind::Function: return "function";
+        case ObjectKind::NativeFunction: return "builtin_function_or_method";
+        case ObjectKind::Class: return "type";
+        case ObjectKind::Instance:
+          if (auto* instance = value_as_instance(value)) {
+            if (auto* klass = value_as_class(instance->klass)) {
+              return klass->name.c_str();
+            }
+          }
+          return "object";
+        default: return "object";
+      }
+  }
+  return "object";
+}
+
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     int64_t result = 0;
@@ -1843,7 +1882,8 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
       return true;
     }
   }
-  error = "unsupported operands for +";
+  error = std::string("unsupported operand type(s) for +: '") + value_binary_type_name(lhs) +
+          "' and '" + value_binary_type_name(rhs) + "'";
   return false;
 }
 

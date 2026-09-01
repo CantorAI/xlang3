@@ -167,6 +167,7 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
   }
   if (value_as_native_function(object) != nullptr || value_as_bound_method(object) != nullptr ||
       value_as_code(object) != nullptr || value_as_frame(object) != nullptr ||
+      value_as_cell(object) != nullptr ||
       value_as_traceback(object) != nullptr || value_as_class(object) != nullptr ||
       value_as_instance(object) != nullptr || value_as_super(object) != nullptr ||
       value_as_static_method(object) != nullptr || value_as_class_method(object) != nullptr ||

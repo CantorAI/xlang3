@@ -51,11 +51,11 @@ fixture coverage, then update the row truthfully.
   and `logging.getLogger`. Runtime/native primitive fixes added for `_tokenize`,
   f-string embedded-expression lexing, annotation storage, tuple subclass
   construction, type/member descriptor lookup, memoryview item sizing, `nt`
-  terminal-color probes, bytearray/bytes concatenation, and `_sre` character
-  class translation.
-  Remaining: this path is correct but much too slow because XLang3 is interpreting
-  CPython's pure-Python `re._parser` and `re._compiler` for complex regexes;
-  exact frame/source/traceback formatting and full regex semantics remain pending.
+  terminal-color probes, bytearray/bytes concatenation, `_sre` character class
+  translation, CPython `inspect.py` `CO_*` flag generation through live
+  `globals()`, and disabled `sys.monitoring` near-zero-cost frame handling.
+  Remaining: exact frame/source/traceback formatting, full regex semantics,
+  and deeper logging error formatting remain pending.
 
 - [~] `os`, `os.path`, `ntpath`, `posixpath`, `pathlib`, `glob`, and `fnmatch`
   Coverage: real CPython 3.14 `os.py`, `ntpath.py`, `posixpath.py`,
@@ -82,6 +82,9 @@ fixture coverage, then update the row truthfully.
   `Lib/socket.py` import from source; the process/socket probe covers
   `subprocess.run([sys.executable, "-c", ...], capture_output=True, text=True)`,
   basic `socket.socket` construction/timeout/close, and empty `select.select`.
+  Additional probes cover `socket.socketpair`, socket blocking/timeout state,
+  `_overlapped` import foundation, CPython `Lib/asyncio` import, `_signal`
+  `set_wakeup_fd`, and int-like signal enum arguments.
   Remaining: complete truthful process/socket primitives for `subprocess` and
   networking, exact daemon/shutdown lifecycle, deeper `_thread._local`
   subclass/reinitialization edge cases, deeper condition/lock edge cases,

@@ -614,7 +614,7 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
 bool sequence_list_append(Value& list, const Value& item, std::string& error) {
   auto* obj = value_as_list(list);
   if (obj == nullptr) {
-    error = "list append target is not a list";
+    error = "list append target is not a list: " + value_to_repr(list);
     return false;
   }
   obj->items.push_back(item);

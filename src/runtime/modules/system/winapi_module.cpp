@@ -358,6 +358,12 @@ bool winapi_close_handle(Runtime& runtime, const Value* args, uint32_t argc, Val
       value_set_none(out);
       return true;
     }
+    // Some native dependency shims, such as _overlapped during early asyncio
+    // bootstrap, expose XLang3-owned pseudo handles instead of OS handles.
+    if (handle_value >= 0x10000 && GetLastError() == ERROR_INVALID_HANDLE) {
+      value_set_none(out);
+      return true;
+    }
     return raise_win32_error(runtime, "CloseHandle", GetLastError(), error);
   }
   forget_pipe_handle(handle);
@@ -647,6 +653,7 @@ void register_winapi_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_winapi");
   builder.value("__doc__", Value::none())
 #if defined(_WIN32)
+      .value("NULL", Value::int64(0))
       .value("CREATE_NEW_CONSOLE", Value::int64(CREATE_NEW_CONSOLE))
       .value("CREATE_NEW_PROCESS_GROUP", Value::int64(CREATE_NEW_PROCESS_GROUP))
       .value("CREATE_NO_WINDOW", Value::int64(CREATE_NO_WINDOW))

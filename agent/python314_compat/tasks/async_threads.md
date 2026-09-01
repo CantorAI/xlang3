@@ -18,6 +18,11 @@
   `Lib/asyncio`.
 
 - [~] CPython `asyncio` package over runtime async primitives
-  Coverage: pending.
-  Remaining: run the real CPython 3.14 `Lib/asyncio` package on top of XLang3
-  coroutine/task primitives; do not restore a public native `asyncio` module.
+  Coverage: `tests/fixtures/probes/system_stdlib/asyncio_probe.py` verifies
+  real CPython 3.14 `Lib/asyncio` import over XLang3 plus `_overlapped`
+  foundation. Runtime fixes now preserve caller globals across nested
+  interpreter/import execution, so `inspect.py` can generate `CO_*` constants
+  through live `globals()`.
+  Remaining: complete truthful Windows proactor/IOCP behavior enough for
+  `asyncio.run()` and event-loop shutdown; do not restore a public native
+  `asyncio` module.

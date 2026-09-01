@@ -334,6 +334,7 @@ XLANG3_HOT_INLINE bool call_builtin_method_spec(
 }
 
 XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
+    Runtime& runtime,
     CallArgsView values,
     std::vector<Value>& native_call_args,
     std::vector<NativeKeywordArg>& native_keyword_args,
@@ -346,13 +347,14 @@ XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
     native_call_args.push_back(values.get(i));
   }
   auto expand_star_arg = [&](uint32_t star_reg) -> bool {
-    const Value& star = values.registers[star_reg];
-    if (auto* tuple = value_as_tuple(star)) {
-      for (const auto& item : tuple->items) native_call_args.push_back(item);
-    } else if (auto* list = value_as_list(star)) {
-      for (const auto& item : list->items) native_call_args.push_back(item);
-    } else {
-      error = "* argument must be tuple or list";
+    if (values.registers == nullptr || star_reg >= UINT32_MAX) {
+      error = "* argument is invalid";
+      return false;
+    }
+    if (!runtime_collect_iterable(runtime, values.registers[star_reg], native_call_args, error)) {
+      if (error.empty()) {
+        error = "* argument must be iterable";
+      }
       return false;
     }
     return true;
@@ -2146,7 +2148,7 @@ XLANG3_HOT_INLINE bool call_native_function(
   if (needs_materialized_expansion) {
     std::vector<NativeKeywordArg> native_keyword_args;
     bool has_keywords = false;
-    native_args = materialize_native_call_ex(values, native_call_args, native_keyword_args, has_keywords, error);
+    native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_keywords, error);
     if (native_args == nullptr && !error.empty()) {
       if (raise_runtime_error(error)) return false;
       return false;
@@ -2253,7 +2255,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   xlang_perf_count_native_call(use_fast);
   const Value* native_args = nullptr;
   if (needs_materialized_ex) {
-    native_args = materialize_native_call_ex(values, native_call_args, native_keyword_args, has_materialized_keywords, error);
+    native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_materialized_keywords, error);
     if (native_args == nullptr && !error.empty()) {
       if (raise_runtime_error(error)) return false;
       return false;

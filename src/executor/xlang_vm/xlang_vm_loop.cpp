@@ -85,6 +85,14 @@ RuntimeResult Interpreter::run_function(
       runtime.clear_current_frame();
     }
   } current_frame_guard{runtime_};
+  struct CurrentGlobalsGuard {
+    Runtime& runtime;
+    Value previous;
+
+    ~CurrentGlobalsGuard() {
+      runtime.set_current_globals_module(previous);
+    }
+  } current_globals_guard{runtime_, runtime_.current_globals_module()};
   auto simple_signature = [](const ir::Function& candidate) -> bool {
     if (candidate.signature.empty()) {
       return true;
@@ -583,6 +591,10 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
+    if (!sys_monitoring_event_may_dispatch(event)) {
+      return true;
+    }
+
     runtime_.set_current_frame(
         &monitoring_frame.module_owner,
         monitoring_frame.function_id,
@@ -904,6 +916,9 @@ RuntimeResult Interpreter::run_function(
     auto& instr_cache = frame.instr_cache;
     auto& native_call_args = frame.native_call_args;
 
+    runtime_.set_current_globals_module(globals_module);
+    runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
+
     auto raise_exception_value = [&](Value exception) -> bool {
       const size_t source_frame = frame_count;
       if (!dispatch_exception(std::move(exception))) {
@@ -945,8 +960,6 @@ RuntimeResult Interpreter::run_function(
       }
 
       runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
-      runtime_.set_current_globals_module(globals_module);
-      runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
       if (XLANG3_UNLIKELY(runtime_.debug_poll_needed())) {
         if (!poll_debug_event(frame)) {
           return result;

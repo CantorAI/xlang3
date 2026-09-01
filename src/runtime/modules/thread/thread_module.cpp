@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 
 namespace xlang3 {
 
@@ -306,6 +307,63 @@ bool thread_exit(
   return false;
 }
 
+bool thread_except_hook_args(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  (void)runtime;
+  if (argc != 1) {
+    error = "_thread._ExceptHookArgs() expected one sequence";
+    return false;
+  }
+
+  std::vector<Value> items;
+  if (auto* tuple = value_as_tuple(args[0])) {
+    items = tuple->items;
+  } else if (auto* list = value_as_list(args[0])) {
+    items = list->items;
+  } else {
+    error = "_thread._ExceptHookArgs() argument must be a sequence";
+    return false;
+  }
+  if (items.size() != 4) {
+    error = "_thread._ExceptHookArgs() expected a sequence of four items";
+    return false;
+  }
+
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_thread")});
+  attrs.push_back({"__qualname__", Value::string("_ExceptHookArgs")});
+  Value klass = Value::class_object("_ExceptHookArgs", std::move(attrs));
+  out = Value::instance(std::move(klass));
+  std::string ignored;
+  object_set_attr(out, "exc_type", items[0], ignored);
+  object_set_attr(out, "exc_value", items[1], ignored);
+  object_set_attr(out, "exc_traceback", items[2], ignored);
+  object_set_attr(out, "thread", items[3], ignored);
+  object_set_attr(out, "_tuple", Value::tuple(std::move(items)), ignored);
+  return true;
+}
+
+bool thread_excepthook(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  (void)runtime;
+  if (argc != 1) {
+    error = "_thread._excepthook() expected one argument";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 } // namespace
 
 Value register_low_level_thread_module(Runtime& runtime) {
@@ -323,6 +381,8 @@ Value register_low_level_thread_module(Runtime& runtime) {
       .function("_make_thread_handle", thread_make_thread_handle)
       .function("stack_size", thread_stack_size)
       .function("exit", thread_exit)
+      .function("_excepthook", thread_excepthook)
+      .function("_ExceptHookArgs", thread_except_hook_args)
       .value("error", runtime.find_builtin("RuntimeError") ? *runtime.find_builtin("RuntimeError") : Value::class_object("error", {}))
       .value("TIMEOUT_MAX", Value::number(4294967.0))
       .value("LockType", xlang_thread_make_lock_class(runtime))

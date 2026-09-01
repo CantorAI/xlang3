@@ -1969,6 +1969,19 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     return false;
   }
 
+  if (auto* cell = value_as_cell(object)) {
+    if (name == "cell_contents") {
+      if (cell->value.tag == ValueTag::Invalid) {
+        error = "Cell is empty";
+        return false;
+      }
+      value_assign_fast(out, cell->value);
+      return true;
+    }
+    error = "cell has no attribute '" + name + "'";
+    return false;
+  }
+
   if (auto* native = value_as_native_function(object)) {
     if (native->attrs_dict != nullptr && native->attrs_dict->tag != ValueTag::Invalid) {
       std::string ignored;
@@ -2391,6 +2404,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
 }
 
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error) {
+  if (auto* cell = value_as_cell(object)) {
+    if (name == "cell_contents") {
+      value_assign_fast(cell->value, value);
+      return true;
+    }
+    error = "cell attribute '" + name + "' is read-only";
+    return false;
+  }
+
   if (auto* function = value_as_function(object)) {
     if (name == "__qualname__") {
       auto* string = value_as_string(value);
@@ -2701,6 +2723,15 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
 }
 
 bool object_delete_attr(Value& object, const std::string& name, std::string& error) {
+  if (auto* cell = value_as_cell(object)) {
+    if (name == "cell_contents") {
+      value_set_invalid(cell->value);
+      return true;
+    }
+    error = "cell has no attribute '" + name + "'";
+    return false;
+  }
+
   if (auto* function = value_as_function(object)) {
     if (function->attrs_dict.tag != ValueTag::Invalid &&
         mapping_delete_item(function->attrs_dict, Value::string(name), error)) {

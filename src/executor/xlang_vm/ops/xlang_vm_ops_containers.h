@@ -205,6 +205,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow list_append(
   }
   std::string error;
   if (!sequence_list_append(regs[in.dst], regs[in.a], error)) {
+    if (!error.empty()) {
+      error += ": " + value_to_repr(regs[in.dst]);
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

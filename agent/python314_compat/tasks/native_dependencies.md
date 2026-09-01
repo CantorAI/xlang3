@@ -11,6 +11,8 @@
 
 - [~] _winapi
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
+  Additional coverage: XLang3 pseudo handles from native dependency shims can
+  be closed without calling the Windows kernel handle table.
   Remaining: process, handle, wait, pipe, environment, and detailed Windows error surfaces.
 
 - [~] _stat and os stat structures
@@ -22,8 +24,11 @@
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, StringIO/BytesIO, detach/reconfigure, and exact errors.
 
 - [~] _socket, select, and _signal
-  Coverage: `tests/fixtures/core/socket_select_modules.py`
-  Remaining: real socket operations, selectors, signal delivery, and platform constants.
+  Coverage: `tests/fixtures/core/socket_select_modules.py`,
+  `tests/fixtures/probes/system_stdlib/socketpair_probe.py`, and
+  `tests/fixtures/probes/system_stdlib/asyncio_probe.py`.
+  Remaining: real socket operations, selectors, signal delivery, full
+  `_overlapped` IOCP behavior, and platform constants.
 
 - [~] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py`, `tests/fixtures/core/collections_queue_modules.py`

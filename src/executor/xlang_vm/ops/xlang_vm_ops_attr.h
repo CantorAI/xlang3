@@ -320,6 +320,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   std::string error;
   Value attr;
   if (!load_attr_cached(regs[in.a], fn.names[in.b], instr_cache[ip].attr, attr, error)) {
+    if (value_as_cell(regs[in.a]) != nullptr && fn.names[in.b] == "cell_contents" && error == "Cell is empty") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
     if (auto* hook_instance = value_as_instance(regs[in.a])) {
       auto* hook_class = value_as_class(hook_instance->klass);
       Value hook;

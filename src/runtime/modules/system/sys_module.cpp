@@ -3751,6 +3751,31 @@ bool sys_monitoring_dispatch_event(
   return true;
 }
 
+bool sys_monitoring_event_may_dispatch(int64_t event) {
+  if (g_monitoring_dispatch_active) {
+    return false;
+  }
+  const bool c_call_result_event = event == kMonitoringEventCReturn || event == kMonitoringEventCRaise;
+  for (const auto& tool : g_monitoring_tools) {
+    if (tool.name.tag == ValueTag::None) {
+      continue;
+    }
+    const auto callback_it = tool.callbacks.find(event);
+    if (callback_it == tool.callbacks.end() || callback_it->second.tag == ValueTag::None) {
+      continue;
+    }
+    if ((tool.events & event) != 0 || (c_call_result_event && (tool.events & kMonitoringEventCall) != 0)) {
+      return true;
+    }
+    for (const auto& local : tool.local_events) {
+      if ((local.second & event) != 0 || (c_call_result_event && (local.second & kMonitoringEventCall) != 0)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 namespace {
 
 bool simple_namespace_init_kw(

@@ -736,6 +736,16 @@ bool value_int_like_to_i64(const Value& value, int64_t& out) {
     out = value.as.b ? 1 : 0;
     return true;
   }
+  Value attr;
+  std::string ignored;
+  if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+    out = attr.as.i64;
+    return true;
+  }
+  if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+    out = attr.as.i64;
+    return true;
+  }
   return value_bigint_to_i64(value, out);
 }
 

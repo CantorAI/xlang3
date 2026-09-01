@@ -48,6 +48,7 @@ constexpr int64_t kSysMonitoringEventPyThrow = 16384;
 constexpr int64_t kSysMonitoringEventReraise = 32768;
 constexpr int64_t kSysMonitoringEventCReturn = 65536;
 constexpr int64_t kSysMonitoringEventCRaise = 131072;
+bool sys_monitoring_event_may_dispatch(int64_t event);
 bool sys_monitoring_dispatch_event(
     Runtime& runtime,
     int64_t event,
@@ -87,6 +88,7 @@ void register_marshal_module(Runtime& runtime);
 void register_msvcrt_module(Runtime& runtime);
 void register_opcode_module(Runtime& runtime);
 void register_pickle_module(Runtime& runtime);
+void register_overlapped_module(Runtime& runtime);
 void register_winapi_module(Runtime& runtime);
 void register_winreg_module(Runtime& runtime);
 void register_zlib_module(Runtime& runtime);

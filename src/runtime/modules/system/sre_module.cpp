@@ -45,9 +45,12 @@ constexpr int64_t kFlagVerbose = 64;
 
 struct PatternState {
   std::string pattern;
+  std::string engine_pattern;
   bool bytes_pattern = false;
   int64_t flags = 0;
   bool regex_available = true;
+  bool regex_compiled = false;
+  std::regex::flag_type regex_flags = std::regex::ECMAScript;
   std::regex regex;
   std::unordered_map<std::string, int64_t> group_names;
 };
@@ -118,6 +121,24 @@ bool value_to_pattern_text(const Value& value, std::string& out, bool& is_bytes)
 
 bool value_to_match_text(const Value& value, std::string& out, bool& is_bytes) {
   return value_to_pattern_text(value, out, is_bytes);
+}
+
+bool ensure_pattern_regex(PatternState& state, std::string& error) {
+  if (!state.regex_available) {
+    error = "regular expression construct is not supported by the current native matcher";
+    return false;
+  }
+  if (state.regex_compiled) {
+    return true;
+  }
+  try {
+    state.regex = std::regex(state.engine_pattern, state.regex_flags);
+    state.regex_compiled = true;
+    return true;
+  } catch (const std::regex_error& exc) {
+    error = std::string("bad regex pattern '") + state.pattern + "': " + exc.what();
+    return false;
+  }
 }
 
 bool sre_value_is_callable(const Value& value) {
@@ -207,8 +228,11 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
       continue;
     }
     if (!in_class && ch == '(' && i + 3 < pattern.size() && pattern[i + 1] == '?' &&
-        pattern[i + 2] == '<' && pattern[i + 3] == '!') {
-      return true;
+        pattern[i + 2] == '<') {
+      const char lookbehind_kind = pattern[i + 3];
+      if (lookbehind_kind == '!' || lookbehind_kind == '=') {
+        return true;
+      }
     }
   }
   return false;
@@ -549,8 +573,7 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
     value_set_none(out);
     return true;
   }
-  if (!state->regex_available) {
-    error = "regular expression construct is not supported by the current native matcher";
+  if (!ensure_pattern_regex(*state, error)) {
     return false;
   }
   std::match_results<std::string::const_iterator> match;
@@ -603,8 +626,7 @@ bool finditer_next(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (pattern == nullptr) {
     return false;
   }
-  if (!pattern->regex_available) {
-    error = "regular expression construct is not supported by the current native matcher";
+  if (!ensure_pattern_regex(*pattern, error)) {
     return false;
   }
   while (state->cursor <= state->endpos && state->cursor <= state->text.size()) {
@@ -651,6 +673,9 @@ bool pattern_finditer(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   auto* pattern = pattern_state(args[0], error);
   if (pattern == nullptr) {
+    return false;
+  }
+  if (!ensure_pattern_regex(*pattern, error)) {
     return false;
   }
   std::string text;
@@ -703,6 +728,9 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   int64_t max_count = 0;
   if (argc == 4 && args[3].tag == ValueTag::Int64) {
     max_count = args[3].as.i64;
+  }
+  if (!ensure_pattern_regex(*state, error)) {
+    return false;
   }
   std::string output;
   size_t cursor = 0;
@@ -812,8 +840,7 @@ bool pattern_split(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   if (argc == 3 && args[2].tag == ValueTag::Int64) {
     maxsplit = args[2].as.i64;
   }
-  if (!state->regex_available) {
-    error = "regular expression construct is not supported by the current native matcher";
+  if (!ensure_pattern_regex(*state, error)) {
     return false;
   }
   std::vector<Value> parts;
@@ -887,8 +914,14 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if ((flags & kFlagIgnoreCase) != 0) {
     regex_flags |= std::regex::icase;
   }
+  auto* state = new PatternState();
+  state->pattern = pattern;
+  state->engine_pattern = std::move(engine_pattern);
+  state->bytes_pattern = bytes_pattern;
+  state->flags = flags;
+  state->regex_available = !unsupported;
+  state->regex_flags = regex_flags;
   try {
-    auto* state = new PatternState{pattern, bytes_pattern, flags, !unsupported, std::regex(engine_pattern, regex_flags)};
     if (auto* groupindex = value_as_dict(args[4])) {
       for (const auto& entry : groupindex->entries) {
         auto* key = value_as_string(entry.first);

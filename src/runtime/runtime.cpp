@@ -24,6 +24,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
 #include <algorithm>
@@ -784,7 +785,6 @@ void Runtime::set_current_frame(
   state.function_id = function_id;
   state.globals_module = globals_module;
   state.instruction_index = instruction_index;
-  publish_current_frame_state(*this);
 }
 
 void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {
@@ -894,7 +894,6 @@ void Runtime::set_current_frame_locals(const std::vector<std::string>* names, co
   state.local_names = names;
   state.local_values = values;
   state.local_count = count;
-  publish_current_frame_state(*this);
 }
 
 void Runtime::clear_current_frame_locals() {
@@ -902,7 +901,6 @@ void Runtime::clear_current_frame_locals() {
   state.local_names = nullptr;
   state.local_values = nullptr;
   state.local_count = 0;
-  publish_current_frame_state(*this);
 }
 
 Value Runtime::current_locals_snapshot() const {
@@ -1238,6 +1236,44 @@ bool Runtime::import_star(const std::string& module_name, Value& target_module, 
     error = "star import target is not a module";
     return false;
   }
+
+  Value export_names;
+  std::string export_error;
+  if (module_get_attr(module, "__all__", export_names, export_error)) {
+    auto export_one = [&](const Value& name_value) -> bool {
+      auto* name_string = value_as_string(name_value);
+      if (name_string == nullptr) {
+        error = "__all__ entries must be strings";
+        return false;
+      }
+      const std::string name = string_object_to_string(*name_string);
+      Value item;
+      if (!module_get_attr(module, name, item, error)) {
+        return false;
+      }
+      return module_set_attr(target_module, name, item, error);
+    };
+
+    if (auto* names = value_as_tuple(export_names)) {
+      for (const auto& name : names->items) {
+        if (!export_one(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (auto* names = value_as_list(export_names)) {
+      for (const auto& name : names->items) {
+        if (!export_one(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    error = "__all__ must be a sequence of strings";
+    return false;
+  }
+
   for (const auto& item : source->name_to_slot) {
     const std::string& name = item.first;
     const uint32_t slot = item.second;

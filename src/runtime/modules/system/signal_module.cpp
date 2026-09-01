@@ -28,6 +28,7 @@ namespace {
 struct SignalState {
   std::unordered_map<int64_t, Value> handlers;
   std::vector<int64_t> signals = {2, 4, 6, 8, 11, 15};
+  int64_t wakeup_fd = -1;
 };
 
 SignalState* signal_state(void* user_data) {
@@ -35,11 +36,10 @@ SignalState* signal_state(void* user_data) {
 }
 
 bool signal_number(const Value& value, int64_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  if (!value_int_like_to_i64(value, out)) {
     error = "signal number must be int";
     return false;
   }
-  out = value.as.i64;
   return true;
 }
 
@@ -127,6 +127,23 @@ bool valid_signals(Runtime&, const Value*, uint32_t argc, Value& out, std::strin
   return true;
 }
 
+bool set_wakeup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "signal.set_wakeup_fd() expected fd and optional warn_on_full_buffer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].tag != ValueTag::Int64) {
+    error = "signal.set_wakeup_fd() fd must be int";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = signal_state(user_data);
+  out = Value::int64(state->wakeup_fd);
+  state->wakeup_fd = args[0].as.i64;
+  return true;
+}
+
 bool strsignal(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "signal.strsignal() expected signal number";
@@ -166,6 +183,7 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
       .value("getsignal", runtime.make_native_function("signal.getsignal", getsignal, state))
       .value("raise_signal", runtime.make_native_function("signal.raise_signal", raise_signal, state))
       .value("valid_signals", runtime.make_native_function("signal.valid_signals", valid_signals, state))
+      .value("set_wakeup_fd", runtime.make_native_function("signal.set_wakeup_fd", set_wakeup_fd, state))
       .function("strsignal", strsignal)
       .function("default_int_handler", default_int_handler)
       .value("SIG_DFL", Value::int64(0))

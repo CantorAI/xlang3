@@ -62,6 +62,18 @@ def make_counter(start):
 counter = make_counter(10)
 print(counter(), counter(4))
 
+# Closure cell objects expose mutable cell_contents.
+cell_probe = make_counter(20)
+cell = cell_probe.__closure__[0]
+print(cell.cell_contents)
+cell.cell_contents = 40
+print(cell_probe(), cell.cell_contents)
+del cell.cell_contents
+try:
+    cell.cell_contents
+except ValueError as exc:
+    print(type(exc).__name__)
+
 # Classes, inheritance, multiple bases, class decorators, and class type parameters.
 def class_marker(cls):
     cls.marked = "yes"

@@ -122,6 +122,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/msvcrt_module.cpp
   src/runtime/modules/system/opcode_module.cpp
   src/runtime/modules/system/os_module.cpp
+  src/runtime/modules/system/overlapped_module.cpp
   src/runtime/modules/system/pickle_module.cpp
   src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/random_module.cpp
