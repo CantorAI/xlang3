@@ -287,7 +287,11 @@ bool importlib_loader_load_module(Runtime& runtime, const Value* args, uint32_t 
   if (!get_string_arg(args[1], "loader fullname", name, error)) {
     return false;
   }
-  return runtime.import_module(name, out, error);
+  if (!runtime.import_module(name, out, error)) {
+    runtime.raise_class_error("ImportError", error);
+    return false;
+  }
+  return true;
 }
 
 Value make_source_file_loader(Runtime& runtime, const std::string& name, const Value& path) {
@@ -414,6 +418,7 @@ bool importlib_import_module(Runtime& runtime, const Value* args, uint32_t argc,
     }
   }
   if (!runtime.import_module(name, out, error)) {
+    runtime.raise_class_error("ImportError", error);
     return false;
   }
   return true;
@@ -462,7 +467,11 @@ bool bootstrap_gcd_import(Runtime& runtime, const Value* args, uint32_t argc, Va
     name = string_object_to_string(*resolved_text);
   }
 
-  return runtime.import_module(name, out, error);
+  if (!runtime.import_module(name, out, error)) {
+    runtime.raise_class_error("ImportError", error);
+    return false;
+  }
+  return true;
 }
 
 bool importlib_invalidate_caches(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {

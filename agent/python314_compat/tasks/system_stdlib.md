@@ -87,8 +87,12 @@ fixture coverage, then update the row truthfully.
   subclass/reinitialization edge cases, deeper condition/lock edge cases,
   profile/trace propagation parity, and import-time/runtime performance.
 
-- [ ] `site`, `runpy`, `importlib`, `pkgutil`, and package metadata/resources
-  Coverage: import bootstrap native modules exist and CPython source imports
-  are preferred over native fallback.
-  Remaining: finish source loader/package/resource behavior needed by real
-  Python startup and package-discovery modules.
+- [~] `site`, `runpy`, `importlib`, `pkgutil`, and package metadata/resources
+  Coverage: real CPython 3.14 `site.py`, `runpy.py`, `pkgutil.py`, and
+  `importlib` package import from `C:/Python/Python314/Lib`; the
+  `site_importlib` probe covers source-backed module paths,
+  `importlib.import_module("math")`, core `pkgutil` APIs, and catchable
+  missing-module `ImportError.name`.
+  Remaining: finish source loader/package/resource behavior, package metadata,
+  startup-site `.pth` handling, exact importlib lock/cache semantics, and full
+  resource discovery.

@@ -1373,14 +1373,17 @@ High-level pure-Python stdlib modules must be source-backed:
   node lookup, `uname()` object, `architecture()`, `libc_ver()`, `win32_ver()`, `mac_ver()`,
   `java_ver()`, `system_alias()`, `_sys_version()`, and `freedesktop_os_release()` foundations;
   exact OS-release probing and CPython namedtuple identity pending
-- [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
-  `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
+- [~] `pkgutil`: public module runs from CPython 3.14 `Lib/pkgutil.py`; VFS/import-root
+  `iter_modules`, `walk_packages`, `extend_path`, `get_data`, `resolve_name`, and loader
+  placeholder foundations are covered. Named `ModuleInfo`, full finder/loader semantics,
   zip/resource edge cases, and exact import-package behavior pending
 - [~] `re`: public module must run from CPython 3.14 `Lib/re`; native `_sre`
   provides the regex dependency surface. Full CPython regex semantics pending.
 - [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
   on top of native `_signal`; real OS delivery/thread semantics pending.
-- [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
+- [~] `site`: public module runs from CPython 3.14 `Lib/site.py`; site-package path
+  helpers, public path constants, `addsitedir`, and `addsitepackages` foundations are covered.
+  `.pth` processing/startup-site behavior pending
 - [~] `socket`: public module runs from CPython 3.14 `Lib/socket.py`
   on top of native `_socket`; basic socket construction, family/type
   metadata, timeout get/set, and close are covered by the process/socket
@@ -1420,9 +1423,13 @@ High-level pure-Python stdlib modules must be source-backed:
   over real frame/code/source metadata; exact frame stack, source block
   slicing, keyword binding, annotations, descriptor classification, and full
   CPython signature semantics pending.
-- [~] `runpy`: public module must run from CPython 3.14 `Lib/runpy.py`.
-- [~] `importlib`: public package must run from CPython 3.14 `Lib/importlib`
-  over native bootstrap/import primitives.
+- [~] `runpy`: public module runs from CPython 3.14 `Lib/runpy.py`; full
+  `run_module`/`run_path` execution edge semantics pending.
+- [~] `importlib`: public package runs from CPython 3.14 `Lib/importlib`
+  over native bootstrap/import primitives; `import_module("math")`,
+  source-backed package import, and missing-module `ImportError.name` are
+  covered. Full source loader/package/resource behavior, package metadata,
+  startup import locks/caches, and resource discovery pending.
 - [~] `types`: public module must run from CPython 3.14 `Lib/types.py` over
   runtime-backed type objects.
 - [~] `collections`: public package must run from CPython 3.14
