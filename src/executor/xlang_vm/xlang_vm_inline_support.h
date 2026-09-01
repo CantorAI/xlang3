@@ -1265,9 +1265,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "int() expected at most 2 arguments";
       return false;
     }
-    auto finish_int = [&](int64_t parsed) -> bool {
+    auto finish_int_value = [&](const Value& parsed) -> bool {
       if (exact_builtin_constructor) {
-        out = Value::int64(parsed);
+        value_assign_fast(out, parsed);
         return true;
       }
       Value klass_value;
@@ -1276,7 +1276,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       retain(klass_value);
       out = Value::instance(std::move(klass_value));
       std::string attr_error;
-      return object_set_attr(out, "__xlang3_int_value__", Value::int64(parsed), attr_error);
+      return object_set_attr(out, "__xlang3_int_value__", parsed, attr_error);
+    };
+    auto finish_int = [&](int64_t parsed) -> bool {
+      return finish_int_value(Value::int64(parsed));
     };
     if (constructor_args.size() == 0) {
       if (!finish_int(0)) {
@@ -1288,6 +1291,13 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     const Value& value = constructor_args.get(0);
     if (value.tag == ValueTag::Int64) {
       if (!finish_int(value.as.i64)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value_as_bigint(value) != nullptr) {
+      if (!finish_int_value(value)) {
         error = "int subclass construction failed";
         return false;
       }
@@ -1310,16 +1320,18 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Value stored;
     std::string stored_error;
     if (constructor_args.size() == 1 &&
-        object_get_attr(value, "__xlang3_int_value__", stored, stored_error) && stored.tag == ValueTag::Int64) {
-      if (!finish_int(stored.as.i64)) {
+        object_get_attr(value, "__xlang3_int_value__", stored, stored_error) &&
+        (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      if (!finish_int_value(stored)) {
         error = "int subclass construction failed";
         return false;
       }
       return true;
     }
     if (constructor_args.size() == 1 &&
-        object_get_attr(value, "_value_", stored, stored_error) && stored.tag == ValueTag::Int64) {
-      if (!finish_int(stored.as.i64)) {
+        object_get_attr(value, "_value_", stored, stored_error) &&
+        (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      if (!finish_int_value(stored)) {
         error = "int subclass construction failed";
         return false;
       }
@@ -1335,8 +1347,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           error = call_error;
           return false;
         }
-        if (converted.tag == ValueTag::Int64) {
-          if (!finish_int(converted.as.i64)) {
+        if (converted.tag == ValueTag::Int64 || value_as_bigint(converted) != nullptr) {
+          if (!finish_int_value(converted)) {
             error = "int subclass construction failed";
             return false;
           }
@@ -1344,6 +1356,17 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         if (converted.tag == ValueTag::Bool) {
           if (!finish_int(converted.as.b ? 1 : 0)) {
+            error = "int subclass construction failed";
+            return false;
+          }
+          return true;
+        }
+        Value converted_stored;
+        std::string converted_error;
+        if ((object_get_attr(converted, "__xlang3_int_value__", converted_stored, converted_error) ||
+             object_get_attr(converted, "_value_", converted_stored, converted_error)) &&
+            (converted_stored.tag == ValueTag::Int64 || value_as_bigint(converted_stored) != nullptr)) {
+          if (!finish_int_value(converted_stored)) {
             error = "int subclass construction failed";
             return false;
           }
@@ -1366,10 +1389,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     if (auto* text = value_as_string(value)) {
-      const std::string owned_text = string_object_to_string(*text);
-      int64_t parsed = 0;
-      if (xlang_vm_parse_int_text(owned_text, base, parsed)) {
-        if (!finish_int(parsed)) {
+      std::string parse_error;
+      Value parsed = value_bigint_from_decimal(string_object_view(*text), base, parse_error);
+      if (parsed.tag != ValueTag::Invalid) {
+        if (!finish_int_value(parsed)) {
           error = "int subclass construction failed";
           return false;
         }
@@ -1377,10 +1400,11 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     if (auto* bytes = value_as_bytes(value)) {
-      const std::string owned_text = bytes_object_to_string(*bytes);
-      int64_t parsed = 0;
-      if (xlang_vm_parse_int_text(owned_text, base, parsed)) {
-        if (!finish_int(parsed)) {
+      std::string parse_error;
+      const auto view = bytes_object_view(*bytes);
+      Value parsed = value_bigint_from_decimal(view, base, parse_error);
+      if (parsed.tag != ValueTag::Invalid) {
+        if (!finish_int_value(parsed)) {
           error = "int subclass construction failed";
           return false;
         }
@@ -1388,9 +1412,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     if (auto* bytes = value_as_bytearray(value)) {
-      int64_t parsed = 0;
-      if (xlang_vm_parse_int_text(bytes->value, base, parsed)) {
-        if (!finish_int(parsed)) {
+      std::string parse_error;
+      Value parsed = value_bigint_from_decimal(bytes->value, base, parse_error);
+      if (parsed.tag != ValueTag::Invalid) {
+        if (!finish_int_value(parsed)) {
           error = "int subclass construction failed";
           return false;
         }
@@ -1512,24 +1537,42 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     int64_t step = 1;
     auto read_int = [&](size_t index, int64_t& target) -> bool {
       const Value& value = constructor_args.get(index);
-      if (value.tag != ValueTag::Int64) {
+      if (!value_int_like_to_i64(value, target)) {
         error = "range() arguments must be int";
         return false;
       }
-      target = value.as.i64;
       return true;
     };
-    if (constructor_args.size() == 1) {
-      if (!read_int(0, stop)) return false;
-    } else {
-      if (!read_int(0, start) || !read_int(1, stop)) return false;
-      if (constructor_args.size() == 3 && !read_int(2, step)) return false;
+    if (constructor_args.size() == 1 && read_int(0, stop)) {
+      out = Value::range(0, stop, 1);
+      return true;
     }
-    if (step == 0) {
+    if (constructor_args.size() >= 2 &&
+        read_int(0, start) &&
+        read_int(1, stop) &&
+        (constructor_args.size() != 3 || read_int(2, step))) {
+      if (step == 0) {
+        error = "range() step must not be zero";
+        return false;
+      }
+      out = Value::range(start, stop, step);
+      return true;
+    }
+    error.clear();
+    Value range_start = constructor_args.size() == 1 ? Value::int64(0) : constructor_args.get(0);
+    Value range_stop = constructor_args.size() == 1 ? constructor_args.get(0) : constructor_args.get(1);
+    Value range_step = constructor_args.size() == 3 ? constructor_args.get(2) : Value::int64(1);
+    Value zero_compare;
+    if (!value_int_like_compare("==", range_step, Value::int64(0), zero_compare) ||
+        zero_compare.tag != ValueTag::Bool) {
+      error = "range() arguments must be int";
+      return false;
+    }
+    if (zero_compare.as.b) {
       error = "range() step must not be zero";
       return false;
     }
-    out = Value::range(start, stop, step);
+    out = Value::range_values(range_start, range_stop, range_step);
     return true;
   }
 

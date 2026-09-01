@@ -306,6 +306,30 @@ Value Value::range(int64_t start, int64_t stop, int64_t step) {
   obj->start = start;
   obj->stop = stop;
   obj->step = step;
+  obj->int64_backed = true;
+  obj->start_value = Value::int64(start);
+  obj->stop_value = Value::int64(stop);
+  obj->step_value = Value::int64(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_values(Value start, Value stop, Value step) {
+  int64_t start_i64 = 0;
+  int64_t stop_i64 = 0;
+  int64_t step_i64 = 1;
+  if (value_int_like_to_i64(start, start_i64) &&
+      value_int_like_to_i64(stop, stop_i64) &&
+      value_int_like_to_i64(step, step_i64)) {
+    return Value::range(start_i64, stop_i64, step_i64);
+  }
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeObject>(ObjectKind::Range);
+  obj->int64_backed = false;
+  value_assign_fast(obj->start_value, start);
+  value_assign_fast(obj->stop_value, stop);
+  value_assign_fast(obj->step_value, step);
   v.as.obj = &obj->header;
   return v;
 }
@@ -317,6 +341,30 @@ Value Value::range_iterator(int64_t current, int64_t stop, int64_t step) {
   obj->current = current;
   obj->stop = stop;
   obj->step = step;
+  obj->int64_backed = true;
+  obj->current_value = Value::int64(current);
+  obj->stop_value = Value::int64(stop);
+  obj->step_value = Value::int64(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_iterator_values(Value current, Value stop, Value step) {
+  int64_t current_i64 = 0;
+  int64_t stop_i64 = 0;
+  int64_t step_i64 = 1;
+  if (value_int_like_to_i64(current, current_i64) &&
+      value_int_like_to_i64(stop, stop_i64) &&
+      value_int_like_to_i64(step, step_i64)) {
+    return Value::range_iterator(current_i64, stop_i64, step_i64);
+  }
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeIteratorObject>(ObjectKind::RangeIterator);
+  obj->int64_backed = false;
+  value_assign_fast(obj->current_value, current);
+  value_assign_fast(obj->stop_value, stop);
+  value_assign_fast(obj->step_value, step);
   v.as.obj = &obj->header;
   return v;
 }
@@ -355,8 +403,12 @@ std::string sequence_to_string(const Value& value) {
     return repr_items(list->items, "[", "]");
   }
   if (auto* range = value_as_range(value)) {
-    if (range->start == 0 && range->step == 1) {
+    if (range->int64_backed && range->start == 0 && range->step == 1) {
       return "range(" + std::to_string(range->stop) + ")";
+    }
+    if (!range->int64_backed) {
+      return "range(" + value_to_string(range->start_value) + ", " +
+             value_to_string(range->stop_value) + ", " + value_to_string(range->step_value) + ")";
     }
     return "range(" + std::to_string(range->start) + ", " +
            std::to_string(range->stop) + ", " + std::to_string(range->step) + ")";
@@ -375,6 +427,18 @@ bool sequence_truthy(const Value& value) {
     return !list->items.empty();
   }
   if (auto* range = value_as_range(value)) {
+    if (!range->int64_backed) {
+      Value compare;
+      std::string error;
+      const bool positive = value_int_like_compare(">", range->step_value, Value::int64(0), compare) &&
+                            compare.tag == ValueTag::Bool && compare.as.b;
+      if (positive) {
+        return value_int_like_compare("<", range->start_value, range->stop_value, compare) &&
+               compare.tag == ValueTag::Bool && compare.as.b;
+      }
+      return value_int_like_compare(">", range->start_value, range->stop_value, compare) &&
+             compare.tag == ValueTag::Bool && compare.as.b;
+    }
     return range->step > 0 ? range->start < range->stop : range->start > range->stop;
   }
   if (value_as_range_iterator(value) != nullptr) {
@@ -388,7 +452,11 @@ bool sequence_truthy(const Value& value) {
 
 bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (auto* range = value_as_range(iterable)) {
-    out = Value::range_iterator(range->start, range->stop, range->step);
+    if (range->int64_backed) {
+      out = Value::range_iterator(range->start, range->stop, range->step);
+    } else {
+      out = Value::range_iterator_values(range->start_value, range->stop_value, range->step_value);
+    }
     return true;
   }
   if (value_as_dict(iterable) != nullptr || value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
@@ -452,6 +520,29 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
 
 bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& error) {
   if (auto* range = value_as_range_iterator(iterator)) {
+    if (!range->int64_backed) {
+      Value compare;
+      std::string cmp_error;
+      const bool positive = value_int_like_compare(">", range->step_value, Value::int64(0), compare) &&
+                            compare.tag == ValueTag::Bool && compare.as.b;
+      const char* op = positive ? ">=" : "<=";
+      if (!value_compare(op, range->current_value, range->stop_value, compare, cmp_error)) {
+        error = cmp_error;
+        return false;
+      }
+      done = compare.tag == ValueTag::Bool && compare.as.b;
+      if (done) {
+        value_set_none(out);
+        return true;
+      }
+      value_assign_fast(out, range->current_value);
+      Value next;
+      if (!value_add(range->current_value, range->step_value, next, error)) {
+        return false;
+      }
+      value_assign_fast(range->current_value, next);
+      return true;
+    }
     done = range->step > 0 ? range->current >= range->stop : range->current <= range->stop;
     if (done) {
       value_set_none(out);

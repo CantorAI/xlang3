@@ -31,17 +31,10 @@ bool int_bit_length_method(Runtime&, const Value* args, uint32_t argc, Value& ou
     error = "int.bit_length expected no arguments";
     return false;
   }
-  if (args[0].tag != ValueTag::Int64) {
+  int64_t bits = 0;
+  if (!value_int_like_bit_length(args[0], bits)) {
     error = "int.bit_length target must be int";
     return false;
-  }
-  uint64_t value = args[0].as.i64 < 0
-      ? static_cast<uint64_t>(-(args[0].as.i64 + 1)) + 1u
-      : static_cast<uint64_t>(args[0].as.i64);
-  int64_t bits = 0;
-  while (value != 0) {
-    ++bits;
-    value >>= 1u;
   }
   value_set_int64(out, bits);
   return true;
@@ -52,7 +45,7 @@ bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     error = "int.to_bytes expected value, length, and byteorder";
     return false;
   }
-  if (args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+  if (args[1].tag != ValueTag::Int64) {
     error = "int.to_bytes value and length must be int";
     return false;
   }
@@ -66,17 +59,14 @@ bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     error = "byteorder must be either 'little' or 'big'";
     return false;
   }
-  if (args[1].as.i64 < 0 || args[1].as.i64 > 8) {
+  if (args[1].as.i64 < 0) {
     error = "int.to_bytes length is out of supported range";
     return false;
   }
-  uint64_t value = static_cast<uint64_t>(args[0].as.i64);
   const uint32_t length = static_cast<uint32_t>(args[1].as.i64);
   std::string bytes;
-  bytes.resize(length);
-  for (uint32_t i = 0; i < length; ++i) {
-    const uint32_t shift_index = byteorder == "little" ? i : (length - 1 - i);
-    bytes[i] = static_cast<char>((value >> (shift_index * 8)) & 0xffu);
+  if (!value_int_like_to_bytes(args[0], length, byteorder == "big", false, bytes, error)) {
+    return false;
   }
   out = Value::bytes(bytes);
   return true;
@@ -210,37 +200,7 @@ bool int_from_bytes_impl(
   if (!collect_from_bytes_input(args[0], bytes, error)) {
     return false;
   }
-  if (bytes.size() > 8) {
-    error = "int too large to convert";
-    return false;
-  }
-
-  uint64_t raw = 0;
-  for (size_t i = 0; i < bytes.size(); ++i) {
-    const size_t index = is_big ? i : (bytes.size() - 1 - i);
-    raw = (raw << 8u) | static_cast<uint64_t>(bytes[index]);
-  }
-
-  if (signed_value && !bytes.empty()) {
-    const uint8_t sign_byte = is_big ? bytes.front() : bytes.back();
-    if ((sign_byte & 0x80u) != 0) {
-      const uint64_t bits = static_cast<uint64_t>(bytes.size() * 8u);
-      if (bits < 64u) {
-        const uint64_t mask = (uint64_t{1} << bits) - 1u;
-        raw = (~raw + 1u) & mask;
-        value_set_int64(out, -static_cast<int64_t>(raw));
-        return true;
-      }
-      value_set_int64(out, static_cast<int64_t>(raw));
-      return true;
-    }
-  }
-  if (raw > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-    error = "int too large to convert";
-    return false;
-  }
-  value_set_int64(out, static_cast<int64_t>(raw));
-  return true;
+  return value_bigint_from_bytes(bytes.data(), bytes.size(), is_big, signed_value, out, error);
 }
 
 bool int_from_bytes_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -262,7 +222,7 @@ bool int_from_bytes_kw_method(
 } // namespace
 
 bool int_get_method(const Value& object, const std::string& name, Value& out) {
-  if (object.tag != ValueTag::Int64) {
+  if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) {
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {

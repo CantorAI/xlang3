@@ -374,6 +374,8 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
   switch (kind) {
     case ObjectKind::String:
       return "str";
+    case ObjectKind::BigInt:
+      return "int";
     case ObjectKind::Bytes:
       return "bytes";
     case ObjectKind::ByteArray:
@@ -963,7 +965,7 @@ bool builtin_tuple_new(
   return true;
 }
 
-bool try_int_conversion_protocol(Runtime& runtime, const Value& value, int64_t& parsed, std::string& error) {
+bool try_int_conversion_protocol(Runtime& runtime, const Value& value, Value& parsed, std::string& error) {
   Value convert_method;
   Value converted;
   std::string call_error;
@@ -975,12 +977,20 @@ bool try_int_conversion_protocol(Runtime& runtime, const Value& value, int64_t& 
     error = call_error;
     return false;
   }
-  if (converted.tag == ValueTag::Int64) {
-    parsed = converted.as.i64;
+  if (converted.tag == ValueTag::Int64 || value_as_bigint(converted) != nullptr) {
+    value_assign_fast(parsed, converted);
     return true;
   }
   if (converted.tag == ValueTag::Bool) {
-    parsed = converted.as.b ? 1 : 0;
+    parsed = Value::int64(converted.as.b ? 1 : 0);
+    return true;
+  }
+  Value stored;
+  std::string ignored;
+  if ((object_get_attr(converted, "__xlang3_int_value__", stored, ignored) ||
+       object_get_attr(converted, "_value_", stored, ignored)) &&
+      (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+    value_assign_fast(parsed, stored);
     return true;
   }
   error = "__int__ returned non-int";
@@ -1015,43 +1025,44 @@ bool builtin_int_new(
     }
     base = static_cast<int>(args[2].as.i64);
   }
-  int64_t parsed = 0;
+  Value parsed = Value::int64(0);
   if (argc == 1) {
-    parsed = 0;
+    parsed = Value::int64(0);
   } else if (args[1].tag == ValueTag::Int64) {
-    parsed = args[1].as.i64;
+    parsed = args[1];
+  } else if (value_as_bigint(args[1]) != nullptr) {
+    value_assign_fast(parsed, args[1]);
   } else if (args[1].tag == ValueTag::Bool) {
-    parsed = args[1].as.b ? 1 : 0;
+    parsed = Value::int64(args[1].as.b ? 1 : 0);
   } else if (args[1].tag == ValueTag::Double) {
-    parsed = static_cast<int64_t>(args[1].as.f64);
+    parsed = Value::int64(static_cast<int64_t>(args[1].as.f64));
   } else {
     Value stored;
     std::string ignored;
-    if (argc != 3 && object_get_attr(args[1], "__xlang3_int_value__", stored, ignored) && stored.tag == ValueTag::Int64) {
-      parsed = stored.as.i64;
-    } else if (argc != 3 && object_get_attr(args[1], "_value_", stored, ignored) && stored.tag == ValueTag::Int64) {
-      parsed = stored.as.i64;
+    if (argc != 3 && object_get_attr(args[1], "__xlang3_int_value__", stored, ignored) &&
+        (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      value_assign_fast(parsed, stored);
+    } else if (argc != 3 && object_get_attr(args[1], "_value_", stored, ignored) &&
+               (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      value_assign_fast(parsed, stored);
     } else if (auto* text = value_as_string(args[1])) {
-      try {
-        parsed = std::stoll(string_object_to_string(*text), nullptr, base);
-      } catch (const std::exception&) {
+      parsed = value_bigint_from_decimal(string_object_view(*text), base, error);
+      if (parsed.tag == ValueTag::Invalid) {
         error = "invalid literal for int()";
         runtime.raise_class_error("ValueError", error);
         return false;
       }
     } else if (auto* bytes = value_as_bytes(args[1])) {
-      try {
-        const auto view = bytes_object_view(*bytes);
-        parsed = std::stoll(std::string(view.data(), view.size()), nullptr, base);
-      } catch (const std::exception&) {
+      const auto view = bytes_object_view(*bytes);
+      parsed = value_bigint_from_decimal(view, base, error);
+      if (parsed.tag == ValueTag::Invalid) {
         error = "invalid literal for int()";
         runtime.raise_class_error("ValueError", error);
         return false;
       }
     } else if (auto* bytearray = value_as_bytearray(args[1])) {
-      try {
-        parsed = std::stoll(bytearray->value, nullptr, base);
-      } catch (const std::exception&) {
+      parsed = value_bigint_from_decimal(bytearray->value, base, error);
+      if (parsed.tag == ValueTag::Invalid) {
         error = "invalid literal for int()";
         runtime.raise_class_error("ValueError", error);
         return false;
@@ -1073,12 +1084,12 @@ bool builtin_int_new(
 
   const Value* builtin_int = runtime.find_builtin("int");
   if (builtin_int != nullptr && value_as_class(*builtin_int) == klass) {
-    out = Value::int64(parsed);
+    value_assign_fast(out, parsed);
     return true;
   }
   out = Value::instance(args[0]);
   std::string ignored;
-  (void)object_set_attr(out, "__xlang3_int_value__", Value::int64(parsed), ignored);
+  (void)object_set_attr(out, "__xlang3_int_value__", parsed, ignored);
   return true;
 }
 

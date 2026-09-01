@@ -26,11 +26,10 @@ namespace xlang3 {
 namespace {
 
 bool require_int_arg(const Value& value, const char* name, int64_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  if (!value_int_like_to_i64(value, out)) {
     error = std::string(name) + "() arguments must be int";
     return false;
   }
-  out = value.as.i64;
   return true;
 }
 
@@ -78,34 +77,49 @@ bool builtin_range(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  int64_t start = 0;
-  int64_t stop = 0;
-  int64_t step = 1;
+  Value start = Value::int64(0);
+  Value stop;
+  Value step = Value::int64(1);
   if (argc == 1) {
-    if (!require_int_arg(args[0], "range", stop, error)) {
+    int64_t ignored = 0;
+    if (!value_int_like_to_i64(args[0], ignored) && value_as_bigint(args[0]) == nullptr) {
+      error = "range() arguments must be int";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
+    value_assign_fast(stop, args[0]);
   } else {
-    if (!require_int_arg(args[0], "range", start, error)) {
+    int64_t ignored = 0;
+    if ((!value_int_like_to_i64(args[0], ignored) && value_as_bigint(args[0]) == nullptr) ||
+        (!value_int_like_to_i64(args[1], ignored) && value_as_bigint(args[1]) == nullptr)) {
+      error = "range() arguments must be int";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    if (!require_int_arg(args[1], "range", stop, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (argc == 3 && !require_int_arg(args[2], "range", step, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
+    value_assign_fast(start, args[0]);
+    value_assign_fast(stop, args[1]);
+    if (argc == 3) {
+      if (!value_int_like_to_i64(args[2], ignored) && value_as_bigint(args[2]) == nullptr) {
+        error = "range() arguments must be int";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      value_assign_fast(step, args[2]);
     }
   }
-  if (step == 0) {
+  Value zero_compare;
+  if (!value_int_like_compare("==", step, Value::int64(0), zero_compare) ||
+      zero_compare.tag != ValueTag::Bool) {
+    error = "range() arguments must be int";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (zero_compare.as.b) {
     error = "range() step must not be zero";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  out = Value::range(start, stop, step);
+  out = Value::range_values(start, stop, step);
   return true;
 }
 

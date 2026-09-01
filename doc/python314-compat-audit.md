@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the sys frame negative-depth parity batch.
+Last updated after the BigInt and urllib.parse quote-runtime batch.
 
 Current checklist count:
 
@@ -69,6 +69,18 @@ What this means:
 
 Recent completed batches:
 
+- Added CPython-style unbounded integer foundations without Boost: `int`
+  arithmetic overflows now promote from scalar `int64` to native BigInt objects,
+  large `**`, shifts, bitwise operators, comparison, hashing, `bit_length`,
+  `int.from_bytes`, and `int.to_bytes` are covered by the system-stdlib BigInt
+  probe, and small integer fast paths stay scalar.
+- Extended `range` to accept huge integer endpoints while preserving the
+  existing compact int64-backed fast path for ordinary ranges.
+- Tightened runtime mapping/string primitives used by CPython `Lib/urllib.parse`:
+  dict subclasses now dispatch `__missing__`, and `str.format` covers generic
+  integer base/zero-width specs such as `{:02X}`. `urllib.parse.quote("a b")`
+  and `_byte_quoter_factory` now produce CPython-style `%20` output; import
+  time and exact RFC edge cases remain pending.
 - Tightened native `sys._getframe` and `sys._getframemodulename` depth
   validation: negative integer depths now resolve to the current frame/module
   like CPython 3.14, while bool-as-int depths keep the covered zero/one-depth
@@ -1410,9 +1422,11 @@ High-level pure-Python stdlib modules must be source-backed:
 - [~] `pathlib`: public package must run from CPython 3.14 `Lib/pathlib`
   over VFS/os/path protocol primitives; full platform-specific pathlib edge
   semantics, permissions, symlink behavior, and lazy iterator details pending.
-- [~] `urllib.parse`: quote/unquote helpers plus `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`,
-  `urljoin`, `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options,
-  strict parsing/errors, complete RFC edge cases, and exact CPython result tuple subclasses pending
+- [~] `urllib.parse`: real CPython 3.14 `Lib/urllib/parse.py` imports and covers quote/unquote helpers,
+  `_byte_quoter_factory`, `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`, `urljoin`,
+  `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options, strict
+  parsing/errors, complete RFC edge cases, exact CPython result tuple subclasses, and import-time
+  performance remain pending
 - [~] `warnings` / `_warnings`: public `warnings` must run from CPython 3.14
   `Lib/warnings.py`; native `_warnings` now exposes only the low-level
   dependency surface (`warn`, `warn_explicit`, lock helpers, `filters`,

@@ -32,6 +32,10 @@ struct RangeObject {
   int64_t start = 0;
   int64_t stop = 0;
   int64_t step = 1;
+  bool int64_backed = true;
+  Value start_value;
+  Value stop_value;
+  Value step_value;
 };
 
 struct RangeIteratorObject {
@@ -39,6 +43,10 @@ struct RangeIteratorObject {
   int64_t current = 0;
   int64_t stop = 0;
   int64_t step = 1;
+  bool int64_backed = true;
+  Value current_value;
+  Value stop_value;
+  Value step_value;
 };
 
 struct SequenceIteratorObject {

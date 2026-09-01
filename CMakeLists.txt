@@ -69,6 +69,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/memory/x3_runtime_memory.cpp
   src/runtime/memory/x3_temp_arena.cpp
   src/runtime/perf_counters.cpp
+  src/runtime/bigint.cpp
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
   src/runtime/object_model.cpp

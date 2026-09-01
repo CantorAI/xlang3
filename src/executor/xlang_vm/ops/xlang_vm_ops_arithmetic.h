@@ -523,7 +523,18 @@ XLANG3_HOT_INLINE void not_op(
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow neg(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
   if (regs[in.a].tag == ValueTag::Int64) {
+    if (regs[in.a].as.i64 == std::numeric_limits<int64_t>::min()) {
+      std::string error;
+      if (!value_int_like_sub(Value::int64(0), regs[in.a], regs[in.dst])) {
+        return raise_runtime_error("unsupported operand for unary -") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return XlangVMOpFlow::Next;
+    }
     value_set_int64(regs[in.dst], -regs[in.a].as.i64);
+  } else if (value_as_bigint(regs[in.a]) != nullptr) {
+    if (!value_int_like_sub(Value::int64(0), regs[in.a], regs[in.dst])) {
+      return raise_runtime_error("unsupported operand for unary -") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
   } else if (regs[in.a].tag == ValueTag::Double) {
     value_set_number(regs[in.dst], -regs[in.a].as.f64);
   } else {

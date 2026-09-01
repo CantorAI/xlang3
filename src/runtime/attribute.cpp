@@ -35,6 +35,7 @@ const char* diagnostic_value_kind(const Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
     switch (value.as.obj->kind) {
       case ObjectKind::String: return "str";
+      case ObjectKind::BigInt: return "int";
       case ObjectKind::Bytes: return "bytes";
       case ObjectKind::ByteArray: return "bytearray";
       case ObjectKind::MemoryView: return "memoryview";

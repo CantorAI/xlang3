@@ -76,12 +76,7 @@ bool string_payload_view(const Value& value, std::string_view& out) {
 }
 
 bool int_payload_value(const Value& value, int64_t& out) {
-  if (value.tag == ValueTag::Int64) {
-    out = value.as.i64;
-    return true;
-  }
-  if (value.tag == ValueTag::Bool) {
-    out = value.as.b ? 1 : 0;
+  if (value_int_like_to_i64(value, out)) {
     return true;
   }
   auto* instance = value_as_instance(value);
@@ -107,6 +102,14 @@ bool int_payload_value(const Value& value, int64_t& out) {
 } // namespace
 
 bool value_key_equal(const Value& lhs, const Value& rhs) {
+  if (lhs.tag == ValueTag::Bool || rhs.tag == ValueTag::Bool ||
+      lhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Int64 ||
+      value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    Value equal;
+    if (value_int_like_compare("==", lhs, rhs, equal) && equal.tag == ValueTag::Bool) {
+      return equal.as.b;
+    }
+  }
   int64_t left_int = 0;
   int64_t right_int = 0;
   if (int_payload_value(lhs, left_int) && int_payload_value(rhs, right_int)) {
@@ -203,6 +206,9 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       return true;
     case ValueTag::Object:
       {
+        if (value_int_like_hash(value, out)) {
+          return true;
+        }
         int64_t int_payload = 0;
         if (int_payload_value(value, int_payload)) {
           out = std::hash<int64_t>{}(int_payload);

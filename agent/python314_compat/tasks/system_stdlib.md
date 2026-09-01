@@ -57,10 +57,17 @@ fixture coverage, then update the row truthfully.
   CPython's pure-Python `re._parser` and `re._compiler` for complex regexes;
   exact frame/source/traceback formatting and full regex semantics remain pending.
 
-- [ ] `os`, `os.path`, `ntpath`, `posixpath`, `pathlib`, `glob`, and `fnmatch`
-  Coverage: native `nt`/`posix`, `_stat`, VFS, and file basics exist.
-  Remaining: fill OS/VFS/path protocol gaps required by the real Python modules
-  instead of restoring `os.path` or `pathlib` C++ facades.
+- [~] `os`, `os.path`, `ntpath`, `posixpath`, `pathlib`, `glob`, and `fnmatch`
+  Coverage: real CPython 3.14 `os.py`, `ntpath.py`, `posixpath.py`,
+  `pathlib`, `glob.py`, and `fnmatch.py` import from `C:/Python/Python314/Lib`;
+  the `system_stdlib` section fixture covers VFS-backed file creation/removal,
+  `os.stat_result`, `os.scandir`/`DirEntry`, path-like and bytes path basics,
+  `pathlib.Path` read/write/glob/rglob/match helpers, and `glob` root-dir,
+  recursive, hidden-file, iterator, and bytes-path basics.
+  Remaining: this path is correct but too slow for the full fixture, especially
+  `pathlib`/`glob`/`fnmatch`; continue by fixing runtime/VFS/path protocol
+  primitives and import/runtime hot paths instead of restoring `os.path`,
+  `pathlib`, `glob`, or `fnmatch` C++ facades.
 
 - [ ] `subprocess`, `_winapi`, `socket`, `select`, and `threading`
   Coverage: `_winapi`, `_socket`, `select`, and native thread foundations exist.

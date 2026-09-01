@@ -82,11 +82,27 @@ bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool dict_getitem_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "dict.__getitem__", error)) {
     return false;
   }
-  return mapping_get_item(args[0], args[1], out, error);
+  if (mapping_get_item(args[0], args[1], out, error)) {
+    return true;
+  }
+  if (error != "key not found" || value_as_instance(args[0]) == nullptr) {
+    return false;
+  }
+  Value missing;
+  std::string missing_error;
+  if (!object_get_attr(args[0], "__missing__", missing, missing_error)) {
+    return false;
+  }
+  error.clear();
+  Value key_arg = args[1];
+  if (!runtime_call_callable(runtime, missing, &key_arg, 1, out, error)) {
+    return false;
+  }
+  return true;
 }
 
 bool dict_delitem_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

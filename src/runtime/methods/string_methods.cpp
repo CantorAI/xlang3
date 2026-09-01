@@ -27,6 +27,7 @@ limitations under the License.
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include <limits>
 #include <sstream>
 #include <string_view>
 #include <vector>
@@ -1215,6 +1216,8 @@ bool string_translate_method(Runtime&, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+std::string format_replacement_value(const Value& value, std::string_view field, std::string& error);
+
 bool string_format_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "str.format expected at least 1 argument";
@@ -1258,7 +1261,10 @@ bool string_format_method(Runtime&, const Value* args, uint32_t argc, Value& out
         error = "str.format replacement index out of range";
         return false;
       }
-      result += value_to_string(args[arg_index]);
+      result += format_replacement_value(args[arg_index], field, error);
+      if (!error.empty()) {
+        return false;
+      }
       i = close + 1;
       continue;
     }
@@ -1275,6 +1281,85 @@ std::string_view format_field_name(std::string_view field) {
       conversion == std::string_view::npos ? field.size() : conversion,
       spec == std::string_view::npos ? field.size() : spec);
   return field.substr(0, end);
+}
+
+std::string_view format_field_spec(std::string_view field) {
+  const size_t spec = field.find(':');
+  if (spec == std::string_view::npos) {
+    return {};
+  }
+  return field.substr(spec + 1);
+}
+
+std::string format_int_base(int64_t value, uint32_t base, bool uppercase) {
+  const char* digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef";
+  const bool negative = value < 0;
+  uint64_t magnitude = negative
+      ? static_cast<uint64_t>(-(value + 1)) + 1u
+      : static_cast<uint64_t>(value);
+  std::string text;
+  do {
+    text.push_back(digits[magnitude % base]);
+    magnitude /= base;
+  } while (magnitude != 0);
+  if (negative) {
+    text.push_back('-');
+  }
+  std::reverse(text.begin(), text.end());
+  return text;
+}
+
+std::string apply_simple_format_width(std::string text, std::string_view spec) {
+  if (spec.empty()) {
+    return text;
+  }
+  size_t i = 0;
+  char fill = ' ';
+  if (i < spec.size() && spec[i] == '0') {
+    fill = '0';
+    ++i;
+  }
+  int64_t width = 0;
+  bool has_width = false;
+  while (i < spec.size() && std::isdigit(static_cast<unsigned char>(spec[i]))) {
+    has_width = true;
+    width = width * 10 + static_cast<int64_t>(spec[i] - '0');
+    ++i;
+  }
+  if (!has_width || width <= static_cast<int64_t>(text.size())) {
+    return text;
+  }
+  const size_t pad = static_cast<size_t>(width - static_cast<int64_t>(text.size()));
+  if (fill == '0' && !text.empty() && text[0] == '-') {
+    return "-" + std::string(pad, fill) + text.substr(1);
+  }
+  return std::string(pad, fill) + text;
+}
+
+std::string format_replacement_value(const Value& value, std::string_view field, std::string& error) {
+  const std::string_view spec = format_field_spec(field);
+  if (spec.empty()) {
+    return value_to_string(value);
+  }
+  char type = '\0';
+  if (!spec.empty() && std::isalpha(static_cast<unsigned char>(spec.back()))) {
+    type = spec.back();
+  }
+  int64_t int_value = 0;
+  if ((type == 'x' || type == 'X' || type == 'd' || type == 'b' || type == 'o') &&
+      value_int_like_to_i64(value, int_value)) {
+    uint32_t base = 10;
+    if (type == 'x' || type == 'X') base = 16;
+    else if (type == 'b') base = 2;
+    else if (type == 'o') base = 8;
+    std::string text = format_int_base(int_value, base, type == 'X');
+    return apply_simple_format_width(std::move(text), spec.substr(0, spec.size() - 1));
+  }
+  if (type == 's' || type == '\0') {
+    return apply_simple_format_width(value_to_string(value), type == 's' ? spec.substr(0, spec.size() - 1) : spec);
+  }
+  error = "unsupported format specifier";
+  return {};
 }
 
 const Value* find_format_keyword(
@@ -1357,7 +1442,10 @@ bool string_format_method_kw(
           }
         }
       }
-      result += value_to_string(*replacement);
+      result += format_replacement_value(*replacement, field, error);
+      if (!error.empty()) {
+        return false;
+      }
       i = close + 1;
       continue;
     }

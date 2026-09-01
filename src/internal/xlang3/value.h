@@ -50,6 +50,7 @@ enum class ValueTag : uint32_t {
 
 enum class ObjectKind : uint32_t {
   String = 1,
+  BigInt,
   Bytes,
   ByteArray,
   MemoryView,
@@ -159,6 +160,11 @@ struct StringObject {
   // Immutable string bytes follow this object in the same allocation block.
 };
 
+struct BigIntObject {
+  Object header;
+  void* impl = nullptr;
+};
+
 struct BytesObject {
   Object header;
   uint32_t size = 0;
@@ -193,6 +199,7 @@ struct Value {
   static Value none();
   static Value boolean(bool value);
   static Value int64(int64_t value);
+  static Value bigint_from_i64(int64_t value);
   static Value number(double value);
   static Value string(std::string value);
   static Value string_view(std::string_view value);
@@ -210,7 +217,9 @@ struct Value {
   static Value set(std::vector<Value> items);
   static Value frozenset(std::vector<Value> items);
   static Value range(int64_t start, int64_t stop, int64_t step);
+  static Value range_values(Value start, Value stop, Value step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
+  static Value range_iterator_values(Value current, Value stop, Value step);
   static Value sequence_iterator(Value source, uint64_t index);
   static Value generator(
       Runtime* runtime,
@@ -291,6 +300,40 @@ XLANG3_HOT_INLINE Value Value::int64(int64_t value) {
   v.tag = ValueTag::Int64;
   v.as.i64 = value;
   return v;
+}
+
+Value value_bigint_from_i64(int64_t value);
+Value value_bigint_from_decimal(std::string_view text, int base, std::string& error);
+bool value_bigint_from_bytes(const uint8_t* bytes, size_t size, bool is_big, bool signed_value, Value& out, std::string& error);
+bool value_int_like_to_bytes(const Value& value, size_t length, bool is_big, bool signed_value, std::string& out, std::string& error);
+void value_bigint_destroy(BigIntObject* value);
+std::string value_bigint_to_string(const Value& value);
+bool value_bigint_truthy(const Value& value);
+bool value_bigint_to_i64(const Value& value, int64_t& out);
+bool value_int_like_to_i64(const Value& value, int64_t& out);
+bool value_int_like_bit_length(const Value& value, int64_t& out);
+bool value_int_like_hash(const Value& value, size_t& out);
+bool value_int_like_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_mul(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_int_like_bit_and(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_bit_or(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_bit_xor(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_shift_left(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_int_like_shift_right(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_int_like_invert(const Value& value, Value& out);
+
+XLANG3_HOT_INLINE BigIntObject* value_as_bigint(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::BigInt) {
+    return nullptr;
+  }
+  return reinterpret_cast<BigIntObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE Value Value::bigint_from_i64(int64_t value) {
+  return value_bigint_from_i64(value);
 }
 
 XLANG3_HOT_INLINE Value Value::number(double value) {
