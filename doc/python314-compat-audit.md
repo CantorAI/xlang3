@@ -1300,8 +1300,13 @@ High-level pure-Python stdlib modules must be source-backed:
 
 - [~] `threading`: must run from CPython 3.14 `Lib/threading.py` on top of
   `_thread`; the previous public native `threading` facade was removed as a
-  compatibility-boundary violation. Remaining: CPython-compatible thread
-  lifecycle, locks/conditions, trace/profile propagation, and shutdown behavior.
+  compatibility-boundary violation. `Thread.start()` now creates a native
+  worker through `_thread.start_joinable_thread`, runs the Python target,
+  joins through CPython `Thread.join()`, exposes `ident`, and keeps
+  `current_thread()`/`active_count()` usable through the source module.
+  Remaining: full `_thread._local` per-thread storage, exact daemon/shutdown
+  lifecycle, lock/condition edge cases, trace/profile propagation parity, and
+  import-time/runtime performance.
 - [~] `os`: VFS-backed `listdir`, scandir iterator/context-manager foundation, exported/reused `DirEntry`, `mkdir`, `makedirs`, `remove`/`unlink`, `rmdir`, `rename`, `replace`, `stat`, shared `os.stat_result` tuple-subclass surface for `os.stat()`/`DirEntry.stat()` with CPython-style module/type metadata, field counts, sequence fields, named fields, match args, and repr prefix, `access`, `getcwd`, `getcwdb`, `chdir`, `fsencode`/`fsdecode`, plus `getenv`/`fspath` basics; full stat timestamps/device/link/symlink/dir_fd/environment/error semantics and low-level fd APIs remain pending
 - [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`lexists`/`isdir`/`isfile`/`getsize`/absolute resolution plus `split`, `splitext`, `splitdrive`, `join`, `relpath`, `samefile`, `commonprefix`, `commonpath`, `expanduser`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; exact platform-specific normalization and symlink semantics pending
 - [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
@@ -1457,7 +1462,10 @@ High-level pure-Python stdlib modules must be source-backed:
   coroutine/task/runtime primitives pending; task cancellation, futures,
   transports, and event loop policy remain pending
 - [x] `_thread` subset
-- [ ] CPython `threading.Thread` through `Lib/threading.py` over `_thread`
+- [~] CPython `threading.Thread` through `Lib/threading.py` over `_thread`:
+  import, current-thread discovery, basic `start`/target execution/`join`,
+  `is_alive`, and `ident` are covered by the system stdlib threading probe;
+  exact lifecycle/shutdown/daemon semantics remain pending.
 - [ ] CPython `threading.Lock` through `Lib/threading.py` over `_thread`
 - [~] Python-compatible thread lifecycle details: public `threading` must come
   from CPython 3.14 source; full startup/import, shutdown/daemon/current-thread

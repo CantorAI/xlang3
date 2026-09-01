@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "runtime_lock.h"
 
+#include <chrono>
 #include <cstdio>
 #include <memory>
 
@@ -27,14 +28,29 @@ namespace {
 
 constexpr const char* kLockNativeType = "_thread.LockType";
 constexpr const char* kRLockNativeType = "_thread.RLock";
+constexpr const char* kThreadHandleNativeType = "_thread._ThreadHandle";
 
 std::mutex g_thread_registry_mutex;
 std::vector<std::shared_ptr<XlangThreadState>> g_thread_registry;
+
+struct XlangThreadHandleState {
+  std::shared_ptr<XlangThreadState> thread;
+  int64_t ident = 0;
+  bool done = false;
+};
 
 XlangLockState* lock_state_from_self(const Value& self, std::string& error) {
   auto* state = static_cast<XlangLockState*>(instance_get_native_data(self, kLockNativeType));
   if (state == nullptr) {
     error = "invalid lock object";
+  }
+  return state;
+}
+
+XlangThreadHandleState* thread_handle_state_from_self(const Value& self, std::string& error) {
+  auto* state = static_cast<XlangThreadHandleState*>(instance_get_native_data(self, kThreadHandleNativeType));
+  if (state == nullptr) {
+    error = "invalid thread handle";
   }
   return state;
 }
@@ -754,10 +770,27 @@ bool xlang_thread_start_detached(
 }
 
 void xlang_thread_join_state(XlangThreadState& state) {
+  xlang_thread_join_state_for(state, 0.0, false);
+}
+
+void xlang_thread_join_state_for(XlangThreadState& state, double timeout_seconds, bool has_timeout) {
   std::thread worker;
   {
     std::unique_lock<std::mutex> lock(state.mutex);
-    state.done_cv.wait(lock, [&state]() { return !state.started || state.done; });
+    if (has_timeout) {
+      if (timeout_seconds <= 0.0) {
+        if (!state.done && state.started) {
+          return;
+        }
+      } else {
+        const auto timeout = std::chrono::duration<double>(timeout_seconds);
+        if (!state.done_cv.wait_for(lock, timeout, [&state]() { return !state.started || state.done; })) {
+          return;
+        }
+      }
+    } else {
+      state.done_cv.wait(lock, [&state]() { return !state.started || state.done; });
+    }
     if (state.worker.joinable()) {
       worker = std::move(state.worker);
     }
@@ -809,6 +842,178 @@ void xlang_rlock_state_cleanup(void* data) {
   delete static_cast<XlangRLockState*>(data);
 }
 
+void xlang_thread_handle_state_cleanup(void* data) {
+  delete static_cast<XlangThreadHandleState*>(data);
+}
+
+bool thread_handle_init(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "_ThreadHandle.__init__ expected no arguments";
+    return false;
+  }
+  auto* state = new XlangThreadHandleState();
+  if (!instance_set_native_data(args[0], kThreadHandleNativeType, state, xlang_thread_handle_state_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool thread_handle_ident_get(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "_ThreadHandle.ident expected no arguments";
+    return false;
+  }
+  auto* state = thread_handle_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  int64_t ident = 0;
+  bool has_ident = false;
+  {
+    if (state->thread) {
+      std::lock_guard<std::mutex> lock(state->thread->mutex);
+      ident = state->thread->ident;
+      has_ident = ident != 0;
+    } else {
+      ident = state->ident;
+      has_ident = ident != 0;
+    }
+  }
+  if (!has_ident) {
+    value_set_none(out);
+  } else {
+    value_set_int64(out, ident);
+  }
+  return true;
+}
+
+bool thread_handle_is_done(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "_ThreadHandle.is_done expected no arguments";
+    return false;
+  }
+  auto* state = thread_handle_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  bool done = state->done;
+  if (state->thread) {
+    std::lock_guard<std::mutex> lock(state->thread->mutex);
+    done = state->thread->done;
+  }
+  value_set_bool(out, done);
+  return true;
+}
+
+bool thread_handle_join(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc < 1 || argc > 2) {
+    error = "_ThreadHandle.join expected optional timeout";
+    return false;
+  }
+  auto* state = thread_handle_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  bool has_timeout = false;
+  double timeout_seconds = 0.0;
+  if (argc == 2 && args[1].tag != ValueTag::None) {
+    has_timeout = true;
+    if (args[1].tag == ValueTag::Int64) {
+      timeout_seconds = static_cast<double>(args[1].as.i64);
+    } else if (args[1].tag == ValueTag::Double) {
+      timeout_seconds = args[1].as.f64;
+    } else {
+      error = "timeout value must be a number";
+      return false;
+    }
+  }
+  if (state->thread) {
+    xlang_thread_join_state_for(*state->thread, timeout_seconds, has_timeout);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool thread_handle_set_done(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "_ThreadHandle._set_done expected no arguments";
+    return false;
+  }
+  auto* state = thread_handle_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  if (state->thread) {
+    {
+      std::lock_guard<std::mutex> lock(state->thread->mutex);
+      state->thread->done = true;
+    }
+    state->thread->done_cv.notify_all();
+  }
+  state->done = true;
+  value_set_none(out);
+  return true;
+}
+
+bool thread_local_init(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "_local.__init__ expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 Value xlang_thread_make_lock_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function("_thread.LockType.__init__", lock_init)});
@@ -828,6 +1033,23 @@ Value xlang_thread_make_rlock_class(Runtime& runtime) {
   attrs.push_back({"__enter__", runtime.make_native_function("_thread.RLock.__enter__", rlock_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("_thread.RLock.__exit__", rlock_exit)});
   return Value::class_object("RLock", std::move(attrs));
+}
+
+Value xlang_thread_make_handle_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  Value ident_getter = runtime.make_native_function("_thread._ThreadHandle.ident", thread_handle_ident_get);
+  attrs.push_back({"__init__", runtime.make_native_function("_thread._ThreadHandle.__init__", thread_handle_init)});
+  attrs.push_back({"ident", Value::property(std::move(ident_getter), Value::none(), Value::none(), Value::none())});
+  attrs.push_back({"is_done", runtime.make_native_function("_thread._ThreadHandle.is_done", thread_handle_is_done)});
+  attrs.push_back({"join", runtime.make_native_function("_thread._ThreadHandle.join", thread_handle_join)});
+  attrs.push_back({"_set_done", runtime.make_native_function("_thread._ThreadHandle._set_done", thread_handle_set_done)});
+  return Value::class_object("_ThreadHandle", std::move(attrs));
+}
+
+Value xlang_thread_make_local_class(Runtime& runtime) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function("_thread._local.__init__", thread_local_init)});
+  return Value::class_object("_local", std::move(attrs));
 }
 
 Value xlang_thread_make_lock_instance(Runtime& runtime) {
@@ -852,6 +1074,45 @@ Value xlang_thread_make_rlock_instance(Runtime& runtime) {
     return Value::invalid();
   }
   return instance;
+}
+
+Value xlang_thread_make_handle_instance(Runtime& runtime, int64_t ident, bool done) {
+  Value handle_class = xlang_thread_make_handle_class(runtime);
+  Value instance = Value::instance(handle_class);
+  std::string error;
+  auto* state = new XlangThreadHandleState();
+  state->ident = ident;
+  state->done = done;
+  if (!instance_set_native_data(instance, kThreadHandleNativeType, state, xlang_thread_handle_state_cleanup, error)) {
+    delete state;
+    return Value::invalid();
+  }
+  return instance;
+}
+
+bool xlang_thread_handle_set_thread(Value& handle, std::shared_ptr<XlangThreadState> thread, std::string& error) {
+  auto* state = thread_handle_state_from_self(handle, error);
+  if (state == nullptr) {
+    return false;
+  }
+  state->thread = std::move(thread);
+  state->done = false;
+  return true;
+}
+
+bool xlang_thread_handle_ident(const Value& handle, int64_t& ident, bool& has_ident, std::string& error) {
+  auto* state = thread_handle_state_from_self(handle, error);
+  if (state == nullptr) {
+    return false;
+  }
+  if (state->thread) {
+    std::lock_guard<std::mutex> lock(state->thread->mutex);
+    ident = state->thread->ident;
+  } else {
+    ident = state->ident;
+  }
+  has_ident = ident != 0;
+  return true;
 }
 
 } // namespace xlang3

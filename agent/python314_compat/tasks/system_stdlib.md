@@ -69,11 +69,16 @@ fixture coverage, then update the row truthfully.
   primitives and import/runtime hot paths instead of restoring `os.path`,
   `pathlib`, `glob`, or `fnmatch` C++ facades.
 
-- [ ] `subprocess`, `_winapi`, `socket`, `select`, and `threading`
+- [~] `subprocess`, `_winapi`, `socket`, `select`, and `threading`
   Coverage: `_winapi`, `_socket`, `select`, and native thread foundations exist.
-  Remaining: make CPython system/process/thread libraries run against truthful
-  native primitives, including XLang3 extensions only through explicit keyword
-  options such as future shared-memory transport.
+  CPython 3.14 `Lib/threading.py` now imports over XLang3's `_thread`
+  primitives, and the system stdlib probe covers `current_thread`,
+  `active_count`, `Thread.start`, target execution, `Thread.join`, `is_alive`,
+  `ident`, and `stack_size`.
+  Remaining: complete truthful process/socket primitives for `subprocess` and
+  networking, full `_thread._local` per-thread storage, exact daemon/shutdown
+  lifecycle, condition/lock edge cases, profile/trace propagation parity, and
+  import-time/runtime performance.
 
 - [ ] `site`, `runpy`, `importlib`, `pkgutil`, and package metadata/resources
   Coverage: import bootstrap native modules exist and CPython source imports

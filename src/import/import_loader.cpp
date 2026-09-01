@@ -213,6 +213,8 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             namespace_dirs.push_back(candidate_base);
           }
         }
+      } else {
+        return false;
       }
     }
   }
@@ -323,6 +325,17 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   Value parent_module;
   if (!parent_name.empty() && !runtime.import_module(parent_name, parent_module, error)) {
     return false;
+  }
+  if (!parent_name.empty()) {
+    Value registry_module;
+    std::string registry_error;
+    if (runtime.module_registry_dict().tag != ValueTag::Invalid &&
+        mapping_get_item(runtime.module_registry_dict(), Value::string(name), registry_module, registry_error) &&
+        value_as_module(registry_module) != nullptr) {
+      value_assign_fast(out, registry_module);
+      trace_import_timing(name, "registry-after-parent", import_start);
+      return true;
+    }
   }
 
   ModuleFile module_file;

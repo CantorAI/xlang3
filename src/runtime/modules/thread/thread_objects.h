@@ -58,6 +58,7 @@ bool xlang_thread_tuple_to_args(const Value& value, std::vector<Value>& out, std
 bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::string& error);
 bool xlang_thread_start_detached(Runtime& runtime, Value target, std::vector<Value> args, int64_t& ident, std::string& error);
 void xlang_thread_join_state(XlangThreadState& state);
+void xlang_thread_join_state_for(XlangThreadState& state, double timeout_seconds, bool has_timeout);
 void xlang_thread_join_runtime_threads(Runtime* runtime);
 bool xlang_thread_is_alive_state(XlangThreadState& state);
 bool xlang_lock_acquire_value(const Value& lock, bool blocking, std::string& error);
@@ -67,7 +68,12 @@ void xlang_rlock_state_cleanup(void* data);
 
 Value xlang_thread_make_lock_class(Runtime& runtime);
 Value xlang_thread_make_rlock_class(Runtime& runtime);
+Value xlang_thread_make_handle_class(Runtime& runtime);
+Value xlang_thread_make_local_class(Runtime& runtime);
 Value xlang_thread_make_lock_instance(Runtime& runtime);
 Value xlang_thread_make_rlock_instance(Runtime& runtime);
+Value xlang_thread_make_handle_instance(Runtime& runtime, int64_t ident = 0, bool done = false);
+bool xlang_thread_handle_set_thread(Value& handle, std::shared_ptr<XlangThreadState> state, std::string& error);
+bool xlang_thread_handle_ident(const Value& handle, int64_t& ident, bool& has_ident, std::string& error);
 
 } // namespace xlang3

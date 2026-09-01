@@ -1144,6 +1144,12 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
     }
   }
 
+  Value package_path;
+  std::string package_path_error;
+  if (!module_get_attr(module, "__path__", package_path, package_path_error)) {
+    return false;
+  }
+
   std::string submodule_error;
   if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name, out, submodule_error)) {
     return true;

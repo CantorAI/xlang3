@@ -2530,7 +2530,7 @@ private:
 
     ClassInfo class_info;
     class_info.match_args = match_args;
-    if (known_base_layout) {
+    if (known_base_layout && !use_dynamic_namespace) {
       class_info.slot_names = lowered_instance_slots;
       for (size_t i = 0; i < lowered_instance_slots.size(); ++i) {
         class_info.slots[lowered_instance_slots[i]] = static_cast<uint32_t>(i);

@@ -464,6 +464,27 @@ bool deque_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
+bool deque_remove(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "deque.remove() expected one argument";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  for (auto it = state->items.begin(); it != state->items.end(); ++it) {
+    if (value_key_equal(*it, args[1])) {
+      value_set_invalid(*it);
+      state->items.erase(it);
+      value_set_none(out);
+      return true;
+    }
+  }
+  error = "deque.remove(x): x not in deque";
+  return false;
+}
+
 bool deque_to_list(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "deque.to_list() expected no arguments";
@@ -562,6 +583,7 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"extend", runtime.make_native_function("_collections.deque.extend", deque_extend)});
   attrs.push_back({"extendleft", runtime.make_native_function("_collections.deque.extendleft", deque_extendleft)});
   attrs.push_back({"count", runtime.make_native_function("_collections.deque.count", deque_count)});
+  attrs.push_back({"remove", runtime.make_native_function("_collections.deque.remove", deque_remove)});
   attrs.push_back({"__len__", runtime.make_native_function("_collections.deque.__len__", deque_len)});
   attrs.push_back({"__iter__", runtime.make_native_function("_collections.deque.__iter__", deque_iter)});
   attrs.push_back({"__getitem__", runtime.make_native_function("_collections.deque.__getitem__", deque_getitem)});

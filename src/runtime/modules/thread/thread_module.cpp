@@ -51,6 +51,80 @@ bool thread_start_new_thread(
   return true;
 }
 
+bool is_thread_callable(const Value& value) {
+  return value_as_function(value) != nullptr ||
+      value_as_native_function(value) != nullptr ||
+      value_as_bound_method(value) != nullptr;
+}
+
+const Value* find_keyword(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && kwargs[i].value != nullptr && std::string(kwargs[i].name) == name) {
+      return kwargs[i].value;
+    }
+  }
+  return nullptr;
+}
+
+bool thread_start_joinable_thread(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)user_data;
+  if (argc < 1 || argc > 2) {
+    error = "_thread.start_joinable_thread() expected function and optional args";
+    return false;
+  }
+  if (!is_thread_callable(args[0])) {
+    error = "_thread.start_joinable_thread() first argument must be callable";
+    return false;
+  }
+
+  const Value* handle = find_keyword(kwargs, kwargc, "handle");
+  if (handle == nullptr) {
+    error = "_thread.start_joinable_thread() missing required keyword argument 'handle'";
+    return false;
+  }
+
+  std::vector<Value> thread_args;
+  if (argc == 2 && !xlang_thread_tuple_to_args(args[1], thread_args, error)) {
+    return false;
+  }
+
+  auto state = std::make_shared<XlangThreadState>();
+  state->runtime = &runtime;
+  value_assign_fast(state->target, args[0]);
+  state->args = std::move(thread_args);
+  if (const Value* daemon = find_keyword(kwargs, kwargc, "daemon")) {
+    state->daemon = value_truthy(*daemon);
+  }
+
+  Value mutable_handle = *handle;
+  if (!xlang_thread_handle_set_thread(mutable_handle, state, error)) {
+    return false;
+  }
+  if (!xlang_thread_start_state(std::move(state), error)) {
+    return false;
+  }
+
+  int64_t ident = 0;
+  bool has_ident = false;
+  if (!xlang_thread_handle_ident(*handle, ident, has_ident, error)) {
+    return false;
+  }
+  if (has_ident) {
+    value_set_int64(out, ident);
+  } else {
+    value_set_none(out);
+  }
+  return true;
+}
+
 bool thread_allocate_lock(
     Runtime& runtime,
     const Value* args,
@@ -90,6 +164,129 @@ bool thread_get_ident(
   return true;
 }
 
+bool thread_get_main_thread_ident(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return thread_get_ident(runtime, args, argc, out, error, user_data);
+}
+
+bool thread_get_native_id(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return thread_get_ident(runtime, args, argc, out, error, user_data);
+}
+
+bool thread_daemon_threads_allowed(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)args;
+  (void)user_data;
+  if (argc != 0) {
+    error = "_thread.daemon_threads_allowed() expected no arguments";
+    return false;
+  }
+  value_set_bool(out, true);
+  return true;
+}
+
+bool thread_is_main_interpreter(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)args;
+  (void)user_data;
+  if (argc != 0) {
+    error = "_thread._is_main_interpreter() expected no arguments";
+    return false;
+  }
+  value_set_bool(out, true);
+  return true;
+}
+
+bool thread_shutdown(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)args;
+  (void)user_data;
+  if (argc != 0) {
+    error = "_thread._shutdown() expected no arguments";
+    return false;
+  }
+  xlang_thread_join_runtime_threads(&runtime);
+  value_set_none(out);
+  return true;
+}
+
+bool thread_make_thread_handle(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)user_data;
+  if (argc > 1) {
+    error = "_thread._make_thread_handle() expected optional ident";
+    return false;
+  }
+  int64_t ident = 0;
+  bool done = false;
+  if (argc == 1 && args[0].tag != ValueTag::None) {
+    if (!value_int_like_to_i64(args[0], ident)) {
+      error = "thread ident must be an integer";
+      return false;
+    }
+  }
+  out = xlang_thread_make_handle_instance(runtime, ident, done);
+  if (out.tag == ValueTag::Invalid) {
+    error = "failed to allocate thread handle";
+    return false;
+  }
+  return true;
+}
+
+bool thread_stack_size(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc > 1) {
+    error = "_thread.stack_size() expected at most 1 argument";
+    return false;
+  }
+  if (argc == 1 && args[0].tag != ValueTag::Int64) {
+    error = "size must be an integer";
+    return false;
+  }
+  value_set_int64(out, 0);
+  return true;
+}
+
 bool thread_exit(
     Runtime& runtime,
     const Value* args,
@@ -115,11 +312,23 @@ Value register_low_level_thread_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_thread");
   builder.function("start_new_thread", thread_start_new_thread)
       .function("start_new", thread_start_new_thread)
+      .function("start_joinable_thread", nullptr, nullptr, false, thread_start_joinable_thread)
       .function("allocate_lock", thread_allocate_lock)
       .function("get_ident", thread_get_ident)
+      .function("get_native_id", thread_get_native_id)
+      .function("_get_main_thread_ident", thread_get_main_thread_ident)
+      .function("daemon_threads_allowed", thread_daemon_threads_allowed)
+      .function("_is_main_interpreter", thread_is_main_interpreter)
+      .function("_shutdown", thread_shutdown)
+      .function("_make_thread_handle", thread_make_thread_handle)
+      .function("stack_size", thread_stack_size)
       .function("exit", thread_exit)
+      .value("error", runtime.find_builtin("RuntimeError") ? *runtime.find_builtin("RuntimeError") : Value::class_object("error", {}))
+      .value("TIMEOUT_MAX", Value::number(4294967.0))
       .value("LockType", xlang_thread_make_lock_class(runtime))
-      .value("RLock", xlang_thread_make_rlock_class(runtime));
+      .value("RLock", xlang_thread_make_rlock_class(runtime))
+      .value("_ThreadHandle", xlang_thread_make_handle_class(runtime))
+      .value("_local", xlang_thread_make_local_class(runtime));
   auto module = builder.finish();
   runtime.register_module("_thread", module);
   return module;

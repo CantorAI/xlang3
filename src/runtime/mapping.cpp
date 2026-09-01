@@ -106,6 +106,10 @@ DictViewObject* allocate_dict_view_object(ObjectKind kind) {
 }
 
 void recycle_dict_object(DictObject* object) {
+  for (auto& entry : object->entries) {
+    value_set_invalid(entry.first);
+    value_set_invalid(entry.second);
+  }
   object->entries.clear();
   if (dict_object_free_list.items.size() < 4096) {
     dict_object_free_list.items.push_back(object);
@@ -443,11 +447,15 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
   if (dict != nullptr) {
     for (auto& entry : dict->entries) {
       if (value_key_equal(entry.first, key)) {
-        entry.second = item;
+        value_assign_fast(entry.second, item);
         return true;
       }
     }
-    dict->entries.push_back(std::make_pair(key, item));
+    Value owned_key;
+    Value owned_item;
+    value_assign_fast(owned_key, key);
+    value_assign_fast(owned_item, item);
+    dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
     return true;
   }
   if (value_as_module(object) != nullptr) {
@@ -470,6 +478,8 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
   if (dict != nullptr) {
     for (auto it = dict->entries.begin(); it != dict->entries.end(); ++it) {
       if (value_key_equal(it->first, key)) {
+        value_set_invalid(it->first);
+        value_set_invalid(it->second);
         dict->entries.erase(it);
         return true;
       }
