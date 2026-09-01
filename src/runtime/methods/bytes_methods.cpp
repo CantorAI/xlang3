@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
@@ -1183,7 +1184,43 @@ bool bytes_translate_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool bytes_maketrans_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "maketrans expected 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view from;
+  std::string_view to;
+  if (!get_bytes_like_view(args[0], "bytes.maketrans from", from, error) ||
+      !get_bytes_like_view(args[1], "bytes.maketrans to", to, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (from.size() != to.size()) {
+    error = "maketrans arguments must have same length";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string table;
+  table.resize(256);
+  for (size_t i = 0; i < 256; ++i) {
+    table[i] = static_cast<char>(i);
+  }
+  for (size_t i = 0; i < from.size(); ++i) {
+    table[static_cast<unsigned char>(from[i])] = to[i];
+  }
+  out = Value::bytes(std::move(table));
+  return true;
+}
+
 } // namespace
+
+bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
+  bytes_class.attrs["maketrans"] = runtime.make_native_function("bytes.maketrans", bytes_maketrans_method);
+  ++bytes_class.version;
+  return true;
+}
 
 bool bytes_get_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag != ValueTag::Object || object.as.obj == nullptr || object.as.obj->kind != ObjectKind::Bytes) {

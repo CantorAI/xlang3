@@ -30,9 +30,10 @@ fixture coverage, then update the row truthfully.
   `system_stdlib` fixture asserts source-backed module/package paths,
   `_collections.deque` iteration into `list`, ABC-backed `UserDict`
   `MutableMapping` recognition, `queue.SimpleQueue` put/get/qsize/empty, and
-  `weakref.ref` plus `WeakKeyDictionary` behavior. Runtime coverage added for
-  structural list comparison so source-backed collections tests use normal
-  Python equality rather than object identity.
+  `weakref.ref`, `WeakKeyDictionary`, and `WeakSet` referent iteration behavior.
+  Runtime coverage added for structural list comparison so source-backed
+  collections tests use normal Python equality rather than object identity, and
+  for Python iteration protocol priority over legacy instance-storage fallbacks.
 
 - [x] `json`, `pickle`, `copy`, and `copyreg`
   Coverage: real CPython 3.14 `json`, `pickle.py`, `copy.py`, and

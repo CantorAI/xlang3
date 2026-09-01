@@ -40,6 +40,19 @@ bool int_bit_length_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool int_index_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "int.__index__ expected no arguments";
+    return false;
+  }
+  if (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr) {
+    error = "int.__index__ target must be int";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 3) {
     error = "int.to_bytes expected value, length, and byteorder";
@@ -219,20 +232,25 @@ bool int_from_bytes_kw_method(
   return int_from_bytes_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
+static constexpr BuiltinMethodSpec kIntMethods[] = {
+    {"__index__", "int.__index__", int_index_method},
+    {"bit_length", "int.bit_length", int_bit_length_method},
+    {"to_bytes", "int.to_bytes", int_to_bytes_method},
+};
+
 } // namespace
 
 bool int_get_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) {
     return false;
   }
-  static constexpr BuiltinMethodSpec methods[] = {
-      {"bit_length", "int.bit_length", int_bit_length_method},
-      {"to_bytes", "int.to_bytes", int_to_bytes_method},
-  };
-  return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
+  return bind_builtin_method_from_table(object, name, kIntMethods, std::size(kIntMethods), out);
 }
 
 bool int_install_class_methods(Runtime& runtime, ClassObject& int_class) {
+  for (const auto& method : kIntMethods) {
+    int_class.attrs[method.name] = runtime.make_native_function(method.full_name, method.callback);
+  }
   int_class.attrs["from_bytes"] = Value::static_method(runtime.make_native_function(
       "int.from_bytes",
       int_from_bytes_method,

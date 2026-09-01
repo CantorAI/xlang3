@@ -81,10 +81,14 @@ RuntimeResult Interpreter::run_function(
   struct CurrentFrameGuard {
     Runtime& runtime;
 
-    ~CurrentFrameGuard() {
-      runtime.clear_current_frame();
+    explicit CurrentFrameGuard(Runtime& target_runtime) : runtime(target_runtime) {
+      runtime.push_current_frame_state();
     }
-  } current_frame_guard{runtime_};
+
+    ~CurrentFrameGuard() {
+      runtime.pop_current_frame_state();
+    }
+  } current_frame_guard(runtime_);
   struct CurrentGlobalsGuard {
     Runtime& runtime;
     Value previous;

@@ -417,7 +417,18 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     return false;
   }
 
-  out = std::move(module_value);
+  Value final_module;
+  std::string registry_error;
+  if (runtime.module_registry_dict().tag != ValueTag::Invalid &&
+      mapping_get_item(runtime.module_registry_dict(), Value::string(name), final_module, registry_error) &&
+      final_module.tag != ValueTag::Invalid) {
+    value_assign_fast(out, final_module);
+    if (value_as_module(final_module) != nullptr) {
+      runtime.register_module(name, final_module);
+    }
+  } else {
+    out = std::move(module_value);
+  }
   if (!parent_name.empty()) {
     module_set_attr(parent_module, module_leaf_name(name), out, attr_error);
   }

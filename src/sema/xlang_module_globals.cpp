@@ -140,6 +140,7 @@ void collect_module_target(const ast::Expr& expr, ModuleGlobalSlots& slots) {
 ModuleGlobalSlots collect_module_global_slots(const ast::Module& module) {
   ModuleGlobalSlots slots;
   add_module_slot(slots, "__name__");
+  add_module_slot(slots, "__doc__");
   add_module_slot(slots, "__file__");
   add_module_slot(slots, "__package__");
   add_module_slot(slots, "__path__");

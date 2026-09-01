@@ -520,8 +520,21 @@ XLANG3_HOT_INLINE void not_op(
   value_set_bool(regs[in.dst], !xlang_vm_truthy(module, regs[in.a]));
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow neg(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow neg(
+    const ir::Instr& in,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
+    RuntimeResult& result,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   if (regs[in.a].tag == ValueTag::Int64) {
     if (regs[in.a].as.i64 == std::numeric_limits<int64_t>::min()) {
       std::string error;
@@ -538,6 +551,42 @@ XLANG3_HOT_INLINE XlangVMOpFlow neg(const ir::Instr& in, XlangVMSmallRegisterBuf
   } else if (regs[in.a].tag == ValueTag::Double) {
     value_set_number(regs[in.dst], -regs[in.a].as.f64);
   } else {
+    if (regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
+      Value method;
+      std::string attr_error;
+      if (attribute_get(regs[in.a], "__neg__", method, attr_error)) {
+        auto* bound = value_as_bound_method(method);
+        if (bound != nullptr) {
+          Value leading[1] = {bound->self};
+          CallArgsView args;
+          args.leading = leading;
+          args.leading_count = 1;
+          bool pushed_frame = false;
+          if (!call_callable_value(
+                  runtime,
+                  bound->function,
+                  args,
+                  module,
+                  module_owner,
+                  in.dst,
+                  ip,
+                  native_call_args,
+                  execution_lock,
+                  regs[in.dst],
+                  pushed_frame,
+                  std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+                  std::forward<PushFrame>(push_frame),
+                  std::forward<RaiseRuntimeError>(raise_runtime_error),
+                  std::forward<RaiseExceptionValue>(raise_exception_value))) {
+            if (!result.errors.empty()) {
+              return XlangVMOpFlow::ReturnResult;
+            }
+            return XlangVMOpFlow::ContinueLoop;
+          }
+          return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;
+        }
+      }
+    }
     return raise_runtime_error("unsupported operand for unary -") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

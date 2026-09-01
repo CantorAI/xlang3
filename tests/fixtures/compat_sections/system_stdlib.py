@@ -90,12 +90,15 @@ box = WeakBox()
 ref = weakref.ref(box)
 dictionary = weakref.WeakKeyDictionary()
 dictionary[box] = "live"
+weak_set = weakref.WeakSet()
+weak_set.add(box)
 print(
     "system-stdlib-weakref",
     source_lib_module(weakref),
     ref() is box,
     weakref.getweakrefcount(box) >= 1,
     list(dictionary.values()),
+    [item is box for item in weak_set],
 )
 json_data = json.loads('{"name":"xlang3","items":[1,2,3],"enabled":true}')
 copied = copy.copy({"a": [1, 2]})

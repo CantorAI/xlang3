@@ -1853,24 +1853,38 @@ bool string_split_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count > 1 || leading == nullptr ||
+  if (leading_count != 1 || register_arg_count > 2 || leading == nullptr ||
       (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
-    error = "str.split expected 0 or 1 arguments";
+    error = "str.split expected 0 to 2 arguments";
     return false;
   }
   memory::X3StringView text;
   if (!get_string_view_checked(leading[0], "str.split target", text, error)) {
     return false;
   }
-  if (register_arg_count == 0) {
-    out = split_whitespace(text);
-  } else {
-    memory::X3StringView sep;
-    if (!get_string_view_checked(registers[register_args[0]], "str.split separator", sep, error)) {
+  int64_t maxsplit = -1;
+  if (register_arg_count >= 2) {
+    const Value& maxsplit_value = registers[register_args[1]];
+    if (maxsplit_value.tag != ValueTag::Int64) {
+      error = "str.split maxsplit must be int";
       return false;
     }
-    if (!split_separator(text, sep, out, error)) {
-      return false;
+    maxsplit = maxsplit_value.as.i64;
+  }
+  if (register_arg_count == 0) {
+    out = split_whitespace(text, maxsplit);
+  } else {
+    const Value& sep_value = registers[register_args[0]];
+    if (sep_value.tag == ValueTag::None) {
+      out = split_whitespace(text, maxsplit);
+    } else {
+      memory::X3StringView sep;
+      if (!get_string_view_checked(sep_value, "str.split separator", sep, error)) {
+        return false;
+      }
+      if (!split_separator(text, sep, out, error, maxsplit)) {
+        return false;
+      }
     }
   }
   return true;

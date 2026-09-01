@@ -93,7 +93,7 @@ XLANG3_VM_FLOW(Compare, xlang3::xlang_vm::ops::compare(in, runtime_, regs, raise
 XLANG3_VM_FAST(Is, xlang3::xlang_vm::ops::is_op(in, regs))
 XLANG3_VM_FLOW(Contains, xlang3::xlang_vm::ops::contains_dynamic(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FAST(Not, xlang3::xlang_vm::ops::not_op(in, module, regs))
-XLANG3_VM_FLOW(Neg, xlang3::xlang_vm::ops::neg(in, regs, raise_runtime_error))
+XLANG3_VM_FLOW(Neg, xlang3::xlang_vm::ops::neg(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Invert, xlang3::xlang_vm::ops::invert(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Jump, xlang3::xlang_vm::ops::jump(in, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }))
 XLANG3_VM_FLOW(JumpIfFalse, xlang3::xlang_vm::ops::jump_if_false(in, module, regs, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }))

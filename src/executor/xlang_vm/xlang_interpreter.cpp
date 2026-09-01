@@ -60,6 +60,14 @@ RuntimeResult Interpreter::run_module(
       result.errors.push_back(error);
       return result;
     }
+    const Value module_doc =
+        module.entry < module.functions.size() && !module.functions[module.entry].doc.empty()
+            ? Value::string(module.functions[module.entry].doc)
+            : Value::none();
+    if (!module_set_attr(globals_module, "__doc__", module_doc, error)) {
+      result.errors.push_back(error);
+      return result;
+    }
     if (!module.source_file.empty() &&
         (!module_get_attr(globals_module, "__file__", existing, error) || existing.tag == ValueTag::Invalid)) {
       error.clear();

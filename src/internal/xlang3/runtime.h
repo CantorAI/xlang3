@@ -173,6 +173,8 @@ public:
       uint32_t function_id,
       const Value* globals_module,
       uint32_t instruction_index);
+  void push_current_frame_state();
+  void pop_current_frame_state();
   void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
   void clear_current_frame();
   Value current_frame_snapshot() const;

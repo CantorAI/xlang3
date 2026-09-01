@@ -32,6 +32,7 @@ print(dict([("a", 1)])["a"], len(bytes(3)), bytes([65, 66]), len(bytearray(3)), 
 print(dict(a=1, b=2)["b"], dict([("a", 1)], b=2)["b"])
 print(bytes("hi", "utf-8"), bytes("hi", encoding="utf-8"))
 print(bytearray("hi", "utf-8"), bytearray("hi", encoding="utf-8"))
+print(type(bytes.maketrans(b"+/", b"-_")).__name__, len(bytes.maketrans(b"+/", b"-_")), type(bytearray.maketrans(b"a", b"b")).__name__)
 print(len(memoryview(b"abc")))
 print(str(b"hi", "utf-8"), str(bytearray(b"ok"), encoding="utf-8"))
 

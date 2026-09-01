@@ -68,6 +68,7 @@ struct RuntimeCurrentFrameState {
 };
 
 thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
+thread_local std::unordered_map<const Runtime*, std::vector<RuntimeCurrentFrameState>> g_runtime_current_frame_stack;
 thread_local std::unordered_map<const Runtime*, Value> g_runtime_active_exceptions;
 
 std::mutex g_runtime_frame_registry_mutex;
@@ -785,6 +786,29 @@ void Runtime::set_current_frame(
   state.function_id = function_id;
   state.globals_module = globals_module;
   state.instruction_index = instruction_index;
+}
+
+void Runtime::push_current_frame_state() {
+  g_runtime_current_frame_stack[this].push_back(current_frame_state(*this));
+}
+
+void Runtime::pop_current_frame_state() {
+  auto stack_it = g_runtime_current_frame_stack.find(this);
+  if (stack_it == g_runtime_current_frame_stack.end() || stack_it->second.empty()) {
+    clear_current_frame();
+    return;
+  }
+  current_frame_state(*this) = std::move(stack_it->second.back());
+  stack_it->second.pop_back();
+  if (stack_it->second.empty()) {
+    g_runtime_current_frame_stack.erase(stack_it);
+  }
+  const auto& state = current_frame_state(*this);
+  if (state.module_owner == nullptr && state.globals_module == nullptr && state.frame_stack == nullptr) {
+    clear_current_frame_state(*this);
+  } else {
+    publish_current_frame_state(*this);
+  }
 }
 
 void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {

@@ -7,6 +7,7 @@ T
 41 41
 ValueError
 23 left child yes T
+['Child', 'Left', 'Right', 'object']
 99 ['eval']
 8 42 ['MetaMade'] type
 18 CustomMeta CustomMeta
@@ -17,6 +18,7 @@ staticmethod classmethod
 sm True sm sm doc static-tag
 cm True cm class-tag
 len len None True True
+33 33 True False
 41
 1
 7

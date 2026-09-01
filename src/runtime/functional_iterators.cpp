@@ -440,7 +440,8 @@ bool runtime_call_callable_kw(
 }
 
 bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error) {
-  if (sequence_get_iter(iterable, out, error)) {
+  const bool protocol_first = value_as_instance(iterable) != nullptr || value_as_class(iterable) != nullptr;
+  if (!protocol_first && sequence_get_iter(iterable, out, error)) {
     return true;
   }
 
@@ -486,6 +487,9 @@ bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::
     if (attribute_get(iterable, "__getitem__", getitem_method, getitem_error)) {
       out = functional_getitem_iterator(&runtime, iterable);
       error.clear();
+      return true;
+    }
+    if (protocol_first && sequence_get_iter(iterable, out, error)) {
       return true;
     }
     error = error.empty() ? "object is not iterable" : error;

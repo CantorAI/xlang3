@@ -1422,6 +1422,24 @@ std::string value_to_repr(const Value& value) {
   return value_to_string(value);
 }
 
+std::string format_percent_integer(int64_t value, uint32_t base, bool uppercase) {
+  static constexpr char kLowerDigits[] = "0123456789abcdef";
+  static constexpr char kUpperDigits[] = "0123456789ABCDEF";
+  const char* digits = uppercase ? kUpperDigits : kLowerDigits;
+  const bool negative = value < 0;
+  uint64_t magnitude = negative ? static_cast<uint64_t>(-(value + 1)) + 1u : static_cast<uint64_t>(value);
+  char buffer[80];
+  size_t pos = sizeof(buffer);
+  do {
+    buffer[--pos] = digits[magnitude % base];
+    magnitude /= base;
+  } while (magnitude != 0);
+  if (negative) {
+    buffer[--pos] = '-';
+  }
+  return std::string(buffer + pos, sizeof(buffer) - pos);
+}
+
 const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch);
 
 bool string_percent_arg(
@@ -1577,6 +1595,15 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
           return false;
         }
         formatted = std::to_string(arg.as.i64);
+        break;
+      case 'o':
+      case 'x':
+      case 'X':
+        if (arg.tag != ValueTag::Int64) {
+          error = "integer format requires an integer";
+          return false;
+        }
+        formatted = format_percent_integer(arg.as.i64, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
         break;
       case 'f':
       case 'F':

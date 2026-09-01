@@ -1044,7 +1044,8 @@ public:
       std::unordered_map<std::string, uint32_t> module_global_slots = {},
       std::unordered_set<uint32_t> imported_module_slots = {},
       std::string qualname_prefix = {},
-      bool future_annotations = false)
+      bool future_annotations = false,
+      std::string private_class_name = {})
       : module_(module),
         is_module_(is_module),
         future_annotations_(future_annotations),
@@ -1053,7 +1054,8 @@ public:
         class_infos_(std::move(class_infos)),
         module_global_slots_(std::move(module_global_slots)),
         imported_module_slots_(std::move(imported_module_slots)),
-        qualname_prefix_(std::move(qualname_prefix)) {
+        qualname_prefix_(std::move(qualname_prefix)),
+        private_class_name_(std::move(private_class_name)) {
     fn_.name = std::move(name);
     fn_.qualname = qualname_prefix_.empty() ? fn_.name : qualname_prefix_ + "." + fn_.name;
     fn_.is_generator = is_generator;
@@ -1515,6 +1517,35 @@ private:
     return cell_indices_.find(name) != cell_indices_.end();
   }
 
+  static bool needs_private_name_mangling(const std::string& name) {
+    return name.size() >= 3 && name[0] == '_' && name[1] == '_' &&
+           !(name.size() >= 4 && name[name.size() - 1] == '_' && name[name.size() - 2] == '_') &&
+           name.find('.') == std::string::npos;
+  }
+
+  static std::string mangle_private_name(const std::string& class_name, const std::string& name) {
+    if (!needs_private_name_mangling(name)) {
+      return name;
+    }
+    size_t first_non_underscore = 0;
+    while (first_non_underscore < class_name.size() && class_name[first_non_underscore] == '_') {
+      ++first_non_underscore;
+    }
+    if (first_non_underscore >= class_name.size()) {
+      return name;
+    }
+    return "_" + class_name.substr(first_non_underscore) + name;
+  }
+
+  std::string active_private_class_name() const {
+    return active_class_private_name_.empty() ? private_class_name_ : active_class_private_name_;
+  }
+
+  std::string mangle_private_identifier(const std::string& name) const {
+    const auto class_name = active_private_class_name();
+    return class_name.empty() ? name : mangle_private_name(class_name, name);
+  }
+
   bool module_global_slot(const std::string& name, uint32_t& slot) const {
     auto it = module_global_slots_.find(name);
     if (it == module_global_slots_.end()) {
@@ -1697,11 +1728,12 @@ private:
   }
 
   std::string resolve_name(const std::string& name) const {
-    auto it = name_aliases_.find(name);
+    const auto mangled = mangle_private_identifier(name);
+    auto it = name_aliases_.find(mangled);
     if (it != name_aliases_.end()) {
       return it->second;
     }
-    return name;
+    return mangled;
   }
 
   KnownValueType known_type_for_expr(const ast::Expr& expr) const {
@@ -2386,7 +2418,8 @@ private:
         imported_module_slots_,
         qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
                                 : std::move(qualname_parent),
-        future_annotations_);
+        future_annotations_,
+        active_private_class_name());
     child_lowerer.fn_.type_params = fn.type_params;
     child_lowerer.lower_body(fn.body);
     module_.functions.push_back(child_lowerer.finish());
@@ -2442,6 +2475,20 @@ private:
   }
 
   uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true, std::string qualname_parent = {}) {
+    struct ActiveClassPrivateNameScope {
+      FunctionLowerer& lowerer;
+      std::string saved;
+
+      ActiveClassPrivateNameScope(FunctionLowerer& target, const std::string& class_name)
+          : lowerer(target), saved(std::move(target.active_class_private_name_)) {
+        lowerer.active_class_private_name_ = class_name;
+      }
+
+      ~ActiveClassPrivateNameScope() {
+        lowerer.active_class_private_name_ = std::move(saved);
+      }
+    } class_private_name_scope(*this, klass.name);
+
     std::vector<std::pair<std::string, uint32_t>> attrs;
     std::vector<ir::CallKeywordArg> class_keywords;
     uint32_t metaclass_reg = UINT32_MAX;
@@ -2471,13 +2518,29 @@ private:
       }
     }
     {
+      const auto module_reg = new_reg();
+      emit(ir::Op::LoadGlobal, module_reg, add_name("__name__"));
+      attrs.push_back(std::make_pair("__module__", module_reg));
+
+      const auto qualname_reg = new_reg();
+      emit(ir::Op::LoadConst, qualname_reg, add_const(Value::string(class_qualname)));
+      attrs.push_back(std::make_pair("__qualname__", qualname_reg));
+
+      const auto first_line_reg = new_reg();
+      emit(ir::Op::LoadConst, first_line_reg, add_const(Value::int64(klass.line == 0 ? 1 : klass.line)));
+      attrs.push_back(std::make_pair("__firstlineno__", first_line_reg));
+
+      const auto static_attrs_reg = new_reg();
+      emit(ir::Op::LoadConst, static_attrs_reg, add_const(Value::tuple({})));
+      attrs.push_back(std::make_pair("__static_attributes__", static_attrs_reg));
+
       const auto doc_reg = new_reg();
       if (class_doc.empty()) {
         emit(ir::Op::LoadConst, doc_reg, add_const(Value::none()));
       } else {
         emit(ir::Op::LoadConst, doc_reg, add_const(Value::string(class_doc)));
       }
-      attrs.push_back(std::make_pair("__doc__", doc_reg));
+        attrs.push_back(std::make_pair("__doc__", doc_reg));
     }
     bool has_explicit_slots = false;
     for (const auto& stmt : klass.body) {
@@ -2595,7 +2658,7 @@ private:
         return;
       }
       const auto key = new_reg();
-      emit(ir::Op::LoadConst, key, add_const(Value::string(name)));
+      emit(ir::Op::LoadConst, key, add_const(Value::string(mangle_private_identifier(name))));
       const auto setitem_reg = new_reg();
       emit(ir::Op::LoadAttr, setitem_reg, namespace_reg, add_name("__setitem__"));
       const auto ignored = new_reg();
@@ -2604,15 +2667,16 @@ private:
     };
     auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
       const std::string hidden_name = "#class." + klass.name + "." + name;
-      if (class_aliases.insert(name).second) {
-        if (name_aliases_.find(name) == name_aliases_.end()) {
-          erased_aliases.insert(name);
+      const std::string alias_name = mangle_private_identifier(name);
+      if (class_aliases.insert(alias_name).second) {
+        if (name_aliases_.find(alias_name) == name_aliases_.end()) {
+          erased_aliases.insert(alias_name);
         } else {
-          saved_aliases[name] = name_aliases_[name];
+          saved_aliases[alias_name] = name_aliases_[alias_name];
         }
       }
       hidden_locals_.insert(hidden_name);
-      name_aliases_[name] = hidden_name;
+      name_aliases_[alias_name] = hidden_name;
       store_named_value(name, reg);
       add_to_prepared_namespace(name, reg);
     };
@@ -2652,36 +2716,36 @@ private:
                 use_instance_slots ? class_info.slots : std::unordered_map<std::string, uint32_t>{},
                 class_qualname),
             fn->decorators);
-        attrs.push_back(std::make_pair(fn->name, attr_reg));
+        attrs.push_back(std::make_pair(mangle_private_identifier(fn->name), attr_reg));
         bind_class_attr_alias(fn->name, attr_reg);
       } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
         const auto attr_reg = lower_expr(*assign->value);
-        attrs.push_back(std::make_pair(assign->name, attr_reg));
+        attrs.push_back(std::make_pair(mangle_private_identifier(assign->name), attr_reg));
         bind_class_attr_alias(assign->name, attr_reg);
       } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
         const auto attr_reg = lower_expr(*assign->value);
         for (const auto& target : assign->targets) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(target.get())) {
-            attrs.push_back(std::make_pair(name->name, attr_reg));
+            attrs.push_back(std::make_pair(mangle_private_identifier(name->name), attr_reg));
             bind_class_attr_alias(name->name, attr_reg);
           }
         }
       } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
         if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
           const auto key_reg = new_reg();
-          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(name->name)));
+          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(mangle_private_identifier(name->name))));
           class_annotations.push_back(std::make_pair(key_reg, lower_annotation(*assign->annotation)));
         }
         if (assign->value != nullptr) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
             const auto attr_reg = lower_expr(*assign->value);
-            attrs.push_back(std::make_pair(name->name, attr_reg));
+            attrs.push_back(std::make_pair(mangle_private_identifier(name->name), attr_reg));
             bind_class_attr_alias(name->name, attr_reg);
           }
         }
       } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(&stmt)) {
         const auto attr_reg = lower_class_def(*nested, false, class_qualname);
-        attrs.push_back(std::make_pair(nested->name, attr_reg));
+        attrs.push_back(std::make_pair(mangle_private_identifier(nested->name), attr_reg));
         bind_class_attr_alias(nested->name, attr_reg);
       } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
         size_t jf = 0;
@@ -2787,7 +2851,7 @@ private:
       if (is_instance_slot_target(*attr->object, attr->name)) {
         emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], value_reg);
       } else {
-        emit(ir::Op::StoreAttr, object, add_name(attr->name), value_reg);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), value_reg);
       }
       return true;
     }
@@ -2881,9 +2945,9 @@ private:
         emit(op, result, current, rhs);
         emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], result);
       } else {
-        emit(ir::Op::LoadAttr, current, object, add_name(attr->name));
+        emit(ir::Op::LoadAttr, current, object, add_name(mangle_private_identifier(attr->name)));
         emit(op, result, current, rhs);
-        emit(ir::Op::StoreAttr, object, add_name(attr->name), result);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), result);
       }
       return;
     }
@@ -2941,7 +3005,7 @@ private:
       }
       if (auto* attr = dynamic_cast<const ast::AttrExpr*>(del->target.get())) {
         const auto object = lower_expr(*attr->object);
-        emit(ir::Op::DeleteAttr, object, add_name(attr->name));
+        emit(ir::Op::DeleteAttr, object, add_name(mangle_private_identifier(attr->name)));
         return;
       }
       if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(del->target.get())) {
@@ -3023,7 +3087,7 @@ private:
       if (is_instance_slot_target(*assign->object, assign->name)) {
         emit(ir::Op::StoreInstanceSlot, object, instance_slots_[assign->name], value);
       } else {
-        emit(ir::Op::StoreAttr, object, add_name(assign->name), value);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(assign->name)), value);
       }
       return;
     }
@@ -3676,7 +3740,7 @@ private:
               arg_regs.push_back(lower_expr(*arg));
             }
             const auto dst = new_reg();
-            emit(ir::Op::CallModuleMethod, dst, imported_slot, add_name(attr->name), add_call_args(std::move(arg_regs)));
+            emit(ir::Op::CallModuleMethod, dst, imported_slot, add_name(mangle_private_identifier(attr->name)), add_call_args(std::move(arg_regs)));
             return dst;
           }
         }
@@ -3686,7 +3750,7 @@ private:
           arg_regs.push_back(lower_expr(*arg));
         }
         const auto dst = new_reg();
-        emit(ir::Op::CallMethod, dst, object, add_name(attr->name), add_call_args(std::move(arg_regs)));
+        emit(ir::Op::CallMethod, dst, object, add_name(mangle_private_identifier(attr->name)), add_call_args(std::move(arg_regs)));
         return dst;
       }
       const auto callee = lower_expr(*call->callee);
@@ -3719,7 +3783,7 @@ private:
       if (is_instance_slot_target(*attr->object, attr->name)) {
         emit(ir::Op::LoadInstanceSlot, dst, object, instance_slots_[attr->name]);
       } else {
-        emit(ir::Op::LoadAttr, dst, object, add_name(attr->name));
+        emit(ir::Op::LoadAttr, dst, object, add_name(mangle_private_identifier(attr->name)));
       }
       return dst;
     }
@@ -3878,6 +3942,8 @@ private:
   std::unordered_map<std::string, uint32_t> module_global_slots_;
   std::unordered_set<uint32_t> imported_module_slots_;
   std::string qualname_prefix_;
+  std::string private_class_name_;
+  std::string active_class_private_name_;
   uint32_t current_source_line_ = 0;
   ir::Function fn_;
   sema::NameSet local_name_set_;

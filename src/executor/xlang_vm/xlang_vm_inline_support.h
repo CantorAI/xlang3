@@ -896,6 +896,25 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
   return true;
 }
 
+XLANG3_HOT_INLINE bool xlang_vm_current_super_first_argument(
+    Runtime& runtime,
+    const Value& locals,
+    Value& out) {
+  std::string ignored;
+  const auto* owner = runtime.current_frame_module_owner();
+  if (owner != nullptr && *owner) {
+    const uint32_t function_id = runtime.current_frame_function_id();
+    if (function_id < (*owner)->functions.size() && !(*owner)->functions[function_id].params.empty()) {
+      const auto& first_name = (*owner)->functions[function_id].params[0];
+      if (!first_name.empty() && mapping_get_item(locals, Value::string(first_name), out, ignored)) {
+        return true;
+      }
+    }
+  }
+  return mapping_get_item(locals, Value::string("self"), out, ignored) ||
+         mapping_get_item(locals, Value::string("cls"), out, ignored);
+}
+
 XLANG3_HOT_INLINE bool xlang_vm_parse_int_text(std::string_view text, int base, int64_t& out) {
   size_t begin = 0;
   size_t end = text.size();
@@ -2030,9 +2049,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       value_assign_fast(self, constructor_args.get(1));
     } else {
       Value locals = runtime.current_locals_snapshot();
-      std::string local_error;
-      if (!mapping_get_item(locals, Value::string("self"), self, local_error) &&
-          !mapping_get_item(locals, Value::string("cls"), self, local_error)) {
+      if (!xlang_vm_current_super_first_argument(runtime, locals, self)) {
         error = "super(): no current instance or class";
         return false;
       }

@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "xlang3/object_model.h"
 
+#include <string_view>
+
 namespace xlang3 {
 
 namespace {
@@ -50,15 +52,23 @@ bool exception_init(
   }
   object_set_attr(const_cast<Value&>(args[0]), "args", std::move(args_tuple), ignored);
   if (auto* instance = value_as_instance(args[0])) {
-    if (auto* klass = value_as_class(instance->klass);
-        klass != nullptr && (klass->name == "SystemExit" || class_has_builtin_base_name(klass, "SystemExit"))) {
-      Value code = Value::none();
-      if (argc == 2) {
-        value_assign_fast(code, args[1]);
-      } else if (argc > 2) {
-        value_assign_fast(code, message);
+    if (auto* klass = value_as_class(instance->klass)) {
+      if (klass->name == "StopIteration" || class_has_builtin_base_name(klass, "StopIteration")) {
+        Value value = Value::none();
+        if (argc >= 2) {
+          value_assign_fast(value, args[1]);
+        }
+        object_set_attr(const_cast<Value&>(args[0]), "value", value, ignored);
       }
-      object_set_attr(const_cast<Value&>(args[0]), "code", code, ignored);
+      if (klass->name == "SystemExit" || class_has_builtin_base_name(klass, "SystemExit")) {
+        Value code = Value::none();
+        if (argc == 2) {
+          value_assign_fast(code, args[1]);
+        } else if (argc > 2) {
+          value_assign_fast(code, message);
+        }
+        object_set_attr(const_cast<Value&>(args[0]), "code", code, ignored);
+      }
     }
   }
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
@@ -69,11 +79,36 @@ bool exception_init(
   return true;
 }
 
+bool exception_with_traceback(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "BaseException.with_traceback() expected traceback";
+    return false;
+  }
+  std::string ignored;
+  if (!object_set_attr(const_cast<Value&>(args[0]), "__traceback__", args[1], ignored)) {
+    error = "BaseException.with_traceback() self is invalid";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("builtins"));
   attrs.emplace_back("__qualname__", Value::string(name));
   attrs.emplace_back("__init__", runtime.make_native_function(std::string(name) + ".__init__", exception_init));
+  if (std::string_view(name) == "BaseException") {
+    attrs.emplace_back(
+        "with_traceback",
+        runtime.make_native_function("BaseException.with_traceback", exception_with_traceback));
+  }
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }
 

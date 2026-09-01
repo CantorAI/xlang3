@@ -20,3 +20,10 @@ import _overlapped
 print("asyncio-source", asyncio.__file__.replace("\\", "/").endswith("/Lib/asyncio/__init__.py"))
 print("overlapped", _overlapped.NULL, _overlapped.Overlapped().pending)
 print("asyncio-import-ok", hasattr(asyncio, "Runner"))
+
+
+async def add(a, b):
+    return a + b
+
+
+print("asyncio-run", asyncio.run(add(2, 3)))

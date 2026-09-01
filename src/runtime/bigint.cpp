@@ -552,7 +552,8 @@ Value value_bigint_from_i64(int64_t value) {
 }
 
 Value value_bigint_from_decimal(std::string_view text, int base, std::string& error) {
-  if (base < 2 || base > 36) {
+  const bool autodetect_base = base == 0;
+  if (base != 0 && (base < 2 || base > 36)) {
     error = "int() base must be >= 2 and <= 36";
     return Value::invalid();
   }
@@ -564,6 +565,25 @@ Value value_bigint_from_decimal(std::string_view text, int base, std::string& er
   if (pos < text.size() && (text[pos] == '+' || text[pos] == '-')) {
     negative = text[pos] == '-';
     ++pos;
+  }
+  const size_t digit_start = pos;
+  if (pos + 1 < text.size() && text[pos] == '0') {
+    const char prefix = static_cast<char>(std::tolower(static_cast<unsigned char>(text[pos + 1])));
+    int prefixed_base = 0;
+    if (prefix == 'b') {
+      prefixed_base = 2;
+    } else if (prefix == 'o') {
+      prefixed_base = 8;
+    } else if (prefix == 'x') {
+      prefixed_base = 16;
+    }
+    if (prefixed_base != 0 && (base == 0 || base == prefixed_base)) {
+      base = prefixed_base;
+      pos += 2;
+    }
+  }
+  if (base == 0) {
+    base = 10;
   }
   BigIntPayload value = make_zero_payload();
   bool saw_digit = false;
@@ -592,6 +612,12 @@ Value value_bigint_from_decimal(std::string_view text, int base, std::string& er
     saw_digit = true;
   }
   if (!saw_digit || pos != text.size()) {
+    release_limbs(value);
+    error = "invalid literal for int()";
+    return Value::invalid();
+  }
+  if (autodetect_base && digit_start + 1 < text.size() && text[digit_start] == '0' && base == 10 &&
+      text[digit_start + 1] != '_' && !std::isspace(static_cast<unsigned char>(text[digit_start + 1]))) {
     release_limbs(value);
     error = "invalid literal for int()";
     return Value::invalid();

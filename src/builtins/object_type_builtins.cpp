@@ -421,6 +421,8 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "iterator";
     case ObjectKind::Generator:
       return "generator";
+    case ObjectKind::AsyncGeneratorAwaitable:
+      return "async_generator_awaitable";
     case ObjectKind::Module:
       return "module";
     case ObjectKind::Function:
@@ -1271,6 +1273,11 @@ bool builtin_build_class_from_namespace_kw(
     }
   }
 
+  if (value_as_class(constructed) == nullptr) {
+    value_assign_fast(out, constructed);
+    return true;
+  }
+
   Value init_value;
   std::string init_error;
   if (object_lookup_class_attr(args[0], "__init__", init_value, init_error)) {
@@ -1521,6 +1528,32 @@ bool builtin_type_mro_get(
   return object_get_attr(args[0], "__mro__", out, error);
 }
 
+bool builtin_type_mro(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 || value_as_class(args[0]) == nullptr) {
+    error = "type.mro() expected a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value mro_tuple;
+  if (!object_get_attr(args[0], "__mro__", mro_tuple, error)) {
+    return false;
+  }
+  auto* tuple = value_as_tuple(mro_tuple);
+  if (tuple == nullptr) {
+    error = "type.mro() internal __mro__ is not a tuple";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  out = Value::list(tuple->items);
+  return true;
+}
+
 bool builtin_type_dict_get(
     Runtime& runtime,
     const Value* args,
@@ -1549,6 +1582,22 @@ void register_builtin_type(Runtime& runtime, const char* name, const Value& obje
           object_base,
           {},
           std::move(metaclass)));
+}
+
+bool builtin_async_generator_awaitable_await(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "async_generator_awaitable.__await__ expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
 }
 
 bool builtin_object_init(
@@ -2085,6 +2134,7 @@ void register_object_type_builtins(Runtime& runtime) {
                               builtin_type_init_kw)},
           {"__instancecheck__", Value::native_function(0, "type.__instancecheck__", builtin_type_instancecheck)},
           {"__subclasscheck__", Value::native_function(0, "type.__subclasscheck__", builtin_type_subclasscheck)},
+          {"mro", Value::native_function(0, "type.mro", builtin_type_mro)},
           {"__prepare__", Value::native_function(
                               0,
                               "type.__prepare__",
@@ -2144,7 +2194,17 @@ void register_object_type_builtins(Runtime& runtime) {
     }
   }
   register_builtin_type(runtime, "bytes", object_type);
+  if (const auto* bytes_value = runtime.find_builtin("bytes")) {
+    if (auto* bytes_class = value_as_class(*bytes_value)) {
+      bytes_install_class_methods(runtime, *bytes_class);
+    }
+  }
   register_builtin_type(runtime, "bytearray", object_type);
+  if (const auto* bytearray_value = runtime.find_builtin("bytearray")) {
+    if (auto* bytearray_class = value_as_class(*bytearray_value)) {
+      bytes_install_class_methods(runtime, *bytearray_class);
+    }
+  }
   register_builtin_type(runtime, "memoryview", object_type);
   register_builtin_type(runtime, "slice", object_type);
   register_builtin_type(runtime, "tuple", object_type);
@@ -2174,6 +2234,16 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "map", object_type);
   register_builtin_type(runtime, "filter", object_type);
   register_builtin_type(runtime, "generator", object_type);
+  register_builtin_type(runtime, "async_generator_awaitable", object_type);
+  if (const auto* awaitable_value = runtime.find_builtin("async_generator_awaitable")) {
+    if (auto* awaitable_class = value_as_class(*awaitable_value)) {
+      awaitable_class->attrs["__await__"] =
+          runtime.make_native_function("async_generator_awaitable.__await__", builtin_async_generator_awaitable_await);
+      awaitable_class->attrs["__iter__"] =
+          runtime.make_native_function("async_generator_awaitable.__iter__", builtin_async_generator_awaitable_await);
+      ++awaitable_class->version;
+    }
+  }
   register_builtin_type(runtime, "module", object_type);
   if (const auto* module_value = runtime.find_builtin("module")) {
     if (auto* module_class = value_as_class(*module_value)) {

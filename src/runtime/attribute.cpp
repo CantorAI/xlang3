@@ -189,6 +189,10 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
     }
     return ok;
   }
+  if (name == "__doc__") {
+    value_set_none(out);
+    return true;
+  }
   error = "object has no attribute '" + name + "'";
   emit_missing_attr_diagnostic(object, name);
   return false;

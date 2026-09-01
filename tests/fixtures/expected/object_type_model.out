@@ -24,7 +24,7 @@ MetaConstructed
 EnumShapedConstructed:ok
 10 20
 SetNameTarget tracked
-['__doc__', 'marker'] prepared
+['__module__', '__qualname__', '__firstlineno__', '__static_attributes__', '__doc__', 'marker'] prepared
 True Child
 True 7 True
 True True True

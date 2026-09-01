@@ -13,16 +13,22 @@
 
 - [~] coroutine and await model
   Coverage: `tests/fixtures/core/async_syntax.py`, `tests/fixtures/core/task_async.py`
-  Remaining: resumable frame completeness, cancellation, exception propagation,
-  async generator lifecycle, and protocol tests driven by real CPython
-  `Lib/asyncio`.
+  plus `tests/fixtures/compat_sections/function_and_class_syntax.py` for
+  `asyncio.run`, `async for`, `async with`, and async generator methods.
+  Runtime now preserves current-frame state as a thread-local stack across
+  nested VM execution, so coroutine `send()` inside `asyncio.Task.__step()` no
+  longer destroys the caller frame needed by zero-argument `super()` and debug
+  frame APIs.
+  Remaining: cancellation edge cases, scheduler-yielding coroutine states, and
+  exact CPython coroutine inspection APIs.
 
 - [~] CPython `asyncio` package over runtime async primitives
   Coverage: `tests/fixtures/probes/system_stdlib/asyncio_probe.py` verifies
   real CPython 3.14 `Lib/asyncio` import over XLang3 plus `_overlapped`
-  foundation. Runtime fixes now preserve caller globals across nested
-  interpreter/import execution, so `inspect.py` can generate `CO_*` constants
-  through live `globals()`.
-  Remaining: complete truthful Windows proactor/IOCP behavior enough for
-  `asyncio.run()` and event-loop shutdown; do not restore a public native
-  `asyncio` module.
+  foundation, and now runs `asyncio.run()` through event-loop shutdown. Runtime
+  fixes preserve caller globals/current frames across nested interpreter/import
+  execution, prefer Python `__iter__` protocol for user objects before internal
+  storage fallbacks, and give `_overlapped` a native IOCP completion registry
+  for immediately completed/cancelled operations.
+  Remaining: full Windows proactor socket/process I/O behavior; do not restore
+  a public native `asyncio` module.

@@ -312,6 +312,62 @@ bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value
 
 namespace {
 
+bool async_generator_awaitable_await_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (!method_check_argc(argc, 1, "async_generator_awaitable.__await__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_async_generator_awaitable(args[0]) == nullptr) {
+    error = "object is not an async generator awaitable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool async_generator_awaitable_next_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (!method_check_argc(argc, 1, "async_generator_awaitable.__next__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!async_generator_awaitable_await(runtime, args[0], out, error)) {
+    if (runtime.active_exception().tag == ValueTag::Invalid && error.empty()) {
+      runtime.raise_class_error("RuntimeError", "async generator await failed");
+    }
+    return false;
+  }
+  raise_stop_iteration_with_value(runtime, out);
+  return false;
+}
+
+bool async_generator_awaitable_send_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "async_generator_awaitable.send() expected value";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return async_generator_awaitable_next_method(runtime, args, 1, out, error, nullptr);
+}
+
 bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "generator.send", error)) {
     runtime.raise_class_error("TypeError", error);
@@ -501,9 +557,24 @@ static constexpr BuiltinMethodSpec kGeneratorMethods[] = {
       {"throw", "generator.throw", generator_throw_method},
 };
 
+static constexpr BuiltinMethodSpec kAsyncGeneratorAwaitableMethods[] = {
+      {"__await__", "async_generator_awaitable.__await__", async_generator_awaitable_await_method},
+      {"__iter__", "async_generator_awaitable.__iter__", async_generator_awaitable_await_method},
+      {"__next__", "async_generator_awaitable.__next__", async_generator_awaitable_next_method},
+      {"send", "async_generator_awaitable.send", async_generator_awaitable_send_method},
+};
+
 } // namespace
 
 bool generator_get_method(const Value& object, const std::string& name, Value& out) {
+  if (value_as_async_generator_awaitable(object) != nullptr) {
+    return bind_builtin_method_from_table(
+        object,
+        name,
+        kAsyncGeneratorAwaitableMethods,
+        std::size(kAsyncGeneratorAwaitableMethods),
+        out);
+  }
   auto* generator = value_as_generator(object);
   if (generator == nullptr) {
     return false;

@@ -230,7 +230,7 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
     if (!in_class && ch == '(' && i + 3 < pattern.size() && pattern[i + 1] == '?' &&
         pattern[i + 2] == '<') {
       const char lookbehind_kind = pattern[i + 3];
-      if (lookbehind_kind == '!' || lookbehind_kind == '=') {
+      if (lookbehind_kind == '!') {
         return true;
       }
     }

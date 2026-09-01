@@ -96,6 +96,7 @@ class Child[T](Left, Right):
 
 child = Child()
 print(child.total(), Child.name, Child.kind, Child.marked, Child.__type_params__[0].__name__)
+print([cls.__name__ for cls in Child.mro()])
 
 # Metaclass keyword syntax and evaluated keyword expression.
 meta_seen = []
@@ -157,6 +158,16 @@ print(type(raw_static).__name__, type(raw_class).__name__)
 print(raw_static.__func__.__name__, raw_static.__wrapped__ is raw_static.__func__, raw_static.__name__, raw_static.__doc__, raw_static.__dict__["tag"])
 print(raw_class.__func__.__name__, raw_class.__wrapped__ is raw_class.__func__, raw_class.__name__, raw_class.__dict__["tag"])
 print(len.__name__, len.__qualname__, len.__module__, len.__defaults__ is None, isinstance(len.__annotations__, dict))
+
+# Private class names are mangled the same way CPython does.
+class PrivateNames:
+    __value = 33
+    alias = __value
+    def reveal(self):
+        return self.__value
+
+private_names = PrivateNames()
+print(private_names.reveal(), PrivateNames.alias, hasattr(PrivateNames, "_PrivateNames__value"), hasattr(PrivateNames, "__value"))
 
 # Lambda expressions.
 inc = lambda x: x + 1
