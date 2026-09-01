@@ -517,6 +517,54 @@ XLANG3_HOT_INLINE DictObject* xlang_vm_type_namespace_dict(const Value& value) {
   return nullptr;
 }
 
+XLANG3_HOT_INLINE bool xlang_vm_collect_type_namespace_attrs(
+    Runtime& runtime,
+    const Value& namespace_value,
+    std::vector<std::pair<std::string, Value>>& attrs,
+    std::string& error) {
+  if (auto* namespace_dict = xlang_vm_type_namespace_dict(namespace_value)) {
+    attrs.reserve(namespace_dict->entries.size());
+    for (const auto& entry : namespace_dict->entries) {
+      auto* key = value_as_string(entry.first);
+      if (key == nullptr) {
+        error = "type() namespace keys must be strings";
+        return false;
+      }
+      attrs.push_back({string_object_to_string(*key), entry.second});
+    }
+    return true;
+  }
+  if (!mapping_is_mapping(namespace_value)) {
+    error = "type() argument 3 must be a mapping";
+    return false;
+  }
+
+  Value iterator;
+  if (!mapping_get_iter(namespace_value, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value key_value;
+    if (!mapping_iter_next(iterator, done, key_value, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    auto* key = value_as_string(key_value);
+    if (key == nullptr) {
+      error = "type() namespace keys must be strings";
+      return false;
+    }
+    Value item;
+    if (!mapping_get_item(namespace_value, key_value, item, error)) {
+      return false;
+    }
+    attrs.push_back({string_object_to_string(*key), item});
+  }
+}
+
 XLANG3_HOT_INLINE bool xlang_vm_inline_class_attrs_have(
     const std::vector<std::pair<std::string, Value>>& attrs,
     const std::string& name) {
@@ -641,7 +689,9 @@ XLANG3_HOT_INLINE void xlang_vm_collect_abstract_names_from_iterable(const Value
   }
 }
 
-XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(TupleObject* bases, DictObject* namespace_dict) {
+XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+    TupleObject* bases,
+    const std::vector<std::pair<std::string, Value>>& attrs) {
   std::vector<Value> abstracts;
   std::vector<std::string> inherited_names;
   for (const auto& base : bases->items) {
@@ -654,10 +704,9 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(Tuple
   for (const auto& name : inherited_names) {
     Value override_value;
     bool has_override = false;
-    for (const auto& entry : namespace_dict->entries) {
-      auto* key = value_as_string(entry.first);
-      if (key != nullptr && string_object_to_string(*key) == name) {
-        value_assign_fast(override_value, entry.second);
+    for (const auto& attr : attrs) {
+      if (attr.first == name) {
+        value_assign_fast(override_value, attr.second);
         has_override = true;
         break;
       }
@@ -666,13 +715,24 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(Tuple
       xlang_vm_add_abstract_name(abstracts, name);
     }
   }
-  for (const auto& entry : namespace_dict->entries) {
-    auto* key = value_as_string(entry.first);
-    if (key != nullptr && xlang_vm_value_has_abstract_marker(entry.second)) {
-      xlang_vm_add_abstract_name(abstracts, string_object_to_string(*key));
+  for (const auto& attr : attrs) {
+    if (xlang_vm_value_has_abstract_marker(attr.second)) {
+      xlang_vm_add_abstract_name(abstracts, attr.first);
     }
   }
   return Value::frozenset(std::move(abstracts));
+}
+
+XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(TupleObject* bases, DictObject* namespace_dict) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.reserve(namespace_dict->entries.size());
+  for (const auto& entry : namespace_dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key != nullptr) {
+      attrs.push_back({string_object_to_string(*key), entry.second});
+    }
+  }
+  return xlang_vm_abc_abstract_methods_for_type_constructor_attrs(bases, attrs);
 }
 
 XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(const std::string& name) {
@@ -1091,7 +1151,6 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     auto* name = value_as_string(constructor_args.get(0));
     auto* bases = value_as_tuple(constructor_args.get(1));
-    auto* namespace_dict = xlang_vm_type_namespace_dict(constructor_args.get(2));
     if (name == nullptr) {
       error = "type() argument 1 must be str";
       return false;
@@ -1100,29 +1159,20 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "type() argument 2 must be tuple";
       return false;
     }
-    if (namespace_dict == nullptr) {
-      error = "type() argument 3 must be dict";
+    std::vector<std::pair<std::string, Value>> attrs;
+    if (!xlang_vm_collect_type_namespace_attrs(runtime, constructor_args.get(2), attrs, error)) {
       return false;
     }
-    std::vector<std::pair<std::string, Value>> attrs;
-    attrs.reserve(namespace_dict->entries.size());
     std::vector<std::string> explicit_slots;
     bool has_explicit_slots = false;
-    for (const auto& entry : namespace_dict->entries) {
-      auto* key = value_as_string(entry.first);
-      if (key == nullptr) {
-        error = "type() namespace keys must be strings";
-        return false;
-      }
-      const auto key_name = string_object_to_string(*key);
-      if (key_name == "__slots__") {
+    for (const auto& attr : attrs) {
+      if (attr.first == "__slots__") {
         has_explicit_slots = true;
-        if (!xlang_vm_collect_type_slots(entry.second, explicit_slots)) {
+        if (!xlang_vm_collect_type_slots(attr.second, explicit_slots)) {
           error = "type() __slots__ must be a string or iterable of strings";
           return false;
         }
       }
-      attrs.push_back({key_name, entry.second});
     }
     if (has_explicit_slots) {
       for (const auto& slot : explicit_slots) {
@@ -1161,6 +1211,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     std::vector<std::pair<std::string, Value>> set_name_descriptors;
     xlang_vm_collect_set_name_descriptors(attrs, set_name_descriptors);
+    Value abstract_methods = Value::invalid();
+    const bool needs_abstract_methods =
+        klass.name == "ABCMeta" || class_has_builtin_base_name(const_cast<ClassObject*>(&klass), "ABCMeta");
+    if (needs_abstract_methods) {
+      abstract_methods = xlang_vm_abc_abstract_methods_for_type_constructor_attrs(bases, attrs);
+    }
     out = Value::class_object(class_name, std::move(attrs), base, {}, std::move(metaclass));
     if (!xlang_vm_call_set_name_descriptors(runtime, out, set_name_descriptors, error)) {
       return false;
@@ -1172,8 +1228,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
       }
     }
-    if (klass.name == "ABCMeta" || class_has_builtin_base_name(const_cast<ClassObject*>(&klass), "ABCMeta")) {
-      if (!object_set_attr(out, "__abstractmethods__", xlang_vm_abc_abstract_methods_for_type_constructor(bases, namespace_dict), error)) {
+    if (needs_abstract_methods) {
+      if (!object_set_attr(out, "__abstractmethods__", abstract_methods, error)) {
         return false;
       }
     }
@@ -1727,6 +1783,28 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return add_constructor_keywords_to_dict();
       }
+    }
+    if (mapping_is_mapping(source)) {
+      Value iterator;
+      if (!mapping_get_iter(source, iterator, error)) {
+        return false;
+      }
+      for (;;) {
+        bool done = false;
+        Value key;
+        if (!mapping_iter_next(iterator, done, key, error)) {
+          return false;
+        }
+        if (done) {
+          break;
+        }
+        Value value;
+        if (!mapping_get_item(source, key, value, error) ||
+            !mapping_set_item(out, key, value, error)) {
+          return false;
+        }
+      }
+      return add_constructor_keywords_to_dict();
     }
     Value iterator;
     if (!runtime_get_iter(runtime, source, iterator, error)) {

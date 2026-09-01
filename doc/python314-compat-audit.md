@@ -1374,9 +1374,9 @@ High-level pure-Python stdlib modules must be source-backed:
   `java_ver()`, `system_alias()`, `_sys_version()`, and `freedesktop_os_release()` foundations;
   exact OS-release probing and CPython namedtuple identity pending
 - [~] `pkgutil`: public module runs from CPython 3.14 `Lib/pkgutil.py`; VFS/import-root
-  `iter_modules`, `walk_packages`, `extend_path`, `get_data`, `resolve_name`, and loader
-  placeholder foundations are covered. Named `ModuleInfo`, full finder/loader semantics,
-  zip/resource edge cases, and exact import-package behavior pending
+  `iter_modules`, `walk_packages`, `extend_path`, `get_data`, `resolve_name`, and
+  source loader data access are covered. Named `ModuleInfo`, full finder/loader
+  semantics, zip/resource edge cases, and exact import-package behavior pending
 - [~] `re`: public module must run from CPython 3.14 `Lib/re`; native `_sre`
   provides the regex dependency surface. Full CPython regex semantics pending.
 - [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
@@ -1424,12 +1424,15 @@ High-level pure-Python stdlib modules must be source-backed:
   slicing, keyword binding, annotations, descriptor classification, and full
   CPython signature semantics pending.
 - [~] `runpy`: public module runs from CPython 3.14 `Lib/runpy.py`; full
-  `run_module`/`run_path` execution edge semantics pending.
+  `run_module`/`run_path` basics are covered; package/module alter-sys edge
+  semantics pending.
 - [~] `importlib`: public package runs from CPython 3.14 `Lib/importlib`
   over native bootstrap/import primitives; `import_module("math")`,
-  source-backed package import, and missing-module `ImportError.name` are
-  covered. Full source loader/package/resource behavior, package metadata,
-  startup import locks/caches, and resource discovery pending.
+  source-backed package import, missing-module `ImportError.name`,
+  `SourceFileLoader` filename/data/code behavior, and basic
+  `importlib.resources.is_resource`/`read_text` over file packages are
+  covered. Package metadata, startup import locks/caches, namespace/zip
+  resource discovery, and import-time performance pending.
 - [~] `types`: public module must run from CPython 3.14 `Lib/types.py` over
   runtime-backed type objects.
 - [~] `collections`: public package must run from CPython 3.14

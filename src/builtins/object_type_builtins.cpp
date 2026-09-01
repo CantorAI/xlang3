@@ -1225,11 +1225,6 @@ bool builtin_build_class_from_namespace_kw(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (value_as_class(args[0]) == nullptr) {
-    error = "__build_class__ metaclass must be a class";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
 
   std::vector<std::pair<std::string, Value>> class_keywords;
   class_keywords.reserve(kwargc);
@@ -1240,6 +1235,18 @@ bool builtin_build_class_from_namespace_kw(
       return false;
     }
     class_keywords.push_back({kwargs[i].name, *kwargs[i].value});
+  }
+
+  if (value_as_class(args[0]) == nullptr) {
+    Value call_args[] = {args[1], args[2], args[3]};
+    if (!runtime_call_callable_kw(runtime, args[0], call_args, 3, class_keywords, out, error)) {
+      if (error.empty()) {
+        error = "__build_class__ metaclass is not callable";
+      }
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    return true;
   }
 
   Value constructed;

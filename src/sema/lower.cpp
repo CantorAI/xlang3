@@ -1160,6 +1160,12 @@ private:
   uint32_t lower_annotation(const ast::Expr& annotation) {
     if (!future_annotations_) {
       if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&annotation);
+          literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None) {
+        const auto reg = new_reg();
+        emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+        return reg;
+      }
+      if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&annotation);
           literal != nullptr && literal->kind == ast::LiteralExpr::Kind::String) {
         const auto reg = new_reg();
         emit(ir::Op::LoadConst, reg, add_const(Value::string(literal->text)));

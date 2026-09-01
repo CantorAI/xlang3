@@ -84,6 +84,27 @@ bool function_descriptor_get_method(Runtime&, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool function_annotate_method(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc > 1) {
+    error = "function.__annotate__ expected at most 1 argument";
+    return false;
+  }
+
+  auto* function_value = static_cast<Value*>(user_data);
+  auto* function = function_value != nullptr ? value_as_function(*function_value) : nullptr;
+  if (function == nullptr || function->annotations.tag == ValueTag::Invalid) {
+    out = Value::dict({});
+    return true;
+  }
+
+  value_assign_fast(out, function->annotations);
+  return true;
+}
+
+void function_annotate_cleanup(void* user_data) {
+  delete static_cast<Value*>(user_data);
+}
+
 
 void recycle_instance_object(InstanceObject* instance) {
   if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
@@ -1664,6 +1685,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       } else {
         value_assign_fast(out, function->annotations);
       }
+      return true;
+    }
+    if (name == "__annotate__") {
+      out = Value::native_function(
+          0,
+          "function.__annotate__",
+          function_annotate_method,
+          new Value(object),
+          function_annotate_cleanup);
       return true;
     }
     if (name == "__code__") {

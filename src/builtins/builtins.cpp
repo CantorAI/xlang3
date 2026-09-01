@@ -53,6 +53,7 @@ void register_core_builtins(Runtime& runtime) {
   register_typing_module(runtime);
   register_queue_module(runtime);
   register_importlib_module(runtime);
+  register_random_module(runtime);
   register_weakref_module(runtime);
   register_marshal_module(runtime);
   register_opcode_module(runtime);

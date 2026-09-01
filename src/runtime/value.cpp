@@ -2233,6 +2233,7 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
     if (value_as_class(value) != nullptr ||
         value_as_function(value) != nullptr ||
         value_as_native_function(value) != nullptr ||
+        value_as_generic_alias(value) != nullptr ||
         instance_get_native_data(value, "typing._Alias") != nullptr) {
       return true;
     }

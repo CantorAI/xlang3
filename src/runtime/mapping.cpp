@@ -404,7 +404,7 @@ bool mapping_truthy(const Value& value) {
 }
 
 bool mapping_is_mapping(const Value& value) {
-  return dict_storage_from_value(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr;
+  return dict_storage_from_value(value) != nullptr || value_as_module(value) != nullptr;
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
@@ -435,7 +435,7 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
     error = "module globals keys must be strings";
     return false;
   }
-  error = "object is not a dict";
+  error = "object is not a dict: " + value_to_repr(object);
   return false;
 }
 
@@ -524,7 +524,7 @@ bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
   if (dict_source_from_view_or_dict(object, kind) == nullptr &&
       value_as_module(object) == nullptr &&
       (view == nullptr || value_as_module(view->source) == nullptr)) {
-    error = "object is not a dict";
+    error = "object is not a dict: " + value_to_repr(object);
     return false;
   }
   if (view != nullptr) {

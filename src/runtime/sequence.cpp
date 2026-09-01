@@ -505,6 +505,9 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
       out = Value::sequence_iterator(instance->sequence_storage, 0);
       return true;
     }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_get_iter(instance->mapping_storage, out, error);
+    }
     Value data;
     std::string ignored;
     if (object_get_attr(iterable, "data", data, ignored)) {

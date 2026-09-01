@@ -78,6 +78,7 @@ void register_collections_module(Runtime& runtime);
 void register_typing_module(Runtime& runtime);
 void register_queue_module(Runtime& runtime);
 void register_importlib_module(Runtime& runtime);
+void register_random_module(Runtime& runtime);
 void register_weakref_module(Runtime& runtime);
 Value make_weakref_ref(Runtime& runtime, const Value& target);
 bool weakref_get_target(const Value& ref, Value& out);

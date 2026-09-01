@@ -369,11 +369,11 @@ void append_joined_line(std::string& logical_line, std::string_view line) {
   logical_line += std::string(trim_left_ascii(trim_inline_comment_for_join(line)));
 }
 
-void append_triple_string_tail(std::string& logical_line,
-                               const std::vector<SourceLine>& lines,
-                               size_t& line_index,
-                               uint32_t& logical_end_line,
-                               const TripleStringStart& triple_start) {
+std::string_view append_triple_string_tail(std::string& logical_line,
+                                           const std::vector<SourceLine>& lines,
+                                           size_t& line_index,
+                                           uint32_t& logical_end_line,
+                                           const TripleStringStart& triple_start) {
   const auto opener = triple_start.opener;
   std::string_view current = lines[line_index].text;
   size_t content = triple_start.prefix.quote + 3;
@@ -386,6 +386,10 @@ void append_triple_string_tail(std::string& logical_line,
     logical_line.append(current);
     close = current.find(opener);
   }
+  if (close == std::string_view::npos) {
+    return {};
+  }
+  return current.substr(close + 3);
 }
 
 } // namespace
@@ -496,11 +500,12 @@ LexResult Lexer::tokenize() {
           const auto next_line = lines[++line_index];
           logical_end_line = next_line.line;
           append_joined_line(logical_line, next_line.text);
+          std::string_view join_state_line = next_line.text;
           const auto continued_triple = find_first_triple_string_start(next_line.text, 0);
           if (continued_triple.found) {
-            append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
+            join_state_line = append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
           }
-          should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
+          should_join = update_line_join_state(join_state_line, bracket_depth, explicit_continue);
         }
         auto owned = std::make_unique<std::string>(std::move(logical_line));
         const std::string_view logical_view(*owned);
@@ -525,11 +530,12 @@ LexResult Lexer::tokenize() {
       const auto next_line = lines[++line_index];
       logical_end_line = next_line.line;
       append_joined_line(logical_line, next_line.text);
+      std::string_view join_state_line = next_line.text;
       const auto continued_triple = find_first_triple_string_start(next_line.text, 0);
       if (continued_triple.found) {
-        append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
+        join_state_line = append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
       }
-      should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue);
+      should_join = update_line_join_state(join_state_line, bracket_depth, explicit_continue);
     }
 
     if (logical_end_line == line_no) {

@@ -24,6 +24,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
+#include "xlang3/vfs.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -253,13 +254,71 @@ bool is_frozen_import_metadata_module(const std::string& name) {
          name == "importlib._bootstrap" || name == "importlib._bootstrap_external";
 }
 
-Value make_runtime_loader(const std::string& class_name, const std::string& module_name) {
+bool runtime_loader_get_filename(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "loader.get_filename expected self and optional fullname";
+    return false;
+  }
+  if (!object_get_attr(args[0], "path", out, error)) {
+    error = "loader has no path";
+    return false;
+  }
+  return true;
+}
+
+bool runtime_loader_get_data(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_data expected self and path";
+    return false;
+  }
+  auto* path_string = value_as_string(args[1]);
+  if (path_string == nullptr) {
+    error = "loader.get_data path must be str";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(string_object_to_string(*path_string), bytes, error)) {
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return true;
+}
+
+bool runtime_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_resource_reader expected self and fullname";
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value file_reader_class;
+  if (!module_get_attr(readers_module, "FileReader", file_reader_class, error)) {
+    return false;
+  }
+  Value reader_args[] = {args[0]};
+  return runtime_call_callable(runtime, file_reader_class, reader_args, 1, out, error);
+}
+
+Value make_runtime_loader(Runtime& runtime, const std::string& class_name, const std::string& module_name, const Value& path = Value::invalid()) {
   if (class_name == "BuiltinImporter" || class_name == "FrozenImporter") {
     return make_import_metadata_class(class_name, "_frozen_importlib");
   }
-  auto loader = Value::instance(make_import_metadata_class(class_name, "_frozen_importlib"));
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_frozen_importlib")});
+  attrs.push_back({"__name__", Value::string(class_name)});
+  if (class_name == "SourceFileLoader") {
+    attrs.push_back({"get_filename", runtime.make_native_function("SourceFileLoader.get_filename", runtime_loader_get_filename)});
+    attrs.push_back({"get_data", runtime.make_native_function("SourceFileLoader.get_data", runtime_loader_get_data)});
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader)});
+  }
+  auto loader = Value::instance(Value::class_object(class_name, std::move(attrs)));
   std::string ignored;
   object_set_attr(loader, "name", Value::string(module_name), ignored);
+  if (path.tag != ValueTag::Invalid) {
+    object_set_attr(loader, "path", path, ignored);
+  }
   return loader;
 }
 
@@ -286,7 +345,7 @@ Value make_runtime_module_spec(
   return spec;
 }
 
-void ensure_module_import_metadata(Value& module, const std::string& name) {
+void ensure_module_import_metadata(Runtime& runtime, Value& module, const std::string& name) {
   if (value_as_module(module) == nullptr) {
     return;
   }
@@ -302,9 +361,9 @@ void ensure_module_import_metadata(Value& module, const std::string& name) {
   Value file;
   const bool has_file = module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::Invalid && file.tag != ValueTag::None;
   const bool is_frozen = is_frozen_import_metadata_module(name);
-  Value loader = is_frozen ? make_runtime_loader("FrozenImporter", name)
-                           : (has_path && !has_file ? make_runtime_loader("NamespaceLoader", name)
-                                                    : make_runtime_loader(has_file ? "SourceFileLoader" : "BuiltinImporter", name));
+  Value loader = is_frozen ? make_runtime_loader(runtime, "FrozenImporter", name)
+                           : (has_path && !has_file ? make_runtime_loader(runtime, "NamespaceLoader", name)
+                                                    : make_runtime_loader(runtime, has_file ? "SourceFileLoader" : "BuiltinImporter", name, file));
   if (!module_has_real_attr(module, "__loader__")) {
     module_set_attr(module, "__loader__", loader, ignored);
   } else {
@@ -1015,7 +1074,7 @@ Value Runtime::make_native_function(
 
 void Runtime::register_module(std::string name, Value module) {
   std::string key = name;
-  ensure_module_import_metadata(module, key);
+  ensure_module_import_metadata(*this, module, key);
   modules_[std::move(name)] = std::move(module);
   auto it = modules_.find(key);
   if (it != modules_.end() && modules_dict_.tag != ValueTag::Invalid) {
