@@ -48,6 +48,7 @@ struct XlangRLockState {
   std::mutex mutex;
   std::condition_variable cv;
   std::thread::id owner;
+  int64_t owner_ident = 0;
   uint32_t depth = 0;
 };
 

@@ -75,13 +75,16 @@ fixture coverage, then update the row truthfully.
   primitives, and the system stdlib probe covers `current_thread`,
   `active_count`, `Thread.start`, target execution, `Thread.join`, `is_alive`,
   `ident`, `stack_size`, and `_thread._local` per-thread attribute isolation
-  through `threading.local`. CPython 3.14 `Lib/subprocess.py` and
+  through `threading.local`. It also covers CPython `Lock`, `RLock`,
+  `RLock` private condition protocol, `Event`, and basic `Condition`
+  ownership/notification over native synchronization primitives.
+  CPython 3.14 `Lib/subprocess.py` and
   `Lib/socket.py` import from source; the process/socket probe covers
   `subprocess.run([sys.executable, "-c", ...], capture_output=True, text=True)`,
   basic `socket.socket` construction/timeout/close, and empty `select.select`.
   Remaining: complete truthful process/socket primitives for `subprocess` and
   networking, exact daemon/shutdown lifecycle, deeper `_thread._local`
-  subclass/reinitialization edge cases, condition/lock edge cases,
+  subclass/reinitialization edge cases, deeper condition/lock edge cases,
   profile/trace propagation parity, and import-time/runtime performance.
 
 - [ ] `site`, `runpy`, `importlib`, `pkgutil`, and package metadata/resources

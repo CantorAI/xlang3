@@ -351,6 +351,7 @@ bool rlock_acquire(
     }
     state->cv.wait(lock, [state]() { return state->depth == 0; });
     state->owner = current;
+    state->owner_ident = xlang_thread_current_ident();
     state->depth = 1;
   }
   value_set_bool(out, true);
@@ -390,6 +391,7 @@ bool rlock_acquire_kw(
     }
     state->cv.wait(lock, [state]() { return state->depth == 0; });
     state->owner = current;
+    state->owner_ident = xlang_thread_current_ident();
     state->depth = 1;
   }
   value_set_bool(out, true);
@@ -423,12 +425,163 @@ bool rlock_release(
     --state->depth;
     if (state->depth == 0) {
       state->owner = std::thread::id();
+      state->owner_ident = 0;
       notify = true;
     }
   }
   if (notify) {
     state->cv.notify_one();
   }
+  value_set_none(out);
+  return true;
+}
+
+bool rlock_locked(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "RLock.locked() expected no arguments";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    value_set_bool(out, state->depth != 0);
+  }
+  return true;
+}
+
+bool rlock_is_owned(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "RLock._is_owned() expected no arguments";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    value_set_bool(out, state->depth != 0 && state->owner == std::this_thread::get_id());
+  }
+  return true;
+}
+
+bool rlock_release_save(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "RLock._release_save() expected no arguments";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  uint32_t depth = 0;
+  int64_t owner_ident = 0;
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    if (state->depth == 0 || state->owner != std::this_thread::get_id()) {
+      error = "cannot release un-acquired lock";
+      return false;
+    }
+    depth = state->depth;
+    owner_ident = state->owner_ident;
+    state->depth = 0;
+    state->owner = std::thread::id();
+    state->owner_ident = 0;
+  }
+  state->cv.notify_one();
+  out = Value::tuple({Value::int64(static_cast<int64_t>(depth)), Value::int64(owner_ident)});
+  return true;
+}
+
+bool rlock_acquire_restore(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 2) {
+    error = "RLock._acquire_restore() expected state";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  auto* saved = value_as_tuple(args[1]);
+  if (saved == nullptr || saved->items.empty() || saved->items[0].tag != ValueTag::Int64) {
+    error = "RLock._acquire_restore() expected saved state";
+    return false;
+  }
+  uint32_t depth = static_cast<uint32_t>(saved->items[0].as.i64 <= 0 ? 1 : saved->items[0].as.i64);
+  int64_t owner_ident = xlang_thread_current_ident();
+  if (saved->items.size() >= 2 && saved->items[1].tag == ValueTag::Int64) {
+    owner_ident = saved->items[1].as.i64;
+  }
+  {
+    std::unique_lock<std::mutex> lock(state->mutex);
+    state->cv.wait(lock, [state]() { return state->depth == 0; });
+    state->owner = std::this_thread::get_id();
+    state->owner_ident = owner_ident;
+    state->depth = depth;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool rlock_at_fork_reinit(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  (void)runtime;
+  (void)user_data;
+  if (argc != 1) {
+    error = "RLock._at_fork_reinit() expected no arguments";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->owner = std::thread::id();
+    state->owner_ident = 0;
+    state->depth = 0;
+  }
+  state->cv.notify_all();
   value_set_none(out);
   return true;
 }
@@ -1109,6 +1262,11 @@ Value xlang_thread_make_rlock_class(Runtime& runtime) {
   attrs.push_back({"__init__", runtime.make_native_function("_thread.RLock.__init__", rlock_init)});
   attrs.push_back({"acquire", runtime.make_native_function("_thread.RLock.acquire", rlock_acquire, nullptr, nullptr, nullptr, false, rlock_acquire_kw)});
   attrs.push_back({"release", runtime.make_native_function("_thread.RLock.release", rlock_release)});
+  attrs.push_back({"locked", runtime.make_native_function("_thread.RLock.locked", rlock_locked)});
+  attrs.push_back({"_is_owned", runtime.make_native_function("_thread.RLock._is_owned", rlock_is_owned)});
+  attrs.push_back({"_release_save", runtime.make_native_function("_thread.RLock._release_save", rlock_release_save)});
+  attrs.push_back({"_acquire_restore", runtime.make_native_function("_thread.RLock._acquire_restore", rlock_acquire_restore)});
+  attrs.push_back({"_at_fork_reinit", runtime.make_native_function("_thread.RLock._at_fork_reinit", rlock_at_fork_reinit)});
   attrs.push_back({"__enter__", runtime.make_native_function("_thread.RLock.__enter__", rlock_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("_thread.RLock.__exit__", rlock_exit)});
   return Value::class_object("RLock", std::move(attrs));

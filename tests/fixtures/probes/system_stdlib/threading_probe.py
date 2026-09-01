@@ -42,4 +42,31 @@ local_worker.start()
 local_worker.join()
 print("local", local.value, local.__dict__, local_values)
 
+# Lock/RLock/Event/Condition should be driven by CPython's threading.py while
+# delegating synchronization to native _thread primitives.
+lock = threading.Lock()
+print("lock", lock.acquire(False), lock.locked())
+lock.release()
+
+rlock = threading.RLock()
+print("rlock", rlock.acquire(), rlock.acquire(False), rlock.locked(), rlock._is_owned())
+saved = rlock._release_save()
+print("rlock-save", saved[0] >= 1, rlock.locked())
+rlock._acquire_restore(saved)
+print("rlock-restore", rlock.locked(), rlock._is_owned())
+rlock.release()
+rlock.release()
+
+event = threading.Event()
+print("event", event.is_set())
+event.set()
+print("event-set", event.wait(0), event.is_set())
+event.clear()
+print("event-clear", event.wait(0), event.is_set())
+
+condition = threading.Condition()
+with condition:
+    print("condition-owned", condition._lock._is_owned(), condition._is_owned())
+    condition.notify_all()
+
 print("stack", threading.stack_size())

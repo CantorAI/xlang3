@@ -474,8 +474,35 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   const bool allow_inline_calls = !runtime.debug_step_active();
 
   const bool receiver_is_super = value_as_super(regs[in.a]) != nullptr;
+  bool receiver_has_direct_method_attr = false;
+  if (auto* instance = value_as_instance(regs[in.a])) {
+    if (instance->native_get_attr != nullptr) {
+      receiver_has_direct_method_attr = true;
+    } else {
+      if (auto* klass = value_as_class(instance->klass)) {
+        auto slot_it = klass->instance_slot_indices.find(name);
+        if (slot_it != klass->instance_slot_indices.end() &&
+            slot_it->second < instance_slot_count(instance) &&
+            instance_slot_at(instance, slot_it->second).tag != ValueTag::Invalid) {
+          receiver_has_direct_method_attr = true;
+        }
+      }
+      if (!receiver_has_direct_method_attr) {
+        for (const auto& attr : instance->attrs) {
+          if (attr.first == name) {
+            receiver_has_direct_method_attr = true;
+            break;
+          }
+        }
+      }
+    }
+  }
 
-  if (!receiver_is_super && !instr_cache.empty() && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
+  if (!receiver_has_direct_method_attr &&
+      !receiver_is_super &&
+      !instr_cache.empty() &&
+      regs[in.a].tag == ValueTag::Object &&
+      regs[in.a].as.obj != nullptr) {
     auto& cache = instr_cache[ip].call;
     if (cache.kind == CallSiteKind::BoundNativeFunction &&
         cache.class_version == static_cast<uint64_t>(regs[in.a].as.obj->kind)) {
@@ -528,6 +555,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     }
   }
 
+  if (!receiver_has_direct_method_attr) {
   if (auto* instance = value_as_instance(regs[in.a])) {
     if (auto* klass = value_as_class(instance->klass)) {
       CallArgsView method_args = call_args;
@@ -865,6 +893,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         return XlangVMOpFlow::Next;
       }
     }
+  }
   }
 
   if (const auto* builtin_spec = builtin_method_find_spec_for_call(regs[in.a], name)) {
