@@ -47,6 +47,14 @@ RuntimeResult Interpreter::run_module(
     const ir::Module& module,
     Value globals_module,
     std::shared_ptr<const ir::Module> module_owner) {
+  return run_module(module, std::move(globals_module), std::move(module_owner), true);
+}
+
+RuntimeResult Interpreter::run_module(
+    const ir::Module& module,
+    Value globals_module,
+    std::shared_ptr<const ir::Module> module_owner,
+    bool register_in_runtime) {
   RuntimeResult result;
   if (auto* globals = value_as_module(globals_module)) {
     std::string error;
@@ -90,7 +98,9 @@ RuntimeResult Interpreter::run_module(
         return result;
       }
     }
-    runtime_.register_module(name, globals_module);
+    if (register_in_runtime) {
+      runtime_.register_module(name, globals_module);
+    }
   }
   static const std::vector<Value> empty_closure;
   static const std::vector<Value> empty_defaults;

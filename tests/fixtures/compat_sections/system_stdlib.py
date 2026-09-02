@@ -31,6 +31,7 @@ import queue
 import pickle
 import textwrap
 import traceback
+import typing
 import types
 import weakref
 import _colorize
@@ -269,3 +270,56 @@ except Exception as exc:
         "ZeroDivisionError" in formatted_text,
         b"x".decode(encoding="utf-8", errors="strict"),
     )
+
+
+# dataclasses: inheritance, InitVar/ClassVar, slots, and exec() globals interaction.
+@dataclasses.dataclass
+class StdlibDataclassBase:
+    a: int
+
+
+@dataclasses.dataclass
+class StdlibDataclassChild(StdlibDataclassBase):
+    b: int = 2
+    temp: dataclasses.InitVar[int] = 3
+    cv: typing.ClassVar[int] = 9
+    xs: list = dataclasses.field(default_factory=list, kw_only=True)
+
+    def __post_init__(self, temp):
+        self.seen = temp
+
+
+@dataclasses.dataclass(frozen=True)
+class FrozenStdlibDataclassBase:
+    a: int
+
+
+def dataclass_error_name(source):
+    try:
+        exec(source, globals())
+    except Exception as exc:
+        return type(exc).__name__
+    return "none"
+
+
+@dataclasses.dataclass(slots=True)
+class SlotStdlibDataclassBase:
+    a: int
+
+
+@dataclasses.dataclass(slots=True)
+class SlotStdlibDataclassChild(SlotStdlibDataclassBase):
+    b: int
+
+
+child = StdlibDataclassChild(1, temp=8, xs=[4])
+slot_child = SlotStdlibDataclassChild(1, 2)
+print(
+    "system-stdlib-dataclass-inheritance-slots",
+    (child.a, child.b, child.seen, child.xs),
+    [item.name for item in dataclasses.fields(StdlibDataclassChild)],
+    dataclass_error_name("@dataclasses.dataclass\nclass BadFrozenChild(FrozenStdlibDataclassBase):\n    b:int=1"),
+    dataclass_error_name("@dataclasses.dataclass(frozen=True)\nclass BadFrozenChild2(StdlibDataclassBase):\n    b:int=1"),
+    (slot_child.a, slot_child.b, hasattr(slot_child, "__dict__")),
+    (dataclasses.is_dataclass(StdlibDataclassChild), dataclasses.is_dataclass(child)),
+)

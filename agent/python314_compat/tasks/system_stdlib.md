@@ -59,9 +59,11 @@ fixture coverage, then update the row truthfully.
   class dictionaries, CPython-shaped `f_lasti`/`tb_lasti`/`co_lines` offsets
   for `traceback.py`, `co_positions()` statement-level line/column metadata,
   catchable `ZeroDivisionError`, keyword-compatible `bytes.decode`, dataclass
-  frozen/default_factory/slots basics, and logging exception formatter output.
+  frozen/default_factory/slots/inheritance/InitVar/ClassVar basics, correct
+  dynamic `exec(..., globals())` module-slot isolation, and logging exception
+  formatter output.
   Remaining: full regex semantics, expression-exact traceback column/end-position
-  metadata, complete dataclass inheritance/slot/default edge semantics, and
+  metadata, complete dataclass generated-method/field-order edge semantics, and
   deeper logging handler/filter/error behavior remain pending.
 
 - [~] `os`, `os.path`, `ntpath`, `posixpath`, `pathlib`, `glob`, and `fnmatch`

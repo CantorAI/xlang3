@@ -85,6 +85,11 @@ public:
       const ir::Module& module,
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
+  RuntimeResult run_module(
+      const ir::Module& module,
+      Value globals_module,
+      std::shared_ptr<const ir::Module> module_owner,
+      bool register_in_runtime);
   RuntimeResult run_function_value(FunctionObject* function, CallArgsView args);
   RuntimeResult resume_paused(std::shared_ptr<RuntimeDebugPauseState> pause_state);
   RuntimeResult resume_generator(GeneratorObject& generator, Value& out, bool& done);

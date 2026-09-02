@@ -292,7 +292,7 @@ bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, V
   }
   Interpreter interpreter(runtime);
   Value target_globals = std::move(globals_module);
-  RuntimeResult result = interpreter.run_module(*code.module, target_globals, code.module);
+  RuntimeResult result = interpreter.run_module(*code.module, target_globals, code.module, false);
   if (!result.errors.empty()) {
     error = result.errors.front();
     return false;
@@ -332,6 +332,22 @@ bool copy_module_to_dict(const Value& module_value, Value& dict_value, std::stri
       continue;
     }
     if (!mapping_set_item(dict_value, Value::string(entry.first), module->slots[entry.second], error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool copy_module_to_module(const Value& source_value, Value& target_value, std::string& error) {
+  auto* source = value_as_module(source_value);
+  if (source == nullptr || value_as_module(target_value) == nullptr) {
+    return false;
+  }
+  for (const auto& entry : source->name_to_slot) {
+    if (entry.second >= source->slots.size()) {
+      continue;
+    }
+    if (!module_set_attr(target_value, entry.first, source->slots[entry.second], error)) {
       return false;
     }
   }
@@ -1508,22 +1524,18 @@ bool builtin_exec(
       return false;
     }
     if (!globals_is_dict && value_as_module(args[1]) != nullptr) {
-      Value globals_dict;
-      if (object_get_attr(args[1], "__dict__", globals_dict, error) && !copy_dict_to_module(globals_dict, exec_module, error)) {
+      if (!copy_module_to_module(args[1], exec_module, error)) {
         return false;
       }
-      error.clear();
     }
     if (locals_is_dict) {
       if (!copy_dict_to_module(args[2], exec_module, error)) {
         return false;
       }
     } else if (locals_is_module) {
-      Value locals_dict;
-      if (object_get_attr(args[2], "__dict__", locals_dict, error) && !copy_dict_to_module(locals_dict, exec_module, error)) {
+      if (!copy_module_to_module(args[2], exec_module, error)) {
         return false;
       }
-      error.clear();
     }
     if (!run_code_object(runtime, *code, exec_module, out, error)) {
       return false;
@@ -1534,12 +1546,27 @@ bool builtin_exec(
     }
     return true;
   }
-  if (!run_code_object(runtime, *code, globals_module, out, error)) {
+  Value exec_module = Value::module("<exec>");
+  module_set_attr(exec_module, "__name__", Value::string("<exec>"), error);
+  Value globals_dict;
+  if (globals_is_dict) {
+    if (!copy_dict_to_module(args[1], exec_module, error)) {
+      return false;
+    }
+  } else {
+    if (!copy_module_to_module(globals_module, exec_module, error)) {
+      return false;
+    }
+  }
+  if (!run_code_object(runtime, *code, exec_module, out, error)) {
     return false;
   }
   if (globals_is_dict) {
     Value globals_dict = args[1];
-    return copy_module_to_dict(globals_module, globals_dict, error);
+    return copy_module_to_dict(exec_module, globals_dict, error);
+  }
+  if (!copy_module_to_module(exec_module, globals_module, error)) {
+    return false;
   }
   return true;
 }
