@@ -1012,6 +1012,7 @@ kw
 before
 shutdown-empty
 shutdown-put
+socket-loopback b'pong' b'ping' True True
 True 0 xlang3-subprocess
 0 True
 0 0

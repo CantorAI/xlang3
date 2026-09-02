@@ -58,4 +58,7 @@
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
   Coverage update: subprocess now covers explicit environment mappings through
   `_winapi.CreateProcess`.
-  Remaining: socket/select foundations, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.
+  Coverage update: socket now covers real loopback stream bind/listen/connect,
+  accept, send, recv, close, and timeout connect handling through CPython
+  `Lib/socket.py` over native `_socket`.
+  Remaining: select/selectors foundations, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

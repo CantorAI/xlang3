@@ -122,6 +122,82 @@ bool socket_last_error_would_block() {
 #endif
 }
 
+bool socket_timeout_seconds(const SocketState& state, double& timeout, std::string& error) {
+  if (state.timeout.tag == ValueTag::None) {
+    timeout = -1.0;
+    return true;
+  }
+  if (state.timeout.tag == ValueTag::Int64) {
+    timeout = static_cast<double>(state.timeout.as.i64);
+  } else if (state.timeout.tag == ValueTag::Double) {
+    timeout = state.timeout.as.f64;
+  } else {
+    error = "socket timeout must be a number or None";
+    return false;
+  }
+  if (timeout < 0.0) {
+    error = "socket timeout must be non-negative";
+    return false;
+  }
+  return true;
+}
+
+bool wait_socket_connect(Runtime& runtime, NativeSocket fd, double timeout, std::string& error) {
+  if (timeout == 0.0) {
+    runtime.raise_class_error("BlockingIOError", socket_last_error_text("connect"));
+    return false;
+  }
+
+  fd_set write_set;
+  FD_ZERO(&write_set);
+  FD_SET(fd, &write_set);
+  fd_set error_set;
+  FD_ZERO(&error_set);
+  FD_SET(fd, &error_set);
+  timeval tv{};
+  timeval* tv_ptr = nullptr;
+  if (timeout >= 0.0) {
+    tv.tv_sec = static_cast<long>(timeout);
+    tv.tv_usec = static_cast<long>((timeout - static_cast<double>(tv.tv_sec)) * 1000000.0);
+    tv_ptr = &tv;
+  }
+
+#ifdef _WIN32
+  const int ready = ::select(0, nullptr, &write_set, &error_set, tv_ptr);
+#else
+  const int ready = ::select(fd + 1, nullptr, &write_set, &error_set, tv_ptr);
+#endif
+  if (ready == 0) {
+    error = "timed out";
+    runtime.raise_class_error("TimeoutError", error);
+    return false;
+  }
+  if (ready < 0) {
+    error = socket_last_error_text("select");
+    return false;
+  }
+
+  int socket_error = 0;
+#ifdef _WIN32
+  int option_length = sizeof(socket_error);
+#else
+  socklen_t option_length = sizeof(socket_error);
+#endif
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&socket_error), &option_length) != 0) {
+    error = socket_last_error_text("getsockopt");
+    return false;
+  }
+  if (socket_error != 0) {
+#ifdef _WIN32
+    error = "connect failed with WSA error " + std::to_string(socket_error);
+#else
+    error = std::string("connect failed: ") + std::strerror(socket_error);
+#endif
+    return false;
+  }
+  return true;
+}
+
 NativeSocket make_native_socket(SocketState& state, std::string& error) {
   if (!ensure_socket_runtime(error)) {
     return kInvalidSocket;
@@ -663,11 +739,17 @@ bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   }
   if (::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
     if (!state->blocking && socket_last_error_would_block()) {
-      runtime.raise_class_error("BlockingIOError", socket_last_error_text("connect"));
+      double timeout = 0.0;
+      if (!socket_timeout_seconds(*state, timeout, error)) {
+        return false;
+      }
+      if (!wait_socket_connect(runtime, fd, timeout, error)) {
+        return false;
+      }
+    } else {
+      error = socket_last_error_text("connect");
       return false;
     }
-    error = socket_last_error_text("connect");
-    return false;
   }
   state->host = host.empty() ? "127.0.0.1" : host;
   state->port = port;

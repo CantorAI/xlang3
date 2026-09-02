@@ -3311,6 +3311,31 @@ try:
 except queue.ShutDown:
     print("shutdown-put")
 
+# socket: CPython socket.py over native _socket loopback stream primitives.
+import socket
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+accepted = None
+try:
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    host, port = server.getsockname()
+    client.settimeout(2.0)
+    client.connect((host, port))
+    accepted, peer = server.accept()
+    accepted.sendall(b"pong")
+    client_data = client.recv(4)
+    client.sendall(b"ping")
+    server_data = accepted.recv(4)
+finally:
+    if accepted is not None:
+        accepted.close()
+    client.close()
+    server.close()
+print("socket-loopback", client_data, server_data, isinstance(peer, tuple), port > 0)
+
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)
 print(isinstance(completed, subprocess.CompletedProcess), completed.returncode, completed.stdout.strip())

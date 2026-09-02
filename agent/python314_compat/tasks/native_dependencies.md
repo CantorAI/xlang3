@@ -30,10 +30,12 @@
   Coverage: `tests/fixtures/core/socket_select_modules.py`,
   `tests/fixtures/probes/system_stdlib/socketpair_probe.py`, and
   `tests/fixtures/probes/system_stdlib/asyncio_probe.py`.
+  `tests/fixtures/compat_sections/standard_modules.py` also covers loopback
+  TCP bind/listen/getsockname/connect/accept/send/recv and timeout connect wait.
   `_overlapped` now keeps native overlapped address state and an IOCP completion
   queue/fallback for immediate and cancelled operations, enough for CPython
   `asyncio.run()` startup/shutdown over the Windows proactor path.
-  Remaining: real socket operations, selectors, signal delivery, full
+  Remaining: selectors, signal delivery, full
   `_overlapped` IOCP behavior, and platform constants.
 
 - [~] _weakref and _collections
