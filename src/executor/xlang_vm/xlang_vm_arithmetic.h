@@ -282,14 +282,30 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_pow(const Value& lhs, const Value& rhs, Val
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_bit_and(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  value_set_int64(out, lhs.as.i64 & rhs.as.i64);
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) return false;
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value & rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value & rhs_value);
+  }
   return true;
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_bit_or(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  value_set_int64(out, lhs.as.i64 | rhs.as.i64);
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) return false;
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value | rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value | rhs_value);
+  }
   return true;
 }
 

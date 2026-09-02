@@ -2228,6 +2228,19 @@ bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const bool lhs_scalar_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_scalar_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (lhs_scalar_int && rhs_scalar_int) {
+    const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+    const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+    if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+      value_set_bool(out, (lhs_value & rhs_value) != 0);
+    } else {
+      value_set_int64(out, lhs_value & rhs_value);
+    }
+    return true;
+  }
+
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     if (value_int_like_bit_and(lhs, rhs, out)) {
       return true;
@@ -2276,6 +2289,19 @@ bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& 
 }
 
 bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const bool lhs_scalar_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_scalar_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (lhs_scalar_int && rhs_scalar_int) {
+    const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+    const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+    if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+      value_set_bool(out, (lhs_value | rhs_value) != 0);
+    } else {
+      value_set_int64(out, lhs_value | rhs_value);
+    }
+    return true;
+  }
+
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     if (value_int_like_bit_or(lhs, rhs, out)) {
       return true;

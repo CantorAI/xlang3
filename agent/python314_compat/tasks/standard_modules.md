@@ -65,4 +65,6 @@
   returns the original Python objects in ready lists.
   Coverage update: `socket.getaddrinfo` now resolves loopback IPv4 addresses
   through native `_socket` and returns CPython-shaped tuples.
-  Remaining: selectors module integration, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.
+  Coverage update: CPython `Lib/selectors.py` now covers `SelectSelector`
+  registration and readable socketpair dispatch.
+  Remaining: deeper selectors edge behavior, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

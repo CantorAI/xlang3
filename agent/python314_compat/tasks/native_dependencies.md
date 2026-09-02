@@ -33,11 +33,13 @@
   `tests/fixtures/compat_sections/standard_modules.py` also covers loopback
   TCP bind/listen/getsockname/connect/accept/send/recv, timeout connect wait,
   `select.select` socket readability with original object return lists, and
-  OS-backed IPv4 `getaddrinfo`.
+  OS-backed IPv4 `getaddrinfo`. CPython `Lib/selectors.py` now runs a
+  `SelectSelector` socketpair readiness path over these primitives.
   `_overlapped` now keeps native overlapped address state and an IOCP completion
   queue/fallback for immediate and cancelled operations, enough for CPython
   `asyncio.run()` startup/shutdown over the Windows proactor path.
-  Remaining: broader address-family/service resolution, selectors module integration, signal delivery, full
+  Remaining: broader address-family/service resolution, deeper selectors edge
+  behavior, signal delivery, full
   `_overlapped` IOCP behavior, and platform constants.
 
 - [~] _weakref and _collections

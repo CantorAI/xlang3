@@ -3355,6 +3355,28 @@ print(
     addrinfo[0][4][0],
     addrinfo[0][4][1],
 )
+import selectors
+
+selector = selectors.SelectSelector()
+left_sock, right_sock = socket.socketpair()
+try:
+    selector.register(left_sock, selectors.EVENT_READ, "r")
+    right_sock.send(b"x")
+    selector_events = selector.select(1.0)
+finally:
+    try:
+        selector.unregister(left_sock)
+    except Exception:
+        pass
+    left_sock.close()
+    right_sock.close()
+print(
+    "selectors-readiness",
+    len(selector_events),
+    selector_events[0][0].data,
+    bool(selector_events[0][1] & selectors.EVENT_READ),
+    (False | selectors.EVENT_WRITE) == selectors.EVENT_WRITE,
+)
 
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)

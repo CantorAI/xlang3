@@ -99,7 +99,8 @@ fixture coverage, then update the row truthfully.
   basic `socket.socket` construction/timeout/close, loopback TCP bind/listen,
   getsockname/connect/accept/send/recv, empty `select.select`, and real
   `select.select` readability over sockets with original object return lists,
-  plus loopback IPv4 `socket.getaddrinfo`.
+  plus loopback IPv4 `socket.getaddrinfo` and CPython `Lib/selectors.py`
+  `SelectSelector` socketpair readiness.
   Additional probes cover `socket.socketpair`, socket blocking/timeout state,
   `_overlapped` import foundation, CPython `Lib/asyncio` import, `_signal`
   `set_wakeup_fd`, and int-like signal enum arguments.
