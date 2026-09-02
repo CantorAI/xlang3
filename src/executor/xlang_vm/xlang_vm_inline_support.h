@@ -1846,6 +1846,31 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
       return add_constructor_keywords_to_dict();
     }
+    Value keys_method;
+    std::string attr_error;
+    if (object_get_attr(source, "keys", keys_method, attr_error)) {
+      Value getitem_method;
+      if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
+        error = "mapping object has no __getitem__";
+        return false;
+      }
+      Value keys_result;
+      if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
+        return false;
+      }
+      std::vector<Value> keys;
+      if (!runtime_collect_iterable(runtime, keys_result, keys, error)) {
+        return false;
+      }
+      for (const auto& key : keys) {
+        Value value;
+        if (!runtime_call_callable(runtime, getitem_method, &key, 1, value, error) ||
+            !mapping_set_item(out, key, value, error)) {
+          return false;
+        }
+      }
+      return add_constructor_keywords_to_dict();
+    }
     Value iterator;
     if (!runtime_get_iter(runtime, source, iterator, error)) {
       return false;

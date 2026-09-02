@@ -10,8 +10,8 @@
   CPython `Lib/os.py` delegating `open`, `write`, `lseek`, `read`, `fstat`,
   `close`, `dup`, `dup2`, `pipe`, `isatty`, `get_inheritable`, and
   `set_inheritable` through the native `nt`/`posix` dependency module, plus
-  CPython-compatible `os.environ` mapping writes and `putenv`/`unsetenv`
-  interaction.
+  CPython-compatible `os.environ` mapping writes, `putenv`/`unsetenv`
+  interaction, and mapping copy/update through the runtime `dict` protocol.
   Remaining: process helpers and Windows error mapping.
 
 - [~] os.path, pathlib, stat, glob, fnmatch

@@ -73,7 +73,9 @@ fixture coverage, then update the row truthfully.
   `os.stat_result`, `os.scandir`/`DirEntry`, path-like and bytes path basics,
   fd-level `os.open`/`write`/`lseek`/`read`/`fstat`/`close`, `dup`, `dup2`,
   `pipe`, `isatty`, and fd inheritability delegation,
-  `os.environ` mapping writes and `putenv`/`unsetenv` interaction,
+  `os.environ` mapping writes, `putenv`/`unsetenv` interaction, and
+  mapping-copy behavior through `copy()`, `dict(os.environ)`, and
+  `dict.update(os.environ)`,
   `pathlib.Path` read/write/glob/rglob/match helpers, and `glob` root-dir,
   recursive, hidden-file, iterator, and bytes-path basics.
   Remaining: this path is correct but too slow for the full fixture, especially

@@ -400,6 +400,10 @@ env_pop = (os.getenv(env_key), env_key in os.environ)
 os.putenv(env_key, "three")
 env_external_putenv = (os.getenv(env_key), os.environ.get(env_key))
 os.unsetenv(env_key)
+env_copy = os.environ.copy()
+env_dict = dict(os.environ)
+env_update_dict = {}
+env_update_dict.update(os.environ)
 print(
     "system-stdlib-os-environ",
     env_start,
@@ -408,4 +412,5 @@ print(
     env_pop,
     env_external_putenv,
     os.getenv(env_key),
+    (type(env_copy).__name__, len(env_copy) > 0, len(env_dict) > 0, len(env_update_dict) > 0),
 )
