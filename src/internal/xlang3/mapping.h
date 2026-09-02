@@ -35,6 +35,11 @@ struct DictObject {
   std::vector<std::pair<Value, Value>> entries;
 };
 
+struct MappingProxyObject {
+  Object header;
+  Value source;
+};
+
 struct DictViewObject {
   Object header;
   Value source;
@@ -53,6 +58,13 @@ XLANG3_HOT_INLINE DictObject* value_as_dict(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<DictObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE MappingProxyObject* value_as_mapping_proxy(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::MappingProxy) {
+    return nullptr;
+  }
+  return reinterpret_cast<MappingProxyObject*>(value.as.obj);
 }
 
 XLANG3_HOT_INLINE DictIteratorObject* value_as_dict_iterator(const Value& value) {
@@ -79,6 +91,7 @@ XLANG3_HOT_INLINE DictViewObject* value_as_dict_view(const Value& value) {
 Value mapping_keys_view(Value source);
 Value mapping_values_view(Value source);
 Value mapping_items_view(Value source);
+Value mapping_proxy(Value source);
 
 void mapping_release_object(Object* object);
 std::string mapping_to_string(const Value& value);

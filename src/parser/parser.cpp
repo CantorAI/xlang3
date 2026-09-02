@@ -20,6 +20,7 @@ limitations under the License.
 #include <chrono>
 #include <cctype>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <unordered_set>
 
@@ -37,6 +38,112 @@ std::string trim_ascii(std::string_view text) {
     --last;
   }
   return std::string(text.substr(first, last - first));
+}
+
+int fstring_hex_digit(char ch) {
+  if (ch >= '0' && ch <= '9') return ch - '0';
+  if (ch >= 'a' && ch <= 'f') return 10 + ch - 'a';
+  if (ch >= 'A' && ch <= 'F') return 10 + ch - 'A';
+  return -1;
+}
+
+void append_fstring_utf8(uint32_t value, std::string& out) {
+  if (value <= 0x7F) {
+    out.push_back(static_cast<char>(value));
+  } else if (value <= 0x7FF) {
+    out.push_back(static_cast<char>(0xC0 | (value >> 6)));
+    out.push_back(static_cast<char>(0x80 | (value & 0x3F)));
+  } else if (value <= 0xFFFF) {
+    out.push_back(static_cast<char>(0xE0 | (value >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((value >> 6) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | (value & 0x3F)));
+  } else {
+    out.push_back(static_cast<char>(0xF0 | (value >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((value >> 12) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | ((value >> 6) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | (value & 0x3F)));
+  }
+}
+
+bool append_fstring_hex_escape(std::string_view text, size_t& i, size_t digits, std::string& out) {
+  if (i + digits > text.size()) {
+    return false;
+  }
+  uint32_t value = 0;
+  for (size_t n = 0; n < digits; ++n) {
+    const int digit = fstring_hex_digit(text[i + n]);
+    if (digit < 0) {
+      return false;
+    }
+    value = (value << 4) | static_cast<uint32_t>(digit);
+  }
+  i += digits;
+  append_fstring_utf8(value, out);
+  return true;
+}
+
+std::string decode_fstring_literal(std::string_view text, bool raw) {
+  if (raw) {
+    return std::string(text);
+  }
+  std::string out;
+  out.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    if (text[i] != '\\' || i + 1 >= text.size()) {
+      out.push_back(text[i++]);
+      continue;
+    }
+    ++i;
+    const char esc = text[i++];
+    switch (esc) {
+      case 'n': out.push_back('\n'); break;
+      case 'r': out.push_back('\r'); break;
+      case 't': out.push_back('\t'); break;
+      case 'b': out.push_back('\b'); break;
+      case 'f': out.push_back('\f'); break;
+      case 'a': out.push_back('\a'); break;
+      case 'v': out.push_back('\v'); break;
+      case '\\':
+      case '\'':
+      case '"':
+        out.push_back(esc);
+        break;
+      case 'x':
+        if (!append_fstring_hex_escape(text, i, 2, out)) out += "\\x";
+        break;
+      case 'u':
+        if (!append_fstring_hex_escape(text, i, 4, out)) out += "\\u";
+        break;
+      case 'U':
+        if (!append_fstring_hex_escape(text, i, 8, out)) out += "\\U";
+        break;
+      default:
+        out.push_back(esc);
+        break;
+    }
+  }
+  return out;
+}
+
+size_t skip_quoted_fstring_field_text(std::string_view text, size_t i) {
+  const char quote = text[i];
+  const bool triple = i + 2 < text.size() && text[i + 1] == quote && text[i + 2] == quote;
+  i += triple ? 3 : 1;
+  while (i < text.size()) {
+    if (text[i] == '\\' && i + 1 < text.size()) {
+      i += 2;
+      continue;
+    }
+    if (triple) {
+      if (i + 2 < text.size() && text[i] == quote && text[i + 1] == quote && text[i + 2] == quote) {
+        return i + 3;
+      }
+    } else if (text[i] == quote) {
+      return i + 1;
+    }
+    ++i;
+  }
+  return i;
 }
 
 bool append_pattern_capture_name(std::vector<std::string>& names, const std::string& name) {
@@ -168,7 +275,7 @@ bool is_statement_recovery_boundary(TokenKind kind) {
 
 } // namespace
 
-std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
+std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text, bool raw) {
   std::vector<ast::FStringExpr::Part> parts;
   std::string literal;
   for (size_t i = 0; i < text.size();) {
@@ -179,12 +286,16 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
         continue;
       }
       if (!literal.empty()) {
-        parts.push_back(ast::FStringExpr::Part{false, std::move(literal)});
+        parts.push_back(ast::FStringExpr::Part{false, decode_fstring_literal(literal, raw)});
         literal.clear();
       }
       const size_t expr_start = ++i;
       int depth = 0;
       while (i < text.size()) {
+        if (text[i] == '\'' || text[i] == '"') {
+          i = skip_quoted_fstring_field_text(text, i);
+          continue;
+        }
         if (text[i] == '(' || text[i] == '[' || text[i] == '{') {
           ++depth;
         } else if ((text[i] == ')' || text[i] == ']' || text[i] == '}') && depth > 0) {
@@ -203,7 +314,13 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
       size_t spec_pos = std::string_view::npos;
       for (size_t j = 0; j < field.size(); ++j) {
         const char field_ch = field[j];
-        if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
+        if (field_ch == '\'' || field_ch == '"') {
+          j = skip_quoted_fstring_field_text(field, j);
+          if (j == 0) {
+            break;
+          }
+          --j;
+        } else if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
           ++nested_depth;
         } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
           --nested_depth;
@@ -223,7 +340,13 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
       nested_depth = 0;
       for (size_t j = 0; j < expr_text.size(); ++j) {
         const char field_ch = expr_text[j];
-        if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
+        if (field_ch == '\'' || field_ch == '"') {
+          j = skip_quoted_fstring_field_text(expr_text, j);
+          if (j == 0) {
+            break;
+          }
+          --j;
+        } else if (field_ch == '(' || field_ch == '[' || field_ch == '{') {
           ++nested_depth;
         } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
           --nested_depth;
@@ -268,7 +391,7 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text) {
     literal.push_back(text[i++]);
   }
   if (!literal.empty()) {
-    parts.push_back(ast::FStringExpr::Part{false, std::move(literal)});
+    parts.push_back(ast::FStringExpr::Part{false, decode_fstring_literal(literal, raw)});
   }
   return parts;
 }
@@ -354,9 +477,20 @@ ParseExpressionResult Parser::parse_expression_module() {
 
 ast::StmtPtr Parser::parse_statement() {
   const uint32_t line = peek().line;
+  const uint32_t column = peek().column;
   auto stmt = parse_statement_impl();
   if (stmt != nullptr && stmt->line == 0) {
     stmt->line = line;
+  }
+  if (stmt != nullptr && stmt->column == 0) {
+    stmt->column = column;
+  }
+  if (stmt != nullptr && stmt->end_line == 0) {
+    const Token& end = previous();
+    stmt->end_line = end.line == 0 ? line : end.line;
+    const uint32_t text_len = static_cast<uint32_t>(end.text.size());
+    const uint32_t end_column = end.column + (text_len == 0 ? 0 : text_len);
+    stmt->end_column = std::max(stmt->column, end_column);
   }
   return stmt;
 }
@@ -624,7 +758,7 @@ ast::ExprPtr Parser::parse_for_target() {
     while (match(TokenKind::Newline) || match(TokenKind::Indent) || match(TokenKind::Dedent)) {
     }
   };
-  auto parse_one = [&]() -> ast::ExprPtr {
+  std::function<ast::ExprPtr()> parse_one = [&]() -> ast::ExprPtr {
     if (match(TokenKind::Star)) {
       const Token name = peek();
       if (name.kind != TokenKind::Identifier && !is_soft_identifier_token(name.kind)) {
@@ -640,7 +774,7 @@ ast::ExprPtr Parser::parse_for_target() {
       if (!check(TokenKind::RParen)) {
         do {
           skip_target_layout();
-          items.push_back(parse_for_target());
+          items.push_back(parse_one());
           skip_target_layout();
         } while (match(TokenKind::Comma) && (skip_target_layout(), !check(TokenKind::RParen)));
       }
@@ -653,7 +787,7 @@ ast::ExprPtr Parser::parse_for_target() {
       if (!check(TokenKind::RBracket)) {
         do {
           skip_target_layout();
-          items.push_back(parse_for_target());
+          items.push_back(parse_one());
           skip_target_layout();
         } while (match(TokenKind::Comma) && (skip_target_layout(), !check(TokenKind::RBracket)));
       }
@@ -882,6 +1016,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
     if (match(TokenKind::PlusAssign)) return "+";
     if (match(TokenKind::MinusAssign)) return "-";
     if (match(TokenKind::StarAssign)) return "*";
+    if (match(TokenKind::AtAssign)) return "@";
     if (match(TokenKind::SlashAssign)) return "/";
     if (match(TokenKind::DoubleSlashAssign)) return "//";
     if (match(TokenKind::PercentAssign)) return "%";
@@ -1146,7 +1281,11 @@ ast::ExprPtr Parser::parse_expression() {
 }
 
 ast::ExprPtr Parser::parse_named_expression() {
-  auto expr = parse_tuple();
+  return parse_tuple();
+}
+
+ast::ExprPtr Parser::parse_assignment_expression() {
+  auto expr = parse_conditional();
   if (match(TokenKind::ColonEqual)) {
     auto* name = dynamic_cast<ast::NameExpr*>(expr.get());
     if (name == nullptr) {
@@ -1160,7 +1299,7 @@ ast::ExprPtr Parser::parse_named_expression() {
 }
 
 ast::ExprPtr Parser::parse_tuple() {
-  auto first = parse_conditional();
+  auto first = parse_assignment_expression();
   if (!match(TokenKind::Comma)) {
     return first;
   }
@@ -1168,7 +1307,7 @@ ast::ExprPtr Parser::parse_tuple() {
   std::vector<ast::ExprPtr> items;
   items.push_back(std::move(first));
   while (!is_tuple_item_boundary(peek().kind)) {
-    items.push_back(parse_conditional());
+    items.push_back(parse_assignment_expression());
     if (!match(TokenKind::Comma)) {
       break;
     }
@@ -1222,7 +1361,7 @@ ast::ExprPtr Parser::parse_await() {
     if (is_simple_statement_end() || check(TokenKind::RParen) || check(TokenKind::RBracket) || check(TokenKind::RBrace)) {
       return std::make_unique<ast::YieldExpr>(std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None), from);
     }
-    return std::make_unique<ast::YieldExpr>(parse_await(), from);
+    return std::make_unique<ast::YieldExpr>(from ? parse_await() : parse_expression(), from);
   }
   return parse_lambda();
 }
@@ -1371,6 +1510,7 @@ ast::ExprPtr Parser::parse_factor() {
   while (true) {
     std::string op;
     if (match(TokenKind::Star)) op = "*";
+    else if (match(TokenKind::At)) op = "@";
     else if (match(TokenKind::Slash)) op = "/";
     else if (match(TokenKind::DoubleSlash)) op = "//";
     else if (match(TokenKind::Percent)) op = "%";
@@ -1415,19 +1555,19 @@ ast::ExprPtr Parser::parse_call() {
           ast::CallExpr::Arg arg;
           if (match(TokenKind::DoubleStar)) {
             arg.kw_star = true;
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             simple_positional = false;
           } else if (match(TokenKind::Star)) {
             arg.star = true;
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             simple_positional = false;
           } else if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
             arg.name = std::string(advance().text);
             advance();
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             simple_positional = false;
           } else {
-            arg.value = parse_conditional();
+            arg.value = parse_assignment_expression();
             if (simple_positional && args.empty() && match(TokenKind::KwFor)) {
               arg.value = finish_generator_expression(std::move(arg.value));
               args.push_back(std::move(arg));
@@ -1530,7 +1670,10 @@ ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
   }
 
   const Token first = peek();
-  if (!consume(TokenKind::Identifier, "expected comprehension target after for")) {
+  if (is_identifier_like_token(first.kind)) {
+    advance();
+  } else {
+    error_here("expected comprehension target after for");
     first_name.clear();
     return std::make_unique<ast::NameExpr>("");
   }
@@ -1539,7 +1682,11 @@ ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
 
   while (match(TokenKind::Comma) && !(parenthesized && check(TokenKind::RParen)) && !check(TokenKind::KwIn)) {
     const Token item = peek();
-    consume(TokenKind::Identifier, "expected comprehension target after ','");
+    if (is_identifier_like_token(item.kind)) {
+      advance();
+    } else {
+      error_here("expected comprehension target after ','");
+    }
     items.push_back(std::make_unique<ast::NameExpr>(std::string(item.text)));
   }
 
@@ -1591,7 +1738,7 @@ ast::ExprPtr Parser::parse_primary() {
         }
         has_fstring = true;
       }
-      auto parts = parse_fstring_parts(previous().text);
+      auto parts = parse_fstring_parts(previous().text, previous().is_raw_string);
       for (auto& part : parts) {
         fstring_parts.push_back(std::move(part));
       }
@@ -1601,7 +1748,13 @@ ast::ExprPtr Parser::parse_primary() {
     }
     return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, std::move(literal_text));
   }
-  if (match(TokenKind::Bytes)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bytes, std::string(previous().text));
+  if (check(TokenKind::Bytes)) {
+    std::string literal_text;
+    while (match(TokenKind::Bytes)) {
+      literal_text += std::string(previous().text);
+    }
+    return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bytes, std::move(literal_text));
+  }
   if (match(TokenKind::Ellipsis)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Ellipsis);
   if (match(TokenKind::KwTrue)) {
     auto lit = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bool);
@@ -1665,6 +1818,21 @@ ast::ExprPtr Parser::parse_primary() {
     if (match(TokenKind::RBrace)) {
       return std::make_unique<ast::DictExpr>(std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>>{});
     }
+    if (match(TokenKind::DoubleStar)) {
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
+      entries.push_back(std::make_pair(ast::ExprPtr{}, parse_conditional()));
+      while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
+        if (match(TokenKind::DoubleStar)) {
+          entries.push_back(std::make_pair(ast::ExprPtr{}, parse_conditional()));
+          continue;
+        }
+        auto key = parse_conditional();
+        consume(TokenKind::Colon, "expected ':' after dict key");
+        entries.push_back(std::make_pair(std::move(key), parse_conditional()));
+      }
+      consume(TokenKind::RBrace, "expected '}' after dict literal");
+      return std::make_unique<ast::DictExpr>(std::move(entries));
+    }
     auto first = parse_conditional();
     if (match(TokenKind::Colon)) {
       auto value = parse_conditional();
@@ -1687,6 +1855,10 @@ ast::ExprPtr Parser::parse_primary() {
       std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
       entries.push_back(std::make_pair(std::move(first), std::move(value)));
       while (match(TokenKind::Comma) && !check(TokenKind::RBrace)) {
+        if (match(TokenKind::DoubleStar)) {
+          entries.push_back(std::make_pair(ast::ExprPtr{}, parse_conditional()));
+          continue;
+        }
         auto key = parse_conditional();
         consume(TokenKind::Colon, "expected ':' after dict key");
         entries.push_back(std::make_pair(std::move(key), parse_conditional()));

@@ -17,6 +17,9 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 
+#include <cstdlib>
+#include <iostream>
+
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
 #endif
@@ -24,6 +27,15 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+bool missing_lookup_diagnostics_enabled() {
+  static const bool enabled = std::getenv("XLANG3_DIAG_MISSING_LOOKUPS") != nullptr;
+  return enabled;
+}
+
+bool is_expected_import_probe_attr(const std::string& name) {
+  return name == "__path__" || name == "__file__" || name == "__annotations__";
+}
 
 template <typename T>
 T* allocate_module_object(ObjectKind kind) {
@@ -110,6 +122,13 @@ std::string module_to_string(const Value& value) {
   if (module == nullptr) {
     return "<module>";
   }
+  Value file;
+  std::string ignored;
+  if (module_get_attr(value, "__file__", file, ignored)) {
+    if (auto* text = value_as_string(file)) {
+      return "<module '" + module->name + "' from '" + string_object_to_string(*text) + "'>";
+    }
+  }
   return "<module '" + module->name + "'>";
 }
 
@@ -121,6 +140,10 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
   }
   if (name == "__name__") {
     out = Value::string(module->name);
+    return true;
+  }
+  if (name == "__dict__") {
+    value_assign_fast(out, object);
     return true;
   }
   if (name == "__spec__") {
@@ -135,6 +158,10 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
   auto it = module->name_to_slot.find(name);
   if (it == module->name_to_slot.end() || it->second >= module->slots.size()) {
     error = "module '" + module->name + "' has no attribute '" + name + "'";
+    if (missing_lookup_diagnostics_enabled() && !is_expected_import_probe_attr(name)) {
+      std::cerr << "XLANG3_MISSING_ATTR kind=\"module\" object=\"" << module->name
+                << "\" attr=\"" << name << "\"\n";
+    }
     return false;
   }
   value_assign_fast(out, module->slots[it->second]);
@@ -221,7 +248,8 @@ NativeModuleBuilder& NativeModuleBuilder::function(
           nullptr,
           fast_callback,
           fast_releases_vm_lock,
-          keyword_callback));
+          keyword_callback,
+          false));
   return *this;
 }
 

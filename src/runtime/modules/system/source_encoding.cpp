@@ -16,6 +16,10 @@ limitations under the License.
 
 #include <cctype>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace xlang3 {
 
 namespace {
@@ -128,6 +132,61 @@ bool ascii_decode(std::string_view bytes, std::string& text, std::string& error)
   return true;
 }
 
+bool mbcs_decode(std::string_view bytes, std::string& text, std::string& error) {
+#if defined(_WIN32)
+  if (bytes.empty()) {
+    text.clear();
+    return true;
+  }
+  const int wide_size = MultiByteToWideChar(
+      CP_ACP,
+      MB_ERR_INVALID_CHARS,
+      bytes.data(),
+      static_cast<int>(bytes.size()),
+      nullptr,
+      0);
+  if (wide_size <= 0) {
+    error = "mbcs codec can't decode byte";
+    return false;
+  }
+  std::wstring wide(static_cast<size_t>(wide_size), L'\0');
+  MultiByteToWideChar(
+      CP_ACP,
+      MB_ERR_INVALID_CHARS,
+      bytes.data(),
+      static_cast<int>(bytes.size()),
+      wide.data(),
+      wide_size);
+  const int utf8_size = WideCharToMultiByte(
+      CP_UTF8,
+      0,
+      wide.data(),
+      wide_size,
+      nullptr,
+      0,
+      nullptr,
+      nullptr);
+  if (utf8_size <= 0) {
+    error = "mbcs codec can't decode byte";
+    return false;
+  }
+  text.assign(static_cast<size_t>(utf8_size), '\0');
+  WideCharToMultiByte(
+      CP_UTF8,
+      0,
+      wide.data(),
+      wide_size,
+      text.data(),
+      utf8_size,
+      nullptr,
+      nullptr);
+  return true;
+#else
+  text.assign(bytes);
+  return true;
+#endif
+}
+
 } // namespace
 
 std::string canonical_python_source_encoding(std::string name) {
@@ -141,11 +200,17 @@ std::string canonical_python_source_encoding(std::string name) {
   if (name == "utf8" || name == "u8" || name == "cp65001") {
     return "utf-8";
   }
+  if (name == "locale") {
+    return "utf-8";
+  }
   if (name == "utf_8" || name == "utf_8_sig") {
     return name == "utf_8_sig" ? "utf-8-sig" : "utf-8";
   }
   if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
     return "iso-8859-1";
+  }
+  if (name == "mbcs" || name == "ansi") {
+    return "mbcs";
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
@@ -173,6 +238,9 @@ bool decode_python_source_bytes(std::string_view bytes, PythonSourceText& out, s
   if (encoding == "ascii") {
     return ascii_decode(payload, out.text, error);
   }
+  if (encoding == "mbcs") {
+    return mbcs_decode(payload, out.text, error);
+  }
   error = "unknown source encoding: " + encoding;
   return false;
 }
@@ -197,6 +265,9 @@ bool decode_python_source_bytes_as(
   }
   if (encoding == "ascii") {
     return ascii_decode(payload, out.text, error);
+  }
+  if (encoding == "mbcs") {
+    return mbcs_decode(payload, out.text, error);
   }
   error = "unknown source encoding: " + encoding;
   return false;

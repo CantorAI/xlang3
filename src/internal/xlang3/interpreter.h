@@ -30,6 +30,7 @@ struct RuntimeDebugPauseState;
 
 struct RuntimeResult {
   Value value;
+  Value exception;
   std::vector<std::string> errors;
   bool paused = false;
   RuntimePauseReason pause_reason = RuntimePauseReason::None;
@@ -48,6 +49,8 @@ struct CallArgsView {
   const std::vector<ir::CallKeywordArg>* keyword_args = nullptr;
   uint32_t star_arg = UINT32_MAX;
   uint32_t kw_star_arg = UINT32_MAX;
+  const std::vector<uint32_t>* star_args = nullptr;
+  const std::vector<uint32_t>* kw_star_args = nullptr;
 
   XLANG3_HOT_INLINE size_t size() const {
     return static_cast<size_t>(leading_count) + (register_args == nullptr ? 0 : register_args->size());
@@ -58,7 +61,10 @@ struct CallArgsView {
   }
 
   XLANG3_HOT_INLINE bool has_expansion() const {
-    return star_arg != UINT32_MAX || kw_star_arg != UINT32_MAX;
+    return star_arg != UINT32_MAX ||
+           kw_star_arg != UINT32_MAX ||
+           (star_args != nullptr && !star_args->empty()) ||
+           (kw_star_args != nullptr && !kw_star_args->empty());
   }
 
   XLANG3_HOT_INLINE const Value& get(size_t index) const {
@@ -79,6 +85,11 @@ public:
       const ir::Module& module,
       Value globals_module,
       std::shared_ptr<const ir::Module> module_owner);
+  RuntimeResult run_module(
+      const ir::Module& module,
+      Value globals_module,
+      std::shared_ptr<const ir::Module> module_owner,
+      bool register_in_runtime);
   RuntimeResult run_function_value(FunctionObject* function, CallArgsView args);
   RuntimeResult resume_paused(std::shared_ptr<RuntimeDebugPauseState> pause_state);
   RuntimeResult resume_generator(GeneratorObject& generator, Value& out, bool& done);

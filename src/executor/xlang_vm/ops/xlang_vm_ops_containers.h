@@ -86,28 +86,62 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
   }
   regs[in.dst] = Value::dict_reserved(fn.dict_items[in.a].size());
   auto* dict = value_as_dict(regs[in.dst]);
-  for (const auto& pair : fn.dict_items[in.a]) {
-    if (pair.first >= regs.size() || pair.second >= regs.size()) {
-      result.errors.push_back("invalid dict item register");
-      return XlangVMOpFlow::ReturnResult;
-    }
+  auto assign_entry = [&](const Value& key, const Value& value, std::string& error) -> bool {
     size_t ignored_hash = 0;
-    std::string error;
-    if (!value_hash_key(regs[pair.first], ignored_hash, error)) {
-      return raise_exception_value(runtime.make_exception("TypeError", error))
-                 ? XlangVMOpFlow::ContinueLoop
-                 : XlangVMOpFlow::ReturnResult;
+    if (!value_hash_key(key, ignored_hash, error)) {
+      return false;
     }
     bool replaced = false;
     for (auto& entry : dict->entries) {
-      if (value_key_equal(entry.first, regs[pair.first])) {
-        value_assign_fast(entry.second, regs[pair.second]);
+      if (value_key_equal(entry.first, key)) {
+        value_assign_fast(entry.second, value);
         replaced = true;
         break;
       }
     }
     if (!replaced) {
-      dict->entries.emplace_back(regs[pair.first], regs[pair.second]);
+      dict->entries.emplace_back(key, value);
+    }
+    return true;
+  };
+  for (const auto& pair : fn.dict_items[in.a]) {
+    if (pair.second >= regs.size() || (pair.first != UINT32_MAX && pair.first >= regs.size())) {
+      result.errors.push_back("invalid dict item register");
+      return XlangVMOpFlow::ReturnResult;
+    }
+    std::string error;
+    if (pair.first == UINT32_MAX) {
+      Value iterator;
+      if (!runtime_get_iter(runtime, regs[pair.second], iterator, error)) {
+        return raise_exception_value(runtime.make_exception("TypeError", error))
+                   ? XlangVMOpFlow::ContinueLoop
+                   : XlangVMOpFlow::ReturnResult;
+      }
+      while (true) {
+        bool done = false;
+        Value key;
+        if (!sequence_iter_next(iterator, done, key, error)) {
+          return raise_exception_value(runtime.make_exception("TypeError", error))
+                     ? XlangVMOpFlow::ContinueLoop
+                     : XlangVMOpFlow::ReturnResult;
+        }
+        if (done) {
+          break;
+        }
+        Value value;
+        if (!mapping_get_item(regs[pair.second], key, value, error) ||
+            !assign_entry(key, value, error)) {
+          return raise_exception_value(runtime.make_exception("TypeError", error))
+                     ? XlangVMOpFlow::ContinueLoop
+                     : XlangVMOpFlow::ReturnResult;
+        }
+      }
+      continue;
+    }
+    if (!assign_entry(regs[pair.first], regs[pair.second], error)) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
     }
   }
   return XlangVMOpFlow::Next;
@@ -171,6 +205,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow list_append(
   }
   std::string error;
   if (!sequence_list_append(regs[in.dst], regs[in.a], error)) {
+    if (!error.empty()) {
+      error += ": " + value_to_repr(regs[in.dst]);
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
@@ -227,6 +264,27 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
         dict->entries.push_back(std::make_pair(key, regs[in.b]));
       }
       return XlangVMOpFlow::Next;
+    }
+  }
+  if (value_as_instance(regs[in.dst]) != nullptr) {
+    Value setitem;
+    std::string attr_error;
+    if (object_get_class_attr_for_instance(regs[in.dst], "__setitem__", setitem, attr_error)) {
+      if (auto* native = value_as_native_function(setitem);
+          native == nullptr || native->name != "dict.__setitem__") {
+        Value call_args[3] = {regs[in.dst], regs[in.a], regs[in.b]};
+        Value ignored;
+        std::string call_error;
+        if (runtime_call_callable(runtime, setitem, call_args, 3, ignored, call_error)) {
+          return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
+        return raise_runtime_error(call_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
     }
   }
   std::string error;
@@ -361,7 +419,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::MemoryView:
-          value_set_int64(regs[in.dst], static_cast<int64_t>(reinterpret_cast<MemoryViewObject*>(regs[in.a].as.obj)->size));
+          value_set_int64(regs[in.dst], static_cast<int64_t>(memoryview_item_count(*reinterpret_cast<MemoryViewObject*>(regs[in.a].as.obj))));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::Dict:
@@ -416,7 +474,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
         }
         return XlangVMOpFlow::Next;
       case ObjectKind::MemoryView:
-        value_set_int64(regs[in.dst], static_cast<int64_t>(value_as_memoryview(regs[in.a])->size));
+        value_set_int64(regs[in.dst], static_cast<int64_t>(memoryview_item_count(*value_as_memoryview(regs[in.a]))));
         xlang_vm_cache_note_hit(cache);
         if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
           xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
@@ -641,6 +699,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
       }
     }
     bool is_mapping_miss = error == "key not found" && value_as_dict(regs[in.a]) != nullptr;
@@ -671,6 +734,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     XlangVMSmallRegisterBuffer& regs,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
+  std::string& error = xlang_vm_native_error_scratch();
+  error.clear();
+  auto raise_set_item_error = [&]() -> XlangVMOpFlow {
+    const std::string& mapped_error = error;
+    bool is_mapping_miss = mapped_error == "key not found" && value_as_dict(regs[in.dst]) != nullptr;
+    if (!is_mapping_miss) {
+      if (auto* instance = value_as_instance(regs[in.dst])) {
+        is_mapping_miss = value_as_dict(instance->mapping_storage) != nullptr;
+      }
+    }
+    if (is_mapping_miss) {
+      return raise_exception_value(runtime.make_exception("KeyError", value_to_string(regs[in.a])))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
+    if (mapped_error == "index out of range") {
+      return raise_exception_value(runtime.make_exception("IndexError", mapped_error)) ? XlangVMOpFlow::ContinueLoop
+                                                                                       : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(mapped_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  };
+
   if (regs[in.a].tag == ValueTag::Int64 && regs[in.b].tag == ValueTag::Int64 &&
       regs[in.b].as.i64 >= 0 && regs[in.b].as.i64 <= 255 &&
       regs[in.dst].tag == ValueTag::Object && regs[in.dst].as.obj != nullptr) {
@@ -697,7 +782,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       }
     }
   }
-  std::string error;
+  if (value_as_instance(regs[in.dst]) != nullptr) {
+    Value setitem;
+    std::string attr_error;
+    if (object_get_attr(regs[in.dst], "__setitem__", setitem, attr_error)) {
+      Value call_args[2] = {regs[in.a], regs[in.b]};
+      Value ignored;
+      if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
+        return XlangVMOpFlow::Next;
+      }
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  }
   if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
     if (value_as_instance(regs[in.dst]) != nullptr) {
       Value setitem;
@@ -715,7 +816,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
         }
       }
     }
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_set_item_error();
   }
   return XlangVMOpFlow::Next;
 }
@@ -749,12 +850,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
+    Runtime& runtime,
     RuntimeResult& result,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   const uint32_t first_output = in.dst;
   const uint32_t source = in.a;
   const uint32_t before_count = in.b;
@@ -768,13 +871,39 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
   std::string error;
   Value iterator;
   if (!sequence_get_iter(regs[source], iterator, error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
+    }
+    Value iter_method;
+    std::string attr_error;
+    if (!object_get_attr(regs[source], "__iter__", iter_method, attr_error)) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    Value iter_result;
+    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (!sequence_get_iter(iter_result, iterator, error)) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
   }
   std::vector<Value> values;
   for (;;) {
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (done) break;

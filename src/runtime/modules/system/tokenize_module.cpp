@@ -12,20 +12,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/builtins.h"
-
+#include "source_encoding.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
-#include "xlang3/parser.h"
+#include "xlang3/runtime.h"
+#include "xlang3/value.h"
 
-#include "source_encoding.h"
-
-#include <cstddef>
-#include <cstdint>
+#include <cctype>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace xlang3 {
@@ -34,435 +30,352 @@ namespace {
 
 constexpr const char* kTokenizerIterNativeType = "_tokenize.TokenizerIter";
 
-enum TokenizeNumber : int64_t {
-  TokEndMarker = 0,
-  TokName = 1,
-  TokNumber = 2,
-  TokString = 3,
-  TokNewline = 4,
-  TokIndent = 5,
-  TokDedent = 6,
-  TokOp = 55,
-  TokComment = 65,
-  TokNl = 66,
-  TokEncoding = 68,
-};
+constexpr int64_t kTokenEndMarker = 0;
+constexpr int64_t kTokenName = 1;
+constexpr int64_t kTokenNumber = 2;
+constexpr int64_t kTokenString = 3;
+constexpr int64_t kTokenNewline = 4;
+constexpr int64_t kTokenIndent = 5;
+constexpr int64_t kTokenDedent = 6;
+constexpr int64_t kTokenOp = 55;
+constexpr int64_t kTokenComment = 65;
+constexpr int64_t kTokenNl = 66;
 
-struct TokenizerToken {
-  int64_t type = TokEndMarker;
-  std::string text;
-  uint32_t line = 0;
-  uint32_t column = 0;
-  std::string line_text;
-};
-
-struct TokenizerIterState {
-  std::vector<TokenizerToken> tokens;
+struct TokenizerState {
+  Value source;
+  std::string encoding;
+  bool has_encoding = false;
+  bool extra_tokens = false;
+  bool built = false;
   size_t index = 0;
+  std::vector<int> indent_stack{0};
+  std::vector<Value> tokens;
 };
 
-void tokenizer_iter_state_cleanup(void* data) {
-  delete static_cast<TokenizerIterState*>(data);
+void tokenizer_cleanup(void* data) {
+  delete static_cast<TokenizerState*>(data);
 }
 
-bool token_kind_to_tokenize_number(TokenKind kind, int64_t& out) {
-  switch (kind) {
-  case TokenKind::End:
-    out = TokEndMarker;
-    return true;
-  case TokenKind::Newline:
-    out = TokNewline;
-    return true;
-  case TokenKind::Indent:
-    out = TokIndent;
-    return true;
-  case TokenKind::Dedent:
-    out = TokDedent;
-    return true;
-  case TokenKind::Identifier:
-  case TokenKind::KwDef:
-  case TokenKind::KwClass:
-  case TokenKind::KwReturn:
-  case TokenKind::KwIf:
-  case TokenKind::KwElif:
-  case TokenKind::KwElse:
-  case TokenKind::KwTry:
-  case TokenKind::KwExcept:
-  case TokenKind::KwCase:
-  case TokenKind::KwFinally:
-  case TokenKind::KwRaise:
-  case TokenKind::KwWith:
-  case TokenKind::KwWhile:
-  case TokenKind::KwFor:
-  case TokenKind::KwIn:
-  case TokenKind::KwImport:
-  case TokenKind::KwFrom:
-  case TokenKind::KwAs:
-  case TokenKind::KwGlobal:
-  case TokenKind::KwNonlocal:
-  case TokenKind::KwBreak:
-  case TokenKind::KwContinue:
-  case TokenKind::KwPass:
-  case TokenKind::KwDel:
-  case TokenKind::KwAssert:
-  case TokenKind::KwMatch:
-  case TokenKind::KwTrue:
-  case TokenKind::KwFalse:
-  case TokenKind::KwNone:
-  case TokenKind::KwAnd:
-  case TokenKind::KwOr:
-  case TokenKind::KwNot:
-  case TokenKind::KwIs:
-  case TokenKind::KwAsync:
-  case TokenKind::KwAwait:
-  case TokenKind::KwLambda:
-  case TokenKind::KwYield:
-    out = TokName;
-    return true;
-  case TokenKind::Integer:
-  case TokenKind::Double:
-    out = TokNumber;
-    return true;
-  case TokenKind::String:
-  case TokenKind::Bytes:
-  case TokenKind::FString:
-    out = TokString;
-    return true;
-  case TokenKind::LParen:
-  case TokenKind::RParen:
-  case TokenKind::LBracket:
-  case TokenKind::RBracket:
-  case TokenKind::LBrace:
-  case TokenKind::RBrace:
-  case TokenKind::Ellipsis:
-  case TokenKind::Dot:
-  case TokenKind::Comma:
-  case TokenKind::Semicolon:
-  case TokenKind::Colon:
-  case TokenKind::ColonEqual:
-  case TokenKind::At:
-  case TokenKind::Arrow:
-  case TokenKind::Assign:
-  case TokenKind::PlusAssign:
-  case TokenKind::MinusAssign:
-  case TokenKind::StarAssign:
-  case TokenKind::DoubleStarAssign:
-  case TokenKind::SlashAssign:
-  case TokenKind::DoubleSlashAssign:
-  case TokenKind::PercentAssign:
-  case TokenKind::AmpAssign:
-  case TokenKind::PipeAssign:
-  case TokenKind::CaretAssign:
-  case TokenKind::LeftShiftAssign:
-  case TokenKind::RightShiftAssign:
-  case TokenKind::Plus:
-  case TokenKind::Minus:
-  case TokenKind::Star:
-  case TokenKind::DoubleStar:
-  case TokenKind::Slash:
-  case TokenKind::DoubleSlash:
-  case TokenKind::Percent:
-  case TokenKind::Amp:
-  case TokenKind::Pipe:
-  case TokenKind::Caret:
-  case TokenKind::Tilde:
-  case TokenKind::LeftShift:
-  case TokenKind::RightShift:
-  case TokenKind::EqualEqual:
-  case TokenKind::NotEqual:
-  case TokenKind::Less:
-  case TokenKind::LessEqual:
-  case TokenKind::Greater:
-  case TokenKind::GreaterEqual:
-    out = TokOp;
+bool is_stop_iteration(Runtime& runtime) {
+  Value pending;
+  if (!runtime.take_pending_exception(pending)) {
+    return false;
+  }
+  const Value type = runtime.exception_type(pending);
+  const auto* klass = value_as_class(type);
+  if (klass != nullptr && klass->name == "StopIteration") {
     return true;
   }
+  runtime.set_pending_exception(std::move(pending));
   return false;
 }
 
-bool value_to_source_text(const Value& value, std::string& out, bool& bytes_like) {
-  if (StringObject* string_value = value_as_string(value)) {
-    out = string_object_to_string(*string_value);
-    bytes_like = false;
-    return true;
+bool value_to_bool(const Value& value) {
+  if (value.tag == ValueTag::Bool) {
+    return value.as.b;
   }
-  if (BytesObject* bytes_value = value_as_bytes(value)) {
-    out = std::string(bytes_object_view(*bytes_value));
-    bytes_like = true;
-    return true;
+  if (value.tag == ValueTag::Int64) {
+    return value.as.i64 != 0;
   }
-  if (ByteArrayObject* bytearray_value = value_as_bytearray(value)) {
-    out = bytearray_value->value;
-    bytes_like = true;
-    return true;
-  }
-  return false;
+  return value.tag != ValueTag::None && value.tag != ValueTag::Invalid;
 }
 
-bool read_source_from_readline(
-    Runtime& runtime,
-    const Value& readline,
-    const std::string* requested_encoding,
-    std::string& source,
-    std::string& encoding,
-    std::string& error) {
-  source.clear();
-  encoding = "utf-8";
-  bool saw_bytes = false;
-  for (;;) {
-    Value line;
-    if (!runtime_call_callable(runtime, readline, nullptr, 0, line, error)) {
-      Value pending;
-      if (runtime.take_pending_exception(pending)) {
-        if (auto* klass = value_as_class(runtime.exception_type(pending)); klass != nullptr && klass->name == "StopIteration") {
-          error.clear();
-          return true;
-        }
-        runtime.set_pending_exception(std::move(pending));
-      }
-      return false;
-    }
-    std::string text;
-    bool bytes_like = false;
-    if (!value_to_source_text(line, text, bytes_like)) {
-      error = "TokenizerIter readline must return bytes or str";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (text.empty()) {
-      if (saw_bytes) {
-        PythonSourceText decoded;
-        const bool decoded_ok = requested_encoding == nullptr
-                                    ? decode_python_source_bytes(source, decoded, error)
-                                    : decode_python_source_bytes_as(source, *requested_encoding, decoded, error);
-        if (!decoded_ok) {
-          runtime.raise_class_error("SyntaxError", error);
-          return false;
-        }
-        source = std::move(decoded.text);
-        encoding = std::move(decoded.encoding);
-      }
+bool keyword_value(
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    const char* name,
+    const Value*& out) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string_view(kwargs[i].name) == name) {
+      out = kwargs[i].value;
       return true;
     }
-    saw_bytes = saw_bytes || bytes_like;
-    source += text;
   }
+  return false;
 }
 
-std::vector<std::string> split_source_lines(std::string_view source) {
-  std::vector<std::string> lines;
-  size_t start = 0;
-  for (size_t i = 0; i < source.size(); ++i) {
-    if (source[i] == '\n') {
-      lines.emplace_back(source.substr(start, i - start + 1));
-      start = i + 1;
-    }
-  }
-  if (start < source.size()) {
-    lines.emplace_back(source.substr(start));
-  }
-  return lines;
-}
-
-std::string line_text_at(const std::vector<std::string>& lines, uint32_t one_based_line) {
-  if (one_based_line == 0 || one_based_line > lines.size()) {
-    return {};
-  }
-  return lines[one_based_line - 1];
-}
-
-size_t comment_start_in_line(std::string_view line) {
-  char quote = '\0';
-  bool escaped = false;
-  for (size_t i = 0; i < line.size(); ++i) {
-    const char ch = line[i];
-    if (quote != '\0') {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (ch == '\\') {
-        escaped = true;
-        continue;
-      }
-      if (ch == quote) {
-        quote = '\0';
-      }
-      continue;
-    }
-    if (ch == '\'' || ch == '"') {
-      quote = ch;
-      continue;
-    }
-    if (ch == '#') {
-      return i;
-    }
-  }
-  return std::string_view::npos;
-}
-
-std::vector<TokenizerToken> collect_comment_and_nl_tokens(const std::vector<std::string>& lines) {
-  std::vector<TokenizerToken> out;
-  for (uint32_t line_index = 0; line_index < lines.size(); ++line_index) {
-    const uint32_t line_no = line_index + 1;
-    const std::string& line = lines[line_index];
-    const size_t newline_size = !line.empty() && line.back() == '\n' ? 1 : 0;
-    const std::string_view content(line.data(), line.size() - newline_size);
-    const size_t first = content.find_first_not_of(" \t\r");
-    if (first == std::string_view::npos) {
-      out.push_back({TokNl, std::string(line.substr(content.size())), line_no, static_cast<uint32_t>(content.size()), line});
-      continue;
-    }
-    const size_t comment = comment_start_in_line(content);
-    if (comment != std::string_view::npos) {
-      out.push_back({TokComment, std::string(content.substr(comment)), line_no, static_cast<uint32_t>(comment), line});
-      if (first == comment) {
-        out.push_back({TokNl, std::string(line.substr(content.size())), line_no, static_cast<uint32_t>(content.size()), line});
-      }
-    }
-  }
-  return out;
-}
-
-Value make_position_tuple(uint32_t line, uint32_t column) {
-  std::vector<Value> items;
-  items.reserve(2);
-  items.push_back(Value::int64(line));
-  items.push_back(Value::int64(column));
-  return Value::tuple(std::move(items));
-}
-
-Value make_token_tuple(const TokenizerToken& token) {
-  const uint32_t end_column = token.column + static_cast<uint32_t>(token.text.size());
-  std::vector<Value> items;
-  items.reserve(5);
-  items.push_back(Value::int64(token.type));
-  items.push_back(Value::string(token.text));
-  items.push_back(make_position_tuple(token.line, token.column));
-  items.push_back(make_position_tuple(token.line, end_column));
-  items.push_back(Value::string(token.line_text));
-  return Value::tuple(std::move(items));
-}
-
-bool tokenizer_iter_init_impl(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const std::string* requested_encoding,
-    bool emit_encoding_token,
-    Value& out,
+bool line_text_from_value(
+    const Value& value,
+    const std::string& encoding,
+    bool has_encoding,
+    bool first_line,
+    std::string& out,
     std::string& error) {
-  if (argc < 2) {
-    error = "TokenizerIter.__init__() missing readline";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-
-  std::string source;
-  std::string encoding;
-  if (!read_source_from_readline(runtime, args[1], requested_encoding, source, encoding, error)) {
-    return false;
-  }
-
-  Lexer lexer(source);
-  LexResult lex = lexer.tokenize();
-  if (!lex.errors.empty()) {
-    error = lex.errors.front();
-    runtime.raise_class_error("SyntaxError", error);
-    return false;
-  }
-
-  auto* state = new TokenizerIterState();
-  if (emit_encoding_token) {
-    state->tokens.push_back({TokEncoding, encoding, 0, 0, ""});
-  }
-
-  const std::vector<std::string> lines = split_source_lines(source);
-  std::vector<TokenizerToken> extra_tokens = collect_comment_and_nl_tokens(lines);
-  size_t extra_index = 0;
-  auto append_extra_before = [&](uint32_t line, uint32_t column) {
-    while (extra_index < extra_tokens.size()) {
-      const auto& extra = extra_tokens[extra_index];
-      if (extra.line > line || (extra.line == line && extra.column >= column)) {
-        break;
+  if (auto* string = value_as_string(value)) {
+    out = string_object_to_string(*string);
+  } else if (auto* bytes = value_as_bytes(value)) {
+    PythonSourceText decoded;
+    const auto view = bytes_object_view(*bytes);
+    if (has_encoding) {
+      if (!decode_python_source_bytes_as(view, encoding, decoded, error)) {
+        return false;
       }
-      state->tokens.push_back(extra);
-      ++extra_index;
+    } else if (!decode_python_source_bytes(view, decoded, error)) {
+      return false;
     }
-  };
-  bool saw_end = false;
-  for (const Token& token : lex.tokens) {
-    int64_t type = TokOp;
-    if (!token_kind_to_tokenize_number(token.kind, type)) {
-      continue;
-    }
-    if (token.kind == TokenKind::End) {
-      saw_end = true;
-    }
-    const uint32_t zero_based_column = token.column > 0 ? token.column - 1 : 0;
-    append_extra_before(
-        token.kind == TokenKind::End ? static_cast<uint32_t>(lines.size() + 1) : token.line,
-        token.kind == TokenKind::End ? 0 : zero_based_column);
-    state->tokens.push_back(
-        {type,
-         std::string(token.text),
-         token.kind == TokenKind::End ? static_cast<uint32_t>(lines.size() + 1) : token.line,
-         token.kind == TokenKind::End ? 0 : zero_based_column,
-         token.kind == TokenKind::End ? std::string() : line_text_at(lines, token.line)});
-  }
-  while (extra_index < extra_tokens.size()) {
-    state->tokens.push_back(extra_tokens[extra_index++]);
-  }
-  if (!saw_end) {
-    state->tokens.push_back({TokEndMarker, "", static_cast<uint32_t>(lines.size() + 1), 0, ""});
-  }
-
-  if (!instance_set_native_data(args[0], kTokenizerIterNativeType, state, tokenizer_iter_state_cleanup, error)) {
-    delete state;
-    runtime.raise_class_error("TypeError", error);
+    out = std::move(decoded.text);
+  } else {
+    error = "_tokenize.TokenizerIter source must return str or bytes";
     return false;
   }
-
-  value_set_none(out);
+  if (first_line && out.size() >= 3 &&
+      static_cast<unsigned char>(out[0]) == 0xef &&
+      static_cast<unsigned char>(out[1]) == 0xbb &&
+      static_cast<unsigned char>(out[2]) == 0xbf) {
+    out.erase(0, 3);
+  }
   return true;
 }
 
-bool tokenizer_iter_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return tokenizer_iter_init_impl(runtime, args, argc, nullptr, true, out, error);
+bool is_identifier_start(unsigned char ch) {
+  return std::isalpha(ch) != 0 || ch == '_';
 }
 
-bool tokenizer_iter_init_kw(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& out,
-    std::string& error,
-    void* user_data) {
-  std::string requested_encoding;
-  for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
-    if (name != "encoding" && name != "extra_tokens") {
-      error = "TokenizerIter.__init__() got an unexpected keyword argument '" + name + "'";
-      runtime.raise_class_error("TypeError", error);
-      return false;
+bool is_identifier_continue(unsigned char ch) {
+  return std::isalnum(ch) != 0 || ch == '_';
+}
+
+Value position_value(size_t row, size_t col) {
+  return Value::tuple({Value::int64(static_cast<int64_t>(row)), Value::int64(static_cast<int64_t>(col))});
+}
+
+Value token_value(int64_t type, std::string text, size_t srow, size_t scol, size_t erow, size_t ecol, const std::string& line) {
+  return Value::tuple({
+      Value::int64(type),
+      Value::string(std::move(text)),
+      position_value(srow, scol),
+      position_value(erow, ecol),
+      Value::string(line),
+  });
+}
+
+void push_token(
+    TokenizerState& state,
+    int64_t type,
+    std::string text,
+    size_t srow,
+    size_t scol,
+    size_t erow,
+    size_t ecol,
+    const std::string& line) {
+  state.tokens.push_back(token_value(type, std::move(text), srow, scol, erow, ecol, line));
+}
+
+bool starts_with(std::string_view text, size_t pos, std::string_view needle) {
+  return pos + needle.size() <= text.size() && text.substr(pos, needle.size()) == needle;
+}
+
+size_t scan_string_literal(std::string_view line, size_t pos) {
+  size_t quote = pos;
+  while (quote < line.size()) {
+    const unsigned char ch = static_cast<unsigned char>(line[quote]);
+    if (ch == '\'' || ch == '"') {
+      break;
     }
-    if (name == "encoding") {
-      if (auto* str = value_as_string(*kwargs[i].value)) {
-        requested_encoding = string_object_to_string(*str);
-      } else if (kwargs[i].value->tag != ValueTag::None) {
-        error = "TokenizerIter.__init__() encoding must be str or None";
-        runtime.raise_class_error("TypeError", error);
-        return false;
+    if (ch != 'r' && ch != 'R' && ch != 'b' && ch != 'B' && ch != 'f' && ch != 'F' && ch != 't' && ch != 'T' &&
+        ch != 'u' && ch != 'U') {
+      return pos;
+    }
+    ++quote;
+  }
+  if (quote >= line.size()) {
+    return pos;
+  }
+  const char delimiter = line[quote];
+  const bool triple = starts_with(line, quote, std::string_view(&delimiter, 1)) &&
+                      quote + 2 < line.size() && line[quote + 1] == delimiter && line[quote + 2] == delimiter;
+  size_t cursor = quote + (triple ? 3 : 1);
+  bool escaped = false;
+  while (cursor < line.size()) {
+    if (escaped) {
+      escaped = false;
+      ++cursor;
+      continue;
+    }
+    const char ch = line[cursor];
+    if (ch == '\\') {
+      escaped = true;
+      ++cursor;
+      continue;
+    }
+    if (triple) {
+      if (cursor + 2 < line.size() && line[cursor] == delimiter && line[cursor + 1] == delimiter && line[cursor + 2] == delimiter) {
+        return cursor + 3;
       }
+    } else if (ch == delimiter) {
+      return cursor + 1;
+    }
+    ++cursor;
+  }
+  return line.size();
+}
+
+std::string scan_operator(std::string_view line, size_t pos, size_t& width) {
+  static constexpr std::string_view kThree[] = {"//=", "**=", "<<=", ">>=", "..."};
+  static constexpr std::string_view kTwo[] = {
+      "!=", "%=", "&=", "*=", "+=", "-=", "->", "//", ":=", "<<", "<=", "==", ">=", ">>", "@=", "^=", "|="};
+  for (auto op : kThree) {
+    if (starts_with(line, pos, op)) {
+      width = op.size();
+      return std::string(op);
     }
   }
-  const std::string* encoding_ptr = requested_encoding.empty() ? nullptr : &requested_encoding;
-  return tokenizer_iter_init_impl(runtime, args, argc, encoding_ptr, encoding_ptr == nullptr, out, error);
+  for (auto op : kTwo) {
+    if (starts_with(line, pos, op)) {
+      width = op.size();
+      return std::string(op);
+    }
+  }
+  width = 1;
+  return std::string(1, line[pos]);
 }
 
-bool tokenizer_iter_self(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+void emit_indent_tokens(TokenizerState& state, size_t line_no, size_t indent, const std::string& line) {
+  const int current = state.indent_stack.empty() ? 0 : state.indent_stack.back();
+  if (static_cast<int>(indent) > current) {
+    state.indent_stack.push_back(static_cast<int>(indent));
+    push_token(state, kTokenIndent, line.substr(0, indent), line_no, 0, line_no, indent, line);
+    return;
+  }
+  while (!state.indent_stack.empty() && static_cast<int>(indent) < state.indent_stack.back()) {
+    state.indent_stack.pop_back();
+    push_token(state, kTokenDedent, "", line_no, indent, line_no, indent, line);
+  }
+}
+
+void tokenize_line(TokenizerState& state, const std::string& line, size_t line_no) {
+  const size_t line_size = line.size();
+  size_t logical_end = line_size;
+  if (logical_end > 0 && line[logical_end - 1] == '\n') {
+    --logical_end;
+  }
+  if (logical_end > 0 && line[logical_end - 1] == '\r') {
+    --logical_end;
+  }
+
+  size_t indent = 0;
+  while (indent < logical_end && (line[indent] == ' ' || line[indent] == '\t')) {
+    indent += line[indent] == '\t' ? 8 : 1;
+  }
+
+  if (indent >= logical_end) {
+    if (line_size > logical_end) {
+      push_token(state, kTokenNl, line.substr(logical_end), line_no, logical_end, line_no, line_size, line);
+    }
+    return;
+  }
+
+  if (line[indent] != '#') {
+    emit_indent_tokens(state, line_no, indent, line);
+  }
+
+  size_t pos = indent;
+  bool emitted_statement_token = false;
+  while (pos < logical_end) {
+    const unsigned char ch = static_cast<unsigned char>(line[pos]);
+    if (ch == ' ' || ch == '\t' || ch == '\f') {
+      ++pos;
+      continue;
+    }
+    if (ch == '#') {
+      if (state.extra_tokens) {
+        push_token(state, kTokenComment, line.substr(pos, logical_end - pos), line_no, pos, line_no, logical_end, line);
+      }
+      break;
+    }
+    if (is_identifier_start(ch)) {
+      const size_t start = pos++;
+      while (pos < logical_end && is_identifier_continue(static_cast<unsigned char>(line[pos]))) {
+        ++pos;
+      }
+      push_token(state, kTokenName, line.substr(start, pos - start), line_no, start, line_no, pos, line);
+      emitted_statement_token = true;
+      continue;
+    }
+    if (std::isdigit(ch) != 0) {
+      const size_t start = pos++;
+      while (pos < logical_end &&
+             (std::isalnum(static_cast<unsigned char>(line[pos])) != 0 || line[pos] == '_' || line[pos] == '.')) {
+        ++pos;
+      }
+      push_token(state, kTokenNumber, line.substr(start, pos - start), line_no, start, line_no, pos, line);
+      emitted_statement_token = true;
+      continue;
+    }
+    const size_t literal_end = scan_string_literal(line, pos);
+    if (literal_end > pos) {
+      push_token(state, kTokenString, line.substr(pos, literal_end - pos), line_no, pos, line_no, literal_end, line);
+      pos = literal_end;
+      emitted_statement_token = true;
+      continue;
+    }
+    size_t width = 0;
+    std::string op = scan_operator(line, pos, width);
+    push_token(state, kTokenOp, std::move(op), line_no, pos, line_no, pos + width, line);
+    pos += width;
+    emitted_statement_token = true;
+  }
+
+  if (line_size > logical_end) {
+    push_token(state, emitted_statement_token ? kTokenNewline : kTokenNl, line.substr(logical_end), line_no, logical_end, line_no, line_size, line);
+  }
+}
+
+bool build_tokens(Runtime& runtime, TokenizerState& state, std::string& error) {
+  if (state.built) {
+    return true;
+  }
+  state.built = true;
+
+  for (size_t line_no = 1;; ++line_no) {
+    Value raw_line;
+    if (!runtime_call_callable(runtime, state.source, nullptr, 0, raw_line, error)) {
+      if (is_stop_iteration(runtime)) {
+        break;
+      }
+      return false;
+    }
+    if (auto* bytes = value_as_bytes(raw_line)) {
+      if (bytes_object_view(*bytes).empty()) {
+        break;
+      }
+    } else if (auto* string = value_as_string(raw_line)) {
+      if (string_object_view(*string).empty()) {
+        break;
+      }
+    }
+
+    std::string line;
+    if (!line_text_from_value(raw_line, state.encoding, state.has_encoding, line_no == 1, line, error)) {
+      return false;
+    }
+    if (line.empty()) {
+      break;
+    }
+    tokenize_line(state, line, line_no);
+    if (line.back() != '\n' && line.back() != '\r') {
+      break;
+    }
+  }
+
+  const size_t end_line = state.tokens.empty() ? 1 : state.tokens.size() + 1;
+  while (state.indent_stack.size() > 1) {
+    state.indent_stack.pop_back();
+    push_token(state, kTokenDedent, "", end_line, 0, end_line, 0, "");
+  }
+  push_token(state, kTokenEndMarker, "", end_line, 0, end_line, 0, "");
+  return true;
+}
+
+TokenizerState* tokenizer_state(const Value& self, std::string& error) {
+  auto* state = static_cast<TokenizerState*>(instance_get_native_data(self, kTokenizerIterNativeType));
+  if (state == nullptr) {
+    error = "invalid TokenizerIter object";
+  }
+  return state;
+}
+
+bool tokenizer_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "TokenizerIter.__iter__() expected no arguments";
     return false;
@@ -471,39 +384,106 @@ bool tokenizer_iter_self(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool tokenizer_iter_next(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool tokenizer_next(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "TokenizerIter.__next__() expected no arguments";
-    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* state = static_cast<TokenizerIterState*>(instance_get_native_data(args[0], kTokenizerIterNativeType));
+  auto* state = tokenizer_state(args[0], error);
   if (state == nullptr) {
-    error = "TokenizerIter is not initialized";
-    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (!build_tokens(runtime, *state, error)) {
     return false;
   }
   if (state->index >= state->tokens.size()) {
     runtime.raise_class_error("StopIteration", "");
     return false;
   }
-  out = make_token_tuple(state->tokens[state->index++]);
+  value_assign_fast(out, state->tokens[state->index++]);
   return true;
+}
+
+bool tokenizer_init_impl(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  if (argc < 2 || argc > 3) {
+    error = "TokenizerIter() expected source and optional encoding";
+    return false;
+  }
+  auto* state = new TokenizerState();
+  state->source = args[1];
+
+  if (argc == 3) {
+    auto* text = value_as_string(args[2]);
+    if (text == nullptr) {
+      delete state;
+      error = "TokenizerIter encoding must be a string";
+      return false;
+    }
+    state->encoding = canonical_python_source_encoding(string_object_to_string(*text));
+    state->has_encoding = true;
+  }
+
+  const Value* encoding_kw = nullptr;
+  if (keyword_value(kwargs, kwargc, "encoding", encoding_kw)) {
+    auto* text = value_as_string(*encoding_kw);
+    if (text == nullptr) {
+      delete state;
+      error = "TokenizerIter encoding must be a string";
+      return false;
+    }
+    state->encoding = canonical_python_source_encoding(string_object_to_string(*text));
+    state->has_encoding = true;
+  }
+
+  const Value* extra_tokens_kw = nullptr;
+  if (keyword_value(kwargs, kwargc, "extra_tokens", extra_tokens_kw)) {
+    state->extra_tokens = value_to_bool(*extra_tokens_kw);
+  }
+
+  if (!instance_set_native_data(args[0], kTokenizerIterNativeType, state, tokenizer_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool tokenizer_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return tokenizer_init_impl(runtime, args, argc, nullptr, 0, out, error);
+}
+
+bool tokenizer_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return tokenizer_init_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
 Value make_tokenizer_iter_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__init__",
-                   runtime.make_native_function(
-                       "_tokenize.TokenizerIter.__init__",
-                       tokenizer_iter_init,
-                       nullptr,
-                       nullptr,
-                       nullptr,
-                       false,
-                       tokenizer_iter_init_kw)});
-  attrs.push_back({"__iter__", runtime.make_native_function("_tokenize.TokenizerIter.__iter__", tokenizer_iter_self)});
-  attrs.push_back({"__next__", runtime.make_native_function("_tokenize.TokenizerIter.__next__", tokenizer_iter_next)});
+  attrs.push_back({"__module__", Value::string("_tokenize")});
+  attrs.push_back({"__iter__", runtime.make_native_function("_tokenize.TokenizerIter.__iter__", tokenizer_iter)});
+  attrs.push_back({"__next__", runtime.make_native_function("_tokenize.TokenizerIter.__next__", tokenizer_next)});
+  attrs.push_back({"__init__", runtime.make_native_function(
+                                   "_tokenize.TokenizerIter.__init__",
+                                   tokenizer_init,
+                                   nullptr,
+                                   nullptr,
+                                   nullptr,
+                                   false,
+                                   tokenizer_init_kw)});
   return Value::class_object("TokenizerIter", std::move(attrs));
 }
 

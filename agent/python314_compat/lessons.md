@@ -1,325 +1,236 @@
-<!--
-Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 # Compatibility Loop Lessons
 
-Keep this file short and practical. Add lessons only when a batch exposes a
-mistake pattern, a recurring compatibility trap, or a workflow rule that should
-shape the next iteration.
+Keep this file short. Add only reusable lessons that should shape future
+batches.
 
-- Use `rg -F` for literal searches in PowerShell. Audit checkboxes, backticks,
-  brackets, quotes, C++ punctuation, and Python syntax are literals unless a
-  regex is explicitly needed.
-- Do not update expected fixture output blindly. First compare with Python 3.14
-  or the intended XLang3 runtime contract, then decide whether the runtime or
-  the golden output is wrong.
-- Every claimed compatibility feature needs a concrete fixture assertion. Add
-  assertions to the combined section fixture when possible; add a focused
-  fixture when the behavior deserves isolation.
-- Do not start a second loop while one is running. Use the loop lock and the
-  stop-request file so a human stop exits after the current iteration.
-- Codex CLI output is UTF-8. When the loop captures child output on Windows, do
-  not use the console default code page; decode as UTF-8 with replacement so
-  warnings or Unicode diagnostics cannot crash the runner.
-- Git command output captured for prompt/commit generation can also contain
-  UTF-8 diff text. Decode helper output as UTF-8 with replacement instead of
-  using the Windows console default codec.
-- In continuous mode, one empty Codex batch should not stop the goal. Treat it
-  as no-progress and retry a small fixed number of times before exiting.
-- Compatibility fixtures must run headless. Windows crash/report dialogs from
-  child `xlang3.exe` processes block the loop, so the CLI and Python fixture
-  runners both disable popup error UI and report failures in console output.
-- A passing direct fixture run is not enough for threaded/runtime-sensitive
-  code. Also test it through the fixture runner with captured stdout/stderr,
-  because pipe output and process teardown can expose different lifetime bugs.
-- Do not “fix” thread crashes by turning on a coarse global VM lock. It can
-  deadlock fixtures that intentionally wait across threads; fix ownership,
-  teardown, and lock boundaries instead.
-- Keep Python and native thread target execution-lock boundaries symmetric.
-  Inherited trace/profile hooks exercise frame snapshots from worker threads and
-  can expose crashes when only the native target path is locked.
-- Descriptor primitive changes often need both `object_get_attr` and the VM
-  fast-path attribute helper updated; otherwise explicit descriptor calls and
-  compiled attribute access can diverge.
-- Native module functions that should raise catchable Python exceptions must
-  call `runtime.raise_class_error`; returning `false` with only an error string
-  can surface as an uncaught runtime failure instead.
-- The selected section runner executes a section fixture but does not compare
-  it with the golden output. After adding or reordering fixture assertions, run
-  the full fixture script or do an explicit line comparison before trusting the
-  expected-output file.
-- A failed build or fixture run should become a repair prompt in the same Codex
-  session. Preserve the changed batch, feed back the captured validation log,
-  fix the regression, and only commit after the next validation pass.
-- Native functions that should reject keyword arguments with a catchable Python
-  `TypeError` need an explicit keyword callback; otherwise the generic native
-  dispatcher can surface the rejection as an uncaught runtime failure.
-- Container subclass construction may depend on inherited native `__init__`
-  methods even when exact builtin construction is handled by VM constructor
-  fast paths. Add the initializer on the builtin type and cover both subclass
-  construction and direct `dict.__init__`-style calls when exposing it.
-- Shared structseq method implementations need the same catchable
-  `TypeError` and explicit keyword-callback handling as direct native methods;
-  one bare registration can leak raw runtime errors across every structseq type.
-- Check whether a native-backed public stdlib API is originally a Python
-  function before rejecting keywords. Public helpers may need keyword binding
-  even when adjacent private C helper functions reject all keywords.
-- Deprecated descriptor wrappers can expose compatibility state on the wrapper
-  itself rather than mutating wrapped callables. Check CPython-visible descriptor
-  attributes before assuming accessor marker propagation.
-- `property.__doc__` needs an internal "inherited from getter" distinction:
-  replacement getters recompute inherited docs, while explicit docs remain stable.
-- `property.__name__` follows the same inherited-versus-explicit cloning shape
-  as property docs in Python 3.14, with deletion resetting to the getter name.
-- PowerShell does not accept Bash-style `<<'EOF'` heredocs. Use `python -c`
-  or an existing fixture/script path for CPython probes on Windows.
-- Class and callable metadata checks should pin visible doc text when an audit
-  row claims CPython-shaped docs. A non-`None` doc assertion can hide
-  compatibility-visible one-line summaries where CPython exposes structured
-  multi-line documentation.
-- When fixture checks pin CPython multi-line docs, choose substrings that do not
-  cross line-wrapping boundaries unless the newline itself is intentional.
-  CPython doc text can split phrases such as `profiler\nchapter`, so prose
-  substring checks must be based on the probed `repr`.
-- Intern-table size probes can mutate the value they are measuring because
-  keyword names, metadata strings, or fixture temporaries may be interned during
-  the probe. Assert monotonic relationships or relative bounds instead of exact
-  equality across successive intern-count calls.
-- Structseq type metadata belongs in the shared builder. CPython-visible
-  `__module__`/`__qualname__` gaps can otherwise affect every generated
-  `sys.*_info` type even when instances, descriptors, and reprs look correct.
-- Type reprs need to derive from visible class `__module__`/`__qualname__`
-  metadata while eliding `builtins`; setting those attrs alone can still leave
-  CPython-visible `<class 'module.name'>` mismatches if the shared repr path
-  uses only the internal class name.
-- Float display precision is a shared value-model primitive. Low default C++
-  stream precision can leak into structseq reprs such as `sys.float_info`, so
-  fix the central float formatter and cover both the structseq repr and direct
-  `repr()`/`str()` cases.
-- When startup metadata depends on bootstrap modules registered after `sys`,
-  publish the already-created runtime objects from the later registration step
-  instead of inventing placeholder objects or forcing a broader registration
-  reorder.
-- Exception detection cannot rely only on names ending in `Error` or
-  `Exception`; CPython-visible builtins such as `SystemExit`, `GeneratorExit`,
-  and `StopIteration` still need normal `BaseException` string/args behavior.
-- Lambda lowering reuses `clone_expr`; when adding expression forms, cover both
-  plain literals and comprehensions. Missing `DictExpr`/`SetExpr` clones can
-  silently turn lambda bodies into `None` even when normal function returns work.
-- Builtin constructor fast paths must mirror native `__new__` metadata side
-  effects. `type(name, bases, namespace)` can bypass `type.__new__`, so class
-  `__module__`/`__qualname__` defaults need coverage for both direct `type()`
-  construction and class statements.
-- Shared time tuple helpers have different contracts depending on caller:
-  `time.struct_time` construction accepts 10/11-field extra metadata, while
-  `mktime`/`strftime`/`asctime` consume exactly 9-field time tuples.
-- `sys.exit(status)` does not behave like direct `SystemExit(status)` for tuple
-  statuses: CPython unpacks tuple status through exception normalization before
-  computing `SystemExit.args` and `code`.
-- Direct `abc.abstractmethod()` marker writes are stricter than deprecated ABC
-  descriptor wrapper construction: direct staticmethod/classmethod/native
-  callable targets should raise `AttributeError`, while `abstractstaticmethod`
-  and `abstractclassmethod` still create marked wrappers.
-- Direct `abc.abstractmethod()` on runtime builtin classes fails with immutable
-  type `TypeError`, not marker-write `AttributeError`; identify builtin class
-  objects by runtime registry identity rather than visible `__module__` alone.
-- Time tuple consumers and `time.struct_time` construction have different
-  accepted input types as well as lengths: `mktime`/`strftime`/`asctime`
-  reject lists, while `struct_time` construction accepts sequence inputs.
-- Attribute-compatible objects are not always acceptable to CPython C-style
-  APIs. `mktime`/`strftime`/`asctime` require a tuple or exact `time.struct_time`
-  instance, not an arbitrary object with `tm_*` fields.
-- `sys.getsizeof(obj, default)` falls back for missing/non-callable `__sizeof__`
-  or a `TypeError` raised while calling it, but a successful `__sizeof__` call
-  that returns a non-int still raises the normal `TypeError` diagnostic.
-- When a native compatibility fallback is keyed to a Python exception type,
-  match subclasses with `class_is_subclass` instead of checking the exact class
-  name; `sys.getsizeof(..., default)` treats `TypeError` subclasses like
-  `TypeError`.
-- For protocol helpers with optional default fallback, cover the no-default
-  diagnostic separately. `sys.getsizeof()` falls back for a non-callable
-  `__sizeof__` only when a default is supplied; otherwise it exposes the normal
-  non-callable TypeError text.
-- Public Python aliases for native helper functions can still expose native
-  module names in CPython diagnostics. `abc.get_cache_token(x=...)` reports
-  `_abc.get_cache_token() takes no keyword arguments`, so keyword callbacks may
-  need explicit function-qualified user data rather than deriving names from the
-  public registration site.
-- CPython `_abc` helper arity diagnostics are not uniform across helpers:
-  one-argument helpers use fully qualified `takes exactly one argument (N given)`
-  text, but `_abc_register`/`_abc_subclasscheck`/`_abc_instancecheck` use their
-  short C helper names in `expected 2 arguments, got N` messages. Probe each
-  helper family before sharing one arity formatter.
-- Native wrappers that delegate to an equivalent implementation still need
-  their own CPython-visible name in arity diagnostics. `sys._clear_type_cache`
-  can share behavior with `_clear_internal_caches`, but its positional error
-  must report `sys._clear_type_cache()`, not the callee helper.
-- Tuple-backed native types may need an explicit `__str__` even when `__repr__`
-  is correct. CPython displays `time.struct_time` with the named-field repr for
-  both `repr()` and `str()`, so cover both display entry points.
-- User-facing output hooks must use descriptor-aware display conversion, not the
-  low-level value formatter. `sys.displayhook(obj)` is a `repr(obj)` surface and
-  must honor native instance `__repr__` methods such as `time.struct_time`.
-- Protocol-return diagnostics often include the returned object's visible type.
-  `sys.displayhook()` reports `__repr__ returned non-string (type int)`, so cover
-  the error text, not just that a `TypeError` was raised.
-- Avoid hand-rolled display escaping when a shared `repr` primitive exists.
-  `sys.displayhook("don't")` must use CPython's quote-selection rules, so route
-  string output through `value_to_repr` instead of duplicating partial escaping.
-- `sys.displayhook` clears `builtins._` before invoking `repr(obj)`, not after.
-  Protocol callbacks can observe hook state, so fixture both the callback-visible
-  state and the final `_` value when changing displayhook ordering.
-- Native function metadata often has multiple CPython-visible channels. Do not
-  overload keyword-diagnostic `user_data` with `__text_signature__`; store text
-  signatures explicitly in the native attrs dict and keep CPython-normal `None`
-  for helpers that do not expose one.
-- Native callable docs can contain CPython quirks that do not follow from the
-  visible function name. For example, Python 3.14 reports
-  `process_time() -> int` for `time.process_time_ns.__doc__`, so probe docs
-  directly and fixture stable substrings or exact short docs.
-- The Standard Modules section runs close to the fixed 60-second full-suite
-  case timeout. If full validation times out there after the selected section
-  passes, stop new feature work, rerun the fixed selected comparison to isolate
-  marginal duration versus hang, and only rerun full validation after that check.
-- When a section fixture is already near the fixed case timeout, do not add
-  metadata-only assertions to that monolithic section as an isolated batch.
-  Prefer a focused already-run fixture or defer the metadata expansion until the
-  section runtime has headroom.
-- Directive aliases can be platform-specific in CPython `strptime`. Probe the
-  active Python 3.14 build before accepting POSIX aliases such as `%h` on
-  Windows, and let partially valid parsers report leftover suffixes through the
-  shared trailing-data path instead of converting them to generic mismatch
-  errors.
-- Native-backed objects exposed as `_io.TextIOWrapper` still need to honor the
-  text-layer return contract. Keep byte-oriented plumbing below the public
-  stdio methods; `sys.stdin.read()` and `readline()` return `str`, not `bytes`.
-- Metadata added to native functions must survive descriptor binding when
-  CPython exposes it on bound built-in methods. Forward `__text_signature__`
-  through the bound-method attribute path instead of only storing it on the raw
-  native callable.
-- `sys.std*.buffer` is a separate binary stream object, not an alias for the
-  text wrapper. Keep the shared underlying standard stream ownership unchanged,
-  but expose bytes at the buffered layer and strings at the TextIOWrapper layer.
-- Shared native method callbacks can still need receiver-specific diagnostics.
-  When one implementation backs multiple CPython-visible classes, derive the
-  displayed class name from the bound receiver instead of hardcoding the first
-  wrapper type.
-- Module-defined exception classes still need normal `BaseException` display
-  behavior. Do not key exception `str()` rendering only on class names ending in
-  `Error`/`Exception`; CPython classes such as `io.UnsupportedOperation` inherit
-  the message behavior without matching those suffixes.
-- Import compatibility includes visible cache side effects. When the runtime
-  bypasses CPython's path-hook dispatch with a native fast path, mirror
-  `sys.path_importer_cache` entries for the selected path item so stdlib code
-  observing import state sees the expected importer object.
-- Before adding a native helper body, search with the same recursive file walk
-  used for edits, not a shell glob that may silently miss files. Existing
-  unregistered or under-fixtured helpers should be covered or registered
-  without duplicating their implementation.
-- When strengthening a native facade toward CPython behavior for valid inputs,
-  preserve existing compatibility semantics for deliberately accepted legacy
-  inputs unless the batch explicitly retires them with fixture coverage.
-- Archive-backed zipimporter execution should reuse the normal parse/lower/run
-  module path and assert `sys.modules`, `__loader__`, `__spec__`, and `__file__`
-  metadata; keep `load_module()` registration semantics separate from
-  `exec_module()`'s supplied-module execution, and keep non-zip legacy facade
-  behavior separate when fixtures already depend on it.
-- Visible startup containers can intentionally differ from internal runtime
-  search roots. For `-c`, publish CPython's empty-string `sys.path[0]` sentinel
-  while preserving the resolved cwd import root for actual module lookup.
-- Import loader compatibility includes protocol no-ops such as
-  `create_module()` and `invalidate_caches()`. Add them to the real loader
-  object when `find_spec()` exposes that object through `ModuleSpec.loader`.
-- `sys.exception()`/`sys.exc_info()` state is scoped to active exception
-  handlers, not just the last raised exception. Nested handlers must restore
-  the previous handler exception on normal exit, while exceptions that propagate
-  out of a handler must discard that abandoned context before entering an
-  enclosing handler.
-- Shared path converters must preserve CPython's distinct path-protocol error
-  surfaces: objects with no usable path protocol report `expected str, bytes or
-  os.PathLike object, not T`, while a present `__fspath__()` that returns the
-  wrong type reports `expected T.__fspath__() to return str or bytes, not R`.
-- `sys.monitoring._all_events()` reports global events as `event_name -> tool
-  bitmask` using `1 << tool_id`; local-only event masks do not appear in this
-  snapshot.
-- CPython member descriptors return themselves for `__get__(None, owner)` but
-  reject `__get__(None)` and `__get__(None, None)` with `__get__(None, None) is
-  invalid`; wrong-receiver errors name the descriptor, owning type, and visible
-  receiver type.
-- Tuple-backed member descriptors such as `sys.version_info.major` and
-  `time.struct_time.tm_year` are readonly: their `__set__`/`__delete__` should
-  raise `AttributeError: readonly attribute` for valid receivers while still
-  using descriptor wrong-receiver `TypeError` for unrelated objects.
-- Native descriptor wrapper methods need their CPython wrapper-style keyword
-  rejection text; a generic native-function keyword failure should not leak
-  through surfaces such as `member_descriptor.__get__`, `__set__`, or
-  `__delete__`.
-- CPython `sys` structseq reduction uses the tuple-backed sequence payload plus
-  a separate dict for named-only fields. `sys.flags.__reduce__()` and
-  `__reduce_ex__()` must preserve `gil`, `thread_inherit_context`, and
-  `context_aware_warnings` there even though they are excluded from
-  `len(sys.flags)` and `__match_args__`.
-- CPython `sys` structseq constructors are split by type: `version_info` and
-  `flags` reject direct construction, while `int_info`, `float_info`,
-  `hash_info`, and `thread_info` reconstruct from a sequence plus optional
-  named-field dict. Pickle payload support is incomplete unless the exposed
-  constructor path accepts the same shape.
-- Windows `sys.getwindowsversion` is another non-instantiable `sys` structseq,
-  but its `__reduce__()` and `__reduce_ex__()` payloads still include named-only
-  fields such as `platform_version`. Do not infer constructibility from reduce
-  support.
-- Native helper metadata includes small pickle/inspect-facing details beyond
-  docs. For `_abc`, CPython exposes function-level `__qualname__` and
-  `__text_signature__` on private helpers as well as public `abc.get_cache_token`,
-  so route those through the shared native function attribute setup.
-- Import metadata stamped before startup source-path discovery can become stale:
-  CPython built-in and frozen loaders are class objects, not loader instances,
-  and frozen `ModuleSpec` entries use `origin='frozen'` with
-  `has_location=False` even when a compatibility `__file__` is published.
-- Early native modules are registered before `importlib.machinery` creates the
-  public bootstrap classes. Canonicalize existing built-in/frozen module
-  `__loader__` and `__spec__.loader` values once those classes exist so identity
-  checks against `BuiltinImporter` and `FrozenImporter` match CPython.
-- CPython startup metadata can encode build-tree constants rather than runtime
-  paths. On Windows Python 3.14, `sys._vpath` is the literal `"..\\.."`;
-  keep platform-specific probes before replacing such fields with generic
-  placeholders.
-- CPython `sys._is_immortal()` does not mean "currently interned": `sys.intern()`
-  can return non-immortal strings for non-identifier text. Probe empty strings,
-  identifier strings, dynamic strings, and interned non-identifier strings
-  separately before mapping interning state to immortality.
-- `sys.getunicodeinternedsize(_only_immortal=True)` counts the interpreter's
-  immortal interned-string subset, not the live set of strings later added by
-  `sys.intern()`. Track string immortality as object metadata instead of
-  recomputing it from text shape or current interning state.
-- `time.get_clock_info()` is a contract for the actual clock primitive as well
-  as metadata. On Windows, route the public time/process/thread clocks through
-  the same OS APIs named in the CPython-visible implementation field instead of
-  publishing CPython-shaped backend names over generic C++ clock calls.
-- Narrow metadata gaps on native module helpers should stay in the module helper
-  when possible. Touching shared inline VM constructor headers can force a long
-  whole-VM optimized rebuild; reserve that path for behavior changes that truly
-  need call/constructor dispatch changes.
-- When a pure-Python stdlib import fails through a missing native dependency,
-  keep the batch fixture scoped to the dependency being implemented. On Windows,
-  `shutil` reaches `_winapi` after `errno`, so validating `shutil` importability
-  belongs to a separate `_winapi` compatibility batch.
-- After `_winapi` import succeeds, CPython `shutil.py` can still expose ordinary
-  runtime gaps before import completes; on Windows the next observed blocker is
-  `os.stat_result`, so do not claim `shutil` importability from `_winapi`
-  constants/function coverage alone.
-- CPython stdlib modules can depend on structseq type identity before they call
-  deeper APIs. On Windows, after `os.stat_result` is present, `shutil.py` next
-  reaches the low-level `os.open` surface; keep `stat_result` fixtures scoped to
-  tuple/type/named-field behavior and handle fd APIs in a separate `os` batch.
+## Product Direction
+
+- The goal is Python 3.14 runtime compatibility. Do not optimize for debugpy,
+  benchmarks, or isolated fixture tricks.
+- Pure Python CPython stdlib modules should run from the real `Lib/*.py` source.
+  Do not add public C++ facades for modules such as `asyncio`, `ctypes`,
+  `threading`, `warnings`, `signal`, `abc`, `collections`, `queue`, `json`,
+  `pathlib`, `inspect`, `argparse`, `typing`, `subprocess`, or `zipfile`.
+- Native C++ is for XLang3 runtime primitives, builtins/builtin types, CPython
+  native dependency modules, and product-specific accelerated modules.
+- When a pure stdlib import fails, fix the runtime primitive or native
+  dependency it exposes. Do not make the import pass with a stub.
+- The `ctypes` cleanup is the canonical example: do not register native
+  `ctypes`/`ctypes.wintypes`; implement `_ctypes` and let CPython's
+  `Lib/ctypes` package run.
+
+## Validation
+
+- Every compatibility claim needs fixture coverage under `tests/fixtures`.
+- Do not update expected output just to pass. Compare with Python 3.14 behavior
+  or the intended XLang3 runtime contract first.
+- Treat crashes, hangs, Windows popups, negative exits, and timeout regressions
+  as runtime bugs. Add the smallest fixture repro before fixing.
+- If validation fails, repair the current batch before advancing to a new task.
+
+## Workflow
+
+- Use deterministic scripts: `agent/scripts/build_release.py`,
+  `agent/scripts/run_fixtures.py`, and `agent/scripts/run_section_fixture.py`.
+- Use `rg -F` for literal PowerShell searches involving checkboxes, brackets,
+  backticks, quotes, C++ punctuation, or Python syntax.
+- Do not start a second loop while one is running. Use the loop lock and
+  stop-request file.
+- Decode captured child process output as UTF-8 with replacement on Windows.
+
+## Runtime Compatibility
+
+- Descriptor changes usually need both generic attribute lookup and VM fast-path
+  attribute lookup updated together.
+- Native functions that should raise catchable Python exceptions must use the
+  runtime exception path, not raw error strings.
+- Keyword handling and arity diagnostics are CPython-visible behavior; fixture
+  both accepted calls and rejection text when changing call binding.
+- Builtin constructor fast paths must preserve `__new__`, `__module__`,
+  `__qualname__`, and class statement behavior.
+- Exception behavior must follow inheritance, not name suffixes like `Error` or
+  `Exception`.
+- Structseq behavior belongs in shared helpers. Cover construction policy,
+  named fields, repr/str, reduce/pickle payloads, and descriptor behavior.
+- Import compatibility includes visible metadata and cache side effects:
+  `sys.modules`, `__loader__`, `__spec__`, `__file__`, `sys.path[0]`, and
+  `sys.path_importer_cache`.
+- `sys.exc_info()` and `sys.exception()` are scoped to active exception
+  handlers; nested handlers must restore previous state correctly.
+- File/path APIs must preserve CPython's distinct `str`/`bytes`/`os.PathLike`
+  conversion errors.
+- Text streams return `str`; binary/buffer layers return `bytes`.
+- Threading changes must define ownership and locking invariants. Lock the
+  minimum region and do not serialize the whole VM as a shortcut.
+- Zero-argument `super()` inference must start from the active function's first
+  parameter name. CPython stdlib metaclass methods can also have locals named
+  `cls` for the class name string, so probing `self`/`cls` first can bind the
+  wrong object.
+- Python callbacks triggered by `type.__new__`, such as descriptor
+  `__set_name__`, must run after the native call trampoline has reacquired the
+  VM execution lock. Do not invoke Python descriptor callbacks from inside the
+  native callback while the execution guard is released.
+- Builtin constructor fast paths must be keyed by the registered builtin class
+  object, not by `ClassObject::name`. CPython stdlib can define user classes
+  named `property`, `str`, or other builtin names, and those classes must
+  construct normal user instances.
+- Prepared namespace writes must route through the namespace object's
+  `__setitem__`. Writing directly into dict storage bypasses metaclass
+  bookkeeping such as `EnumDict` member tracking.
+- Singleton and builtin special-method sentinels used by stdlib identity tests
+  must be stable across attribute lookups. Returning a fresh native function for
+  `None.__new__` breaks `target in {None.__new__, object.__new__, ...}` checks.
+- Multiple-base classes must preserve every explicit base in `__bases__` and
+  C3 MRO calculation. Dropping the first base from `StrEnum(str, ReprEnum)`
+  hides builtin `str.__new__` and makes real `enum.py` choose the wrong member
+  construction path.
+- Integer-only operations must keep integer results in this runtime's numeric
+  model. Approximating overflowed left shifts as `Double` breaks stdlib probes
+  such as `_collections_abc` building a long `range()` iterator type.
+- Callable checks used by descriptor constructors must include classes, matching
+  the runtime call path and `callable()`. CPython stdlib wraps class objects
+  such as `type(list[int])` with `classmethod(...)`.
+- `type()` metadata for iterator objects must resolve to class objects, not
+  constructor builtins. `_collections_abc` registers iterator probe types with
+  `ABCMeta.register()`, which correctly rejects non-class values.
+- Operator support and method exposure must both be checked for container
+  protocols. Pure stdlib modules bind dunder methods directly, for example
+  `keyword.py` stores `frozenset(...).__contains__`.
+- Parser support for Python operators must include both expression syntax and
+  lowering/runtime dispatch. Treating `@` only as a decorator token makes
+  stdlib modules with `a @ b` or `a @= b` function bodies fail during import.
+- `from builtins import name` must see the runtime builtin registry as well as
+  copied module attributes. Pure stdlib modules import builtins such as `abs`
+  by attribute name from the `builtins` module.
+- Builtin container dunder methods used as default arguments must be present on
+  the builtin class, not only implemented by syntax. `collections` binds
+  methods such as `dict.__delitem__` while defining pure-Python containers.
+- Root `object` dunders are part of stdlib-visible MRO lookup. Pure Python
+  ABCs can inherit and rebind methods such as `object.__ne__`.
+- Builtin type utility methods can be imported through pure-Python stdlib
+  class bodies. `collections.UserString` binds `str.maketrans` directly, so
+  class method tables need these utilities even when syntax does not use them.
+- Native dependency modules must export the same public names that pure stdlib
+  imports consume. `functools` imports `RLock` from `_thread`, not from
+  `threading`.
+- Callable predicates must match the runtime call path, including instances
+  whose class defines `__call__`. Stdlib helpers such as `operator.itemgetter`
+  are callable instances, not functions.
+- Builtin constructor fast paths need CPython keyword support for stdlib class
+  bodies. `collections.namedtuple` calls `property(..., doc=...)` while
+  generating field descriptors.
+- Generic callback runners must support class callables, not just direct VM
+  call opcodes. Functional iterators call their function through
+  `runtime_call_callable`, so `map(str, values)` exercises class construction
+  outside the opcode fast path.
+- Stdlib factory helpers validate names with string predicate methods such as
+  `str.isidentifier`; string method coverage should include predicates used by
+  generated-class paths like `collections.namedtuple`.
+- Enum and flag helpers use integer introspection methods such as
+  `int.bit_length`; arithmetic compatibility must include the methods that
+  pure stdlib calls on intermediate integer values.
+- `object.__init__` argument validation depends on whether the class resolved a
+  custom `__new__`. Enum member finalization calls inherited `object.__init__`
+  with member values and must not reject that CPython-compatible path.
+- Special iteration of class objects uses the metaclass protocol. `iter(Enum)`
+  must bind `EnumType.__iter__` even when the enum class also inherits an
+  instance-level `__iter__` such as `Flag.__iter__`.
+- Module `__dict__` must be the live mutable module namespace. Stdlib helpers
+  such as `enum.global_enum` update `sys.modules[name].__dict__` to export
+  generated members.
+- Range objects are sequences, not only iterables. Regex compilation indexes
+  and slices ranges while building internal bitmaps.
+- Tuple equality must not require ordering of the first unequal item. Regex
+  parser tuples can contain sentinel objects that support identity/equality but
+  not `<`.
+- Legacy sequence-protocol objects with concrete `data` storage appear in the
+  stdlib regex parser; low-level list/set expansion paths need a concrete
+  sequence fallback when no runtime-aware `__iter__` dispatch is available.
+- Bytes APIs used by regex/json need integer byte operands and table
+  translation. `bytes.find(int)` and `bytes.translate(256-byte-table)` are
+  import-time dependencies, not optional conveniences.
+- `_sre.Pattern` methods must cover the operations stdlib modules bind from
+  compiled patterns. `json.encoder` requires callable replacement through
+  `Pattern.sub`.
+- VM protocol fallback helpers must propagate pending typed exceptions back to
+  the active frame instead of converting them into `RuntimeError`. Stdlib
+  mapping helpers such as `_collections_abc.Mapping.get` rely on catching
+  `KeyError` raised by a callee `__getitem__`.
+- Native stdlib facade modules must export builtin exception aliases that their
+  Python wrappers import directly. Python 3.14 `io.py` expects
+  `_io.BlockingIOError`, not only `builtins.BlockingIOError`.
+- When a fixture exercises a Python wrapper over a native module, verify visible
+  constants and class reprs against the target Python version. Python 3.14's
+  `io` wrapper exposes `io.TextIOBase` and `_io.DEFAULT_BUFFER_SIZE == 131072`.
+- Fallback `types.py` defines `SimpleNamespace = type(sys.implementation)`.
+  The class used for `sys.implementation` must therefore implement
+  keyword-based namespace construction rather than relying on permissive
+  `object.__init__` behavior.
+- Fallback `types.py` also defines `ModuleType = type(sys)`. The builtin
+  `module` class must construct real module objects for `ModuleType(name, doc)`;
+  generic instance construction followed by `object.__init__` is not compatible.
+- Fallback `types.py` defines `MethodType = type(instance.method)`. The builtin
+  bound-method class must support `MethodType(function, instance)` by creating
+  a real bound method object.
+- F-string lexing must track brace depth and nested expression strings. Python
+  3.14 stdlib uses expressions such as
+  `f'... {_safe_string(e, '__notes__', repr)}'`, where the inner quote must not
+  terminate the outer f-string token.
+- When lexing an embedded triple-quoted string inside a parenthesized
+  expression, suffix line joining must inherit the prefix bracket depth. Stdlib
+  calls like `re.compile(r'''...''' % {...}, re.VERBOSE)` otherwise emit a
+  newline after the first suffix comma.
+- Regex/text stdlib imports use both bytes and string translation APIs. Python
+  3.14 `re.escape` calls `str.translate` with integer codepoint keys mapped to
+  replacement strings.
+- Python 3.14 regex patterns use `\z` as an end-of-string anchor. Native regex
+  shims backed by engines without `\z` support must normalize that escape
+  without rewriting escaped literal backslashes.
+- `_sre.compile` receives patterns that CPython's Python-level compiler has
+  already accepted. Do not reject valid stdlib patterns solely because a
+  fallback backend like `std::regex` lacks features such as lookbehind; track
+  fallback executability separately from pattern construction.
+- Stdlib wrapper modules may import private C accelerators only for type
+  surfaces during unrelated workflows. Python 3.14 `tokenize.py` requires an
+  `_tokenize.TokenizerIter` export even when traceback formatting does not
+  actually request token generation.
+- Traceback imports private helper modules such as `_colorize` for optional
+  behavior. If a private native dependency is required, implement that private
+  dependency directly; do not register public stdlib modules such as
+  `traceback`, `warnings`, or `tokenize` as C++ facades.
+- `itertools.islice` must accept `None` for an unbounded stop and return an
+  iterator, not a materialized list. Traceback uses
+  `next(islice(code.co_positions(), instruction_index // 2, None))`.
+- Sequence iterator objects must themselves be iterable. Returning an iterator
+  from helpers such as `itertools.islice` requires `iter(iterator) is iterator`
+  semantics for subsequent `for` loops.
+- `yield` without `from` takes an expression list. `yield a, b` must yield the
+  tuple `(a, b)`, because stdlib generators such as traceback frame walkers
+  unpack nested yielded tuples.
+- Loop target parsing must not wrap parenthesized tuple targets twice.
+  `for f, (a, b) in ...` needs the inner target to unpack two values, not one
+  tuple-valued target.
+- Stdlib classes can subclass builtin containers and immediately use container
+  methods on `klass()`. `traceback.StackSummary(list)` requires list-derived
+  instances to keep subclass identity while delegating list storage for
+  `append`, indexing, length, and iteration.
+- If a pure stdlib dependency graph exposes many missing runtime features, keep
+  fixing the runtime/native dependency surface. Do not replace the public
+  stdlib module with a smaller C++ facade.
+- `linecache` reads Python source through `tokenize.open`, so a native tokenize
+  facade must preserve source encoding behavior for BOM UTF-8 and first/second
+  line `coding:` cookies instead of returning a generic binary wrapper.
+- Native I/O failures must raise the matching `OSError` subclass when stdlib
+  code catches filesystem errors. `linecache.updatecache` expects missing
+  source opens to raise `FileNotFoundError`/`OSError`, not a generic runtime
+  error.
+- Exception matching must handle tuple handlers recursively. Stdlib commonly
+  uses `except (OSError, UnicodeDecodeError, SyntaxError):`, and subclasses
+  such as `FileNotFoundError` must match the tuple entry.
+- Before changing line-oriented expected output, verify newline ownership
+  against the target interpreter. `linecache.getline`/`updatecache` entries
+  include trailing newlines, so `print(line)` produces visible blank lines.
+- For a probe that appears to hang during import, first rerun the smallest case
+  with `XLANG3_DIAG_MISSING_IMPORTS=1` or `XLANG3_DIAG_MISSING_LOOKUPS=1`.
+  These runtime markers are for diagnosis only; do not convert the missing
+  public Python module into a native facade.

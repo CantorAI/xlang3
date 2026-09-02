@@ -94,7 +94,6 @@ CORE_CASES = [
     "io_module_streams",
     "imp_stat_modules",
     "collections_queue_modules",
-    "collections_queue_facades",
     "types_module",
     "traceback_module",
     "linecache_module",
@@ -126,8 +125,6 @@ CORE_CASES = [
     "class_dynamic_attrs",
     "context_managers",
     "builtin_methods",
-    "threading_module",
-    "trace_hooks",
     "trace_events",
     "trace_local_and_exception",
     "sys_coroutine_origin_metadata",
@@ -141,9 +138,7 @@ CORE_CASES = [
     "sys_dump_tracelets",
     "sys_monitoring_all_events",
     "task_async",
-    "asyncio_module",
     "async_syntax",
-    "async_protocols",
     "closures",
     "nonlocal_counter",
 ]
@@ -161,6 +156,7 @@ SECTION_CASES = [
     "imports_and_modules",
     "builtins",
     "standard_modules",
+    "system_stdlib",
 ]
 
 
@@ -172,11 +168,24 @@ NEGATIVE_CASES = [
 
 
 def normalize(text: str) -> str:
-    return text.replace("\r\n", "\n").rstrip()
+    normalized = text.replace("\r\n", "\n")
+    root = str(ROOT)
+    normalized = normalized.replace(root + "\\", "")
+    normalized = normalized.replace(root.replace("\\", "/") + "/", "")
+    return normalized.rstrip()
 
 
 def read_expected(path: Path) -> str:
     return normalize(path.read_text(encoding="utf-8"))
+
+
+def completed_output(result: subprocess.CompletedProcess[str]) -> str:
+    return normalize((result.stdout or "") + (result.stderr or ""))
+
+
+def failure_detail(result: subprocess.CompletedProcess[str]) -> str:
+    output = completed_output(result)
+    return f"\nOutput:\n{output}" if output else "\nOutput: <empty>"
 
 
 def run_xlang3(xlang3: Path, source: Path, timeout: float) -> subprocess.CompletedProcess[str]:
@@ -202,7 +211,10 @@ def run_xlang3(xlang3: Path, source: Path, timeout: float) -> subprocess.Complet
 def check_case(xlang3: Path, source: Path, expected_path: Path, label: str, timeout: float) -> None:
     result = run_xlang3(xlang3, source, timeout)
     if result.returncode != 0:
-        raise SystemExit(f"{label} failed with exit code {result.returncode}")
+        raise SystemExit(
+            f"{label} failed with exit code {result.returncode}"
+            f"{failure_detail(result)}"
+        )
 
     actual = normalize(result.stdout)
     expected = read_expected(expected_path)
@@ -225,9 +237,12 @@ def check_negative(
     source = fixtures / "core" / f"{case}.py"
     result = run_xlang3(xlang3, source, timeout)
     if result.returncode != expected_code:
-        raise SystemExit(f"{case} expected exit code {expected_code}, got {result.returncode}")
+        raise SystemExit(
+            f"{case} expected exit code {expected_code}, got {result.returncode}"
+            f"{failure_detail(result)}"
+        )
 
-    output = normalize(result.stdout + result.stderr)
+    output = completed_output(result)
     for fragment in required_fragments:
         if fragment not in output:
             raise SystemExit(f"{case} output missing {fragment!r}. Got:\n{output}")

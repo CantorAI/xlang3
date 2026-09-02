@@ -52,7 +52,7 @@ Section-level fixture coverage:
 
 ## Current Progress Snapshot
 
-Last updated after the sys frame negative-depth parity batch.
+Last updated after the BigInt and urllib.parse quote-runtime batch.
 
 Current checklist count:
 
@@ -69,6 +69,18 @@ What this means:
 
 Recent completed batches:
 
+- Added CPython-style unbounded integer foundations without Boost: `int`
+  arithmetic overflows now promote from scalar `int64` to native BigInt objects,
+  large `**`, shifts, bitwise operators, comparison, hashing, `bit_length`,
+  `int.from_bytes`, and `int.to_bytes` are covered by the system-stdlib BigInt
+  probe, and small integer fast paths stay scalar.
+- Extended `range` to accept huge integer endpoints while preserving the
+  existing compact int64-backed fast path for ordinary ranges.
+- Tightened runtime mapping/string primitives used by CPython `Lib/urllib.parse`:
+  dict subclasses now dispatch `__missing__`, and `str.format` covers generic
+  integer base/zero-width specs such as `{:02X}`. `urllib.parse.quote("a b")`
+  and `_byte_quoter_factory` now produce CPython-style `%20` output; import
+  time and exact RFC edge cases remain pending.
 - Tightened native `sys._getframe` and `sys._getframemodulename` depth
   validation: negative integer depths now resolve to the current frame/module
   like CPython 3.14, while bool-as-int depths keep the covered zero/one-depth
@@ -1275,8 +1287,8 @@ Native or runtime-backed foundation:
   `S_IFMT`/`S_IMODE`, and `S_IS*` helpers
 - [~] `_imp`: import-lock state, `is_builtin`, frozen-probe helpers, registered-module
   `create_builtin`/`exec_builtin`, `get_magic`, `extension_suffixes`, source-hash, and dynamic-load errors
-- [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek helpers, iterator hooks, and text newline/encoding basics; exact buffering and full CPython IO internals pending
-- [~] `_socket`: constants and socket object lifecycle facade; native networking pending
+- [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek/truncate helpers, iterator hooks, text newline/encoding basics, StringIO/BytesIO keyword construction, IOBase closed/readable/writable checks, and buffered raw-`readinto` delegation used by CPython socket/http paths; exact buffering and full CPython IO internals pending
+- [~] `_socket`: constants and socket object lifecycle facade; native TCP loopback bind/listen/connect/accept/send/recv/recv_into, timeout state, getaddrinfo/gethostbyname/inet_pton/inet_ntop, and CPython-shaped socket surface basics are covered; broader descriptor behavior pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade, and non-public target storage for `ReferenceType` instances; true weak lifetime/callback semantics pending
@@ -1284,9 +1296,24 @@ Native or runtime-backed foundation:
   length, iteration snapshots, indexing, and containment; full CPython semantics pending
 - [~] `_queue`: native `SimpleQueue` foundation with put/get/qsize/empty and catchable empty errors; blocking semantics pending
 
-High-level modules currently backed by native/runtime code:
+High-level pure-Python stdlib modules must be source-backed:
 
-- [~] `threading`
+- [~] `threading`: must run from CPython 3.14 `Lib/threading.py` on top of
+  `_thread`; the previous public native `threading` facade was removed as a
+  compatibility-boundary violation. `Thread.start()` now creates a native
+  worker through `_thread.start_joinable_thread`, runs the Python target,
+  joins through CPython `Thread.join()`, exposes `ident`, and keeps
+  `current_thread()`/`active_count()` usable through the source module.
+  `threading.local` subclasses now isolate dictionaries per thread and rerun
+  the subclass initializer with the original positional constructor arguments
+  on first use in each thread; keyword replay and lifecycle edge behavior remain
+  pending.
+  `_thread._local` now provides per-thread attribute dictionaries for
+  `threading.local()` basic isolation plus subclass initial attribute isolation
+  across worker/main threads. Remaining: exact daemon/shutdown lifecycle,
+  `_local` subclass `__init__` reexecution/reinitialization edge cases, deeper
+  lock/condition edge cases, trace/profile propagation parity, and
+  import-time/runtime performance.
 - [~] `os`: VFS-backed `listdir`, scandir iterator/context-manager foundation, exported/reused `DirEntry`, `mkdir`, `makedirs`, `remove`/`unlink`, `rmdir`, `rename`, `replace`, `stat`, shared `os.stat_result` tuple-subclass surface for `os.stat()`/`DirEntry.stat()` with CPython-style module/type metadata, field counts, sequence fields, named fields, match args, and repr prefix, `access`, `getcwd`, `getcwdb`, `chdir`, `fsencode`/`fsdecode`, plus `getenv`/`fspath` basics; full stat timestamps/device/link/symlink/dir_fd/environment/error semantics and low-level fd APIs remain pending
 - [~] `os.path` / `ntpath` / `posixpath`: path string helpers foundation with VFS-backed `exists`/`lexists`/`isdir`/`isfile`/`getsize`/absolute resolution plus `split`, `splitext`, `splitdrive`, `join`, `relpath`, `samefile`, `commonprefix`, `commonpath`, `expanduser`, `expandvars`, and CPython-style `abspath("")`/`realpath("")`; exact platform-specific normalization and symlink semantics pending
 - [~] `stat`: stat tuple indexes, common constants, permissions bits, and file-type helper functions
@@ -1298,18 +1325,24 @@ High-level modules currently backed by native/runtime code:
   `idna` lookup/encode/decode foundation, hex encode/decode, and error-handler lookup/registration foundation;
   full codec registry/error handling pending
 - [~] `contextlib`: generator `contextmanager`, wrapper metadata (`__name__`, `__qualname__`, `__module__`, `__doc__`, `__wrapped__`) and writable wrapper docs, `nullcontext`, `closing`, `suppress`, `AbstractContextManager`, and native `ExitStack` basics work with with-statements; async helpers and full generator exception propagation semantics pending
-- [~] `ctypes`:
-  Scalar classes, `.value`, pointer/byref/cast contents, `addressof`,
-  `memmove`/`memset` no-op shape, string buffers, simple `Structure` field
-  defaults, selected `wintypes`, `windll.kernel32` facade, and catchable
-  `WinError` foundation covered. Real ABI/FFI calls, layout/alignment, arrays,
-  callbacks, pointer arithmetic, and platform library loading remain pending.
-- [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, `__dataclass_fields__`, `fields`, `is_dataclass`, `asdict`, and simple `field(default=...)` handling; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
+- [ ] `ctypes`: must run from CPython 3.14 `Lib/ctypes` on top of a real native
+  `_ctypes` dependency. The previous public native `ctypes`/`ctypes.wintypes`
+  facade was removed as a compatibility-boundary violation. Remaining:
+  implement truthful `_ctypes` type/layout/FFI primitives before marking any
+  `ctypes` behavior complete.
+- [~] `dataclasses`: public module runs from CPython 3.14 `Lib/dataclasses.py`; annotated-field decorator, `order=True`,
+  generated `__init__`/`__repr__`/`__eq__`, `__dataclass_fields__`, `fields`, `is_dataclass`, `asdict`, `astuple`,
+  and `replace` basics are covered through runtime object/mappingproxy support. Frozen/slots/default_factory/inheritance
+  and full CPython field semantics pending
 - [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
-- [~] `fnmatch` / `glob`: native `fnmatch`, `fnmatchcase`, `filter`, `filterfalse`, `translate`, `glob.has_magic`,
-  `glob.escape`, and VFS-backed `glob`/`iglob` with recursive `**`, iterator-returning `iglob`,
-  `root_dir`, `include_hidden`, and bytes-path result preservation; real `dir_fd`,
+- [~] `fnmatch` / `glob`: real CPython 3.14 `Lib/fnmatch.py` and `Lib/glob.py`
+  run over native VFS/path and `_sre` dependencies; `fnmatch`, `fnmatchcase`,
+  `filter`, `filterfalse`, `translate`, `glob.has_magic`, `glob.escape`, and
+  VFS-backed `glob`/`iglob` with recursive `**`, iterator-returning `iglob`,
+  `root_dir`, `include_hidden`, and bytes-path result preservation are covered.
+  Generic native-call dispatch now avoids trace/profile allocation when hooks
+  are disabled, keeping cached source-level match callables fast; real `dir_fd`,
   platform-specific path normalization, and exact CPython path edge cases pending
 - [~] `functools`: `update_wrapper`, `wraps`, `partial` callable/inspection metadata, `reduce`, `cmp_to_key`, `total_ordering`, and real
   positional-call `lru_cache`/`cache` wrappers with bounded eviction, `cache_info`, `cache_clear`,
@@ -1322,8 +1355,9 @@ High-level modules currently backed by native/runtime code:
 - [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`,
   `filterfalse`, `compress`, `repeat(times)`, lazy `chain` with `__next__`, `batched`,
   `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`,
-  `starmap`, `zip_longest`, `pairwise`, and snapshot-backed `tee`; full lazy object identity
-  for every helper, keyword-only options, and complete iterator algebra pending
+  `starmap`, `zip_longest`, `pairwise`, adjacent-key `groupby` with positional/keyword
+  `key`, and snapshot-backed `tee`; full lazy object identity for every helper,
+  keyword-only options, and complete iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`dump`, file-like I/O, CPython-style default separators,
   `indent`, `sort_keys`, `ensure_ascii`, `separators`, `skipkeys`, `default`, `object_hook`,
   `object_pairs_hook`, `parse_int`, `parse_float`, `JSONEncoder.encode`/`iterencode`, and
@@ -1338,93 +1372,169 @@ High-level modules currently backed by native/runtime code:
   across the CPython-style `Number`/`Complex`/`Real`/`Rational`/`Integral` lattice, and user virtual
   subclass registration works with `isinstance`/`issubclass`; exact abstract method surface and complex
   numeric protocol edge cases pending
-- [~] `opcode`: public opcode map/name foundation, CPython 3.14 category-list constants, `cmp_op`, `EXTENDED_ARG`, and `_opcode` helper facade; full CPython opcode table/disassembly metadata pending
+- [~] `opcode`: public module must run from CPython 3.14 `Lib/opcode.py`
+  on top of native `_opcode`; full CPython opcode table/disassembly metadata pending
 - [~] `operator`: arithmetic, in-place and `__dunder__` aliases, bitwise, comparison,
   `call`, `abs`, truth/identity/contains, item mutation, length/count/index helpers,
   magic-method item fallback, and attr/item/method getter foundations; full CPython edge cases pending
-- [~] `pickle`: public `pickle` and `_pickle` expose protocol constants, exceptions/classes,
-  `Pickler`/`Unpickler`, and `dumps`/`loads`/file `dump`/`load`; new output uses a CPython-readable
-  pickle opcode subset for common scalars/bytes/strings/containers, and XLang3 reads the same protocol-4
-  subset from CPython; reducers, persistent IDs, shared-reference memo semantics, custom object state,
-  extension registry, and protocol-5 out-of-band buffers pending
+- [~] `pickle`: public module must run from CPython 3.14 `Lib/pickle.py`
+  on top of native `_pickle`; native `_pickle` handles a CPython-readable
+  protocol subset for common scalars/bytes/strings/containers. Reducers,
+  persistent IDs, shared-reference memo semantics, custom object state,
+  extension registry, and protocol-5 out-of-band buffers pending.
 - [~] `platform`: platform/python version helpers, build/compiler/branch/revision metadata,
   node lookup, `uname()` object, `architecture()`, `libc_ver()`, `win32_ver()`, `mac_ver()`,
   `java_ver()`, `system_alias()`, `_sys_version()`, and `freedesktop_os_release()` foundations;
   exact OS-release probing and CPython namedtuple identity pending
-- [~] `pkgutil`: VFS/import-root `iter_modules`, `walk_packages`, `extend_path`, `get_data`,
-  `resolve_name`, and loader placeholder foundations; named `ModuleInfo`, full finder/loader semantics,
-  zip/resource edge cases, and exact import-package behavior pending
-- [~] `re`: regex compile/match/search/fullmatch, compiled `Pattern` methods, `Match.group/groups/span/start/end`, bytes-pattern match groups, `findall`, `split`, `sub`, flag aliases, bytes-pattern basics, and `escape` facade; full CPython regex semantics pending
-- [~] `signal`: public signal facade with constants, stateful handler registration, synchronous `raise_signal`, `valid_signals`, `strsignal`, and catchable `KeyboardInterrupt` from `default_int_handler`; real OS delivery/thread semantics pending
-- [~] `site`: site-package path helpers, public path constants, `addsitedir`, and `addsitepackages` foundations; `.pth` processing/startup-site behavior pending
-- [~] `socket`: facade over `_socket` constants and socket object basics; connect/bind/send/recv pending
-- [~] `queue`: native `Queue`, `LifoQueue`, `PriorityQueue`, `SimpleQueue`, `Empty`,
-  `Full`, and `ShutDown` foundations with ordering/maxsize/task helpers,
-  keyword-shaped put/get, and `Queue.shutdown()` basics; blocking/wakeup semantics pending
-- [~] `string`: public constants, `_string.formatter_parser`/`formatter_field_name_split`, and native
-  `Formatter` methods for `format`, `vformat`, `parse`, `get_value`, `format_field`, and `convert_field`;
-  full nested-field parsing, keyword formatting, subclass override hooks, and exact CPython formatter behavior pending
+- [~] `pkgutil`: public module runs from CPython 3.14 `Lib/pkgutil.py`; VFS/import-root
+  `iter_modules`, `walk_packages`, `extend_path`, `get_data`, `resolve_name`, and
+  source loader data access are covered. Named `ModuleInfo`, full finder/loader
+  semantics, zip/resource edge cases, and exact import-package behavior pending
+- [~] `re`: public module runs from CPython 3.14 `Lib/re`; native `_sre`
+  covers compiled patterns, match/search/fullmatch/finditer/findall/sub/split,
+  bytes patterns, common flags including `DOTALL`/`MULTILINE`/`IGNORECASE`,
+  replacement backrefs, named group
+  backreferences, lookahead, and fixed literal positive/negative lookbehind
+  assertions. Full CPython SRE opcode semantics pending.
+- [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
+  on top of native `_signal`; real OS delivery/thread semantics pending.
+- [~] `site`: public module runs from CPython 3.14 `Lib/site.py`; site-package path
+  helpers, public path constants, `addsitedir`, `addsitepackages`, and `.pth`
+  path-line/import-line processing foundations are covered. Startup site-package
+  discovery edge behavior pending
+- [~] `socket`: public module runs from CPython 3.14 `Lib/socket.py`
+  on top of native `_socket`; basic socket construction, family/type
+  metadata, timeout get/set, close, loopback streams, socketpair,
+  create_connection, IPv4 getaddrinfo/gethostbyname/inet_pton/inet_ntop,
+  makefile over `_io.BufferedReader`, and recv_into are covered by the
+  process/socket probe. Broader network error semantics pending.
+- [~] `queue`: public module must run from CPython 3.14 `Lib/queue.py`
+  on top of native `_queue` and `_thread`; blocking/wakeup semantics pending.
+- [~] `string`: public module must run from CPython 3.14 `Lib/string`
+  on top of native `_string` formatter helpers; full nested-field parsing,
+  keyword formatting, subclass override hooks, and exact CPython formatter
+  behavior pending.
 - [~] `struct`: native `calcsize`, `pack`, `pack_into`, `unpack`, `unpack_from`, `iter_unpack`,
   `Struct`, and catchable `struct.error` foundations for common endian prefixes plus integer,
   bool, float/double, char, bytes, pascal-string, and pad format units; native alignment,
   exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
-- [~] `subprocess`: constants, `Popen` wait/poll/terminate/kill/communicate/context-manager basics,
-  `pid`/`args`/`returncode` metadata, `run()` with Windows child launch, concurrent pipe draining,
-  `capture_output`/`stdout=PIPE`/`stderr=PIPE`/`stderr=STDOUT`/`DEVNULL`, `input`, `timeout`,
-  `shell`, `CompletedProcess`, and catchable `CalledProcessError`/`TimeoutExpired` foundations;
-  POSIX process launch, exact file-handle inheritance, text-mode `Popen.communicate`, advanced
-  lifecycle/session/group semantics, and full CPython edge behavior pending
+- [~] `subprocess`: public module must run from CPython 3.14
+  `Lib/subprocess.py` on top of native `_winapi`, `os`, file/pipe, and process
+  primitives. Windows `subprocess.run([sys.executable, "-c", ...],
+  capture_output=True, text=True, timeout=...)` now launches the active
+  XLang3-compatible executable and captures stdout/stderr through the source
+  module; `Popen.communicate(input=...)` over `sys.stdin.read()`,
+  `check_call`/`CalledProcessError` with child `SystemExit` process-code
+  propagation, `cwd`, `DEVNULL`, mapped `env`, input pipes, context-manager
+  `Popen`, and timeout cleanup are covered. POSIX process launch, exact
+  file-handle inheritance, advanced lifecycle/session/group semantics, and
+  full CPython edge behavior pending.
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
   `_get_preferred_schemes`, `_expand_vars`, `_get_sysconfigdata_name`, `is_python_build`,
   config filename helpers, common config-var helpers, and makefile-variable expansion;
   full install scheme compatibility pending
-- [~] `typing`: common aliases, identity decorators, `TypeVar`, `NewType`, `Generic`, and `Protocol` foundations; parsed type-parameter bounds/defaults/variance/lazy evaluation and full typing runtime behavior pending
-- [~] `traceback`: `format_exception`, `format_exception_only`, `format_exc`, `print_exception` basics; exact frame/line formatting pending
+- [~] `typing`: public module must run from CPython 3.14 `Lib/typing.py`
+  on top of native `_typing`; parsed type-parameter bounds/defaults/variance,
+  lazy evaluation, module-level `__getattr__` fallback for lazy attributes such
+  as `typing.Match`, and full typing runtime behavior pending.
+- [~] `traceback`: public module runs from CPython 3.14
+  `Lib/traceback.py`; `format_exception` over runtime exceptions is covered.
+  Exact frame/line formatting and chained exception edge cases pending.
 - [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, lazy `itertools.chain`, native COMMENT/NL preservation for comment-only, blank, and inline-comment lines, and UTF-8/UTF-8-BOM/ASCII/Latin-1 coding-cookie handling; exact token text for string literals and full CPython tokenizer parity pending
-- [~] `linecache`: VFS-backed `getline`, `getlines`, `updatecache`, `clearcache`, `checkcache`, and `lazycache` foundation with UTF-8/UTF-8-BOM/ASCII/Latin-1 coding-cookie decoding; exact cache invalidation semantics pending
-- [~] `inspect`: common predicates, `currentframe`/`stack` placeholders, `getfile`/`getabsfile`,
-  `getmodule`/`getmodulename`, `getmro`, doc cleanup, unwrap, generator/coroutine state helpers,
-  Python-callable `getmembers` predicates, `getfullargspec`, and `signature`/`Signature`/`Parameter`/`BoundArguments`
-  foundations for Python functions; exact frame stack, source block slicing, keyword binding, annotations,
-  descriptor classification, and full CPython signature semantics pending
-- [~] `runpy`: `run_module` and `run_path` basics returning globals dict snapshots
-- [~] `importlib`: `import_module`, `invalidate_caches`, `importlib.util.find_spec`/`resolve_name`,
-  loader/spec/module creation foundations, and VFS-backed `importlib.resources` read helpers
-- [~] `types`: `ModuleType`, `SimpleNamespace`, `MethodType` basics, real singleton
-  aliases for `NoneType`/`EllipsisType`/`NotImplementedType`, runtime-backed
-  `FunctionType`/`LambdaType`/`CodeType`/`FrameType`/`TracebackType`/`GeneratorType`/
-  `CellType` aliases, CPython-shaped `BuiltinFunctionType`/`BuiltinMethodType`
-  aliases for native callables, and CPython `copy.py` singleton import/copy
-  foundations; broader exact CPython type objects pending
-- [~] `collections`: native `deque` with iteration/index/containment, `defaultdict`,
-  `OrderedDict`, `namedtuple` with `_make`, dict-backed `Counter`, and `ChainMap` foundations;
-  full CPython collection semantics pending
-- [~] `weakref`: facade over `_weakref` basics plus `finalize` placeholder; true weak lifetime/callback semantics pending
-- [~] `logging`: native logger facade with levels, `basicConfig`, root functions, `getLogger`, level-name helpers, Logger methods/effective-level checks, and no-op Handler/StreamHandler/NullHandler/Formatter classes; real handler/formatter hierarchy pending
-- [~] `pathlib`: `Path`/`PurePath` facade with VFS-backed exists/read/write checks, CPython-style `name`/`stem`/`suffix`/`suffixes`/`parts`/`parent` properties, text/binary read/write, `with_name`, `with_suffix`, `/` join via native `__truediv__`, `absolute`, `resolve`, `mkdir`, `unlink`, `iterdir`, `glob`, `rglob`, `match`, `__fspath__`, and string/repr basics; full platform-specific pathlib edge semantics, permissions, symlink behavior, and lazy iterator details pending
-- [~] `urllib.parse`: quote/unquote helpers plus `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`,
-  `urljoin`, `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options,
-  strict parsing/errors, complete RFC edge cases, and exact CPython result tuple subclasses pending
-- [~] `warnings` / `_warnings`: `warn`, `warn_explicit`, `simplefilter`, `filterwarnings`, `resetwarnings`, and `catch_warnings(record=True)` recording basics; filter/category/showwarning semantics pending
+- [~] `linecache`: public module runs from CPython 3.14
+  `Lib/linecache.py` over VFS/open/tokenize primitives; basic source-line
+  lookup is covered. Exact cache invalidation semantics pending.
+- [~] `inspect`: public module runs from CPython 3.14 `Lib/inspect.py`
+  over real frame/code/source metadata; `signature`, `Signature.parameters`
+  mappingproxy iteration, keyword binding, and `getsource` basics are covered.
+  Exact frame stack, source block slicing, annotations, descriptor
+  classification, and full CPython signature semantics pending.
+- [~] `runpy`: public module runs from CPython 3.14 `Lib/runpy.py`; full
+  `run_module`/`run_path` basics are covered; package/module alter-sys edge
+  semantics pending.
+- [~] `importlib`: public package runs from CPython 3.14 `Lib/importlib`
+  over native bootstrap/import primitives; `import_module("math")`,
+  source-backed package import, missing-module `ImportError.name`,
+  `SourceFileLoader` filename/data/code behavior, and basic
+  `importlib.resources.is_resource`/`read_text` over file packages are
+  covered, along with `importlib.resources.files()` traversal on file-backed
+  packages. `importlib.metadata` imports from CPython source, distribution
+  iteration shape is covered, and `.dist-info/METADATA` discovery through
+  `distributions(name=..., path=...)` is covered. Runtime descriptor semantics
+  now cover public `getattr`/`hasattr` dispatch through Python properties.
+  `importlib.resources.files()` now traverses file-backed packages, namespace
+  packages through CPython `MultiplexedPath`, and zip packages through
+  `zipimporter.get_resource_reader` plus CPython `ZipReader`.
+  Startup import locks/caches, full package metadata behavior, and import-time
+  performance pending.
+- [~] `types`: public module runs from CPython 3.14 `Lib/types.py` over
+  runtime-backed type objects; native `mappingproxy` construction, iteration,
+  views, item lookup, and live read-only mapping behavior are covered.
+- [~] `collections`: public package must run from CPython 3.14
+  `Lib/collections` on top of native `_collections`; full CPython collection
+  semantics pending.
+- [~] `weakref`: public module must run from CPython 3.14 `Lib/weakref.py` on
+  top of native `_weakref`; true weak lifetime/callback semantics pending.
+- [~] `logging`: CPython 3.14 `Lib/logging/__init__.py` imports and covers
+  `getLogger`, `StreamHandler`, formatter output, and logger handler dispatch
+  through runtime/native primitive support. Import-time performance and full
+  handler/formatter/runtime edge semantics remain pending
+- [~] `pathlib`: public package must run from CPython 3.14 `Lib/pathlib`
+  over VFS/os/path protocol primitives; full platform-specific pathlib edge
+  semantics, permissions, symlink behavior, and lazy iterator details pending.
+- [~] `urllib.parse`: real CPython 3.14 `Lib/urllib/parse.py` imports and covers quote/unquote helpers,
+  `_byte_quoter_factory`, `urlparse`/`urlsplit` result objects, `urlunparse`/`urlunsplit`, `urljoin`,
+  `parse_qs`, `parse_qsl`, and `urlencode` foundations; bytes handling, keyword options, strict
+  parsing/errors, complete RFC edge cases, exact CPython result tuple subclasses, and import-time
+  performance remain pending
+- [~] `warnings` / `_warnings`: public `warnings` must run from CPython 3.14
+  `Lib/warnings.py`; native `_warnings` now exposes only the low-level
+  dependency surface (`warn`, `warn_explicit`, lock helpers, `filters`,
+  `_defaultaction`, `_onceregistry`, `_warnings_context`). Remaining: make the
+  real Python `warnings.py` catch/filter/showwarning semantics pass without
+  restoring a public C++ facade.
 - [~] `winreg`: common HKEY/KEY/REG constants and close-key no-op; real registry operations pending
 - [~] `zlib`: native zlib-backed `compress`, `decompress`, `compressobj`, `decompressobj`, `crc32`, `adler32`, common constants, and stream object state basics; dictionaries, copy, checksums/compression edge cases, and exact CPython error semantics pending
-- [~] `zipfile`: native `ZipFile`/`PyZipFile`/`ZipInfo`/`ZipExtFile`/`Path` facade with stored/deflated archive `is_zipfile`, `namelist`, `infolist`, `getinfo`, `read`, `open` read/write handles, `write`, `writestr`, `mkdir`, `extract`, `extractall`, `testzip`, `close`, context managers, comments, common `ZipInfo` metadata, file-like archive objects, `setpassword`, `ZipExtFile` seek/tell/readline/readlines/state helpers, CPython-style `Path` properties, simple glob/rglob/match/relative checks, `ZipInfo.from_file`, `ZipInfo._for_archive`, `ZipInfo.FileHeader`, `PyZipFile.writepy` member naming, ZIP limit/compression constants, exclusive create, extraction sanitization, and keyword argument basics; encrypted ZIP, true ZIP64 large-file archives, optional BZIP2/LZMA/Zstandard payload engines, full `zipfile.Path` edge semantics, real `PyZipFile.writepy` bytecode compilation intentionally skipped for XLang3 IR, and exact CPython edge cases pending
-- [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, and `http.server` class names; real HTTP/XML-RPC networking and complete protocol behavior pending
+- [~] `zipfile`: public module must run from CPython 3.14
+  `Lib/zipfile.py` over native `zlib`, VFS/open, and binary-buffer
+  primitives. Encrypted ZIP, true ZIP64 large-file archives, optional
+  BZIP2/LZMA/Zstandard payload engines, `PyZipFile.writepy`, and exact CPython
+  edge cases pending.
+- [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, `http.client.HTTPConnection` loopback GET, and `http.server` class names; complete HTTP/XML-RPC protocol behavior pending
 
 ### Async, Tasks, And Threads
 
 - [x] native `task` module
-- [x] minimal `asyncio` facade
+- [ ] CPython `asyncio` package over XLang3 async primitives; the previous
+  public native `asyncio` facade was removed as a compatibility-boundary
+  violation.
 - [x] `async def` syntax accepted
 - [x] `await` syntax accepted and lowered to IR
 - [~] `Await` IR operation
 - [~] real resumable coroutine frames: `async def` now returns coroutine-marked generator-backed VM frames, direct calls are lazy, `await`/`asyncio.run` drive coroutine frames to completion, and coroutine `__await__` is exposed; full scheduler-yielding and CPython coroutine state APIs pending
 - [~] event loop semantics: thread-local event loop facade with `new_event_loop`, `get_event_loop`, `set_event_loop`, `get_running_loop`, `run_until_complete`, `create_task`, `close`, and `is_closed`; real selector/scheduler policy pending
-- [~] `asyncio` compatibility: `run`, `create_task`, `gather`, `sleep`, and loop facade basics covered; CPython task cancellation, futures, transports, and scheduler semantics pending
+- [~] `asyncio` compatibility: real CPython `Lib/asyncio` import/execution over
+  coroutine/task/runtime primitives pending; task cancellation, futures,
+  transports, and event loop policy remain pending
 - [x] `_thread` subset
-- [x] `threading.Thread` subset
-- [x] `threading.Lock` subset
-- [~] Python-compatible thread lifecycle details: `Thread` exposes `name`, `daemon`, `ident`, `native_id`, `_is_stopped`, start-once checks, `join(timeout)`, `main_thread`, `enumerate`, and live-worker-aware `active_count`; full CPython shutdown/daemon/current-thread object identity semantics pending
+- [~] CPython `threading.Thread` through `Lib/threading.py` over `_thread`:
+  import, current-thread discovery, basic `start`/target execution/`join`,
+  `is_alive`, and `ident` are covered by the system stdlib threading probe;
+  exact lifecycle/shutdown/daemon semantics remain pending.
+- [~] CPython `threading.local` through `Lib/threading.py` over `_thread`:
+  native `_local` keeps per-thread attribute dictionaries for ordinary
+  get/set/delete and `__dict__`, plus subclass initial attribute isolation
+  across worker/main threads; exact subclass `__init__` reexecution/reinitialization
+  and lifecycle edge cases remain pending.
+- [~] CPython `threading.Lock` / `RLock` / `Event` / `Condition` through
+  `Lib/threading.py` over `_thread`: basic nonblocking lock acquire/release,
+  RLock recursion, RLock private condition protocol, Event set/clear/wait,
+  and Condition ownership/notification are covered by the system stdlib
+  threading probe; timeout, fairness, waiter wakeup, shutdown, and edge-case
+  parity remain pending.
+- [~] Python-compatible thread lifecycle details: public `threading` must come
+  from CPython 3.14 source; full startup/import, shutdown/daemon/current-thread
+  object identity, trace/profile, and lock/condition semantics pending
 - [~] thread-local trace hooks: `sys.settrace()` is stored per runtime/native thread and `threading.settrace()` is copied into new `threading.Thread`/`_thread` workers; full profile-hook and edge-case parity pending
 - [x] no-GIL data sharing policy finalized in `doc/no-gil-runtime-policy.md`; mutable-container/native-module enforcement audits remain tracked by their implementation rows
 

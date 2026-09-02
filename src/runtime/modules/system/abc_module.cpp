@@ -15,7 +15,6 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
-#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -83,49 +82,6 @@ bool abc_no_keyword_args(Runtime& runtime, const Value*, uint32_t, const NativeK
   return abc_type_error(runtime, error, "takes no keyword arguments");
 }
 
-bool abc_bind_one_keyword(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& bound,
-    const char* function_name,
-    const char* parameter_name,
-    std::string& error) {
-  if (kwargc == 0) {
-    return true;
-  }
-  if (argc > 1) {
-    return abc_type_error(
-        runtime,
-        error,
-        std::string(function_name) + "() takes 1 positional argument but " + std::to_string(argc) + " were given");
-  }
-  bool has_arg = argc == 1;
-  if (has_arg) {
-    value_assign_fast(bound, args[0]);
-  }
-  for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
-    if (name != parameter_name) {
-      return abc_type_error(runtime, error, std::string(function_name) + "() got an unexpected keyword argument '" + name + "'");
-    }
-    if (has_arg) {
-      return abc_type_error(runtime, error, std::string(function_name) + "() got multiple values for argument '" + parameter_name + "'");
-    }
-    if (kwargs[i].value == nullptr) {
-      return abc_type_error(runtime, error, std::string(function_name) + "() got an invalid keyword argument");
-    }
-    value_assign_fast(bound, *kwargs[i].value);
-    has_arg = true;
-  }
-  if (!has_arg) {
-    return abc_type_error(runtime, error, std::string(function_name) + "() missing 1 required positional argument: '" + parameter_name + "'");
-  }
-  return true;
-}
-
 bool abc_state_list(Value& abc_class, const char* attr, Value& out, std::string& error) {
   std::string ignored;
   if (object_get_attr(abc_class, attr, out, ignored) && value_as_list(out) != nullptr) {
@@ -179,32 +135,6 @@ bool value_has_abstract_marker(const Value& value) {
   return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
 }
 
-bool is_builtin_object_instance(const Value& value) {
-  auto* instance = value_as_instance(value);
-  if (instance == nullptr) {
-    return false;
-  }
-  auto* klass = value_as_class(instance->klass);
-  if (klass == nullptr || klass->name != "object") {
-    return false;
-  }
-  Value module;
-  std::string ignored;
-  auto* module_name = object_get_attr(instance->klass, "__module__", module, ignored)
-      ? value_as_string(module)
-      : nullptr;
-  return module_name != nullptr && string_object_to_string(*module_name) == "builtins";
-}
-
-bool is_runtime_builtin_class(Runtime& runtime, const Value& value) {
-  auto* klass = value_as_class(value);
-  if (klass == nullptr) {
-    return false;
-  }
-  const Value* builtin = runtime.find_builtin(klass->name);
-  return builtin != nullptr && value_as_class(*builtin) == klass;
-}
-
 void add_abstract_name(std::vector<Value>& names, const std::string& name) {
   for (const auto& item : names) {
     auto* string = value_as_string(item);
@@ -241,6 +171,32 @@ void collect_abstract_names(const Value& value, std::vector<std::string>& names)
   }
 }
 
+bool inherited_concrete_attr(ClassObject& klass, const std::string& name) {
+  auto concrete_in = [&](ClassObject* candidate) -> bool {
+    auto it = candidate->attrs.find(name);
+    return it != candidate->attrs.end() && !value_has_abstract_marker(it->second);
+  };
+  std::vector<ClassObject*> stack;
+  for (const auto& base : klass.bases) {
+    if (auto* base_class = value_as_class(base)) {
+      stack.push_back(base_class);
+    }
+  }
+  while (!stack.empty()) {
+    auto* current = stack.front();
+    stack.erase(stack.begin());
+    if (concrete_in(current)) {
+      return true;
+    }
+    for (const auto& base : current->bases) {
+      if (auto* base_class = value_as_class(base)) {
+        stack.push_back(base_class);
+      }
+    }
+  }
+  return false;
+}
+
 Value abc_abstract_methods_for_class(ClassObject& klass) {
   std::vector<Value> abstracts;
   std::vector<std::string> inherited_names;
@@ -253,7 +209,11 @@ Value abc_abstract_methods_for_class(ClassObject& klass) {
   }
   for (const auto& name : inherited_names) {
     auto override_it = klass.attrs.find(name);
-    if (override_it == klass.attrs.end() || value_has_abstract_marker(override_it->second)) {
+    if (override_it == klass.attrs.end()) {
+      if (!inherited_concrete_attr(klass, name)) {
+        add_abstract_name(abstracts, name);
+      }
+    } else if (value_has_abstract_marker(override_it->second)) {
       add_abstract_name(abstracts, name);
     }
   }
@@ -338,8 +298,26 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
   Value hook;
   std::string hook_error;
   if (object_get_attr(abc_class, "__subclasshook__", hook, hook_error)) {
+    Value hook_callable;
+    std::vector<Value> hook_args;
+    if (auto* bound = value_as_bound_method(hook)) {
+      value_assign_fast(hook_callable, bound->function);
+      hook_args.push_back(bound->self);
+    } else {
+      value_assign_fast(hook_callable, hook);
+      if (value_as_function(hook_callable) != nullptr || value_as_native_function(hook_callable) != nullptr) {
+        hook_args.push_back(abc_class);
+      }
+    }
+    hook_args.push_back(subclass);
     Value hook_result;
-    if (!runtime_call_callable(runtime, hook, &subclass, 1, hook_result, error)) {
+    if (!runtime_call_callable(
+            runtime,
+            hook_callable,
+            hook_args.empty() ? nullptr : hook_args.data(),
+            static_cast<uint32_t>(hook_args.size()),
+            hook_result,
+            error)) {
       return false;
     }
     const Value* not_implemented = runtime.find_builtin("NotImplemented");
@@ -429,24 +407,6 @@ bool abc_get_cache_token(Runtime& runtime, const Value*, uint32_t argc, Value& o
   }
   out = Value::int64(g_cache_token);
   return true;
-}
-
-bool abc_update_abstractmethods(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    return abc_type_error(runtime, error, "abc.update_abstractmethods() expected class");
-  }
-  value_assign_fast(out, args[0]);
-  auto* klass = value_as_class(args[0]);
-  if (klass == nullptr) {
-    return true;
-  }
-  Value existing;
-  std::string ignored;
-  if (!object_get_attr(args[0], "__abstractmethods__", existing, ignored)) {
-    return true;
-  }
-  Value cls = args[0];
-  return object_set_attr(cls, "__abstractmethods__", abc_abstract_methods_for_class(*klass), error);
 }
 
 bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -580,259 +540,6 @@ bool abc_reset_caches(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
-bool abc_meta_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return abc_register(runtime, args, argc, out, error, user_data);
-}
-
-bool abc_meta_instancecheck(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return abc_instancecheck(runtime, args, argc, out, error, user_data);
-}
-
-bool abc_meta_subclasscheck(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  return abc_subclasscheck(runtime, args, argc, out, error, user_data);
-}
-
-bool abc_meta_new(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 4) {
-    return abc_type_error(runtime, error, "ABCMeta.__new__() expected cls, name, bases, and namespace");
-  }
-  auto* name = value_as_string(args[1]);
-  if (name == nullptr) {
-    return abc_type_error(runtime, error, "ABCMeta.__new__() name must be a string");
-  }
-  auto* bases = value_as_tuple(args[2]);
-  if (bases == nullptr) {
-    return abc_type_error(runtime, error, "ABCMeta.__new__() bases must be a tuple");
-  }
-  auto* ns = value_as_dict(args[3]);
-  if (ns == nullptr) {
-    return abc_type_error(runtime, error, "ABCMeta.__new__() namespace must be a dict");
-  }
-
-  std::vector<std::pair<std::string, Value>> attrs;
-  attrs.reserve(ns->entries.size() + 1);
-  bool has_module = false;
-  for (const auto& entry : ns->entries) {
-    auto* key = value_as_string(entry.first);
-    if (key == nullptr) {
-      return abc_type_error(runtime, error, "ABCMeta.__new__() namespace keys must be strings");
-    }
-    std::string key_text = string_object_to_string(*key);
-    if (key_text == "__module__") {
-      has_module = true;
-    }
-    attrs.push_back({std::move(key_text), entry.second});
-  }
-  if (!has_module) {
-    attrs.push_back({"__module__", Value::string("abc")});
-  }
-
-  out = Value::class_object(
-      string_object_to_string(*name),
-      std::move(attrs),
-      Value::invalid(),
-      {},
-      args[0]);
-  for (const auto& base : bases->items) {
-    if (value_as_class(base) == nullptr) {
-      return abc_type_error(runtime, error, "ABCMeta.__new__() bases must be classes");
-    }
-    if (!class_set_base(out, base, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-  }
-  Value ignored;
-  return abc_init(runtime, &out, 1, ignored, error, nullptr);
-}
-
-bool abc_meta_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 && argc != 4) {
-    return abc_type_error(runtime, error, "ABCMeta.__init__() expected cls, name, bases, and namespace");
-  }
-  value_set_none(out);
-  return true;
-}
-
-bool abc_abstractmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    return abc_type_error(runtime, error, "abc.abstractmethod() expected function");
-  }
-  Value target = args[0];
-  if (is_runtime_builtin_class(runtime, target)) {
-    auto* klass = value_as_class(target);
-    error = "cannot set '__isabstractmethod__' attribute of immutable type '" +
-            std::string(klass != nullptr ? klass->name : "type") + "'";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  if (value_as_native_function(target) != nullptr ||
-      value_as_static_method(target) != nullptr ||
-      value_as_class_method(target) != nullptr ||
-      is_builtin_object_instance(target)) {
-    error = "object does not support attribute assignment";
-    runtime.raise_class_error("AttributeError", error);
-    return false;
-  }
-  if (!object_set_attr(target, "__isabstractmethod__", Value::boolean(true), error)) {
-    runtime.raise_class_error("AttributeError", error);
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
-}
-
-bool abc_abstractclassmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (!abc_abstractmethod(runtime, args, argc, out, error, user_data)) {
-    return false;
-  }
-  out = Value::class_method(args[0]);
-  return object_set_attr(out, "__isabstractmethod__", Value::boolean(true), error);
-}
-
-bool abc_abstractstaticmethod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (!abc_abstractmethod(runtime, args, argc, out, error, user_data)) {
-    return false;
-  }
-  out = Value::static_method(args[0]);
-  return object_set_attr(out, "__isabstractmethod__", Value::boolean(true), error);
-}
-
-bool abc_abstractproperty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc > 4) {
-    return abc_type_error(runtime, error, "property() takes at most 4 arguments (" + std::to_string(argc) + " given)");
-  }
-  Value values[4] = {Value::none(), Value::none(), Value::none(), Value::none()};
-  for (uint32_t i = 0; i < argc; ++i) {
-    value_assign_fast(values[i], args[i]);
-  }
-  out = Value::property(values[0], values[1], values[2], values[3], true);
-  return true;
-}
-
-bool abc_update_abstractmethods_kw(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& out,
-    std::string& error,
-    void*) {
-  Value bound;
-  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.update_abstractmethods", "cls", error)) {
-    return false;
-  }
-  if (kwargc == 0) {
-    return true;
-  }
-  return abc_update_abstractmethods(runtime, &bound, 1, out, error, nullptr);
-}
-
-bool abc_abstractmethod_kw(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& out,
-    std::string& error,
-    void*) {
-  Value bound;
-  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.abstractmethod", "funcobj", error)) {
-    return false;
-  }
-  if (kwargc == 0) {
-    return true;
-  }
-  return abc_abstractmethod(runtime, &bound, 1, out, error, nullptr);
-}
-
-bool abc_abstractclassmethod_kw(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& out,
-    std::string& error,
-    void*) {
-  Value bound;
-  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.abstractclassmethod", "callable", error)) {
-    return false;
-  }
-  if (kwargc == 0) {
-    return true;
-  }
-  return abc_abstractclassmethod(runtime, &bound, 1, out, error, nullptr);
-}
-
-bool abc_abstractstaticmethod_kw(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& out,
-    std::string& error,
-    void*) {
-  Value bound;
-  if (!abc_bind_one_keyword(runtime, args, argc, kwargs, kwargc, bound, "abc.abstractstaticmethod", "callable", error)) {
-    return false;
-  }
-  if (kwargc == 0) {
-    return true;
-  }
-  return abc_abstractstaticmethod(runtime, &bound, 1, out, error, nullptr);
-}
-
-bool abc_abstractproperty_kw(
-    Runtime& runtime,
-    const Value* args,
-    uint32_t argc,
-    const NativeKeywordArg* kwargs,
-    uint32_t kwargc,
-    Value& out,
-    std::string& error,
-    void*) {
-  if (kwargc == 0) {
-    return true;
-  }
-  if (argc > 4) {
-    return abc_type_error(runtime, error, "property() takes at most 4 arguments (" + std::to_string(argc) + " given)");
-  }
-  Value values[4] = {Value::none(), Value::none(), Value::none(), Value::none()};
-  bool has_value[4] = {false, false, false, false};
-  for (uint32_t i = 0; i < argc; ++i) {
-    value_assign_fast(values[i], args[i]);
-    has_value[i] = true;
-  }
-  for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
-    int slot = -1;
-    if (name == "fget") {
-      slot = 0;
-    } else if (name == "fset") {
-      slot = 1;
-    } else if (name == "fdel") {
-      slot = 2;
-    } else if (name == "doc") {
-      slot = 3;
-    } else {
-      return abc_type_error(runtime, error, "property() got an unexpected keyword argument '" + name + "'");
-    }
-    if (has_value[slot]) {
-      return abc_type_error(runtime, error, "property() got multiple values for argument '" + name + "'");
-    }
-    if (kwargs[i].value == nullptr) {
-      return abc_type_error(runtime, error, "property() got an invalid keyword argument");
-    }
-    value_assign_fast(values[slot], *kwargs[i].value);
-    has_value[slot] = true;
-  }
-  return abc_abstractproperty(runtime, values, 4, out, error, nullptr);
-}
-
 } // namespace
 
 void register_abc_module(Runtime& runtime) {
@@ -940,182 +647,6 @@ void register_abc_module(Runtime& runtime) {
                  const_cast<char*>("_abc._reset_caches"),
                  "($module, self, /)"));
   runtime.register_module("_abc", builder.finish());
-
-  std::vector<std::pair<std::string, Value>> abc_meta_attrs;
-  abc_meta_attrs.push_back({"__module__", Value::string("abc")});
-  abc_meta_attrs.push_back({"__qualname__", Value::string("ABCMeta")});
-  abc_meta_attrs.push_back(
-      {"__doc__",
-       Value::string(
-           "Metaclass for defining Abstract Base Classes (ABCs).\n\n"
-           "Use this metaclass to create an ABC.  An ABC can be subclassed\n"
-           "directly, and then acts as a mix-in class.  You can also register\n"
-           "unrelated concrete classes (even built-in classes) and unrelated\n"
-           "ABCs as 'virtual subclasses' -- these and their descendants will\n"
-           "be considered subclasses of the registering ABC by the built-in\n"
-           "issubclass() function, but the registering ABC won't show up in\n"
-           "their MRO (Method Resolution Order) nor will method\n"
-           "implementations defined by the registering ABC be callable (not\n"
-           "even via super()).\n")});
-  abc_meta_attrs.push_back({"__new__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__new__", "__new__", abc_meta_new, "Create a new ABC class."))});
-  abc_meta_attrs.push_back({"__init__", Value::static_method(abc_native_function(runtime, "abc", "ABCMeta.__init__", "__init__", abc_meta_init, "Initialize a new ABC class."))});
-  abc_meta_attrs.push_back(
-      {"register",
-       abc_native_function(
-           runtime,
-           "abc",
-           "ABCMeta.register",
-           "register",
-           abc_meta_register,
-           "Register a virtual subclass of an ABC.\n\n"
-           "Returns the subclass, to allow usage as a class decorator.\n")});
-  abc_meta_attrs.push_back({
-      "__instancecheck__",
-      abc_native_function(runtime, "abc", "ABCMeta.__instancecheck__", "__instancecheck__", abc_meta_instancecheck, "Override for isinstance(instance, cls).")});
-  abc_meta_attrs.push_back({
-      "__subclasscheck__",
-      abc_native_function(runtime, "abc", "ABCMeta.__subclasscheck__", "__subclasscheck__", abc_meta_subclasscheck, "Override for issubclass(subclass, cls).")});
-  const Value* type_base = runtime.find_builtin("type");
-  Value abc_meta = Value::class_object(
-      "ABCMeta",
-      std::move(abc_meta_attrs),
-      type_base != nullptr ? *type_base : Value::invalid(),
-      {},
-      type_base != nullptr ? *type_base : Value::invalid());
-  Value abc_class = Value::class_object(
-      "ABC",
-      {
-          {"__module__", Value::string("abc")},
-          {"__qualname__", Value::string("ABC")},
-          {"__doc__",
-           Value::string(
-               "Helper class that provides a standard way to create an ABC using\n"
-               "inheritance.\n")},
-      },
-      Value::invalid(),
-      {},
-      abc_meta);
-  std::string error;
-  object_set_attr(abc_class, kRegistryAttr, Value::list({}), error);
-  object_set_attr(abc_class, kCacheAttr, Value::list({}), error);
-  object_set_attr(abc_class, kNegativeCacheAttr, Value::list({}), error);
-  object_set_attr(abc_class, kNegativeCacheVersionAttr, Value::int64(g_cache_token), error);
-  NativeModuleBuilder public_builder(runtime, "abc");
-  public_builder.value("ABCMeta", abc_meta)
-      .value("ABC", abc_class)
-      .value(
-          "get_cache_token",
-          abc_native_function(
-              runtime,
-              "abc",
-              "abc.get_cache_token",
-              "get_cache_token",
-              abc_get_cache_token,
-              "Returns the current ABC cache token.\n\n"
-              "The token is an opaque object (supporting equality testing) identifying\n"
-              "the current version of the ABC cache for virtual subclasses.  The token\n"
-              "changes with every call to register() on any ABC.",
-              abc_no_keyword_args,
-              const_cast<char*>("_abc.get_cache_token"),
-              "($module, /)"))
-      .value(
-          "abstractmethod",
-          abc_native_function(
-              runtime,
-              "abc",
-              "abc.abstractmethod",
-              "abstractmethod",
-              abc_abstractmethod,
-              "A decorator indicating abstract methods.\n\n"
-              "Requires that the metaclass is ABCMeta or derived from it.  A\n"
-              "class that has a metaclass derived from ABCMeta cannot be\n"
-              "instantiated unless all of its abstract methods are overridden.\n"
-              "The abstract methods can be called using any of the normal\n"
-              "'super' call mechanisms.  abstractmethod() may be used to declare\n"
-              "abstract methods for properties and descriptors.\n\n"
-              "Usage:\n\n"
-              "    class C(metaclass=ABCMeta):\n"
-              "        @abstractmethod\n"
-              "        def my_abstract_method(self, arg1, arg2, argN):\n"
-              "            ...\n",
-              abc_abstractmethod_kw))
-      .value(
-          "update_abstractmethods",
-          abc_native_function(
-              runtime,
-              "abc",
-              "abc.update_abstractmethods",
-              "update_abstractmethods",
-              abc_update_abstractmethods,
-              "Recalculate the set of abstract methods of an abstract class.\n\n"
-              "If a class has had one of its abstract methods implemented after the\n"
-              "class was created, the method will not be considered implemented until\n"
-              "this function is called. Alternatively, if a new abstract method has been\n"
-              "added to the class, it will only be considered an abstract method of the\n"
-              "class after this function is called.\n\n"
-              "This function should be called before any use is made of the class,\n"
-              "usually in class decorators that add methods to the subject class.\n\n"
-              "Returns cls, to allow usage as a class decorator.\n\n"
-              "If cls is not an instance of ABCMeta, does nothing.\n",
-              abc_update_abstractmethods_kw))
-      .value(
-          "abstractclassmethod",
-          abc_native_function(
-              runtime,
-              "abc",
-              "abc.abstractclassmethod",
-              "abstractclassmethod",
-              abc_abstractclassmethod,
-              "A decorator indicating abstract classmethods.\n\n"
-              "Deprecated, use 'classmethod' with 'abstractmethod' instead:\n\n"
-              "    class C(ABC):\n"
-              "        @classmethod\n"
-              "        @abstractmethod\n"
-              "        def my_abstract_classmethod(cls, ...):\n"
-              "            ...\n\n",
-              abc_abstractclassmethod_kw,
-              nullptr,
-              nullptr,
-              true))
-      .value(
-          "abstractstaticmethod",
-          abc_native_function(
-              runtime,
-              "abc",
-              "abc.abstractstaticmethod",
-              "abstractstaticmethod",
-              abc_abstractstaticmethod,
-              "A decorator indicating abstract staticmethods.\n\n"
-              "Deprecated, use 'staticmethod' with 'abstractmethod' instead:\n\n"
-              "    class C(ABC):\n"
-              "        @staticmethod\n"
-              "        @abstractmethod\n"
-              "        def my_abstract_staticmethod(...):\n"
-              "            ...\n\n",
-              abc_abstractstaticmethod_kw,
-              nullptr,
-              nullptr,
-              true))
-      .value(
-          "abstractproperty",
-          abc_native_function(
-              runtime,
-              "abc",
-              "abc.abstractproperty",
-              "abstractproperty",
-              abc_abstractproperty,
-              "A decorator indicating abstract properties.\n\n"
-              "Deprecated, use 'property' with 'abstractmethod' instead:\n\n"
-              "    class C(ABC):\n"
-              "        @property\n"
-              "        @abstractmethod\n"
-              "        def my_abstract_property(self):\n"
-              "            ...\n\n",
-              abc_abstractproperty_kw,
-              nullptr,
-              nullptr,
-              true));
-  runtime.register_module("abc", public_builder.finish());
 }
 
 } // namespace xlang3

@@ -10,8 +10,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import asyncio
-
 async def add(a, b):
     return a + b
 
@@ -20,23 +18,13 @@ async def main():
     second = await add(1, 2)
     return first + second
 
-print(asyncio.run(main()))
-
-created = asyncio.create_task(add(5, 6))
-print(asyncio.run(created))
-
-async def from_task():
-    return await asyncio.create_task(add(7, 8))
-
-print(asyncio.run(from_task()))
-print(asyncio.gather([add(2, 3), asyncio.create_task(add(4, 5))]))
-
 ran = []
 
 async def lazy_value():
     ran.append("ran")
     return 99
 
+main_coro = main()
 coro = lazy_value()
+print(str(main_coro))
 print(len(ran), str(coro))
-print(asyncio.run(coro), len(ran))

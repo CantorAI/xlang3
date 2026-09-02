@@ -15,361 +15,282 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
+#include "xlang3/value.h"
 
-#include <cstdint>
 #include <cmath>
-#include <cstdlib>
-#include <string>
-#include <vector>
 
 namespace xlang3 {
-
 namespace {
 
-struct GetterState {
-  std::vector<Value> items;
-};
+using BinaryValueOp = bool (*)(const Value&, const Value&, Value&, std::string&);
 
-struct MethodCallerState {
-  std::string name;
-  std::vector<Value> args;
-};
-
-enum class BinaryKind : uintptr_t {
-  Add = 1,
-  Sub,
-  Mul,
-  Div,
-  FloorDiv,
-  Mod,
-  Pow,
-  BitAnd,
-  BitOr,
-  BitXor,
-  ShiftLeft,
-  ShiftRight,
-};
-
-void getter_cleanup(void* data) {
-  delete static_cast<GetterState*>(data);
-}
-
-void methodcaller_cleanup(void* data) {
-  delete static_cast<MethodCallerState*>(data);
-}
-
-bool operator_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
-    error = "'operator.index' expected int";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
-}
-
-bool operator_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.getitem() expected object and key";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  if (!sequence_get_item(args[0], args[1], out, error)) {
-    if (value_as_instance(args[0]) != nullptr) {
-      Value getitem;
-      std::string attr_error;
-      if (object_get_attr(args[0], "__getitem__", getitem, attr_error)) {
-        if (runtime_call_callable(runtime, getitem, &args[1], 1, out, error)) {
-          return true;
-        }
-      }
-    }
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  return true;
-}
-
-bool operator_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3) {
-    error = "operator.setitem() expected object, key, and value";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  Value target = args[0];
-  if (!sequence_set_item(target, args[1], args[2], error)) {
-    if (value_as_instance(args[0]) != nullptr) {
-      Value setitem;
-      std::string attr_error;
-      if (object_get_attr(args[0], "__setitem__", setitem, attr_error)) {
-        Value call_args[2] = {args[1], args[2]};
-        Value ignored;
-        if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
-          value_set_none(out);
-          return true;
-        }
-      }
-    }
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  value_set_none(out);
-  return true;
-}
-
-bool operator_delitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.delitem() expected object and key";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  Value target = args[0];
-  if (!sequence_delete_item(target, args[1], error)) {
-    if (value_as_instance(args[0]) != nullptr) {
-      Value delitem;
-      std::string attr_error;
-      if (object_get_attr(args[0], "__delitem__", delitem, attr_error)) {
-        Value ignored;
-        if (runtime_call_callable(runtime, delitem, &args[1], 1, ignored, error)) {
-          value_set_none(out);
-          return true;
-        }
-      }
-    }
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  value_set_none(out);
-  return true;
-}
-
-bool operator_truth(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "operator.truth() expected one argument";
-    return false;
-  }
-  value_set_bool(out, value_truthy(args[0]));
-  return true;
-}
-
-bool operator_not(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "operator.not_() expected one argument";
-    return false;
-  }
-  value_set_bool(out, !value_truthy(args[0]));
-  return true;
-}
-
-bool operator_is(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.is_() expected two arguments";
-    return false;
-  }
-  value_set_bool(out, value_is(args[0], args[1]));
-  return true;
-}
-
-bool operator_is_not(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.is_not() expected two arguments";
-    return false;
-  }
-  value_set_bool(out, !value_is(args[0], args[1]));
-  return true;
-}
-
-bool operator_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.contains() expected container and item";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  bool contains = false;
-  if (!value_contains(args[0], args[1], contains, error)) {
-    if (value_as_instance(args[0]) != nullptr) {
-      Value contains_method;
-      std::string attr_error;
-      if (object_get_attr(args[0], "__contains__", contains_method, attr_error)) {
-        Value result;
-        if (runtime_call_callable(runtime, contains_method, &args[1], 1, result, error)) {
-          value_set_bool(out, value_truthy(result));
-          return true;
-        }
-      }
-    }
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  value_set_bool(out, contains);
-  return true;
-}
-
-bool operator_length_hint(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "operator.length_hint() expected object and optional default";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  if (sequence_len(args[0], out, error)) {
+bool expect_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error) {
+  if (argc == expected) {
     return true;
+  }
+  error = std::string(name) + "() expected " + std::to_string(expected) + " arguments, got " + std::to_string(argc);
+  return false;
+}
+
+bool operator_binary(
+    const char* name,
+    BinaryValueOp op,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error) {
+  if (!expect_argc(argc, 2, name, error)) {
+    return false;
+  }
+  return op(args[0], args[1], out, error);
+}
+
+bool operator_compare(const char* op, const Value* args, uint32_t argc, Value& out, std::string& error) {
+  if (!expect_argc(argc, 2, op, error)) {
+    return false;
+  }
+  return value_compare(op, args[0], args[1], out, error);
+}
+
+bool operator_identity_equal(const Value& lhs, const Value& rhs) {
+  if (lhs.tag != rhs.tag) {
+    return false;
+  }
+  switch (lhs.tag) {
+    case ValueTag::None:
+      return true;
+    case ValueTag::Bool:
+      return lhs.as.b == rhs.as.b;
+    case ValueTag::Object:
+      return lhs.as.obj == rhs.as.obj;
+    default:
+      return false;
+  }
+}
+
+bool op_lt(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare("<", args, argc, out, error);
+}
+
+bool op_le(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare("<=", args, argc, out, error);
+}
+
+bool op_eq(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare("==", args, argc, out, error);
+}
+
+bool op_ne(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare("!=", args, argc, out, error);
+}
+
+bool op_ge(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(">=", args, argc, out, error);
+}
+
+bool op_gt(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(">", args, argc, out, error);
+}
+
+bool op_add(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("add", value_add, args, argc, out, error);
+}
+
+bool op_sub(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("sub", value_sub, args, argc, out, error);
+}
+
+bool op_mul(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("mul", value_mul, args, argc, out, error);
+}
+
+bool op_truediv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("truediv", value_div, args, argc, out, error);
+}
+
+bool op_floordiv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("floordiv", value_floor_div, args, argc, out, error);
+}
+
+bool op_mod(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("mod", value_mod, args, argc, out, error);
+}
+
+bool op_pow(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("pow", value_pow, args, argc, out, error);
+}
+
+bool op_and(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("and_", value_bit_and, args, argc, out, error);
+}
+
+bool op_or(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("or_", value_bit_or, args, argc, out, error);
+}
+
+bool op_xor(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("xor", value_bit_xor, args, argc, out, error);
+}
+
+bool op_lshift(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("lshift", value_shift_left, args, argc, out, error);
+}
+
+bool op_rshift(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("rshift", value_shift_right, args, argc, out, error);
+}
+
+bool op_concat(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_binary("concat", value_add, args, argc, out, error);
+}
+
+bool op_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "getitem", error)) {
+    return false;
   }
   if (value_as_instance(args[0]) != nullptr) {
-    Value len_method;
+    Value getitem;
     std::string attr_error;
-    if (object_get_attr(args[0], "__len__", len_method, attr_error) &&
-        runtime_call_callable(runtime, len_method, nullptr, 0, out, error)) {
+    if (object_get_attr(args[0], "__getitem__", getitem, attr_error)) {
+      return runtime_call_callable(runtime, getitem, &args[1], 1, out, error);
+    }
+  }
+  return sequence_get_item(args[0], args[1], out, error);
+}
+
+bool op_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 3, "setitem", error)) {
+    return false;
+  }
+  if (value_as_instance(args[0]) != nullptr) {
+    Value setitem;
+    std::string attr_error;
+    if (object_get_attr(args[0], "__setitem__", setitem, attr_error)) {
+      Value call_args[2] = {args[1], args[2]};
+      Value ignored;
+      if (!runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
+        return false;
+      }
+      value_set_none(out);
       return true;
     }
   }
-  if (argc == 2) {
-    value_assign_fast(out, args[1]);
-    return true;
+  Value target;
+  value_assign_fast(target, args[0]);
+  if (!sequence_set_item(target, args[1], args[2], error)) {
+    return false;
   }
-  value_set_int64(out, 0);
+  value_set_none(out);
   return true;
 }
 
-bool operator_count_of(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.countOf() expected sequence and item";
-    runtime.raise_class_error("TypeError", error);
+bool op_delitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "delitem", error)) {
     return false;
   }
-  Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  int64_t count = 0;
-  for (;;) {
-    bool done = false;
-    Value item;
-    if (!sequence_iter_next(iterator, done, item, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (done) {
-      break;
-    }
-    Value equal;
-    if (!value_compare("==", item, args[1], equal, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (value_truthy(equal)) {
-      ++count;
-    }
-  }
-  value_set_int64(out, count);
-  return true;
-}
-
-bool operator_index_of(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "operator.indexOf() expected sequence and item";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  Value iterator;
-  if (!sequence_get_iter(args[0], iterator, error)) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  int64_t index = 0;
-  for (;;) {
-    bool done = false;
-    Value item;
-    if (!sequence_iter_next(iterator, done, item, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (done) {
-      error = "sequence.index(x): x not in sequence";
-      runtime.raise_class_error("ValueError", error);
-      return false;
-    }
-    Value equal;
-    if (!value_compare("==", item, args[1], equal, error)) {
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (value_truthy(equal)) {
-      value_set_int64(out, index);
+  if (value_as_instance(args[0]) != nullptr) {
+    Value delitem;
+    std::string attr_error;
+    if (object_get_attr(args[0], "__delitem__", delitem, attr_error)) {
+      Value ignored;
+      if (!runtime_call_callable(runtime, delitem, &args[1], 1, ignored, error)) {
+        return false;
+      }
+      value_set_none(out);
       return true;
     }
-    ++index;
   }
-}
-
-bool binary_value_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 2) {
-    error = "operator binary function expected two arguments";
-    runtime.raise_class_error("TypeError", error);
+  Value target;
+  value_assign_fast(target, args[0]);
+  if (!sequence_delete_item(target, args[1], error)) {
     return false;
   }
-  bool ok = false;
-  switch (static_cast<BinaryKind>(reinterpret_cast<uintptr_t>(user_data))) {
-    case BinaryKind::Add: ok = value_add(args[0], args[1], out, error); break;
-    case BinaryKind::Sub: ok = value_sub(args[0], args[1], out, error); break;
-    case BinaryKind::Mul: ok = value_mul(args[0], args[1], out, error); break;
-    case BinaryKind::Div: ok = value_div(args[0], args[1], out, error); break;
-    case BinaryKind::FloorDiv: ok = value_floor_div(args[0], args[1], out, error); break;
-    case BinaryKind::Mod: ok = value_mod(args[0], args[1], out, error); break;
-    case BinaryKind::Pow: ok = value_pow(args[0], args[1], out, error); break;
-    case BinaryKind::BitAnd: ok = value_bit_and(args[0], args[1], out, error); break;
-    case BinaryKind::BitOr: ok = value_bit_or(args[0], args[1], out, error); break;
-    case BinaryKind::BitXor: ok = value_bit_xor(args[0], args[1], out, error); break;
-    case BinaryKind::ShiftLeft: ok = value_shift_left(args[0], args[1], out, error); break;
-    case BinaryKind::ShiftRight: ok = value_shift_right(args[0], args[1], out, error); break;
-    default: error = "operator binary function is not implemented"; break;
-  }
-  if (!ok) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  value_set_none(out);
   return true;
 }
 
-bool operator_neg(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || !value_sub(Value::int64(0), args[0], out, error)) {
-    error = error.empty() ? "operator.neg() expected one numeric argument" : error;
-    runtime.raise_class_error("TypeError", error);
+bool op_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "contains", error)) {
     return false;
   }
+  if (value_as_instance(args[0]) != nullptr) {
+    Value contains;
+    std::string attr_error;
+    if (object_get_attr(args[0], "__contains__", contains, attr_error)) {
+      Value result;
+      if (!runtime_call_callable(runtime, contains, &args[1], 1, result, error)) {
+        return false;
+      }
+      out = Value::boolean(value_truthy(result));
+      return true;
+    }
+  }
+  bool result = false;
+  if (!value_contains(args[0], args[1], result, error)) {
+    return false;
+  }
+  out = Value::boolean(result);
   return true;
 }
 
-bool operator_pos(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "operator.pos() expected one numeric argument";
-    runtime.raise_class_error("TypeError", error);
+bool op_truth(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "truth", error)) {
     return false;
   }
-  value_assign_fast(out, args[0]);
+  out = Value::boolean(value_truthy(args[0]));
   return true;
 }
 
-bool operator_invert_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || !value_invert(args[0], out, error)) {
-    error = error.empty() ? "operator.invert() expected one integer argument" : error;
-    runtime.raise_class_error("TypeError", error);
+bool op_not(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "not_", error)) {
     return false;
   }
+  out = Value::boolean(!value_truthy(args[0]));
   return true;
 }
 
-bool operator_abs_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "operator.abs() expected one numeric argument";
-    runtime.raise_class_error("TypeError", error);
+bool op_is(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "is_", error)) {
+    return false;
+  }
+  out = Value::boolean(operator_identity_equal(args[0], args[1]));
+  return true;
+}
+
+bool op_is_not(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "is_not", error)) {
+    return false;
+  }
+  out = Value::boolean(!operator_identity_equal(args[0], args[1]));
+  return true;
+}
+
+bool op_is_none(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "is_none", error)) {
+    return false;
+  }
+  out = Value::boolean(args[0].tag == ValueTag::None);
+  return true;
+}
+
+bool op_is_not_none(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "is_not_none", error)) {
+    return false;
+  }
+  out = Value::boolean(args[0].tag != ValueTag::None);
+  return true;
+}
+
+bool op_abs(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "abs", error)) {
     return false;
   }
   if (args[0].tag == ValueTag::Int64) {
-    value_set_int64(out, args[0].as.i64 < 0 ? -args[0].as.i64 : args[0].as.i64);
+    out = Value::int64(args[0].as.i64 < 0 ? -args[0].as.i64 : args[0].as.i64);
     return true;
   }
   if (args[0].tag == ValueTag::Double) {
@@ -377,265 +298,139 @@ bool operator_abs_entry(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return true;
   }
   error = "bad operand type for abs()";
-  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
-bool operator_call_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1) {
-    error = "operator.call() expected callable";
-    runtime.raise_class_error("TypeError", error);
+bool op_neg(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "neg", error)) {
     return false;
   }
-  return runtime_call_callable(runtime, args[0], argc > 1 ? args + 1 : nullptr, argc > 1 ? argc - 1 : 0, out, error);
+  if (args[0].tag == ValueTag::Int64) {
+    out = Value::int64(-args[0].as.i64);
+    return true;
+  }
+  if (args[0].tag == ValueTag::Double) {
+    out = Value::number(-args[0].as.f64);
+    return true;
+  }
+  error = "bad operand type for unary -";
+  return false;
 }
 
-bool compare_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 2) {
-    error = "operator comparison expected two arguments";
-    runtime.raise_class_error("TypeError", error);
+bool op_pos(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "pos", error)) {
     return false;
   }
-  const char* op = static_cast<const char*>(user_data);
-  if (!value_compare(op == nullptr ? "==" : op, args[0], args[1], out, error)) {
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  value_assign_fast(out, args[0]);
   return true;
 }
 
-bool attrgetter_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  auto* state = static_cast<GetterState*>(user_data);
-  if (state == nullptr || argc != 1) {
-    error = "attrgetter expected one object";
+bool op_invert(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "invert", error)) {
     return false;
   }
-  std::vector<Value> values;
-  values.reserve(state->items.size());
-  for (const auto& name_value : state->items) {
-    auto* name = value_as_string(name_value);
-    if (name == nullptr) {
-      error = "attribute name must be str";
-      return false;
-    }
-    Value current = args[0];
-    std::string remaining = string_object_to_string(*name);
-    size_t start = 0;
-    for (;;) {
-      const size_t dot = remaining.find('.', start);
-      const std::string part = remaining.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
-      Value next;
-      if (!object_get_attr(current, part, next, error)) {
-        return false;
-      }
-      current = std::move(next);
-      if (dot == std::string::npos) {
-        break;
-      }
-      start = dot + 1;
-    }
-    values.push_back(std::move(current));
+  return value_invert(args[0], out, error);
+}
+
+bool op_index(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 1, "index", error)) {
+    return false;
   }
-  if (values.size() == 1) {
-    value_assign_fast(out, values[0]);
+  if (args[0].tag == ValueTag::Int64 || args[0].tag == ValueTag::Bool || value_as_bigint(args[0]) != nullptr) {
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  error = "'object' cannot be interpreted as an integer";
+  return false;
+}
+
+bool op_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "call() expected at least one argument";
+    return false;
+  }
+  return runtime_call_callable(runtime, args[0], args + 1, argc - 1, out, error);
+}
+
+bool op_length_hint(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "length_hint() expected object and optional default";
+    return false;
+  }
+  std::string ignored;
+  if (sequence_len(args[0], out, ignored)) {
+    return true;
+  }
+  if (argc == 2) {
+    value_assign_fast(out, args[1]);
   } else {
-    out = Value::tuple(std::move(values));
+    out = Value::int64(0);
   }
   return true;
 }
 
-bool attrgetter_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1) {
-    error = "attrgetter expected at least one attribute name";
-    return false;
-  }
-  auto* state = new GetterState();
-  for (uint32_t i = 0; i < argc; ++i) {
-    if (value_as_string(args[i]) == nullptr) {
-      delete state;
-      error = "attribute name must be str";
-      return false;
-    }
-    state->items.push_back(args[i]);
-  }
-  out = runtime.make_native_function("operator.attrgetter.<call>", attrgetter_call, state, getter_cleanup);
-  return true;
-}
-
-bool itemgetter_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  auto* state = static_cast<GetterState*>(user_data);
-  if (state == nullptr || argc != 1) {
-    error = "itemgetter expected one object";
-    return false;
-  }
-  std::vector<Value> values;
-  values.reserve(state->items.size());
-  for (const auto& key : state->items) {
-    Value item;
-    if (!sequence_get_item(args[0], key, item, error)) {
-      return false;
-    }
-    values.push_back(std::move(item));
-  }
-  if (values.size() == 1) {
-    value_assign_fast(out, values[0]);
-  } else {
-    out = Value::tuple(std::move(values));
-  }
-  return true;
-}
-
-bool itemgetter_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1) {
-    error = "itemgetter expected at least one item";
-    return false;
-  }
-  auto* state = new GetterState();
-  for (uint32_t i = 0; i < argc; ++i) {
-    state->items.push_back(args[i]);
-  }
-  out = runtime.make_native_function("operator.itemgetter.<call>", itemgetter_call, state, getter_cleanup);
-  return true;
-}
-
-bool methodcaller_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  auto* state = static_cast<MethodCallerState*>(user_data);
-  if (state == nullptr || argc != 1) {
-    error = "methodcaller expected one object";
-    return false;
-  }
-  Value method;
-  if (!object_get_attr(args[0], state->name, method, error)) {
-    return false;
-  }
-  return runtime_call_callable(
-      runtime,
-      method,
-      state->args.empty() ? nullptr : state->args.data(),
-      static_cast<uint32_t>(state->args.size()),
-      out,
-      error);
-}
-
-bool methodcaller_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1) {
-    error = "methodcaller expected a method name";
-    return false;
-  }
-  auto* name = value_as_string(args[0]);
-  if (name == nullptr) {
-    error = "method name must be str";
-    return false;
-  }
-  auto* state = new MethodCallerState();
-  state->name = string_object_to_string(*name);
-  state->args.reserve(argc - 1);
-  for (uint32_t i = 1; i < argc; ++i) {
-    state->args.push_back(args[i]);
-  }
-  out = runtime.make_native_function("operator.methodcaller.<call>", methodcaller_call, state, methodcaller_cleanup);
-  return true;
+void add_alias(NativeModuleBuilder& builder, Runtime& runtime, const char* name, NativeFunctionCallback callback) {
+  builder.value(name, runtime.make_native_function(name, callback));
 }
 
 } // namespace
 
 void register_operator_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "operator");
-  auto binary_tag = [](BinaryKind kind) {
-    return reinterpret_cast<void*>(static_cast<uintptr_t>(kind));
-  };
-  builder.function("index", operator_index)
-      .function("getitem", operator_getitem)
-      .function("__getitem__", operator_getitem)
-      .function("setitem", operator_setitem)
-      .function("__setitem__", operator_setitem)
-      .function("delitem", operator_delitem)
-      .function("__delitem__", operator_delitem)
-      .function("truth", operator_truth)
-      .function("not_", operator_not)
-      .function("is_", operator_is)
-      .function("is_not", operator_is_not)
-      .function("contains", operator_contains)
-      .function("__contains__", operator_contains)
-      .function("length_hint", operator_length_hint)
-      .function("countOf", operator_count_of)
-      .function("indexOf", operator_index_of)
-      .function("call", operator_call_entry)
-      .function("__call__", operator_call_entry)
-      .value("add", runtime.make_native_function("operator.add", binary_value_entry, binary_tag(BinaryKind::Add)))
-      .value("__add__", runtime.make_native_function("operator.__add__", binary_value_entry, binary_tag(BinaryKind::Add)))
-      .value("concat", runtime.make_native_function("operator.concat", binary_value_entry, binary_tag(BinaryKind::Add)))
-      .value("iadd", runtime.make_native_function("operator.iadd", binary_value_entry, binary_tag(BinaryKind::Add)))
-      .value("iconcat", runtime.make_native_function("operator.iconcat", binary_value_entry, binary_tag(BinaryKind::Add)))
-      .value("sub", runtime.make_native_function("operator.sub", binary_value_entry, binary_tag(BinaryKind::Sub)))
-      .value("__sub__", runtime.make_native_function("operator.__sub__", binary_value_entry, binary_tag(BinaryKind::Sub)))
-      .value("isub", runtime.make_native_function("operator.isub", binary_value_entry, binary_tag(BinaryKind::Sub)))
-      .value("__isub__", runtime.make_native_function("operator.__isub__", binary_value_entry, binary_tag(BinaryKind::Sub)))
-      .value("mul", runtime.make_native_function("operator.mul", binary_value_entry, binary_tag(BinaryKind::Mul)))
-      .value("__mul__", runtime.make_native_function("operator.__mul__", binary_value_entry, binary_tag(BinaryKind::Mul)))
-      .value("imul", runtime.make_native_function("operator.imul", binary_value_entry, binary_tag(BinaryKind::Mul)))
-      .value("__imul__", runtime.make_native_function("operator.__imul__", binary_value_entry, binary_tag(BinaryKind::Mul)))
-      .value("truediv", runtime.make_native_function("operator.truediv", binary_value_entry, binary_tag(BinaryKind::Div)))
-      .value("__truediv__", runtime.make_native_function("operator.__truediv__", binary_value_entry, binary_tag(BinaryKind::Div)))
-      .value("itruediv", runtime.make_native_function("operator.itruediv", binary_value_entry, binary_tag(BinaryKind::Div)))
-      .value("__itruediv__", runtime.make_native_function("operator.__itruediv__", binary_value_entry, binary_tag(BinaryKind::Div)))
-      .value("floordiv", runtime.make_native_function("operator.floordiv", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
-      .value("__floordiv__", runtime.make_native_function("operator.__floordiv__", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
-      .value("ifloordiv", runtime.make_native_function("operator.ifloordiv", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
-      .value("__ifloordiv__", runtime.make_native_function("operator.__ifloordiv__", binary_value_entry, binary_tag(BinaryKind::FloorDiv)))
-      .value("mod", runtime.make_native_function("operator.mod", binary_value_entry, binary_tag(BinaryKind::Mod)))
-      .value("__mod__", runtime.make_native_function("operator.__mod__", binary_value_entry, binary_tag(BinaryKind::Mod)))
-      .value("imod", runtime.make_native_function("operator.imod", binary_value_entry, binary_tag(BinaryKind::Mod)))
-      .value("__imod__", runtime.make_native_function("operator.__imod__", binary_value_entry, binary_tag(BinaryKind::Mod)))
-      .value("pow", runtime.make_native_function("operator.pow", binary_value_entry, binary_tag(BinaryKind::Pow)))
-      .value("__pow__", runtime.make_native_function("operator.__pow__", binary_value_entry, binary_tag(BinaryKind::Pow)))
-      .value("ipow", runtime.make_native_function("operator.ipow", binary_value_entry, binary_tag(BinaryKind::Pow)))
-      .value("__ipow__", runtime.make_native_function("operator.__ipow__", binary_value_entry, binary_tag(BinaryKind::Pow)))
-      .value("and_", runtime.make_native_function("operator.and_", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
-      .value("__and__", runtime.make_native_function("operator.__and__", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
-      .value("iand", runtime.make_native_function("operator.iand", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
-      .value("__iand__", runtime.make_native_function("operator.__iand__", binary_value_entry, binary_tag(BinaryKind::BitAnd)))
-      .value("or_", runtime.make_native_function("operator.or_", binary_value_entry, binary_tag(BinaryKind::BitOr)))
-      .value("__or__", runtime.make_native_function("operator.__or__", binary_value_entry, binary_tag(BinaryKind::BitOr)))
-      .value("ior", runtime.make_native_function("operator.ior", binary_value_entry, binary_tag(BinaryKind::BitOr)))
-      .value("__ior__", runtime.make_native_function("operator.__ior__", binary_value_entry, binary_tag(BinaryKind::BitOr)))
-      .value("xor", runtime.make_native_function("operator.xor", binary_value_entry, binary_tag(BinaryKind::BitXor)))
-      .value("__xor__", runtime.make_native_function("operator.__xor__", binary_value_entry, binary_tag(BinaryKind::BitXor)))
-      .value("ixor", runtime.make_native_function("operator.ixor", binary_value_entry, binary_tag(BinaryKind::BitXor)))
-      .value("__ixor__", runtime.make_native_function("operator.__ixor__", binary_value_entry, binary_tag(BinaryKind::BitXor)))
-      .value("lshift", runtime.make_native_function("operator.lshift", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
-      .value("__lshift__", runtime.make_native_function("operator.__lshift__", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
-      .value("ilshift", runtime.make_native_function("operator.ilshift", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
-      .value("__ilshift__", runtime.make_native_function("operator.__ilshift__", binary_value_entry, binary_tag(BinaryKind::ShiftLeft)))
-      .value("rshift", runtime.make_native_function("operator.rshift", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
-      .value("irshift", runtime.make_native_function("operator.irshift", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
-      .value("__rshift__", runtime.make_native_function("operator.__rshift__", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
-      .value("__irshift__", runtime.make_native_function("operator.__irshift__", binary_value_entry, binary_tag(BinaryKind::ShiftRight)))
-      .function("neg", operator_neg)
-      .function("__neg__", operator_neg)
-      .function("pos", operator_pos)
-      .function("__pos__", operator_pos)
-      .function("invert", operator_invert_entry)
-      .function("inv", operator_invert_entry)
-      .function("__invert__", operator_invert_entry)
-      .function("abs", operator_abs_entry)
-      .function("__abs__", operator_abs_entry)
-      .value("eq", runtime.make_native_function("operator.eq", compare_entry, const_cast<char*>("==")))
-      .value("__eq__", runtime.make_native_function("operator.__eq__", compare_entry, const_cast<char*>("==")))
-      .value("ne", runtime.make_native_function("operator.ne", compare_entry, const_cast<char*>("!=")))
-      .value("__ne__", runtime.make_native_function("operator.__ne__", compare_entry, const_cast<char*>("!=")))
-      .value("lt", runtime.make_native_function("operator.lt", compare_entry, const_cast<char*>("<")))
-      .value("__lt__", runtime.make_native_function("operator.__lt__", compare_entry, const_cast<char*>("<")))
-      .value("le", runtime.make_native_function("operator.le", compare_entry, const_cast<char*>("<=")))
-      .value("__le__", runtime.make_native_function("operator.__le__", compare_entry, const_cast<char*>("<=")))
-      .value("gt", runtime.make_native_function("operator.gt", compare_entry, const_cast<char*>(">")))
-      .value("__gt__", runtime.make_native_function("operator.__gt__", compare_entry, const_cast<char*>(">")))
-      .value("ge", runtime.make_native_function("operator.ge", compare_entry, const_cast<char*>(">=")))
-      .value("__ge__", runtime.make_native_function("operator.__ge__", compare_entry, const_cast<char*>(">=")))
-      .function("attrgetter", attrgetter_entry)
-      .function("itemgetter", itemgetter_entry)
-      .function("methodcaller", methodcaller_entry);
-  runtime.register_module("operator", builder.finish());
+  NativeModuleBuilder builder(runtime, "_operator");
+  builder.value("__doc__", Value::string("Operator interface native primitives."))
+      .function("lt", op_lt)
+      .function("le", op_le)
+      .function("eq", op_eq)
+      .function("ne", op_ne)
+      .function("ge", op_ge)
+      .function("gt", op_gt)
+      .function("add", op_add)
+      .function("sub", op_sub)
+      .function("mul", op_mul)
+      .function("truediv", op_truediv)
+      .function("floordiv", op_floordiv)
+      .function("mod", op_mod)
+      .function("pow", op_pow)
+      .function("and_", op_and)
+      .function("or_", op_or)
+      .function("xor", op_xor)
+      .function("lshift", op_lshift)
+      .function("rshift", op_rshift)
+      .function("concat", op_concat)
+      .function("getitem", op_getitem)
+      .function("setitem", op_setitem)
+      .function("delitem", op_delitem)
+      .function("contains", op_contains)
+      .function("truth", op_truth)
+      .function("not_", op_not)
+      .function("is_", op_is)
+      .function("is_not", op_is_not)
+      .function("is_none", op_is_none)
+      .function("is_not_none", op_is_not_none)
+      .function("abs", op_abs)
+      .function("neg", op_neg)
+      .function("pos", op_pos)
+      .function("inv", op_invert)
+      .function("invert", op_invert)
+      .function("index", op_index)
+      .function("call", op_call)
+      .function("length_hint", op_length_hint);
+
+  add_alias(builder, runtime, "iadd", op_add);
+  add_alias(builder, runtime, "isub", op_sub);
+  add_alias(builder, runtime, "imul", op_mul);
+  add_alias(builder, runtime, "itruediv", op_truediv);
+  add_alias(builder, runtime, "ifloordiv", op_floordiv);
+  add_alias(builder, runtime, "imod", op_mod);
+  add_alias(builder, runtime, "ipow", op_pow);
+  add_alias(builder, runtime, "iand", op_and);
+  add_alias(builder, runtime, "ior", op_or);
+  add_alias(builder, runtime, "ixor", op_xor);
+  add_alias(builder, runtime, "ilshift", op_lshift);
+  add_alias(builder, runtime, "irshift", op_rshift);
+  add_alias(builder, runtime, "iconcat", op_concat);
+
+  runtime.register_module("_operator", builder.finish());
 }
 
 } // namespace xlang3

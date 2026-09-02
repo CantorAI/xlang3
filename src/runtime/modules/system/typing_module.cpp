@@ -14,116 +14,85 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
-
-#include <string>
-#include <vector>
+#include "xlang3/value.h"
 
 namespace xlang3 {
 
 namespace {
 
-constexpr const char* kTypingAliasNativeType = "typing._Alias";
-constexpr const char* kTypingTypeVarNativeType = "typing.TypeVar";
-
-bool typing_alias_getitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "typing alias expected one subscript";
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
-}
-
-bool typing_class_getitem(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 1) {
-    error = "typing class expected one subscript";
-    return false;
-  }
-  auto* klass = static_cast<Value*>(user_data);
-  if (klass == nullptr) {
-    error = "invalid typing class";
-    return false;
-  }
-  value_assign_fast(out, *klass);
-  return true;
-}
-
-bool typing_identity_decorator(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "typing decorator expected one function";
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
-}
-
-Value make_alias(Runtime& runtime, const char* name) {
-  std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__module__", Value::string("typing")});
-  attrs.push_back({"__getitem__", runtime.make_native_function("typing._Alias.__getitem__", typing_alias_getitem)});
-  Value klass = Value::class_object("_Alias", std::move(attrs));
-  Value instance = Value::instance(klass);
-  std::string error;
-  object_set_attr(instance, "__name__", Value::string(name), error);
-  instance_set_native_data(instance, kTypingAliasNativeType, reinterpret_cast<void*>(1), nullptr, error);
-  return instance;
-}
-
-Value make_typing_marker_class(Runtime& runtime, const char* name) {
-  Value klass = Value::class_object(name, {});
-  auto* class_data = new Value(klass);
-  std::string error;
-  object_set_attr(
-      klass,
-      "__getitem__",
-      runtime.make_native_function(
-          std::string("typing.") + name + ".__getitem__",
-          typing_class_getitem,
-          class_data,
-          [](void* data) { delete static_cast<Value*>(data); }),
-      error);
-  return klass;
-}
-
-bool type_check_only(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc > 1) {
-    error = "type_check_only() expected optional function";
-    return false;
-  }
-  if (argc == 1) {
-    value_assign_fast(out, args[0]);
+bool typing_value_is_callable(const Value& value) {
+  if (value_as_function(value) != nullptr ||
+      value_as_native_function(value) != nullptr ||
+      value_as_bound_method(value) != nullptr ||
+      value_as_class(value) != nullptr) {
     return true;
   }
-  out = runtime.make_native_function("typing.type_check_only.<decorator>", typing_identity_decorator);
+  Value call;
+  std::string ignored;
+  return object_get_attr(value, "__call__", call, ignored);
+}
+
+Value typing_no_default(Runtime& runtime) {
+  if (const Value* value = runtime.find_builtin("NoDefault")) {
+    return *value;
+  }
+  return Value::none();
+}
+
+bool kw_bool(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name, bool fallback) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string_view(kwargs[i].name) == name && kwargs[i].value != nullptr) {
+      return value_truthy(*kwargs[i].value);
+    }
+  }
+  return fallback;
+}
+
+Value kw_value(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name, Value fallback) {
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string_view(kwargs[i].name) == name && kwargs[i].value != nullptr) {
+      return *kwargs[i].value;
+    }
+  }
+  return fallback;
+}
+
+bool set_instance_attr(Value& self, const char* name, const Value& value, std::string& error) {
+  return object_set_attr(self, name, value, error);
+}
+
+bool typing_idfunc(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_typing._idfunc expected one argument";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
   return true;
 }
 
-bool typevar_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2) {
-    error = "TypeVar() expected a name";
+bool type_parameter_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "type parameter __repr__ expected self";
     return false;
   }
-  auto* name = value_as_string(args[1]);
-  if (name == nullptr) {
-    error = "TypeVar() name must be a string";
+  Value name;
+  if (!object_get_attr(args[0], "__name__", name, error)) {
     return false;
   }
-  std::vector<Value> constraints;
-  constraints.reserve(argc > 2 ? argc - 2 : 0);
-  for (uint32_t i = 2; i < argc; ++i) {
-    constraints.push_back(args[i]);
+  std::string prefix;
+  Value covariant;
+  Value contravariant;
+  std::string ignored;
+  if (object_get_attr(args[0], "__covariant__", covariant, ignored) && value_truthy(covariant)) {
+    prefix = "+";
+  } else if (object_get_attr(args[0], "__contravariant__", contravariant, ignored) && value_truthy(contravariant)) {
+    prefix = "-";
   }
-  Value& self = const_cast<Value&>(args[0]);
-  object_set_attr(self, "__name__", Value::string(string_object_to_string(*name)), error);
-  object_set_attr(self, "__bound__", Value::none(), error);
-  object_set_attr(self, "__constraints__", Value::tuple(std::move(constraints)), error);
-  object_set_attr(self, "__default__", Value::none(), error);
-  object_set_attr(self, "__covariant__", Value::boolean(false), error);
-  object_set_attr(self, "__contravariant__", Value::boolean(false), error);
-  instance_set_native_data(self, kTypingTypeVarNativeType, reinterpret_cast<void*>(1), nullptr, error);
-  value_set_none(out);
+  auto* text = value_as_string(name);
+  out = Value::string(prefix + (text == nullptr ? std::string("?") : string_object_to_string(*text)));
   return true;
 }
 
@@ -135,126 +104,269 @@ bool typevar_init_kw(
     uint32_t kwargc,
     Value& out,
     std::string& error,
-    void* user_data) {
-  if (!typevar_init(runtime, args, argc, out, error, user_data)) {
+    void*) {
+  if (argc < 2) {
+    error = "TypeVar expected a name";
     return false;
   }
-  Value& self = const_cast<Value&>(args[0]);
-  for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
-    if (kwargs[i].value == nullptr) {
-      error = "TypeVar() received invalid keyword argument";
-      return false;
-    }
-    if (name == "bound") {
-      object_set_attr(self, "__bound__", *kwargs[i].value, error);
-    } else if (name == "default") {
-      object_set_attr(self, "__default__", *kwargs[i].value, error);
-    } else if (name == "covariant") {
-      object_set_attr(self, "__covariant__", Value::boolean(value_truthy(*kwargs[i].value)), error);
-    } else if (name == "contravariant") {
-      object_set_attr(self, "__contravariant__", Value::boolean(value_truthy(*kwargs[i].value)), error);
-    } else {
-      error = "TypeVar() got an unexpected keyword argument '" + name + "'";
-      return false;
-    }
-  }
-  return true;
-}
-
-bool newtype_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "NewType callable expected one value";
-    return false;
-  }
-  value_assign_fast(out, args[1]);
-  return true;
-}
-
-bool newtype_entry(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "NewType() expected name and supertype";
-    return false;
-  }
-  auto* name = value_as_string(args[0]);
+  auto* name = value_as_string(args[1]);
   if (name == nullptr) {
-    error = "NewType() name must be a string";
+    error = "TypeVar name must be a string";
     return false;
   }
-  std::string type_name = string_object_to_string(*name);
-  std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__call__", runtime.make_native_function("typing.NewType.__call__", newtype_call)});
-  Value klass = Value::class_object("NewType", std::move(attrs));
-  out = Value::instance(klass);
-  object_set_attr(out, "__name__", Value::string(type_name), error);
-  object_set_attr(out, "__supertype__", args[1], error);
-  object_set_attr(out, "__module__", Value::string("typing"), error);
+  Value bound = kw_value(kwargs, kwargc, "bound", Value::none());
+  Value default_value = kw_value(kwargs, kwargc, "default", typing_no_default(runtime));
+  const bool covariant = kw_bool(kwargs, kwargc, "covariant", false);
+  const bool contravariant = kw_bool(kwargs, kwargc, "contravariant", false);
+  const bool infer_variance = kw_bool(kwargs, kwargc, "infer_variance", false);
+  if (covariant && contravariant) {
+    error = "Bivariant types are not supported.";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::vector<Value> constraints;
+  for (uint32_t i = 2; i < argc; ++i) {
+    constraints.push_back(args[i]);
+  }
+  if (!constraints.empty() && bound.tag != ValueTag::None) {
+    error = "Constraints cannot be combined with bound=...";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value self = args[0];
+  if (!set_instance_attr(self, "__name__", args[1], error) ||
+      !set_instance_attr(self, "__module__", Value::string("typing"), error) ||
+      !set_instance_attr(self, "__bound__", bound, error) ||
+      !set_instance_attr(self, "__constraints__", Value::tuple(std::move(constraints)), error) ||
+      !set_instance_attr(self, "__covariant__", Value::boolean(covariant), error) ||
+      !set_instance_attr(self, "__contravariant__", Value::boolean(contravariant), error) ||
+      !set_instance_attr(self, "__infer_variance__", Value::boolean(infer_variance), error) ||
+      !set_instance_attr(self, "__default__", default_value, error)) {
+    return false;
+  }
+  value_set_none(out);
   return true;
 }
 
-bool identity_decorator_entry(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "typing decorator expected one object";
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
+bool typevar_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return typevar_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
-bool cast_entry(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool paramspec_args_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
-    error = "cast() expected type and value";
+    error = "ParamSpecArgs expected origin";
     return false;
   }
-  value_assign_fast(out, args[1]);
+  Value self = args[0];
+  if (!set_instance_attr(self, "__origin__", args[1], error)) {
+    return false;
+  }
+  value_set_none(out);
   return true;
 }
 
-Value make_typevar_class(Runtime& runtime) {
+bool paramspec_kwargs_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "ParamSpecKwargs expected origin";
+    return false;
+  }
+  Value self = args[0];
+  if (!set_instance_attr(self, "__origin__", args[1], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool paramspec_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "ParamSpec expected a name";
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    error = "ParamSpec name must be a string";
+    return false;
+  }
+  Value self = args[0];
+  Value default_value = kw_value(kwargs, kwargc, "default", typing_no_default(runtime));
+  Value args_class = runtime.find_builtin("ParamSpecArgs") != nullptr ? *runtime.find_builtin("ParamSpecArgs") : Value::invalid();
+  Value kwargs_class = runtime.find_builtin("ParamSpecKwargs") != nullptr ? *runtime.find_builtin("ParamSpecKwargs") : Value::invalid();
+  Value args_instance = args_class.tag == ValueTag::Invalid ? Value::none() : Value::instance(args_class);
+  Value kwargs_instance = kwargs_class.tag == ValueTag::Invalid ? Value::none() : Value::instance(kwargs_class);
+  if (args_instance.tag != ValueTag::None) {
+    Value ps_args[] = {args_instance, self};
+    Value ignored;
+    if (!paramspec_args_init(runtime, ps_args, 2, ignored, error, nullptr)) {
+      return false;
+    }
+  }
+  if (kwargs_instance.tag != ValueTag::None) {
+    Value ps_kwargs[] = {kwargs_instance, self};
+    Value ignored;
+    if (!paramspec_kwargs_init(runtime, ps_kwargs, 2, ignored, error, nullptr)) {
+      return false;
+    }
+  }
+  if (!set_instance_attr(self, "__name__", args[1], error) ||
+      !set_instance_attr(self, "__module__", Value::string("typing"), error) ||
+      !set_instance_attr(self, "__bound__", Value::none(), error) ||
+      !set_instance_attr(self, "__constraints__", Value::tuple({}), error) ||
+      !set_instance_attr(self, "__covariant__", Value::boolean(false), error) ||
+      !set_instance_attr(self, "__contravariant__", Value::boolean(false), error) ||
+      !set_instance_attr(self, "__infer_variance__", Value::boolean(false), error) ||
+      !set_instance_attr(self, "__default__", default_value, error) ||
+      !set_instance_attr(self, "args", args_instance, error) ||
+      !set_instance_attr(self, "kwargs", kwargs_instance, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool paramspec_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return paramspec_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool typevartuple_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "TypeVarTuple expected a name";
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    error = "TypeVarTuple name must be a string";
+    return false;
+  }
+  Value self = args[0];
+  Value default_value = kw_value(kwargs, kwargc, "default", typing_no_default(runtime));
+  if (!set_instance_attr(self, "__name__", args[1], error) ||
+      !set_instance_attr(self, "__module__", Value::string("typing"), error) ||
+      !set_instance_attr(self, "__default__", default_value, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool typevartuple_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return typevartuple_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool type_alias_type_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 3 || argc > 4) {
+    error = "TypeAliasType expected name, value, and optional type_params";
+    return false;
+  }
+  auto* name = value_as_string(args[1]);
+  if (name == nullptr) {
+    error = "TypeAliasType name must be a string";
+    return false;
+  }
+  Value self = args[0];
+  Value params = argc == 4 ? args[3] : Value::tuple({});
+  if (!set_instance_attr(self, "__name__", args[1], error) ||
+      !set_instance_attr(self, "__module__", Value::string("typing"), error) ||
+      !set_instance_attr(self, "__value__", args[2], error) ||
+      !set_instance_attr(self, "__type_params__", params, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool no_default_repr(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "NoDefault.__repr__ expected self";
+    return false;
+  }
+  out = Value::string("typing.NoDefault");
+  return true;
+}
+
+Value make_typing_class(Runtime& runtime,
+                        const char* name,
+                        NativeFunctionCallback init = nullptr,
+                        NativeKeywordFunctionCallback init_kw = nullptr) {
+  Value base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__init__", runtime.make_native_function("typing.TypeVar.__init__", typevar_init, nullptr, nullptr, nullptr, false, typevar_init_kw)});
-  return Value::class_object("TypeVar", std::move(attrs));
+  attrs.push_back({"__module__", Value::string("typing")});
+  attrs.push_back({"__qualname__", Value::string(name)});
+  if (init != nullptr) {
+    attrs.push_back({"__init__", runtime.make_native_function(
+        std::string("_typing.") + name + ".__init__",
+        init,
+        nullptr,
+        nullptr,
+        nullptr,
+        false,
+        init_kw)});
+  }
+  const std::string_view class_name(name);
+  if (class_name == "TypeVar" || class_name == "ParamSpec" || class_name == "TypeVarTuple") {
+    attrs.push_back({"__repr__", runtime.make_native_function(std::string("_typing.") + name + ".__repr__", type_parameter_repr)});
+  }
+  return Value::class_object(name, std::move(attrs), std::move(base));
 }
 
 } // namespace
 
 void register_typing_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "typing");
-  builder.value("Any", make_alias(runtime, "Any"))
-      .value("Annotated", make_alias(runtime, "Annotated"))
-      .value("ClassVar", make_alias(runtime, "ClassVar"))
-      .value("Literal", make_alias(runtime, "Literal"))
-      .value("Final", make_alias(runtime, "Final"))
-      .value("Optional", make_alias(runtime, "Optional"))
-      .value("Tuple", make_alias(runtime, "Tuple"))
-      .value("TextIO", make_alias(runtime, "TextIO"))
-      .value("Union", make_alias(runtime, "Union"))
-      .value("Callable", make_alias(runtime, "Callable"))
-      .value("Dict", make_alias(runtime, "Dict"))
-      .value("List", make_alias(runtime, "List"))
-      .value("Set", make_alias(runtime, "Set"))
-      .value("FrozenSet", make_alias(runtime, "FrozenSet"))
-      .value("Iterable", make_alias(runtime, "Iterable"))
-      .value("Iterator", make_alias(runtime, "Iterator"))
-      .value("Sequence", make_alias(runtime, "Sequence"))
-      .value("Mapping", make_alias(runtime, "Mapping"))
-      .value("MutableMapping", make_alias(runtime, "MutableMapping"))
-      .value("MutableSequence", make_alias(runtime, "MutableSequence"))
-      .value("NoReturn", make_alias(runtime, "NoReturn"))
-      .value("Self", make_alias(runtime, "Self"))
-      .value("Type", make_alias(runtime, "Type"))
-      .value("Generic", make_typing_marker_class(runtime, "Generic"))
-      .value("Protocol", make_typing_marker_class(runtime, "Protocol"))
-      .value("TypeVar", make_typevar_class(runtime))
-      .value("TYPE_CHECKING", Value::boolean(false))
-      .function("NewType", newtype_entry)
-      .function("cast", cast_entry)
-      .function("final", identity_decorator_entry)
-      .function("no_type_check", identity_decorator_entry)
-      .function("override", identity_decorator_entry)
-      .function("runtime_checkable", identity_decorator_entry)
-      .function("type_check_only", type_check_only);
-  runtime.register_module("typing", builder.finish());
+  Value no_default_type = make_typing_class(runtime, "NoDefaultType");
+  if (auto* klass = value_as_class(no_default_type)) {
+    klass->attrs["__repr__"] = runtime.make_native_function("_typing.NoDefaultType.__repr__", no_default_repr);
+    klass->attrs["__str__"] = runtime.make_native_function("_typing.NoDefaultType.__repr__", no_default_repr);
+    ++klass->version;
+  }
+  Value no_default = Value::instance(no_default_type);
+  runtime.register_builtin("NoDefault", no_default);
+
+  Value typevar = make_typing_class(runtime, "TypeVar", typevar_init, typevar_init_kw);
+  Value paramspec_args = make_typing_class(runtime, "ParamSpecArgs", paramspec_args_init);
+  Value paramspec_kwargs = make_typing_class(runtime, "ParamSpecKwargs", paramspec_kwargs_init);
+  runtime.register_builtin("ParamSpecArgs", paramspec_args);
+  runtime.register_builtin("ParamSpecKwargs", paramspec_kwargs);
+  Value paramspec = make_typing_class(runtime, "ParamSpec", paramspec_init, paramspec_init_kw);
+  Value typevartuple = make_typing_class(runtime, "TypeVarTuple", typevartuple_init, typevartuple_init_kw);
+  Value type_alias_type = make_typing_class(runtime, "TypeAliasType", type_alias_type_init);
+  Value generic = make_typing_class(runtime, "Generic");
+  Value union_class = make_typing_class(runtime, "Union");
+
+  runtime.register_builtin("TypeVar", typevar);
+  runtime.register_builtin("ParamSpec", paramspec);
+  runtime.register_builtin("TypeVarTuple", typevartuple);
+  runtime.register_builtin("TypeAliasType", type_alias_type);
+  runtime.register_builtin("Generic", generic);
+  runtime.register_builtin("Union", union_class);
+
+  NativeModuleBuilder builder(runtime, "_typing");
+  builder.function("_idfunc", typing_idfunc);
+  builder.value("TypeVar", typevar);
+  builder.value("ParamSpec", paramspec);
+  builder.value("TypeVarTuple", typevartuple);
+  builder.value("ParamSpecArgs", paramspec_args);
+  builder.value("ParamSpecKwargs", paramspec_kwargs);
+  builder.value("TypeAliasType", type_alias_type);
+  builder.value("Generic", generic);
+  builder.value("Union", union_class);
+  builder.value("NoDefault", no_default);
+  runtime.register_module("_typing", builder.finish());
 }
 
 } // namespace xlang3

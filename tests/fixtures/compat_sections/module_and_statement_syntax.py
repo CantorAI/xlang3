@@ -144,6 +144,26 @@ with (
 ):
     total = total + third + fourth
 
+# with cleanup runs only when control flow leaves the with, not on inner loop continue.
+flow_events = []
+class FlowManager:
+    def __enter__(self):
+        flow_events.append("enter")
+        return self
+    def __exit__(self, exc_type, exc_value, traceback):
+        flow_events.append("exit")
+        return False
+
+with FlowManager():
+    flow_i = 0
+    while flow_i < 3:
+        flow_i = flow_i + 1
+        flow_events.append("loop" + str(flow_i))
+        if flow_i == 1:
+            continue
+        if flow_i == 2:
+            break
+
 # del.
 to_delete = 99
 del to_delete
@@ -217,4 +237,5 @@ tp = typed_identity.__type_params__[0]
 box_tp = TypedBox.__type_params__[0]
 
 print("module-statement", total, import_target.VALUE, import_alias.VALUE, pkg.module.VALUE, VALUE, VALUE_ALIAS, STAR_VALUE)
+print("with-loop-control", ",".join(flow_events))
 print("type-params", tp.__name__, box_tp.__name__)

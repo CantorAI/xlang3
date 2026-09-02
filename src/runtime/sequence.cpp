@@ -103,6 +103,20 @@ bool normalize_index(int64_t raw_index, uint64_t size, uint64_t& out) {
   return true;
 }
 
+int64_t range_length(int64_t start, int64_t stop, int64_t step) {
+  if (step > 0) {
+    if (start >= stop) {
+      return 0;
+    }
+    return ((stop - start - 1) / step) + 1;
+  }
+  if (start <= stop) {
+    return 0;
+  }
+  const int64_t neg_step = -step;
+  return ((start - stop - 1) / neg_step) + 1;
+}
+
 bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::string& error) {
   is_none = value.tag == ValueTag::None;
   if (is_none) {
@@ -266,6 +280,39 @@ bool collect_byte_replacement(const Value& value, std::string& out, std::string&
 
 } // namespace
 
+ListObject* value_as_list_storage(Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+ListObject* value_as_mutable_list_storage(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+const ListObject* value_as_list_storage(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
 Value Value::list(std::vector<Value> items) {
   Value v;
   v.tag = ValueTag::Object;
@@ -292,6 +339,30 @@ Value Value::range(int64_t start, int64_t stop, int64_t step) {
   obj->start = start;
   obj->stop = stop;
   obj->step = step;
+  obj->int64_backed = true;
+  obj->start_value = Value::int64(start);
+  obj->stop_value = Value::int64(stop);
+  obj->step_value = Value::int64(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_values(Value start, Value stop, Value step) {
+  int64_t start_i64 = 0;
+  int64_t stop_i64 = 0;
+  int64_t step_i64 = 1;
+  if (value_int_like_to_i64(start, start_i64) &&
+      value_int_like_to_i64(stop, stop_i64) &&
+      value_int_like_to_i64(step, step_i64)) {
+    return Value::range(start_i64, stop_i64, step_i64);
+  }
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeObject>(ObjectKind::Range);
+  obj->int64_backed = false;
+  value_assign_fast(obj->start_value, start);
+  value_assign_fast(obj->stop_value, stop);
+  value_assign_fast(obj->step_value, step);
   v.as.obj = &obj->header;
   return v;
 }
@@ -303,6 +374,30 @@ Value Value::range_iterator(int64_t current, int64_t stop, int64_t step) {
   obj->current = current;
   obj->stop = stop;
   obj->step = step;
+  obj->int64_backed = true;
+  obj->current_value = Value::int64(current);
+  obj->stop_value = Value::int64(stop);
+  obj->step_value = Value::int64(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_iterator_values(Value current, Value stop, Value step) {
+  int64_t current_i64 = 0;
+  int64_t stop_i64 = 0;
+  int64_t step_i64 = 1;
+  if (value_int_like_to_i64(current, current_i64) &&
+      value_int_like_to_i64(stop, stop_i64) &&
+      value_int_like_to_i64(step, step_i64)) {
+    return Value::range_iterator(current_i64, stop_i64, step_i64);
+  }
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeIteratorObject>(ObjectKind::RangeIterator);
+  obj->int64_backed = false;
+  value_assign_fast(obj->current_value, current);
+  value_assign_fast(obj->stop_value, stop);
+  value_assign_fast(obj->step_value, step);
   v.as.obj = &obj->header;
   return v;
 }
@@ -341,8 +436,12 @@ std::string sequence_to_string(const Value& value) {
     return repr_items(list->items, "[", "]");
   }
   if (auto* range = value_as_range(value)) {
-    if (range->start == 0 && range->step == 1) {
+    if (range->int64_backed && range->start == 0 && range->step == 1) {
       return "range(" + std::to_string(range->stop) + ")";
+    }
+    if (!range->int64_backed) {
+      return "range(" + value_to_string(range->start_value) + ", " +
+             value_to_string(range->stop_value) + ", " + value_to_string(range->step_value) + ")";
     }
     return "range(" + std::to_string(range->start) + ", " +
            std::to_string(range->stop) + ", " + std::to_string(range->step) + ")";
@@ -361,6 +460,18 @@ bool sequence_truthy(const Value& value) {
     return !list->items.empty();
   }
   if (auto* range = value_as_range(value)) {
+    if (!range->int64_backed) {
+      Value compare;
+      std::string error;
+      const bool positive = value_int_like_compare(">", range->step_value, Value::int64(0), compare) &&
+                            compare.tag == ValueTag::Bool && compare.as.b;
+      if (positive) {
+        return value_int_like_compare("<", range->start_value, range->stop_value, compare) &&
+               compare.tag == ValueTag::Bool && compare.as.b;
+      }
+      return value_int_like_compare(">", range->start_value, range->stop_value, compare) &&
+             compare.tag == ValueTag::Bool && compare.as.b;
+    }
     return range->step > 0 ? range->start < range->stop : range->start > range->stop;
   }
   if (value_as_range_iterator(value) != nullptr) {
@@ -374,10 +485,15 @@ bool sequence_truthy(const Value& value) {
 
 bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (auto* range = value_as_range(iterable)) {
-    out = Value::range_iterator(range->start, range->stop, range->step);
+    if (range->int64_backed) {
+      out = Value::range_iterator(range->start, range->stop, range->step);
+    } else {
+      out = Value::range_iterator_values(range->start_value, range->stop_value, range->step_value);
+    }
     return true;
   }
-  if (value_as_dict(iterable) != nullptr || value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
+  if (value_as_dict(iterable) != nullptr || value_as_mapping_proxy(iterable) != nullptr ||
+      value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
     return mapping_get_iter(iterable, out, error);
   }
   if (value_as_set(iterable) != nullptr) {
@@ -385,6 +501,10 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   }
   if (value_as_generator(iterable) != nullptr) {
     return generator_get_iter(iterable, out, error);
+  }
+  if (value_as_range_iterator(iterable) != nullptr || value_as_sequence_iterator(iterable) != nullptr) {
+    value_assign_fast(out, iterable);
+    return true;
   }
   if (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr && iterable.as.obj->kind == ObjectKind::File) {
     auto* file = reinterpret_cast<FileObject*>(iterable.as.obj);
@@ -398,15 +518,6 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (value_is_functional_iterator(iterable)) {
     value_assign_fast(out, iterable);
     return true;
-  }
-  if (value_as_class(iterable) != nullptr) {
-    Value member_list;
-    std::string attr_error;
-    if (object_lookup_class_attr(iterable, "_member_list_", member_list, attr_error) &&
-        value_as_list(member_list) != nullptr) {
-      out = Value::sequence_iterator(member_list, 0);
-      return true;
-    }
   }
   if (value_as_list(iterable) != nullptr ||
       (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
@@ -423,12 +534,52 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     out = Value::sequence_iterator(struct_tuple, 0);
     return true;
   }
+  if (auto* instance = value_as_instance(iterable)) {
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      out = Value::sequence_iterator(instance->sequence_storage, 0);
+      return true;
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_get_iter(instance->mapping_storage, out, error);
+    }
+    Value data;
+    std::string ignored;
+    if (object_get_attr(iterable, "data", data, ignored)) {
+      if (sequence_get_iter(data, out, ignored)) {
+        error.clear();
+        return true;
+      }
+    }
+  }
   error = "object is not iterable";
   return false;
 }
 
 bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& error) {
   if (auto* range = value_as_range_iterator(iterator)) {
+    if (!range->int64_backed) {
+      Value compare;
+      std::string cmp_error;
+      const bool positive = value_int_like_compare(">", range->step_value, Value::int64(0), compare) &&
+                            compare.tag == ValueTag::Bool && compare.as.b;
+      const char* op = positive ? ">=" : "<=";
+      if (!value_compare(op, range->current_value, range->stop_value, compare, cmp_error)) {
+        error = cmp_error;
+        return false;
+      }
+      done = compare.tag == ValueTag::Bool && compare.as.b;
+      if (done) {
+        value_set_none(out);
+        return true;
+      }
+      value_assign_fast(out, range->current_value);
+      Value next;
+      if (!value_add(range->current_value, range->step_value, next, error)) {
+        return false;
+      }
+      value_assign_fast(range->current_value, next);
+      return true;
+    }
     done = range->step > 0 ? range->current >= range->stop : range->current <= range->stop;
     if (done) {
       value_set_none(out);
@@ -495,9 +646,9 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
 }
 
 bool sequence_list_append(Value& list, const Value& item, std::string& error) {
-  auto* obj = value_as_list(list);
+  auto* obj = value_as_list_storage(list);
   if (obj == nullptr) {
-    error = "list append target is not a list";
+    error = "list append target is not a list: " + value_to_repr(list);
     return false;
   }
   obj->items.push_back(item);
@@ -505,6 +656,44 @@ bool sequence_list_append(Value& list, const Value& item, std::string& error) {
 }
 
 bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error) {
+  if (value_as_class(object) != nullptr) {
+    Value args;
+    if (value_as_tuple(index) != nullptr) {
+      value_assign_fast(args, index);
+    } else {
+      args = Value::tuple({index});
+    }
+    out = Value::generic_alias(object, std::move(args));
+    return true;
+  }
+  if (auto* range = value_as_range(object)) {
+    const int64_t length = range_length(range->start, range->stop, range->step);
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, length, start, stop, step, error)) {
+        return false;
+      }
+      const int64_t new_start = range->start + start * range->step;
+      const int64_t new_step = range->step * step;
+      const int64_t new_length = range_length(start, stop, step);
+      const int64_t new_stop = new_start + new_step * new_length;
+      out = Value::range(new_start, new_stop, new_step);
+      return true;
+    }
+    if (index.tag != ValueTag::Int64) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(index.as.i64, static_cast<uint64_t>(length), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    out = Value::int64(range->start + static_cast<int64_t>(resolved) * range->step);
+    return true;
+  }
   if (auto* list = value_as_list(object)) {
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
@@ -538,7 +727,7 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     value_assign_fast(out, list->items[static_cast<size_t>(resolved)]);
     return true;
   }
-  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
+  if (value_as_dict(object) != nullptr || value_as_mapping_proxy(object) != nullptr || value_as_module(object) != nullptr) {
     return mapping_get_item(object, index, out, error);
   }
   if (auto* instance = value_as_instance(object)) {
@@ -548,6 +737,9 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_get_item(instance->mapping_storage, index, out, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_get_item(instance->sequence_storage, index, out, error);
     }
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Tuple) {
@@ -678,12 +870,29 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       error = "sequence index must be int";
       return false;
     }
+    size_t logical_size = storage.size;
+    size_t itemsize = 1;
+    const MemoryViewObject* memory_view = nullptr;
+    if (object.as.obj->kind == ObjectKind::MemoryView) {
+      memory_view = reinterpret_cast<const MemoryViewObject*>(object.as.obj);
+      itemsize = memoryview_format_itemsize(memory_view->format);
+      if (itemsize == 0 || itemsize > storage.size || (storage.size % itemsize) != 0) {
+        error = "unsupported memoryview format";
+        return false;
+      }
+      logical_size = storage.size / itemsize;
+    }
     uint64_t resolved = 0;
-    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(storage.size), resolved)) {
+    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(logical_size), resolved)) {
       error = "index out of range";
       return false;
     }
-    value_set_int64(out, static_cast<unsigned char>(storage.data[static_cast<size_t>(resolved)]));
+    const size_t byte_offset = static_cast<size_t>(resolved) * itemsize;
+    uint64_t value = 0;
+    for (size_t i = 0; i < itemsize; ++i) {
+      value |= static_cast<uint64_t>(static_cast<unsigned char>(storage.data[byte_offset + i])) << (i * 8u);
+    }
+    value_set_int64(out, static_cast<int64_t>(value));
     return true;
   }
   if (instance_get_native_data(object, "typing._Alias") != nullptr) {
@@ -779,6 +988,9 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
   if (auto* instance = value_as_instance(object)) {
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_set_item(instance->mapping_storage, index, item, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_set_item(instance->sequence_storage, index, item, error);
     }
   }
   if (auto* bytearray = value_as_bytearray(object)) {
@@ -1032,6 +1244,14 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     value_set_int64(out, static_cast<int64_t>(bytes->size));
     return true;
   }
+  if (auto* range = value_as_range(value)) {
+    if (!range->int64_backed) {
+      error = "range length requires int-backed range";
+      return false;
+    }
+    value_set_int64(out, range_length(range->start, range->stop, range->step));
+    return true;
+  }
   if (auto* bytearray = value_as_bytearray(value)) {
     value_set_int64(out, static_cast<int64_t>(bytearray->value.size()));
     return true;
@@ -1041,7 +1261,7 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
       error = "operation forbidden on released memoryview object";
       return false;
     }
-    value_set_int64(out, static_cast<int64_t>(view->size));
+    value_set_int64(out, static_cast<int64_t>(memoryview_item_count(*view)));
     return true;
   }
   if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr) {
@@ -1052,8 +1272,19 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     if (struct_sequence_storage(value, struct_tuple)) {
       return sequence_len(struct_tuple, out, error);
     }
+    Value bytes_payload;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_bytes_value__", bytes_payload, ignored)) {
+      if (auto* bytes = value_as_bytes(bytes_payload)) {
+        value_set_int64(out, static_cast<int64_t>(bytes->size));
+        return true;
+      }
+    }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_len(instance->mapping_storage, out, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_len(instance->sequence_storage, out, error);
     }
   }
   if (value_as_set(value) != nullptr) {

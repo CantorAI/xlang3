@@ -39,6 +39,11 @@ limitations under the License.
 #include <new>
 #include <system_error>
 #include <vector>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #if defined(XLANG3_EMBEDDED)
 #include <cstdio>
 #else
@@ -351,7 +356,77 @@ void recycle_bytes_object(BytesObject* object) {
 }
 
 bool is_number(const Value& value) {
-  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool || value.tag == ValueTag::Double;
+}
+
+bool is_small_integer_number(const Value& value) {
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool;
+}
+
+int64_t small_integer_number(const Value& value) {
+  return value.tag == ValueTag::Bool ? (value.as.b ? 1 : 0) : value.as.i64;
+}
+
+bool checked_add_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_add_overflow(lhs, rhs, &out);
+#else
+  if ((rhs > 0 && lhs > std::numeric_limits<int64_t>::max() - rhs) ||
+      (rhs < 0 && lhs < std::numeric_limits<int64_t>::min() - rhs)) {
+    return false;
+  }
+  out = lhs + rhs;
+  return true;
+#endif
+}
+
+bool checked_sub_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_sub_overflow(lhs, rhs, &out);
+#else
+  if ((rhs < 0 && lhs > std::numeric_limits<int64_t>::max() + rhs) ||
+      (rhs > 0 && lhs < std::numeric_limits<int64_t>::min() + rhs)) {
+    return false;
+  }
+  out = lhs - rhs;
+  return true;
+#endif
+}
+
+bool checked_mul_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_mul_overflow(lhs, rhs, &out);
+#else
+  if (lhs == 0 || rhs == 0) {
+    out = 0;
+    return true;
+  }
+  if (lhs == -1) {
+    if (rhs == std::numeric_limits<int64_t>::min()) return false;
+    out = -rhs;
+    return true;
+  }
+  if (rhs == -1) {
+    if (lhs == std::numeric_limits<int64_t>::min()) return false;
+    out = -lhs;
+    return true;
+  }
+  if (lhs > 0) {
+    if (rhs > 0) {
+      if (lhs > std::numeric_limits<int64_t>::max() / rhs) return false;
+    } else if (rhs < std::numeric_limits<int64_t>::min() / lhs) {
+      return false;
+    }
+  } else {
+    if (rhs > 0) {
+      if (lhs < std::numeric_limits<int64_t>::min() / rhs) return false;
+    } else if (lhs != 0 && rhs < std::numeric_limits<int64_t>::max() / lhs) {
+      return false;
+    }
+  }
+  out = lhs * rhs;
+  return true;
+#endif
 }
 
 struct BinaryCompareView {
@@ -592,7 +667,13 @@ bool set_like_compare_value(const std::string& op, const Value& lhs, const Value
 }
 
 double as_double(const Value& value) {
-  return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
+  if (value.tag == ValueTag::Int64) {
+    return static_cast<double>(value.as.i64);
+  }
+  if (value.tag == ValueTag::Bool) {
+    return value.as.b ? 1.0 : 0.0;
+  }
+  return value.as.f64;
 }
 
 StringObject* as_string(Object* obj) {
@@ -978,7 +1059,8 @@ Value Value::native_function(
     void (*user_data_cleanup)(void*),
     NativeFastCallCallback fast_callback,
     bool fast_releases_vm_lock,
-    NativeKeywordFunctionCallback keyword_callback) {
+    NativeKeywordFunctionCallback keyword_callback,
+    bool bind_as_descriptor) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
@@ -988,6 +1070,7 @@ Value Value::native_function(
   obj->keyword_callback = keyword_callback;
   obj->fast_callback = fast_callback;
   obj->fast_releases_vm_lock = fast_releases_vm_lock;
+  obj->bind_as_descriptor = bind_as_descriptor;
   obj->user_data = user_data;
   obj->user_data_cleanup = user_data_cleanup;
   v.as.obj = &obj->header;
@@ -1042,6 +1125,16 @@ Value Value::type_param(std::string name) {
   return v;
 }
 
+Value Value::generic_alias(Value origin, Value args) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<GenericAliasObject>(ObjectKind::GenericAlias);
+  obj->origin = std::move(origin);
+  obj->args = std::move(args);
+  v.as.obj = &obj->header;
+  return v;
+}
+
 Value Value::file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable) {
   Value v;
   v.tag = ValueTag::Object;
@@ -1051,6 +1144,22 @@ Value Value::file(FileSystem* fs, std::string path, std::string mode, std::strin
   obj->mode = std::move(mode);
   obj->buffer = std::move(buffer);
   obj->writable = writable;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::fd_file(int fd, std::string name, std::string mode, bool readable, bool writable, bool binary, bool closefd) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FileObject>(ObjectKind::File);
+  obj->path = std::move(name);
+  obj->mode = std::move(mode);
+  obj->readable = readable;
+  obj->writable = writable;
+  obj->binary = binary;
+  obj->fd_backed = true;
+  obj->fd = fd;
+  obj->closefd = closefd;
   v.as.obj = &obj->header;
   return v;
 }
@@ -1082,6 +1191,9 @@ void release(const Value& value) {
     case ObjectKind::String:
       recycle_string_object(as_string(value.as.obj));
       break;
+    case ObjectKind::BigInt:
+      value_bigint_destroy(value_as_bigint(value));
+      break;
     case ObjectKind::Bytes:
       recycle_bytes_object(as_bytes(value.as.obj));
       break;
@@ -1098,6 +1210,7 @@ void release(const Value& value) {
       recycle_tuple_object(as_tuple(value.as.obj));
       break;
     case ObjectKind::Dict:
+    case ObjectKind::MappingProxy:
     case ObjectKind::DictKeysView:
     case ObjectKind::DictValuesView:
     case ObjectKind::DictItemsView:
@@ -1162,7 +1275,18 @@ void release(const Value& value) {
       delete value_as_property(value);
       break;
     case ObjectKind::File:
+      if (auto* file = as_file(value.as.obj); file != nullptr && file->fd_backed && file->closefd && file->fd >= 0 && !file->closed) {
+#if defined(_WIN32)
+        _close(file->fd);
+#else
+        close(file->fd);
+#endif
+        file->fd = -1;
+      }
       delete as_file(value.as.obj);
+      break;
+    case ObjectKind::GenericAlias:
+      delete value_as_generic_alias(value);
       break;
     case ObjectKind::TypeParam:
       delete value_as_type_param(value);
@@ -1192,6 +1316,9 @@ std::string value_to_string(const Value& value) {
 #endif
     }
     case ValueTag::Object:
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::BigInt) {
+        return value_bigint_to_string(value);
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         return string_object_to_string(*as_string(value.as.obj));
       }
@@ -1241,6 +1368,7 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::MappingProxy ||
            value.as.obj->kind == ObjectKind::DictKeysView ||
            value.as.obj->kind == ObjectKind::DictValuesView ||
            value.as.obj->kind == ObjectKind::DictItemsView ||
@@ -1282,6 +1410,9 @@ std::string value_to_string(const Value& value) {
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::TypeParam) {
         return "<type parameter " + value_as_type_param(value)->name + ">";
       }
+      if (auto* generic_alias = value_as_generic_alias(value)) {
+        return value_to_string(generic_alias->origin) + "[" + value_to_string(generic_alias->args) + "]";
+      }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Class ||
            value.as.obj->kind == ObjectKind::Instance ||
@@ -1307,6 +1438,26 @@ std::string value_to_repr(const Value& value) {
   return value_to_string(value);
 }
 
+std::string format_percent_integer(int64_t value, uint32_t base, bool uppercase) {
+  static constexpr char kLowerDigits[] = "0123456789abcdef";
+  static constexpr char kUpperDigits[] = "0123456789ABCDEF";
+  const char* digits = uppercase ? kUpperDigits : kLowerDigits;
+  const bool negative = value < 0;
+  uint64_t magnitude = negative ? static_cast<uint64_t>(-(value + 1)) + 1u : static_cast<uint64_t>(value);
+  char buffer[80];
+  size_t pos = sizeof(buffer);
+  do {
+    buffer[--pos] = digits[magnitude % base];
+    magnitude /= base;
+  } while (magnitude != 0);
+  if (negative) {
+    buffer[--pos] = '-';
+  }
+  return std::string(buffer + pos, sizeof(buffer) - pos);
+}
+
+const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch);
+
 bool string_percent_arg(
     const Value& args,
     size_t& tuple_index,
@@ -1321,6 +1472,15 @@ bool string_percent_arg(
     return true;
   }
   if (auto* tuple = value_as_tuple(args)) {
+    if (tuple_index >= tuple->items.size()) {
+      error = "not enough arguments for format string";
+      return false;
+    }
+    value_assign_fast(out, tuple->items[tuple_index++]);
+    return true;
+  }
+  Value tuple_scratch;
+  if (const auto* tuple = value_as_tuple_or_tuple_backed(args, tuple_scratch)) {
     if (tuple_index >= tuple->items.size()) {
       error = "not enough arguments for format string";
       return false;
@@ -1381,10 +1541,38 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
       }
     }
 
+    bool left_align = false;
+    char pad_char = ' ';
     while (i < format.size() && std::strchr("#0- +", format[i]) != nullptr) {
+      if (format[i] == '-') {
+        left_align = true;
+      } else if (format[i] == '0' && !left_align) {
+        pad_char = '0';
+      }
+      ++i;
+    }
+    int64_t width = 0;
+    bool has_width = false;
+    if (i < format.size() && format[i] == '*') {
+      Value width_arg;
+      if (!string_percent_arg(rhs, tuple_index, std::string(), width_arg, error)) {
+        return false;
+      }
+      if (width_arg.tag != ValueTag::Int64) {
+        error = "* wants int";
+        return false;
+      }
+      width = width_arg.as.i64;
+      if (width < 0) {
+        left_align = true;
+        width = -width;
+      }
+      has_width = true;
       ++i;
     }
     while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+      has_width = true;
+      width = width * 10 + static_cast<int64_t>(format[i] - '0');
       ++i;
     }
     if (i < format.size() && format[i] == '.') {
@@ -1406,11 +1594,14 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
       return false;
     }
 
+    std::string formatted;
     switch (format[i]) {
       case 's':
+        formatted = value_to_string(arg);
+        break;
       case 'r':
       case 'a':
-        result += value_to_string(arg);
+        formatted = value_to_repr(arg);
         break;
       case 'd':
       case 'i':
@@ -1419,7 +1610,16 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
           error = "%d format requires an integer";
           return false;
         }
-        result += std::to_string(arg.as.i64);
+        formatted = std::to_string(arg.as.i64);
+        break;
+      case 'o':
+      case 'x':
+      case 'X':
+        if (arg.tag != ValueTag::Int64) {
+          error = "integer format requires an integer";
+          return false;
+        }
+        formatted = format_percent_integer(arg.as.i64, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
         break;
       case 'f':
       case 'F':
@@ -1432,18 +1632,32 @@ bool string_percent_format(const Value& lhs, const Value& rhs, Value& out, std::
           return false;
         }
 #if defined(XLANG3_EMBEDDED)
-        result += format_f64(as_double(arg));
+        formatted = format_f64(as_double(arg));
 #else
-        result += std::to_string(as_double(arg));
+        formatted = std::to_string(as_double(arg));
 #endif
         break;
       default:
         error = "unsupported format character";
         return false;
     }
+    if (has_width && width > static_cast<int64_t>(formatted.size())) {
+      const size_t pad_count = static_cast<size_t>(width - static_cast<int64_t>(formatted.size()));
+      if (left_align) {
+        result += formatted;
+        result.append(pad_count, ' ');
+      } else {
+        result.append(pad_count, pad_char);
+        result += formatted;
+      }
+    } else {
+      result += formatted;
+    }
   }
 
-  if (auto* tuple = value_as_tuple(rhs); tuple != nullptr && tuple_index < tuple->items.size()) {
+  Value tuple_scratch;
+  const auto* tuple = value_as_tuple_or_tuple_backed(rhs, tuple_scratch);
+  if (tuple != nullptr && tuple_index < tuple->items.size()) {
     error = "not all arguments converted during string formatting";
     return false;
   }
@@ -1491,6 +1705,9 @@ bool value_truthy(const Value& value) {
     case ValueTag::Double:
       return value.as.f64 != 0.0;
     case ValueTag::Object:
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::BigInt) {
+        return value_bigint_truthy(value);
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         return as_string(value.as.obj)->size != 0;
       }
@@ -1535,6 +1752,10 @@ bool value_truthy(const Value& value) {
         return set_truthy(value);
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Instance) {
+        bool native_truth = true;
+        if (instance_native_truthy(value, native_truth)) {
+          return native_truth;
+        }
         Value bool_method;
         std::string ignored;
         if (object_get_class_attr_for_instance(value, "__bool__", bool_method, ignored)) {
@@ -1549,10 +1770,85 @@ bool value_truthy(const Value& value) {
   return false;
 }
 
+const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch) {
+  if (auto* tuple = value_as_tuple(value)) {
+    return tuple;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || !class_has_builtin_base_name(klass, "tuple")) {
+    return nullptr;
+  }
+  std::string ignored;
+  if (!object_get_attr(value, "_tuple", scratch, ignored)) {
+    return nullptr;
+  }
+  return value_as_tuple(scratch);
+}
+
+const char* value_binary_type_name(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::Invalid: return "invalid";
+    case ValueTag::None: return "NoneType";
+    case ValueTag::Bool: return "bool";
+    case ValueTag::Int64: return "int";
+    case ValueTag::Double: return "float";
+    case ValueTag::Object:
+      if (value.as.obj == nullptr) {
+        return "object";
+      }
+      switch (value.as.obj->kind) {
+        case ObjectKind::String: return "str";
+        case ObjectKind::BigInt: return "int";
+        case ObjectKind::Bytes: return "bytes";
+        case ObjectKind::ByteArray: return "bytearray";
+        case ObjectKind::MemoryView: return "memoryview";
+        case ObjectKind::Slice: return "slice";
+        case ObjectKind::Tuple: return "tuple";
+        case ObjectKind::List: return "list";
+        case ObjectKind::Dict: return "dict";
+        case ObjectKind::Set: return "set";
+        case ObjectKind::Module: return "module";
+        case ObjectKind::Function: return "function";
+        case ObjectKind::NativeFunction: return "builtin_function_or_method";
+        case ObjectKind::Class: return "type";
+        case ObjectKind::Instance:
+          if (auto* instance = value_as_instance(value)) {
+            if (auto* klass = value_as_class(instance->klass)) {
+              return klass->name.c_str();
+            }
+          }
+          return "object";
+        default: return "object";
+      }
+  }
+  return "object";
+}
+
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 + rhs.as.i64);
+    int64_t result = 0;
+    if (!checked_add_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_add(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
     return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_add_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_add(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_add(lhs, rhs, out)) {
+      return true;
+    }
   }
   if (is_number(lhs) && is_number(rhs)) {
     value_set_number(out, as_double(lhs) + as_double(rhs));
@@ -1590,6 +1886,23 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     out = Value::bytes(std::move(bytes));
     return true;
   }
+  if (auto* left_array = value_as_bytearray(lhs)) {
+    std::string right_bytes;
+    if (auto* right = value_as_bytes(rhs)) {
+      right_bytes = bytes_object_to_string(*right);
+    } else if (auto* right = value_as_bytearray(rhs)) {
+      right_bytes = right->value;
+    } else {
+      error = "unsupported operands for +";
+      return false;
+    }
+    std::string bytes;
+    bytes.reserve(left_array->value.size() + right_bytes.size());
+    bytes.append(left_array->value);
+    bytes.append(right_bytes);
+    out = Value::bytearray(std::move(bytes));
+    return true;
+  }
   if (auto* left = value_as_list(lhs)) {
     if (auto* right = value_as_list(rhs)) {
       std::vector<Value> items;
@@ -1604,8 +1917,10 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
       return true;
     }
   }
-  if (auto* left = value_as_tuple(lhs)) {
-    if (auto* right = value_as_tuple(rhs)) {
+  Value left_tuple_scratch;
+  Value right_tuple_scratch;
+  if (auto* left = value_as_tuple_or_tuple_backed(lhs, left_tuple_scratch)) {
+    if (auto* right = value_as_tuple_or_tuple_backed(rhs, right_tuple_scratch)) {
       std::vector<Value> items;
       items.reserve(left->items.size() + right->items.size());
       for (const auto& item : left->items) {
@@ -1618,7 +1933,8 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
       return true;
     }
   }
-  error = "unsupported operands for +";
+  error = std::string("unsupported operand type(s) for +: '") + value_binary_type_name(lhs) +
+          "' and '" + value_binary_type_name(rhs) + "'";
   return false;
 }
 
@@ -1634,8 +1950,25 @@ bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     return set_difference_value(lhs, rhs, out, error);
   }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 - rhs.as.i64);
+    int64_t result = 0;
+    if (!checked_sub_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_sub(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
     return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_sub_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_sub(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_sub(lhs, rhs, out)) {
+      return true;
+    }
   }
   if (is_number(lhs) && is_number(rhs)) {
     value_set_number(out, as_double(lhs) - as_double(rhs));
@@ -1647,8 +1980,25 @@ bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 
 bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 * rhs.as.i64);
+    int64_t result = 0;
+    if (!checked_mul_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_mul(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
     return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_mul_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_mul(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_mul(lhs, rhs, out)) {
+      return true;
+    }
   }
   auto repeat_string = [&](const StringObject* text, int64_t count) {
     if (count <= 0) {
@@ -1664,14 +2014,96 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     out = Value::string(std::move(repeated));
     return true;
   };
+  auto repeat_bytes = [&](const BytesObject* bytes, int64_t count) {
+    if (count <= 0) {
+      out = Value::bytes("");
+      return true;
+    }
+    const auto view = bytes_object_view(*bytes);
+    std::string repeated;
+    repeated.reserve(view.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.append(view.data(), view.size());
+    }
+    out = Value::bytes(std::move(repeated));
+    return true;
+  };
+  auto repeat_list = [&](const ListObject* list, int64_t count) {
+    if (count <= 0 || list->items.empty()) {
+      out = Value::list({});
+      return true;
+    }
+    std::vector<Value> repeated;
+    repeated.reserve(list->items.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.insert(repeated.end(), list->items.begin(), list->items.end());
+    }
+    out = Value::list(std::move(repeated));
+    return true;
+  };
+  auto repeat_tuple = [&](const TupleObject* tuple, int64_t count) {
+    if (count <= 0 || tuple->items.empty()) {
+      out = Value::tuple({});
+      return true;
+    }
+    std::vector<Value> repeated;
+    repeated.reserve(tuple->items.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.insert(repeated.end(), tuple->items.begin(), tuple->items.end());
+    }
+    out = Value::tuple(std::move(repeated));
+    return true;
+  };
+  auto repeat_count = [](const Value& value, int64_t& count) {
+    if (value.tag == ValueTag::Int64) {
+      count = value.as.i64;
+      return true;
+    }
+    if (value.tag == ValueTag::Bool) {
+      count = value.as.b ? 1 : 0;
+      return true;
+    }
+    return false;
+  };
+  int64_t count = 0;
   if (auto* text = value_as_string(lhs)) {
-    if (rhs.tag == ValueTag::Int64) {
-      return repeat_string(text, rhs.as.i64);
+    if (repeat_count(rhs, count)) {
+      return repeat_string(text, count);
     }
   }
   if (auto* text = value_as_string(rhs)) {
-    if (lhs.tag == ValueTag::Int64) {
-      return repeat_string(text, lhs.as.i64);
+    if (repeat_count(lhs, count)) {
+      return repeat_string(text, count);
+    }
+  }
+  if (auto* bytes = value_as_bytes(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_bytes(bytes, count);
+    }
+  }
+  if (auto* bytes = value_as_bytes(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_bytes(bytes, count);
+    }
+  }
+  if (auto* list = value_as_list(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_list(list, count);
+    }
+  }
+  if (auto* list = value_as_list(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_list(list, count);
+    }
+  }
+  if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr && lhs.as.obj->kind == ObjectKind::Tuple) {
+    if (repeat_count(rhs, count)) {
+      return repeat_tuple(reinterpret_cast<TupleObject*>(lhs.as.obj), count);
+    }
+  }
+  if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr && rhs.as.obj->kind == ObjectKind::Tuple) {
+    if (repeat_count(lhs, count)) {
+      return repeat_tuple(reinterpret_cast<TupleObject*>(rhs.as.obj), count);
     }
   }
   if (is_number(lhs) && is_number(rhs)) {
@@ -1679,6 +2111,11 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     return true;
   }
   error = "unsupported operands for *";
+  return false;
+}
+
+bool value_matmul(const Value&, const Value&, Value&, std::string& error) {
+  error = "unsupported operands for @";
   return false;
 }
 
@@ -1757,6 +2194,15 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if ((lhs.tag == ValueTag::Int64 || value_as_bigint(lhs) != nullptr) &&
+      (rhs.tag == ValueTag::Int64 || value_as_bigint(rhs) != nullptr)) {
+    if (value_int_like_pow(lhs, rhs, out, error)) {
+      return true;
+    }
+    if (!error.empty()) {
+      return false;
+    }
+  }
   if (!is_number(lhs) || !is_number(rhs)) {
     error = "unsupported operands for **";
     return false;
@@ -1782,6 +2228,48 @@ bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const bool lhs_scalar_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_scalar_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (lhs_scalar_int && rhs_scalar_int) {
+    const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+    const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+    if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+      value_set_bool(out, (lhs_value & rhs_value) != 0);
+    } else {
+      value_set_int64(out, lhs_value & rhs_value);
+    }
+    return true;
+  }
+
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_bit_and(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    out = Value::int64(left_payload & right_payload);
+    return true;
+  }
   if (value_is_set_like_operand(lhs)) {
     Value left_set;
     if (!value_materialize_set_like(lhs, left_set, error)) {
@@ -1801,6 +2289,48 @@ bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& 
 }
 
 bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const bool lhs_scalar_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_scalar_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (lhs_scalar_int && rhs_scalar_int) {
+    const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+    const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+    if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+      value_set_bool(out, (lhs_value | rhs_value) != 0);
+    } else {
+      value_set_int64(out, lhs_value | rhs_value);
+    }
+    return true;
+  }
+
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_bit_or(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    out = Value::int64(left_payload | right_payload);
+    return true;
+  }
   if (value_as_dict(lhs) != nullptr && value_as_dict(rhs) != nullptr) {
     auto* left = value_as_dict(lhs);
     auto* right = value_as_dict(rhs);
@@ -1836,6 +2366,7 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
     if (value_as_class(value) != nullptr ||
         value_as_function(value) != nullptr ||
         value_as_native_function(value) != nullptr ||
+        value_as_generic_alias(value) != nullptr ||
         instance_get_native_data(value, "typing._Alias") != nullptr) {
       return true;
     }
@@ -1858,6 +2389,11 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
 }
 
 bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_bit_xor(lhs, rhs, out)) {
+      return true;
+    }
+  }
   if (value_is_set_like_operand(lhs)) {
     Value left_set;
     if (!value_materialize_set_like(lhs, left_set, error)) {
@@ -1885,6 +2421,14 @@ bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& 
 }
 
 bool value_shift_left(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_shift_left(lhs, rhs, out, error)) {
+      return true;
+    }
+    if (!error.empty()) {
+      return false;
+    }
+  }
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
     error = "unsupported operands for <<";
     return false;
@@ -1893,15 +2437,31 @@ bool value_shift_left(const Value& lhs, const Value& rhs, Value& out, std::strin
     error = "negative shift count";
     return false;
   }
-  if (rhs.as.i64 >= 63) {
-    error = "shift count too large for int64";
-    return false;
+  if (lhs.as.i64 == 0) {
+    value_set_int64(out, 0);
+    return true;
+  }
+  if (lhs.as.i64 < 0) {
+    return value_int_like_shift_left(lhs, rhs, out, error);
+  }
+  if (rhs.as.i64 >= 63 ||
+      lhs.as.i64 > (std::numeric_limits<int64_t>::max() >> rhs.as.i64) ||
+      lhs.as.i64 < (std::numeric_limits<int64_t>::min() >> rhs.as.i64)) {
+    return value_int_like_shift_left(lhs, rhs, out, error);
   }
   value_set_int64(out, lhs.as.i64 << rhs.as.i64);
   return true;
 }
 
 bool value_shift_right(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_shift_right(lhs, rhs, out, error)) {
+      return true;
+    }
+    if (!error.empty()) {
+      return false;
+    }
+  }
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
     error = "unsupported operands for >>";
     return false;
@@ -1919,6 +2479,11 @@ bool value_shift_right(const Value& lhs, const Value& rhs, Value& out, std::stri
 }
 
 bool value_invert(const Value& value, Value& out, std::string& error) {
+  if (value_as_bigint(value) != nullptr) {
+    if (value_int_like_invert(value, out)) {
+      return true;
+    }
+  }
   if (value.tag != ValueTag::Int64) {
     error = "unsupported operand for unary ~";
     return false;
@@ -1929,6 +2494,11 @@ bool value_invert(const Value& value, Value& out, std::string& error) {
 
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_compare(op, lhs, rhs, out)) {
+      return true;
+    }
+  }
   auto* left_view = value_as_dict_view(lhs);
   auto* right_view = value_as_dict_view(rhs);
   if ((left_view != nullptr && left_view->kind == DictIterationKind::Values) ||
@@ -1941,8 +2511,78 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     error = "unsupported comparison";
     return false;
   }
+  if (auto* left_dict = value_as_dict(lhs)) {
+    if (auto* right_dict = value_as_dict(rhs)) {
+      if (op != "==" && op != "!=") {
+        error = "unsupported comparison";
+        return false;
+      }
+      if (left_dict->entries.size() != right_dict->entries.size()) {
+        value_set_bool(out, op == "!=");
+        return true;
+      }
+      for (const auto& entry : left_dict->entries) {
+        Value right_value;
+        std::string get_error;
+        if (!mapping_get_item(rhs, entry.first, right_value, get_error)) {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+        Value equal;
+        if (!value_compare("==", entry.second, right_value, equal, error)) {
+          return false;
+        }
+        if (equal.tag != ValueTag::Bool || !equal.as.b) {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+      }
+      value_set_bool(out, op == "==");
+      return true;
+    }
+  }
   if (value_is_set_like_operand(lhs) && value_is_set_like_operand(rhs)) {
     return set_like_compare_value(op, lhs, rhs, out, error);
+  }
+  if (auto* left = value_as_list(lhs)) {
+    if (auto* right = value_as_list(rhs)) {
+      const size_t common = std::min(left->items.size(), right->items.size());
+      int ordering = 0;
+      for (size_t i = 0; i < common; ++i) {
+        Value equal;
+        if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
+          return false;
+        }
+        if (equal.tag == ValueTag::Bool && equal.as.b) {
+          continue;
+        }
+        if (op == "==" || op == "!=") {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+        Value less;
+        if (!value_compare("<", left->items[i], right->items[i], less, error)) {
+          return false;
+        }
+        ordering = (less.tag == ValueTag::Bool && less.as.b) ? -1 : 1;
+        break;
+      }
+      if (ordering == 0 && left->items.size() != right->items.size()) {
+        ordering = left->items.size() < right->items.size() ? -1 : 1;
+      }
+      if (op == "==") result = ordering == 0;
+      else if (op == "!=") result = ordering != 0;
+      else if (op == "<") result = ordering < 0;
+      else if (op == "<=") result = ordering <= 0;
+      else if (op == ">") result = ordering > 0;
+      else if (op == ">=") result = ordering >= 0;
+      else {
+        error = "unknown comparison operator";
+        return false;
+      }
+      value_set_bool(out, result);
+      return true;
+    }
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
       lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
@@ -1958,6 +2598,10 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
       }
       if (equal.tag == ValueTag::Bool && equal.as.b) {
         continue;
+      }
+      if (op == "==" || op == "!=") {
+        value_set_bool(out, op == "!=");
+        return true;
       }
       Value less;
       if (!value_compare("<", left->items[i], right->items[i], less, error)) {
@@ -1975,6 +2619,40 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     else if (op == "<=") result = ordering <= 0;
     else if (op == ">") result = ordering > 0;
     else if (op == ">=") result = ordering >= 0;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    if (op == "==") result = left_payload == right_payload;
+    else if (op == "!=") result = left_payload != right_payload;
+    else if (op == "<") result = left_payload < right_payload;
+    else if (op == "<=") result = left_payload <= right_payload;
+    else if (op == ">") result = left_payload > right_payload;
+    else if (op == ">=") result = left_payload >= right_payload;
     else {
       error = "unknown comparison operator";
       return false;
@@ -2045,7 +2723,7 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
       result = left_binary.size == right_binary.size &&
                (left_binary.size == 0 || std::memcmp(left_binary.data, right_binary.data, left_binary.size) == 0);
     } else {
-      result = value_to_string(lhs) == value_to_string(rhs);
+      result = value_is(lhs, rhs);
     }
     value_set_bool(out, op == "==" ? result : !result);
     return true;
@@ -2142,7 +2820,7 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
       return true;
     }
   }
-  if (value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {
+  if (value_as_mapping_proxy(container) != nullptr || value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {
     return mapping_contains(container, item, out, error);
   }
   if (auto* set = value_as_set(container)) {

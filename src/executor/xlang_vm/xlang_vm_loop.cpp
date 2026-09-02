@@ -81,10 +81,22 @@ RuntimeResult Interpreter::run_function(
   struct CurrentFrameGuard {
     Runtime& runtime;
 
-    ~CurrentFrameGuard() {
-      runtime.clear_current_frame();
+    explicit CurrentFrameGuard(Runtime& target_runtime) : runtime(target_runtime) {
+      runtime.push_current_frame_state();
     }
-  } current_frame_guard{runtime_};
+
+    ~CurrentFrameGuard() {
+      runtime.pop_current_frame_state();
+    }
+  } current_frame_guard(runtime_);
+  struct CurrentGlobalsGuard {
+    Runtime& runtime;
+    Value previous;
+
+    ~CurrentGlobalsGuard() {
+      runtime.set_current_globals_module(previous);
+    }
+  } current_globals_guard{runtime_, runtime_.current_globals_module()};
   auto simple_signature = [](const ir::Function& candidate) -> bool {
     if (candidate.signature.empty()) {
       return true;
@@ -130,8 +142,8 @@ RuntimeResult Interpreter::run_function(
     for (size_t i = 0; i < values.size(); ++i) {
       positional.push_back(values.get(i));
     }
-    if (values.star_arg != UINT32_MAX) {
-      const Value& star = values.registers[values.star_arg];
+    auto expand_star_arg = [&](uint32_t star_reg) -> bool {
+      const Value& star = values.registers[star_reg];
       if (auto* tuple = value_as_tuple(star)) {
         for (const auto& item : tuple->items) positional.push_back(item);
       } else if (auto* list = value_as_list(star)) {
@@ -153,6 +165,18 @@ RuntimeResult Interpreter::run_function(
           }
           positional.push_back(std::move(item));
         }
+      }
+      return true;
+    };
+    if (values.star_args != nullptr && !values.star_args->empty()) {
+      for (uint32_t star_reg : *values.star_args) {
+        if (!expand_star_arg(star_reg)) {
+          return false;
+        }
+      }
+    } else if (values.star_arg != UINT32_MAX) {
+      if (!expand_star_arg(values.star_arg)) {
+        return false;
       }
     }
 
@@ -214,8 +238,8 @@ RuntimeResult Interpreter::run_function(
         }
       }
     }
-    if (values.kw_star_arg != UINT32_MAX) {
-      auto* dict = value_as_dict(values.registers[values.kw_star_arg]);
+    auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
+      auto* dict = value_as_dict(values.registers[kw_star_reg]);
       if (dict == nullptr) {
         return bind_error("function '" + target_fn.name + "' ** argument must be dict");
       }
@@ -227,6 +251,18 @@ RuntimeResult Interpreter::run_function(
         if (!bind_keyword(string_object_to_string(*key), entry.second)) {
           return false;
         }
+      }
+      return true;
+    };
+    if (values.kw_star_args != nullptr && !values.kw_star_args->empty()) {
+      for (uint32_t kw_star_reg : *values.kw_star_args) {
+        if (!expand_kw_star_arg(kw_star_reg)) {
+          return false;
+        }
+      }
+    } else if (values.kw_star_arg != UINT32_MAX) {
+      if (!expand_kw_star_arg(values.kw_star_arg)) {
+        return false;
       }
     }
     if (kwargs_index >= 0) {
@@ -259,6 +295,8 @@ RuntimeResult Interpreter::run_function(
   CallArgsView entry_args = args;
   if (resuming_pause) {
     entry_args = {};
+  } else if (generator != nullptr && generator->args_bound) {
+    entry_args = args;
   } else if (!simple_signature(fn) || args.has_keywords() || args.has_expansion()) {
     if (!bind_args(fn, args, fn_obj_defaults, entry_bound_args)) {
       return result;
@@ -356,7 +394,12 @@ RuntimeResult Interpreter::run_function(
         fn_obj->module != nullptr ? fn_obj->module : module_owner,
         fn_obj->defaults);
     out = Value::generator(
-        &runtime_, std::move(function_value), std::move(args_for_generator), call_fn.is_async, call_fn.is_coroutine);
+        &runtime_,
+        std::move(function_value),
+        std::move(args_for_generator),
+        call_fn.is_async,
+        call_fn.is_coroutine,
+        true);
     made = true;
     return true;
   };
@@ -389,6 +432,8 @@ RuntimeResult Interpreter::run_function(
       frame_args.keyword_args = nullptr;
       frame_args.star_arg = UINT32_MAX;
       frame_args.kw_star_arg = UINT32_MAX;
+      frame_args.star_args = nullptr;
+      frame_args.kw_star_args = nullptr;
     } else if (call_args.size() != call_fn.params.size()) {
       return bind_error("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
                         " arguments, got " + std::to_string(call_args.size()));
@@ -550,6 +595,10 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
+    if (!sys_monitoring_event_may_dispatch(event)) {
+      return true;
+    }
+
     runtime_.set_current_frame(
         &monitoring_frame.module_owner,
         monitoring_frame.function_id,
@@ -685,7 +734,11 @@ RuntimeResult Interpreter::run_function(
     Value next = Value::none();
     for (size_t index = frame_count; index > 0; --index) {
       const auto& captured = frames[index - 1];
-      Value frame_object = Value::frame(captured.module_owner, captured.function_id, captured.globals_module);
+      Value frame_object = Value::frame(
+          captured.module_owner,
+          captured.function_id,
+          captured.globals_module,
+          captured.ip);
       int64_t source_line = static_cast<int64_t>(captured.ip);
       if (captured.fn != nullptr && captured.ip < captured.fn->source_lines.size() &&
           captured.fn->source_lines[captured.ip] != 0) {
@@ -782,6 +835,7 @@ RuntimeResult Interpreter::run_function(
     const std::string exception_type_text = value_to_string(runtime_.exception_type(current_exception));
     const std::string exception_summary =
         exception_text.empty() ? exception_type_text : exception_type_text + ": " + exception_text;
+    value_assign_fast(result.exception, current_exception);
     runtime_.set_pending_exception(current_exception);
     std::string frame_summary = failing_function;
     if (!failing_location.empty()) {
@@ -794,7 +848,15 @@ RuntimeResult Interpreter::run_function(
     return false;
   };
 
-  auto exception_matches = [&](const Value& handler_type) -> bool {
+  std::function<bool(const Value&)> exception_matches = [&](const Value& handler_type) -> bool {
+    if (auto* tuple = value_as_tuple(handler_type)) {
+      for (const auto& item : tuple->items) {
+        if (exception_matches(item)) {
+          return true;
+        }
+      }
+      return false;
+    }
     auto* handler_class = value_as_class(handler_type);
     if (handler_class == nullptr) {
       return false;
@@ -805,18 +867,18 @@ RuntimeResult Interpreter::run_function(
   };
 
   bind_error = [&](const std::string& message) -> bool {
-    (void)dispatch_exception(runtime_.make_exception("TypeError", message));
+    Value exception = runtime_.make_exception("TypeError", message);
+    const size_t source_frame = frame_count;
+    if (!dispatch_exception(std::move(exception))) {
+      return false;
+    }
+    if (frame_count != source_frame) {
+      throw VMUnwind{};
+    }
     return false;
   };
 
   if (has_generator_resume_exception) {
-    if (frame_count != 0 &&
-        !emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventPyThrow, &generator_resume_exception)) {
-      if (generator != nullptr) {
-        generator->done = true;
-      }
-      return result;
-    }
     if (!dispatch_exception(std::move(generator_resume_exception))) {
       if (generator != nullptr) {
         generator->done = true;
@@ -852,6 +914,9 @@ RuntimeResult Interpreter::run_function(
     auto& instr_cache = frame.instr_cache;
     auto& native_call_args = frame.native_call_args;
 
+    runtime_.set_current_globals_module(globals_module);
+    runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
+
     auto raise_exception_value = [&](Value exception) -> bool {
       const size_t source_frame = frame_count;
       if (!dispatch_exception(std::move(exception))) {
@@ -865,6 +930,10 @@ RuntimeResult Interpreter::run_function(
 
     auto raise_runtime_error = [&](const std::string& message) -> bool {
       return raise_exception_value(runtime_.make_exception("RuntimeError", message));
+    };
+
+    auto raise_name_error = [&](const std::string& message) -> bool {
+      return raise_exception_value(runtime_.make_exception("NameError", message));
     };
 
     auto raise_import_error = [&](const std::string& message) -> bool {
@@ -889,8 +958,6 @@ RuntimeResult Interpreter::run_function(
       }
 
       runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
-      runtime_.set_current_globals_module(globals_module);
-      runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
       if (XLANG3_UNLIKELY(runtime_.debug_poll_needed())) {
         if (!poll_debug_event(frame)) {
           return result;

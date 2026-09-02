@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include <cmath>
+#include <limits>
 #include <string>
 
 namespace xlang3 {
@@ -41,6 +42,68 @@ XLANG3_HOT_INLINE bool xlang_vm_value_is_number(const Value& value) {
 
 XLANG3_HOT_INLINE double xlang_vm_value_to_double_fast(const Value& value) {
   return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_checked_add_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_add_overflow(lhs, rhs, &out);
+#else
+  if ((rhs > 0 && lhs > std::numeric_limits<int64_t>::max() - rhs) ||
+      (rhs < 0 && lhs < std::numeric_limits<int64_t>::min() - rhs)) {
+    return false;
+  }
+  out = lhs + rhs;
+  return true;
+#endif
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_checked_sub_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_sub_overflow(lhs, rhs, &out);
+#else
+  if ((rhs < 0 && lhs > std::numeric_limits<int64_t>::max() + rhs) ||
+      (rhs > 0 && lhs < std::numeric_limits<int64_t>::min() + rhs)) {
+    return false;
+  }
+  out = lhs - rhs;
+  return true;
+#endif
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_checked_mul_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_mul_overflow(lhs, rhs, &out);
+#else
+  if (lhs == 0 || rhs == 0) {
+    out = 0;
+    return true;
+  }
+  if (lhs == -1) {
+    if (rhs == std::numeric_limits<int64_t>::min()) return false;
+    out = -rhs;
+    return true;
+  }
+  if (rhs == -1) {
+    if (lhs == std::numeric_limits<int64_t>::min()) return false;
+    out = -lhs;
+    return true;
+  }
+  if (lhs > 0) {
+    if (rhs > 0) {
+      if (lhs > std::numeric_limits<int64_t>::max() / rhs) return false;
+    } else if (rhs < std::numeric_limits<int64_t>::min() / lhs) {
+      return false;
+    }
+  } else {
+    if (rhs > 0) {
+      if (lhs < std::numeric_limits<int64_t>::min() / rhs) return false;
+    } else if (lhs != 0 && rhs < std::numeric_limits<int64_t>::max() / lhs) {
+      return false;
+    }
+  }
+  out = lhs * rhs;
+  return true;
+#endif
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_function_module(
@@ -94,7 +157,11 @@ XLANG3_HOT_INLINE bool xlang_vm_truthy(const ir::Module& current_module, const V
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_add(const Value& lhs, const Value& rhs, Value& out) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 + rhs.as.i64);
+    int64_t result = 0;
+    if (!xlang_vm_checked_add_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return false;
+    }
+    value_set_int64(out, result);
     return true;
   }
   if (xlang_vm_value_is_number(lhs) && xlang_vm_value_is_number(rhs)) {
@@ -106,7 +173,11 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_add(const Value& lhs, const Value& rhs, Val
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_sub(const Value& lhs, const Value& rhs, Value& out) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 - rhs.as.i64);
+    int64_t result = 0;
+    if (!xlang_vm_checked_sub_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return false;
+    }
+    value_set_int64(out, result);
     return true;
   }
   if (xlang_vm_value_is_number(lhs) && xlang_vm_value_is_number(rhs)) {
@@ -118,7 +189,11 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_sub(const Value& lhs, const Value& rhs, Val
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_mul(const Value& lhs, const Value& rhs, Value& out) {
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    value_set_int64(out, lhs.as.i64 * rhs.as.i64);
+    int64_t result = 0;
+    if (!xlang_vm_checked_mul_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return false;
+    }
+    value_set_int64(out, result);
     return true;
   }
   if (xlang_vm_value_is_number(lhs) && xlang_vm_value_is_number(rhs)) {
@@ -195,9 +270,9 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_pow(const Value& lhs, const Value& rhs, Val
     int64_t base = lhs.as.i64;
     uint64_t exponent = static_cast<uint64_t>(rhs.as.i64);
     while (exponent != 0) {
-      if ((exponent & 1u) != 0) result *= base;
+      if ((exponent & 1u) != 0 && !xlang_vm_checked_mul_i64(result, base, result)) return false;
       exponent >>= 1u;
-      if (exponent != 0) base *= base;
+      if (exponent != 0 && !xlang_vm_checked_mul_i64(base, base, base)) return false;
     }
     value_set_int64(out, result);
     return true;
@@ -207,14 +282,30 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_pow(const Value& lhs, const Value& rhs, Val
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_bit_and(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  value_set_int64(out, lhs.as.i64 & rhs.as.i64);
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) return false;
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value & rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value & rhs_value);
+  }
   return true;
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_bit_or(const Value& lhs, const Value& rhs, Value& out) {
-  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  value_set_int64(out, lhs.as.i64 | rhs.as.i64);
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) return false;
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value | rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value | rhs_value);
+  }
   return true;
 }
 
@@ -235,10 +326,13 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_bit_xor(const Value& lhs, const Value& rhs,
 XLANG3_HOT_INLINE bool xlang_vm_fast_shift_left(const Value& lhs, const Value& rhs, Value& out, bool& bad_shift) {
   bad_shift = false;
   if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) return false;
-  if (rhs.as.i64 < 0 || rhs.as.i64 >= 63) {
+  if (rhs.as.i64 < 0) {
     bad_shift = true;
     return false;
   }
+  if (lhs.as.i64 < 0) return false;
+  if (rhs.as.i64 >= 63) return false;
+  if (lhs.as.i64 > 0 && lhs.as.i64 > (std::numeric_limits<int64_t>::max() >> rhs.as.i64)) return false;
   value_set_int64(out, lhs.as.i64 << rhs.as.i64);
   return true;
 }

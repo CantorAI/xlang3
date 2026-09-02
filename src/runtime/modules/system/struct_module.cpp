@@ -62,13 +62,21 @@ bool struct_fail(Runtime& runtime, const std::string& message, std::string& erro
 }
 
 bool get_format(const Value& value, std::string& out, std::string& error) {
-  auto* text = value_as_string(value);
-  if (text == nullptr) {
-    error = "struct format must be str";
-    return false;
+  if (auto* text = value_as_string(value)) {
+    out = string_object_to_string(*text);
+    return true;
   }
-  out = string_object_to_string(*text);
-  return true;
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    out.assign(view.data(), view.size());
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    out = bytearray->value;
+    return true;
+  }
+  error = "struct format must be str or bytes";
+  return false;
 }
 
 uint32_t primitive_size(char ch) {
@@ -578,6 +586,15 @@ bool struct_method_iter_unpack(Runtime& runtime, const Value* args, uint32_t arg
   return struct_iter_unpack(runtime, call_args, 2, out, error, data);
 }
 
+bool struct_clearcache(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "_struct._clearcache() expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 } // namespace
 
 void register_struct_module(Runtime& runtime) {
@@ -599,16 +616,18 @@ void register_struct_module(Runtime& runtime) {
           {"unpack_from", runtime.make_native_function("struct.Struct.unpack_from", struct_method_unpack_from)},
           {"iter_unpack", runtime.make_native_function("struct.Struct.iter_unpack", struct_method_iter_unpack)},
       });
-  NativeModuleBuilder builder(runtime, "struct");
-  builder.function("calcsize", struct_calcsize)
+  NativeModuleBuilder builder(runtime, "_struct");
+  builder.value("__doc__", Value::string("Functions to convert between Python values and C structs."))
+      .function("calcsize", struct_calcsize)
       .function("pack", struct_pack)
       .function("pack_into", struct_pack_into)
       .function("unpack", struct_unpack)
       .function("unpack_from", struct_unpack_from)
       .function("iter_unpack", struct_iter_unpack)
+      .function("_clearcache", struct_clearcache)
       .value("Struct", g_struct_class)
       .value("error", g_struct_error_class);
-  runtime.register_module("struct", builder.finish());
+  runtime.register_module("_struct", builder.finish());
 }
 
 } // namespace xlang3

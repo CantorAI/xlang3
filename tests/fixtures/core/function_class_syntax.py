@@ -44,6 +44,11 @@ def kwargs(a, **named):
 
 values = {"x": 10, "y": 20}
 print(kwargs(1, **values))
+
+def star_after_positional(a, b, c, d="default"):
+    return a, b, c, d
+
+print(star_after_positional("root", *(10, "phrase", "description")))
 print(kwargs(1, x=2, y=3))
 
 def combo(a, b=2, *rest, c=3, **named):

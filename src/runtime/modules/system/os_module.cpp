@@ -20,17 +20,23 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
-#include <algorithm>
-#include <cctype>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <random>
 #include <sstream>
-#include <system_error>
+#include <thread>
+#include <vector>
 
 #if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
 #include <process.h>
+#include <sys/stat.h>
+#include <windows.h>
 #else
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -39,6 +45,41 @@ namespace xlang3 {
 namespace {
 
 constexpr const char* kScandirIteratorNativeType = "os.ScandirIterator";
+
+Value make_process_environ_dict() {
+  std::vector<std::pair<Value, Value>> entries;
+#if defined(_WIN32)
+  LPCH block = GetEnvironmentStringsA();
+  if (block != nullptr) {
+    for (LPCCH current = block; current[0] != '\0'; current += std::strlen(current) + 1) {
+      std::string_view item(current);
+      const size_t equals = item.find('=');
+      if (equals == std::string_view::npos || equals == 0) {
+        continue;
+      }
+      entries.push_back({
+          Value::string(std::string(item.substr(0, equals))),
+          Value::string(std::string(item.substr(equals + 1)))});
+    }
+    FreeEnvironmentStringsA(block);
+  }
+#else
+  extern char** environ;
+  if (environ != nullptr) {
+    for (char** current = environ; *current != nullptr; ++current) {
+      std::string_view item(*current);
+      const size_t equals = item.find('=');
+      if (equals == std::string_view::npos) {
+        continue;
+      }
+      entries.push_back({
+          Value::string(std::string(item.substr(0, equals))),
+          Value::string(std::string(item.substr(equals + 1)))});
+    }
+  }
+#endif
+  return Value::dict(std::move(entries));
+}
 
 struct PathArg {
   std::string text;
@@ -55,7 +96,11 @@ struct OsModuleState {
   Value dir_entry_class;
   Value scandir_iterator_class;
   Value stat_result_class;
+  Value terminal_size_class;
 };
+
+Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines);
+Value make_stat_result(const Value& klass, const VfsStat& stat);
 
 void scandir_state_cleanup(void* data) {
   delete static_cast<ScandirState*>(data);
@@ -128,6 +173,11 @@ bool no_args(uint32_t argc, const char* name, std::string& error) {
   return false;
 }
 
+bool raise_path_not_found(Runtime& runtime, const std::string& error) {
+  runtime.raise_class_error("FileNotFoundError", error);
+  return false;
+}
+
 bool os_getcwd(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "os.getcwd", error)) {
     return false;
@@ -155,7 +205,7 @@ bool os_chdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   if (!runtime.vfs().chdir(path.text, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -235,6 +285,422 @@ bool os_getppid(Runtime&, const Value*, uint32_t argc, Value& out, std::string& 
   return true;
 }
 
+bool os_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    runtime.raise_class_error("TypeError", "open() expected path, flags, optional mode and dir_fd");
+    error = "open() expected path, flags, optional mode and dir_fd";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "open path", path, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = "open flags must be int";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int mode = 0666;
+  if (argc >= 3 && args[2].tag != ValueTag::None) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "open mode must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    mode = static_cast<int>(args[2].as.i64);
+  }
+  if (argc >= 4 && args[3].tag != ValueTag::None) {
+    error = "dir_fd is not supported yet";
+    runtime.raise_class_error("NotImplementedError", error);
+    return false;
+  }
+
+#if defined(_WIN32)
+  const int fd = _open(path.text.c_str(), static_cast<int>(args[1].as.i64), mode);
+#else
+  const int fd = ::open(path.text.c_str(), static_cast<int>(args[1].as.i64), static_cast<mode_t>(mode));
+#endif
+  if (fd < 0) {
+    error = "open failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, fd);
+  return true;
+}
+
+bool os_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "close() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const int rc = _close(static_cast<int>(args[0].as.i64));
+#else
+  const int rc = ::close(static_cast<int>(args[0].as.i64));
+#endif
+  if (rc != 0) {
+    error = "close failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+    error = "read() expected fd and length";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].as.i64 < 0) {
+    error = "negative read length";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string buffer;
+  buffer.resize(static_cast<size_t>(args[1].as.i64));
+#if defined(_WIN32)
+  const int count = _read(static_cast<int>(args[0].as.i64), buffer.data(), static_cast<unsigned int>(buffer.size()));
+#else
+  const ssize_t count = ::read(static_cast<int>(args[0].as.i64), buffer.data(), buffer.size());
+#endif
+  if (count < 0) {
+    error = "read failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  buffer.resize(static_cast<size_t>(count));
+  out = Value::bytes(std::move(buffer));
+  return true;
+}
+
+bool os_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "write() expected fd and bytes-like data";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string owned;
+  std::string_view data;
+  if (auto* bytes = value_as_bytes(args[1])) {
+    data = bytes_object_view(*bytes);
+  } else if (auto* bytearray = value_as_bytearray(args[1])) {
+    data = std::string_view(bytearray->value.data(), bytearray->value.size());
+  } else {
+    error = "write data must be bytes-like";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const int count = _write(static_cast<int>(args[0].as.i64), data.data(), static_cast<unsigned int>(data.size()));
+#else
+  const ssize_t count = ::write(static_cast<int>(args[0].as.i64), data.data(), data.size());
+#endif
+  if (count < 0) {
+    error = "write failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(count));
+  return true;
+}
+
+bool os_lseek(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64 || args[2].tag != ValueTag::Int64) {
+    error = "lseek() expected fd, position, and how";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const auto position =
+      _lseeki64(static_cast<int>(args[0].as.i64), static_cast<__int64>(args[1].as.i64), static_cast<int>(args[2].as.i64));
+  if (position < 0) {
+#else
+  const auto position =
+      ::lseek(static_cast<int>(args[0].as.i64), static_cast<off_t>(args[1].as.i64), static_cast<int>(args[2].as.i64));
+  if (position == static_cast<off_t>(-1)) {
+#endif
+    error = "lseek failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(position));
+  return true;
+}
+
+bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "fstat() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "fstat() missing os module state";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  VfsStat stat;
+#if defined(_WIN32)
+  struct _stat64 native_stat;
+  if (_fstat64(static_cast<int>(args[0].as.i64), &native_stat) != 0) {
+    error = "fstat failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  stat.kind = (native_stat.st_mode & _S_IFDIR) != 0 ? VfsNodeKind::Directory : VfsNodeKind::File;
+  stat.size = static_cast<uint64_t>(native_stat.st_size);
+  stat.inode = static_cast<uint64_t>(native_stat.st_ino);
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atime) * 1000000000LL;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
+#else
+  struct stat native_stat;
+  if (::fstat(static_cast<int>(args[0].as.i64), &native_stat) != 0) {
+    error = "fstat failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  stat.kind = S_ISDIR(native_stat.st_mode) ? VfsNodeKind::Directory : VfsNodeKind::File;
+  stat.size = static_cast<uint64_t>(native_stat.st_size);
+  stat.inode = static_cast<uint64_t>(native_stat.st_ino);
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atime) * 1000000000LL;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
+#endif
+  out = make_stat_result(state->stat_result_class, stat);
+  return true;
+}
+
+bool set_fd_inheritable(Runtime& runtime, int fd, bool inheritable, std::string& error) {
+#if defined(_WIN32)
+  const intptr_t os_handle = _get_osfhandle(fd);
+  if (os_handle == -1) {
+    error = "invalid file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const DWORD flags = inheritable ? HANDLE_FLAG_INHERIT : 0;
+  if (SetHandleInformation(reinterpret_cast<HANDLE>(os_handle), HANDLE_FLAG_INHERIT, flags) == 0) {
+    error = "set handle inheritance failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  return true;
+#else
+  const int current = fcntl(fd, F_GETFD);
+  if (current < 0) {
+    error = "get fd flags failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const int next = inheritable ? (current & ~FD_CLOEXEC) : (current | FD_CLOEXEC);
+  if (fcntl(fd, F_SETFD, next) < 0) {
+    error = "set fd flags failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  return true;
+#endif
+}
+
+bool os_dup(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "dup() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const int fd = _dup(static_cast<int>(args[0].as.i64));
+#else
+  const int fd = ::dup(static_cast<int>(args[0].as.i64));
+#endif
+  if (fd < 0) {
+    error = "dup failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (!set_fd_inheritable(runtime, fd, false, error)) {
+#if defined(_WIN32)
+    _close(fd);
+#else
+    ::close(fd);
+#endif
+    return false;
+  }
+  value_set_int64(out, fd);
+  return true;
+}
+
+bool os_dup2(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+    error = "dup2() expected fd, fd2, and optional inheritable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const int fd = static_cast<int>(args[0].as.i64);
+  const int fd2 = static_cast<int>(args[1].as.i64);
+  const bool inheritable = argc >= 3 ? value_truthy(args[2]) : true;
+#if defined(_WIN32)
+  const int rc = _dup2(fd, fd2);
+#else
+  const int rc = ::dup2(fd, fd2);
+#endif
+  if (rc != 0) {
+    error = "dup2 failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (!set_fd_inheritable(runtime, fd2, inheritable, error)) {
+    return false;
+  }
+  value_set_int64(out, fd2);
+  return true;
+}
+
+bool os_pipe(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "pipe", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int fds[2] = {-1, -1};
+#if defined(_WIN32)
+  if (_pipe(fds, 0, _O_BINARY | _O_NOINHERIT) != 0) {
+#else
+  if (::pipe(fds) != 0) {
+#endif
+    error = "pipe failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+#if !defined(_WIN32)
+  if (!set_fd_inheritable(runtime, fds[0], false, error) || !set_fd_inheritable(runtime, fds[1], false, error)) {
+    ::close(fds[0]);
+    ::close(fds[1]);
+    return false;
+  }
+#endif
+  out = Value::tuple({Value::int64(fds[0]), Value::int64(fds[1])});
+  return true;
+}
+
+bool os_isatty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "isatty() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  value_set_bool(out, _isatty(static_cast<int>(args[0].as.i64)) != 0);
+#else
+  value_set_bool(out, ::isatty(static_cast<int>(args[0].as.i64)) != 0);
+#endif
+  return true;
+}
+
+bool os_get_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "get_inheritable() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const intptr_t os_handle = _get_osfhandle(static_cast<int>(args[0].as.i64));
+  if (os_handle == -1) {
+    error = "invalid file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  DWORD flags = 0;
+  if (GetHandleInformation(reinterpret_cast<HANDLE>(os_handle), &flags) == 0) {
+    error = "get handle inheritance failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_bool(out, (flags & HANDLE_FLAG_INHERIT) != 0);
+#else
+  const int flags = fcntl(static_cast<int>(args[0].as.i64), F_GETFD);
+  if (flags < 0) {
+    error = "get fd flags failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_bool(out, (flags & FD_CLOEXEC) == 0);
+#endif
+  return true;
+}
+
+bool os_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "set_inheritable() expected fd and inheritable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!set_fd_inheritable(runtime, static_cast<int>(args[0].as.i64), value_truthy(args[1]), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_cpu_count(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "os.cpu_count", error)) {
+    return false;
+  }
+  unsigned count = std::thread::hardware_concurrency();
+  if (count == 0) {
+    out = Value::none();
+  } else {
+    value_set_int64(out, static_cast<int64_t>(count));
+  }
+  return true;
+}
+
+bool os_get_terminal_size(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc > 1) {
+    error = "os.get_terminal_size() expected optional fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t fd = 1;
+  if (argc == 1) {
+    if (args[0].tag != ValueTag::Int64) {
+      error = "os.get_terminal_size() fd must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    fd = args[0].as.i64;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+#if defined(_WIN32)
+  intptr_t os_handle = _get_osfhandle(static_cast<int>(fd));
+  if (os_handle == -1) {
+    error = "bad file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  CONSOLE_SCREEN_BUFFER_INFO info{};
+  if (!GetConsoleScreenBufferInfo(reinterpret_cast<HANDLE>(os_handle), &info)) {
+    error = "could not query terminal size";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const int64_t columns = static_cast<int64_t>(info.srWindow.Right - info.srWindow.Left + 1);
+  const int64_t lines = static_cast<int64_t>(info.srWindow.Bottom - info.srWindow.Top + 1);
+  out = make_terminal_size(state->terminal_size_class, columns, lines);
+  return true;
+#else
+  (void)state;
+  error = "terminal size query is not implemented for this platform";
+  runtime.raise_class_error("OSError", error);
+  return false;
+#endif
+}
+
 bool os_exit(Runtime&, const Value* args, uint32_t argc, Value&, std::string& error, void*) {
   if (argc != 1 || args[0].tag != ValueTag::Int64) {
     error = "os._exit() expected integer status";
@@ -261,7 +727,7 @@ bool os_listdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   }
   std::vector<std::string> names;
   if (!runtime.vfs().list_dir(path.text, names, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   std::vector<Value> values;
   values.reserve(names.size());
@@ -425,6 +891,9 @@ Value make_stat_result_class(Runtime& runtime) {
 
 Value make_stat_result(const Value& klass, const VfsStat& stat) {
   const int64_t mode = stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
+  const double atime = static_cast<double>(stat.atime_ns) / 1000000000.0;
+  const double mtime = static_cast<double>(stat.mtime_ns) / 1000000000.0;
+  const double ctime = static_cast<double>(stat.ctime_ns) / 1000000000.0;
   std::vector<Value> tuple_items = {
       Value::int64(mode),
       Value::int64(static_cast<int64_t>(stat.inode)),
@@ -433,14 +902,45 @@ Value make_stat_result(const Value& klass, const VfsStat& stat) {
       Value::int64(0),
       Value::int64(0),
       Value::int64(static_cast<int64_t>(stat.size)),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
+      Value::number(atime),
+      Value::number(mtime),
+      Value::number(ctime),
   };
 
   Value instance = Value::instance(klass);
   std::string ignored;
   object_set_attr(instance, "_tuple", Value::tuple(tuple_items), ignored);
+  return instance;
+}
+
+Value terminal_size_match_args() {
+  return Value::tuple({
+      Value::string("columns"),
+      Value::string("lines"),
+  });
+}
+
+Value make_terminal_size_class(Runtime& runtime) {
+  const Value* tuple_base = runtime.find_builtin("tuple");
+  return Value::class_object(
+      "terminal_size",
+      {
+          {"__module__", Value::string("os")},
+          {"__qualname__", Value::string("terminal_size")},
+          {"n_sequence_fields", Value::int64(2)},
+          {"n_fields", Value::int64(2)},
+          {"n_unnamed_fields", Value::int64(0)},
+          {"columns", slot_descriptor("os.terminal_size", "columns", 0)},
+          {"lines", slot_descriptor("os.terminal_size", "lines", 1)},
+          {"__match_args__", terminal_size_match_args()},
+      },
+      tuple_base != nullptr ? *tuple_base : Value::invalid());
+}
+
+Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines) {
+  Value instance = Value::instance(klass);
+  std::string ignored;
+  object_set_attr(instance, "_tuple", Value::tuple({Value::int64(columns), Value::int64(lines)}), ignored);
   return instance;
 }
 
@@ -451,7 +951,7 @@ bool dir_entry_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   out = Value::boolean(stat.kind == VfsNodeKind::Directory);
   return true;
@@ -494,7 +994,7 @@ bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   out = Value::boolean(stat.kind == VfsNodeKind::File);
   return true;
@@ -520,7 +1020,7 @@ bool dir_entry_is_symlink(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_bool(out, stat.is_symlink);
   return true;
@@ -538,7 +1038,7 @@ bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   out = make_stat_result(state->stat_result_class, stat);
   return true;
@@ -564,7 +1064,7 @@ bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_int64(out, static_cast<int64_t>(stat.inode));
   return true;
@@ -695,7 +1195,7 @@ bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   }
   std::vector<std::string> names;
   if (!runtime.vfs().list_dir(path.text, names, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   const auto* module_state = static_cast<OsModuleState*>(user_data);
   if (module_state == nullptr) {
@@ -726,7 +1226,7 @@ bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   if (!runtime.vfs().remove(path.text, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -759,14 +1259,18 @@ bool os_mkdir_impl(
   if (!parent.empty()) {
     VfsStat stat;
     if (!runtime.vfs().stat(parent, stat, error)) {
-      return false;
+      return raise_path_not_found(runtime, error);
     }
     if (stat.kind != VfsNodeKind::Directory) {
       error = "parent directory does not exist: " + parent;
+      runtime.raise_class_error("FileNotFoundError", error);
       return false;
     }
   }
   if (!runtime.vfs().make_dirs(path.text, false, error)) {
+    if (error.rfind("path exists:", 0) == 0) {
+      runtime.raise_class_error("FileExistsError", error);
+    }
     return false;
   }
   value_set_none(out);
@@ -800,14 +1304,14 @@ bool os_rmdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   if (stat.kind != VfsNodeKind::Directory) {
     error = "not a directory: " + path.text;
     return false;
   }
   if (!runtime.vfs().remove(path.text, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -825,7 +1329,7 @@ bool os_rename_common(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   if (!runtime.vfs().rename(src.text, dst.text, replace, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -908,10 +1412,69 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
+    return raise_path_not_found(runtime, error);
+  }
+  if (stat.kind == VfsNodeKind::Missing) {
+    error = "file not found: " + path.text;
+    runtime.raise_class_error("FileNotFoundError", error);
     return false;
   }
   out = make_stat_result(state->stat_result_class, stat);
   return true;
+}
+
+bool os_lstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "os.lstat() expected one argument";
+    return false;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "os.lstat() missing os module state";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.lstat path", path, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(path.text, stat, error)) {
+    return raise_path_not_found(runtime, error);
+  }
+  if (stat.kind == VfsNodeKind::Missing) {
+    error = "file not found: " + path.text;
+    runtime.raise_class_error("FileNotFoundError", error);
+    return false;
+  }
+  out = make_stat_result(state->stat_result_class, stat);
+  return true;
+}
+
+bool os_stat_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1) {
+    error = "os.stat() expected one argument";
+    return false;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const char* name = kwargs[i].name;
+    if (name == nullptr || kwargs[i].value == nullptr) {
+      error = "os.stat() keyword argument is invalid";
+      return false;
+    }
+    if (std::string(name) != "follow_symlinks") {
+      error = std::string("os.stat() got unexpected keyword argument '") + name + "'";
+      return false;
+    }
+  }
+  return os_stat(runtime, args, argc, out, error, user_data);
 }
 
 bool os_access(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -925,7 +1488,7 @@ bool os_access(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_bool(out, stat.kind != VfsNodeKind::Missing);
   return true;
@@ -951,12 +1514,62 @@ bool os_getenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_putenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "putenv() expected key and value";
+    return false;
+  }
+  std::string name;
+  std::string value;
+  if (!get_string_arg(args[0], "putenv key", name, error) ||
+      !get_string_arg(args[1], "putenv value", value, error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  if (!SetEnvironmentVariableA(name.c_str(), value.c_str())) {
+    error = "putenv failed";
+    return false;
+  }
+#else
+  if (::setenv(name.c_str(), value.c_str(), 1) != 0) {
+    error = "putenv failed";
+    return false;
+  }
+#endif
+  value_set_none(out);
+  return true;
+}
+
+bool os_unsetenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "unsetenv() expected key";
+    return false;
+  }
+  std::string name;
+  if (!get_string_arg(args[0], "unsetenv key", name, error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  if (!SetEnvironmentVariableA(name.c_str(), nullptr)) {
+    error = "unsetenv failed";
+    return false;
+  }
+#else
+  if (::unsetenv(name.c_str()) != 0) {
+    error = "unsetenv failed";
+    return false;
+  }
+#endif
+  value_set_none(out);
+  return true;
+}
+
+bool os_fspath(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "os.fspath() expected one argument";
     return false;
   }
-  if (value_as_string(args[0]) != nullptr) {
+  if (value_as_string(args[0]) != nullptr || value_as_bytes(args[0]) != nullptr) {
     value_assign_fast(out, args[0]);
     return true;
   }
@@ -970,524 +1583,73 @@ bool os_fspath(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
     value_assign_fast(out, path_value);
     return true;
   }
+  Value fspath;
+  if (object_get_attr(args[0], "__fspath__", fspath, ignored)) {
+    Value result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, fspath, nullptr, 0, result, call_error)) {
+      error = call_error.empty() ? "__fspath__ failed" : call_error;
+      return false;
+    }
+    if (value_as_string(result) != nullptr || value_as_bytes(result) != nullptr) {
+      value_assign_fast(out, result);
+      return true;
+    }
+    error = "__fspath__() must return str or bytes";
+    return false;
+  }
   error = "expected str, bytes or os.PathLike object";
   return false;
 }
 
-bool path_unary(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 1) {
-    error = "os.path function expected one argument";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-  const char* op = static_cast<const char*>(user_data);
-  std::filesystem::path fs_path(path);
-  if (std::string(op) == "abspath") {
-    if (path.empty()) {
-      out = Value::string(runtime.vfs().cwd());
-      return true;
-    }
-    ResolvedPath resolved;
-    if (!runtime.vfs().resolve(path, resolved, error)) {
-      return false;
-    }
-    out = Value::string(std::move(resolved.path));
-  } else if (std::string(op) == "realpath") {
-    if (path.empty()) {
-      out = Value::string(runtime.vfs().cwd());
-      return true;
-    }
-    ResolvedPath resolved;
-    if (!runtime.vfs().resolve(path, resolved, error)) {
-      return false;
-    }
-    out = Value::string(std::move(resolved.path));
-  } else if (std::string(op) == "normpath") {
-    out = Value::string(fs_path.lexically_normal().string());
-  } else if (std::string(op) == "normcase") {
-    auto normalized = fs_path.lexically_normal().string();
 #if defined(_WIN32)
-    std::replace(normalized.begin(), normalized.end(), '/', '\\');
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char ch) {
-      return static_cast<char>(std::tolower(ch));
-    });
+bool os_supports_virtual_terminal(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "nt._supports_virtual_terminal", error)) {
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
 #endif
-    out = Value::string(std::move(normalized));
-  } else if (std::string(op) == "dirname") {
-    out = Value::string(fs_path.parent_path().string());
-  } else if (std::string(op) == "basename") {
-    out = Value::string(fs_path.filename().string());
-  } else if (std::string(op) == "exists") {
-    VfsStat stat;
-    if (!runtime.vfs().stat(path, stat, error)) {
-      return false;
-    }
-    out = Value::boolean(stat.kind != VfsNodeKind::Missing);
-  } else if (std::string(op) == "lexists") {
-    VfsStat stat;
-    if (!runtime.vfs().stat(path, stat, error)) {
-      return false;
-    }
-    out = Value::boolean(stat.kind != VfsNodeKind::Missing);
-  } else if (std::string(op) == "isdir") {
-    VfsStat stat;
-    if (!runtime.vfs().stat(path, stat, error)) {
-      return false;
-    }
-    out = Value::boolean(stat.kind == VfsNodeKind::Directory);
-  } else if (std::string(op) == "isfile") {
-    VfsStat stat;
-    if (!runtime.vfs().stat(path, stat, error)) {
-      return false;
-    }
-    out = Value::boolean(stat.kind == VfsNodeKind::File);
-  } else if (std::string(op) == "isabs") {
-    out = Value::boolean(fs_path.is_absolute());
-  } else {
-    value_assign_fast(out, args[0]);
-  }
-  return true;
-}
-
-bool path_getsize(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "getsize() expected one path";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-  VfsStat stat;
-  if (!runtime.vfs().stat(path, stat, error)) {
-    return false;
-  }
-  if (stat.kind == VfsNodeKind::Missing) {
-    error = "No such file or directory: " + path;
-    return false;
-  }
-  out = Value::int64(static_cast<int64_t>(stat.size));
-  return true;
-}
-
-size_t last_path_separator(const std::string& path) {
-  const size_t slash = path.find_last_of('/');
-  const size_t backslash = path.find_last_of('\\');
-  if (slash == std::string::npos) {
-    return backslash;
-  }
-  if (backslash == std::string::npos) {
-    return slash;
-  }
-  return std::max(slash, backslash);
-}
-
-bool path_splitext(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "splitext() expected one path";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-
-  const size_t sep = last_path_separator(path);
-  const size_t filename_start = sep == std::string::npos ? 0 : sep + 1;
-  const size_t dot = path.find_last_of('.');
-  if (dot == std::string::npos || dot < filename_start || dot == filename_start) {
-    out = Value::tuple({Value::string(path), Value::string("")});
-    return true;
-  }
-  out = Value::tuple({Value::string(path.substr(0, dot)), Value::string(path.substr(dot))});
-  return true;
-}
-
-bool path_split(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "split() expected one path";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-
-  const size_t sep = last_path_separator(path);
-  if (sep == std::string::npos) {
-    out = Value::tuple({Value::string(""), Value::string(path)});
-    return true;
-  }
-  size_t head_end = sep;
-  while (head_end > 0 && (path[head_end - 1] == '/' || path[head_end - 1] == '\\')) {
-    --head_end;
-  }
-  const std::string head = sep == 0 ? path.substr(0, 1) : path.substr(0, head_end);
-  out = Value::tuple({Value::string(head), Value::string(path.substr(sep + 1))});
-  return true;
-}
-
-bool path_splitdrive(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "splitdrive() expected one path";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-
-#if defined(_WIN32)
-  if (path.size() >= 2 && path[1] == ':' && std::isalpha(static_cast<unsigned char>(path[0]))) {
-    out = Value::tuple({Value::string(path.substr(0, 2)), Value::string(path.substr(2))});
-    return true;
-  }
-  if (path.size() >= 2 && path[0] == '\\' && path[1] == '\\') {
-    size_t server_end = path.find('\\', 2);
-    if (server_end != std::string::npos) {
-      size_t share_end = path.find('\\', server_end + 1);
-      if (share_end != std::string::npos) {
-        out = Value::tuple({Value::string(path.substr(0, share_end)), Value::string(path.substr(share_end))});
-        return true;
-      }
-    }
-  }
-#endif
-  out = Value::tuple({Value::string(""), Value::string(path)});
-  return true;
-}
-
-bool collect_path_sequence(const Value& value, std::vector<std::string>& paths, std::string& error) {
-  if (auto* list = value_as_list(value)) {
-    paths.reserve(list->items.size());
-    for (const auto& item : list->items) {
-      std::string path;
-      if (!get_string_arg(item, "path", path, error)) {
-        return false;
-      }
-      paths.push_back(std::move(path));
-    }
-    return true;
-  }
-  if (auto* tuple = value_as_tuple(value)) {
-    paths.reserve(tuple->items.size());
-    for (const auto& item : tuple->items) {
-      std::string path;
-      if (!get_string_arg(item, "path", path, error)) {
-        return false;
-      }
-      paths.push_back(std::move(path));
-    }
-    return true;
-  }
-  error = "expected sequence of path strings";
-  return false;
-}
-
-bool path_commonpath(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "commonpath() expected iterable";
-    return false;
-  }
-  std::vector<std::string> paths;
-  if (!collect_path_sequence(args[0], paths, error)) {
-    return false;
-  }
-  if (paths.empty()) {
-    error = "commonpath() arg is an empty sequence";
-    return false;
-  }
-
-  std::vector<std::filesystem::path> normalized;
-  normalized.reserve(paths.size());
-  const bool first_absolute = std::filesystem::path(paths[0]).is_absolute();
-  for (const auto& path : paths) {
-    std::filesystem::path fs_path(path);
-    if (fs_path.is_absolute() != first_absolute) {
-      error = "Can't mix absolute and relative paths";
-      return false;
-    }
-    normalized.push_back(fs_path.lexically_normal());
-  }
-
-  std::vector<std::filesystem::path> prefix;
-  for (const auto& part : normalized[0]) {
-    prefix.push_back(part);
-  }
-  for (size_t i = 1; i < normalized.size(); ++i) {
-    std::vector<std::filesystem::path> parts;
-    for (const auto& part : normalized[i]) {
-      parts.push_back(part);
-    }
-    size_t keep = 0;
-    const size_t limit = std::min(prefix.size(), parts.size());
-    while (keep < limit && prefix[keep] == parts[keep]) {
-      ++keep;
-    }
-    prefix.resize(keep);
-  }
-
-  std::filesystem::path result;
-  for (const auto& part : prefix) {
-    result /= part;
-  }
-  out = Value::string(result.empty() ? std::string(".") : result.string());
-  return true;
-}
-
-bool path_expanduser(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "expanduser() expected one path";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-  if (path.empty() || path[0] != '~') {
-    out = Value::string(std::move(path));
-    return true;
-  }
-  const char* home = std::getenv("USERPROFILE");
-  if (home == nullptr) {
-    home = std::getenv("HOME");
-  }
-  if (home == nullptr) {
-    out = Value::string(std::move(path));
-    return true;
-  }
-  out = Value::string(std::string(home) + path.substr(1));
-  return true;
-}
-
-bool path_expandvars(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "expandvars() expected one path";
-    return false;
-  }
-  std::string path;
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-  std::string expanded;
-  expanded.reserve(path.size());
-  for (size_t i = 0; i < path.size(); ++i) {
-    if (path[i] == '$') {
-      size_t start = i + 1;
-      size_t end = start;
-      if (start < path.size() && path[start] == '{') {
-        start += 1;
-        end = path.find('}', start);
-        if (end == std::string::npos) {
-          expanded.push_back(path[i]);
-          continue;
-        }
-      } else {
-        while (end < path.size() && (std::isalnum(static_cast<unsigned char>(path[end])) || path[end] == '_')) {
-          ++end;
-        }
-      }
-      if (end > start) {
-        const std::string name = path.substr(start, end - start);
-        const char* value = std::getenv(name.c_str());
-        if (value != nullptr) {
-          expanded += value;
-        } else {
-          expanded += path.substr(i, end - i + (start > i + 1 ? 1 : 0));
-        }
-        i = start > i + 1 ? end : end - 1;
-        continue;
-      }
-    }
-#if defined(_WIN32)
-    if (path[i] == '%') {
-      const size_t end = path.find('%', i + 1);
-      if (end != std::string::npos && end > i + 1) {
-        const std::string name = path.substr(i + 1, end - i - 1);
-        const char* value = std::getenv(name.c_str());
-        expanded += value != nullptr ? value : path.substr(i, end - i + 1);
-        i = end;
-        continue;
-      }
-    }
-#endif
-    expanded.push_back(path[i]);
-  }
-  out = Value::string(std::move(expanded));
-  return true;
-}
-
-bool path_join(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc == 0) {
-    error = "join() expected at least one path";
-    return false;
-  }
-  std::filesystem::path joined;
-  for (uint32_t i = 0; i < argc; ++i) {
-    std::string part;
-    if (!get_string_arg(args[i], "path", part, error)) {
-      return false;
-    }
-    if (i == 0) {
-      joined = std::filesystem::path(part);
-    } else {
-      joined /= std::filesystem::path(part);
-    }
-  }
-  out = Value::string(joined.string());
-  return true;
-}
-
-bool path_relpath(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "relpath() expected path and optional start";
-    return false;
-  }
-  std::string path;
-  std::string start = ".";
-  if (!get_string_arg(args[0], "path", path, error)) {
-    return false;
-  }
-  if (argc == 2 && !get_string_arg(args[1], "start", start, error)) {
-    return false;
-  }
-  ResolvedPath resolved_path;
-  ResolvedPath resolved_start;
-  if (!runtime.vfs().resolve(path, resolved_path, error) || !runtime.vfs().resolve(start, resolved_start, error)) {
-    return false;
-  }
-  std::error_code ec;
-  auto relative = std::filesystem::relative(resolved_path.path, resolved_start.path, ec);
-  out = Value::string(ec ? resolved_path.path : relative.string());
-  return true;
-}
-
-bool path_commonprefix(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "commonprefix() expected iterable";
-    return false;
-  }
-  std::vector<std::string> paths;
-  if (auto* list = value_as_list(args[0])) {
-    paths.reserve(list->items.size());
-    for (const auto& item : list->items) {
-      std::string path;
-      if (!get_string_arg(item, "path", path, error)) {
-        return false;
-      }
-      paths.push_back(std::move(path));
-    }
-  } else if (auto* tuple = value_as_tuple(args[0])) {
-    paths.reserve(tuple->items.size());
-    for (const auto& item : tuple->items) {
-      std::string path;
-      if (!get_string_arg(item, "path", path, error)) {
-        return false;
-      }
-      paths.push_back(std::move(path));
-    }
-  } else {
-    error = "commonprefix() expected sequence";
-    return false;
-  }
-  if (paths.empty()) {
-    out = Value::string("");
-    return true;
-  }
-  std::string prefix = paths[0];
-  for (size_t i = 1; i < paths.size(); ++i) {
-    size_t keep = 0;
-    const size_t limit = std::min(prefix.size(), paths[i].size());
-    while (keep < limit && prefix[keep] == paths[i][keep]) {
-      ++keep;
-    }
-    prefix.resize(keep);
-  }
-  out = Value::string(std::move(prefix));
-  return true;
-}
-
-bool path_samefile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "samefile() expected two paths";
-    return false;
-  }
-  std::string left;
-  std::string right;
-  if (!get_string_arg(args[0], "path", left, error) || !get_string_arg(args[1], "path", right, error)) {
-    return false;
-  }
-  ResolvedPath left_resolved;
-  ResolvedPath right_resolved;
-  if (!runtime.vfs().resolve(left, left_resolved, error) || !runtime.vfs().resolve(right, right_resolved, error)) {
-    return false;
-  }
-  value_set_bool(out, left_resolved.fs == right_resolved.fs && left_resolved.path == right_resolved.path);
-  return true;
-}
-
-Value make_os_path_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "os.path");
-  builder.value("abspath", runtime.make_native_function("os.path.abspath", path_unary, const_cast<char*>("abspath")))
-      .value("realpath", runtime.make_native_function("os.path.realpath", path_unary, const_cast<char*>("realpath")))
-      .value("normpath", runtime.make_native_function("os.path.normpath", path_unary, const_cast<char*>("normpath")))
-      .value("normcase", runtime.make_native_function("os.path.normcase", path_unary, const_cast<char*>("normcase")))
-      .value("dirname", runtime.make_native_function("os.path.dirname", path_unary, const_cast<char*>("dirname")))
-      .value("basename", runtime.make_native_function("os.path.basename", path_unary, const_cast<char*>("basename")))
-      .value("exists", runtime.make_native_function("os.path.exists", path_unary, const_cast<char*>("exists")))
-      .value("lexists", runtime.make_native_function("os.path.lexists", path_unary, const_cast<char*>("lexists")))
-      .value("isdir", runtime.make_native_function("os.path.isdir", path_unary, const_cast<char*>("isdir")))
-      .value("isfile", runtime.make_native_function("os.path.isfile", path_unary, const_cast<char*>("isfile")))
-      .value("isabs", runtime.make_native_function("os.path.isabs", path_unary, const_cast<char*>("isabs")))
-      .function("getsize", path_getsize)
-      .function("join", path_join)
-      .function("relpath", path_relpath)
-      .function("commonprefix", path_commonprefix)
-      .function("commonpath", path_commonpath)
-      .function("samefile", path_samefile)
-      .function("split", path_split)
-      .function("splitext", path_splitext)
-      .function("splitdrive", path_splitdrive)
-      .function("expanduser", path_expanduser)
-      .function("expandvars", path_expandvars)
-#if defined(_WIN32)
-      .value("sep", Value::string("\\"))
-      .value("altsep", Value::string("/"))
-      .value("pathsep", Value::string(";"))
-#else
-      .value("sep", Value::string("/"))
-      .value("altsep", Value())
-      .value("pathsep", Value::string(":"))
-#endif
-      .value("extsep", Value::string("."))
-      .value("curdir", Value::string("."))
-      .value("pardir", Value::string(".."));
-  return builder.finish();
-}
 
 } // namespace
 
 void register_os_module(Runtime& runtime) {
-  Value path_module = make_os_path_module(runtime);
-  Value env_dict = Value::dict({});
+  Value env_dict = make_process_environ_dict();
   auto* os_state = new OsModuleState();
   os_state->stat_result_class = make_stat_result_class(runtime);
+  os_state->terminal_size_class = make_terminal_size_class(runtime);
   os_state->dir_entry_class = make_dir_entry_class(runtime, os_state);
   os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
   runtime.register_native_package_cleanup(os_state, os_module_state_cleanup);
 
-  NativeModuleBuilder builder(runtime, "os");
+#if defined(_WIN32)
+  NativeModuleBuilder builder(runtime, "nt");
+#else
+  NativeModuleBuilder builder(runtime, "posix");
+#endif
   builder.function("getcwd", os_getcwd)
       .function("getcwdb", os_getcwdb)
       .function("chdir", os_chdir)
       .function("fsencode", os_fsencode)
       .function("fsdecode", os_fsdecode)
       .function("urandom", os_urandom)
+      .function("open", os_open)
+      .function("close", os_close)
+      .function("read", os_read)
+      .function("write", os_write)
+      .function("lseek", os_lseek)
+      .value("fstat", runtime.make_native_function("os.fstat", os_fstat, os_state))
+      .function("dup", os_dup)
+      .function("dup2", os_dup2)
+      .function("pipe", os_pipe)
+      .function("isatty", os_isatty)
+      .function("get_inheritable", os_get_inheritable)
+      .function("set_inheritable", os_set_inheritable)
       .function("getpid", os_getpid)
       .function("getppid", os_getppid)
+      .function("cpu_count", os_cpu_count)
+      .value("get_terminal_size", runtime.make_native_function("os.get_terminal_size", os_get_terminal_size, os_state))
       .function("_exit", os_exit)
       .function("listdir", os_listdir)
       .value("scandir", runtime.make_native_function("os.scandir", os_scandir, os_state))
@@ -1499,17 +1661,58 @@ void register_os_module(Runtime& runtime) {
       .function("rmdir", os_rmdir)
       .function("rename", os_rename)
       .function("replace", os_replace)
-      .value("stat", runtime.make_native_function("os.stat", os_stat, os_state))
+      .value("stat", runtime.make_native_function("os.stat", os_stat, os_state, nullptr, nullptr, false, os_stat_kw))
+      .value("lstat", runtime.make_native_function("os.lstat", os_lstat, os_state))
       .value("stat_result", os_state->stat_result_class)
+      .value("terminal_size", os_state->terminal_size_class)
       .function("access", os_access)
       .function("getenv", os_getenv)
+      .function("putenv", os_putenv)
+      .function("unsetenv", os_unsetenv)
       .function("fspath", os_fspath)
-      .value("path", path_module)
+#if defined(_WIN32)
+      .function("_supports_virtual_terminal", os_supports_virtual_terminal)
+#endif
       .value("environ", env_dict)
       .value("F_OK", Value::int64(0))
       .value("R_OK", Value::int64(4))
       .value("W_OK", Value::int64(2))
       .value("X_OK", Value::int64(1))
+      .value("SEEK_SET", Value::int64(SEEK_SET))
+      .value("SEEK_CUR", Value::int64(SEEK_CUR))
+      .value("SEEK_END", Value::int64(SEEK_END))
+#if defined(_WIN32)
+      .value("O_RDONLY", Value::int64(_O_RDONLY))
+      .value("O_WRONLY", Value::int64(_O_WRONLY))
+      .value("O_RDWR", Value::int64(_O_RDWR))
+      .value("O_APPEND", Value::int64(_O_APPEND))
+      .value("O_CREAT", Value::int64(_O_CREAT))
+      .value("O_TRUNC", Value::int64(_O_TRUNC))
+      .value("O_EXCL", Value::int64(_O_EXCL))
+      .value("O_TEXT", Value::int64(_O_TEXT))
+      .value("O_BINARY", Value::int64(_O_BINARY))
+      .value("O_NOINHERIT", Value::int64(_O_NOINHERIT))
+#ifdef _O_TEMPORARY
+      .value("O_TEMPORARY", Value::int64(_O_TEMPORARY))
+#endif
+#ifdef _O_SHORT_LIVED
+      .value("O_SHORT_LIVED", Value::int64(_O_SHORT_LIVED))
+#endif
+      .value("O_NONBLOCK", Value::int64(0))
+#else
+      .value("O_RDONLY", Value::int64(O_RDONLY))
+      .value("O_WRONLY", Value::int64(O_WRONLY))
+      .value("O_RDWR", Value::int64(O_RDWR))
+      .value("O_APPEND", Value::int64(O_APPEND))
+      .value("O_CREAT", Value::int64(O_CREAT))
+      .value("O_TRUNC", Value::int64(O_TRUNC))
+      .value("O_EXCL", Value::int64(O_EXCL))
+      .value("O_NONBLOCK", Value::int64(O_NONBLOCK))
+#endif
+      .value("supports_dir_fd", Value::frozenset({}))
+      .value("supports_effective_ids", Value::frozenset({}))
+      .value("supports_fd", Value::frozenset({}))
+      .value("supports_follow_symlinks", Value::frozenset({}))
 #if defined(_WIN32)
       .value("name", Value::string("nt"))
       .value("sep", Value::string("\\"))
@@ -1528,13 +1731,9 @@ void register_os_module(Runtime& runtime) {
       .value("pardir", Value::string(".."));
 #endif
   auto module = builder.finish();
-  runtime.register_module("os", module);
-  runtime.register_module("os.path", path_module);
 #if defined(_WIN32)
-  runtime.register_module("ntpath", path_module);
   runtime.register_module("nt", std::move(module));
 #else
-  runtime.register_module("posixpath", path_module);
   runtime.register_module("posix", std::move(module));
 #endif
 }

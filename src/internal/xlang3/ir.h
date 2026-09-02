@@ -47,6 +47,8 @@ struct CallSpec {
   std::vector<CallKeywordArg> keywords;
   uint32_t star_arg = UINT32_MAX;
   uint32_t kw_star_arg = UINT32_MAX;
+  std::vector<uint32_t> star_args;
+  std::vector<uint32_t> kw_star_args;
 };
 
 enum class Op : uint16_t {
@@ -106,6 +108,7 @@ enum class Op : uint16_t {
   Add,
   Sub,
   Mul,
+  MatMul,
   Div,
   FloorDiv,
   Mod,
@@ -165,6 +168,13 @@ struct Instr {
   uint32_t c = 0;
 };
 
+struct SourcePosition {
+  uint32_t line = 0;
+  uint32_t end_line = 0;
+  uint32_t column = 0;
+  uint32_t end_column = 0;
+};
+
 struct Function {
   std::string name;
   std::string qualname;
@@ -204,6 +214,7 @@ struct Function {
   std::vector<std::pair<uint32_t, uint32_t>> string_replace_specs;
   std::vector<Instr> code;
   std::vector<uint32_t> source_lines;
+  std::vector<SourcePosition> source_positions;
 };
 
 struct Module {

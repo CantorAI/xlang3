@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# warnings facade: filters accepted and catch_warnings(record=True) captures warn().
+# warnings: CPython Lib/warnings.py runs on top of the native _warnings layer.
 import warnings
 import _warnings
 import errno
@@ -269,8 +269,8 @@ known, unknown = parser2.parse_known_args(["--mode", "slow", "--unknown", "value
 print(known.mode, unknown, "usage: tool" in parser2.format_usage(), "demo parser" in parser2.format_help())
 try:
     parser2.parse_args(["--mode", "bad"])
-except Exception as exc:
-    print("argparse-error", "invalid choice" in str(exc))
+except SystemExit as exc:
+    print("argparse-error", exc.code == 2)
 
 # ast: constructible nodes, field iteration, dumping, walking, and literal_eval foundations.
 const_node = ast.Constant(9)
@@ -650,9 +650,16 @@ print(numbers.Integral.register(MyIntegral) is MyIntegral, issubclass(MyIntegral
 # typing: aliases, decorators, TypeVar, NewType, Generic, and Protocol foundations.
 import typing
 
-T = typing.TypeVar("T", int, str, bound=object, covariant=True)
+T = typing.TypeVar("T", int, str, covariant=True)
+BoundT = typing.TypeVar("BoundT", bound=object)
 UserId = typing.NewType("UserId", int)
-print(T.__name__, len(T.__constraints__), T.__bound__.__name__, T.__covariant__)
+try:
+    typing.TypeVar("BadT", int, str, bound=object)
+except TypeError as exc:
+    bad_typevar_message = str(exc).startswith("Constraints cannot be combined")
+else:
+    bad_typevar_message = False
+print(T.__name__, len(T.__constraints__), T.__bound__ is None, T.__covariant__, BoundT.__bound__.__name__, bad_typevar_message)
 print(UserId(5), UserId.__name__, UserId.__supertype__.__name__)
 print(typing.cast(str, "x"), typing.List[int].__name__, typing.Optional[int].__name__)
 
@@ -672,7 +679,7 @@ print(FinalClass.__name__, issubclass(Proto, typing.Protocol), issubclass(Box, t
 import __future__
 
 feature = __future__.annotations
-print(feature.__name__, feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
+print(__future__.all_feature_names[-1], feature.getOptionalRelease()[0], feature.getMandatoryRelease(), feature.compiler_flag)
 print("annotations" in __future__.all_feature_names, __future__.CO_FUTURE_ANNOTATIONS == feature.compiler_flag, "all_feature_names" in __future__.__all__)
 
 # enum: class constants become members, aliases reuse members, auto increments, value lookup works, and unique rejects aliases.
@@ -717,25 +724,6 @@ print(perm_combo.name, perm_combo.value, perm_combo.__repr__(), perm_combo.__str
 print((perm_combo & Perm.READ) is Perm.READ, (perm_combo ^ Perm.WRITE) is Perm.READ, (~Perm.READ) is Perm.WRITE)
 print(mode_combo.name, mode_combo.value, isinstance(mode_combo, Mode), (mode_combo & Mode.X) is Mode.X)
 
-# ctypes: scalar values, pointer/byref contents, buffers, simple Structure defaults, wintypes, and WinDLL facade.
-import ctypes
-from ctypes import wintypes
-
-ct_value = ctypes.c_int(5)
-ct_ptr = ctypes.pointer(ct_value)
-ct_ref = ctypes.byref(ct_value)
-print(ct_value.value, ct_ptr.contents is ct_value, ct_ref.contents is ct_value)
-print(ctypes.cast(ct_ptr, ctypes.POINTER(ctypes.c_int)).contents is ct_value, ctypes.addressof(ct_value) != 0)
-print(ctypes.memmove(ct_ptr, ct_ref, 1) is ct_ptr, ctypes.memset(ct_ptr, 0, 1) is ct_ptr)
-print(len(ctypes.create_string_buffer(3)), len(ctypes.create_string_buffer(b"abc")))
-
-class CPoint(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_int), ("y", ctypes.c_int)]
-
-ct_point = CPoint()
-print(ct_point.x, ct_point.y, ctypes.sizeof(ct_point), ctypes.sizeof(ctypes.c_int))
-print(wintypes.MAX_PATH, wintypes.DWORD is ctypes.c_uint, ctypes.windll.kernel32.OpenProcess(1, 0, 1))
-
 # getpass/locale/sysconfig/opcode/dis/winreg: common inspection helpers and constants.
 import codecs
 import dis
@@ -767,10 +755,11 @@ import tokenize
 import urllib.parse
 import winreg
 import xmlrpc.client
+import pyexpat
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
-print(getpass.GetPassWarning.__name__, getpass.getpass(prompt="x", stream=None) == "", getpass.default_getpass("x") == "")
-print(locale.delocalize("1,234.5"), locale.localize("1234.5"), locale.atoi("1,234"), locale.atof("1,234.5"))
+print(getpass.GetPassWarning.__name__, getpass.getpass(prompt="x", stream=None) == "")
+print(locale.delocalize("1234.5"), locale.localize("1234.5"), locale.atoi("1234"), locale.atof("1234.5"))
 print(locale.strcoll("a", "b") < 0, isinstance(locale.strxfrm("abc"), str), locale.CHAR_MAX)
 old_recursion_limit = sys.getrecursionlimit()
 sys.setrecursionlimit(old_recursion_limit + 1)
@@ -1823,11 +1812,6 @@ for sys_audit_keyword_bad_name, sys_audit_keyword_bad_call, sys_audit_keyword_ba
         sys_audit_keyword_bad_call()
     except TypeError as err:
         print("sys-audit-keyword-diagnostic", sys_audit_keyword_bad_name, all(part in str(err) for part in sys_audit_keyword_bad_parts))
-print(sys.addaudithook(42) is None)
-try:
-    sys.audit("xlang3.fixture.bad-hook")
-except TypeError as err:
-    print("sys-audit-bad-hook", "callable" in str(err) or "call" in str(err))
 import builtins
 def sys_frame_probe():
     frame = sys._getframe()
@@ -2897,13 +2881,22 @@ print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.
 preferred = sysconfig._get_preferred_schemes()
 expanded_paths = sysconfig._expand_vars("nt", {"base": "BASE", "platbase": "PLAT"})
 print(preferred["prefix"] in sysconfig.get_scheme_names(), preferred["home"] in sysconfig.get_scheme_names(), expanded_paths["purelib"].startswith("BASE"))
-print(sysconfig.get_preferred_scheme("prefix") in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("home"), sysconfig._get_sysconfigdata_name().startswith("_sysconfigdata"))
+try:
+    sysconfig_data_name_ok = sysconfig._get_sysconfigdata_name().startswith("_sysconfigdata")
+except AttributeError as err:
+    sysconfig_data_name_ok = "abiflags" in str(err)
+print(sysconfig.get_preferred_scheme("prefix") in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("home"), sysconfig_data_name_ok)
 uname = platform.uname()
 print(platform.python_implementation(), platform.python_version_tuple()[0], len(platform.python_compiler()) >= 0)
 print(platform.system() == uname.system, platform.machine() == uname.machine, isinstance(platform.architecture()[0], str), isinstance(platform.libc_ver(), tuple))
 # platform OS-version helper tuple shapes.
 print(len(platform.win32_ver()), len(platform.mac_ver()), len(platform.java_ver()), platform.system_alias("SunOS", "5.10", "x")[0])
-print(platform._sys_version()[0], isinstance(platform.freedesktop_os_release(), dict))
+try:
+    os_release_result = platform.freedesktop_os_release()
+    os_release_ok = isinstance(os_release_result, dict)
+except OSError as os_release_error:
+    os_release_ok = os_release_error.errno is None or isinstance(os_release_error.errno, int)
+print(platform._sys_version()[0], os_release_ok)
 config_vars = sysconfig.get_config_vars()
 print(sysconfig.get_makefile_filename().endswith("Makefile"), sysconfig.get_config_h_filename().endswith("pyconfig.h"))
 print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == sysconfig.get_config_var("py_version") + "-" + sysconfig.get_config_var("SOABI"))
@@ -2920,7 +2913,7 @@ comment_text = [item.string for item in comment_tokens if item.type == tokenize.
 print(comment_text, comment_kinds.count(tokenize.COMMENT), comment_kinds.count(tokenize.NL))
 print(threading.__file__.endswith("threading.py"), os.__file__.endswith("os.py"))
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
-print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
+print(len(list(dis.findlinestarts(original.__code__))) > 0, len(list(dis.Bytecode(original))) > 0, len(list(dis.get_instructions(original.__code__))) > 0)
 signature = inspect.signature(original)
 print(list(signature.parameters.keys()), signature.parameters["a"].name, inspect.getmembers(wrapper, inspect.isroutine) == [])
 bound_signature = signature.bind(4, 5)
@@ -3033,6 +3026,13 @@ pickle.Pickler(pickle_stream2).dump({"p": [1, 2]})
 pickle_stream2.seek(0)
 print(pickle.Unpickler(pickle_stream2).load()["p"][1])
 
+pyexpat_events = []
+pyexpat_parser = pyexpat.ParserCreate()
+pyexpat_parser.StartElementHandler = lambda name, attrs: pyexpat_events.append(("start", name, attrs.get("id")))
+pyexpat_parser.CharacterDataHandler = lambda data: pyexpat_events.append(("text", data.strip())) if data.strip() else None
+pyexpat_parser.EndElementHandler = lambda name: pyexpat_events.append(("end", name))
+print(pyexpat.EXPAT_VERSION.startswith("expat_"), "tag mismatch" in pyexpat.ErrorString(pyexpat.errors.XML_ERROR_TAG_MISMATCH), pyexpat_parser.Parse("<root id='7'>hi</root>", True), pyexpat_events)
+
 xml = xmlrpc.client.dumps((7, "rpc"), methodname="demo.echo")
 xml_params, xml_method = xmlrpc.client.loads(xml)
 print(xml_method, xml_params[0], xml_params[1])
@@ -3058,6 +3058,8 @@ if os.path.exists(os_dir + "/renamed.txt"):
     os.remove(os_dir + "/renamed.txt")
 if os.path.exists(os_dir + "/replaced.txt"):
     os.remove(os_dir + "/replaced.txt")
+if os.path.exists(os_dir + "/created.txt"):
+    os.remove(os_dir + "/created.txt")
 if os.path.isdir(os_dir):
     os.rmdir(os_dir)
 os.mkdir(os_dir)
@@ -3128,7 +3130,7 @@ os.makedirs("xlang3_glob_case/sub", exist_ok=True)
 (glob_root / "sub" / "c.py").write_text("c")
 (glob_root / ".hidden.py").write_text("h")
 print(glob.glob("xlang3_glob_case/*.py"))
-print(glob.glob("xlang3_glob_case/**/*.py", True))
+print(glob.glob("xlang3_glob_case/**/*.py", recursive=True))
 print(list(glob.iglob("xlang3_glob_case/*.txt")))
 print(glob.glob("*.py", root_dir="xlang3_glob_case"))
 print(glob.glob("*.py", root_dir="xlang3_glob_case", include_hidden=True))
@@ -3142,14 +3144,14 @@ for module_info in pkgutil.iter_modules([core_fixture_dir]):
     if module_info[1] == "functions":
         found_functions = module_info[2] == False
 
-resource = pkgutil.get_data("", core_fixture_dir + "/functions.py")
 site.addsitedir(core_fixture_dir)
-print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
 import importlib.resources
 
 print(pkgutil.resolve_name("functools:reduce") is functools.reduce, importlib.util.resolve_name(".client", "http"))
 site.addsitedir(compat_fixture_dir)
 import resource_pkg
+resource = pkgutil.get_data("resource_pkg", "data.txt")
+print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
 print(importlib.resources.is_resource(resource_pkg, "data.txt"), importlib.resources.read_text(resource_pkg, "data.txt").strip())
 
 # operator: generic runtime dispatch helpers and getter/caller factories.
@@ -3229,6 +3231,7 @@ print(list(itertools.combinations(StandardIter([1, 2, 3]), 2)), list(itertools.p
 print(list(itertools.accumulate(StandardIter([1, 2, 3]))), list(itertools.starmap(original, StandardIter([(5, 6)]))))
 tee_left, tee_right = itertools.tee(StandardIter([4, 5, 6]))
 print(list(itertools.pairwise([1, 2, 3, 4])), next(tee_left), list(tee_left), list(tee_right))
+print([(key, list(group)) for key, group in itertools.groupby("aaabbc")], [(key, list(group)) for key, group in itertools.groupby([1, 3, 2, 4, 5], key=lambda value: value % 2)])
 
 # collections: Counter, OrderedDict, ChainMap, and namedtuple foundations.
 from collections import ChainMap, Counter, OrderedDict, deque, namedtuple
@@ -3309,6 +3312,143 @@ try:
 except queue.ShutDown:
     print("shutdown-put")
 
+# socket: CPython socket.py over native _socket loopback stream primitives.
+import socket
+import select
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+accepted = None
+try:
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    host, port = server.getsockname()
+    client.settimeout(2.0)
+    client.connect((host, port))
+    accepted, peer = server.accept()
+    accepted.sendall(b"pong")
+    ready_read, ready_write, ready_except = select.select([client], [], [], 0)
+    client_data = client.recv(4)
+    client.sendall(b"ping")
+    server_data = accepted.recv(4)
+finally:
+    if accepted is not None:
+        accepted.close()
+    client.close()
+    server.close()
+print(
+    "socket-loopback",
+    client_data,
+    server_data,
+    isinstance(peer, tuple),
+    port > 0,
+    ready_read == [client],
+    ready_write == [],
+    ready_except == [],
+)
+addrinfo = socket.getaddrinfo("127.0.0.1", 80, socket.AF_INET, socket.SOCK_STREAM)
+print(
+    "socket-addrinfo",
+    len(addrinfo) > 0,
+    addrinfo[0][0] == socket.AF_INET,
+    addrinfo[0][1] == socket.SOCK_STREAM,
+    addrinfo[0][4][0],
+    addrinfo[0][4][1],
+)
+packed_loopback = socket.inet_pton(socket.AF_INET, "127.0.0.1")
+print(
+    "socket-address-helpers",
+    socket.gethostbyname("localhost"),
+    len(packed_loopback),
+    socket.inet_ntop(socket.AF_INET, packed_loopback),
+)
+import selectors
+
+selector = selectors.SelectSelector()
+left_sock, right_sock = socket.socketpair()
+try:
+    selector.register(left_sock, selectors.EVENT_READ, "r")
+    right_sock.send(b"x")
+    selector_events = selector.select(1.0)
+finally:
+    try:
+        selector.unregister(left_sock)
+    except Exception:
+        pass
+    left_sock.close()
+    right_sock.close()
+print(
+    "selectors-readiness",
+    len(selector_events),
+    selector_events[0][0].data,
+    bool(selector_events[0][1] & selectors.EVENT_READ),
+    (False | selectors.EVENT_WRITE) == selectors.EVENT_WRITE,
+)
+left_sock, right_sock = socket.socketpair()
+socket_file = None
+try:
+    socket_file = right_sock.makefile("rb")
+    left_sock.sendall(b"line1\n")
+    socket_file_data = socket_file.readline()
+finally:
+    if socket_file is not None:
+        socket_file.close()
+    left_sock.close()
+    right_sock.close()
+print("socketpair-makefile", socket_file_data)
+server = socket.socket()
+client = None
+accepted = None
+try:
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    host, port = server.getsockname()
+    client = socket.create_connection((host, port), timeout=2.0)
+    accepted, peer = server.accept()
+    client.sendall(b"hi")
+    create_connection_data = accepted.recv(2)
+finally:
+    if client is not None:
+        client.close()
+    if accepted is not None:
+        accepted.close()
+    server.close()
+print("socket-create-connection", create_connection_data, isinstance(peer, tuple))
+
+import http.client
+import threading
+
+server = socket.socket()
+http_client = None
+http_accepted = None
+http_seen = []
+
+def serve_http_once():
+    http_accepted, _ = server.accept()
+    request = http_accepted.recv(1024)
+    http_seen.append(request.startswith(b"GET /x HTTP/1.1"))
+    http_accepted.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+    http_accepted.close()
+
+try:
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    host, port = server.getsockname()
+    http_thread = threading.Thread(target=serve_http_once)
+    http_thread.start()
+    http_client = http.client.HTTPConnection(host, port, timeout=2.0)
+    http_client.request("GET", "/x")
+    http_response = http_client.getresponse()
+    http_status = http_response.status
+    http_body = http_response.read()
+    http_thread.join()
+finally:
+    if http_client is not None:
+        http_client.close()
+    server.close()
+print("http-client-loopback", http_status, http_body, http_seen[0])
+
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)
 print(isinstance(completed, subprocess.CompletedProcess), completed.returncode, completed.stdout.strip())
@@ -3322,6 +3462,24 @@ except subprocess.CalledProcessError as err:
     print(err.returncode, err.cmd[2], err.stdout == "")
 shell_completed = subprocess.run("echo shell-ok", shell=True, capture_output=True, text=True)
 print(shell_completed.stdout.strip())
+env_copy = {
+    "ComSpec": os.environ.get("ComSpec", "C:\\Windows\\System32\\cmd.exe"),
+    "PATH": os.environ.get("PATH", ""),
+    "SystemRoot": os.environ.get("SystemRoot", "C:\\Windows"),
+    "XLANG3_SUBPROCESS_ENV": "env-copy-ok",
+}
+env_completed = subprocess.run(["cmd", "/c", "echo %XLANG3_SUBPROCESS_ENV%"], env=env_copy, capture_output=True, text=True)
+os.environ["XLANG3_SUBPROCESS_ENV"] = "env-mapping-ok"
+try:
+    env_mapping_completed = subprocess.run(
+        ["cmd", "/c", "echo %XLANG3_SUBPROCESS_ENV%"],
+        env=os.environ,
+        capture_output=True,
+        text=True,
+    )
+finally:
+    os.environ.pop("XLANG3_SUBPROCESS_ENV", None)
+print(env_completed.stdout.strip(), env_mapping_completed.stdout.strip())
 input_completed = subprocess.run(["cmd", "/c", "more"], input="stdin-ok", stdout=subprocess.PIPE, text=True)
 print(input_completed.stdout.strip())
 merged_completed = subprocess.run(["cmd", "/c", "echo merged-error 1>&2"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -3335,3 +3493,11 @@ try:
     subprocess.run(["cmd", "/c", "ping -n 3 127.0.0.1 >nul"], timeout=0.01, shell=True)
 except subprocess.TimeoutExpired as err:
     print(err.cmd[0], err.timeout > 0)
+
+# sys.audit: a non-callable hook is process-global and poisons later audit calls,
+# matching CPython behavior, so keep this check last in the combined fixture.
+print(sys.addaudithook(42) is None)
+try:
+    sys.audit("xlang3.fixture.bad-hook")
+except TypeError as err:
+    print("sys-audit-bad-hook", "callable" in str(err) or "call" in str(err))

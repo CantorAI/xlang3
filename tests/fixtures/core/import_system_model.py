@@ -41,7 +41,7 @@ loader_path = "xlang3_import_system_loader_exec.py"
 with open(loader_path, "w") as loader_file:
     loader_file.write("LOADER_VALUE = 5\n")
 loader = importlib.machinery.SourceFileLoader("demo_loader", loader_path)
-file_spec = importlib.util.spec_from_file_location("demo_loader", loader_path, loader)
+file_spec = importlib.util.spec_from_file_location("demo_loader", loader_path, loader=loader)
 module_from_spec = importlib.util.module_from_spec(file_spec)
 print(importlib.abc.Loader.__name__, importlib.machinery.SourceFileLoader.__name__)
 print(loader.name, loader.get_filename("demo_loader") == loader_path, loader.create_module(file_spec) is None)
@@ -51,18 +51,29 @@ os.remove(loader_path)
 print(importlib.machinery.PathFinder.find_spec("missing") is None)
 print(importlib.machinery.SOURCE_SUFFIXES[0], importlib.machinery.BYTECODE_SUFFIXES[0])
 
-# zipimport/frozen bootstrap facade: protocol objects are importable for compatibility probes.
-zip_loader = zipimport.zipimporter(__file__)
-print(zip_loader.archive == __file__, zip_loader.prefix == "", zip_loader.find_spec("missing") is None, zip_loader.is_package("missing"))
-print(zip_loader.get_filename("pkg.mod").endswith("pkg.mod.py"), len(zip_loader.get_data(__file__)) > 0)
-print(zipimport.ZipImportError.__name__, isinstance(zipimport._zip_directory_cache, dict))
-print(_frozen_importlib.__name__, _frozen_importlib.FrozenImporter.__name__)
-print(_frozen_importlib_external.__name__, _frozen_importlib_external.SourceFileLoader.__name__)
-
 stored_zip = bytes([80, 75, 3, 4, 20, 0, 0, 0, 0, 0, 173, 144, 24, 93, 12, 145, 88, 248, 8, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 104, 101, 108, 108, 111, 46, 116, 120, 116, 122, 105, 112, 45, 100, 97, 116, 97, 80, 75, 1, 2, 20, 0, 20, 0, 0, 0, 0, 0, 173, 144, 24, 93, 12, 145, 88, 248, 8, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 0, 0, 0, 0, 104, 101, 108, 108, 111, 46, 116, 120, 116, 80, 75, 5, 6, 0, 0, 0, 0, 1, 0, 1, 0, 55, 0, 0, 0, 47, 0, 0, 0, 0, 0])
 archive_path = "xlang3_zipimport_stored.zip"
 with open(archive_path, "wb") as archive_file:
     archive_file.write(stored_zip)
+
+# zipimport/frozen bootstrap facade: protocol objects are importable for compatibility probes.
+zip_loader = zipimport.zipimporter(archive_path)
+zip_is_package_error = ""
+zip_filename_error = ""
+try:
+    zip_loader.is_package("missing")
+except zipimport.ZipImportError as exc:
+    zip_is_package_error = type(exc).__name__
+try:
+    zip_loader.get_filename("pkg.mod")
+except zipimport.ZipImportError as exc:
+    zip_filename_error = type(exc).__name__
+print(zip_loader.archive == archive_path, zip_loader.prefix == "", zip_loader.find_spec("missing") is None, zip_is_package_error)
+print(zip_filename_error, zip_loader.get_data(archive_path + "/hello.txt") == b"zip-data")
+print(zipimport.ZipImportError.__name__, isinstance(zipimport._zip_directory_cache, dict))
+print(_frozen_importlib.__name__, _frozen_importlib.FrozenImporter.__name__)
+print(_frozen_importlib_external.__name__, _frozen_importlib_external.SourceFileLoader.__name__)
+
 stored_loader = zipimport.zipimporter(archive_path)
 print(stored_loader.get_data(archive_path + "/hello.txt") == b"zip-data")
 os.remove(archive_path)

@@ -42,6 +42,7 @@ SECTION_FIXTURES = {
     "Builtins": "builtins.py",
     "standard_modules": "standard_modules.py",
     "Standard Modules Foundation": "standard_modules.py",
+    "system_stdlib": "system_stdlib.py",
     "filesystem_io": "builtins.py",
     "async_threads": "standard_modules.py",
     "debugger": "standard_modules.py",
@@ -54,6 +55,14 @@ def load_config() -> dict:
 
 def default_xlang3(config: dict) -> Path:
     return ROOT / config.get("repo", {}).get("release_exe", "build/Release/xlang3.exe")
+
+
+def normalize(text: str) -> str:
+    return text.replace("\r\n", "\n").rstrip()
+
+
+def completed_output(result: subprocess.CompletedProcess[str]) -> str:
+    return normalize((result.stdout or "") + (result.stderr or ""))
 
 
 def main() -> int:
@@ -81,11 +90,25 @@ def main() -> int:
         xlang3 = ROOT / xlang3
     fixture = ROOT / "tests" / "fixtures" / "compat_sections" / fixture_name
     try:
-        result = subprocess.run([str(xlang3), str(fixture)], cwd=ROOT, timeout=args.case_timeout)
+        result = subprocess.run(
+            [str(xlang3), str(fixture)],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=args.case_timeout,
+        )
     except subprocess.TimeoutExpired as exc:
-        raise SystemExit(
-            f"{fixture} timed out after {args.case_timeout:g} seconds."
-        ) from exc
+        output = normalize((exc.stdout or "") + (exc.stderr or ""))
+        detail = f"\nPartial output:\n{output}" if output else ""
+        raise SystemExit(f"{fixture} timed out after {args.case_timeout:g} seconds.{detail}") from exc
+    if result.returncode != 0:
+        output = completed_output(result)
+        detail = f"\nOutput:\n{output}" if output else "\nOutput: <empty>"
+        raise SystemExit(f"{fixture_name} failed with exit code {result.returncode}{detail}")
+    print(completed_output(result))
     return result.returncode
 
 

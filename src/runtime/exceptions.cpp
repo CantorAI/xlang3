@@ -17,10 +17,68 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 
+#include <string_view>
+
 namespace xlang3 {
 
 Value& runtime_current_exception_state(const Runtime& runtime);
 void runtime_publish_current_exception_state(const Runtime& runtime);
+
+namespace {
+
+std::string parse_missing_module_name(const std::string& message) {
+  static constexpr std::string_view prefix = "module '";
+  static constexpr std::string_view suffix = "' not found";
+  if (message.size() <= prefix.size() + suffix.size() ||
+      message.compare(0, prefix.size(), prefix) != 0) {
+    return {};
+  }
+  const size_t end = message.find(suffix, prefix.size());
+  if (end == std::string::npos) {
+    return {};
+  }
+  return message.substr(prefix.size(), end - prefix.size());
+}
+
+bool is_os_error_class_name(const std::string& name) {
+  return name == "OSError" ||
+         name == "EnvironmentError" ||
+         name == "IOError" ||
+         name == "WindowsError" ||
+         name == "BlockingIOError" ||
+         name == "ChildProcessError" ||
+         name == "BrokenPipeError" ||
+         name == "ConnectionAbortedError" ||
+         name == "ConnectionError" ||
+         name == "ConnectionRefusedError" ||
+         name == "ConnectionResetError" ||
+         name == "FileExistsError" ||
+         name == "FileNotFoundError" ||
+         name == "InterruptedError" ||
+         name == "IsADirectoryError" ||
+         name == "NotADirectoryError" ||
+         name == "PermissionError" ||
+         name == "ProcessLookupError" ||
+         name == "TimeoutError";
+}
+
+void initialize_exception_attrs(Value& instance, const std::string& class_name, const std::string& message) {
+  std::string ignored;
+  if (class_name == "ImportError" || class_name == "ModuleNotFoundError") {
+    const std::string module_name = parse_missing_module_name(message);
+    object_set_attr(instance, "name", module_name.empty() ? Value::none() : Value::string(module_name), ignored);
+    object_set_attr(instance, "path", Value::none(), ignored);
+  }
+  if (is_os_error_class_name(class_name)) {
+    object_set_attr(instance, "errno", Value::none(), ignored);
+    object_set_attr(instance, "strerror", Value::none(), ignored);
+    object_set_attr(instance, "filename", Value::none(), ignored);
+    object_set_attr(instance, "filename2", Value::none(), ignored);
+    object_set_attr(instance, "winerror", Value::none(), ignored);
+  }
+}
+
+} // namespace
 
 bool is_exception_class_name(const std::string& name) {
   return name == "BaseException" ||
@@ -29,6 +87,7 @@ bool is_exception_class_name(const std::string& name) {
          name == "TypeError" ||
          name == "ValueError" ||
          name == "ImportError" ||
+         name == "ModuleNotFoundError" ||
          name == "BaseExceptionGroup" ||
          name == "ExceptionGroup" ||
          name == "GeneratorExit" ||
@@ -45,6 +104,7 @@ bool is_exception_class_name(const std::string& name) {
 }
 
 Value Runtime::make_exception(std::string class_name, std::string message) {
+  const std::string message_text = message;
   const Value* class_value = find_builtin(class_name);
   if (class_value == nullptr || value_as_class(*class_value) == nullptr) {
     class_value = find_builtin("RuntimeError");
@@ -61,6 +121,7 @@ Value Runtime::make_exception(std::string class_name, std::string message) {
   object_set_attr(instance, "__cause__", Value::none(), ignored);
   object_set_attr(instance, "__context__", Value::none(), ignored);
   object_set_attr(instance, "__suppress_context__", Value::boolean(false), ignored);
+  initialize_exception_attrs(instance, class_name, message_text);
   return instance;
 }
 
@@ -68,6 +129,9 @@ Value Runtime::make_exception_from_class(Value klass, std::string message) {
   if (value_as_class(klass) == nullptr) {
     return make_exception("RuntimeError", std::move(message));
   }
+  auto* klass_obj = value_as_class(klass);
+  const std::string class_name = klass_obj == nullptr ? "" : klass_obj->name;
+  const std::string message_text = message;
   Value instance = Value::instance(std::move(klass));
   Value message_value = Value::string(std::move(message));
   std::string ignored;
@@ -77,6 +141,7 @@ Value Runtime::make_exception_from_class(Value klass, std::string message) {
   object_set_attr(instance, "__cause__", Value::none(), ignored);
   object_set_attr(instance, "__context__", Value::none(), ignored);
   object_set_attr(instance, "__suppress_context__", Value::boolean(false), ignored);
+  initialize_exception_attrs(instance, class_name, message_text);
   return instance;
 }
 

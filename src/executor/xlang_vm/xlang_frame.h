@@ -378,6 +378,8 @@ private:
           }
           one(spec.star_arg);
           one(spec.kw_star_arg);
+          list(spec.star_args);
+          list(spec.kw_star_args);
         }
         break;
       case ir::Op::MakeFunction:

@@ -24,6 +24,8 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+#include "xlang3/vfs.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -66,6 +68,7 @@ struct RuntimeCurrentFrameState {
 };
 
 thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
+thread_local std::unordered_map<const Runtime*, std::vector<RuntimeCurrentFrameState>> g_runtime_current_frame_stack;
 thread_local std::unordered_map<const Runtime*, Value> g_runtime_active_exceptions;
 
 std::mutex g_runtime_frame_registry_mutex;
@@ -181,8 +184,6 @@ void add_default_python_lib_roots(Runtime& runtime) {
   }
 #if defined(_WIN32)
   add_import_root_if_dir(runtime, "C:/Python/Python314/Lib");
-  add_import_root_if_dir(runtime, "C:/Python/Python313/Lib");
-  add_import_root_if_dir(runtime, "C:/Python/Python312/Lib");
 #else
   add_import_root_if_dir(runtime, "/usr/local/lib/python3.14");
   add_import_root_if_dir(runtime, "/usr/lib/python3.14");
@@ -255,13 +256,125 @@ bool is_frozen_import_metadata_module(const std::string& name) {
          name == "importlib._bootstrap" || name == "importlib._bootstrap_external";
 }
 
-Value make_runtime_loader(const std::string& class_name, const std::string& module_name) {
+bool runtime_loader_get_filename(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "loader.get_filename expected self and optional fullname";
+    return false;
+  }
+  if (!object_get_attr(args[0], "path", out, error)) {
+    error = "loader has no path";
+    return false;
+  }
+  return true;
+}
+
+bool runtime_loader_get_data(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_data expected self and path";
+    return false;
+  }
+  auto* path_string = value_as_string(args[1]);
+  if (path_string == nullptr) {
+    error = "loader.get_data path must be str";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(string_object_to_string(*path_string), bytes, error)) {
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return true;
+}
+
+bool runtime_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_resource_reader expected self and fullname";
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value file_reader_class;
+  if (!module_get_attr(readers_module, "FileReader", file_reader_class, error)) {
+    return false;
+  }
+  Value reader_args[] = {args[0]};
+  return runtime_call_callable(runtime, file_reader_class, reader_args, 1, out, error);
+}
+
+bool runtime_namespace_resource_reader_files(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "NamespaceResourceReader.files expected self";
+    return false;
+  }
+  return object_get_attr(args[0], "__files", out, error);
+}
+
+bool runtime_namespace_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_resource_reader expected self and fullname";
+    return false;
+  }
+  auto* fullname_string = value_as_string(args[1]);
+  if (fullname_string == nullptr) {
+    error = "loader.get_resource_reader fullname must be str";
+    return false;
+  }
+  Value package;
+  if (!runtime.import_module(string_object_to_string(*fullname_string), package, error)) {
+    return false;
+  }
+  Value package_path;
+  if (!module_get_attr(package, "__path__", package_path, error)) {
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value multiplexed_path_class;
+  if (!module_get_attr(readers_module, "MultiplexedPath", multiplexed_path_class, error)) {
+    return false;
+  }
+  auto* paths = value_as_list(package_path);
+  if (paths == nullptr) {
+    error = "namespace package __path__ must be iterable";
+    return false;
+  }
+  Value files;
+  if (!runtime_call_callable(runtime, multiplexed_path_class, paths->items.data(), static_cast<uint32_t>(paths->items.size()), files, error)) {
+    return false;
+  }
+  out = Value::instance(Value::class_object(
+      "NamespaceResourceReader",
+      {{"files", runtime.make_native_function("NamespaceResourceReader.files", runtime_namespace_resource_reader_files)}}));
+  std::string ignored;
+  object_set_attr(out, "__files", files, ignored);
+  return true;
+}
+
+Value make_runtime_loader(Runtime& runtime, const std::string& class_name, const std::string& module_name, const Value& path = Value::invalid()) {
   if (class_name == "BuiltinImporter" || class_name == "FrozenImporter") {
     return make_import_metadata_class(class_name, "_frozen_importlib");
   }
-  auto loader = Value::instance(make_import_metadata_class(class_name, "_frozen_importlib"));
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_frozen_importlib")});
+  attrs.push_back({"__name__", Value::string(class_name)});
+  if (class_name == "SourceFileLoader") {
+    attrs.push_back({"get_filename", runtime.make_native_function("SourceFileLoader.get_filename", runtime_loader_get_filename)});
+    attrs.push_back({"get_data", runtime.make_native_function("SourceFileLoader.get_data", runtime_loader_get_data)});
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader)});
+  }
+  if (class_name == "NamespaceLoader") {
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("NamespaceLoader.get_resource_reader", runtime_namespace_loader_get_resource_reader)});
+  }
+  auto loader = Value::instance(Value::class_object(class_name, std::move(attrs)));
   std::string ignored;
   object_set_attr(loader, "name", Value::string(module_name), ignored);
+  if (path.tag != ValueTag::Invalid) {
+    object_set_attr(loader, "path", path, ignored);
+  }
   return loader;
 }
 
@@ -288,7 +401,7 @@ Value make_runtime_module_spec(
   return spec;
 }
 
-void ensure_module_import_metadata(Value& module, const std::string& name) {
+void ensure_module_import_metadata(Runtime& runtime, Value& module, const std::string& name) {
   if (value_as_module(module) == nullptr) {
     return;
   }
@@ -304,9 +417,9 @@ void ensure_module_import_metadata(Value& module, const std::string& name) {
   Value file;
   const bool has_file = module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::Invalid && file.tag != ValueTag::None;
   const bool is_frozen = is_frozen_import_metadata_module(name);
-  Value loader = is_frozen ? make_runtime_loader("FrozenImporter", name)
-                           : (has_path && !has_file ? make_runtime_loader("NamespaceLoader", name)
-                                                    : make_runtime_loader(has_file ? "SourceFileLoader" : "BuiltinImporter", name));
+  Value loader = is_frozen ? make_runtime_loader(runtime, "FrozenImporter", name)
+                           : (has_path && !has_file ? make_runtime_loader(runtime, "NamespaceLoader", name)
+                                                    : make_runtime_loader(runtime, has_file ? "SourceFileLoader" : "BuiltinImporter", name, file));
   if (!module_has_real_attr(module, "__loader__")) {
     module_set_attr(module, "__loader__", loader, ignored);
   } else {
@@ -316,6 +429,46 @@ void ensure_module_import_metadata(Value& module, const std::string& name) {
   if (!module_has_real_attr(module, "__spec__")) {
     Value origin = is_frozen ? Value::string("frozen") : (has_file ? file : (has_path ? Value::none() : Value::string("built-in")));
     module_set_attr(module, "__spec__", make_runtime_module_spec(name, loader, origin, has_path ? path : Value::none()), ignored);
+  }
+}
+
+bool module_spec_origin_is(const Value& module, const char* expected) {
+  Value spec;
+  std::string ignored;
+  if (!module_get_attr(module, "__spec__", spec, ignored)) {
+    return false;
+  }
+  Value origin;
+  if (!object_get_attr(spec, "origin", origin, ignored)) {
+    return false;
+  }
+  auto* text = value_as_string(origin);
+  return text != nullptr && string_object_to_string(*text) == expected;
+}
+
+void canonicalize_module_loader_from_bootstrap(std::unordered_map<std::string, Value>& modules, Value& module) {
+  if (value_as_module(module) == nullptr) {
+    return;
+  }
+  const bool builtin_origin = module_spec_origin_is(module, "built-in");
+  const bool frozen_origin = module_spec_origin_is(module, "frozen");
+  if (!builtin_origin && !frozen_origin) {
+    return;
+  }
+  auto bootstrap_it = modules.find("_frozen_importlib");
+  if (bootstrap_it == modules.end()) {
+    return;
+  }
+  Value loader;
+  std::string ignored;
+  const char* loader_name = builtin_origin ? "BuiltinImporter" : "FrozenImporter";
+  if (!module_get_attr(bootstrap_it->second, loader_name, loader, ignored)) {
+    return;
+  }
+  module_set_attr(module, "__loader__", loader, ignored);
+  Value spec;
+  if (module_get_attr(module, "__spec__", spec, ignored)) {
+    object_set_attr(spec, "loader", loader, ignored);
   }
 }
 
@@ -687,7 +840,29 @@ void Runtime::set_current_frame(
   state.function_id = function_id;
   state.globals_module = globals_module;
   state.instruction_index = instruction_index;
-  publish_current_frame_state(*this);
+}
+
+void Runtime::push_current_frame_state() {
+  g_runtime_current_frame_stack[this].push_back(current_frame_state(*this));
+}
+
+void Runtime::pop_current_frame_state() {
+  auto stack_it = g_runtime_current_frame_stack.find(this);
+  if (stack_it == g_runtime_current_frame_stack.end() || stack_it->second.empty()) {
+    clear_current_frame();
+    return;
+  }
+  current_frame_state(*this) = std::move(stack_it->second.back());
+  stack_it->second.pop_back();
+  if (stack_it->second.empty()) {
+    g_runtime_current_frame_stack.erase(stack_it);
+  }
+  const auto& state = current_frame_state(*this);
+  if (state.module_owner == nullptr && state.globals_module == nullptr && state.frame_stack == nullptr) {
+    clear_current_frame_state(*this);
+  } else {
+    publish_current_frame_state(*this);
+  }
 }
 
 void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {
@@ -797,7 +972,6 @@ void Runtime::set_current_frame_locals(const std::vector<std::string>* names, co
   state.local_names = names;
   state.local_values = values;
   state.local_count = count;
-  publish_current_frame_state(*this);
 }
 
 void Runtime::clear_current_frame_locals() {
@@ -805,7 +979,6 @@ void Runtime::clear_current_frame_locals() {
   state.local_names = nullptr;
   state.local_values = nullptr;
   state.local_count = 0;
-  publish_current_frame_state(*this);
 }
 
 Value Runtime::current_locals_snapshot() const {
@@ -960,7 +1133,8 @@ Value Runtime::make_native_function(
     void (*user_data_cleanup)(void*),
     NativeFastCallCallback fast_callback,
     bool fast_releases_vm_lock,
-    NativeKeywordFunctionCallback keyword_callback) {
+    NativeKeywordFunctionCallback keyword_callback,
+    bool bind_as_descriptor) {
   const uint32_t native_id = next_native_id_++;
   return Value::native_function(
       native_id,
@@ -970,15 +1144,17 @@ Value Runtime::make_native_function(
       user_data_cleanup,
       fast_callback,
       fast_releases_vm_lock,
-      keyword_callback);
+      keyword_callback,
+      bind_as_descriptor);
 }
 
 void Runtime::register_module(std::string name, Value module) {
   std::string key = name;
-  ensure_module_import_metadata(module, key);
+  ensure_module_import_metadata(*this, module, key);
   modules_[std::move(name)] = std::move(module);
   auto it = modules_.find(key);
   if (it != modules_.end() && modules_dict_.tag != ValueTag::Invalid) {
+    canonicalize_module_loader_from_bootstrap(modules_, it->second);
     std::string ignored;
     mapping_set_item(modules_dict_, Value::string(key), it->second, ignored);
   }
@@ -1022,24 +1198,54 @@ bool Runtime::execute_raw_block(
 
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
   static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
+  static const bool diag_missing_imports = std::getenv("XLANG3_DIAG_MISSING_IMPORTS") != nullptr;
   if (trace_imports) {
     std::cerr << "xlang3 import: " << name << "\n";
   }
   auto it = modules_.find(name);
   if (it == modules_.end()) {
-#if !defined(XLANG3_EMBEDDED)
-    std::string native_error;
-    if (import_native_package(*this, name, out, native_error)) {
-      return true;
+    if (modules_dict_.tag != ValueTag::Invalid) {
+      Value registry_module;
+      std::string registry_error;
+      if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error) &&
+          value_as_module(registry_module) != nullptr) {
+        modules_[name] = registry_module;
+        value_assign_fast(out, registry_module);
+        return true;
+      }
     }
+#if !defined(XLANG3_EMBEDDED)
     std::string python_error;
     if (import_python_module(*this, name, out, python_error)) {
       return true;
     }
+    const bool python_source_not_found = python_error == "module '" + name + "' not found";
+    std::string native_error;
+    if (python_source_not_found &&
+        import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error)) {
+      return true;
+    }
+    std::string prefixed_native_error;
+    if (python_source_not_found &&
+        import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error)) {
+      return true;
+    }
     if (!python_error.empty() && !native_error.empty()) {
-      error = python_error + "; native package candidates tried:\n" + native_error;
+      error = python_error + "; native package candidates tried:\n" + native_error + "\n" + prefixed_native_error;
     } else {
       error = native_error.empty() ? python_error : native_error;
+    }
+    if (diag_missing_imports) {
+      std::cerr << "XLANG3_MISSING_IMPORT name=\"" << name << "\"";
+      if (python_source_not_found) {
+        std::cerr << " python_source=\"not_found\"";
+      } else if (!python_error.empty()) {
+        std::cerr << " python_source=\"error\"";
+      }
+      if (!native_error.empty()) {
+        std::cerr << " native=\"tried\"";
+      }
+      std::cerr << "\n";
     }
 #else
     error = "module '" + name + "' not found in embedded runtime";
@@ -1066,10 +1272,51 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
     return true;
   }
+  if (resolved_module == "builtins" || resolved_module == "_builtins") {
+    if (const auto* builtin = find_builtin(attr_name)) {
+      value_assign_fast(out, *builtin);
+      return true;
+    }
+  }
+
+  Value package_path;
+  std::string package_path_error;
+  if (!module_get_attr(module, "__path__", package_path, package_path_error)) {
+    Value module_getattr;
+    std::string getattr_error;
+    if (module_get_attr(module, "__getattr__", module_getattr, getattr_error)) {
+      Value attr_arg = Value::string(attr_name);
+      Value dynamic_attr;
+      std::string call_error;
+      if (runtime_call_callable(*this, module_getattr, &attr_arg, 1, dynamic_attr, call_error)) {
+        value_assign_fast(out, dynamic_attr);
+        return true;
+      }
+      Value ignored_pending;
+      take_pending_exception(ignored_pending);
+    }
+    return false;
+  }
 
   std::string submodule_error;
   if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name, out, submodule_error)) {
     return true;
+  }
+
+  Value ignored_pending;
+  take_pending_exception(ignored_pending);
+
+  Value module_getattr;
+  std::string getattr_error;
+  if (module_get_attr(module, "__getattr__", module_getattr, getattr_error)) {
+    Value attr_arg = Value::string(attr_name);
+    Value dynamic_attr;
+    std::string call_error;
+    if (runtime_call_callable(*this, module_getattr, &attr_arg, 1, dynamic_attr, call_error)) {
+      value_assign_fast(out, dynamic_attr);
+      return true;
+    }
+    take_pending_exception(ignored_pending);
   }
   if (!submodule_error.empty()) {
     error = submodule_error;
@@ -1096,6 +1343,44 @@ bool Runtime::import_star(const std::string& module_name, Value& target_module, 
     error = "star import target is not a module";
     return false;
   }
+
+  Value export_names;
+  std::string export_error;
+  if (module_get_attr(module, "__all__", export_names, export_error)) {
+    auto export_one = [&](const Value& name_value) -> bool {
+      auto* name_string = value_as_string(name_value);
+      if (name_string == nullptr) {
+        error = "__all__ entries must be strings";
+        return false;
+      }
+      const std::string name = string_object_to_string(*name_string);
+      Value item;
+      if (!module_get_attr(module, name, item, error)) {
+        return false;
+      }
+      return module_set_attr(target_module, name, item, error);
+    };
+
+    if (auto* names = value_as_tuple(export_names)) {
+      for (const auto& name : names->items) {
+        if (!export_one(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (auto* names = value_as_list(export_names)) {
+      for (const auto& name : names->items) {
+        if (!export_one(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    error = "__all__ must be a sequence of strings";
+    return false;
+  }
+
   for (const auto& item : source->name_to_slot) {
     const std::string& name = item.first;
     const uint32_t slot = item.second;

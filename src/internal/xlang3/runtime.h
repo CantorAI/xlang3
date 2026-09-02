@@ -124,7 +124,8 @@ public:
       void (*user_data_cleanup)(void*) = nullptr,
       NativeFastCallCallback fast_callback = nullptr,
       bool fast_releases_vm_lock = false,
-      NativeKeywordFunctionCallback keyword_callback = nullptr);
+      NativeKeywordFunctionCallback keyword_callback = nullptr,
+      bool bind_as_descriptor = true);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
   const Value& module_registry_dict() const { return modules_dict_; }
@@ -172,6 +173,8 @@ public:
       uint32_t function_id,
       const Value* globals_module,
       uint32_t instruction_index);
+  void push_current_frame_state();
+  void pop_current_frame_state();
   void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
   void clear_current_frame();
   Value current_frame_snapshot() const;

@@ -14,12 +14,16 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import json
 import os
+import queue
 import re
 import shlex
 import shutil
 import subprocess
+import threading
+import time
 import tomllib
 import msvcrt
 from pathlib import Path
@@ -88,10 +92,12 @@ def task_path(config: dict, goal: str, selector: str) -> Path | None:
     if not selector or not folder.exists():
         return None
 
-    direct = Path(selector)
+    if "/" in selector or "\\" in selector:
+        return None
+
     candidates = []
-    if direct.suffix == ".md":
-        candidates.append(folder / direct.name)
+    if selector.endswith(".md"):
+        candidates.append(folder / Path(selector).name)
     else:
         candidates.append(folder / f"{selector}.md")
         candidates.append(folder / f"{task_slug(selector)}.md")
@@ -100,6 +106,68 @@ def task_path(config: dict, goal: str, selector: str) -> Path | None:
         if candidate.exists():
             return candidate
     return None
+
+
+def task_file_has_unfinished(path: Path) -> bool:
+    in_fence = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = CHECK_RE.match(line)
+        if match and match.group(1) != "x":
+            return True
+    return False
+
+
+def queued_task_paths(config: dict, goal: str) -> list[Path]:
+    goal_info = goal_config(config, goal)
+    queue_value = goal_info.get("queue", "")
+    folder = task_dir(config, goal)
+    paths: list[Path] = []
+    seen: set[Path] = set()
+
+    if queue_value:
+        queue_file = ROOT / queue_value
+        if queue_file.exists():
+            for line in queue_file.read_text(encoding="utf-8").splitlines():
+                match = re.search(r"`([^`]+)`", line)
+                if not match:
+                    continue
+                task_id = match.group(1).strip()
+                if not task_id or "/" in task_id or "\\" in task_id:
+                    continue
+                candidate = task_path(config, goal, task_id)
+                if candidate is None:
+                    continue
+                candidate = candidate.resolve()
+                if candidate.exists() and candidate not in seen:
+                    paths.append(candidate)
+                    seen.add(candidate)
+
+    if folder.exists():
+        for candidate in sorted(folder.glob("*.md")):
+            resolved = candidate.resolve()
+            if resolved not in seen:
+                paths.append(resolved)
+                seen.add(resolved)
+
+    return paths
+
+
+def auto_task_selector(config: dict, goal: str) -> str:
+    for path in queued_task_paths(config, goal):
+        if task_file_has_unfinished(path):
+            return path.stem
+    return ""
+
+
+def resolve_section(config: dict, goal: str, selector: str) -> str:
+    if selector.strip().lower() in {"", "auto", "next"}:
+        return auto_task_selector(config, goal)
+    return selector
 
 
 def runs_dir(config: dict, goal: str) -> Path:
@@ -122,11 +190,22 @@ def session_id_path(config: dict, goal: str) -> Path:
     return runs_dir(config, goal) / "codex_session_id.txt"
 
 
+def session_meta_path(config: dict, goal: str) -> Path:
+    return runs_dir(config, goal) / "codex_session_meta.json"
+
+
 def lessons_path(config: dict, goal: str) -> Path:
     configured = goal_config(config, goal).get("lessons", "")
     if configured:
         return ROOT / configured
     return ROOT / "agent" / goal / "lessons.md"
+
+
+def goal_folder(config: dict, goal: str) -> Path:
+    configured = goal_config(config, goal).get("folder", "")
+    if configured:
+        return ROOT / configured
+    return ROOT / "agent" / goal
 
 
 def default_xlang3(config: dict) -> str:
@@ -247,7 +326,7 @@ def expand_session_command_template(config: dict, command: str, session_id: str)
 
 
 def default_section(config: dict, goal: str) -> str:
-    return goal_config(config, goal).get("default_section", "")
+    return goal_config(config, goal).get("default_section", "auto")
 
 
 def default_limit(config: dict, goal: str) -> int:
@@ -280,7 +359,7 @@ def validate_codex_command(config: dict, command: str, output: str = "") -> str:
     if stripped in placeholders:
         raise SystemExit(
             f"Invalid Codex backend command: {stripped!r}. "
-            "Pass a real command or use --dry-run/--status."
+            "Configure a real command or use --status."
         )
     return expand_command_template(config, stripped, output)
 
@@ -429,7 +508,26 @@ def run_with_input(command: str, stdin_text: str) -> None:
         raise SystemExit(result.returncode)
 
 
-def run_with_input_tee(command: str, stdin_text: str) -> str:
+def terminate_process_tree(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            cwd=ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    else:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+
+
+def run_with_input_tee(command: str, stdin_text: str, *, timeout_seconds: int = 3600) -> str:
     print()
     print("==", command)
     process = subprocess.Popen(
@@ -450,9 +548,43 @@ def run_with_input_tee(command: str, stdin_text: str) -> str:
     process.stdin.close()
 
     captured: list[str] = []
-    for line in process.stdout:
+    lines: queue.Queue[str | None] = queue.Queue()
+
+    def reader() -> None:
+        assert process.stdout is not None
+        for line in process.stdout:
+            lines.put(line)
+        lines.put(None)
+
+    reader_thread = threading.Thread(target=reader, daemon=True)
+    reader_thread.start()
+
+    deadline = time.monotonic() + timeout_seconds
+    stdout_closed = False
+    while not stdout_closed:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            terminate_process_tree(process)
+            output = "".join(captured)
+            raise SystemExit(
+                "Codex backend timed out after "
+                f"{timeout_seconds} seconds. The prompt/state were preserved; "
+                "rerun the loop to repair or continue.\n"
+                f"Command: {command}\n"
+                f"Captured output tail:\n{output[-4000:]}"
+            )
+        try:
+            line = lines.get(timeout=min(0.25, remaining))
+        except queue.Empty:
+            if process.poll() is not None and not reader_thread.is_alive():
+                break
+            continue
+        if line is None:
+            stdout_closed = True
+            continue
         print(line, end="")
         captured.append(line)
+
     return_code = process.wait()
     output = "".join(captured)
     if return_code != 0:
@@ -475,7 +607,7 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def read_compact_lessons(config: dict, goal: str, max_lines: int = 18) -> str:
+def read_compact_lessons(config: dict, goal: str, max_lines: int = 8) -> str:
     path = lessons_path(config, goal)
     if not path.exists():
         return "- No lessons recorded yet."
@@ -494,6 +626,64 @@ def read_compact_lessons(config: dict, goal: str, max_lines: int = 18) -> str:
     if not lessons:
         return "- No lessons recorded yet."
     return "\n".join(lessons[-max_lines:])
+
+
+def file_sha256(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bootstrap_hashes(config: dict, goal: str) -> dict[str, str]:
+    folder = goal_folder(config, goal)
+    return {
+        "system_prompt": file_sha256(folder / "system_prompt.md"),
+        "goal": file_sha256(folder / "goal.md"),
+        "rules": file_sha256(folder / "rules.md"),
+        "module_policy": file_sha256(folder / "context" / "module_policy.md"),
+    }
+
+
+def read_session_meta(config: dict, goal: str) -> dict:
+    path = session_meta_path(config, goal)
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def write_session_meta(config: dict, goal: str) -> None:
+    session_id = read_saved_session_id(config, goal)
+    if not session_id:
+        return
+    path = session_meta_path(config, goal)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "session_id": session_id,
+                "bootstrap_sent": True,
+                "hashes": bootstrap_hashes(config, goal),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def should_send_bootstrap(config: dict, goal: str) -> bool:
+    session_id = read_saved_session_id(config, goal)
+    if not session_id:
+        return True
+    meta = read_session_meta(config, goal)
+    if meta.get("session_id") != session_id:
+        return True
+    if not meta.get("bootstrap_sent"):
+        return True
+    return meta.get("hashes") != bootstrap_hashes(config, goal)
 
 
 def section_lines(lines: list[str], section: str) -> list[tuple[int, str]]:
@@ -531,6 +721,7 @@ def control_source(
     goal: str,
     selector: str,
 ) -> tuple[Path, list[tuple[int, str]], str, bool]:
+    selector = resolve_section(config, goal, selector)
     task = task_path(config, goal, selector)
     if task:
         label = task.relative_to(ROOT).as_posix()
@@ -596,7 +787,20 @@ def audit_counts(config: dict, goal: str, section: str) -> tuple[int, int, int]:
     return checked, partial, missing
 
 
-def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int, str, str]]) -> str:
+def task_cursor(source_label: str, items: list[tuple[int, str, str]]) -> str:
+    if not items:
+        return f"file={source_label}; offset=done; line=done"
+    line = items[0][0]
+    return f"file={source_label}; offset={line - 1}; line={line}"
+
+
+def compose_prompt(
+    config: dict,
+    goal: str,
+    section: str,
+    items: list[tuple[int, str, str]],
+    include_bootstrap: bool,
+) -> str:
     next_items = "\n".join(
         f"- line {line}: [{mark}] {text}" for line, mark, text in items
     )
@@ -608,19 +812,36 @@ def compose_prompt(config: dict, goal: str, section: str, items: list[tuple[int,
     build_command = build_command_text(config)
     fixture_command = fixture_command_text(config)
     section_fixture_command = section_fixture_command_text(config, section) if section else ""
-    cursor = f"{source_label}::{items[0][0] if items else 'done'}"
+    cursor = task_cursor(source_label, items)
     lessons = read_compact_lessons(config, goal)
-    return f"""# XLang3 Python 3.14 Compatibility Batch
+    system_prompt_path = goal_folder(config, goal) / "system_prompt.md"
+    system_prompt = read_text(system_prompt_path).strip() if system_prompt_path.exists() else ""
+    if not system_prompt:
+        system_prompt = (
+            "Keep CPython Lib/*.py modules running from source; when they fail, "
+            "fix XLang3 runtime/native dependencies instead of public C++ facades."
+        )
+    if include_bootstrap:
+        header = f"""# XLang3 Python 3.14 Compatibility Batch
 
-This is a compact cursor-extracted context. Use the task file and cursor below
-as the control plane. Do not reread the legacy giant audit unless something is
-ambiguous.
+{system_prompt}
+
+This prompt includes the session bootstrap because this is a new Codex session
+or the goal/rules/module-policy files changed. Later iterations in this same
+session should receive only delta prompts unless those files change again.
 
 Goal:
 Make XLang3 runtime compatible with Python 3.14 so CPython standard-library
 .py files can run naturally on XLang3.
 
 Runtime doctrine:
+- XLang3 keeps its own runtime: `Value`, object/refcount model, XlangVM, native
+  module/package ABI, VFS, and IR execution are not CPython internals.
+- The compatibility target is Python 3.14 syntax and runtime behavior for pure
+  Python `.py` files, especially CPython `Lib/*.py` modules.
+- For system stdlib work, run the real CPython 3.14 library source first, then
+  implement the missing XLang3 runtime primitive or native dependency it
+  requires.
 - Fix runtime primitives first: object model, call binding, descriptors, import
   system, code/frame/traceback, exceptions, VFS/open/_io, and required native
   dependency modules.
@@ -628,6 +849,12 @@ Runtime doctrine:
   strategy.
 - Native C++ is correct for CPython native/core dependency modules and
   performance-critical product modules.
+- If a module is pure Python in CPython, do not add a public C++ module for it.
+  Examples: `abc`, `collections`, `queue`, `json`, `pathlib`, `inspect`,
+  `argparse`, `typing`, `subprocess`, and `zipfile`.
+- Mixed files may keep private/native dependency exports such as `_abc`,
+  `_collections`, `_queue`, `_io`, `_weakref`, `_opcode`, `_string`, `_pickle`,
+  `_struct`, `nt`/`posix`, `time`, `marshal`, `zlib`, `zipimport`, and `sys`.
 - No debugpy-only shortcuts.
 - No benchmark-specific code.
 - No stubs, placeholder facades, or fake compatibility.
@@ -662,7 +889,25 @@ Runtime doctrine:
 - Update agent/python314_compat/lessons.md if this batch exposes a reusable
   mistake pattern, compatibility trap, or workflow lesson.
 - The loop will build, test, commit, and push after your work.
+"""
+    else:
+        header = f"""# XLang3 Python 3.14 Compatibility Delta
 
+Use the bootstrap instructions already present in this Codex session. Do not
+reread the legacy giant audit unless this task item is ambiguous.
+
+Stable context status:
+- goal/rules/module-policy hashes are unchanged for this session.
+- continue following runtime-first Python 3.14 compatibility.
+- keep CPython `Lib/*.py` modules running from source first; fix XLang3
+  runtime/native dependencies second.
+- do not add public C++ facades for pure CPython stdlib modules.
+- use real CPython `Lib/*.py` first, then fix XLang3 runtime/native dependency
+  gaps with fixture coverage.
+- the outer loop will build, test, commit, and push after your work.
+"""
+
+    return f"""{header}
 Fixed local scripts:
 - Build: {build_command}
 - Full fixture validation: {fixture_command}
@@ -683,19 +928,19 @@ Selected task:
 Agent goal:
 {goal}
 
-Lessons from previous iterations:
-{lessons}
-
 Task counts:
 - checked: {checked}
 - partial: {partial}
 - missing: {missing}
 
+Implement one coherent compatibility batch now. Do not scan unrelated audit
+sections; update only the task rows affected by this batch.
+
 Next unfinished task rows from the cursor:
 {next_items}
 
-Implement one coherent compatibility batch now. Do not scan unrelated audit
-sections; update only the task rows affected by this batch.
+Lessons from previous iterations:
+{lessons}
 """
 
 
@@ -809,18 +1054,23 @@ def print_loop_status(config: dict, goal: str, section: str, limit: int) -> None
     current_state = read_loop_state(config, goal)
     checked, partial, missing = audit_counts(config, goal, section)
     items = unfinished_items(config, goal, section, limit)
-    source_path, _, _, is_task = control_source(config, goal, section)
+    source_path, _, source_label, is_task = control_source(config, goal, section)
 
     print(f"Repo: {ROOT}")
     print(f"Goal: {goal}")
     print(f"Task: {section or 'whole audit'}")
     print(f"Source: {source_path.relative_to(ROOT).as_posix()}")
     print(f"Mode: {'task folder' if is_task else 'legacy audit fallback'}")
+    print(f"Cursor: {task_cursor(source_label, items)}")
     print(f"Task counts: checked={checked}, partial={partial}, missing={missing}")
+    session_id = read_saved_session_id(config, goal)
+    print(f"Codex session: {session_id or 'none'}")
+    print(f"Next prompt kind: {'bootstrap' if should_send_bootstrap(config, goal) else 'delta'}")
 
     if current_state.get("active"):
         print(f"Saved loop phase: {current_state.get('phase', '')}")
         print(f"Saved prompt: {current_state.get('prompt_path', '')}")
+        print(f"Saved prompt kind: {'bootstrap' if current_state.get('bootstrap_prompt') else 'delta'}")
     else:
         print("Saved loop phase: none")
 
@@ -888,16 +1138,27 @@ def write_saved_session_id(config: dict, goal: str, output: str) -> None:
     print(f"Saved Codex session id: {matches[-1]}")
 
 
+def clear_saved_session(config: dict, goal: str) -> None:
+    for path in (session_id_path(config, goal), session_meta_path(config, goal)):
+        if path.exists():
+            path.unlink()
+
+
 def invoke_codex(config: dict, goal: str, command_template: str, prompt_path: Path, prompt: str) -> None:
     session_id = read_saved_session_id(config, goal)
     resume_template = default_codex_resume_command(config)
-    if session_id and resume_template:
+    use_resume = session_id and resume_template and not should_send_bootstrap(config, goal)
+    if use_resume:
         command_template = expand_session_command_template(config, resume_template, session_id)
         print(f"Resuming Codex session: {session_id}")
+    elif session_id and resume_template:
+        print(f"Ignoring stale Codex session for bootstrap: {session_id}")
+        clear_saved_session(config, goal)
 
     if not command_template:
         raise SystemExit(
-            "No Codex backend command configured. Pass --codex-command or use --dry-run."
+            "No Codex backend command configured. Pass --codex-command or set "
+            "[codex].command in agent/config.toml."
         )
 
     command = command_template
@@ -909,7 +1170,8 @@ def invoke_codex(config: dict, goal: str, command_template: str, prompt_path: Pa
         print()
         print("== Codex backend")
         print(f"Prompt file: {prompt_path}")
-        output = run_with_input_tee(command, prompt)
+        timeout_seconds = int(config.get("codex", {}).get("backend_timeout_seconds", 3600))
+        output = run_with_input_tee(command, prompt, timeout_seconds=timeout_seconds)
         write_saved_session_id(config, goal, output)
         print("Codex backend finished.")
         return
@@ -991,6 +1253,7 @@ def stageable(path: str) -> bool:
     normalized = path.replace("\\", "/")
     blocked_prefixes = (
         ".tmp_",
+        "agent/python314_compat/.agent_runs/",
         "build/",
         ".vs/",
         "tests/fixtures/.vs/",
@@ -1144,7 +1407,6 @@ def main() -> int:
     )
     parser.add_argument("--codex-command", default="", help="Backend command. Use {prompt_file} or {prompt}; otherwise prompt file is appended.")
     parser.add_argument("--status", action="store_true", help="Show current goal/audit/resume status and exit.")
-    parser.add_argument("--dry-run", action="store_true", help="Write and print prompts without invoking Codex, building, testing, or committing.")
     parser.add_argument("--no-commit", action="store_true", help="Validate but do not commit.")
     parser.add_argument("--commit-message", default="", help="Commit message for validated changes.")
     parser.add_argument("--cmake", default="", help="Path to cmake.exe.")
@@ -1158,7 +1420,8 @@ def main() -> int:
     os.chdir(ROOT)
     config = load_config()
     goal = args.goal or config.get("default_goal", "")
-    section = args.section if args.section is not None else default_section(config, goal)
+    configured_section = args.section if args.section is not None else default_section(config, goal)
+    section = resolve_section(config, goal, configured_section)
     limit = args.limit if args.limit > 0 else default_limit(config, goal)
     commit_message = args.commit_message or default_commit_message(config, goal)
     iterations = args.iterations if args.iterations >= 0 else default_iterations(config, goal)
@@ -1169,7 +1432,7 @@ def main() -> int:
     xlang3 = args.xlang3 or default_xlang3(config)
     python_exe = default_python(config)
     codex_command = validate_codex_command(config, args.codex_command or default_codex_command(config))
-    cmake = resolve_cmake(args.cmake, config) if not args.dry_run and not args.skip_build else ""
+    cmake = resolve_cmake(args.cmake, config) if not args.skip_build else ""
 
     if args.reset_loop_state:
         clear_loop_state(config, goal)
@@ -1190,15 +1453,14 @@ def main() -> int:
         saved_state = read_loop_state(config, goal)
         resume_phase = saved_state.get("phase", "") if saved_state.get("active") else ""
         if (
-            not args.dry_run
-            and not codex_command
+            not codex_command
             and resume_phase not in {"codex_done", "validated"}
         ):
             raise SystemExit(
                 "No Codex backend command configured. Pass --codex-command, "
-                "set [codex].command in agent/config.toml, or use --dry-run/--status."
+                "set [codex].command in agent/config.toml, or use --status."
             )
-        if not args.dry_run and resume_phase not in {"codex_done", "validated"}:
+        if resume_phase not in {"codex_done", "validated"}:
             preflight_codex_command(codex_command)
 
         iteration = 1
@@ -1209,6 +1471,7 @@ def main() -> int:
             stageable_changes = changed_paths()
             current_prompt_path = saved_state.get("prompt_path", "")
             current_baseline_paths = saved_state.get("baseline_stageable_paths", stageable_changes)
+            current_bootstrap_prompt = bool(saved_state.get("bootstrap_prompt", False))
 
             print()
             print("=" * 72)
@@ -1247,10 +1510,13 @@ def main() -> int:
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                        "bootstrap_prompt": current_bootstrap_prompt,
                     })
                     write_loop_state(config, goal, running_state)
                     try:
                         invoke_codex(config, goal, codex_command, prompt_path, prompt)
+                        if current_bootstrap_prompt:
+                            write_session_meta(config, goal)
                     except SystemExit:
                         retry_state = dict(saved_state)
                         retry_state.update({
@@ -1261,6 +1527,7 @@ def main() -> int:
                             "prompt_path": str(prompt_path),
                             "iteration": iteration,
                             "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                            "bootstrap_prompt": current_bootstrap_prompt,
                         })
                         write_loop_state(config, goal, retry_state)
                         raise
@@ -1273,6 +1540,7 @@ def main() -> int:
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": saved_state.get("baseline_stageable_paths", []),
+                        "bootstrap_prompt": current_bootstrap_prompt,
                     })
                     write_loop_state(config, goal, done_state)
                     resume_phase = "codex_done"
@@ -1293,11 +1561,20 @@ def main() -> int:
                     print("No unfinished rows remain in this task scope.")
                     clear_loop_state(config, goal)
                     break
+                _, _, source_label, _ = control_source(config, goal, active_section)
+                print(f"Task cursor: {task_cursor(source_label, items)}")
                 print("Next unfinished task rows:")
                 for line, mark, text in items:
                     print(f"[{mark}] line {line}: {text}")
 
-                prompt = compose_prompt(config, goal, active_section, items)
+                current_bootstrap_prompt = should_send_bootstrap(config, goal)
+                prompt = compose_prompt(
+                    config,
+                    goal,
+                    active_section,
+                    items,
+                    current_bootstrap_prompt,
+                )
                 prompt_path = write_prompt(config, goal, prompt, iteration)
                 current_prompt_path = str(prompt_path)
                 current_baseline_paths = stageable_changes
@@ -1312,14 +1589,8 @@ def main() -> int:
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
                     "baseline_stageable_paths": stageable_changes,
+                    "bootstrap_prompt": current_bootstrap_prompt,
                 })
-
-                if args.dry_run:
-                    print()
-                    print("Dry run: compact prompt follows.")
-                    print(prompt)
-                    clear_loop_state(config, goal)
-                    break
 
                 write_loop_state(config, goal, {
                     "active": True,
@@ -1329,9 +1600,12 @@ def main() -> int:
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
                     "baseline_stageable_paths": stageable_changes,
+                    "bootstrap_prompt": current_bootstrap_prompt,
                 })
                 try:
                     invoke_codex(config, goal, codex_command, prompt_path, prompt)
+                    if current_bootstrap_prompt:
+                        write_session_meta(config, goal)
                 except SystemExit:
                     write_loop_state(config, goal, {
                         "active": True,
@@ -1341,6 +1615,7 @@ def main() -> int:
                         "prompt_path": str(prompt_path),
                         "iteration": iteration,
                         "baseline_stageable_paths": stageable_changes,
+                        "bootstrap_prompt": current_bootstrap_prompt,
                     })
                     raise
                 write_loop_state(config, goal, {
@@ -1351,6 +1626,7 @@ def main() -> int:
                     "prompt_path": str(prompt_path),
                     "iteration": iteration,
                     "baseline_stageable_paths": stageable_changes,
+                    "bootstrap_prompt": current_bootstrap_prompt,
                 })
 
             if resume_phase == "codex_done" or not resume_phase:
@@ -1362,8 +1638,6 @@ def main() -> int:
                         validate(cmake, xlang3, python_exe, args.skip_build, args.skip_tests)
                         break
                     except CommandFailure as exc:
-                        if args.dry_run:
-                            raise SystemExit(exc.returncode) from exc
                         if repair_attempt >= validation_repair_limit:
                             failure_log = write_failure_log(
                                 config,

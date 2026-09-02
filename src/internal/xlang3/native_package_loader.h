@@ -20,6 +20,16 @@ limitations under the License.
 
 namespace xlang3 {
 
-bool import_native_package(Runtime& runtime, const std::string& package_name, Value& out, std::string& error);
+enum class NativePackageLookupMode {
+  ExactNameOnly,
+  IncludeXlangPrefixFallback,
+};
+
+bool import_native_package(
+    Runtime& runtime,
+    const std::string& package_name,
+    NativePackageLookupMode mode,
+    Value& out,
+    std::string& error);
 
 } // namespace xlang3

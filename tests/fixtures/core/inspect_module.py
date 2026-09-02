@@ -1,6 +1,7 @@
 import inspect
 import functools
 import math
+import os
 
 
 def f(x):
@@ -30,7 +31,10 @@ members = inspect.getmembers(c)
 print(members[0][0])
 methods = inspect.getmembers(C, inspect.isfunction)
 print(methods[0][0])
-print(inspect.getfile(math))
+try:
+    inspect.getfile(math)
+except TypeError as e:
+    print(type(e).__name__, "built-in module" in str(e))
 
 
 def documented(a, b=3):
@@ -63,7 +67,7 @@ async def coro_func():
 # doc/source helpers.
 print(inspect.getdoc(documented))
 print(inspect.cleandoc("  a\n    b"))
-print(inspect.getmodulename("abc.py"), inspect.getabsfile(__file__).endswith("inspect_module.py"))
+print(inspect.getmodulename("abc.py"), os.path.abspath(__file__).endswith("inspect_module.py"))
 print(len(inspect.getsource(documented)) > 0, inspect.getsourcelines(documented)[1] > 0)
 
 # signature and binding foundations.

@@ -14,6 +14,10 @@ True False True
 5 5
 2 3
 2 4
+dict-getitem-keyerror
+dict-delitem-keyerror
+dict-get-typeerror
+dict-contains-typeerror
 True True True True
 {'a', 'b', 'c', 'd'} {'b', 'c'} {'a', 'c'} {'b', 'c', 'd'}
 True {('a', 1)}

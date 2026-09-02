@@ -137,3 +137,30 @@ except LookupError as caught:
     while tb.tb_next is not None:
         tb = tb.tb_next
     print(tb.tb_lineno == line_probe.__code__.co_firstlineno + 2)
+
+
+# Arithmetic errors use CPython exception classes and bytecode-shaped offsets.
+for expr in ("1 / 0", "1 // 0", "1 % 0"):
+    try:
+        eval(expr)
+    except ZeroDivisionError as caught:
+        print(expr, type(caught).__name__, caught.__traceback__.tb_lasti % 2 == 0)
+
+
+# OSError exposes CPython-compatible errno fields and remaps common errno codes.
+plain_os_error = OSError("plain")
+missing_os_error = OSError(2, "missing", "name.txt")
+permission_os_error = OSError(13, "denied")
+try:
+    open("xlang3_exception_missing_file.tmp", "r")
+except FileNotFoundError as missing_file:
+    print(
+        plain_os_error.errno is None,
+        type(missing_os_error).__name__,
+        missing_os_error.errno,
+        missing_os_error.strerror,
+        missing_os_error.filename,
+        type(permission_os_error).__name__,
+        missing_file.errno,
+        missing_file.filename.endswith("xlang3_exception_missing_file.tmp"),
+    )

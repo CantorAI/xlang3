@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 11;
+constexpr uint32_t kVersion = 12;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -269,6 +269,36 @@ bool read_u32_pair_vector(
   return true;
 }
 
+bool write_source_positions(Writer& w, const std::vector<SourcePosition>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    w.u32(value.line);
+    w.u32(value.end_line);
+    w.u32(value.column);
+    w.u32(value.end_column);
+  }
+  return true;
+}
+
+bool read_source_positions(Reader& r, std::vector<SourcePosition>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!r.u32(value.line) ||
+        !r.u32(value.end_line) ||
+        !r.u32(value.column) ||
+        !r.u32(value.end_column)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool write_string_u32_pair_vector(
     Writer& w,
     const std::vector<std::pair<std::string, uint32_t>>& values,
@@ -490,6 +520,10 @@ bool write_call_specs(Writer& w, const std::vector<CallSpec>& specs, std::string
     }
     w.u32(spec.star_arg);
     w.u32(spec.kw_star_arg);
+    if (!write_u32_vector(w, spec.star_args, error) ||
+        !write_u32_vector(w, spec.kw_star_args, error)) {
+      return false;
+    }
   }
   return true;
 }
@@ -505,6 +539,10 @@ bool read_call_specs(Reader& r, std::vector<CallSpec>& specs, std::string& error
         !read_call_keyword_args(r, spec.keywords, error) ||
         !r.u32(spec.star_arg) ||
         !r.u32(spec.kw_star_arg)) {
+      return false;
+    }
+    if (!read_u32_vector(r, spec.star_args, error) ||
+        !read_u32_vector(r, spec.kw_star_args, error)) {
       return false;
     }
   }
@@ -686,7 +724,8 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
     w.u32(instr.b);
     w.u32(instr.c);
   }
-  if (!write_u32_vector(w, fn.source_lines, error)) {
+  if (!write_u32_vector(w, fn.source_lines, error) ||
+      !write_source_positions(w, fn.source_positions, error)) {
     return false;
   }
   return true;
@@ -755,7 +794,8 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
     }
     instr.op = static_cast<Op>(op);
   }
-  if (!read_u32_vector(r, fn.source_lines, error)) {
+  if (!read_u32_vector(r, fn.source_lines, error) ||
+      !read_source_positions(r, fn.source_positions, error)) {
     return false;
   }
   return true;

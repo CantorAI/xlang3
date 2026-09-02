@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
 #include <algorithm>
@@ -79,13 +80,22 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
   int64_t start = 0;
   int64_t stop = 0;
   int64_t step = 1;
+  bool stop_is_unbounded = false;
   if (argc == 2) {
-    if (!int_arg(args[1], stop)) {
+    if (args[1].tag == ValueTag::None) {
+      stop_is_unbounded = true;
+    } else if (!int_arg(args[1], stop)) {
       error = "islice stop must be int";
       return false;
     }
   } else {
-    if (!int_arg(args[1], start) || !int_arg(args[2], stop)) {
+    if (!int_arg(args[1], start)) {
+      error = "islice start/stop must be int";
+      return false;
+    }
+    if (args[2].tag == ValueTag::None) {
+      stop_is_unbounded = true;
+    } else if (!int_arg(args[2], stop)) {
       error = "islice start/stop must be int";
       return false;
     }
@@ -94,7 +104,7 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
       return false;
     }
   }
-  if (start < 0 || stop < 0) {
+  if (start < 0 || (!stop_is_unbounded && stop < 0)) {
     error = "islice indices must be non-negative";
     return false;
   }
@@ -103,7 +113,7 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   std::vector<Value> values;
-  for (int64_t index = 0; index < stop;) {
+  for (int64_t index = 0; stop_is_unbounded || index < stop;) {
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
@@ -117,7 +127,7 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
     }
     ++index;
   }
-  out = Value::list(std::move(values));
+  out = Value::sequence_iterator(Value::list(std::move(values)), 0);
   return true;
 }
 
@@ -224,6 +234,118 @@ bool itertools_filterfalse(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool groupby_keys_equal(const Value& left, const Value& right, bool& equal, std::string& error) {
+  Value compare;
+  if (!value_compare("==", left, right, compare, error)) {
+    return false;
+  }
+  equal = value_truthy(compare);
+  return true;
+}
+
+bool groupby_key(Runtime& runtime, const Value& key_func, const Value& item, Value& out, std::string& error) {
+  if (key_func.tag == ValueTag::None) {
+    value_assign_fast(out, item);
+    return true;
+  }
+  return runtime_call_callable(runtime, key_func, &item, 1, out, error);
+}
+
+bool itertools_groupby(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "itertools.groupby() expected iterable and optional key";
+    return false;
+  }
+  Value key_func = argc == 2 ? args[1] : Value::none();
+  Value iterator;
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
+    return false;
+  }
+
+  std::vector<Value> groups;
+  bool have_group = false;
+  Value current_key;
+  std::vector<Value> current_items;
+
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+
+    Value item_key;
+    if (!groupby_key(runtime, key_func, item, item_key, error)) {
+      return false;
+    }
+    bool same_group = false;
+    if (have_group && !groupby_keys_equal(current_key, item_key, same_group, error)) {
+      return false;
+    }
+    if (!have_group || !same_group) {
+      if (have_group) {
+        Value group_list = Value::list(std::move(current_items));
+        groups.push_back(Value::tuple({current_key, Value::sequence_iterator(std::move(group_list), 0)}));
+        current_items.clear();
+      }
+      value_assign_fast(current_key, item_key);
+      have_group = true;
+    }
+    current_items.push_back(std::move(item));
+  }
+
+  if (have_group) {
+    Value group_list = Value::list(std::move(current_items));
+    groups.push_back(Value::tuple({current_key, Value::sequence_iterator(std::move(group_list), 0)}));
+  }
+  out = Value::sequence_iterator(Value::list(std::move(groups)), 0);
+  return true;
+}
+
+bool itertools_groupby_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc == 0) {
+    return itertools_groupby(runtime, args, argc, out, error, user_data);
+  }
+  if (argc > 2) {
+    error = "itertools.groupby() expected iterable and optional key";
+    return false;
+  }
+  const Value* key = nullptr;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (std::string(kwargs[i].name) != "key") {
+      error = std::string("itertools.groupby() got an unexpected keyword argument '") + kwargs[i].name + "'";
+      return false;
+    }
+    if (key != nullptr || argc == 2) {
+      error = "itertools.groupby() got multiple values for argument 'key'";
+      return false;
+    }
+    key = kwargs[i].value;
+  }
+  Value positional[2];
+  if (argc == 0) {
+    error = "itertools.groupby() missing required argument 'iterable'";
+    return false;
+  }
+  value_assign_fast(positional[0], args[0]);
+  if (key != nullptr) {
+    value_assign_fast(positional[1], *key);
+    return itertools_groupby(runtime, positional, 2, out, error, user_data);
+  }
+  return itertools_groupby(runtime, positional, argc, out, error, user_data);
+}
+
 bool itertools_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "itertools.compress() expected data and selectors";
@@ -256,9 +378,12 @@ bool itertools_repeat(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   int64_t times = 0;
-  if (!int_arg(args[1], times) || times < 0) {
-    error = "repeat times must be non-negative int";
+  if (!int_arg(args[1], times)) {
+    error = "repeat times must be int";
     return false;
+  }
+  if (times < 0) {
+    times = 0;
   }
   std::vector<Value> values;
   values.reserve(static_cast<size_t>(times));
@@ -280,6 +405,19 @@ bool itertools_chain(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     iterators.push_back(std::move(iterator));
   }
   out = functional_chain_iterator(std::move(iterators));
+  return true;
+}
+
+bool itertools_chain_from_iterable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "itertools.chain.from_iterable() expected iterable";
+    return false;
+  }
+  Value iterator;
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) {
+    return false;
+  }
+  out = functional_chain_from_iterable_iterator(&runtime, std::move(iterator));
   return true;
 }
 
@@ -639,14 +777,24 @@ bool itertools_tee(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 
 void register_itertools_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "itertools");
+  Value chain = runtime.make_native_function("itertools.chain", itertools_chain);
+  {
+    std::string error;
+    object_set_attr(
+        chain,
+        "from_iterable",
+        runtime.make_native_function("itertools.chain.from_iterable", itertools_chain_from_iterable),
+        error);
+  }
   builder.function("count", itertools_count)
       .function("islice", itertools_islice)
       .function("takewhile", itertools_takewhile)
       .function("dropwhile", itertools_dropwhile)
       .function("filterfalse", itertools_filterfalse)
+      .value("groupby", runtime.make_native_function("itertools.groupby", itertools_groupby, nullptr, nullptr, nullptr, false, itertools_groupby_kw))
       .function("compress", itertools_compress)
       .function("repeat", itertools_repeat)
-      .function("chain", itertools_chain)
+      .value("chain", std::move(chain))
       .function("batched", itertools_batched)
       .function("product", itertools_product)
       .function("combinations", itertools_combinations)

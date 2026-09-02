@@ -31,6 +31,9 @@ struct VfsStat {
   VfsNodeKind kind = VfsNodeKind::Missing;
   uint64_t size = 0;
   uint64_t inode = 0;
+  int64_t atime_ns = 0;
+  int64_t mtime_ns = 0;
+  int64_t ctime_ns = 0;
   bool is_symlink = false;
 };
 

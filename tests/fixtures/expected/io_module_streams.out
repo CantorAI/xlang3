@@ -6,7 +6,7 @@ aZ
 b'x'
 1
 b'xZ'
-8192
-<class 'TextIOBase'>
+131072
+<class 'io.TextIOBase'>
 TextIOWrapper TextIOWrapper True
 FileIO True True

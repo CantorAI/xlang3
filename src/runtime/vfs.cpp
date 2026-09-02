@@ -19,6 +19,11 @@ limitations under the License.
 #include <functional>
 #include <fstream>
 #include <sstream>
+#if defined(_WIN32)
+#include <sys/stat.h>
+#else
+#include <sys/stat.h>
+#endif
 #endif
 
 namespace xlang3 {
@@ -155,6 +160,21 @@ public:
     if (out.inode == 0) {
       out.inode = 1;
     }
+#if defined(_WIN32)
+    struct _stat64 stat_buffer {};
+    if (_stat64(path.c_str(), &stat_buffer) == 0) {
+      out.atime_ns = static_cast<int64_t>(stat_buffer.st_atime) * 1000000000LL;
+      out.mtime_ns = static_cast<int64_t>(stat_buffer.st_mtime) * 1000000000LL;
+      out.ctime_ns = static_cast<int64_t>(stat_buffer.st_ctime) * 1000000000LL;
+    }
+#else
+    struct stat stat_buffer {};
+    if (::stat(path.c_str(), &stat_buffer) == 0) {
+      out.atime_ns = static_cast<int64_t>(stat_buffer.st_atime) * 1000000000LL;
+      out.mtime_ns = static_cast<int64_t>(stat_buffer.st_mtime) * 1000000000LL;
+      out.ctime_ns = static_cast<int64_t>(stat_buffer.st_ctime) * 1000000000LL;
+    }
+#endif
     if (std::filesystem::is_regular_file(status)) {
       out.kind = VfsNodeKind::File;
       out.size = static_cast<uint64_t>(std::filesystem::file_size(path, ec));

@@ -11,6 +11,7 @@ type dynamic dynamic
 2 2
 b'hi' b'hi'
 bytearray(b'hi') bytearray(b'hi')
+bytes 256 bytes
 3
 hi ok
 65 A True

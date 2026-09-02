@@ -21,3 +21,7 @@ reraised again
 bare-outside No active exception to reraise
 True True True
 True
+1 / 0 ZeroDivisionError True
+1 // 0 ZeroDivisionError True
+1 % 0 ZeroDivisionError True
+True FileNotFoundError 2 missing name.txt PermissionError 2 True

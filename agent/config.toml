@@ -26,18 +26,25 @@ bin_dir = "C:/Users/shaw9/AppData/Local/OpenAI/Codex/bin"
 command = "\"{codex}\" exec --dangerously-bypass-approvals-and-sandbox -C \"{root}\" -"
 resume_command = "\"{codex}\" exec resume --dangerously-bypass-approvals-and-sandbox \"{session_id}\" -"
 commit_message_command = "\"{codex}\" exec --sandbox read-only -C \"{root}\" -o \"{output}\" -"
+backend_timeout_seconds = 3600
 
 [goals.python314_compat]
 title = "XLang3 Python 3.14 Compatibility"
 folder = "agent/python314_compat"
+
+# Legacy full-audit snapshot. The loop uses compact task files first; this file
+# is kept as a reference/fallback so progress can still be checked globally.
 audit = "doc/python314-compat-audit.md"
+
+# Current control plane. Queue rows are task IDs, not paths. The loop maps each
+# task ID to tasks_dir/<task-id>.md. A no-argument loop run picks the first
+# unfinished task from the queue.
 tasks_dir = "agent/python314_compat/tasks"
 runs_dir = "agent/python314_compat/.agent_runs"
 state = "agent/python314_compat/state.md"
 queue = "agent/python314_compat/queue.md"
 rules = "agent/python314_compat/rules.md"
 lessons = "agent/python314_compat/lessons.md"
-default_section = "standard_modules"
 default_limit = 3
 default_iterations = 0
 no_progress_retry_limit = 3

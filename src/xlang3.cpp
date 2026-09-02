@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
@@ -41,11 +42,49 @@ limitations under the License.
 
 namespace {
 
+bool g_had_system_exit = false;
+int g_system_exit_code = 0;
+
 void configure_no_popup_error_mode() {
 #if defined(_WIN32)
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
   _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
+}
+
+bool is_system_exit_exception(const xlang3::Value& exception) {
+  auto* instance = xlang3::value_as_instance(exception);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = xlang3::value_as_class(instance->klass);
+  return klass != nullptr &&
+         (klass->name == "SystemExit" || xlang3::class_has_builtin_base_name(klass, "SystemExit"));
+}
+
+int system_exit_code_from_exception(const xlang3::Value& exception) {
+  xlang3::Value code;
+  std::string ignored;
+  if (!xlang3::object_get_attr(exception, "code", code, ignored) || code.tag == xlang3::ValueTag::None) {
+    return 0;
+  }
+  if (code.tag == xlang3::ValueTag::Bool) {
+    return code.as.b ? 1 : 0;
+  }
+  if (code.tag == xlang3::ValueTag::Int64) {
+    return static_cast<int>(code.as.i64);
+  }
+  std::cerr << xlang3::object_model_to_string(code) << "\n";
+  return 1;
+}
+
+bool consume_system_exit_result(const xlang3::RuntimeResult& result) {
+  if (!is_system_exit_exception(result.exception)) {
+    return false;
+  }
+  g_had_system_exit = true;
+  g_system_exit_code = system_exit_code_from_exception(result.exception);
+  return true;
 }
 
 void print_usage() {
@@ -289,6 +328,9 @@ bool run_source(
   auto result = interpreter.run(std::move(module));
   trace_frontend_timing("exec-end", run_start);
   if (!result.errors.empty()) {
+    if (consume_system_exit_result(result)) {
+      return false;
+    }
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";
     }
@@ -342,6 +384,9 @@ bool run_source_in_module(
   auto result = interpreter.run_module(*module, std::move(globals_module), module);
   trace_frontend_timing("exec-end", run_start);
   if (!result.errors.empty()) {
+    if (consume_system_exit_result(result)) {
+      return false;
+    }
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";
     }
@@ -591,6 +636,9 @@ int main(int argc, char** argv) {
   if (config.perf_counters) {
     xlang3::xlang_perf_set_enabled(false);
     std::cerr << xlang3::xlang_perf_report();
+  }
+  if (g_had_system_exit) {
+    return g_system_exit_code;
   }
   return ok ? 0 : 1;
 }

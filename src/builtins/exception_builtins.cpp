@@ -16,12 +16,62 @@ limitations under the License.
 
 #include "xlang3/object_model.h"
 
+#include <string_view>
+
 namespace xlang3 {
 
 namespace {
 
+bool exception_is_os_error_family(const Value& self) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr && (klass->name == "OSError" || class_has_builtin_base_name(klass, "OSError"));
+}
+
+void initialize_os_error_attrs(Value& self, const Value* args, uint32_t argc) {
+  std::string ignored;
+  const bool has_errno_arg = argc >= 2 && (args[1].tag == ValueTag::Int64 || args[1].tag == ValueTag::None);
+  object_set_attr(self, "errno", has_errno_arg ? args[1] : Value::none(), ignored);
+  object_set_attr(self, "strerror", argc >= 3 ? args[2] : Value::none(), ignored);
+  object_set_attr(self, "filename", argc >= 4 ? args[3] : Value::none(), ignored);
+  object_set_attr(self, "filename2", argc >= 5 ? args[4] : Value::none(), ignored);
+  object_set_attr(self, "winerror", Value::none(), ignored);
+}
+
+void remap_exact_os_error(Runtime& runtime, Value& self, const Value* args, uint32_t argc) {
+  auto* instance = value_as_instance(self);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr || klass->name != "OSError" || argc < 2 || args[1].tag != ValueTag::Int64) {
+    return;
+  }
+
+  const char* mapped_name = nullptr;
+  switch (args[1].as.i64) {
+    case 2:
+      mapped_name = "FileNotFoundError";
+      break;
+    case 13:
+      mapped_name = "PermissionError";
+      break;
+    case 17:
+      mapped_name = "FileExistsError";
+      break;
+    default:
+      break;
+  }
+  if (mapped_name == nullptr) {
+    return;
+  }
+  if (const Value* mapped = runtime.find_builtin(mapped_name)) {
+    instance->klass = *mapped;
+  }
+}
+
 bool exception_init(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     Value& out,
@@ -33,7 +83,9 @@ bool exception_init(
   }
   std::vector<Value> exception_args;
   exception_args.reserve(argc - 1);
-  for (uint32_t i = 1; i < argc; ++i) {
+  const bool is_os_error = exception_is_os_error_family(args[0]);
+  const uint32_t stored_argc = is_os_error && argc >= 4 ? 3 : argc;
+  for (uint32_t i = 1; i < stored_argc; ++i) {
     exception_args.push_back(args[i]);
   }
   Value args_tuple = Value::tuple(exception_args);
@@ -50,16 +102,28 @@ bool exception_init(
   }
   object_set_attr(const_cast<Value&>(args[0]), "args", std::move(args_tuple), ignored);
   if (auto* instance = value_as_instance(args[0])) {
-    if (auto* klass = value_as_class(instance->klass);
-        klass != nullptr && (klass->name == "SystemExit" || class_has_builtin_base_name(klass, "SystemExit"))) {
-      Value code = Value::none();
-      if (argc == 2) {
-        value_assign_fast(code, args[1]);
-      } else if (argc > 2) {
-        value_assign_fast(code, message);
+    if (auto* klass = value_as_class(instance->klass)) {
+      if (klass->name == "StopIteration" || class_has_builtin_base_name(klass, "StopIteration")) {
+        Value value = Value::none();
+        if (argc >= 2) {
+          value_assign_fast(value, args[1]);
+        }
+        object_set_attr(const_cast<Value&>(args[0]), "value", value, ignored);
       }
-      object_set_attr(const_cast<Value&>(args[0]), "code", code, ignored);
+      if (klass->name == "SystemExit" || class_has_builtin_base_name(klass, "SystemExit")) {
+        Value code = Value::none();
+        if (argc == 2) {
+          value_assign_fast(code, args[1]);
+        } else if (argc > 2) {
+          value_assign_fast(code, message);
+        }
+        object_set_attr(const_cast<Value&>(args[0]), "code", code, ignored);
+      }
     }
+  }
+  if (is_os_error) {
+    remap_exact_os_error(runtime, const_cast<Value&>(args[0]), args, argc);
+    initialize_os_error_attrs(const_cast<Value&>(args[0]), args, argc);
   }
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
@@ -69,11 +133,36 @@ bool exception_init(
   return true;
 }
 
+bool exception_with_traceback(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "BaseException.with_traceback() expected traceback";
+    return false;
+  }
+  std::string ignored;
+  if (!object_set_attr(const_cast<Value&>(args[0]), "__traceback__", args[1], ignored)) {
+    error = "BaseException.with_traceback() self is invalid";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("builtins"));
   attrs.emplace_back("__qualname__", Value::string(name));
   attrs.emplace_back("__init__", runtime.make_native_function(std::string(name) + ".__init__", exception_init));
+  if (std::string_view(name) == "BaseException") {
+    attrs.emplace_back(
+        "with_traceback",
+        runtime.make_native_function("BaseException.with_traceback", exception_with_traceback));
+  }
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }
 
@@ -96,12 +185,11 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "AttributeError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "BufferError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "EOFError", *runtime.find_builtin("Exception"));
-  register_exception_class(runtime, "ExceptionGroup", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "ExceptionGroup", *runtime.find_builtin("BaseExceptionGroup"));
   {
     std::string ignored;
     Value exception_group = *runtime.find_builtin("ExceptionGroup");
     class_set_base(exception_group, *runtime.find_builtin("Exception"), ignored);
-    class_set_base(exception_group, *runtime.find_builtin("BaseExceptionGroup"), ignored);
   }
   register_exception_class(runtime, "ImportError", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "ModuleNotFoundError", *runtime.find_builtin("ImportError"));
@@ -140,6 +228,7 @@ void register_exception_builtins(Runtime& runtime) {
   register_exception_class(runtime, "StopAsyncIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "StopIteration", *runtime.find_builtin("Exception"));
   register_exception_class(runtime, "SyntaxError", *runtime.find_builtin("Exception"));
+  register_exception_class(runtime, "_IncompleteInputError", *runtime.find_builtin("SyntaxError"));
   register_exception_class(runtime, "IndentationError", *runtime.find_builtin("SyntaxError"));
   register_exception_class(runtime, "TabError", *runtime.find_builtin("IndentationError"));
   register_exception_class(runtime, "SystemError", *runtime.find_builtin("Exception"));

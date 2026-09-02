@@ -49,7 +49,7 @@ XLANG3_HOT_INLINE bool analyze_property_getter(
   }
   const auto& function = fn_module->functions[fn_obj.function_id];
   if (function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
-      function.code.size() < 3) {
+      (function.code.size() != 3 && function.code.size() != 5)) {
     return false;
   }
   const auto& load_self = function.code[0];
@@ -60,11 +60,11 @@ XLANG3_HOT_INLINE bool analyze_property_getter(
   }
   spec.slot = load_slot.b;
   const auto& maybe_return = function.code[2];
-  if (maybe_return.op == ir::Op::Return && maybe_return.a == load_slot.dst) {
+  if (function.code.size() == 3 && maybe_return.op == ir::Op::Return && maybe_return.a == load_slot.dst) {
     spec.has_const = false;
     return true;
   }
-  if (function.code.size() < 5) {
+  if (function.code.size() != 5) {
     return false;
   }
   const auto& load_const = function.code[2];

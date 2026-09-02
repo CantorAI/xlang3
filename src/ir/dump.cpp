@@ -78,6 +78,7 @@ const char* op_name(Op op) {
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
+    case Op::MatMul: return "MatMul";
     case Op::Div: return "Div";
     case Op::FloorDiv: return "FloorDiv";
     case Op::Mod: return "Mod";
@@ -232,8 +233,18 @@ std::string dump_module(const Module& module) {
       if (spec.star_arg != UINT32_MAX) {
         os << " *r" << spec.star_arg;
       }
+      for (auto reg : spec.star_args) {
+        if (reg != spec.star_arg) {
+          os << " *r" << reg;
+        }
+      }
       if (spec.kw_star_arg != UINT32_MAX) {
         os << " **r" << spec.kw_star_arg;
+      }
+      for (auto reg : spec.kw_star_args) {
+        if (reg != spec.kw_star_arg) {
+          os << " **r" << reg;
+        }
       }
       os << "\n";
     }
@@ -323,6 +334,14 @@ std::string dump_module(const Module& module) {
       const uint32_t line = ip < fn.source_lines.size() ? fn.source_lines[ip] : 0;
       os << "  " << ip << ": " << op_name(in.op)
          << " line=" << line
+         << " pos=";
+      if (ip < fn.source_positions.size()) {
+        const auto& pos = fn.source_positions[ip];
+        os << pos.line << ":" << pos.column << "-" << pos.end_line << ":" << pos.end_column;
+      } else {
+        os << "0:0-0:0";
+      }
+      os
          << " dst=" << in.dst << " a=" << in.a << " b=" << in.b << " c=" << in.c << "\n";
       if (in.op == Op::Compare) {
         os << "       compare=" << compare_name(static_cast<CompareOp>(in.c)) << "\n";

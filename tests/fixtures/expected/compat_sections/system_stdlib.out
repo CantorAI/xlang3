@@ -1,0 +1,25 @@
+system-stdlib-abc True True True True
+system-stdlib-types True True True True True
+system-stdlib-collections True True True True True
+system-stdlib-queue True 2 first second True
+system-stdlib-weakref True True True ['live'] [True]
+system-stdlib-json-pickle-copy True True True True 2 [1, 2] 7
+system-stdlib-importlib-metadata True True list True
+system-stdlib-importlib-metadata-dist 1 demo-pkg 1.2
+system-stdlib-site-runpy-importlib-resources True True True True 22 resource-data resource_pkg resource_pkg True resource-data (True, True, 42)
+system-stdlib-getattr-descriptor descriptor-value fallback True False ValueError:descriptor-error
+system-stdlib-namespace-resources MultiplexedPath ['__pycache__', 'a.txt', 'b.txt', 'module.py'] A B
+system-stdlib-zip-resources zipimporter True Path b'ZIPDATA' ZIPDATA
+system-stdlib-enum True True True ['strict', 'conform', 'eject', 'keep']
+system-stdlib-io-codecs True True True utf_8 b'x' y
+system-stdlib-source-helpers True True True True True True True Signature 7 xlang3 False
+system-stdlib-re-semantics True abc foo foo bar bar 42-id [('12', 1), ('3', 4)] ['a', 'c'] ['a\nbc'] ['a', 'a'] ['AaA']
+system-stdlib-mappingproxy ['first', 'second', 'third'] ['first', 'second', 'third'] [1, 2, 3] ('second', 2) 3 True
+system-stdlib-source-helper-protocols ['a', 'b', 'c'] 4 {'x': 2, 'y': 3} (2, 9) ['x', 'y'] ['alpha', '  beta'] True True INFO:xlang3.fixture:hello
+system-stdlib-dataclass-logging-deep True FrozenInstanceError [7] [] 5 False True True True
+system-stdlib-traceback-positions True True True True x
+system-stdlib-dataclass-inheritance-slots (1, 2, 8, [4]) ['a', 'b', 'xs'] TypeError TypeError (1, 2, False) (True, True)
+system-stdlib-os-fd True 6 6 2 b'cde' 6 2 b'xy' (False, True, False) b'bc' True
+system-stdlib-os-environ (None, False) ('one', 'one') ('one', 'one') (None, False) (None, None) None ('dict', True, True, True)
+system-stdlib-thread-local-subclass True [(True, 5, 1), (9, 1)] 5 1
+system-stdlib-subprocess-deep True 0 child-xlang 0 ABC  0 (3, True) 0 True 0 (True, True)

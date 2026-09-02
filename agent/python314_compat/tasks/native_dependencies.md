@@ -1,17 +1,3 @@
-<!--
-Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 # Native Dependency Tasks
 
 - [x] errno
@@ -19,12 +5,18 @@ limitations under the License.
   Remaining: none for the current dependency surface.
 
 - [x] _thread subset
-  Coverage: `tests/fixtures/core/threading_module.py`
+  Coverage: current `_thread` smoke coverage; full CPython `Lib/threading.py`
+  coverage remains in `async_threads.md`.
   Remaining: none for the current subset.
 
 - [~] _winapi
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: process, handle, wait, pipe, environment, and detailed Windows error surfaces.
+  Additional coverage: XLang3 pseudo handles from native dependency shims can
+  be closed without calling the Windows kernel handle table.
+  Additional coverage: `CreateProcess` accepts explicit environment mappings,
+  including plain dicts and CPython `os.environ` mapping objects, and passes a
+  Unicode environment block to the child process.
+  Remaining: deeper process, handle, wait, pipe, and detailed Windows error surfaces.
 
 - [~] _stat and os stat structures
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
@@ -32,11 +24,31 @@ limitations under the License.
 
 - [~] _io
   Coverage: `tests/fixtures/core/io_module_streams.py`, `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, StringIO/BytesIO, detach/reconfigure, and exact errors.
+  Coverage update: native `_io` now supports StringIO/BytesIO keyword construction,
+  truncate, IOBase closed/readable/writable guards, and buffered wrapper delegation
+  over raw `readinto` streams so CPython `socket.py`, `email.parser`, and
+  `http.client` can use normal stdlib file-object paths.
+  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, detach/reconfigure, and exact errors.
 
 - [~] _socket, select, and _signal
-  Coverage: `tests/fixtures/core/socket_select_modules.py`
-  Remaining: real socket operations, selectors, signal delivery, and platform constants.
+  Coverage: `tests/fixtures/core/socket_select_modules.py`,
+  `tests/fixtures/probes/system_stdlib/socketpair_probe.py`, and
+  `tests/fixtures/probes/system_stdlib/asyncio_probe.py`.
+  `tests/fixtures/compat_sections/standard_modules.py` also covers loopback
+  TCP bind/listen/getsockname/connect/accept/send/recv, timeout connect wait,
+  `select.select` socket readability with original object return lists, and
+  OS-backed IPv4 `getaddrinfo`. CPython `Lib/selectors.py` now runs a
+  `SelectSelector` socketpair readiness path over these primitives.
+  `_socket.socket.recv_into` writes into writable bytearray and memoryview
+  buffers, `TCP_NODELAY` is exported, and native file-like socket helpers were
+  removed from `_socket.socket` so CPython `Lib/socket.py` owns
+  `socket.socket.makefile` as in CPython.
+  `_overlapped` now keeps native overlapped address state and an IOCP completion
+  queue/fallback for immediate and cancelled operations, enough for CPython
+  `asyncio.run()` startup/shutdown over the Windows proactor path.
+  Remaining: broader address-family/service resolution, deeper selectors edge
+  behavior, signal delivery, full
+  `_overlapped` IOCP behavior, and platform constants.
 
 - [~] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py`, `tests/fixtures/core/collections_queue_modules.py`
@@ -49,4 +61,3 @@ limitations under the License.
 - [~] _pickle and marshal
   Coverage: `tests/fixtures/core/sys_structseq_pickle.py`
   Remaining: full protocol compatibility, recursive object graphs, persistent ids, extension codes, and marshal code-object parity.
-

@@ -124,6 +124,19 @@ bool set_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool set_contains_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "set.__contains__", error)) {
+    return false;
+  }
+  auto* set = value_as_set(args[0]);
+  if (set == nullptr) {
+    error = "set.__contains__ target is not a set";
+    return false;
+  }
+  value_set_bool(out, set_contains_value(*set, args[1]));
+  return true;
+}
+
 bool set_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "set.copy", error)) {
     return false;
@@ -455,6 +468,7 @@ bool set_get_method(const Value& object, const std::string& name, Value& out) {
     return false;
   }
   static constexpr BuiltinMethodSpec methods[] = {
+      {"__contains__", "set.__contains__", set_contains_method},
       {"add", "set.add", set_add_method},
       {"clear", "set.clear", set_clear_method},
       {"copy", "set.copy", set_copy_method},

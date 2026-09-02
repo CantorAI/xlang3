@@ -27,12 +27,14 @@ struct PythonNames {
   static constexpr const char* builtin_bool = "bool";
   static constexpr const char* builtin_int = "int";
   static constexpr const char* builtin_float = "float";
+  static constexpr const char* builtin_slice = "slice";
   static constexpr const char* builtin_range = "range";
   static constexpr const char* builtin_list = "list";
   static constexpr const char* builtin_tuple = "tuple";
   static constexpr const char* builtin_set = "set";
   static constexpr const char* builtin_frozenset = "frozenset";
   static constexpr const char* builtin_dict = "dict";
+  static constexpr const char* builtin_mappingproxy = "mappingproxy";
   static constexpr const char* builtin_bytes = "bytes";
   static constexpr const char* builtin_bytearray = "bytearray";
   static constexpr const char* builtin_memoryview = "memoryview";
@@ -40,6 +42,8 @@ struct PythonNames {
   static constexpr const char* builtin_classmethod = "classmethod";
   static constexpr const char* builtin_staticmethod = "staticmethod";
   static constexpr const char* builtin_super = "super";
+  static constexpr const char* builtin_module = "module";
+  static constexpr const char* builtin_method = "method";
 
   static constexpr const char* builtin_len = "len";
 

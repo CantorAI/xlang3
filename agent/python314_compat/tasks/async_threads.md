@@ -1,32 +1,34 @@
-<!--
-Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 # Async, Task, And Thread Tasks
 
-- [x] basic threading module
-  Coverage: `tests/fixtures/core/threading_module.py`
-  Remaining: none for the current basic surface.
+- [~] CPython `threading.py` over `_thread`
+  Coverage: pending in the default fixture runner; add a future fixture that
+  imports CPython `Lib/threading.py` through the normal import path.
+  Remaining: run the real CPython 3.14 `Lib/threading.py` on top of `_thread`;
+  do not restore a public native `threading` module.
 
 - [~] native thread execution model
-  Coverage: `tests/fixtures/core/threading_module.py`, `tests/fixtures/core/trace_hooks.py`
+  Coverage: pending in the default fixture runner; add fixtures around `_thread`
+  plus CPython `threading.py` once the dependency surface is ready.
   Remaining: CPython-compatible thread lifecycle, lock/condition semantics, trace/profile inheritance edge cases, and shutdown behavior.
 
 - [~] coroutine and await model
   Coverage: `tests/fixtures/core/async_syntax.py`, `tests/fixtures/core/task_async.py`
-  Remaining: resumable frame completeness, cancellation, exception propagation, and async generator lifecycle.
+  plus `tests/fixtures/compat_sections/function_and_class_syntax.py` for
+  `asyncio.run`, `async for`, `async with`, and async generator methods.
+  Runtime now preserves current-frame state as a thread-local stack across
+  nested VM execution, so coroutine `send()` inside `asyncio.Task.__step()` no
+  longer destroys the caller frame needed by zero-argument `super()` and debug
+  frame APIs.
+  Remaining: cancellation edge cases, scheduler-yielding coroutine states, and
+  exact CPython coroutine inspection APIs.
 
-- [~] asyncio facade
-  Coverage: `tests/fixtures/core/asyncio_module.py`
-  Remaining: real selector/scheduler integration, task cancellation, futures, transports, and event loop policy.
-
+- [~] CPython `asyncio` package over runtime async primitives
+  Coverage: `tests/fixtures/probes/system_stdlib/asyncio_probe.py` verifies
+  real CPython 3.14 `Lib/asyncio` import over XLang3 plus `_overlapped`
+  foundation, and now runs `asyncio.run()` through event-loop shutdown. Runtime
+  fixes preserve caller globals/current frames across nested interpreter/import
+  execution, prefer Python `__iter__` protocol for user objects before internal
+  storage fallbacks, and give `_overlapped` a native IOCP completion registry
+  for immediately completed/cancelled operations.
+  Remaining: full Windows proactor socket/process I/O behavior; do not restore
+  a public native `asyncio` module.

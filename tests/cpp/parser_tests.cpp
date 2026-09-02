@@ -95,6 +95,20 @@ int main() {
   xlang3::test::expect_true(result, continued.errors.empty(), "parser should accept semicolon and continued logical lines");
   xlang3::test::expect_true(result, continued.module.body.size() == 5, "continued parse should produce expected statements");
 
+  auto continued_triple_arg = xlang3::parse_source(
+      "def configure(parser):\n"
+      "    parser.add_argument(\"input\", nargs=\"*\",\n"
+      "                        help=\"\"\"\\\n"
+      "if no options given, output depends on the input\n"
+      "    string or multiple: same as --choice\n"
+      "    integer: same as --integer\n"
+      "    float: same as --float\"\"\")\n"
+      "    return parser\n");
+  xlang3::test::expect_true(
+      result,
+      continued_triple_arg.errors.empty(),
+      "parser should accept triple-quoted call arguments inside joined lines");
+
   auto statements = xlang3::parse_source(
       "class Box[T](Base):\n"
       "    pass\n"

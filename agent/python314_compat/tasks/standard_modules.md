@@ -1,22 +1,18 @@
-<!--
-Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
 # Standard Module Tasks
+
+- [x] remove pure-stdlib C++ facade dependency
+  Coverage: pure facade sources removed; mixed module registrations now keep only native dependency modules; CPython `Lib/*.py` probes confirm public `ast`, `string`, and `opcode` load from the Python 3.14 library path.
+  Remaining: none for facade removal. Continue failures as runtime/native dependency gaps, not as new C++ facades.
 
 - [~] os and nt/posix
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: fd APIs starting with `os.open`, close/read/write/lseek/fstat, environment mutation parity, process helpers, and Windows error mapping.
+  Coverage update: `tests/fixtures/compat_sections/system_stdlib.py` covers
+  CPython `Lib/os.py` delegating `open`, `write`, `lseek`, `read`, `fstat`,
+  `close`, `dup`, `dup2`, `pipe`, `isatty`, `get_inheritable`, and
+  `set_inheritable` through the native `nt`/`posix` dependency module, plus
+  CPython-compatible `os.environ` mapping writes, `putenv`/`unsetenv`
+  interaction, and mapping copy/update through the runtime `dict` protocol.
+  Remaining: process helpers and Windows error mapping.
 
 - [~] os.path, pathlib, stat, glob, fnmatch
   Coverage: `tests/fixtures/core/logging_pathlib_modules.py`, `tests/fixtures/compat_sections/standard_modules.py`
@@ -60,5 +56,20 @@ limitations under the License.
 
 - [~] socket, subprocess, winreg, urllib.parse, xmlrpc, http
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: socket/select foundations, subprocess fd/process support, registry APIs, and pure Python stdlib dependency chain.
-
+  Coverage update: subprocess now covers explicit environment mappings through
+  `_winapi.CreateProcess`.
+  Coverage update: socket now covers real loopback stream bind/listen/connect,
+  accept, send, recv, close, and timeout connect handling through CPython
+  `Lib/socket.py` over native `_socket`.
+  Coverage update: `select.select` now performs native socket readiness and
+  returns the original Python objects in ready lists.
+  Coverage update: `socket.getaddrinfo` now resolves loopback IPv4 addresses
+  through native `_socket` and returns CPython-shaped tuples.
+  Coverage update: CPython `Lib/selectors.py` now covers `SelectSelector`
+  registration and readable socketpair dispatch.
+  Coverage update: CPython `socket.create_connection` now succeeds against a
+  loopback listener using native `_socket` resolver/connect primitives.
+  Coverage update: CPython `http.client.HTTPConnection` now performs a loopback
+  GET over CPython `Lib/socket.py`, native `_socket.recv_into`, `_io.BufferedReader`,
+  `email.parser`, and native regex octal escape support.
+  Remaining: deeper selectors edge behavior, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

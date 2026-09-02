@@ -13,7 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 
@@ -54,6 +56,9 @@ std::string canonical_encoding(std::string name) {
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
+  }
+  if (name == "437" || name == "cp437" || name == "ibm437") {
+    return "cp437";
   }
   return name;
 }
@@ -99,8 +104,8 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
     encoding = canonical_encoding(std::move(encoding));
-    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" && encoding != "latin_1") {
-      error = "only utf-8/ascii/latin-1 encoding is supported";
+    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" && encoding != "latin_1" && encoding != "cp437") {
+      error = "only utf-8/ascii/latin-1/cp437 encoding is supported";
       return false;
     }
   }
@@ -136,6 +141,10 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     out = Value::string(latin1_decode_text(text));
     return true;
   }
+  if (encoding == "cp437") {
+    out = Value::string(cp437_decode_bytes(text));
+    return true;
+  }
   if (encoding == "utf_8_sig") {
     if (text.size() >= 3 &&
         static_cast<unsigned char>(text[0]) == 0xef &&
@@ -146,6 +155,59 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   out = Value::string(std::string(text));
   return true;
+}
+
+bool bytes_decode_method_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 3) {
+    error = "bytes.decode expected 0 to 2 arguments, got " + std::to_string(argc == 0 ? 0 : argc - 1);
+    return false;
+  }
+  Value merged[3];
+  for (uint32_t i = 0; i < argc; ++i) {
+    merged[i] = args[i];
+  }
+  uint32_t merged_argc = argc;
+  bool has_encoding = argc >= 2;
+  bool has_errors = argc >= 3;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (name == "encoding") {
+      if (has_encoding) {
+        error = "bytes.decode got multiple values for argument 'encoding'";
+        return false;
+      }
+      merged[1] = *kwargs[i].value;
+      has_encoding = true;
+      if (merged_argc < 2) merged_argc = 2;
+    } else if (name == "errors") {
+      if (has_errors) {
+        error = "bytes.decode got multiple values for argument 'errors'";
+        return false;
+      }
+      if (!has_encoding) {
+        merged[1] = Value::string("utf-8");
+        has_encoding = true;
+      }
+      merged[2] = *kwargs[i].value;
+      has_errors = true;
+      if (merged_argc < 3) merged_argc = 3;
+    } else {
+      error = "bytes.decode got an unexpected keyword argument '" + std::string(name) + "'";
+      return false;
+    }
+  }
+  return bytes_decode_method(runtime, merged, merged_argc, out, error, user_data);
 }
 
 bool get_bytes_like_view(const Value& value, const char* name, std::string_view& out, std::string& error) {
@@ -245,8 +307,20 @@ bool bytes_find_common(
   }
   std::string_view text;
   std::string_view needle;
-  if (!get_bytes_like_view(args[0], "bytes.find target", text, error) ||
-      !get_bytes_like_view(args[1], "bytes.find sub", needle, error)) {
+  char needle_byte = '\0';
+  if (!get_bytes_like_view(args[0], "bytes.find target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag == ValueTag::Int64) {
+    if (args[1].as.i64 < 0 || args[1].as.i64 > 255) {
+      error = "byte must be in range(0, 256)";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    needle_byte = static_cast<char>(args[1].as.i64);
+    needle = std::string_view(&needle_byte, 1);
+  } else if (!get_bytes_like_view(args[1], "bytes.find sub", needle, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -349,6 +423,77 @@ bool bytes_hex_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   }
   out = Value::string(std::move(result));
   return true;
+}
+
+int hex_digit_value(char ch) {
+  if (ch >= '0' && ch <= '9') {
+    return ch - '0';
+  }
+  if (ch >= 'a' && ch <= 'f') {
+    return ch - 'a' + 10;
+  }
+  if (ch >= 'A' && ch <= 'F') {
+    return ch - 'A' + 10;
+  }
+  return -1;
+}
+
+bool bytes_fromhex_common(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    bool mutable_result) {
+  if (argc != 2) {
+    error = "fromhex expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* text_value = value_as_string(args[1]);
+  if (text_value == nullptr) {
+    error = "fromhex() argument must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto text = string_object_view(*text_value);
+  std::string bytes;
+  bytes.reserve(text.size() / 2);
+  bool have_high = false;
+  int high = 0;
+  for (char ch : text) {
+    if (std::isspace(static_cast<unsigned char>(ch)) != 0) {
+      continue;
+    }
+    const int digit = hex_digit_value(ch);
+    if (digit < 0) {
+      error = "non-hexadecimal number found in fromhex() arg";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (!have_high) {
+      high = digit;
+      have_high = true;
+    } else {
+      bytes.push_back(static_cast<char>((high << 4) | digit));
+      have_high = false;
+    }
+  }
+  if (have_high) {
+    error = "non-hexadecimal number found in fromhex() arg";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = mutable_result ? Value::bytearray(std::move(bytes)) : Value::bytes(std::move(bytes));
+  return true;
+}
+
+bool bytes_fromhex_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return bytes_fromhex_common(runtime, args, argc, out, error, false);
+}
+
+bool bytearray_fromhex_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return bytes_fromhex_common(runtime, args, argc, out, error, true);
 }
 
 bool bytes_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -823,9 +968,15 @@ bool memoryview_tolist_method(Runtime&, const Value* args, uint32_t argc, Value&
     error = "operation forbidden on released memoryview object";
     return false;
   }
+  const size_t itemsize = memoryview_format_itemsize(view->format);
+  if (itemsize == 0 || itemsize > view->size || (view->size % itemsize) != 0) {
+    error = "unsupported memoryview format";
+    return false;
+  }
   std::vector<Value> items;
-  items.reserve(view->size);
-  for (size_t i = 0; i < view->size; ++i) {
+  const size_t item_count = view->size / itemsize;
+  items.reserve(item_count);
+  for (size_t i = 0; i < item_count; ++i) {
     Value item;
     if (!sequence_get_item(args[0], Value::int64(static_cast<int64_t>(i)), item, error)) {
       return false;
@@ -1040,8 +1191,13 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
   if (!get_string_arg(args[1], "memoryview.cast format", format, error)) {
     return false;
   }
-  if (format != "B" && format != "b" && format != "c") {
-    error = "memoryview.cast only supports byte-sized formats";
+  const size_t itemsize = memoryview_format_itemsize(format);
+  if (itemsize == 0) {
+    error = "memoryview.cast unsupported format";
+    return false;
+  }
+  if ((view->size % itemsize) != 0) {
+    error = "memoryview: length is not a multiple of itemsize";
     return false;
   }
   if (argc == 3 && args[2].tag != ValueTag::None) {
@@ -1049,10 +1205,10 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
     const ListObject* shape_list = value_as_list(args[2]);
     const auto valid_tuple = shape_tuple != nullptr && shape_tuple->items.size() == 1 &&
                              shape_tuple->items[0].tag == ValueTag::Int64 &&
-                             shape_tuple->items[0].as.i64 == static_cast<int64_t>(view->size);
+                             shape_tuple->items[0].as.i64 == static_cast<int64_t>(view->size / itemsize);
     const auto valid_list = shape_list != nullptr && shape_list->items.size() == 1 &&
                             shape_list->items[0].tag == ValueTag::Int64 &&
-                            shape_list->items[0].as.i64 == static_cast<int64_t>(view->size);
+                            shape_list->items[0].as.i64 == static_cast<int64_t>(view->size / itemsize);
     if (!valid_tuple && !valid_list) {
       error = "memoryview.cast only supports one-dimensional byte shape";
       return false;
@@ -1125,7 +1281,75 @@ bool memoryview_exit_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool bytes_translate_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "bytes.translate expected a translation table";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view text;
+  std::string_view table;
+  if (!get_bytes_like_view(args[0], "bytes.translate target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.translate table", table, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (table.size() != 256) {
+    error = "translation table must be 256 characters long";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string translated;
+  translated.resize(text.size());
+  for (size_t i = 0; i < text.size(); ++i) {
+    translated[i] = table[static_cast<unsigned char>(text[i])];
+  }
+  out = value_as_bytearray(args[0]) != nullptr ? Value::bytearray(std::move(translated)) : Value::bytes(std::move(translated));
+  return true;
+}
+
+bool bytes_maketrans_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "maketrans expected 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view from;
+  std::string_view to;
+  if (!get_bytes_like_view(args[0], "bytes.maketrans from", from, error) ||
+      !get_bytes_like_view(args[1], "bytes.maketrans to", to, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (from.size() != to.size()) {
+    error = "maketrans arguments must have same length";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string table;
+  table.resize(256);
+  for (size_t i = 0; i < 256; ++i) {
+    table[i] = static_cast<char>(i);
+  }
+  for (size_t i = 0; i < from.size(); ++i) {
+    table[static_cast<unsigned char>(from[i])] = to[i];
+  }
+  out = Value::bytes(std::move(table));
+  return true;
+}
+
 } // namespace
+
+bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
+  bytes_class.attrs["maketrans"] = runtime.make_native_function("bytes.maketrans", bytes_maketrans_method);
+  const bool is_bytearray = bytes_class.name == "bytearray";
+  bytes_class.attrs["fromhex"] = Value::class_method(
+      runtime.make_native_function(
+          is_bytearray ? "bytearray.fromhex" : "bytes.fromhex",
+          is_bytearray ? bytearray_fromhex_method : bytes_fromhex_method));
+  ++bytes_class.version;
+  return true;
+}
 
 bool bytes_get_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag != ValueTag::Object || object.as.obj == nullptr || object.as.obj->kind != ObjectKind::Bytes) {
@@ -1133,7 +1357,7 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
   }
   static constexpr BuiltinMethodSpec methods[] = {
       {"count", "bytes.count", bytes_count_method},
-      {"decode", "bytes.decode", bytes_decode_method},
+      {"decode", "bytes.decode", bytes_decode_method, nullptr, false, bytes_decode_method_kw},
       {"endswith", "bytes.endswith", bytes_endswith_method},
       {"find", "bytes.find", bytes_find_method},
       {"hex", "bytes.hex", bytes_hex_method},
@@ -1149,6 +1373,7 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
       {"split", "bytes.split", bytes_split_method},
       {"startswith", "bytes.startswith", bytes_startswith_method},
       {"strip", "bytes.strip", bytes_strip_method},
+      {"translate", "bytes.translate", bytes_translate_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }
@@ -1162,7 +1387,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"clear", "bytearray.clear", bytearray_clear_method},
       {"copy", "bytearray.copy", bytearray_copy_method},
       {"count", "bytearray.count", bytes_count_method},
-      {"decode", "bytearray.decode", bytes_decode_method},
+      {"decode", "bytearray.decode", bytes_decode_method, nullptr, false, bytes_decode_method_kw},
       {"endswith", "bytearray.endswith", bytes_endswith_method},
       {"extend", "bytearray.extend", bytearray_extend_method},
       {"find", "bytearray.find", bytes_find_method},
@@ -1182,6 +1407,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"split", "bytearray.split", bytes_split_method},
       {"startswith", "bytearray.startswith", bytes_startswith_method},
       {"strip", "bytearray.strip", bytes_strip_method},
+      {"translate", "bytearray.translate", bytes_translate_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }

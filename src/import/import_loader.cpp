@@ -137,36 +137,37 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
   return false;
 }
 
-void cache_zip_path_importer(Runtime& runtime, const std::string& archive_path) {
+Value cache_zip_path_importer(Runtime& runtime, const std::string& archive_path) {
   if (archive_path.empty()) {
-    return;
+    return Value::invalid();
   }
   Value sys;
   std::string ignored;
   if (!runtime.import_module("sys", sys, ignored)) {
-    return;
+    return Value::invalid();
   }
   Value cache;
   if (!module_get_attr(sys, "path_importer_cache", cache, ignored) || value_as_dict(cache) == nullptr) {
-    return;
+    return Value::invalid();
   }
   Value existing;
   if (mapping_get_item(cache, Value::string(archive_path), existing, ignored)) {
-    return;
+    return existing;
   }
   Value zipimport_module;
   if (!runtime.import_module("zipimport", zipimport_module, ignored)) {
-    return;
+    return Value::invalid();
   }
   Value zipimporter_class;
   if (!module_get_attr(zipimport_module, "zipimporter", zipimporter_class, ignored) ||
       value_as_class(zipimporter_class) == nullptr) {
-    return;
+    return Value::invalid();
   }
   Value importer = Value::instance(std::move(zipimporter_class));
   object_set_attr(importer, "archive", Value::string(archive_path), ignored);
   object_set_attr(importer, "prefix", Value::string(""), ignored);
   mapping_set_item(cache, Value::string(archive_path), importer, ignored);
+  return importer;
 }
 
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
@@ -213,6 +214,8 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             namespace_dirs.push_back(candidate_base);
           }
         }
+      } else {
+        return false;
       }
     }
   }
@@ -324,14 +327,26 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   if (!parent_name.empty() && !runtime.import_module(parent_name, parent_module, error)) {
     return false;
   }
+  if (!parent_name.empty()) {
+    Value registry_module;
+    std::string registry_error;
+    if (runtime.module_registry_dict().tag != ValueTag::Invalid &&
+        mapping_get_item(runtime.module_registry_dict(), Value::string(name), registry_module, registry_error) &&
+        value_as_module(registry_module) != nullptr) {
+      value_assign_fast(out, registry_module);
+      trace_import_timing(name, "registry-after-parent", import_start);
+      return true;
+    }
+  }
 
   ModuleFile module_file;
   if (!find_module_file(runtime, name, module_file)) {
     error = "module '" + name + "' not found";
     return false;
   }
+  Value zip_loader;
   if (module_file.is_zip_source) {
-    cache_zip_path_importer(runtime, module_file.path_importer_cache_key);
+    zip_loader = cache_zip_path_importer(runtime, module_file.path_importer_cache_key);
   }
   trace_import_timing(name, "found", import_start);
 
@@ -371,6 +386,10 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
   module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
+  module_set_attr(module_value, "__annotations__", Value::dict({}), attr_error);
+  if (module_file.is_zip_source && zip_loader.tag != ValueTag::Invalid) {
+    module_set_attr(module_value, "__loader__", zip_loader, attr_error);
+  }
   if (module_file.is_package) {
     module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
   }
@@ -403,7 +422,18 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     return false;
   }
 
-  out = std::move(module_value);
+  Value final_module;
+  std::string registry_error;
+  if (runtime.module_registry_dict().tag != ValueTag::Invalid &&
+      mapping_get_item(runtime.module_registry_dict(), Value::string(name), final_module, registry_error) &&
+      final_module.tag != ValueTag::Invalid) {
+    value_assign_fast(out, final_module);
+    if (value_as_module(final_module) != nullptr) {
+      runtime.register_module(name, final_module);
+    }
+  } else {
+    out = std::move(module_value);
+  }
   if (!parent_name.empty()) {
     module_set_attr(parent_module, module_leaf_name(name), out, attr_error);
   }

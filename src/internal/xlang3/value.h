@@ -50,6 +50,7 @@ enum class ValueTag : uint32_t {
 
 enum class ObjectKind : uint32_t {
   String = 1,
+  BigInt,
   Bytes,
   ByteArray,
   MemoryView,
@@ -57,6 +58,7 @@ enum class ObjectKind : uint32_t {
   Tuple,
   List,
   Dict,
+  MappingProxy,
   Set,
   DictKeysView,
   DictValuesView,
@@ -91,6 +93,7 @@ enum class ObjectKind : uint32_t {
   Frame,
   Traceback,
   File,
+  GenericAlias,
   TypeParam,
 };
 
@@ -143,6 +146,7 @@ struct NativeFunctionObject {
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
   bool fast_releases_vm_lock = false;
+  bool bind_as_descriptor = true;
   void* user_data = nullptr;
   void (*user_data_cleanup)(void*) = nullptr;
   Value* attrs_dict = nullptr;
@@ -155,6 +159,11 @@ struct StringObject {
   memory::X3BucketAllocator* allocator = nullptr;
   bool immortal = false;
   // Immutable string bytes follow this object in the same allocation block.
+};
+
+struct BigIntObject {
+  Object header;
+  void* impl = nullptr;
 };
 
 struct BytesObject {
@@ -191,6 +200,7 @@ struct Value {
   static Value none();
   static Value boolean(bool value);
   static Value int64(int64_t value);
+  static Value bigint_from_i64(int64_t value);
   static Value number(double value);
   static Value string(std::string value);
   static Value string_view(std::string_view value);
@@ -208,9 +218,17 @@ struct Value {
   static Value set(std::vector<Value> items);
   static Value frozenset(std::vector<Value> items);
   static Value range(int64_t start, int64_t stop, int64_t step);
+  static Value range_values(Value start, Value stop, Value step);
   static Value range_iterator(int64_t current, int64_t stop, int64_t step);
+  static Value range_iterator_values(Value current, Value stop, Value step);
   static Value sequence_iterator(Value source, uint64_t index);
-  static Value generator(Runtime* runtime, Value function, std::vector<Value> args, bool is_async = false, bool is_coroutine = false);
+  static Value generator(
+      Runtime* runtime,
+      Value function,
+      std::vector<Value> args,
+      bool is_async = false,
+      bool is_coroutine = false,
+      bool args_bound = false);
   static Value module(std::string name);
   static Value cell(Value value);
   static Value function(uint32_t function_id, std::vector<Value> closure);
@@ -241,8 +259,10 @@ struct Value {
       void (*user_data_cleanup)(void*) = nullptr,
       NativeFastCallCallback fast_callback = nullptr,
       bool fast_releases_vm_lock = false,
-      NativeKeywordFunctionCallback keyword_callback = nullptr);
+      NativeKeywordFunctionCallback keyword_callback = nullptr,
+      bool bind_as_descriptor = true);
   static Value file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable);
+  static Value fd_file(int fd, std::string name, std::string mode, bool readable, bool writable, bool binary, bool closefd);
   static Value class_object(
       std::string name,
       std::vector<std::pair<std::string, Value>> attrs,
@@ -255,6 +275,7 @@ struct Value {
   static Value class_method(Value function);
   static Value super_object(Value klass, Value self);
   static Value property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract = false, bool doc_from_getter = false);
+  static Value generic_alias(Value origin, Value args);
   static Value type_param(std::string name);
 };
 
@@ -280,6 +301,40 @@ XLANG3_HOT_INLINE Value Value::int64(int64_t value) {
   v.tag = ValueTag::Int64;
   v.as.i64 = value;
   return v;
+}
+
+Value value_bigint_from_i64(int64_t value);
+Value value_bigint_from_decimal(std::string_view text, int base, std::string& error);
+bool value_bigint_from_bytes(const uint8_t* bytes, size_t size, bool is_big, bool signed_value, Value& out, std::string& error);
+bool value_int_like_to_bytes(const Value& value, size_t length, bool is_big, bool signed_value, std::string& out, std::string& error);
+void value_bigint_destroy(BigIntObject* value);
+std::string value_bigint_to_string(const Value& value);
+bool value_bigint_truthy(const Value& value);
+bool value_bigint_to_i64(const Value& value, int64_t& out);
+bool value_int_like_to_i64(const Value& value, int64_t& out);
+bool value_int_like_bit_length(const Value& value, int64_t& out);
+bool value_int_like_hash(const Value& value, size_t& out);
+bool value_int_like_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_mul(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_int_like_bit_and(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_bit_or(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_bit_xor(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_shift_left(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_int_like_shift_right(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_int_like_invert(const Value& value, Value& out);
+
+XLANG3_HOT_INLINE BigIntObject* value_as_bigint(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::BigInt) {
+    return nullptr;
+  }
+  return reinterpret_cast<BigIntObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE Value Value::bigint_from_i64(int64_t value) {
+  return value_bigint_from_i64(value);
 }
 
 XLANG3_HOT_INLINE Value Value::number(double value) {
@@ -418,6 +473,12 @@ struct TypeParamObject {
   Value default_value;
 };
 
+struct GenericAliasObject {
+  Object header;
+  Value origin;
+  Value args;
+};
+
 struct CodeObject {
   Object header;
   std::shared_ptr<const ir::Module> module;
@@ -447,6 +508,38 @@ struct MemoryViewObject {
   bool readonly = true;
   bool released = false;
 };
+
+XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
+  if (format.empty()) {
+    return 1;
+  }
+  switch (format.back()) {
+    case 'B':
+    case 'b':
+    case 'c':
+      return 1;
+    case 'H':
+    case 'h':
+      return 2;
+    case 'I':
+    case 'i':
+    case 'L':
+    case 'l':
+    case 'f':
+      return 4;
+    case 'Q':
+    case 'q':
+    case 'd':
+      return 8;
+    default:
+      return 0;
+  }
+}
+
+XLANG3_HOT_INLINE size_t memoryview_item_count(const MemoryViewObject& view) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  return itemsize == 0 ? view.size : view.size / itemsize;
+}
 
 struct PropertyObject {
   Object header;
@@ -594,6 +687,13 @@ XLANG3_HOT_INLINE TypeParamObject* value_as_type_param(const Value& value) {
   return reinterpret_cast<TypeParamObject*>(value.as.obj);
 }
 
+XLANG3_HOT_INLINE GenericAliasObject* value_as_generic_alias(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::GenericAlias) {
+    return nullptr;
+  }
+  return reinterpret_cast<GenericAliasObject*>(value.as.obj);
+}
+
 struct FileObject {
   Object header;
   FileSystem* fs = nullptr;
@@ -611,6 +711,9 @@ struct FileObject {
   bool binary = false;
   bool closed = false;
   bool devnull = false;
+  bool fd_backed = false;
+  int fd = -1;
+  bool closefd = true;
 };
 
 XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {
@@ -754,6 +857,7 @@ bool value_truthy(const Value& value);
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error);

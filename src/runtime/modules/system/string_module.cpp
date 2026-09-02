@@ -14,40 +14,18 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
-#include "xlang3/attribute.h"
-#include "xlang3/functional_iterators.h"
-#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
-#include "xlang3/object_model.h"
-#include "xlang3/sequence.h"
 
 namespace xlang3 {
 
 namespace {
-
-bool value_sequence_to_vector(const Value& value, std::vector<Value>& out, std::string& error) {
-  Value iterator;
-  if (!sequence_get_iter(value, iterator, error)) {
-    return false;
-  }
-  while (true) {
-    bool done = false;
-    Value item;
-    if (!sequence_iter_next(iterator, done, item, error)) {
-      return false;
-    }
-    if (done) {
-      return true;
-    }
-    out.push_back(std::move(item));
-  }
-}
 
 struct FormatChunk {
   std::string literal;
   std::string field;
   std::string spec;
   std::string conversion;
+  bool has_field = false;
 };
 
 bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chunks, std::string& error) {
@@ -68,6 +46,7 @@ bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chun
       std::string field_text = text.substr(i + 1, close - i - 1);
       FormatChunk chunk;
       chunk.literal = literal;
+      chunk.has_field = true;
       literal.clear();
       const size_t bang = field_text.find('!');
       const size_t colon = field_text.find(':');
@@ -123,8 +102,8 @@ bool formatter_parser(Runtime&, const Value* args, uint32_t argc, Value& out, st
   for (const auto& chunk : chunks) {
     result.push_back(Value::tuple({
         Value::string(chunk.literal),
-        chunk.field.empty() ? Value::none() : Value::string(chunk.field),
-        chunk.spec.empty() ? Value::none() : Value::string(chunk.spec),
+        chunk.has_field ? Value::string(chunk.field) : Value::none(),
+        chunk.has_field ? Value::string(chunk.spec) : Value::none(),
         chunk.conversion.empty() ? Value::none() : Value::string(chunk.conversion),
     }));
   }
@@ -171,93 +150,16 @@ bool formatter_field_name_split(Runtime&, const Value* args, uint32_t argc, Valu
       ++i;
     }
   }
-  out = Value::tuple({Value::string(field.substr(0, split)), Value::list(std::move(lookups))});
-  return true;
-}
-
-bool formatter_format(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2) {
-    error = "Formatter.format() expected format_string";
-    return false;
-  }
-  Value method;
-  if (!attribute_get(args[1], "format", method, error)) {
-    return false;
-  }
-  return runtime_call_callable(runtime, method, argc > 2 ? args + 2 : nullptr, argc > 2 ? argc - 2 : 0, out, error);
-}
-
-bool formatter_vformat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 4) {
-    error = "Formatter.vformat() expected format_string, args, kwargs";
-    return false;
-  }
-  Value method;
-  if (!attribute_get(args[1], "format", method, error)) {
-    return false;
-  }
-  std::vector<Value> call_args;
-  if (!value_sequence_to_vector(args[2], call_args, error)) {
-    return false;
-  }
-  return runtime_call_callable(runtime, method, call_args.empty() ? nullptr : call_args.data(), static_cast<uint32_t>(call_args.size()), out, error);
-}
-
-bool formatter_parse(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* data) {
-  if (argc != 2) {
-    error = "Formatter.parse() expected format_string";
-    return false;
-  }
-  return formatter_parser(runtime, args + 1, 1, out, error, data);
-}
-
-bool formatter_get_value(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 4) {
-    error = "Formatter.get_value() expected key, args, kwargs";
-    return false;
-  }
-  if (args[1].tag == ValueTag::Int64) {
-    return sequence_get_item(args[2], args[1], out, error);
-  }
-  if (auto* dict = value_as_dict(args[3])) {
-    for (const auto& entry : dict->entries) {
-      if (value_to_string(entry.first) == value_to_string(args[1])) {
-        out = entry.second;
-        return true;
-      }
+  const std::string first = field.substr(0, split);
+  bool first_is_index = !first.empty();
+  for (char ch : first) {
+    if (!std::isdigit(static_cast<unsigned char>(ch))) {
+      first_is_index = false;
+      break;
     }
   }
-  error = "Formatter.get_value() key not found";
-  return false;
-}
-
-bool formatter_format_field(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 3) {
-    error = "Formatter.format_field() expected value and optional format_spec";
-    return false;
-  }
-  const Value* format_builtin = runtime.find_builtin("format");
-  if (format_builtin == nullptr) {
-    out = Value::string(value_to_string(args[1]));
-    return true;
-  }
-  Value call_args[2] = {args[1], argc == 3 ? args[2] : Value::string("")};
-  return runtime_call_callable(runtime, *format_builtin, call_args, argc == 3 ? 2 : 1, out, error);
-}
-
-bool formatter_convert_field(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3) {
-    error = "Formatter.convert_field() expected value and conversion";
-    return false;
-  }
-  if (auto* conversion = value_as_string(args[2])) {
-    const std::string conv = string_object_to_string(*conversion);
-    if (conv == "s" || conv == "r" || conv == "a") {
-      out = Value::string(value_to_string(args[1]));
-      return true;
-    }
-  }
-  out = args[1];
+  Value first_value = first_is_index ? Value::int64(std::stoll(first)) : Value::string(first);
+  out = Value::tuple({std::move(first_value), Value::list(std::move(lookups))});
   return true;
 }
 
@@ -268,30 +170,6 @@ void register_string_module(Runtime& runtime) {
   builder.function("formatter_parser", formatter_parser)
       .function("formatter_field_name_split", formatter_field_name_split);
   runtime.register_module("_string", builder.finish());
-
-  NativeModuleBuilder public_builder(runtime, "string");
-  Value formatter_type = Value::class_object(
-      "Formatter",
-      {
-          {"__module__", Value::string("string")},
-          {"format", runtime.make_native_function("string.Formatter.format", formatter_format)},
-          {"vformat", runtime.make_native_function("string.Formatter.vformat", formatter_vformat)},
-          {"parse", runtime.make_native_function("string.Formatter.parse", formatter_parse)},
-          {"get_value", runtime.make_native_function("string.Formatter.get_value", formatter_get_value)},
-          {"format_field", runtime.make_native_function("string.Formatter.format_field", formatter_format_field)},
-          {"convert_field", runtime.make_native_function("string.Formatter.convert_field", formatter_convert_field)},
-      });
-  public_builder.value("ascii_lowercase", Value::string("abcdefghijklmnopqrstuvwxyz"))
-      .value("ascii_uppercase", Value::string("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-      .value("ascii_letters", Value::string("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-      .value("digits", Value::string("0123456789"))
-      .value("hexdigits", Value::string("0123456789abcdefABCDEF"))
-      .value("octdigits", Value::string("01234567"))
-      .value("punctuation", Value::string("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"))
-      .value("whitespace", Value::string(" \t\n\r\v\f"))
-      .value("printable", Value::string("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\v\f"))
-      .value("Formatter", formatter_type);
-  runtime.register_module("string", public_builder.finish());
 }
 
 } // namespace xlang3

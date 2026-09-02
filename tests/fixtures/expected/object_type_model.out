@@ -13,6 +13,25 @@ True True True
 True
 Child Base
 True True
+True builtin_function_or_method True
+True
+TypeError unsupported format string passed to object.__format__
+True True True True
+False
+base:SuperChild
+meta:SuperMetaChild
+MetaConstructed
+EnumShapedConstructed:ok
+10 20
+SetNameTarget tracked
+['__module__', '__qualname__', '__firstlineno__', '__static_attributes__', '__doc__', 'marker'] prepared
+True Child
+True 7 True
+True True True
+True True True value
+True
+['MroCombined', 'MroLeft', 'MroRight', 'object']
+['MroText', 'str', 'MroLeft', 'object']
 123 42 False True
 [1, 2] (3, 4) {1, 2}
 [0, 1, 2]

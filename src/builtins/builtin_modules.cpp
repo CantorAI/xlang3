@@ -123,6 +123,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "StopAsyncIteration");
   copy_builtin(runtime, builtins, "StopIteration");
   copy_builtin(runtime, builtins, "SyntaxError");
+  copy_builtin(runtime, builtins, "_IncompleteInputError");
   copy_builtin(runtime, builtins, "IndentationError");
   copy_builtin(runtime, builtins, "TabError");
   copy_builtin(runtime, builtins, "SystemError");

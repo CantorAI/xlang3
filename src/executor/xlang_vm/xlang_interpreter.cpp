@@ -47,6 +47,14 @@ RuntimeResult Interpreter::run_module(
     const ir::Module& module,
     Value globals_module,
     std::shared_ptr<const ir::Module> module_owner) {
+  return run_module(module, std::move(globals_module), std::move(module_owner), true);
+}
+
+RuntimeResult Interpreter::run_module(
+    const ir::Module& module,
+    Value globals_module,
+    std::shared_ptr<const ir::Module> module_owner,
+    bool register_in_runtime) {
   RuntimeResult result;
   if (auto* globals = value_as_module(globals_module)) {
     std::string error;
@@ -57,6 +65,14 @@ RuntimeResult Interpreter::run_module(
     Value existing;
     auto name = globals->name.empty() ? "__main__" : globals->name;
     if (!module_set_attr(globals_module, "__name__", Value::string(name), error)) {
+      result.errors.push_back(error);
+      return result;
+    }
+    const Value module_doc =
+        module.entry < module.functions.size() && !module.functions[module.entry].doc.empty()
+            ? Value::string(module.functions[module.entry].doc)
+            : Value::none();
+    if (!module_set_attr(globals_module, "__doc__", module_doc, error)) {
       result.errors.push_back(error);
       return result;
     }
@@ -74,6 +90,16 @@ RuntimeResult Interpreter::run_module(
         result.errors.push_back(error);
         return result;
       }
+    }
+    if (!module_get_attr(globals_module, "__annotations__", existing, error) || existing.tag == ValueTag::Invalid) {
+      error.clear();
+      if (!module_set_attr(globals_module, "__annotations__", Value::dict({}), error)) {
+        result.errors.push_back(error);
+        return result;
+      }
+    }
+    if (register_in_runtime) {
+      runtime_.register_module(name, globals_module);
     }
   }
   static const std::vector<Value> empty_closure;
@@ -95,7 +121,7 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
     result.errors.push_back("function has no module");
     return result;
   }
-  return run_function(
+  result = run_function(
       *function->module,
       function->function_id,
       args,
@@ -104,6 +130,16 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
       function->globals_module,
       function->module,
       nullptr);
+  if (!result.errors.empty() && result.exception.tag == ValueTag::Invalid) {
+    Value pending;
+    if (runtime_.take_pending_exception(pending)) {
+      value_assign_fast(result.exception, pending);
+      runtime_.set_pending_exception(std::move(pending));
+    } else if (runtime_.active_exception().tag != ValueTag::Invalid) {
+      value_assign_fast(result.exception, runtime_.active_exception());
+    }
+  }
+  return result;
 }
 
 RuntimeResult Interpreter::resume_paused(std::shared_ptr<RuntimeDebugPauseState> pause_state) {

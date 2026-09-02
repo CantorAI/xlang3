@@ -85,3 +85,17 @@ print(sum(x for x in range(5)))
 
 # Walrus operator.
 print((n := 12), n)
+
+
+def identity_arg(value):
+    return value
+
+
+print(identity_arg(call_arg := 4), call_arg)
+
+
+def keyword_arg_probe(*, append=False):
+    return append
+
+
+print(keyword_arg_probe(append=True))

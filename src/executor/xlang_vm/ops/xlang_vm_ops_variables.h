@@ -103,6 +103,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
       value_assign_fast(regs[in.dst], globals_module_obj->slots[in.a]);
       return XlangVMOpFlow::Next;
     }
+    std::string slot_error;
+    uint32_t dynamic_slot = 0;
+    if (module_find_attr_slot(globals_module, name, dynamic_slot, slot_error) &&
+        dynamic_slot < globals_module_obj->slots.size() &&
+        globals_module_obj->slots[dynamic_slot].tag != ValueTag::Invalid) {
+      value_assign_fast(regs[in.dst], globals_module_obj->slots[dynamic_slot]);
+      return XlangVMOpFlow::Next;
+    }
     if (const auto* builtin = runtime.find_builtin(name)) {
       value_assign_fast(regs[in.dst], *builtin);
       return XlangVMOpFlow::Next;
@@ -171,7 +179,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
   if (global_cache.kind != 0) {
     if (globals_module_obj != nullptr && global_cache.kind == 1) {
       const auto slot = global_cache.slot;
-      if (slot < globals_module_obj->slots.size()) {
+      if (global_cache.version == current_globals_version &&
+          slot < globals_module_obj->slots.size() &&
+          globals_module_obj->slots[slot].tag != ValueTag::Invalid) {
         value_assign_fast(regs[in.dst], globals_module_obj->slots[slot]);
         return XlangVMOpFlow::Next;
       }
@@ -184,7 +194,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
   if (globals_module_obj != nullptr) {
     std::string error;
     uint32_t slot = 0;
-    if (module_find_attr_slot(globals_module, name, slot, error)) {
+    if (module_find_attr_slot(globals_module, name, slot, error) &&
+        slot < globals_module_obj->slots.size() &&
+        globals_module_obj->slots[slot].tag != ValueTag::Invalid) {
       value_assign_fast(regs[in.dst], globals_module_obj->slots[slot]);
       global_cache.slot = slot;
       global_cache.version = globals_module_obj->version;

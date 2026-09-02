@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -32,6 +33,12 @@ def cmake_exe(config: dict) -> str:
 
 def main() -> int:
     config = load_config()
+    boundary_check = subprocess.run(
+        [sys.executable, "agent/scripts/check_module_boundaries.py"],
+        cwd=ROOT,
+    )
+    if boundary_check.returncode != 0:
+        return boundary_check.returncode
     command = [
         cmake_exe(config),
         "--build",
@@ -41,7 +48,7 @@ def main() -> int:
         "--target",
         "xlang3",
         "--",
-        "/m",
+        "/m:1",
     ]
     return subprocess.run(command, cwd=ROOT).returncode
 

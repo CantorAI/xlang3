@@ -701,7 +701,6 @@ Value make_pickle_module(Runtime& runtime, const char* name) {
 
 void register_pickle_module(Runtime& runtime) {
   runtime.register_module("_pickle", make_pickle_module(runtime, "_pickle"));
-  runtime.register_module("pickle", make_pickle_module(runtime, "pickle"));
 }
 
 } // namespace xlang3

@@ -56,6 +56,22 @@ merged = {"a": 1} | {"a": 2, "b": 3}
 print(merged["a"], merged["b"])
 merged |= {"c": 4}
 print(merged["a"], merged["c"])
+try:
+    {}.__getitem__("missing")
+except KeyError:
+    print("dict-getitem-keyerror")
+try:
+    {}.__delitem__("missing")
+except KeyError:
+    print("dict-delitem-keyerror")
+try:
+    {}.get([])
+except TypeError:
+    print("dict-get-typeerror")
+try:
+    {}.__contains__([])
+except TypeError:
+    print("dict-contains-typeerror")
 other_keys = {"b", "c", "d"}
 print(keys == {"a", "b", "c"}, keys != {"a", "b"}, keys <= {"a", "b", "c", "d"}, keys < {"a", "b", "c", "d"})
 print(keys | {"d"}, keys & other_keys, keys - {"b"}, keys ^ {"a", "d"})
