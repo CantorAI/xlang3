@@ -339,6 +339,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                               raise_runtime_error, raise_exception_value);
       }
     }
+    if (value_as_module(regs[in.a]) != nullptr) {
+      Value module_getattr;
+      std::string getattr_error;
+      if (module_get_attr(regs[in.a], "__getattr__", module_getattr, getattr_error)) {
+        Value hook_value = Value::string(fn.names[in.b]);
+        return call_attr_hook(module_getattr, &hook_value, 1, module, module_owner, runtime, native_call_args, execution_lock,
+                              regs[in.dst], in.dst, ip, result, make_generator_if_needed, push_frame,
+                              raise_runtime_error, raise_exception_value);
+      }
+    }
     return raise_exception_value(runtime.make_exception("AttributeError", error))
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;

@@ -1218,6 +1218,17 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
     return true;
   }
+  Value module_getattr;
+  std::string getattr_error;
+  if (module_get_attr(module, "__getattr__", module_getattr, getattr_error)) {
+    Value attr_arg = Value::string(attr_name);
+    Value dynamic_attr;
+    std::string call_error;
+    if (runtime_call_callable(*this, module_getattr, &attr_arg, 1, dynamic_attr, call_error)) {
+      value_assign_fast(out, dynamic_attr);
+      return true;
+    }
+  }
   if (resolved_module == "builtins" || resolved_module == "_builtins") {
     if (const auto* builtin = find_builtin(attr_name)) {
       value_assign_fast(out, *builtin);

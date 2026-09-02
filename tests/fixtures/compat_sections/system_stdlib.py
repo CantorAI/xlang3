@@ -22,6 +22,7 @@ import copyreg
 import dataclasses
 import encodings
 import enum
+import importlib.metadata
 import inspect
 import io
 import json
@@ -45,7 +46,7 @@ def source_lib_module(module):
 
 def source_lib_package(module):
     path = module.__file__.replace("\\", "/")
-    return path.endswith("/Lib/" + module.__name__ + "/__init__.py")
+    return path.endswith("/Lib/" + module.__name__.replace(".", "/") + "/__init__.py")
 
 
 print(
@@ -114,6 +115,16 @@ print(
     json_data["items"][1],
     copied["a"],
     payload["k"],
+)
+from typing import Match as TypingMatch
+
+metadata_distributions = list(importlib.metadata.distributions())
+print(
+    "system-stdlib-importlib-metadata",
+    source_lib_package(importlib.metadata),
+    TypingMatch is typing.Match,
+    type(metadata_distributions).__name__,
+    len(metadata_distributions) >= 0,
 )
 print(
     "system-stdlib-enum",

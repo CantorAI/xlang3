@@ -1416,7 +1416,8 @@ High-level pure-Python stdlib modules must be source-backed:
   full install scheme compatibility pending
 - [~] `typing`: public module must run from CPython 3.14 `Lib/typing.py`
   on top of native `_typing`; parsed type-parameter bounds/defaults/variance,
-  lazy evaluation, and full typing runtime behavior pending.
+  lazy evaluation, module-level `__getattr__` fallback for lazy attributes such
+  as `typing.Match`, and full typing runtime behavior pending.
 - [~] `traceback`: public module runs from CPython 3.14
   `Lib/traceback.py`; `format_exception` over runtime exceptions is covered.
   Exact frame/line formatting and chained exception edge cases pending.
@@ -1437,8 +1438,10 @@ High-level pure-Python stdlib modules must be source-backed:
   source-backed package import, missing-module `ImportError.name`,
   `SourceFileLoader` filename/data/code behavior, and basic
   `importlib.resources.is_resource`/`read_text` over file packages are
-  covered. Package metadata, startup import locks/caches, namespace/zip
-  resource discovery, and import-time performance pending.
+  covered. `importlib.metadata` imports from CPython source and distribution
+  iteration shape is covered. Startup import locks/caches, namespace/zip
+  resource discovery, full package metadata behavior, and import-time
+  performance pending.
 - [~] `types`: public module runs from CPython 3.14 `Lib/types.py` over
   runtime-backed type objects; native `mappingproxy` construction, iteration,
   views, item lookup, and live read-only mapping behavior are covered.

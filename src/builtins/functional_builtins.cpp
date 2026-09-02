@@ -1086,6 +1086,19 @@ bool builtin_getattr(
   if (attribute_get(args[0], attr_name, out, attr_error)) {
     return true;
   }
+  if (value_as_module(args[0]) != nullptr) {
+    Value module_getattr;
+    std::string getattr_error;
+    if (module_get_attr(args[0], "__getattr__", module_getattr, getattr_error)) {
+      Value attr_arg = Value::string(attr_name);
+      Value dynamic_attr;
+      std::string call_error;
+      if (runtime_call_callable(runtime, module_getattr, &attr_arg, 1, dynamic_attr, call_error)) {
+        value_assign_fast(out, dynamic_attr);
+        return true;
+      }
+    }
+  }
   if (argc == 3) {
     value_assign_fast(out, args[2]);
     return true;

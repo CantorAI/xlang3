@@ -114,7 +114,8 @@ fixture coverage, then update the row truthfully.
 
 - [~] `site`, `runpy`, `importlib`, `pkgutil`, and package metadata/resources
   Coverage: real CPython 3.14 `site.py`, `runpy.py`, `pkgutil.py`, and
-  `importlib` package import from `C:/Python/Python314/Lib`; the
+  `importlib` package, including `importlib.metadata`, import from
+  `C:/Python/Python314/Lib`; the
   `site_importlib` probe covers source-backed module paths,
   `importlib.import_module("math")`, core `pkgutil` APIs, catchable
   missing-module `ImportError.name`, `SourceFileLoader` filename/data/code
@@ -122,8 +123,9 @@ fixture coverage, then update the row truthfully.
   `importlib.resources.is_resource`/`read_text` over package data. Runtime
   coverage added for source loader metadata, file-loader `get_data` through VFS,
   `get_resource_reader` delegation to CPython `FileReader`, function
-  `__annotate__`, lazy annotation basics, mapping-vs-dict-view detection, and
-  dict-subclass iteration.
+  `__annotate__`, lazy annotation basics, mapping-vs-dict-view detection,
+  dict-subclass iteration, and module-level `__getattr__` fallback for lazy
+  source-backed module attributes such as `typing.Match`.
   Remaining: package metadata, startup-site `.pth` handling, exact importlib
   lock/cache semantics, namespace/zip resource discovery, and import-time
   performance.
