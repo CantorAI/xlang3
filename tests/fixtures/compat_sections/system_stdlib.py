@@ -176,6 +176,32 @@ import resource_pkg
 resources_root = importlib.resources.files(resource_pkg)
 resources_item = resources_root.joinpath("data.txt")
 pkgutil_resource = pkgutil.get_data("resource_pkg", "data.txt")
+site_pth_root = "xlang3_site_pth_probe"
+site_pth_extra_name = "extra"
+site_pth_extra = os.path.join(site_pth_root, site_pth_extra_name)
+os.makedirs(site_pth_extra, exist_ok=True)
+try:
+    with open(os.path.join(site_pth_root, "probe.pth"), "w", encoding="utf-8") as f:
+        f.write(site_pth_extra_name + "\n")
+        f.write("import sys; sys.xlang3_pth_marker = 42\n")
+    if hasattr(sys, "xlang3_pth_marker"):
+        del sys.xlang3_pth_marker
+    site.addsitedir(site_pth_root)
+    site_path_snapshot = [path.replace("\\", "/") for path in sys.path]
+    site_pth_state = (
+        any(path.endswith("/xlang3_site_pth_probe") or path == site_pth_root for path in site_path_snapshot),
+        any(path.endswith("/xlang3_site_pth_probe/extra") or path == site_pth_extra for path in site_path_snapshot),
+        getattr(sys, "xlang3_pth_marker", None),
+    )
+finally:
+    if hasattr(sys, "xlang3_pth_marker"):
+        del sys.xlang3_pth_marker
+    site_pth_file = os.path.join(site_pth_root, "probe.pth")
+    if os.path.exists(site_pth_file):
+        os.remove(site_pth_file)
+    for path in (site_pth_extra, site_pth_root):
+        if os.path.isdir(path):
+            os.rmdir(path)
 print(
     "system-stdlib-site-runpy-importlib-resources",
     source_lib_module(site),
@@ -188,6 +214,7 @@ print(
     getattr(resources_root, "parts")[-1],
     resources_item.is_file(),
     resources_item.read_text().strip(),
+    site_pth_state,
 )
 
 

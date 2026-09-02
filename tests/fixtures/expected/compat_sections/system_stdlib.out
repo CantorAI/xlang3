@@ -6,7 +6,7 @@ system-stdlib-weakref True True True ['live'] [True]
 system-stdlib-json-pickle-copy True True True True 2 [1, 2] 7
 system-stdlib-importlib-metadata True True list True
 system-stdlib-importlib-metadata-dist 1 demo-pkg 1.2
-system-stdlib-site-runpy-importlib-resources True True True True 22 resource-data resource_pkg resource_pkg True resource-data
+system-stdlib-site-runpy-importlib-resources True True True True 22 resource-data resource_pkg resource_pkg True resource-data (True, True, 42)
 system-stdlib-getattr-descriptor descriptor-value fallback True False ValueError:descriptor-error
 system-stdlib-namespace-resources MultiplexedPath ['__pycache__', 'a.txt', 'b.txt', 'module.py'] A B
 system-stdlib-zip-resources zipimporter True Path b'ZIPDATA' ZIPDATA

@@ -1395,8 +1395,9 @@ High-level pure-Python stdlib modules must be source-backed:
 - [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
   on top of native `_signal`; real OS delivery/thread semantics pending.
 - [~] `site`: public module runs from CPython 3.14 `Lib/site.py`; site-package path
-  helpers, public path constants, `addsitedir`, and `addsitepackages` foundations are covered.
-  `.pth` processing/startup-site behavior pending
+  helpers, public path constants, `addsitedir`, `addsitepackages`, and `.pth`
+  path-line/import-line processing foundations are covered. Startup site-package
+  discovery edge behavior pending
 - [~] `socket`: public module runs from CPython 3.14 `Lib/socket.py`
   on top of native `_socket`; basic socket construction, family/type
   metadata, timeout get/set, close, loopback streams, socketpair,

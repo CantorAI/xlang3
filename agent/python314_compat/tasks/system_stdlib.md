@@ -144,12 +144,13 @@ fixture coverage, then update the row truthfully.
   storage, decorator-added bound-method attributes, IntEnum/int rich comparison,
   `mappingproxy` protocol delegation for Python-level mappings such as
   `OrderedDict`, descriptor-aware public `getattr`/`hasattr` behavior for
-  Python properties, and modern `importlib.resources.files()` traversal over
+  Python properties, CPython `site.addsitedir` `.pth` path-line/import-line
+  handling, and modern `importlib.resources.files()` traversal over
   file-backed packages, namespace packages through CPython `MultiplexedPath`,
   and zip packages through `zipimporter.get_resource_reader` plus CPython
   `ZipReader`. Native dependency coverage also includes `itertools.groupby`
   with keyword `key=` for CPython resource readers and receiver-MRO `super()`
   lookup for multiple-inheritance stdlib classes.
-  Remaining: startup-site `.pth` handling, exact importlib lock/cache
-  semantics, broader package metadata edge behavior, and import-time
-  performance.
+  Remaining: startup site-package discovery edge cases, exact importlib
+  lock/cache semantics, broader package metadata edge behavior, and
+  import-time performance.
