@@ -330,6 +330,9 @@ print(
     re.sub(r"([a-z]+)([0-9]+)", r"\2-\1", "id42"),
     [(match.group(0), match.start()) for match in re.finditer(r"\d+", "a12b3")],
     lookbehind_split,
+    re.findall(r"a.*c", "a\nbc", re.S),
+    re.findall(r"^a", "x\na\na", re.M),
+    re.findall(r"a+", "AaA", re.I),
 )
 
 # Source helpers need real mappingproxy/dict protocol behavior, not native

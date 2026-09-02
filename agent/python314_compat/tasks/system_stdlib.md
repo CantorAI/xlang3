@@ -54,7 +54,8 @@ fixture coverage, then update the row truthfully.
   construction, type/member descriptor lookup, memoryview item sizing, `nt`
   terminal-color probes, bytearray/bytes concatenation, `_sre` character class
   translation, named group backreferences, fixed literal positive/negative
-  lookbehind assertions across search/finditer/findall/sub/split, CPython
+  lookbehind assertions across search/finditer/findall/sub/split,
+  `DOTALL`/`MULTILINE`/`IGNORECASE` flag behavior through CPython `re.py`, CPython
   `inspect.py` `CO_*` flag generation through live
   `globals()`, disabled `sys.monitoring` near-zero-cost frame handling, real
   `mappingproxy` construction/iteration/views for `Signature.parameters` and

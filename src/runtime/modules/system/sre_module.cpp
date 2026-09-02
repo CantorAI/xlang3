@@ -353,14 +353,15 @@ void regex_append_literal_char(std::string& out, unsigned char value, bool in_cl
 std::string normalize_std_regex_pattern(
     std::string_view pattern,
     const std::unordered_map<std::string, int64_t>* group_names = nullptr,
-    std::vector<LookbehindAssertion>* lookbehinds = nullptr) {
+    std::vector<LookbehindAssertion>* lookbehinds = nullptr,
+    bool global_dotall = false) {
   std::string out;
   out.reserve(pattern.size());
   bool in_class = false;
   bool class_literal_slot = false;
   bool escaped = false;
   std::vector<bool> group_dotall_stack;
-  uint32_t dotall_depth = 0;
+  uint32_t dotall_depth = global_dotall ? 1u : 0u;
   for (size_t i = 0; i < pattern.size(); ++i) {
     const char ch = pattern[i];
     if (escaped) {
@@ -1292,11 +1293,14 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   std::string engine_pattern = unsupported ? std::string() : ((flags & kFlagVerbose) != 0 ? strip_verbose_regex(pattern) : pattern);
   std::vector<LookbehindAssertion> lookbehinds;
   if (!unsupported) {
-    engine_pattern = normalize_std_regex_pattern(engine_pattern, &group_names, &lookbehinds);
+    engine_pattern = normalize_std_regex_pattern(engine_pattern, &group_names, &lookbehinds, (flags & kFlagDotAll) != 0);
   }
   std::regex::flag_type regex_flags = std::regex::ECMAScript;
   if ((flags & kFlagIgnoreCase) != 0) {
     regex_flags |= std::regex::icase;
+  }
+  if ((flags & kFlagMultiline) != 0) {
+    regex_flags |= std::regex_constants::multiline;
   }
   auto* state = new PatternState();
   state->pattern = pattern;

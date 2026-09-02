@@ -13,7 +13,7 @@ system-stdlib-zip-resources zipimporter True Path b'ZIPDATA' ZIPDATA
 system-stdlib-enum True True True ['strict', 'conform', 'eject', 'keep']
 system-stdlib-io-codecs True True True utf_8 b'x' y
 system-stdlib-source-helpers True True True True True True True Signature 7 xlang3 False
-system-stdlib-re-semantics True abc foo foo bar bar 42-id [('12', 1), ('3', 4)] ['a', 'c']
+system-stdlib-re-semantics True abc foo foo bar bar 42-id [('12', 1), ('3', 4)] ['a', 'c'] ['a\nbc'] ['a', 'a'] ['AaA']
 system-stdlib-mappingproxy ['first', 'second', 'third'] ['first', 'second', 'third'] [1, 2, 3] ('second', 2) 3 True
 system-stdlib-source-helper-protocols ['a', 'b', 'c'] 4 {'x': 2, 'y': 3} (2, 9) ['x', 'y'] ['alpha', '  beta'] True True INFO:xlang3.fixture:hello
 system-stdlib-dataclass-logging-deep True FrozenInstanceError [7] [] 5 False True True True

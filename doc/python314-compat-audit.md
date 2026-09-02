@@ -1383,7 +1383,8 @@ High-level pure-Python stdlib modules must be source-backed:
   semantics, zip/resource edge cases, and exact import-package behavior pending
 - [~] `re`: public module runs from CPython 3.14 `Lib/re`; native `_sre`
   covers compiled patterns, match/search/fullmatch/finditer/findall/sub/split,
-  bytes patterns, common flags, replacement backrefs, named group
+  bytes patterns, common flags including `DOTALL`/`MULTILINE`/`IGNORECASE`,
+  replacement backrefs, named group
   backreferences, lookahead, and fixed literal positive/negative lookbehind
   assertions. Full CPython SRE opcode semantics pending.
 - [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
