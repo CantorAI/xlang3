@@ -1288,7 +1288,7 @@ Native or runtime-backed foundation:
 - [~] `_imp`: import-lock state, `is_builtin`, frozen-probe helpers, registered-module
   `create_builtin`/`exec_builtin`, `get_magic`, `extension_suffixes`, source-hash, and dynamic-load errors
 - [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek/truncate helpers, iterator hooks, text newline/encoding basics, StringIO/BytesIO keyword construction, IOBase closed/readable/writable checks, and buffered raw-`readinto` delegation used by CPython socket/http paths; exact buffering and full CPython IO internals pending
-- [~] `_socket`: constants and socket object lifecycle facade; native TCP loopback bind/listen/connect/accept/send/recv/recv_into, timeout state, getaddrinfo, and CPython-shaped socket surface basics are covered; broader descriptor behavior pending
+- [~] `_socket`: constants and socket object lifecycle facade; native TCP loopback bind/listen/connect/accept/send/recv/recv_into, timeout state, getaddrinfo/gethostbyname/inet_pton/inet_ntop, and CPython-shaped socket surface basics are covered; broader descriptor behavior pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade, and non-public target storage for `ReferenceType` instances; true weak lifetime/callback semantics pending
@@ -1401,8 +1401,9 @@ High-level pure-Python stdlib modules must be source-backed:
 - [~] `socket`: public module runs from CPython 3.14 `Lib/socket.py`
   on top of native `_socket`; basic socket construction, family/type
   metadata, timeout get/set, close, loopback streams, socketpair,
-  create_connection, makefile over `_io.BufferedReader`, and recv_into are
-  covered by the process/socket probe. Broader network error semantics pending.
+  create_connection, IPv4 getaddrinfo/gethostbyname/inet_pton/inet_ntop,
+  makefile over `_io.BufferedReader`, and recv_into are covered by the
+  process/socket probe. Broader network error semantics pending.
 - [~] `queue`: public module must run from CPython 3.14 `Lib/queue.py`
   on top of native `_queue` and `_thread`; blocking/wakeup semantics pending.
 - [~] `string`: public module must run from CPython 3.14 `Lib/string`

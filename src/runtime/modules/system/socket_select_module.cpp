@@ -1113,6 +1113,109 @@ bool socket_gethostname(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool socket_gethostbyname(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.gethostbyname() expected host";
+    return false;
+  }
+  auto* host_string = value_as_string(args[0]);
+  if (host_string == nullptr) {
+    error = "gethostbyname() argument must be str";
+    return false;
+  }
+  std::string startup_error;
+  if (!ensure_socket_runtime(startup_error)) {
+    error = startup_error;
+    return false;
+  }
+  const std::string host = string_object_to_string(*host_string);
+  addrinfo hints{};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  addrinfo* results = nullptr;
+  const int rc = ::getaddrinfo(host.c_str(), nullptr, &hints, &results);
+  if (rc != 0 || results == nullptr) {
+#ifdef _WIN32
+    error = "gethostbyname failed with WSA error " + std::to_string(rc);
+#else
+    error = std::string("gethostbyname failed: ") + gai_strerror(rc);
+#endif
+    return false;
+  }
+  char numeric_host[INET_ADDRSTRLEN] = {};
+  bool found = false;
+  for (addrinfo* item = results; item != nullptr; item = item->ai_next) {
+    if (item->ai_family == AF_INET && item->ai_addr != nullptr) {
+      auto* address = reinterpret_cast<sockaddr_in*>(item->ai_addr);
+      found = inet_ntop(AF_INET, &address->sin_addr, numeric_host, sizeof(numeric_host)) != nullptr;
+      if (found) {
+        break;
+      }
+    }
+  }
+  freeaddrinfo(results);
+  if (!found) {
+    error = "gethostbyname failed";
+    return false;
+  }
+  out = Value::string(numeric_host);
+  return true;
+}
+
+bool socket_inet_pton(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "socket.inet_pton() expected address family and IP string";
+    return false;
+  }
+  int64_t family = 0;
+  if (!socket_int_arg(args[0], family) || family != kAfInet) {
+    error = "inet_pton() supports AF_INET";
+    return false;
+  }
+  auto* address_string = value_as_string(args[1]);
+  if (address_string == nullptr) {
+    error = "inet_pton() argument 2 must be str";
+    return false;
+  }
+  in_addr address{};
+  const std::string text = string_object_to_string(*address_string);
+  if (inet_pton(AF_INET, text.c_str(), &address) != 1) {
+    error = "illegal IP address string passed to inet_pton";
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(&address), sizeof(address)));
+  return true;
+}
+
+bool socket_inet_ntop(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "socket.inet_ntop() expected address family and packed IP";
+    return false;
+  }
+  int64_t family = 0;
+  if (!socket_int_arg(args[0], family) || family != kAfInet) {
+    error = "inet_ntop() supports AF_INET";
+    return false;
+  }
+  auto* packed = value_as_bytes(args[1]);
+  if (packed == nullptr) {
+    error = "inet_ntop() argument 2 must be bytes-like";
+    return false;
+  }
+  const auto view = bytes_object_view(*packed);
+  if (view.size() != sizeof(in_addr)) {
+    error = "invalid length of packed IP address string";
+    return false;
+  }
+  char numeric_host[INET_ADDRSTRLEN] = {};
+  if (inet_ntop(AF_INET, view.data(), numeric_host, sizeof(numeric_host)) == nullptr) {
+    error = socket_last_error_text("inet_ntop");
+    return false;
+  }
+  out = Value::string(numeric_host);
+  return true;
+}
+
 bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "socket.getaddrinfo() expected host and port";
@@ -1323,6 +1426,9 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .function("getdefaulttimeout", socket_getdefaulttimeout)
       .function("setdefaulttimeout", socket_setdefaulttimeout)
       .function("gethostname", socket_gethostname)
+      .function("gethostbyname", socket_gethostbyname)
+      .function("inet_pton", socket_inet_pton)
+      .function("inet_ntop", socket_inet_ntop)
       .function("getaddrinfo", socket_getaddrinfo);
 }
 

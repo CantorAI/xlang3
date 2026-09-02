@@ -3356,6 +3356,13 @@ print(
     addrinfo[0][4][0],
     addrinfo[0][4][1],
 )
+packed_loopback = socket.inet_pton(socket.AF_INET, "127.0.0.1")
+print(
+    "socket-address-helpers",
+    socket.gethostbyname("localhost"),
+    len(packed_loopback),
+    socket.inet_ntop(socket.AF_INET, packed_loopback),
+)
 import selectors
 
 selector = selectors.SelectSelector()
@@ -3378,6 +3385,18 @@ print(
     bool(selector_events[0][1] & selectors.EVENT_READ),
     (False | selectors.EVENT_WRITE) == selectors.EVENT_WRITE,
 )
+left_sock, right_sock = socket.socketpair()
+socket_file = None
+try:
+    socket_file = right_sock.makefile("rb")
+    left_sock.sendall(b"line1\n")
+    socket_file_data = socket_file.readline()
+finally:
+    if socket_file is not None:
+        socket_file.close()
+    left_sock.close()
+    right_sock.close()
+print("socketpair-makefile", socket_file_data)
 server = socket.socket()
 client = None
 accepted = None

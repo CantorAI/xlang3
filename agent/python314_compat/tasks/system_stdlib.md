@@ -105,11 +105,13 @@ fixture coverage, then update the row truthfully.
   basic `socket.socket` construction/timeout/close, loopback TCP bind/listen,
   getsockname/connect/accept/send/recv, empty `select.select`, and real
   `select.select` readability over sockets with original object return lists,
-  plus loopback IPv4 `socket.getaddrinfo` and CPython `Lib/selectors.py`
-  `SelectSelector` socketpair readiness. CPython `socket.create_connection`
-  also succeeds against a loopback listener. CPython `http.client.HTTPConnection`
-  now succeeds for a loopback GET using CPython `Lib/socket.py` file-object
-  semantics over native `_socket.recv_into` and `_io.BufferedReader`.
+  loopback IPv4 `socket.getaddrinfo`, `socket.gethostbyname`, `inet_pton`,
+  `inet_ntop`, and CPython `Lib/selectors.py` `SelectSelector` socketpair
+  readiness. CPython `socket.create_connection` also succeeds against a
+  loopback listener. CPython `http.client.HTTPConnection` now succeeds for a
+  loopback GET using CPython `Lib/socket.py` file-object semantics over native
+  `_socket.recv_into` and `_io.BufferedReader`, and socketpair `makefile()`
+  reads through the same file-object stack.
   `subprocess` coverage now also includes `sys.executable -c`, pipe-backed
   `Popen.communicate(input=...)` over `sys.stdin.read()`, `check_call`
   seeing `sys.exit(0)` as process success, `CalledProcessError` preserving
