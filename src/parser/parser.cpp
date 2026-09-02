@@ -1670,7 +1670,10 @@ ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
   }
 
   const Token first = peek();
-  if (!consume(TokenKind::Identifier, "expected comprehension target after for")) {
+  if (is_identifier_like_token(first.kind)) {
+    advance();
+  } else {
+    error_here("expected comprehension target after for");
     first_name.clear();
     return std::make_unique<ast::NameExpr>("");
   }
@@ -1679,7 +1682,11 @@ ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
 
   while (match(TokenKind::Comma) && !(parenthesized && check(TokenKind::RParen)) && !check(TokenKind::KwIn)) {
     const Token item = peek();
-    consume(TokenKind::Identifier, "expected comprehension target after ','");
+    if (is_identifier_like_token(item.kind)) {
+      advance();
+    } else {
+      error_here("expected comprehension target after ','");
+    }
     items.push_back(std::make_unique<ast::NameExpr>(std::string(item.text)));
   }
 

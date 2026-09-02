@@ -1380,8 +1380,11 @@ High-level pure-Python stdlib modules must be source-backed:
   `iter_modules`, `walk_packages`, `extend_path`, `get_data`, `resolve_name`, and
   source loader data access are covered. Named `ModuleInfo`, full finder/loader
   semantics, zip/resource edge cases, and exact import-package behavior pending
-- [~] `re`: public module must run from CPython 3.14 `Lib/re`; native `_sre`
-  provides the regex dependency surface. Full CPython regex semantics pending.
+- [~] `re`: public module runs from CPython 3.14 `Lib/re`; native `_sre`
+  covers compiled patterns, match/search/fullmatch/finditer/findall/sub/split,
+  bytes patterns, common flags, replacement backrefs, named group
+  backreferences, lookahead, and fixed literal positive/negative lookbehind
+  assertions. Full CPython SRE opcode semantics pending.
 - [~] `signal`: public module must run from CPython 3.14 `Lib/signal.py`
   on top of native `_signal`; real OS delivery/thread semantics pending.
 - [~] `site`: public module runs from CPython 3.14 `Lib/site.py`; site-package path

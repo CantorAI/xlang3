@@ -43,6 +43,12 @@ constexpr int64_t kFlagMultiline = 8;
 constexpr int64_t kFlagDotAll = 16;
 constexpr int64_t kFlagVerbose = 64;
 
+struct LookbehindAssertion {
+  size_t engine_offset = 0;
+  std::string literal;
+  bool positive = true;
+};
+
 struct PatternState {
   std::string pattern;
   std::string engine_pattern;
@@ -53,6 +59,7 @@ struct PatternState {
   std::regex::flag_type regex_flags = std::regex::ECMAScript;
   std::regex regex;
   std::unordered_map<std::string, int64_t> group_names;
+  std::vector<LookbehindAssertion> lookbehinds;
 };
 
 struct MatchGroup {
@@ -209,6 +216,8 @@ bool regex_brace_starts_repeat(std::string_view pattern, size_t open) {
   return saw_first_digit && i < pattern.size() && pattern[i] == '}';
 }
 
+bool regex_parse_fixed_literal_lookbehind(std::string_view pattern, size_t open, bool& positive, size_t& close, std::string& literal);
+
 bool regex_has_unsupported_std_construct(std::string_view pattern) {
   bool in_class = false;
   bool escaped = false;
@@ -233,7 +242,11 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
     if (!in_class && ch == '(' && i + 3 < pattern.size() && pattern[i + 1] == '?' &&
         pattern[i + 2] == '<') {
       const char lookbehind_kind = pattern[i + 3];
-      if (lookbehind_kind == '!') {
+      bool positive = true;
+      size_t close = 0;
+      std::string literal;
+      if (lookbehind_kind == '!' &&
+          !regex_parse_fixed_literal_lookbehind(pattern, i, positive, close, literal)) {
         return true;
       }
     }
@@ -285,6 +298,49 @@ bool regex_parse_octal_escape(std::string_view pattern, size_t& index, unsigned 
   return true;
 }
 
+bool regex_parse_fixed_literal_lookbehind(std::string_view pattern, size_t open, bool& positive, size_t& close, std::string& literal) {
+  if (open + 3 >= pattern.size() || pattern[open] != '(' || pattern[open + 1] != '?' || pattern[open + 2] != '<') {
+    return false;
+  }
+  if (pattern[open + 3] == '=') {
+    positive = true;
+  } else if (pattern[open + 3] == '!') {
+    positive = false;
+  } else {
+    return false;
+  }
+
+  literal.clear();
+  bool escaped = false;
+  for (size_t i = open + 4; i < pattern.size(); ++i) {
+    const char ch = pattern[i];
+    if (escaped) {
+      switch (ch) {
+        case 'n': literal.push_back('\n'); break;
+        case 'r': literal.push_back('\r'); break;
+        case 't': literal.push_back('\t'); break;
+        default: literal.push_back(ch); break;
+      }
+      escaped = false;
+      continue;
+    }
+    if (ch == '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch == ')') {
+      close = i;
+      return true;
+    }
+    if (ch == '(' || ch == '[' || ch == '{' || ch == '.' || ch == '*' || ch == '+' || ch == '?' || ch == '|' || ch == '^' ||
+        ch == '$') {
+      return false;
+    }
+    literal.push_back(ch);
+  }
+  return false;
+}
+
 void regex_append_literal_char(std::string& out, unsigned char value, bool in_class) {
   const char ch = static_cast<char>(value);
   const std::string_view special = in_class ? std::string_view(R"(\^-[])") : std::string_view(R"(\.^$|()[]{}*+?)");
@@ -294,7 +350,10 @@ void regex_append_literal_char(std::string& out, unsigned char value, bool in_cl
   out.push_back(ch);
 }
 
-std::string normalize_std_regex_pattern(std::string_view pattern) {
+std::string normalize_std_regex_pattern(
+    std::string_view pattern,
+    const std::unordered_map<std::string, int64_t>* group_names = nullptr,
+    std::vector<LookbehindAssertion>* lookbehinds = nullptr) {
   std::string out;
   out.reserve(pattern.size());
   bool in_class = false;
@@ -389,27 +448,37 @@ std::string normalize_std_regex_pattern(std::string_view pattern) {
       out.push_back(ch);
       continue;
     }
-    if (pattern[i] == '(' && i + 3 < pattern.size() && pattern[i + 1] == '?' &&
-        pattern[i + 2] == '<' && pattern[i + 3] == '=') {
-      size_t depth = 1;
-      i += 4;
-      bool escaped = false;
-      for (; i < pattern.size(); ++i) {
-        const char ch = pattern[i];
-        if (escaped) {
-          escaped = false;
-          continue;
+    if (!in_class && pattern[i] == '(' && i + 3 < pattern.size() && pattern[i + 1] == '?' && pattern[i + 2] == '<' &&
+        (pattern[i + 3] == '=' || pattern[i + 3] == '!')) {
+      bool positive = true;
+      size_t close = 0;
+      std::string literal;
+      if (regex_parse_fixed_literal_lookbehind(pattern, i, positive, close, literal)) {
+        if (lookbehinds != nullptr) {
+          lookbehinds->push_back(LookbehindAssertion{out.size(), std::move(literal), positive});
         }
-        if (ch == '\\') {
-          escaped = true;
-          continue;
-        }
-        if (ch == '(') {
-          ++depth;
-        } else if (ch == ')') {
-          --depth;
-          if (depth == 0) {
-            break;
+        i = close;
+      } else if (pattern[i + 3] == '=') {
+        size_t depth = 1;
+        i += 4;
+        bool lookbehind_escaped = false;
+        for (; i < pattern.size(); ++i) {
+          const char lookbehind_ch = pattern[i];
+          if (lookbehind_escaped) {
+            lookbehind_escaped = false;
+            continue;
+          }
+          if (lookbehind_ch == '\\') {
+            lookbehind_escaped = true;
+            continue;
+          }
+          if (lookbehind_ch == '(') {
+            ++depth;
+          } else if (lookbehind_ch == ')') {
+            --depth;
+            if (depth == 0) {
+              break;
+            }
           }
         }
       }
@@ -426,6 +495,22 @@ std::string normalize_std_regex_pattern(std::string_view pattern) {
           group_dotall_stack.push_back(false);
           i = name_end;
           continue;
+        }
+      }
+      if (i + 3 < pattern.size() && pattern[i + 1] == '?' && pattern[i + 2] == 'P' && pattern[i + 3] == '=') {
+        size_t name_end = i + 4;
+        while (name_end < pattern.size() && pattern[name_end] != ')') {
+          ++name_end;
+        }
+        if (name_end < pattern.size()) {
+          const std::string name(pattern.substr(i + 4, name_end - (i + 4)));
+          auto it = group_names != nullptr ? group_names->find(name) : std::unordered_map<std::string, int64_t>::const_iterator{};
+          if (group_names != nullptr && it != group_names->end() && it->second > 0) {
+            out.push_back('\\');
+            out.append(std::to_string(it->second));
+            i = name_end;
+            continue;
+          }
         }
       }
       size_t colon = 0;
@@ -723,6 +808,28 @@ Value make_match(
   return value;
 }
 
+bool match_satisfies_lookbehinds(
+    const PatternState& state,
+    const std::string& text,
+    const std::match_results<std::string::const_iterator>& match,
+    size_t base) {
+  if (state.lookbehinds.empty()) {
+    return true;
+  }
+  const size_t match_start = base + static_cast<size_t>(match.position(0));
+  for (const auto& assertion : state.lookbehinds) {
+    const size_t anchor = match_start + assertion.engine_offset;
+    bool present = false;
+    if (anchor >= assertion.literal.size()) {
+      present = text.compare(anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
+    }
+    if (assertion.positive != present) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool continuous, bool full) {
   if (argc < 2 || argc > 4) {
     error = "Pattern match/search expected string and optional positions";
@@ -750,17 +857,30 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return false;
   }
   std::match_results<std::string::const_iterator> match;
-  auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(pos);
   const auto flags = continuous ? std::regex_constants::match_continuous : std::regex_constants::match_default;
-  if (!std::regex_search(begin, text.cend(), match, state->regex, flags)) {
-    value_set_none(out);
-    return true;
+  size_t cursor = pos;
+  while (cursor <= text.size()) {
+    auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(cursor);
+    if (!std::regex_search(begin, text.cend(), match, state->regex, flags)) {
+      value_set_none(out);
+      return true;
+    }
+    if (full && static_cast<size_t>(match.position(0)) + match.length(0) != text.size() - cursor) {
+      value_set_none(out);
+      return true;
+    }
+    if (match_satisfies_lookbehinds(*state, text, match, cursor)) {
+      out = make_match(runtime, args[0], text, bytes_text, match, cursor, pos, text.size());
+      return true;
+    }
+    if (continuous) {
+      break;
+    }
+    const size_t start = cursor + static_cast<size_t>(match.position(0));
+    const size_t match_end = start + static_cast<size_t>(match.length(0));
+    cursor = match_end > start ? match_end : start + 1;
   }
-  if (full && static_cast<size_t>(match.position(0)) + match.length(0) != text.size() - pos) {
-    value_set_none(out);
-    return true;
-  }
-  out = make_match(runtime, args[0], text, bytes_text, match, pos, pos, text.size());
+  value_set_none(out);
   return true;
 }
 
@@ -811,6 +931,10 @@ bool finditer_next(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     }
     const size_t start = state->cursor + static_cast<size_t>(match.position(0));
     const size_t match_end = start + static_cast<size_t>(match.length(0));
+    if (!match_satisfies_lookbehinds(*pattern, state->text, match, state->cursor)) {
+      state->cursor = match_end > start ? match_end : start + 1;
+      continue;
+    }
     out = make_match(runtime, state->pattern, state->text, state->bytes_text, match, state->cursor, state->pos, state->endpos);
     state->cursor = match_end;
     if (start == match_end) {
@@ -916,6 +1040,10 @@ bool pattern_findall(Runtime&, const Value* args, uint32_t argc, Value& out, std
     }
     const size_t start = cursor + static_cast<size_t>(match.position(0));
     const size_t match_end = start + static_cast<size_t>(match.length(0));
+    if (!match_satisfies_lookbehinds(*pattern, text, match, cursor)) {
+      cursor = match_end > start ? match_end : start + 1;
+      continue;
+    }
     if (match.size() <= 1) {
       std::string found = match[0].str();
       results.push_back(bytes_text ? Value::bytes(std::move(found)) : Value::string(std::move(found)));
@@ -977,6 +1105,10 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
          std::regex_search(text.cbegin() + static_cast<std::ptrdiff_t>(cursor), text.cend(), match, state->regex)) {
     const size_t start = cursor + static_cast<size_t>(match.position(0));
     const size_t end = start + static_cast<size_t>(match.length(0));
+    if (!match_satisfies_lookbehinds(*state, text, match, cursor)) {
+      cursor = end > start ? end : start + 1;
+      continue;
+    }
     output.append(text, cursor, start - cursor);
     if (sre_value_is_callable(args[1])) {
       Value match_value = make_match(runtime, args[0], text, bytes_text, match, cursor, cursor, text.size());
@@ -1088,6 +1220,10 @@ bool pattern_split(Runtime&, const Value* args, uint32_t argc, Value& out, std::
          std::regex_search(text.cbegin() + static_cast<std::ptrdiff_t>(cursor), text.cend(), match, state->regex)) {
     const size_t start = cursor + static_cast<size_t>(match.position(0));
     const size_t end = start + static_cast<size_t>(match.length(0));
+    if (!match_satisfies_lookbehinds(*state, text, match, cursor)) {
+      cursor = end > start ? end : start + 1;
+      continue;
+    }
     std::string part = text.substr(cursor, start - cursor);
     parts.push_back(bytes_text ? Value::bytes(std::move(part)) : Value::string(std::move(part)));
     for (size_t i = 1; i < match.size(); ++i) {
@@ -1143,10 +1279,20 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   int64_t flags = args[1].tag == ValueTag::Int64 ? args[1].as.i64 : 0;
+  std::unordered_map<std::string, int64_t> group_names;
+  if (auto* groupindex = value_as_dict(args[4])) {
+    for (const auto& entry : groupindex->entries) {
+      auto* key = value_as_string(entry.first);
+      if (key != nullptr && entry.second.tag == ValueTag::Int64) {
+        group_names[string_object_to_string(*key)] = entry.second.as.i64;
+      }
+    }
+  }
   const bool unsupported = regex_has_unsupported_std_construct(pattern);
   std::string engine_pattern = unsupported ? std::string() : ((flags & kFlagVerbose) != 0 ? strip_verbose_regex(pattern) : pattern);
+  std::vector<LookbehindAssertion> lookbehinds;
   if (!unsupported) {
-    engine_pattern = normalize_std_regex_pattern(engine_pattern);
+    engine_pattern = normalize_std_regex_pattern(engine_pattern, &group_names, &lookbehinds);
   }
   std::regex::flag_type regex_flags = std::regex::ECMAScript;
   if ((flags & kFlagIgnoreCase) != 0) {
@@ -1159,15 +1305,9 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   state->flags = flags;
   state->regex_available = !unsupported;
   state->regex_flags = regex_flags;
+  state->group_names = std::move(group_names);
+  state->lookbehinds = std::move(lookbehinds);
   try {
-    if (auto* groupindex = value_as_dict(args[4])) {
-      for (const auto& entry : groupindex->entries) {
-        auto* key = value_as_string(entry.first);
-        if (key != nullptr && entry.second.tag == ValueTag::Int64) {
-          state->group_names[string_object_to_string(*key)] = entry.second.as.i64;
-        }
-      }
-    }
     out = Value::instance(make_pattern_type(runtime));
     std::string native_error;
     if (!instance_set_native_data(out, kPatternNativeType, state, pattern_cleanup, native_error)) {

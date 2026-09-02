@@ -53,7 +53,9 @@ fixture coverage, then update the row truthfully.
   f-string embedded-expression lexing, annotation storage, tuple subclass
   construction, type/member descriptor lookup, memoryview item sizing, `nt`
   terminal-color probes, bytearray/bytes concatenation, `_sre` character class
-  translation, CPython `inspect.py` `CO_*` flag generation through live
+  translation, named group backreferences, fixed literal positive/negative
+  lookbehind assertions across search/finditer/findall/sub/split, CPython
+  `inspect.py` `CO_*` flag generation through live
   `globals()`, disabled `sys.monitoring` near-zero-cost frame handling, real
   `mappingproxy` construction/iteration/views for `Signature.parameters` and
   class dictionaries, CPython-shaped `f_lasti`/`tb_lasti`/`co_lines` offsets
@@ -62,7 +64,7 @@ fixture coverage, then update the row truthfully.
   frozen/default_factory/slots/inheritance/InitVar/ClassVar basics, correct
   dynamic `exec(..., globals())` module-slot isolation, and logging exception
   formatter output.
-  Remaining: full regex semantics, expression-exact traceback column/end-position
+  Remaining: full CPython SRE opcode semantics, expression-exact traceback column/end-position
   metadata, complete dataclass generated-method/field-order edge semantics, and
   deeper logging handler/filter/error behavior remain pending.
 

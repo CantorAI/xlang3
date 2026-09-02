@@ -31,6 +31,7 @@ import logging
 import os
 import queue
 import pickle
+import re
 import textwrap
 import traceback
 import typing
@@ -193,6 +194,22 @@ print(
     DataPoint(7).value,
     logging.getLogger("xlang3").name,
     _colorize.can_colorize(),
+)
+
+# re.py is CPython source, while _sre is the native dependency behind it.
+named_match = re.search(r"(?P<word>[a-z]+)-(?P=word)", "abc-abc")
+lookbehind_split = re.split(r"(?<!x),", "a,bx,c")
+print(
+    "system-stdlib-re-semantics",
+    source_lib_package(re),
+    named_match.group("word"),
+    re.search(r"foo(?=bar)", "foobar").group(0),
+    re.search(r"foo(?!bar)", "foobaz").group(0),
+    re.search(r"(?<=foo)bar", "foobar").group(0),
+    re.search(r"(?<!foo)bar", "xxbar").group(0),
+    re.sub(r"([a-z]+)([0-9]+)", r"\2-\1", "id42"),
+    [(match.group(0), match.start()) for match in re.finditer(r"\d+", "a12b3")],
+    lookbehind_split,
 )
 
 # Source helpers need real mappingproxy/dict protocol behavior, not native
