@@ -2846,6 +2846,39 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
         }
         return XlangVMOpFlow::Next;
       }
+      XlangVMBuiltinConstructorError constructor_error;
+      if (call_builtin_type_constructor(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
+        if (value_as_class(regs[in.dst]) == nullptr) {
+          return XlangVMOpFlow::Next;
+        }
+        return call_metaclass_init_after_type_new(
+            callee,
+            regs[in.dst],
+            call_args,
+            module,
+            module_owner,
+            runtime,
+            native_call_args,
+            ip,
+            in.dst,
+            result,
+            execution_lock,
+            make_generator_if_needed,
+            push_frame,
+            raise_runtime_error,
+            raise_exception_value);
+      }
+      Value pending_constructor_exception;
+      if (runtime.take_pending_exception(pending_constructor_exception)) {
+        return raise_exception_value(std::move(pending_constructor_exception))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
+      }
+      if (!constructor_error.message.empty()) {
+        return raise_exception_value(runtime.make_exception(constructor_error.type, constructor_error.message))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
+      }
       Value instance = Value::instance(callee);
       CallArgsView init_args = call_args;
       init_args.leading = &instance;

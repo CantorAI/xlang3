@@ -34,6 +34,7 @@ struct PythonNames {
   static constexpr const char* builtin_set = "set";
   static constexpr const char* builtin_frozenset = "frozenset";
   static constexpr const char* builtin_dict = "dict";
+  static constexpr const char* builtin_mappingproxy = "mappingproxy";
   static constexpr const char* builtin_bytes = "bytes";
   static constexpr const char* builtin_bytearray = "bytearray";
   static constexpr const char* builtin_memoryview = "memoryview";

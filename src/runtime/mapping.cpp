@@ -56,9 +56,20 @@ struct DictViewObjectFreeList {
   std::vector<DictViewObject*> items;
 };
 
+struct MappingProxyObjectFreeList {
+  ~MappingProxyObjectFreeList() {
+    for (auto* object : items) {
+      delete object;
+    }
+  }
+
+  std::vector<MappingProxyObject*> items;
+};
+
 thread_local DictObjectFreeList dict_object_free_list;
 thread_local DictIteratorObjectFreeList dict_iterator_object_free_list;
 thread_local DictViewObjectFreeList dict_view_object_free_list;
+thread_local MappingProxyObjectFreeList mapping_proxy_object_free_list;
 
 DictObject* allocate_dict_object() {
   xlang_perf_count_object_alloc(ObjectKind::Dict);
@@ -105,6 +116,21 @@ DictViewObject* allocate_dict_view_object(ObjectKind kind) {
   return obj;
 }
 
+MappingProxyObject* allocate_mapping_proxy_object() {
+  xlang_perf_count_object_alloc(ObjectKind::MappingProxy);
+  if (!mapping_proxy_object_free_list.items.empty()) {
+    auto* obj = mapping_proxy_object_free_list.items.back();
+    mapping_proxy_object_free_list.items.pop_back();
+    obj->header.kind = ObjectKind::MappingProxy;
+    obj->header.refcnt = 1;
+    return obj;
+  }
+  auto* obj = new MappingProxyObject();
+  obj->header.kind = ObjectKind::MappingProxy;
+  obj->header.refcnt = 1;
+  return obj;
+}
+
 void recycle_dict_object(DictObject* object) {
   for (auto& entry : object->entries) {
     value_set_invalid(entry.first);
@@ -133,6 +159,15 @@ void recycle_dict_view_object(DictViewObject* object) {
   object->kind = DictIterationKind::Keys;
   if (dict_view_object_free_list.items.size() < 4096) {
     dict_view_object_free_list.items.push_back(object);
+    return;
+  }
+  delete object;
+}
+
+void recycle_mapping_proxy_object(MappingProxyObject* object) {
+  value_set_invalid(object->source);
+  if (mapping_proxy_object_free_list.items.size() < 4096) {
+    mapping_proxy_object_free_list.items.push_back(object);
     return;
   }
   delete object;
@@ -177,13 +212,24 @@ DictObject* dict_storage_from_value(const Value& value) {
   return nullptr;
 }
 
+const Value* mapping_proxy_source(const Value& value) {
+  auto* proxy = value_as_mapping_proxy(value);
+  return proxy == nullptr ? nullptr : &proxy->source;
+}
+
 DictObject* dict_source_from_view_or_dict(const Value& value, DictIterationKind& kind) {
+  if (const Value* source = mapping_proxy_source(value)) {
+    return dict_source_from_view_or_dict(*source, kind);
+  }
   if (auto* dict = dict_storage_from_value(value)) {
     kind = DictIterationKind::Keys;
     return dict;
   }
   if (auto* view = value_as_dict_view(value)) {
     kind = view->kind;
+    if (const Value* source = mapping_proxy_source(view->source)) {
+      return dict_storage_from_value(*source);
+    }
     return dict_storage_from_value(view->source);
   }
   return nullptr;
@@ -238,6 +284,36 @@ bool module_entry_at(const ModuleObject& module, uint64_t index, std::pair<Value
   for (const auto& item : names) {
     if (visible == index) {
       out = {Value::string(item.first), module.slots[item.second]};
+      return true;
+    }
+    ++visible;
+  }
+  return false;
+}
+
+bool class_visible_name(const std::string& name) {
+  return !name.empty() && name[0] != '#';
+}
+
+std::vector<std::pair<Value, Value>> class_entries(const ClassObject& klass) {
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(klass.attrs.size());
+  for (const auto& item : klass.attrs) {
+    if (class_visible_name(item.first)) {
+      entries.push_back({Value::string(item.first), item.second});
+    }
+  }
+  return entries;
+}
+
+bool class_entry_at(const ClassObject& klass, uint64_t index, std::pair<Value, Value>& out) {
+  uint64_t visible = 0;
+  for (const auto& item : klass.attrs) {
+    if (!class_visible_name(item.first)) {
+      continue;
+    }
+    if (visible == index) {
+      out = {Value::string(item.first), item.second};
       return true;
     }
     ++visible;
@@ -313,6 +389,15 @@ Value mapping_items_view(Value source) {
   return make_dict_view(std::move(source), DictIterationKind::Items);
 }
 
+Value mapping_proxy(Value source) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_mapping_proxy_object();
+  obj->source = std::move(source);
+  v.as.obj = &obj->header;
+  return v;
+}
+
 void mapping_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Dict:
@@ -325,6 +410,9 @@ void mapping_release_object(Object* object) {
       break;
     case ObjectKind::DictIterator:
       recycle_dict_iterator_object(reinterpret_cast<DictIteratorObject*>(object));
+      break;
+    case ObjectKind::MappingProxy:
+      recycle_mapping_proxy_object(reinterpret_cast<MappingProxyObject*>(object));
       break;
     default:
       break;
@@ -378,6 +466,9 @@ std::string mapping_to_string(const Value& value) {
     text += "])";
     return text;
   }
+  if (auto* proxy = value_as_mapping_proxy(value)) {
+    return "mappingproxy(" + value_to_repr(proxy->source) + ")";
+  }
   return "<dict>";
 }
 
@@ -400,14 +491,20 @@ bool mapping_truthy(const Value& value) {
   if (auto* module = value_as_module(value)) {
     return !module_entries(*module).empty();
   }
+  if (const Value* source = mapping_proxy_source(value)) {
+    return mapping_truthy(*source);
+  }
   return true;
 }
 
 bool mapping_is_mapping(const Value& value) {
-  return dict_storage_from_value(value) != nullptr || value_as_module(value) != nullptr;
+  return dict_storage_from_value(value) != nullptr || value_as_module(value) != nullptr || value_as_mapping_proxy(value) != nullptr;
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
+  if (const Value* source = mapping_proxy_source(object)) {
+    return mapping_get_item(*source, key, out, error);
+  }
   auto* dict = dict_storage_from_value(object);
   if (!ensure_hashable(key, error)) {
     return false;
@@ -435,11 +532,29 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
     error = "module globals keys must be strings";
     return false;
   }
+  if (auto* klass = value_as_class(object)) {
+    if (auto* string = value_as_string(key)) {
+      const auto name = string_object_to_string(*string);
+      auto it = klass->attrs.find(name);
+      if (it != klass->attrs.end()) {
+        value_assign_fast(out, it->second);
+        return true;
+      }
+      error = "key not found";
+      return false;
+    }
+    error = "class dictionary keys must be strings";
+    return false;
+  }
   error = "object is not a dict: " + value_to_repr(object);
   return false;
 }
 
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error) {
+  if (value_as_mapping_proxy(object) != nullptr) {
+    error = "'mappingproxy' object does not support item assignment";
+    return false;
+  }
   auto* dict = dict_storage_from_value(object);
   if (!ensure_hashable(key, error)) {
     return false;
@@ -471,6 +586,10 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
 }
 
 bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
+  if (value_as_mapping_proxy(object) != nullptr) {
+    error = "'mappingproxy' object does not support item deletion";
+    return false;
+  }
   auto* dict = dict_storage_from_value(object);
   if (!ensure_hashable(key, error)) {
     return false;
@@ -519,16 +638,30 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
 }
 
 bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
+  if (const Value* source = mapping_proxy_source(object)) {
+    return mapping_get_iter(*source, out, error);
+  }
   DictIterationKind kind = DictIterationKind::Keys;
   auto* view = value_as_dict_view(object);
+  const Value* view_source = view == nullptr ? nullptr : &view->source;
+  if (view_source != nullptr) {
+    if (const Value* source = mapping_proxy_source(*view_source)) {
+      view_source = source;
+    }
+  }
   if (dict_source_from_view_or_dict(object, kind) == nullptr &&
       value_as_module(object) == nullptr &&
-      (view == nullptr || value_as_module(view->source) == nullptr)) {
+      value_as_class(object) == nullptr &&
+      (view_source == nullptr || (value_as_module(*view_source) == nullptr && value_as_class(*view_source) == nullptr))) {
     error = "object is not a dict: " + value_to_repr(object);
     return false;
   }
   if (view != nullptr) {
-    out = make_dict_iterator(view->source, 0, kind);
+    if (view_source != nullptr) {
+      out = make_dict_iterator(*view_source, 0, kind);
+    } else {
+      out = make_dict_iterator(view->source, 0, kind);
+    }
   } else {
     out = make_dict_iterator(object, 0, kind);
   }
@@ -541,9 +674,13 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
     error = "invalid dict iterator";
     return false;
   }
+  if (const Value* source = mapping_proxy_source(it->source)) {
+    value_assign_fast(it->source, *source);
+  }
   auto* dict = dict_storage_from_value(it->source);
   auto* module = value_as_module(it->source);
-  if (dict == nullptr && module == nullptr) {
+  auto* klass = value_as_class(it->source);
+  if (dict == nullptr && module == nullptr && klass == nullptr) {
     error = "dict iterator source is invalid";
     return false;
   }
@@ -555,7 +692,13 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
       return true;
     }
     entry = dict->entries[static_cast<size_t>(it->index)];
-  } else if (!module_entry_at(*module, it->index, entry)) {
+  } else if (module != nullptr) {
+    if (!module_entry_at(*module, it->index, entry)) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+  } else if (!class_entry_at(*klass, it->index, entry)) {
     done = true;
     value_set_none(out);
     return true;
@@ -577,6 +720,9 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
 }
 
 bool mapping_len(const Value& value, Value& out, std::string& error) {
+  if (const Value* source = mapping_proxy_source(value)) {
+    return mapping_len(*source, out, error);
+  }
   DictIterationKind kind = DictIterationKind::Keys;
   auto* dict = dict_source_from_view_or_dict(value, kind);
   if (dict != nullptr) {
@@ -593,11 +739,18 @@ bool mapping_len(const Value& value, Value& out, std::string& error) {
     value_set_int64(out, static_cast<int64_t>(module_entries(*module).size()));
     return true;
   }
+  if (auto* klass = value_as_class(value)) {
+    value_set_int64(out, static_cast<int64_t>(class_entries(*klass).size()));
+    return true;
+  }
   error = "object has no len()";
   return false;
 }
 
 bool mapping_contains(const Value& container, const Value& item, bool& out, std::string& error) {
+  if (const Value* source = mapping_proxy_source(container)) {
+    return mapping_contains(*source, item, out, error);
+  }
   out = false;
   DictIterationKind kind = DictIterationKind::Keys;
   auto* dict = dict_source_from_view_or_dict(container, kind);
@@ -611,6 +764,8 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
     }
     if (module != nullptr) {
       module_entries_storage = module_entries(*module);
+    } else if (auto* klass = value_as_class(container)) {
+      module_entries_storage = class_entries(*klass);
     } else {
       error = "object is not a dict view";
       return false;
@@ -653,6 +808,10 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
 }
 
 bool mapping_clear(Value& value, std::string& error) {
+  if (value_as_mapping_proxy(value) != nullptr) {
+    error = "'mappingproxy' object does not support clear";
+    return false;
+  }
   if (auto* dict = value_as_dict(value)) {
     dict->entries.clear();
     return true;
@@ -699,11 +858,17 @@ bool mapping_popitem(Value& value, Value& out, std::string& error) {
 }
 
 Value mapping_copy(const Value& value) {
+  if (const Value* source = mapping_proxy_source(value)) {
+    return mapping_copy(*source);
+  }
   if (auto* dict = value_as_dict(value)) {
     return Value::dict(dict->entries);
   }
   if (auto* module = value_as_module(value)) {
     return Value::dict(module_entries(*module));
+  }
+  if (auto* klass = value_as_class(value)) {
+    return Value::dict(class_entries(*klass));
   }
   if (auto* view = value_as_dict_view(value)) {
     if (auto* dict = value_as_dict(view->source)) {

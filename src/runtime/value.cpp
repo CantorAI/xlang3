@@ -1210,6 +1210,7 @@ void release(const Value& value) {
       recycle_tuple_object(as_tuple(value.as.obj));
       break;
     case ObjectKind::Dict:
+    case ObjectKind::MappingProxy:
     case ObjectKind::DictKeysView:
     case ObjectKind::DictValuesView:
     case ObjectKind::DictItemsView:
@@ -1367,6 +1368,7 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr &&
           (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::MappingProxy ||
            value.as.obj->kind == ObjectKind::DictKeysView ||
            value.as.obj->kind == ObjectKind::DictValuesView ||
            value.as.obj->kind == ObjectKind::DictItemsView ||
@@ -2792,7 +2794,7 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
       return true;
     }
   }
-  if (value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {
+  if (value_as_mapping_proxy(container) != nullptr || value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {
     return mapping_contains(container, item, out, error);
   }
   if (auto* set = value_as_set(container)) {

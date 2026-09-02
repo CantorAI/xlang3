@@ -2293,12 +2293,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__dict__") {
-      std::vector<std::pair<Value, Value>> entries;
-      entries.reserve(klass->attrs.size());
-      for (const auto& attr : klass->attrs) {
-        entries.push_back({Value::string(attr.first), attr.second});
-      }
-      out = Value::dict(std::move(entries));
+      out = mapping_proxy(object);
       return true;
     }
     if (name == "__annotations__") {

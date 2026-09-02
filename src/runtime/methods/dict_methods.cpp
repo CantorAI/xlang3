@@ -26,6 +26,23 @@ namespace xlang3 {
 
 namespace {
 
+bool is_key_miss_error(const std::string& error) {
+  return error == "key not found";
+}
+
+bool raise_dict_key_error(Runtime& runtime, const Value& key, std::string& error) {
+  if (is_key_miss_error(error) || error.empty()) {
+    error = value_to_repr(key);
+  }
+  runtime.raise_class_error("KeyError", error);
+  return false;
+}
+
+bool raise_dict_type_error(Runtime& runtime, std::string& error) {
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool dict_len_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.__len__", error)) {
     return false;
@@ -33,13 +50,16 @@ bool dict_len_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return mapping_len(args[0], out, error);
 }
 
-bool dict_get_method_impl(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_get_method_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 && argc != 3) {
     error = "dict.get expected 2 or 3 arguments, got " + std::to_string(argc);
-    return false;
+    return raise_dict_type_error(runtime, error);
   }
   if (mapping_get_item(args[0], args[1], out, error)) {
     return true;
+  }
+  if (!is_key_miss_error(error)) {
+    return raise_dict_type_error(runtime, error);
   }
   error.clear();
   out = argc == 3 ? args[2] : Value::none();
@@ -89,13 +109,16 @@ bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (mapping_get_item(args[0], args[1], out, error)) {
     return true;
   }
-  if (error != "key not found" || value_as_instance(args[0]) == nullptr) {
-    return false;
+  if (!is_key_miss_error(error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (value_as_instance(args[0]) == nullptr) {
+    return raise_dict_key_error(runtime, args[1], error);
   }
   Value missing;
   std::string missing_error;
   if (!object_get_attr(args[0], "__missing__", missing, missing_error)) {
-    return false;
+    return raise_dict_key_error(runtime, args[1], error);
   }
   error.clear();
   Value key_arg = args[1];
@@ -105,21 +128,24 @@ bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   return true;
 }
 
-bool dict_delitem_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_delitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "dict.__delitem__", error)) {
-    return false;
+    return raise_dict_type_error(runtime, error);
   }
   Value target = args[0];
   if (!mapping_delete_item(target, args[1], error)) {
-    return false;
+    if (is_key_miss_error(error)) {
+      return raise_dict_key_error(runtime, args[1], error);
+    }
+    return raise_dict_type_error(runtime, error);
   }
   value_set_none(out);
   return true;
 }
 
-bool dict_contains_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "dict.__contains__", error)) {
-    return false;
+    return raise_dict_type_error(runtime, error);
   }
   Value ignored;
   std::string get_error;
@@ -127,9 +153,20 @@ bool dict_contains_method(Runtime&, const Value* args, uint32_t argc, Value& out
     value_set_bool(out, true);
     return true;
   }
+  if (!is_key_miss_error(get_error)) {
+    error = std::move(get_error);
+    return raise_dict_type_error(runtime, error);
+  }
   error.clear();
   value_set_bool(out, false);
   return true;
+}
+
+bool dict_iter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.__iter__", error)) {
+    return false;
+  }
+  return mapping_get_iter(args[0], out, error);
 }
 
 bool dict_eq_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -192,9 +229,7 @@ bool dict_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     out = args[2];
     return true;
   }
-  error = "key not found";
-  runtime.raise_class_error("KeyError", error);
-  return false;
+  return raise_dict_key_error(runtime, args[1], error);
 }
 
 bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -239,23 +274,26 @@ bool dict_popitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   return true;
 }
 
-bool dict_setdefault_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_setdefault_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 && argc != 3) {
     error = "dict.setdefault expected 2 or 3 arguments, got " + std::to_string(argc);
-    return false;
+    return raise_dict_type_error(runtime, error);
   }
   if (!mapping_is_mapping(args[0])) {
     error = "dict.setdefault target is not a mapping";
-    return false;
+    return raise_dict_type_error(runtime, error);
   }
   Value target = args[0];
   if (mapping_get_item(target, args[1], out, error)) {
     return true;
   }
+  if (!is_key_miss_error(error)) {
+    return raise_dict_type_error(runtime, error);
+  }
   error.clear();
   const Value& default_value = argc == 3 ? args[2] : Value::none();
   if (!mapping_set_item(target, args[1], default_value, error)) {
-    return false;
+    return raise_dict_type_error(runtime, error);
   }
   value_assign_fast(out, default_value);
   return true;
@@ -421,6 +459,7 @@ static constexpr BuiltinMethodSpec kDictMethods[] = {
     {"__delitem__", "dict.__delitem__", dict_delitem_method},
     {"__eq__", "dict.__eq__", dict_eq_method},
     {"__getitem__", "dict.__getitem__", dict_getitem_method},
+    {"__iter__", "dict.__iter__", dict_iter_method},
     {"__len__", "dict.__len__", dict_len_method},
     {"__setitem__", "dict.__setitem__", dict_setitem_method},
     {"clear", "dict.clear", dict_clear_method},
@@ -435,7 +474,22 @@ static constexpr BuiltinMethodSpec kDictMethods[] = {
     {"values", "dict.values", dict_values_method},
 };
 
+static constexpr BuiltinMethodSpec kMappingProxyMethods[] = {
+    {"__contains__", "mappingproxy.__contains__", dict_contains_method},
+    {"__getitem__", "mappingproxy.__getitem__", dict_getitem_method},
+    {"__iter__", "mappingproxy.__iter__", dict_iter_method},
+    {"__len__", "mappingproxy.__len__", dict_len_method},
+    {"copy", "mappingproxy.copy", dict_copy_method},
+    {"get", "mappingproxy.get", dict_get_method_impl},
+    {"items", "mappingproxy.items", dict_items_method},
+    {"keys", "mappingproxy.keys", dict_keys_method},
+    {"values", "mappingproxy.values", dict_values_method},
+};
+
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
+  if (value_as_mapping_proxy(object) != nullptr) {
+    return bind_builtin_method_from_table(object, name, kMappingProxyMethods, std::size(kMappingProxyMethods), out);
+  }
   if (value_as_dict(object) == nullptr && value_as_module(object) == nullptr) {
     return false;
   }

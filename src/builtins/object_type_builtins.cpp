@@ -390,6 +390,8 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "list";
     case ObjectKind::Dict:
       return "dict";
+    case ObjectKind::MappingProxy:
+      return "mappingproxy";
     case ObjectKind::DictKeysView:
       return "dict_keys";
     case ObjectKind::DictValuesView:
@@ -1569,6 +1571,32 @@ bool builtin_type_dict_get(
   return object_get_attr(args[0], "__dict__", out, error);
 }
 
+bool builtin_mappingproxy_new(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "mappingproxy() expected mapping";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "mappingproxy.__new__ first argument must be a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!mapping_is_mapping(args[1])) {
+    error = "mappingproxy() argument must be a mapping";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = mapping_proxy(args[1]);
+  return true;
+}
+
 void register_builtin_type(Runtime& runtime, const char* name, const Value& object_base) {
   Value metaclass = Value::invalid();
   if (const auto* type_type = runtime.find_builtin("type")) {
@@ -2225,6 +2253,13 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "dict_keys", object_type);
   register_builtin_type(runtime, "dict_values", object_type);
   register_builtin_type(runtime, "dict_items", object_type);
+  register_builtin_type(runtime, "mappingproxy", object_type);
+  if (const auto* mappingproxy_value = runtime.find_builtin("mappingproxy")) {
+    if (auto* mappingproxy_class = value_as_class(*mappingproxy_value)) {
+      mappingproxy_class->attrs["__new__"] = Value::native_function(0, "mappingproxy.__new__", builtin_mappingproxy_new);
+      ++mappingproxy_class->version;
+    }
+  }
   register_builtin_type(runtime, "set", object_type);
   register_builtin_type(runtime, "frozenset", object_type);
   register_builtin_type(runtime, "range", object_type);

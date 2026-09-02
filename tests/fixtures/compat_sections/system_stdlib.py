@@ -151,3 +151,59 @@ print(
     logging.getLogger("xlang3").name,
     _colorize.can_colorize(),
 )
+
+# Source helpers need real mappingproxy/dict protocol behavior, not native
+# stand-ins for the libraries themselves.
+proxy_source = collections.OrderedDict([("first", 1), ("second", 2)])
+proxy = types.MappingProxyType(proxy_source)
+proxy_source["third"] = 3
+print(
+    "system-stdlib-mappingproxy",
+    list(proxy),
+    list(proxy.keys()),
+    list(proxy.values()),
+    list(proxy.items())[1],
+    proxy["third"],
+    hasattr(proxy, "__iter__"),
+)
+
+
+@dataclasses.dataclass(order=True)
+class StdlibPoint:
+    x: int
+    y: int = 0
+
+
+sig = inspect.signature(lambda a, b=2, *, c=3: a + b + c)
+bound = sig.bind(1, c=4)
+dedented = textwrap.dedent(
+    """
+        alpha
+          beta
+    """
+).strip()
+try:
+    raise ValueError("demo")
+except ValueError as exc:
+    formatted_exception = traceback.format_exception(exc)
+stream = io.StringIO()
+handler = logging.StreamHandler(stream)
+handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+logger = logging.getLogger("xlang3.fixture")
+logger.handlers = []
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+logger.propagate = False
+logger.info("hello")
+print(
+    "system-stdlib-source-helper-protocols",
+    list(sig.parameters),
+    bound.arguments["c"],
+    dataclasses.asdict(StdlibPoint(2, 3)),
+    dataclasses.astuple(dataclasses.replace(StdlibPoint(2, 3), y=9)),
+    [field.name for field in dataclasses.fields(StdlibPoint)],
+    dedented.splitlines(),
+    any("ValueError: demo" in line for line in formatted_exception),
+    linecache.getline(__file__, 1).startswith("# Copyright"),
+    stream.getvalue().strip(),
+)

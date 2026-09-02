@@ -43,6 +43,7 @@ const char* diagnostic_value_kind(const Value& value) {
       case ObjectKind::Tuple: return "tuple";
       case ObjectKind::List: return "list";
       case ObjectKind::Dict: return "dict";
+      case ObjectKind::MappingProxy: return "mappingproxy";
       case ObjectKind::Set: return "set";
       case ObjectKind::DictKeysView: return "dict_keys";
       case ObjectKind::DictValuesView: return "dict_values";

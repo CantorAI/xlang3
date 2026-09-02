@@ -492,7 +492,8 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
     }
     return true;
   }
-  if (value_as_dict(iterable) != nullptr || value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
+  if (value_as_dict(iterable) != nullptr || value_as_mapping_proxy(iterable) != nullptr ||
+      value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
     return mapping_get_iter(iterable, out, error);
   }
   if (value_as_set(iterable) != nullptr) {
@@ -726,7 +727,7 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     value_assign_fast(out, list->items[static_cast<size_t>(resolved)]);
     return true;
   }
-  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
+  if (value_as_dict(object) != nullptr || value_as_mapping_proxy(object) != nullptr || value_as_module(object) != nullptr) {
     return mapping_get_item(object, index, out, error);
   }
   if (auto* instance = value_as_instance(object)) {

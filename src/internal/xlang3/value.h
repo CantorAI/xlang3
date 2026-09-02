@@ -58,6 +58,7 @@ enum class ObjectKind : uint32_t {
   Tuple,
   List,
   Dict,
+  MappingProxy,
   Set,
   DictKeysView,
   DictValuesView,

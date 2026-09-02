@@ -1325,7 +1325,10 @@ High-level pure-Python stdlib modules must be source-backed:
   facade was removed as a compatibility-boundary violation. Remaining:
   implement truthful `_ctypes` type/layout/FFI primitives before marking any
   `ctypes` behavior complete.
-- [~] `dataclasses`: annotated-field decorator generates `__init__`, `__repr__`, `__eq__`, `__dataclass_fields__`, `fields`, `is_dataclass`, `asdict`, and simple `field(default=...)` handling; frozen/order/slots/default_factory/inheritance and full CPython field semantics pending
+- [~] `dataclasses`: public module runs from CPython 3.14 `Lib/dataclasses.py`; annotated-field decorator, `order=True`,
+  generated `__init__`/`__repr__`/`__eq__`, `__dataclass_fields__`, `fields`, `is_dataclass`, `asdict`, `astuple`,
+  and `replace` basics are covered through runtime object/mappingproxy support. Frozen/slots/default_factory/inheritance
+  and full CPython field semantics pending
 - [~] `dis`: code-object-backed `findlinestarts`, `Bytecode`, and `get_instructions` foundations over XLang3 IR/source metadata; exact CPython bytecode/disassembly compatibility pending
 - [~] `enum`: native foundation for `Enum`, `IntEnum`, `IntFlag`, `Flag`, `StrEnum`, `auto`, and decorators; real enum metaclass/member semantics pending
 - [~] `fnmatch` / `glob`: native `fnmatch`, `fnmatchcase`, `filter`, `filterfalse`, `translate`, `glob.has_magic`,
@@ -1413,16 +1416,18 @@ High-level pure-Python stdlib modules must be source-backed:
 - [~] `typing`: public module must run from CPython 3.14 `Lib/typing.py`
   on top of native `_typing`; parsed type-parameter bounds/defaults/variance,
   lazy evaluation, and full typing runtime behavior pending.
-- [~] `traceback`: public module must run from CPython 3.14
-  `Lib/traceback.py`; exact frame/line formatting pending.
+- [~] `traceback`: public module runs from CPython 3.14
+  `Lib/traceback.py`; `format_exception` over runtime exceptions is covered.
+  Exact frame/line formatting and chained exception edge cases pending.
 - [~] `tokenize` / `_tokenize`: CPython `tokenize.tokenize()` can consume byte readline callables through `_tokenize.TokenizerIter`, namedtuple `TokenInfo._make`, callable-sentinel `iter`, lazy `itertools.chain`, native COMMENT/NL preservation for comment-only, blank, and inline-comment lines, and UTF-8/UTF-8-BOM/ASCII/Latin-1 coding-cookie handling; exact token text for string literals and full CPython tokenizer parity pending
-- [~] `linecache`: public module must run from CPython 3.14
-  `Lib/linecache.py` over VFS/open/tokenize primitives; exact cache
-  invalidation semantics pending.
-- [~] `inspect`: public module must run from CPython 3.14 `Lib/inspect.py`
-  over real frame/code/source metadata; exact frame stack, source block
-  slicing, keyword binding, annotations, descriptor classification, and full
-  CPython signature semantics pending.
+- [~] `linecache`: public module runs from CPython 3.14
+  `Lib/linecache.py` over VFS/open/tokenize primitives; basic source-line
+  lookup is covered. Exact cache invalidation semantics pending.
+- [~] `inspect`: public module runs from CPython 3.14 `Lib/inspect.py`
+  over real frame/code/source metadata; `signature`, `Signature.parameters`
+  mappingproxy iteration, keyword binding, and `getsource` basics are covered.
+  Exact frame stack, source block slicing, annotations, descriptor
+  classification, and full CPython signature semantics pending.
 - [~] `runpy`: public module runs from CPython 3.14 `Lib/runpy.py`; full
   `run_module`/`run_path` basics are covered; package/module alter-sys edge
   semantics pending.
@@ -1433,14 +1438,18 @@ High-level pure-Python stdlib modules must be source-backed:
   `importlib.resources.is_resource`/`read_text` over file packages are
   covered. Package metadata, startup import locks/caches, namespace/zip
   resource discovery, and import-time performance pending.
-- [~] `types`: public module must run from CPython 3.14 `Lib/types.py` over
-  runtime-backed type objects.
+- [~] `types`: public module runs from CPython 3.14 `Lib/types.py` over
+  runtime-backed type objects; native `mappingproxy` construction, iteration,
+  views, item lookup, and live read-only mapping behavior are covered.
 - [~] `collections`: public package must run from CPython 3.14
   `Lib/collections` on top of native `_collections`; full CPython collection
   semantics pending.
 - [~] `weakref`: public module must run from CPython 3.14 `Lib/weakref.py` on
   top of native `_weakref`; true weak lifetime/callback semantics pending.
-- [~] `logging`: CPython 3.14 `Lib/logging/__init__.py` imports and covers `getLogger` through runtime/native primitive support; import is currently much too slow because complex `re` setup runs through interpreted `re._parser`/`re._compiler`, and full handler/formatter/runtime edge semantics remain pending
+- [~] `logging`: CPython 3.14 `Lib/logging/__init__.py` imports and covers
+  `getLogger`, `StreamHandler`, formatter output, and logger handler dispatch
+  through runtime/native primitive support. Import-time performance and full
+  handler/formatter/runtime edge semantics remain pending
 - [~] `pathlib`: public package must run from CPython 3.14 `Lib/pathlib`
   over VFS/os/path protocol primitives; full platform-specific pathlib edge
   semantics, permissions, symlink behavior, and lazy iterator details pending.

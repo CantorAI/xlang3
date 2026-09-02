@@ -455,6 +455,7 @@ enum class XlangVMBuiltinConstructor : uint8_t {
   Set,
   FrozenSet,
   Dict,
+  MappingProxy,
   Bytes,
   ByteArray,
   MemoryView,
@@ -760,6 +761,7 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
       {XlangVMNames::builtin_set, XlangVMBuiltinConstructor::Set},
       {XlangVMNames::builtin_frozenset, XlangVMBuiltinConstructor::FrozenSet},
       {XlangVMNames::builtin_dict, XlangVMBuiltinConstructor::Dict},
+      {XlangVMNames::builtin_mappingproxy, XlangVMBuiltinConstructor::MappingProxy},
       {XlangVMNames::builtin_bytes, XlangVMBuiltinConstructor::Bytes},
       {XlangVMNames::builtin_bytearray, XlangVMBuiltinConstructor::ByteArray},
       {XlangVMNames::builtin_memoryview, XlangVMBuiltinConstructor::MemoryView},
@@ -1876,6 +1878,20 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     return add_constructor_keywords_to_dict();
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::MappingProxy) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 1) {
+      error = "mappingproxy() expected mapping";
+      return false;
+    }
+    if (!mapping_is_mapping(constructor_args.get(0))) {
+      error = "mappingproxy() argument must be a mapping";
+      return false;
+    }
+    out = mapping_proxy(constructor_args.get(0));
+    return true;
   }
 
   if (constructor == XlangVMBuiltinConstructor::Bytes) {
