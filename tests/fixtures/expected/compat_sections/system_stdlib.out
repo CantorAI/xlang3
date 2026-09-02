@@ -17,3 +17,4 @@ system-stdlib-traceback-positions True True True True x
 system-stdlib-dataclass-inheritance-slots (1, 2, 8, [4]) ['a', 'b', 'xs'] TypeError TypeError (1, 2, False) (True, True)
 system-stdlib-os-fd True 6 6 2 b'cde' 6 2 b'xy' (False, True, False) b'bc' True
 system-stdlib-os-environ (None, False) ('one', 'one') ('one', 'one') (None, False) (None, None) None ('dict', True, True, True)
+system-stdlib-subprocess-deep True 0 child-xlang 0 True 0 (True, True)

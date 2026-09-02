@@ -32,6 +32,8 @@ import os
 import queue
 import pickle
 import re
+import subprocess
+import sys
 import textwrap
 import traceback
 import typing
@@ -471,4 +473,30 @@ print(
     env_external_putenv,
     os.getenv(env_key),
     (type(env_copy).__name__, len(env_copy) > 0, len(env_dict) > 0, len(env_update_dict) > 0),
+)
+
+
+# subprocess.py stays CPython source-backed and delegates process work to
+# native _winapi/os primitives.
+subprocess_cwd = "xlang3_subprocess_cwd_probe"
+os.makedirs(subprocess_cwd, exist_ok=True)
+try:
+    child_result = subprocess.run([sys.executable, "-c", "print('child-xlang')"], capture_output=True, text=True)
+    cwd_result = subprocess.run(["cmd", "/c", "cd"], cwd=subprocess_cwd, capture_output=True, text=True)
+    devnull_result = subprocess.run(["cmd", "/c", "echo hidden"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        subprocess.run(["cmd", "/c", "ping -n 3 127.0.0.1 >nul"], shell=True, timeout=0.01)
+    except subprocess.TimeoutExpired as timeout_error:
+        timeout_state = (timeout_error.cmd is not None, timeout_error.timeout == 0.01)
+finally:
+    os.rmdir(subprocess_cwd)
+print(
+    "system-stdlib-subprocess-deep",
+    source_lib_module(subprocess),
+    child_result.returncode,
+    child_result.stdout.strip(),
+    cwd_result.returncode,
+    cwd_result.stdout.strip().replace("\\", "/").endswith(subprocess_cwd),
+    devnull_result.returncode,
+    timeout_state,
 )

@@ -1407,10 +1407,11 @@ High-level pure-Python stdlib modules must be source-backed:
   exact range diagnostics, keyword forms, true iterator object identity, and full CPython format edge cases pending
 - [~] `subprocess`: public module must run from CPython 3.14
   `Lib/subprocess.py` on top of native `_winapi`, `os`, file/pipe, and process
-  primitives. Basic Windows `subprocess.run([sys.executable, "-c", ...],
+  primitives. Windows `subprocess.run([sys.executable, "-c", ...],
   capture_output=True, text=True, timeout=...)` now launches the active
   XLang3-compatible executable and captures stdout/stderr through the source
-  module. POSIX process launch, exact file-handle inheritance, advanced
+  module; `cwd`, `DEVNULL`, mapped `env`, input pipes, context-manager
+  `Popen`, and timeout cleanup are covered. POSIX process launch, exact file-handle inheritance, advanced
   `Popen.communicate`, lifecycle/session/group semantics, and full CPython
   edge behavior pending.
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
