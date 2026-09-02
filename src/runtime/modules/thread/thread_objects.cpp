@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "thread_objects.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
@@ -22,6 +23,7 @@ limitations under the License.
 #include <chrono>
 #include <cstdio>
 #include <memory>
+#include <unordered_set>
 #include <unordered_map>
 
 namespace xlang3 {
@@ -44,8 +46,12 @@ struct XlangThreadHandleState {
 
 struct XlangThreadLocalState {
   std::mutex mutex;
+  Runtime* runtime = nullptr;
+  Value owner_class;
+  std::vector<Value> init_args;
   std::unordered_map<int64_t, std::shared_ptr<Value>> attrs_by_thread;
-  bool seed_subclass_threads = false;
+  std::unordered_set<int64_t> initialized_threads;
+  std::unordered_set<int64_t> initializing_threads;
 };
 
 XlangLockState* lock_state_from_self(const Value& self, std::string& error) {
@@ -1175,18 +1181,65 @@ std::shared_ptr<Value> thread_local_attrs_for_current_thread(XlangThreadLocalSta
     return it->second;
   }
   auto attrs = std::make_shared<Value>(Value::dict({}));
-  if (state.seed_subclass_threads && !state.attrs_by_thread.empty()) {
-    if (auto* source = value_as_dict(*state.attrs_by_thread.begin()->second)) {
-      std::vector<std::pair<Value, Value>> entries;
-      entries.reserve(source->entries.size());
-      for (const auto& entry : source->entries) {
-        entries.push_back(entry);
-      }
-      *attrs = Value::dict(std::move(entries));
-    }
-  }
   auto inserted = state.attrs_by_thread.emplace(ident, std::move(attrs));
   return inserted.first->second;
+}
+
+bool thread_local_needs_init_for_current_thread(XlangThreadLocalState& state) {
+  const int64_t ident = xlang_thread_current_ident();
+  std::lock_guard<std::mutex> lock(state.mutex);
+  if (state.initialized_threads.find(ident) != state.initialized_threads.end() ||
+      state.initializing_threads.find(ident) != state.initializing_threads.end()) {
+    return false;
+  }
+  state.initializing_threads.insert(ident);
+  return true;
+}
+
+void thread_local_finish_init_for_current_thread(XlangThreadLocalState& state, bool initialized) {
+  const int64_t ident = xlang_thread_current_ident();
+  std::lock_guard<std::mutex> lock(state.mutex);
+  state.initializing_threads.erase(ident);
+  if (initialized) {
+    state.initialized_threads.insert(ident);
+  }
+}
+
+bool thread_local_ensure_current_thread_initialized(const Value& self, XlangThreadLocalState& state, std::string& error) {
+  thread_local_attrs_for_current_thread(state);
+  if (state.runtime == nullptr || state.owner_class.tag == ValueTag::Invalid ||
+      !thread_local_needs_init_for_current_thread(state)) {
+    return true;
+  }
+
+  bool initialized = false;
+  Value init;
+  std::string init_error;
+  if (object_lookup_class_attr(state.owner_class, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
+    if (auto* native = value_as_native_function(init)) {
+      if (native->name == "_thread._local.__init__") {
+        initialized = true;
+      }
+    }
+    if (!initialized) {
+      std::vector<Value> args;
+      args.reserve(state.init_args.size() + 1);
+      args.push_back(self);
+      for (const auto& arg : state.init_args) {
+        args.push_back(arg);
+      }
+      Value ignored;
+      if (!runtime_call_callable(*state.runtime, init, args.data(), static_cast<uint32_t>(args.size()), ignored, error)) {
+        thread_local_finish_init_for_current_thread(state, false);
+        return false;
+      }
+      initialized = true;
+    }
+  } else {
+    initialized = true;
+  }
+  thread_local_finish_init_for_current_thread(state, initialized);
+  return true;
 }
 
 void xlang_thread_local_state_cleanup(void* data) {
@@ -1217,6 +1270,9 @@ bool thread_local_get_attr(const Value& self, const std::string& name, Value& ou
   if (state == nullptr) {
     return false;
   }
+  if (!thread_local_ensure_current_thread_initialized(self, *state, error)) {
+    return false;
+  }
   std::shared_ptr<Value> attrs = thread_local_attrs_for_current_thread(*state);
   if (name == "__dict__") {
     value_assign_fast(out, *attrs);
@@ -1234,6 +1290,9 @@ bool thread_local_set_attr(Value& self, const std::string& name, const Value& va
   if (state == nullptr) {
     return false;
   }
+  if (!thread_local_ensure_current_thread_initialized(self, *state, error)) {
+    return false;
+  }
   std::shared_ptr<Value> attrs = thread_local_attrs_for_current_thread(*state);
   return mapping_set_item(*attrs, Value::string(name), value, error);
 }
@@ -1247,12 +1306,15 @@ bool thread_local_delete_attr(Value& self, const std::string& name, std::string&
   if (state == nullptr) {
     return false;
   }
+  if (!thread_local_ensure_current_thread_initialized(self, *state, error)) {
+    return false;
+  }
   std::shared_ptr<Value> attrs = thread_local_attrs_for_current_thread(*state);
   return mapping_delete_item(*attrs, Value::string(name), error);
 }
 
 bool thread_local_new(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     Value& out,
@@ -1271,10 +1333,16 @@ bool thread_local_new(
     return false;
   }
   auto* state = thread_local_state_from_self(out, error);
-  auto* klass = value_as_class(args[0]);
-  if (state != nullptr && klass != nullptr && klass->name != "_local") {
+  if (state != nullptr) {
     std::lock_guard<std::mutex> lock(state->mutex);
-    state->seed_subclass_threads = true;
+    state->runtime = &runtime;
+    value_assign_fast(state->owner_class, args[0]);
+    state->init_args.clear();
+    state->init_args.reserve(argc > 0 ? argc - 1 : 0);
+    for (uint32_t i = 1; i < argc; ++i) {
+      state->init_args.push_back(args[i]);
+    }
+    state->initialized_threads.insert(xlang_thread_current_ident());
   }
   return state != nullptr;
 }

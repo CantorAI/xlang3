@@ -1304,6 +1304,10 @@ High-level pure-Python stdlib modules must be source-backed:
   worker through `_thread.start_joinable_thread`, runs the Python target,
   joins through CPython `Thread.join()`, exposes `ident`, and keeps
   `current_thread()`/`active_count()` usable through the source module.
+  `threading.local` subclasses now isolate dictionaries per thread and rerun
+  the subclass initializer with the original positional constructor arguments
+  on first use in each thread; keyword replay and lifecycle edge behavior remain
+  pending.
   `_thread._local` now provides per-thread attribute dictionaries for
   `threading.local()` basic isolation plus subclass initial attribute isolation
   across worker/main threads. Remaining: exact daemon/shutdown lifecycle,

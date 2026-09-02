@@ -638,7 +638,7 @@ thread_seen = []
 
 
 def thread_local_worker():
-    thread_seen.append((hasattr(thread_local, "value"), getattr(thread_local, "initialized", None)))
+    thread_seen.append((hasattr(thread_local, "value"), thread_local.value, getattr(thread_local, "initialized", None)))
     thread_local.value = 9
     thread_seen.append((thread_local.value, thread_local.initialized))
 
