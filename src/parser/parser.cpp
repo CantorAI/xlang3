@@ -477,9 +477,20 @@ ParseExpressionResult Parser::parse_expression_module() {
 
 ast::StmtPtr Parser::parse_statement() {
   const uint32_t line = peek().line;
+  const uint32_t column = peek().column;
   auto stmt = parse_statement_impl();
   if (stmt != nullptr && stmt->line == 0) {
     stmt->line = line;
+  }
+  if (stmt != nullptr && stmt->column == 0) {
+    stmt->column = column;
+  }
+  if (stmt != nullptr && stmt->end_line == 0) {
+    const Token& end = previous();
+    stmt->end_line = end.line == 0 ? line : end.line;
+    const uint32_t text_len = static_cast<uint32_t>(end.text.size());
+    const uint32_t end_column = end.column + (text_len == 0 ? 0 : text_len);
+    stmt->end_column = std::max(stmt->column, end_column);
   }
   return stmt;
 }

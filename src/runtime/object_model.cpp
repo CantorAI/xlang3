@@ -1099,10 +1099,21 @@ bool code_positions_method(
   }
   const auto& fn = code->module->functions[code->function_id];
   std::vector<Value> positions;
-  positions.reserve(fn.source_lines.size());
-  for (const auto line_value : fn.source_lines) {
-    Value line = line_value == 0 ? Value::none() : Value::int64(static_cast<int64_t>(line_value));
-    positions.push_back(Value::tuple({line, line, Value::none(), Value::none()}));
+  const size_t count = std::max(fn.source_lines.size(), fn.source_positions.size());
+  positions.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    ir::SourcePosition position;
+    if (i < fn.source_positions.size()) {
+      position = fn.source_positions[i];
+    } else if (i < fn.source_lines.size()) {
+      position.line = fn.source_lines[i];
+      position.end_line = fn.source_lines[i];
+    }
+    Value line = position.line == 0 ? Value::none() : Value::int64(static_cast<int64_t>(position.line));
+    Value end_line = position.end_line == 0 ? line : Value::int64(static_cast<int64_t>(position.end_line));
+    Value column = position.column == 0 ? Value::none() : Value::int64(static_cast<int64_t>(position.column - 1));
+    Value end_column = position.end_column == 0 ? Value::none() : Value::int64(static_cast<int64_t>(position.end_column - 1));
+    positions.push_back(Value::tuple({line, end_line, column, end_column}));
   }
   out = Value::tuple(std::move(positions));
   return true;

@@ -248,3 +248,24 @@ print(
     "ZeroDivisionError" in log_text,
     "1 / 0" in log_text,
 )
+
+
+# traceback: CPython 3.14 traceback.py consumes co_positions() columns.
+def traceback_position_probe():
+    value = (1 + 2) / 0
+
+
+try:
+    traceback_position_probe()
+except Exception as exc:
+    position_values = list(exc.__traceback__.tb_next.tb_frame.f_code.co_positions())
+    position_columns = [item for item in position_values if item[2] is not None and item[3] is not None]
+    formatted_text = "".join(traceback.format_exception(exc))
+    print(
+        "system-stdlib-traceback-positions",
+        len(position_values) > 0,
+        len(position_columns) > 0,
+        "value = (1 + 2) / 0" in formatted_text,
+        "ZeroDivisionError" in formatted_text,
+        b"x".decode(encoding="utf-8", errors="strict"),
+    )

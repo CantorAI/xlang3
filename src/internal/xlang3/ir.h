@@ -168,6 +168,13 @@ struct Instr {
   uint32_t c = 0;
 };
 
+struct SourcePosition {
+  uint32_t line = 0;
+  uint32_t end_line = 0;
+  uint32_t column = 0;
+  uint32_t end_column = 0;
+};
+
 struct Function {
   std::string name;
   std::string qualname;
@@ -207,6 +214,7 @@ struct Function {
   std::vector<std::pair<uint32_t, uint32_t>> string_replace_specs;
   std::vector<Instr> code;
   std::vector<uint32_t> source_lines;
+  std::vector<SourcePosition> source_positions;
 };
 
 struct Module {

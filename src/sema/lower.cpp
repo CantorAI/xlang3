@@ -1593,11 +1593,13 @@ private:
   void emit(ir::Op op, uint32_t dst = 0, uint32_t a = 0, uint32_t b = 0, uint32_t c = 0) {
     fn_.code.push_back(ir::Instr{op, dst, a, b, c});
     fn_.source_lines.push_back(current_source_line_);
+    fn_.source_positions.push_back(current_source_position_);
   }
 
   size_t emit_jump(ir::Op op, uint32_t cond = 0) {
     fn_.code.push_back(ir::Instr{op, 0, cond, 0, 0});
     fn_.source_lines.push_back(current_source_line_);
+    fn_.source_positions.push_back(current_source_position_);
     return fn_.code.size() - 1;
   }
 
@@ -2995,16 +2997,25 @@ private:
   }
 
   void lower_stmt(const ast::Stmt& stmt) {
-    struct SourceLineScope {
-      uint32_t& current;
-      uint32_t saved;
+    struct SourceScope {
+      uint32_t& current_line;
+      ir::SourcePosition& current_position;
+      uint32_t saved_line;
+      ir::SourcePosition saved_position;
 
-      ~SourceLineScope() {
-        current = saved;
+      ~SourceScope() {
+        current_line = saved_line;
+        current_position = saved_position;
       }
-    } source_line_scope{current_source_line_, current_source_line_};
+    } source_scope{current_source_line_, current_source_position_, current_source_line_, current_source_position_};
     if (stmt.line != 0) {
       current_source_line_ = stmt.line;
+      current_source_position_ = ir::SourcePosition{
+          stmt.line,
+          stmt.end_line == 0 ? stmt.line : stmt.end_line,
+          stmt.column,
+          stmt.end_column,
+      };
     }
     if (dynamic_cast<const ast::GlobalStmt*>(&stmt) != nullptr) {
       return;
@@ -3975,6 +3986,7 @@ private:
   std::string private_class_name_;
   std::string active_class_private_name_;
   uint32_t current_source_line_ = 0;
+  ir::SourcePosition current_source_position_;
   ir::Function fn_;
   sema::NameSet local_name_set_;
   sema::NameSet global_names_;

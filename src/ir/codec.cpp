@@ -24,7 +24,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 11;
+constexpr uint32_t kVersion = 12;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -263,6 +263,36 @@ bool read_u32_pair_vector(
   values.resize(count);
   for (auto& pair : values) {
     if (!r.u32(pair.first) || !r.u32(pair.second)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_source_positions(Writer& w, const std::vector<SourcePosition>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    w.u32(value.line);
+    w.u32(value.end_line);
+    w.u32(value.column);
+    w.u32(value.end_column);
+  }
+  return true;
+}
+
+bool read_source_positions(Reader& r, std::vector<SourcePosition>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!r.u32(value.line) ||
+        !r.u32(value.end_line) ||
+        !r.u32(value.column) ||
+        !r.u32(value.end_column)) {
       return false;
     }
   }
@@ -694,7 +724,8 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
     w.u32(instr.b);
     w.u32(instr.c);
   }
-  if (!write_u32_vector(w, fn.source_lines, error)) {
+  if (!write_u32_vector(w, fn.source_lines, error) ||
+      !write_source_positions(w, fn.source_positions, error)) {
     return false;
   }
   return true;
@@ -763,7 +794,8 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
     }
     instr.op = static_cast<Op>(op);
   }
-  if (!read_u32_vector(r, fn.source_lines, error)) {
+  if (!read_u32_vector(r, fn.source_lines, error) ||
+      !read_source_positions(r, fn.source_positions, error)) {
     return false;
   }
   return true;

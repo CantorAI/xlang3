@@ -57,9 +57,10 @@ fixture coverage, then update the row truthfully.
   `globals()`, disabled `sys.monitoring` near-zero-cost frame handling, real
   `mappingproxy` construction/iteration/views for `Signature.parameters` and
   class dictionaries, CPython-shaped `f_lasti`/`tb_lasti`/`co_lines` offsets
-  for `traceback.py`, catchable `ZeroDivisionError`, dataclass
+  for `traceback.py`, `co_positions()` statement-level line/column metadata,
+  catchable `ZeroDivisionError`, keyword-compatible `bytes.decode`, dataclass
   frozen/default_factory/slots basics, and logging exception formatter output.
-  Remaining: full regex semantics, exact traceback column/end-position
+  Remaining: full regex semantics, expression-exact traceback column/end-position
   metadata, complete dataclass inheritance/slot/default edge semantics, and
   deeper logging handler/filter/error behavior remain pending.
 

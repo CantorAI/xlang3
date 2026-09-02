@@ -157,6 +157,59 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   return true;
 }
 
+bool bytes_decode_method_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 3) {
+    error = "bytes.decode expected 0 to 2 arguments, got " + std::to_string(argc == 0 ? 0 : argc - 1);
+    return false;
+  }
+  Value merged[3];
+  for (uint32_t i = 0; i < argc; ++i) {
+    merged[i] = args[i];
+  }
+  uint32_t merged_argc = argc;
+  bool has_encoding = argc >= 2;
+  bool has_errors = argc >= 3;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (name == "encoding") {
+      if (has_encoding) {
+        error = "bytes.decode got multiple values for argument 'encoding'";
+        return false;
+      }
+      merged[1] = *kwargs[i].value;
+      has_encoding = true;
+      if (merged_argc < 2) merged_argc = 2;
+    } else if (name == "errors") {
+      if (has_errors) {
+        error = "bytes.decode got multiple values for argument 'errors'";
+        return false;
+      }
+      if (!has_encoding) {
+        merged[1] = Value::string("utf-8");
+        has_encoding = true;
+      }
+      merged[2] = *kwargs[i].value;
+      has_errors = true;
+      if (merged_argc < 3) merged_argc = 3;
+    } else {
+      error = "bytes.decode got an unexpected keyword argument '" + std::string(name) + "'";
+      return false;
+    }
+  }
+  return bytes_decode_method(runtime, merged, merged_argc, out, error, user_data);
+}
+
 bool get_bytes_like_view(const Value& value, const char* name, std::string_view& out, std::string& error) {
   if (auto* bytes = value_as_bytes(value)) {
     out = bytes_object_view(*bytes);
@@ -1304,7 +1357,7 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
   }
   static constexpr BuiltinMethodSpec methods[] = {
       {"count", "bytes.count", bytes_count_method},
-      {"decode", "bytes.decode", bytes_decode_method},
+      {"decode", "bytes.decode", bytes_decode_method, nullptr, false, bytes_decode_method_kw},
       {"endswith", "bytes.endswith", bytes_endswith_method},
       {"find", "bytes.find", bytes_find_method},
       {"hex", "bytes.hex", bytes_hex_method},
@@ -1334,7 +1387,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"clear", "bytearray.clear", bytearray_clear_method},
       {"copy", "bytearray.copy", bytearray_copy_method},
       {"count", "bytearray.count", bytes_count_method},
-      {"decode", "bytearray.decode", bytes_decode_method},
+      {"decode", "bytearray.decode", bytes_decode_method, nullptr, false, bytes_decode_method_kw},
       {"endswith", "bytearray.endswith", bytes_endswith_method},
       {"extend", "bytearray.extend", bytearray_extend_method},
       {"find", "bytearray.find", bytes_find_method},
