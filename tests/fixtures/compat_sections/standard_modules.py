@@ -3377,6 +3377,24 @@ print(
     bool(selector_events[0][1] & selectors.EVENT_READ),
     (False | selectors.EVENT_WRITE) == selectors.EVENT_WRITE,
 )
+server = socket.socket()
+client = None
+accepted = None
+try:
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    host, port = server.getsockname()
+    client = socket.create_connection((host, port), timeout=2.0)
+    accepted, peer = server.accept()
+    client.sendall(b"hi")
+    create_connection_data = accepted.recv(2)
+finally:
+    if client is not None:
+        client.close()
+    if accepted is not None:
+        accepted.close()
+    server.close()
+print("socket-create-connection", create_connection_data, isinstance(peer, tuple))
 
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)

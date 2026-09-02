@@ -67,4 +67,6 @@
   through native `_socket` and returns CPython-shaped tuples.
   Coverage update: CPython `Lib/selectors.py` now covers `SelectSelector`
   registration and readable socketpair dispatch.
+  Coverage update: CPython `socket.create_connection` now succeeds against a
+  loopback listener using native `_socket` resolver/connect primitives.
   Remaining: deeper selectors edge behavior, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

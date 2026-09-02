@@ -100,7 +100,8 @@ fixture coverage, then update the row truthfully.
   getsockname/connect/accept/send/recv, empty `select.select`, and real
   `select.select` readability over sockets with original object return lists,
   plus loopback IPv4 `socket.getaddrinfo` and CPython `Lib/selectors.py`
-  `SelectSelector` socketpair readiness.
+  `SelectSelector` socketpair readiness. CPython `socket.create_connection`
+  also succeeds against a loopback listener.
   Additional probes cover `socket.socketpair`, socket blocking/timeout state,
   `_overlapped` import foundation, CPython `Lib/asyncio` import, `_signal`
   `set_wakeup_fd`, and int-like signal enum arguments.
