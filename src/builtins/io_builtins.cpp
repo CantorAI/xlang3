@@ -26,6 +26,17 @@ namespace xlang3 {
 
 namespace {
 
+bool raise_file_not_found(Runtime& runtime, const std::string& path, std::string& error) {
+  error = "file not found: " + path;
+  Value exception = runtime.make_exception("FileNotFoundError", error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(2), ignored);
+  object_set_attr(exception, "strerror", Value::string("No such file or directory"), ignored);
+  object_set_attr(exception, "filename", Value::string(path), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
 struct OpenMode {
   bool readable = false;
   bool writable = false;
@@ -523,10 +534,6 @@ bool builtin_open(
       error = "open file descriptor out of range";
       return false;
     }
-    if (parsed.exclusive || parsed.append || parsed.create || parsed.truncate) {
-      error = "open file descriptor mode is not supported for creating or truncating files";
-      return false;
-    }
     out = Value::fd_file(
         static_cast<int>(fd_value),
         std::to_string(fd_value),
@@ -588,9 +595,7 @@ bool builtin_open(
         return false;
       }
     } else if (!parsed.writable) {
-      error = "file not found: " + path;
-      runtime.raise_class_error("FileNotFoundError", error);
-      return false;
+      return raise_file_not_found(runtime, path, error);
     }
   }
 

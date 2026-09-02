@@ -121,9 +121,11 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/marshal_module.cpp
   src/runtime/modules/system/msvcrt_module.cpp
   src/runtime/modules/system/opcode_module.cpp
+  src/runtime/modules/system/operator_module.cpp
   src/runtime/modules/system/os_module.cpp
   src/runtime/modules/system/overlapped_module.cpp
   src/runtime/modules/system/pickle_module.cpp
+  src/runtime/modules/system/pyexpat_module.cpp
   src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/random_module.cpp
   src/runtime/modules/system/signal_module.cpp
@@ -133,6 +135,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/stat_module.cpp
   src/runtime/modules/system/string_module.cpp
   src/runtime/modules/system/struct_module.cpp
+  src/runtime/modules/system/sysconfig_native_module.cpp
   src/runtime/modules/system/sys_module.cpp
   src/runtime/modules/system/time_module.cpp
   src/runtime/modules/system/tokenize_module.cpp

@@ -62,6 +62,10 @@ XLANG3_HOT_INLINE ListObject* value_as_list(const Value& value) {
   return reinterpret_cast<ListObject*>(value.as.obj);
 }
 
+ListObject* value_as_list_storage(Value& value);
+ListObject* value_as_mutable_list_storage(const Value& value);
+const ListObject* value_as_list_storage(const Value& value);
+
 XLANG3_HOT_INLINE RangeObject* value_as_range(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Range) {
     return nullptr;

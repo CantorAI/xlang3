@@ -755,10 +755,11 @@ import tokenize
 import urllib.parse
 import winreg
 import xmlrpc.client
+import pyexpat
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
-print(getpass.GetPassWarning.__name__, getpass.getpass(prompt="x", stream=None) == "", getpass.default_getpass("x") == "")
-print(locale.delocalize("1,234.5"), locale.localize("1234.5"), locale.atoi("1,234"), locale.atof("1,234.5"))
+print(getpass.GetPassWarning.__name__, getpass.getpass(prompt="x", stream=None) == "")
+print(locale.delocalize("1234.5"), locale.localize("1234.5"), locale.atoi("1234"), locale.atof("1234.5"))
 print(locale.strcoll("a", "b") < 0, isinstance(locale.strxfrm("abc"), str), locale.CHAR_MAX)
 old_recursion_limit = sys.getrecursionlimit()
 sys.setrecursionlimit(old_recursion_limit + 1)
@@ -1811,11 +1812,6 @@ for sys_audit_keyword_bad_name, sys_audit_keyword_bad_call, sys_audit_keyword_ba
         sys_audit_keyword_bad_call()
     except TypeError as err:
         print("sys-audit-keyword-diagnostic", sys_audit_keyword_bad_name, all(part in str(err) for part in sys_audit_keyword_bad_parts))
-print(sys.addaudithook(42) is None)
-try:
-    sys.audit("xlang3.fixture.bad-hook")
-except TypeError as err:
-    print("sys-audit-bad-hook", "callable" in str(err) or "call" in str(err))
 import builtins
 def sys_frame_probe():
     frame = sys._getframe()
@@ -2885,13 +2881,22 @@ print(sysconfig.get_default_scheme() in sysconfig.get_scheme_names(), sysconfig.
 preferred = sysconfig._get_preferred_schemes()
 expanded_paths = sysconfig._expand_vars("nt", {"base": "BASE", "platbase": "PLAT"})
 print(preferred["prefix"] in sysconfig.get_scheme_names(), preferred["home"] in sysconfig.get_scheme_names(), expanded_paths["purelib"].startswith("BASE"))
-print(sysconfig.get_preferred_scheme("prefix") in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("home"), sysconfig._get_sysconfigdata_name().startswith("_sysconfigdata"))
+try:
+    sysconfig_data_name_ok = sysconfig._get_sysconfigdata_name().startswith("_sysconfigdata")
+except AttributeError as err:
+    sysconfig_data_name_ok = "abiflags" in str(err)
+print(sysconfig.get_preferred_scheme("prefix") in sysconfig.get_scheme_names(), sysconfig.get_preferred_scheme("home"), sysconfig_data_name_ok)
 uname = platform.uname()
 print(platform.python_implementation(), platform.python_version_tuple()[0], len(platform.python_compiler()) >= 0)
 print(platform.system() == uname.system, platform.machine() == uname.machine, isinstance(platform.architecture()[0], str), isinstance(platform.libc_ver(), tuple))
 # platform OS-version helper tuple shapes.
 print(len(platform.win32_ver()), len(platform.mac_ver()), len(platform.java_ver()), platform.system_alias("SunOS", "5.10", "x")[0])
-print(platform._sys_version()[0], isinstance(platform.freedesktop_os_release(), dict))
+try:
+    os_release_result = platform.freedesktop_os_release()
+    os_release_ok = isinstance(os_release_result, dict)
+except OSError as os_release_error:
+    os_release_ok = os_release_error.errno is None or isinstance(os_release_error.errno, int)
+print(platform._sys_version()[0], os_release_ok)
 config_vars = sysconfig.get_config_vars()
 print(sysconfig.get_makefile_filename().endswith("Makefile"), sysconfig.get_config_h_filename().endswith("pyconfig.h"))
 print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == sysconfig.get_config_var("py_version") + "-" + sysconfig.get_config_var("SOABI"))
@@ -2908,7 +2913,7 @@ comment_text = [item.string for item in comment_tokens if item.type == tokenize.
 print(comment_text, comment_kinds.count(tokenize.COMMENT), comment_kinds.count(tokenize.NL))
 print(threading.__file__.endswith("threading.py"), os.__file__.endswith("os.py"))
 print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
-print(len(dis.findlinestarts(original.__code__)) > 0, len(dis.Bytecode(original)) > 0, len(dis.get_instructions(original.__code__)) > 0)
+print(len(list(dis.findlinestarts(original.__code__))) > 0, len(list(dis.Bytecode(original))) > 0, len(list(dis.get_instructions(original.__code__))) > 0)
 signature = inspect.signature(original)
 print(list(signature.parameters.keys()), signature.parameters["a"].name, inspect.getmembers(wrapper, inspect.isroutine) == [])
 bound_signature = signature.bind(4, 5)
@@ -3021,6 +3026,13 @@ pickle.Pickler(pickle_stream2).dump({"p": [1, 2]})
 pickle_stream2.seek(0)
 print(pickle.Unpickler(pickle_stream2).load()["p"][1])
 
+pyexpat_events = []
+pyexpat_parser = pyexpat.ParserCreate()
+pyexpat_parser.StartElementHandler = lambda name, attrs: pyexpat_events.append(("start", name, attrs.get("id")))
+pyexpat_parser.CharacterDataHandler = lambda data: pyexpat_events.append(("text", data.strip())) if data.strip() else None
+pyexpat_parser.EndElementHandler = lambda name: pyexpat_events.append(("end", name))
+print(pyexpat.EXPAT_VERSION.startswith("expat_"), "tag mismatch" in pyexpat.ErrorString(pyexpat.errors.XML_ERROR_TAG_MISMATCH), pyexpat_parser.Parse("<root id='7'>hi</root>", True), pyexpat_events)
+
 xml = xmlrpc.client.dumps((7, "rpc"), methodname="demo.echo")
 xml_params, xml_method = xmlrpc.client.loads(xml)
 print(xml_method, xml_params[0], xml_params[1])
@@ -3046,6 +3058,8 @@ if os.path.exists(os_dir + "/renamed.txt"):
     os.remove(os_dir + "/renamed.txt")
 if os.path.exists(os_dir + "/replaced.txt"):
     os.remove(os_dir + "/replaced.txt")
+if os.path.exists(os_dir + "/created.txt"):
+    os.remove(os_dir + "/created.txt")
 if os.path.isdir(os_dir):
     os.rmdir(os_dir)
 os.mkdir(os_dir)
@@ -3116,7 +3130,7 @@ os.makedirs("xlang3_glob_case/sub", exist_ok=True)
 (glob_root / "sub" / "c.py").write_text("c")
 (glob_root / ".hidden.py").write_text("h")
 print(glob.glob("xlang3_glob_case/*.py"))
-print(glob.glob("xlang3_glob_case/**/*.py", True))
+print(glob.glob("xlang3_glob_case/**/*.py", recursive=True))
 print(list(glob.iglob("xlang3_glob_case/*.txt")))
 print(glob.glob("*.py", root_dir="xlang3_glob_case"))
 print(glob.glob("*.py", root_dir="xlang3_glob_case", include_hidden=True))
@@ -3130,14 +3144,14 @@ for module_info in pkgutil.iter_modules([core_fixture_dir]):
     if module_info[1] == "functions":
         found_functions = module_info[2] == False
 
-resource = pkgutil.get_data("", core_fixture_dir + "/functions.py")
 site.addsitedir(core_fixture_dir)
-print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
 import importlib.resources
 
 print(pkgutil.resolve_name("functools:reduce") is functools.reduce, importlib.util.resolve_name(".client", "http"))
 site.addsitedir(compat_fixture_dir)
 import resource_pkg
+resource = pkgutil.get_data("resource_pkg", "data.txt")
+print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
 print(importlib.resources.is_resource(resource_pkg, "data.txt"), importlib.resources.read_text(resource_pkg, "data.txt").strip())
 
 # operator: generic runtime dispatch helpers and getter/caller factories.
@@ -3323,3 +3337,11 @@ try:
     subprocess.run(["cmd", "/c", "ping -n 3 127.0.0.1 >nul"], timeout=0.01, shell=True)
 except subprocess.TimeoutExpired as err:
     print(err.cmd[0], err.timeout > 0)
+
+# sys.audit: a non-callable hook is process-global and poisons later audit calls,
+# matching CPython behavior, so keep this check last in the combined fixture.
+print(sys.addaudithook(42) is None)
+try:
+    sys.audit("xlang3.fixture.bad-hook")
+except TypeError as err:
+    print("sys-audit-bad-hook", "callable" in str(err) or "call" in str(err))

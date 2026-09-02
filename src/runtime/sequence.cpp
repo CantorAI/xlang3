@@ -280,6 +280,39 @@ bool collect_byte_replacement(const Value& value, std::string& out, std::string&
 
 } // namespace
 
+ListObject* value_as_list_storage(Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+ListObject* value_as_mutable_list_storage(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+const ListObject* value_as_list_storage(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
 Value Value::list(std::vector<Value> items) {
   Value v;
   v.tag = ValueTag::Object;
@@ -612,7 +645,7 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
 }
 
 bool sequence_list_append(Value& list, const Value& item, std::string& error) {
-  auto* obj = value_as_list(list);
+  auto* obj = value_as_list_storage(list);
   if (obj == nullptr) {
     error = "list append target is not a list: " + value_to_repr(list);
     return false;
@@ -1208,6 +1241,14 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
     auto* bytes = reinterpret_cast<BytesObject*>(value.as.obj);
     value_set_int64(out, static_cast<int64_t>(bytes->size));
+    return true;
+  }
+  if (auto* range = value_as_range(value)) {
+    if (!range->int64_backed) {
+      error = "range length requires int-backed range";
+      return false;
+    }
+    value_set_int64(out, range_length(range->start, range->stop, range->step));
     return true;
   }
   if (auto* bytearray = value_as_bytearray(value)) {

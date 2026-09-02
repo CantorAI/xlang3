@@ -39,6 +39,7 @@ void register_core_builtins(Runtime& runtime) {
   register_stat_module(runtime);
   register_string_module(runtime);
   register_imp_module(runtime);
+  register_sysconfig_native_module(runtime);
   register_warnings_module(runtime);
   register_errno_module(runtime);
   register_itertools_module(runtime);
@@ -57,7 +58,9 @@ void register_core_builtins(Runtime& runtime) {
   register_weakref_module(runtime);
   register_marshal_module(runtime);
   register_opcode_module(runtime);
+  register_operator_module(runtime);
   register_pickle_module(runtime);
+  register_pyexpat_module(runtime);
 #if defined(_WIN32)
   register_msvcrt_module(runtime);
   register_overlapped_module(runtime);

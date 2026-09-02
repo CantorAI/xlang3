@@ -1674,15 +1674,37 @@ private:
     emit(ir::Op::Pop, 0, exit_result);
   }
 
-  void lower_active_finalizers() {
+  void lower_active_finalizers_from(size_t base_count) {
     const auto saved = active_finalizers_;
     for (auto it = saved.rbegin(); it != saved.rend(); ++it) {
+      const auto index = static_cast<size_t>(std::distance(saved.begin(), std::next(it).base()));
+      if (index < base_count) {
+        break;
+      }
       if (it->kind == ActiveFinalizer::Kind::TryFinally) {
         lower_finalizer_body(*it->body);
       } else {
         emit_with_normal_exit(it->manager, it->is_async);
       }
     }
+  }
+
+  void lower_active_finalizers() {
+    lower_active_finalizers_from(0);
+  }
+
+  void push_loop_control(uint32_t continue_target) {
+    loop_continue_targets_.push_back(continue_target);
+    loop_break_jumps_.push_back({});
+    loop_finalizer_base_counts_.push_back(active_finalizers_.size());
+  }
+
+  std::vector<size_t> pop_loop_control() {
+    auto break_jumps = std::move(loop_break_jumps_.back());
+    loop_break_jumps_.pop_back();
+    loop_continue_targets_.pop_back();
+    loop_finalizer_base_counts_.pop_back();
+    return break_jumps;
   }
 
   void store_named_value(const std::string& name, uint32_t reg) {
@@ -1783,12 +1805,9 @@ private:
     } else {
       store_named_value(target, item_reg);
     }
-    loop_continue_targets_.push_back(start);
-    loop_break_jumps_.push_back({});
+    push_loop_control(start);
     lower_body(loop.body);
-    auto break_jumps = std::move(loop_break_jumps_.back());
-    loop_break_jumps_.pop_back();
-    loop_continue_targets_.pop_back();
+    auto break_jumps = pop_loop_control();
     emit(ir::Op::Jump, start);
     patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
     lower_body(loop.else_body);
@@ -1812,12 +1831,9 @@ private:
     } else {
       store_named_value(target, item_reg);
     }
-    loop_continue_targets_.push_back(start);
-    loop_break_jumps_.push_back({});
+    push_loop_control(start);
     lower_body(loop.body);
-    auto break_jumps = std::move(loop_break_jumps_.back());
-    loop_break_jumps_.pop_back();
-    loop_continue_targets_.pop_back();
+    auto break_jumps = pop_loop_control();
     emit(ir::Op::Jump, start);
 
     patch_jump(setup_next, static_cast<uint32_t>(fn_.code.size()));
@@ -1897,12 +1913,9 @@ private:
     emit(ir::Op::ForRangeConstLocalNext, 0, target_slot, state_slot,
          add_range_spec(add_const(Value::int64(stop)), add_const(Value::int64(step))));
     const auto next = fn_.code.size() - 1;
-    loop_continue_targets_.push_back(loop_start);
-    loop_break_jumps_.push_back({});
+    push_loop_control(loop_start);
     lower_body(body);
-    auto break_jumps = std::move(loop_break_jumps_.back());
-    loop_break_jumps_.pop_back();
-    loop_continue_targets_.pop_back();
+    auto break_jumps = pop_loop_control();
     emit(ir::Op::Jump, loop_start);
     patch_jump(next, static_cast<uint32_t>(fn_.code.size()));
     for (const auto jump : break_jumps) {
@@ -2722,6 +2735,26 @@ private:
         const auto attr_reg = lower_expr(*assign->value);
         attrs.push_back(std::make_pair(mangle_private_identifier(assign->name), attr_reg));
         bind_class_attr_alias(assign->name, attr_reg);
+      } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+        const auto object = lower_expr(*assign->object);
+        const auto index = lower_expr(*assign->index);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::SetItem, object, index, value);
+      } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+        const auto object = lower_expr(*assign->object);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(assign->name)), value);
+      } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+          const auto rhs = lower_expr(*assign->value);
+          const auto current = lower_expr(*assign->target);
+          const auto result = new_reg();
+          emit(binary_op_for_aug_assign(assign->op), result, current, rhs);
+          attrs.push_back(std::make_pair(mangle_private_identifier(name->name), result));
+          bind_class_attr_alias(name->name, result);
+        } else {
+          lower_aug_assign(*assign);
+        }
       } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
         const auto attr_reg = lower_expr(*assign->value);
         for (const auto& target : assign->targets) {
@@ -2986,7 +3019,7 @@ private:
       if (loop_break_jumps_.empty()) {
         return;
       }
-      lower_active_finalizers();
+      lower_active_finalizers_from(loop_finalizer_base_counts_.back());
       loop_break_jumps_.back().push_back(emit_jump(ir::Op::Jump));
       return;
     }
@@ -2994,7 +3027,7 @@ private:
       if (loop_continue_targets_.empty()) {
         return;
       }
-      lower_active_finalizers();
+      lower_active_finalizers_from(loop_finalizer_base_counts_.back());
       emit(ir::Op::Jump, loop_continue_targets_.back());
       return;
     }
@@ -3169,12 +3202,9 @@ private:
         const auto cond = lower_expr(*loop->condition);
         jf = emit_jump(ir::Op::JumpIfFalse, cond);
       }
-      loop_continue_targets_.push_back(start);
-      loop_break_jumps_.push_back({});
+      push_loop_control(start);
       lower_body(loop->body);
-      auto break_jumps = std::move(loop_break_jumps_.back());
-      loop_break_jumps_.pop_back();
-      loop_continue_targets_.pop_back();
+      auto break_jumps = pop_loop_control();
       emit(ir::Op::Jump, start);
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
       lower_body(loop->else_body);
@@ -3958,6 +3988,7 @@ private:
   std::vector<ActiveFinalizer> active_finalizers_;
   std::vector<std::vector<size_t>> loop_break_jumps_;
   std::vector<uint32_t> loop_continue_targets_;
+  std::vector<size_t> loop_finalizer_base_counts_;
   uint32_t next_hidden_local_ = 0;
 };
 

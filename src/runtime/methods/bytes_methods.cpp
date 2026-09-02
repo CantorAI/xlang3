@@ -372,6 +372,77 @@ bool bytes_hex_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+int hex_digit_value(char ch) {
+  if (ch >= '0' && ch <= '9') {
+    return ch - '0';
+  }
+  if (ch >= 'a' && ch <= 'f') {
+    return ch - 'a' + 10;
+  }
+  if (ch >= 'A' && ch <= 'F') {
+    return ch - 'A' + 10;
+  }
+  return -1;
+}
+
+bool bytes_fromhex_common(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    bool mutable_result) {
+  if (argc != 2) {
+    error = "fromhex expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* text_value = value_as_string(args[1]);
+  if (text_value == nullptr) {
+    error = "fromhex() argument must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto text = string_object_view(*text_value);
+  std::string bytes;
+  bytes.reserve(text.size() / 2);
+  bool have_high = false;
+  int high = 0;
+  for (char ch : text) {
+    if (std::isspace(static_cast<unsigned char>(ch)) != 0) {
+      continue;
+    }
+    const int digit = hex_digit_value(ch);
+    if (digit < 0) {
+      error = "non-hexadecimal number found in fromhex() arg";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (!have_high) {
+      high = digit;
+      have_high = true;
+    } else {
+      bytes.push_back(static_cast<char>((high << 4) | digit));
+      have_high = false;
+    }
+  }
+  if (have_high) {
+    error = "non-hexadecimal number found in fromhex() arg";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = mutable_result ? Value::bytearray(std::move(bytes)) : Value::bytes(std::move(bytes));
+  return true;
+}
+
+bool bytes_fromhex_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return bytes_fromhex_common(runtime, args, argc, out, error, false);
+}
+
+bool bytearray_fromhex_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return bytes_fromhex_common(runtime, args, argc, out, error, true);
+}
+
 bool bytes_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "bytes.startswith", error)) {
     return false;
@@ -1218,6 +1289,11 @@ bool bytes_maketrans_method(Runtime& runtime, const Value* args, uint32_t argc, 
 
 bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
   bytes_class.attrs["maketrans"] = runtime.make_native_function("bytes.maketrans", bytes_maketrans_method);
+  const bool is_bytearray = bytes_class.name == "bytearray";
+  bytes_class.attrs["fromhex"] = Value::class_method(
+      runtime.make_native_function(
+          is_bytearray ? "bytearray.fromhex" : "bytes.fromhex",
+          is_bytearray ? bytearray_fromhex_method : bytes_fromhex_method));
   ++bytes_class.version;
   return true;
 }

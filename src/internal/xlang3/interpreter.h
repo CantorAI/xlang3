@@ -30,6 +30,7 @@ struct RuntimeDebugPauseState;
 
 struct RuntimeResult {
   Value value;
+  Value exception;
   std::vector<std::string> errors;
   bool paused = false;
   RuntimePauseReason pause_reason = RuntimePauseReason::None;

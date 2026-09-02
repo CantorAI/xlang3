@@ -111,7 +111,7 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
     result.errors.push_back("function has no module");
     return result;
   }
-  return run_function(
+  result = run_function(
       *function->module,
       function->function_id,
       args,
@@ -120,6 +120,16 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
       function->globals_module,
       function->module,
       nullptr);
+  if (!result.errors.empty() && result.exception.tag == ValueTag::Invalid) {
+    Value pending;
+    if (runtime_.take_pending_exception(pending)) {
+      value_assign_fast(result.exception, pending);
+      runtime_.set_pending_exception(std::move(pending));
+    } else if (runtime_.active_exception().tag != ValueTag::Invalid) {
+      value_assign_fast(result.exception, runtime_.active_exception());
+    }
+  }
+  return result;
 }
 
 RuntimeResult Interpreter::resume_paused(std::shared_ptr<RuntimeDebugPauseState> pause_state) {

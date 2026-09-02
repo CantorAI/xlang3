@@ -142,6 +142,140 @@ Value make_empty_arguments(AstState* state, std::string& error) {
   return args;
 }
 
+std::string_view ast_trim(std::string_view text) {
+  while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) {
+    text.remove_prefix(1);
+  }
+  while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back()))) {
+    text.remove_suffix(1);
+  }
+  return text;
+}
+
+bool ast_parse_decimal(std::string_view text, int64_t& out) {
+  text = ast_trim(text);
+  if (text.empty()) {
+    return false;
+  }
+  int64_t sign = 1;
+  if (text.front() == '+' || text.front() == '-') {
+    sign = text.front() == '-' ? -1 : 1;
+    text.remove_prefix(1);
+  }
+  if (text.empty()) {
+    return false;
+  }
+  int64_t value = 0;
+  for (char ch : text) {
+    if (!std::isdigit(static_cast<unsigned char>(ch))) {
+      return false;
+    }
+    value = value * 10 + (ch - '0');
+  }
+  out = sign * value;
+  return true;
+}
+
+Value ast_make_load(AstState* state) {
+  return ast_instance(state, "Load");
+}
+
+Value ast_make_constant(AstState* state, Value value, std::string& error) {
+  Value constant = ast_instance(state, "Constant");
+  if (constant.tag == ValueTag::Invalid) {
+    error = "missing _ast Constant class";
+    return constant;
+  }
+  object_set_attr(constant, "value", value, error);
+  object_set_attr(constant, "kind", Value::none(), error);
+  return constant;
+}
+
+Value ast_make_name(AstState* state, std::string_view name, std::string& error) {
+  Value node = ast_instance(state, "Name");
+  if (node.tag == ValueTag::Invalid) {
+    error = "missing _ast Name class";
+    return node;
+  }
+  object_set_attr(node, "id", Value::string(std::string(name)), error);
+  object_set_attr(node, "ctx", ast_make_load(state), error);
+  return node;
+}
+
+Value ast_parse_simple_expr(AstState* state, std::string_view source, std::string& error) {
+  source = ast_trim(source);
+  size_t plus = source.find('+');
+  if (plus != std::string_view::npos) {
+    Value left = ast_parse_simple_expr(state, source.substr(0, plus), error);
+    Value right = ast_parse_simple_expr(state, source.substr(plus + 1), error);
+    Value binop = ast_instance(state, "BinOp");
+    if (left.tag == ValueTag::Invalid || right.tag == ValueTag::Invalid || binop.tag == ValueTag::Invalid) {
+      error = "missing _ast BinOp class";
+      return Value::invalid();
+    }
+    object_set_attr(binop, "left", left, error);
+    object_set_attr(binop, "op", ast_instance(state, "Add"), error);
+    object_set_attr(binop, "right", right, error);
+    return binop;
+  }
+  int64_t integer = 0;
+  if (ast_parse_decimal(source, integer)) {
+    return ast_make_constant(state, Value::int64(integer), error);
+  }
+  if (!source.empty() &&
+      ((source.front() == '"' && source.back() == '"') || (source.front() == '\'' && source.back() == '\''))) {
+    return ast_make_constant(state, Value::string(std::string(source.substr(1, source.size() - 2))), error);
+  }
+  bool is_identifier = !source.empty() &&
+      (std::isalpha(static_cast<unsigned char>(source.front())) || source.front() == '_');
+  for (char ch : source) {
+    is_identifier = is_identifier &&
+        (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_');
+  }
+  if (is_identifier) {
+    return ast_make_name(state, source, error);
+  }
+  error = "unsupported _ast parse expression";
+  return Value::invalid();
+}
+
+bool parse_simple_module_ast(Runtime&, AstState* state, std::string_view source, Value& out, std::string& error) {
+  const size_t newline = source.find('\n');
+  std::string_view first_line = ast_trim(source.substr(0, newline));
+  if (first_line.empty() || first_line.rfind("def ", 0) == 0) {
+    return false;
+  }
+  const size_t equals = first_line.find('=');
+  if (equals == std::string_view::npos || first_line.find('=', equals + 1) != std::string_view::npos) {
+    return false;
+  }
+  std::string_view name = ast_trim(first_line.substr(0, equals));
+  std::string_view rhs = first_line.substr(equals + 1);
+  bool valid_name = !name.empty() &&
+      (std::isalpha(static_cast<unsigned char>(name.front())) || name.front() == '_');
+  for (char ch : name) {
+    valid_name = valid_name && (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_');
+  }
+  if (!valid_name) {
+    return false;
+  }
+  Value module = ast_instance(state, "Module");
+  Value assign = ast_instance(state, "Assign");
+  Value target = ast_make_name(state, name, error);
+  Value value = ast_parse_simple_expr(state, rhs, error);
+  if (module.tag == ValueTag::Invalid || assign.tag == ValueTag::Invalid ||
+      target.tag == ValueTag::Invalid || value.tag == ValueTag::Invalid) {
+    return false;
+  }
+  object_set_attr(assign, "targets", Value::list({target}), error);
+  object_set_attr(assign, "value", value, error);
+  object_set_attr(assign, "type_comment", Value::none(), error);
+  object_set_attr(module, "body", Value::list({assign}), error);
+  object_set_attr(module, "type_ignores", Value::list({}), error);
+  value_assign_fast(out, module);
+  return true;
+}
+
 bool parse_simple_function_ast(Runtime&, AstState* state, std::string_view source, Value& out, std::string& error) {
   std::string_view text = source;
   while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) {
@@ -236,6 +370,23 @@ bool ast_parse_kw(
   if (mode == "exec" && parse_simple_function_ast(runtime, state, string_object_to_string(*source), parsed, error)) {
     value_assign_fast(out, parsed);
     return true;
+  }
+  if (mode == "exec" && parse_simple_module_ast(runtime, state, string_object_to_string(*source), parsed, error)) {
+    value_assign_fast(out, parsed);
+    return true;
+  }
+  if (mode == "eval") {
+    parsed = ast_parse_simple_expr(state, string_object_to_string(*source), error);
+    if (parsed.tag != ValueTag::Invalid) {
+      Value expression = ast_instance(state, "Expression");
+      if (expression.tag == ValueTag::Invalid) {
+        error = "missing _ast Expression class";
+        return false;
+      }
+      object_set_attr(expression, "body", parsed, error);
+      value_assign_fast(out, expression);
+      return true;
+    }
   }
   Value klass = mode == "eval" ? node_class(state, "Expression") : node_class(state, "Module");
   out = Value::instance(klass);

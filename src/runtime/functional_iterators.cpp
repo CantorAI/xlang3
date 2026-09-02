@@ -274,6 +274,11 @@ bool runtime_call_callable(
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
     if (!result.errors.empty()) {
+      if (result.exception.tag != ValueTag::Invalid) {
+        error = result.errors.front();
+        runtime.set_pending_exception(result.exception);
+        return false;
+      }
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         error = result.errors.front();
@@ -421,6 +426,11 @@ bool runtime_call_callable_kw(
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
     if (!result.errors.empty()) {
+      if (result.exception.tag != ValueTag::Invalid) {
+        error = result.errors.front();
+        runtime.set_pending_exception(result.exception);
+        return false;
+      }
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         error = result.errors.front();
@@ -517,14 +527,24 @@ bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::
 bool runtime_collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
   Value iterator;
   if (!runtime_get_iter(runtime, iterable, iterator, error)) {
-    runtime.raise_class_error("TypeError", error);
+    Value pending;
+    if (!runtime.take_pending_exception(pending)) {
+      runtime.raise_class_error("TypeError", error);
+    } else {
+      runtime.set_pending_exception(std::move(pending));
+    }
     return false;
   }
   for (;;) {
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
-      runtime.raise_class_error("TypeError", error);
+      Value pending;
+      if (!runtime.take_pending_exception(pending)) {
+        runtime.raise_class_error("TypeError", error);
+      } else {
+        runtime.set_pending_exception(std::move(pending));
+      }
       return false;
     }
     if (done) {

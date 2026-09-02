@@ -68,6 +68,29 @@ bool get_write_bytes_arg(const Value& value, bool binary, const char* name, std:
     out = bytearray->value;
     return true;
   }
+  if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    if (auto* owner_bytes = value_as_bytes(view->owner)) {
+      const auto bytes = bytes_object_view(*owner_bytes);
+      if (view->offset > bytes.size() || bytes.size() - view->offset < view->size) {
+        error = "memoryview slice is out of range";
+        return false;
+      }
+      out.assign(bytes.data() + view->offset, view->size);
+      return true;
+    }
+    if (auto* owner_array = value_as_bytearray(view->owner)) {
+      if (view->offset > owner_array->value.size() || owner_array->value.size() - view->offset < view->size) {
+        error = "memoryview slice is out of range";
+        return false;
+      }
+      out.assign(owner_array->value.data() + view->offset, view->size);
+      return true;
+    }
+  }
   error = std::string(name) + " must be bytes-like";
   return false;
 }

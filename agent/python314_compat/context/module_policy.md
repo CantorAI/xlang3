@@ -19,7 +19,8 @@ Native C++ belongs in:
 - CPython native dependency modules, usually named with a leading underscore:
   `_io`, `_thread`, `_abc`, `_weakref`, `_collections`, `_queue`, `_socket`,
   `_signal`, `_stat`, `_struct`, `_pickle`, `_winapi`, plus native modules such
-  as `errno`, `time`, `marshal`, `zlib`, `winreg`, and `unicodedata`.
+  as `errno`, `time`, `marshal`, `pyexpat`, `zlib`, `winreg`, and
+  `unicodedata`.
 - XLang3 product modules and package ABI support.
 
 When `import typing`, `import inspect`, `import argparse`, or another pure

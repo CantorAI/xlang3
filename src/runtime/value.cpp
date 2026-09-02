@@ -356,7 +356,15 @@ void recycle_bytes_object(BytesObject* object) {
 }
 
 bool is_number(const Value& value) {
-  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool || value.tag == ValueTag::Double;
+}
+
+bool is_small_integer_number(const Value& value) {
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool;
+}
+
+int64_t small_integer_number(const Value& value) {
+  return value.tag == ValueTag::Bool ? (value.as.b ? 1 : 0) : value.as.i64;
 }
 
 bool checked_add_i64(int64_t lhs, int64_t rhs, int64_t& out) {
@@ -659,7 +667,13 @@ bool set_like_compare_value(const std::string& op, const Value& lhs, const Value
 }
 
 double as_double(const Value& value) {
-  return value.tag == ValueTag::Int64 ? static_cast<double>(value.as.i64) : value.as.f64;
+  if (value.tag == ValueTag::Int64) {
+    return static_cast<double>(value.as.i64);
+  }
+  if (value.tag == ValueTag::Bool) {
+    return value.as.b ? 1.0 : 0.0;
+  }
+  return value.as.f64;
 }
 
 StringObject* as_string(Object* obj) {
@@ -1821,6 +1835,14 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     value_set_int64(out, result);
     return true;
   }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_add_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_add(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     if (value_int_like_add(lhs, rhs, out)) {
       return true;
@@ -1933,6 +1955,14 @@ bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     value_set_int64(out, result);
     return true;
   }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_sub_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_sub(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     if (value_int_like_sub(lhs, rhs, out)) {
       return true;
@@ -1950,6 +1980,14 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     int64_t result = 0;
     if (!checked_mul_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_mul(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_mul_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
       return value_int_like_mul(lhs, rhs, out);
     }
     value_set_int64(out, result);

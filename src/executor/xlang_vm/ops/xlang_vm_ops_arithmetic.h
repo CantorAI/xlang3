@@ -121,13 +121,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_binary_special_method(
   return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;
 }
 
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow div(
     const ir::Instr& in,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     std::vector<Value>& native_call_args,
+    size_t& ip,
+    RuntimeResult& result,
     XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   const auto& lhs = regs[in.a];
@@ -136,6 +142,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow div(
   if (!fast_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
     if (divide_by_zero) {
       return raise_runtime_error("division by zero") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
+      const auto flow = call_binary_special_method(
+          runtime,
+          lhs,
+          rhs,
+          "__truediv__",
+          module,
+          module_owner,
+          in.dst,
+          ip,
+          native_call_args,
+          execution_lock,
+          result,
+          regs[in.dst],
+          std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+          std::forward<PushFrame>(push_frame),
+          std::forward<RaiseRuntimeError>(raise_runtime_error),
+          std::forward<RaiseExceptionValue>(raise_exception_value));
+      if (flow != XlangVMOpFlow::Next) {
+        return flow;
+      }
     }
     std::string error;
     if (!value_div(lhs, rhs, regs[in.dst], error)) {

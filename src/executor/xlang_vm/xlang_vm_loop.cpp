@@ -835,6 +835,7 @@ RuntimeResult Interpreter::run_function(
     const std::string exception_type_text = value_to_string(runtime_.exception_type(current_exception));
     const std::string exception_summary =
         exception_text.empty() ? exception_type_text : exception_type_text + ": " + exception_text;
+    value_assign_fast(result.exception, current_exception);
     runtime_.set_pending_exception(current_exception);
     std::string frame_summary = failing_function;
     if (!failing_location.empty()) {
@@ -878,13 +879,6 @@ RuntimeResult Interpreter::run_function(
   };
 
   if (has_generator_resume_exception) {
-    if (frame_count != 0 &&
-        !emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventPyThrow, &generator_resume_exception)) {
-      if (generator != nullptr) {
-        generator->done = true;
-      }
-      return result;
-    }
     if (!dispatch_exception(std::move(generator_resume_exception))) {
       if (generator != nullptr) {
         generator->done = true;

@@ -266,9 +266,12 @@ bool itertools_repeat(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   int64_t times = 0;
-  if (!int_arg(args[1], times) || times < 0) {
-    error = "repeat times must be non-negative int";
+  if (!int_arg(args[1], times)) {
+    error = "repeat times must be int";
     return false;
+  }
+  if (times < 0) {
+    times = 0;
   }
   std::vector<Value> values;
   values.reserve(static_cast<size_t>(times));

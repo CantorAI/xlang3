@@ -21,3 +21,4 @@ reraised again
 bare-outside No active exception to reraise
 True True True
 True
+True FileNotFoundError 2 missing name.txt PermissionError 2 True

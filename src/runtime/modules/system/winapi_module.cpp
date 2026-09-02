@@ -137,9 +137,27 @@ std::wstring utf8_to_wide(const std::string& text) {
   return wide;
 }
 
+std::string wide_to_utf8(const std::wstring& text) {
+  if (text.empty()) {
+    return std::string();
+  }
+  const int size = WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+  std::string utf8(static_cast<size_t>(size), '\0');
+  if (size > 0) {
+    WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), utf8.data(), size, nullptr, nullptr);
+  }
+  return utf8;
+}
+
 bool raise_win32_error(Runtime& runtime, const char* operation, DWORD code, std::string& error) {
   error = std::string(operation) + " failed with Win32 error " + std::to_string(code);
   runtime.raise_class_error("OSError", error);
+  return false;
+}
+
+bool raise_win32_permission_error(Runtime& runtime, const char* operation, DWORD code, std::string& error) {
+  error = std::string(operation) + " failed with Win32 error " + std::to_string(code);
+  runtime.raise_class_error("PermissionError", error);
   return false;
 }
 
@@ -640,11 +658,49 @@ bool winapi_terminate_process(Runtime& runtime, const Value* args, uint32_t argc
   }
 #if defined(_WIN32)
   if (!TerminateProcess(reinterpret_cast<HANDLE>(static_cast<intptr_t>(handle_value)), static_cast<UINT>(exit_code))) {
-    return raise_win32_error(runtime, "TerminateProcess", GetLastError(), error);
+    const DWORD code = GetLastError();
+    if (code == ERROR_ACCESS_DENIED) {
+      return raise_win32_permission_error(runtime, "TerminateProcess", code, error);
+    }
+    return raise_win32_error(runtime, "TerminateProcess", code, error);
   }
 #endif
   value_set_none(out);
   return true;
+}
+
+bool winapi_get_module_file_name(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "GetModuleFileName() expected module handle";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t handle_value = 0;
+  if (!winapi_int_arg(runtime, args[0], handle_value, 1, "GetModuleFileName", error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  std::wstring buffer(MAX_PATH, L'\0');
+  for (;;) {
+    const DWORD copied = GetModuleFileNameW(
+        reinterpret_cast<HMODULE>(static_cast<intptr_t>(handle_value)),
+        buffer.data(),
+        static_cast<DWORD>(buffer.size()));
+    if (copied == 0) {
+      return raise_win32_error(runtime, "GetModuleFileName", GetLastError(), error);
+    }
+    if (copied < buffer.size() - 1) {
+      buffer.resize(copied);
+      out = Value::string(wide_to_utf8(buffer));
+      return true;
+    }
+    buffer.resize(buffer.size() * 2);
+  }
+#else
+  (void)handle_value;
+  out = Value::string("");
+  return true;
+#endif
 }
 
 } // namespace
@@ -719,6 +775,7 @@ void register_winapi_module(Runtime& runtime) {
       .function("CreateProcess", winapi_create_process)
       .function("WaitForSingleObject", winapi_wait_for_single_object)
       .function("GetExitCodeProcess", winapi_get_exit_code_process)
+      .function("GetModuleFileName", winapi_get_module_file_name)
       .function("TerminateProcess", winapi_terminate_process);
   runtime.register_module("_winapi", builder.finish());
 }

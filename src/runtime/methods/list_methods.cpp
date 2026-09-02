@@ -120,7 +120,7 @@ bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
     error = "list.pop expected 1 or 2 arguments, got " + std::to_string(argc);
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.pop target is not a list";
     return false;
@@ -172,7 +172,7 @@ bool list_insert_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (!method_check_argc(argc, 3, "list.insert", error)) {
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.insert target is not a list";
     return false;
@@ -190,7 +190,7 @@ bool list_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!method_check_argc(argc, 1, "list.clear", error)) {
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.clear target is not a list";
     return false;
@@ -204,7 +204,7 @@ bool list_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (!method_check_argc(argc, 1, "list.copy", error)) {
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.copy target is not a list";
     return false;
@@ -217,7 +217,7 @@ bool list_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (!method_check_argc(argc, 2, "list.count", error)) {
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.count target is not a list";
     return false;
@@ -238,7 +238,7 @@ bool list_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.index target is not a list";
     runtime.raise_class_error("TypeError", error);
@@ -273,7 +273,7 @@ bool list_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.remove target is not a list";
     runtime.raise_class_error("TypeError", error);
@@ -295,7 +295,7 @@ bool list_reverse_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   if (!method_check_argc(argc, 1, "list.reverse", error)) {
     return false;
   }
-  auto* list = value_as_list(args[0]);
+  auto* list = value_as_mutable_list_storage(args[0]);
   if (list == nullptr) {
     error = "list.reverse target is not a list";
     return false;
@@ -341,7 +341,7 @@ bool list_sort_impl(
     bool reverse,
     Value& out,
     std::string& error) {
-  auto* list = value_as_list(list_value);
+  auto* list = value_as_mutable_list_storage(list_value);
   if (list == nullptr) {
     error = "list.sort target is not a list";
     runtime.raise_class_error("TypeError", error);
@@ -431,7 +431,7 @@ static constexpr BuiltinMethodSpec kListMethods[] = {
 } // namespace
 
 const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::string& name) {
-  if (value_as_list(object) == nullptr) {
+  if (value_as_list_storage(object) == nullptr) {
     return nullptr;
   }
   for (const auto& method : kListMethods) {
@@ -443,7 +443,7 @@ const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::s
 }
 
 bool list_get_method(const Value& object, const std::string& name, Value& out) {
-  if (value_as_list(object) == nullptr) {
+  if (value_as_list_storage(object) == nullptr) {
     return false;
   }
   return bind_builtin_method_from_table(object, name, kListMethods, std::size(kListMethods), out);

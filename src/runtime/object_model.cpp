@@ -626,6 +626,35 @@ void object_model_collect_abstract_names(const Value& value, std::vector<std::st
   }
 }
 
+bool object_model_inherited_concrete_attr(ClassObject& klass, const std::string& name) {
+  for (const auto& base : klass.bases) {
+    auto* base_class = value_as_class(base);
+    if (base_class == nullptr) {
+      continue;
+    }
+    const std::vector<Value>* mro = nullptr;
+    std::string ignored;
+    if (!class_mro_values(base_class, mro, ignored)) {
+      auto it = base_class->attrs.find(name);
+      if (it != base_class->attrs.end()) {
+        return !object_model_value_has_abstract_marker(it->second);
+      }
+      continue;
+    }
+    for (const auto& item : *mro) {
+      auto* candidate = value_as_class(item);
+      if (candidate == nullptr) {
+        continue;
+      }
+      auto it = candidate->attrs.find(name);
+      if (it != candidate->attrs.end()) {
+        return !object_model_value_has_abstract_marker(it->second);
+      }
+    }
+  }
+  return false;
+}
+
 bool class_or_bases_use_abc_meta(ClassObject& klass) {
   auto* metaclass = value_as_class(klass.metaclass);
   if (metaclass != nullptr &&
@@ -657,7 +686,11 @@ void update_abc_abstract_methods_for_class(ClassObject& klass) {
   }
   for (const auto& name : inherited_names) {
     auto override_it = klass.attrs.find(name);
-    if (override_it == klass.attrs.end() || object_model_value_has_abstract_marker(override_it->second)) {
+    if (override_it == klass.attrs.end()) {
+      if (!object_model_inherited_concrete_attr(klass, name)) {
+        object_model_add_abstract_name(abstracts, name);
+      }
+    } else if (object_model_value_has_abstract_marker(override_it->second)) {
       object_model_add_abstract_name(abstracts, name);
     }
   }
@@ -1072,6 +1105,35 @@ bool code_positions_method(
     positions.push_back(Value::tuple({line, line, Value::none(), Value::none()}));
   }
   out = Value::tuple(std::move(positions));
+  return true;
+}
+
+bool code_varname_from_oparg_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "code._varname_from_oparg expected integer oparg";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* code = value_as_code(args[0]);
+  if (code == nullptr || code->module == nullptr || code->function_id >= code->module->functions.size()) {
+    error = "invalid code object";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  const auto& fn = code->module->functions[code->function_id];
+  const auto index = args[1].as.i64;
+  if (index < 0 || static_cast<size_t>(index) >= fn.locals.size()) {
+    error = "tuple index out of range";
+    runtime.raise_class_error("IndexError", error);
+    return false;
+  }
+  out = Value::string(fn.locals[static_cast<size_t>(index)]);
   return true;
 }
 
@@ -1870,6 +1932,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "co_positions") {
       out = Value::bound_method(object, Value::native_function(0, "code.co_positions", code_positions_method));
+      return true;
+    }
+    if (name == "_varname_from_oparg") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(0, "code._varname_from_oparg", code_varname_from_oparg_method));
       return true;
     }
     if (name == "replace") {

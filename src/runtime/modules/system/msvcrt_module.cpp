@@ -21,6 +21,7 @@ limitations under the License.
 #include <conio.h>
 #include <fcntl.h>
 #include <io.h>
+#include <windows.h>
 #endif
 
 namespace xlang3 {
@@ -131,12 +132,27 @@ bool msvcrt_kbhit(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   return true;
 }
 
+#if defined(_WIN32)
+bool is_interactive_console_input() {
+  HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
+  if (input == nullptr || input == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+  DWORD mode = 0;
+  return GetConsoleMode(input, &mode) != 0;
+}
+#endif
+
 bool msvcrt_getch(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "getch() takes no arguments";
     return false;
   }
 #if defined(_WIN32)
+  if (!is_interactive_console_input() && _kbhit() == 0) {
+    out = Value::bytes(std::string(1, '\r'));
+    return true;
+  }
   out = Value::bytes(std::string(1, static_cast<char>(_getch())));
 #else
   out = Value::bytes(std::string());
@@ -150,6 +166,10 @@ bool msvcrt_getwch(Runtime&, const Value*, uint32_t argc, Value& out, std::strin
     return false;
   }
 #if defined(_WIN32)
+  if (!is_interactive_console_input() && _kbhit() == 0) {
+    out = Value::string("\r");
+    return true;
+  }
   out = Value::string(std::string(1, static_cast<char>(_getwch())));
 #else
   out = Value::string(std::string());

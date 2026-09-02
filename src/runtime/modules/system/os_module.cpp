@@ -1019,10 +1019,14 @@ bool os_mkdir_impl(
     }
     if (stat.kind != VfsNodeKind::Directory) {
       error = "parent directory does not exist: " + parent;
+      runtime.raise_class_error("FileNotFoundError", error);
       return false;
     }
   }
   if (!runtime.vfs().make_dirs(path.text, false, error)) {
+    if (error.rfind("path exists:", 0) == 0) {
+      runtime.raise_class_error("FileExistsError", error);
+    }
     return false;
   }
   value_set_none(out);
@@ -1175,6 +1179,33 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
+bool os_lstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "os.lstat() expected one argument";
+    return false;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "os.lstat() missing os module state";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.lstat path", path, error)) {
+    return false;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(path.text, stat, error)) {
+    return false;
+  }
+  if (stat.kind == VfsNodeKind::Missing) {
+    error = "file not found: " + path.text;
+    runtime.raise_class_error("FileNotFoundError", error);
+    return false;
+  }
+  out = make_stat_result(state->stat_result_class, stat);
+  return true;
+}
+
 bool os_stat_kw(
     Runtime& runtime,
     const Value* args,
@@ -1236,6 +1267,56 @@ bool os_getenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   } else {
     value_set_none(out);
   }
+  return true;
+}
+
+bool os_putenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "putenv() expected key and value";
+    return false;
+  }
+  std::string name;
+  std::string value;
+  if (!get_string_arg(args[0], "putenv key", name, error) ||
+      !get_string_arg(args[1], "putenv value", value, error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  if (!SetEnvironmentVariableA(name.c_str(), value.c_str())) {
+    error = "putenv failed";
+    return false;
+  }
+#else
+  if (::setenv(name.c_str(), value.c_str(), 1) != 0) {
+    error = "putenv failed";
+    return false;
+  }
+#endif
+  value_set_none(out);
+  return true;
+}
+
+bool os_unsetenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "unsetenv() expected key";
+    return false;
+  }
+  std::string name;
+  if (!get_string_arg(args[0], "unsetenv key", name, error)) {
+    return false;
+  }
+#if defined(_WIN32)
+  if (!SetEnvironmentVariableA(name.c_str(), nullptr)) {
+    error = "unsetenv failed";
+    return false;
+  }
+#else
+  if (::unsetenv(name.c_str()) != 0) {
+    error = "unsetenv failed";
+    return false;
+  }
+#endif
+  value_set_none(out);
   return true;
 }
 
@@ -1329,10 +1410,13 @@ void register_os_module(Runtime& runtime) {
       .function("rename", os_rename)
       .function("replace", os_replace)
       .value("stat", runtime.make_native_function("os.stat", os_stat, os_state, nullptr, nullptr, false, os_stat_kw))
+      .value("lstat", runtime.make_native_function("os.lstat", os_lstat, os_state))
       .value("stat_result", os_state->stat_result_class)
       .value("terminal_size", os_state->terminal_size_class)
       .function("access", os_access)
       .function("getenv", os_getenv)
+      .function("putenv", os_putenv)
+      .function("unsetenv", os_unsetenv)
       .function("fspath", os_fspath)
 #if defined(_WIN32)
       .function("_supports_virtual_terminal", os_supports_virtual_terminal)

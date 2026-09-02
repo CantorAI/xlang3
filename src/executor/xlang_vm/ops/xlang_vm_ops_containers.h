@@ -871,6 +871,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
   std::string error;
   Value iterator;
   if (!sequence_get_iter(regs[source], iterator, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
+    }
     Value iter_method;
     std::string attr_error;
     if (!object_get_attr(regs[source], "__iter__", iter_method, attr_error)) {
@@ -894,6 +899,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (done) break;

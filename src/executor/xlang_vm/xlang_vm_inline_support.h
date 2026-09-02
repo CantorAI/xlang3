@@ -471,6 +471,16 @@ struct XlangVMBuiltinConstructorSpec {
   XlangVMBuiltinConstructor kind;
 };
 
+struct XlangVMBuiltinConstructorError {
+  std::string message;
+  const char* type = "TypeError";
+
+  XLANG3_HOT_INLINE void set(const char* error_type, std::string text) {
+    type = error_type;
+    message = std::move(text);
+  }
+};
+
 XLANG3_HOT_INLINE bool xlang_vm_collect_type_slots(const Value& value, std::vector<std::string>& slots) {
   if (auto* string = value_as_string(value)) {
     const auto name = string_object_to_string(*string);
@@ -996,7 +1006,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     CallArgsView args,
     XlangRuntimeExecutionGuard& execution_lock,
     Value& out,
-    std::string& error) {
+    XlangVMBuiltinConstructorError& constructor_error) {
   auto constructor = xlang_vm_find_builtin_constructor(klass.name);
   bool exact_builtin_constructor = constructor != XlangVMBuiltinConstructor::Unknown;
   if (constructor != XlangVMBuiltinConstructor::Unknown && !xlang_vm_class_is_builtin_module_class(klass)) {
@@ -1010,6 +1020,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   if (constructor == XlangVMBuiltinConstructor::Unknown) {
     return false;
   }
+
+  auto& error = constructor_error.message;
+  constructor_error.type = "TypeError";
 
   std::vector<Value> constructor_positional;
   std::vector<std::pair<std::string, Value>> constructor_keywords;
@@ -1473,6 +1486,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return true;
       }
+      constructor_error.set("ValueError", "invalid literal for int()");
+      return false;
     }
     if (auto* bytes = value_as_bytes(value)) {
       std::string parse_error;
@@ -1485,6 +1500,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return true;
       }
+      constructor_error.set("ValueError", "invalid literal for int()");
+      return false;
     }
     if (auto* bytes = value_as_bytearray(value)) {
       std::string parse_error;
@@ -1496,6 +1513,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return true;
       }
+      constructor_error.set("ValueError", "invalid literal for int()");
+      return false;
     }
     error = "int() argument must be a string, bytes-like object, number, or bool";
     return false;

@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/generator.h"
 
 #include "xlang3/builtin_methods.h"
+#include "xlang3/builtins.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
@@ -61,6 +62,18 @@ void raise_stop_iteration_with_value(Runtime& runtime, const Value& return_value
     object_set_attr(exception, "message", return_value, ignored);
   }
   runtime.set_pending_exception(std::move(exception));
+}
+
+bool emit_generator_throw_monitoring_event(GeneratorObject& obj, const Value& exception, std::string& error) {
+  if (obj.runtime == nullptr || !sys_monitoring_event_may_dispatch(kSysMonitoringEventPyThrow)) {
+    return true;
+  }
+  auto* function = value_as_function(obj.function);
+  if (function == nullptr || function->module == nullptr) {
+    return true;
+  }
+  Value code = Value::code(function->module, function->function_id);
+  return sys_monitoring_dispatch_event(*obj.runtime, kSysMonitoringEventPyThrow, code, -1, &exception, error);
 }
 
 } // namespace
@@ -234,6 +247,9 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     obj->runtime->set_active_exception(exception);
     value_assign_fast(out, exception);
     error = value_to_string(exception);
+    return false;
+  }
+  if (!emit_generator_throw_monitoring_event(*obj, exception, error)) {
     return false;
   }
   value_assign_fast(obj->pending_throw, exception);

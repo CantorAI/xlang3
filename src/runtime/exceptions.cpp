@@ -40,14 +40,42 @@ std::string parse_missing_module_name(const std::string& message) {
   return message.substr(prefix.size(), end - prefix.size());
 }
 
+bool is_os_error_class_name(const std::string& name) {
+  return name == "OSError" ||
+         name == "EnvironmentError" ||
+         name == "IOError" ||
+         name == "WindowsError" ||
+         name == "BlockingIOError" ||
+         name == "ChildProcessError" ||
+         name == "BrokenPipeError" ||
+         name == "ConnectionAbortedError" ||
+         name == "ConnectionError" ||
+         name == "ConnectionRefusedError" ||
+         name == "ConnectionResetError" ||
+         name == "FileExistsError" ||
+         name == "FileNotFoundError" ||
+         name == "InterruptedError" ||
+         name == "IsADirectoryError" ||
+         name == "NotADirectoryError" ||
+         name == "PermissionError" ||
+         name == "ProcessLookupError" ||
+         name == "TimeoutError";
+}
+
 void initialize_exception_attrs(Value& instance, const std::string& class_name, const std::string& message) {
-  if (class_name != "ImportError" && class_name != "ModuleNotFoundError") {
-    return;
-  }
   std::string ignored;
-  const std::string module_name = parse_missing_module_name(message);
-  object_set_attr(instance, "name", module_name.empty() ? Value::none() : Value::string(module_name), ignored);
-  object_set_attr(instance, "path", Value::none(), ignored);
+  if (class_name == "ImportError" || class_name == "ModuleNotFoundError") {
+    const std::string module_name = parse_missing_module_name(message);
+    object_set_attr(instance, "name", module_name.empty() ? Value::none() : Value::string(module_name), ignored);
+    object_set_attr(instance, "path", Value::none(), ignored);
+  }
+  if (is_os_error_class_name(class_name)) {
+    object_set_attr(instance, "errno", Value::none(), ignored);
+    object_set_attr(instance, "strerror", Value::none(), ignored);
+    object_set_attr(instance, "filename", Value::none(), ignored);
+    object_set_attr(instance, "filename2", Value::none(), ignored);
+    object_set_attr(instance, "winerror", Value::none(), ignored);
+  }
 }
 
 } // namespace

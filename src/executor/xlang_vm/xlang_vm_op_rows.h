@@ -77,7 +77,7 @@ XLANG3_VM_FLOW(ForRangeConstLocalNext, xlang3::xlang_vm::ops::for_range_const_lo
 XLANG3_VM_FLOW(Add, xlang3::xlang_vm::ops::add(in, regs, raise_runtime_error))
 XLANG3_VM_FLOW(Sub, xlang3::xlang_vm::ops::sub(in, regs, raise_runtime_error))
 XLANG3_VM_FLOW(Mul, xlang3::xlang_vm::ops::mul(in, regs, raise_runtime_error))
-XLANG3_VM_FLOW(Div, xlang3::xlang_vm::ops::div(in, runtime_, regs, native_call_args, execution_lock, raise_runtime_error, raise_exception_value))
+XLANG3_VM_FLOW(Div, xlang3::xlang_vm::ops::div(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(FloorDiv, xlang3::xlang_vm::ops::floor_div(in, regs, raise_runtime_error))
 XLANG3_VM_FLOW(Mod, xlang3::xlang_vm::ops::mod(in, regs, raise_runtime_error))
 XLANG3_VM_FLOW(ModConst, xlang3::xlang_vm::ops::mod_const(in, fn, regs, result, raise_runtime_error))

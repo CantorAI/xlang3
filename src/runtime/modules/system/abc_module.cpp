@@ -171,6 +171,32 @@ void collect_abstract_names(const Value& value, std::vector<std::string>& names)
   }
 }
 
+bool inherited_concrete_attr(ClassObject& klass, const std::string& name) {
+  auto concrete_in = [&](ClassObject* candidate) -> bool {
+    auto it = candidate->attrs.find(name);
+    return it != candidate->attrs.end() && !value_has_abstract_marker(it->second);
+  };
+  std::vector<ClassObject*> stack;
+  for (const auto& base : klass.bases) {
+    if (auto* base_class = value_as_class(base)) {
+      stack.push_back(base_class);
+    }
+  }
+  while (!stack.empty()) {
+    auto* current = stack.front();
+    stack.erase(stack.begin());
+    if (concrete_in(current)) {
+      return true;
+    }
+    for (const auto& base : current->bases) {
+      if (auto* base_class = value_as_class(base)) {
+        stack.push_back(base_class);
+      }
+    }
+  }
+  return false;
+}
+
 Value abc_abstract_methods_for_class(ClassObject& klass) {
   std::vector<Value> abstracts;
   std::vector<std::string> inherited_names;
@@ -183,7 +209,11 @@ Value abc_abstract_methods_for_class(ClassObject& klass) {
   }
   for (const auto& name : inherited_names) {
     auto override_it = klass.attrs.find(name);
-    if (override_it == klass.attrs.end() || value_has_abstract_marker(override_it->second)) {
+    if (override_it == klass.attrs.end()) {
+      if (!inherited_concrete_attr(klass, name)) {
+        add_abstract_name(abstracts, name);
+      }
+    } else if (value_has_abstract_marker(override_it->second)) {
       add_abstract_name(abstracts, name);
     }
   }

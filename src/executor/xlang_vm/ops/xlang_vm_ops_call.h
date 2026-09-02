@@ -166,15 +166,18 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
   }
   auto expand_star_arg = [&](uint32_t star_reg) -> bool {
     if (call_args.registers == nullptr || star_reg >= UINT32_MAX) {
-      return raise_runtime_error("* argument is invalid");
+      if (raise_runtime_error("* argument is invalid")) return false;
+      return false;
     }
     std::string collect_error;
     if (!runtime_collect_iterable(runtime, call_args.registers[star_reg], positional_args, collect_error)) {
       Value pending;
       if (runtime.take_pending_exception(pending)) {
-        return raise_exception_value(std::move(pending));
+        if (raise_exception_value(std::move(pending))) return false;
+        return false;
       }
-      return raise_runtime_error(collect_error.empty() ? "* argument must be iterable" : collect_error);
+      if (raise_runtime_error(collect_error.empty() ? "* argument must be iterable" : collect_error)) return false;
+      return false;
     }
     return true;
   };
@@ -208,9 +211,11 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
           error)) {
     Value pending;
     if (runtime.take_pending_exception(pending)) {
-      return raise_exception_value(std::move(pending));
+      if (raise_exception_value(std::move(pending))) return false;
+      return false;
     }
-    return raise_runtime_error(error.empty() ? "__new__ failed" : error);
+    if (raise_runtime_error(error.empty() ? "__new__ failed" : error)) return false;
+    return false;
   }
 
   auto* instance = value_as_instance(new_result);
@@ -229,9 +234,11 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
               error)) {
         Value pending;
         if (runtime.take_pending_exception(pending)) {
-          return raise_exception_value(std::move(pending));
+          if (raise_exception_value(std::move(pending))) return false;
+          return false;
         }
-        return raise_runtime_error(error.empty() ? "__init__ failed" : error);
+        if (raise_runtime_error(error.empty() ? "__init__ failed" : error)) return false;
+        return false;
       }
     }
   }
@@ -930,8 +937,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   Value method;
   std::string attr_error;
   if (!attribute_get(regs[in.a], name, method, attr_error)) {
-    if (raise_runtime_error(attr_error)) return XlangVMOpFlow::ContinueLoop;
-    return XlangVMOpFlow::ReturnResult;
+    return raise_exception_value(runtime.make_exception("AttributeError", attr_error))
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
   }
 
   if (auto* bound = value_as_bound_method(method)) {
@@ -1014,7 +1022,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     }
     Value new_callable;
     if (xlang_vm_resolve_class_new_callable(method, klass, new_callable)) {
-      if (!call_args.has_keywords() && call_args.kw_star_arg == UINT32_MAX) {
+      if (!call_args.has_keywords() && !call_args.has_expansion()) {
         if (!xlang_vm_call_class_new_then_init_sync(
                 runtime,
                 method,
@@ -1054,7 +1062,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
       return XlangVMOpFlow::Next;
     }
-    std::string constructor_error;
+    XlangVMBuiltinConstructorError constructor_error;
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
       if (value_as_class(regs[in.dst]) == nullptr) {
         return XlangVMOpFlow::Next;
@@ -1076,9 +1084,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
           raise_runtime_error,
           raise_exception_value);
     }
-    if (!constructor_error.empty()) {
-      if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
-      return XlangVMOpFlow::ReturnResult;
+    Value pending_constructor_exception;
+    if (runtime.take_pending_exception(pending_constructor_exception)) {
+      return raise_exception_value(std::move(pending_constructor_exception))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (!constructor_error.message.empty()) {
+      return raise_exception_value(runtime.make_exception(constructor_error.type, constructor_error.message))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
     }
     Value instance = Value::instance(method);
     CallArgsView init_args = call_args;
@@ -1438,7 +1453,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
         }
       }
     }
-    std::string constructor_error;
+    XlangVMBuiltinConstructorError constructor_error;
     if (try_call_metaclass_new(
             callee,
             call_args,
@@ -1521,9 +1536,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
           raise_runtime_error,
           raise_exception_value);
     }
-    if (!constructor_error.empty()) {
-      if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
-      return XlangVMOpFlow::ReturnResult;
+    Value pending_constructor_exception;
+    if (runtime.take_pending_exception(pending_constructor_exception)) {
+      return raise_exception_value(std::move(pending_constructor_exception))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (!constructor_error.message.empty()) {
+      return raise_exception_value(runtime.make_exception(constructor_error.type, constructor_error.message))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
     }
     bool abstract_rejected = false;
     if (!xlang_vm_reject_abstract_class_instantiation(runtime, callee, *klass, abstract_rejected, raise_exception_value)) {
@@ -1844,7 +1866,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         return XlangVMOpFlow::Next;
       }
     }
-    std::string constructor_error;
+    XlangVMBuiltinConstructorError constructor_error;
     if (try_call_metaclass_new(
             callee,
             call_args,
@@ -1898,9 +1920,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           raise_runtime_error,
           raise_exception_value);
     }
-    if (!constructor_error.empty()) {
-      if (raise_runtime_error(constructor_error)) return XlangVMOpFlow::ContinueLoop;
-      return XlangVMOpFlow::ReturnResult;
+    Value pending_constructor_exception;
+    if (runtime.take_pending_exception(pending_constructor_exception)) {
+      return raise_exception_value(std::move(pending_constructor_exception))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (!constructor_error.message.empty()) {
+      return raise_exception_value(runtime.make_exception(constructor_error.type, constructor_error.message))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
     }
     bool abstract_rejected = false;
     if (!xlang_vm_reject_abstract_class_instantiation(runtime, callee, *klass, abstract_rejected, raise_exception_value)) {
@@ -2785,7 +2814,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   const auto& name = fn.names[in.b];
   if (!module_find_attr_slot(module_value, name, module_slot, module_error) ||
       module_slot >= module_object->slots.size()) {
-    return raise_runtime_error(module_error.empty() ? "module method not found" : module_error)
+    return raise_exception_value(runtime.make_exception(
+               "AttributeError",
+               module_error.empty() ? "module method not found" : module_error))
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
   }
