@@ -8,9 +8,11 @@
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
   Coverage update: `tests/fixtures/compat_sections/system_stdlib.py` covers
   CPython `Lib/os.py` delegating `open`, `write`, `lseek`, `read`, `fstat`,
-  `close`, and removal through the native `nt`/`posix` dependency module.
-  Remaining: broader fd inheritance/duplication, environment mutation parity,
-  process helpers, and Windows error mapping.
+  `close`, and removal through the native `nt`/`posix` dependency module, plus
+  CPython-compatible `os.environ` mapping writes and `putenv`/`unsetenv`
+  interaction.
+  Remaining: broader fd inheritance/duplication, process helpers, and Windows
+  error mapping.
 
 - [~] os.path, pathlib, stat, glob, fnmatch
   Coverage: `tests/fixtures/core/logging_pathlib_modules.py`, `tests/fixtures/compat_sections/standard_modules.py`

@@ -347,3 +347,28 @@ print(
     chunk,
     stat_size,
 )
+
+
+# os.environ: CPython os.py mapping writes sync to getenv; putenv itself does
+# not mutate the Python mapping.
+env_key = "XLANG3_SYSTEM_ENV_PROBE"
+os.environ.pop(env_key, None)
+env_start = (os.getenv(env_key), env_key in os.environ)
+os.environ[env_key] = "one"
+env_set = (os.getenv(env_key), os.environ.get(env_key))
+os.putenv(env_key, "two")
+env_putenv = (os.getenv(env_key), os.environ.get(env_key))
+os.environ.pop(env_key)
+env_pop = (os.getenv(env_key), env_key in os.environ)
+os.putenv(env_key, "three")
+env_external_putenv = (os.getenv(env_key), os.environ.get(env_key))
+os.unsetenv(env_key)
+print(
+    "system-stdlib-os-environ",
+    env_start,
+    env_set,
+    env_putenv,
+    env_pop,
+    env_external_putenv,
+    os.getenv(env_key),
+)

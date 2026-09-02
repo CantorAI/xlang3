@@ -72,6 +72,7 @@ fixture coverage, then update the row truthfully.
   the `system_stdlib` section fixture covers VFS-backed file creation/removal,
   `os.stat_result`, `os.scandir`/`DirEntry`, path-like and bytes path basics,
   fd-level `os.open`/`write`/`lseek`/`read`/`fstat`/`close` delegation,
+  `os.environ` mapping writes and `putenv`/`unsetenv` interaction,
   `pathlib.Path` read/write/glob/rglob/match helpers, and `glob` root-dir,
   recursive, hidden-file, iterator, and bytes-path basics.
   Remaining: this path is correct but too slow for the full fixture, especially
