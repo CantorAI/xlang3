@@ -471,6 +471,177 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool set_fd_inheritable(Runtime& runtime, int fd, bool inheritable, std::string& error) {
+#if defined(_WIN32)
+  const intptr_t os_handle = _get_osfhandle(fd);
+  if (os_handle == -1) {
+    error = "invalid file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const DWORD flags = inheritable ? HANDLE_FLAG_INHERIT : 0;
+  if (SetHandleInformation(reinterpret_cast<HANDLE>(os_handle), HANDLE_FLAG_INHERIT, flags) == 0) {
+    error = "set handle inheritance failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  return true;
+#else
+  const int current = fcntl(fd, F_GETFD);
+  if (current < 0) {
+    error = "get fd flags failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const int next = inheritable ? (current & ~FD_CLOEXEC) : (current | FD_CLOEXEC);
+  if (fcntl(fd, F_SETFD, next) < 0) {
+    error = "set fd flags failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  return true;
+#endif
+}
+
+bool os_dup(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "dup() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const int fd = _dup(static_cast<int>(args[0].as.i64));
+#else
+  const int fd = ::dup(static_cast<int>(args[0].as.i64));
+#endif
+  if (fd < 0) {
+    error = "dup failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (!set_fd_inheritable(runtime, fd, false, error)) {
+#if defined(_WIN32)
+    _close(fd);
+#else
+    ::close(fd);
+#endif
+    return false;
+  }
+  value_set_int64(out, fd);
+  return true;
+}
+
+bool os_dup2(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+    error = "dup2() expected fd, fd2, and optional inheritable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const int fd = static_cast<int>(args[0].as.i64);
+  const int fd2 = static_cast<int>(args[1].as.i64);
+  const bool inheritable = argc >= 3 ? value_truthy(args[2]) : true;
+#if defined(_WIN32)
+  const int rc = _dup2(fd, fd2);
+#else
+  const int rc = ::dup2(fd, fd2);
+#endif
+  if (rc != 0) {
+    error = "dup2 failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (!set_fd_inheritable(runtime, fd2, inheritable, error)) {
+    return false;
+  }
+  value_set_int64(out, fd2);
+  return true;
+}
+
+bool os_pipe(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!no_args(argc, "pipe", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int fds[2] = {-1, -1};
+#if defined(_WIN32)
+  if (_pipe(fds, 0, _O_BINARY | _O_NOINHERIT) != 0) {
+#else
+  if (::pipe(fds) != 0) {
+#endif
+    error = "pipe failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+#if !defined(_WIN32)
+  if (!set_fd_inheritable(runtime, fds[0], false, error) || !set_fd_inheritable(runtime, fds[1], false, error)) {
+    ::close(fds[0]);
+    ::close(fds[1]);
+    return false;
+  }
+#endif
+  out = Value::tuple({Value::int64(fds[0]), Value::int64(fds[1])});
+  return true;
+}
+
+bool os_isatty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "isatty() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  value_set_bool(out, _isatty(static_cast<int>(args[0].as.i64)) != 0);
+#else
+  value_set_bool(out, ::isatty(static_cast<int>(args[0].as.i64)) != 0);
+#endif
+  return true;
+}
+
+bool os_get_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "get_inheritable() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const intptr_t os_handle = _get_osfhandle(static_cast<int>(args[0].as.i64));
+  if (os_handle == -1) {
+    error = "invalid file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  DWORD flags = 0;
+  if (GetHandleInformation(reinterpret_cast<HANDLE>(os_handle), &flags) == 0) {
+    error = "get handle inheritance failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_bool(out, (flags & HANDLE_FLAG_INHERIT) != 0);
+#else
+  const int flags = fcntl(static_cast<int>(args[0].as.i64), F_GETFD);
+  if (flags < 0) {
+    error = "get fd flags failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_bool(out, (flags & FD_CLOEXEC) == 0);
+#endif
+  return true;
+}
+
+bool os_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "set_inheritable() expected fd and inheritable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!set_fd_inheritable(runtime, static_cast<int>(args[0].as.i64), value_truthy(args[1]), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool os_cpu_count(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "os.cpu_count", error)) {
     return false;
@@ -1464,6 +1635,12 @@ void register_os_module(Runtime& runtime) {
       .function("write", os_write)
       .function("lseek", os_lseek)
       .value("fstat", runtime.make_native_function("os.fstat", os_fstat, os_state))
+      .function("dup", os_dup)
+      .function("dup2", os_dup2)
+      .function("pipe", os_pipe)
+      .function("isatty", os_isatty)
+      .function("get_inheritable", os_get_inheritable)
+      .function("set_inheritable", os_set_inheritable)
       .function("getpid", os_getpid)
       .function("getppid", os_getppid)
       .function("cpu_count", os_cpu_count)

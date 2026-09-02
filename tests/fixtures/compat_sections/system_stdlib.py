@@ -338,6 +338,38 @@ try:
 finally:
     os.close(fd)
     os.remove(fd_path)
+pipe_read, pipe_write = os.pipe()
+try:
+    pipe_written = os.write(pipe_write, b"xy")
+    os.close(pipe_write)
+    pipe_write = None
+    pipe_data = os.read(pipe_read, 2)
+finally:
+    if pipe_write is not None:
+        os.close(pipe_write)
+    os.close(pipe_read)
+dup_path = "xlang3_system_fd_dup.tmp"
+dup_base = os.open(dup_path, os.O_CREAT | os.O_TRUNC | os.O_RDWR | getattr(os, "O_BINARY", 0), 0o666)
+dup_fd = None
+dup_target = None
+try:
+    os.write(dup_base, b"abcdef")
+    dup_fd = os.dup(dup_base)
+    dup_inheritable_before = os.get_inheritable(dup_fd)
+    os.set_inheritable(dup_fd, True)
+    dup_inheritable_after = os.get_inheritable(dup_fd)
+    dup_target = os.open(dup_path, os.O_RDONLY | getattr(os, "O_BINARY", 0), 0o666)
+    os.dup2(dup_base, dup_target, False)
+    dup2_inheritable = os.get_inheritable(dup_target)
+    os.lseek(dup_target, 1, os.SEEK_SET)
+    dup_chunk = os.read(dup_target, 2)
+finally:
+    if dup_fd is not None:
+        os.close(dup_fd)
+    if dup_target is not None:
+        os.close(dup_target)
+    os.close(dup_base)
+    os.remove(dup_path)
 print(
     "system-stdlib-os-fd",
     source_lib_module(os),
@@ -346,6 +378,11 @@ print(
     start_pos,
     chunk,
     stat_size,
+    pipe_written,
+    pipe_data,
+    (dup_inheritable_before, dup_inheritable_after, dup2_inheritable),
+    dup_chunk,
+    os.isatty(1) in (True, False),
 )
 
 

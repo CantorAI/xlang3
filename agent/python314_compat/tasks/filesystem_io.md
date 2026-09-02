@@ -9,6 +9,8 @@
   Remaining: exact buffering, newline translation, fd-backed files, opener callbacks, and platform error classes.
 
 - [~] os fd API
-  Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: `os.open`, `os.close`, `os.read`, `os.write`, `os.lseek`, `os.fstat`, inheritability, and Windows flag mapping.
-
+  Coverage: `tests/fixtures/compat_sections/system_stdlib.py` covers CPython
+  `Lib/os.py` delegation for `open`, `close`, `read`, `write`, `lseek`,
+  `fstat`, `dup`, `dup2`, `pipe`, `isatty`, `get_inheritable`, and
+  `set_inheritable`.
+  Remaining: exact Windows flag/error mapping and deeper fd edge cases.
