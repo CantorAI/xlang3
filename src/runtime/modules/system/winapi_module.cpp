@@ -14,9 +14,13 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -175,6 +179,108 @@ bool winapi_optional_string_arg(
   }
   has_value = true;
   return winapi_string_arg(runtime, value, function_name, out, error);
+}
+
+bool winapi_env_text(Runtime& runtime, const Value& value, const char* field, std::wstring& out, std::string& error) {
+  if (auto* text = value_as_string(value)) {
+    out = utf8_to_wide(string_object_to_string(*text));
+    return true;
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    out = utf8_to_wide(bytes_object_to_string(*bytes));
+    return true;
+  }
+  error = std::string("CreateProcess() environment ") + field + " must be str or bytes, not " + winapi_type_name(value);
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool winapi_append_env_pair(
+    Runtime& runtime,
+    const Value& key,
+    const Value& value,
+    std::vector<std::wstring>& entries,
+    std::string& error) {
+  std::wstring key_text;
+  std::wstring value_text;
+  if (!winapi_env_text(runtime, key, "key", key_text, error) ||
+      !winapi_env_text(runtime, value, "value", value_text, error)) {
+    return false;
+  }
+  if (key_text.empty() || key_text.find(L'=') != std::wstring::npos || key_text.find(L'\0') != std::wstring::npos ||
+      value_text.find(L'\0') != std::wstring::npos) {
+    error = "CreateProcess() environment contains an invalid variable";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  entries.push_back(std::move(key_text) + L"=" + std::move(value_text));
+  return true;
+}
+
+bool winapi_append_env_item(Runtime& runtime, const Value& item, std::vector<std::wstring>& entries, std::string& error) {
+  if (auto* tuple = value_as_tuple(item)) {
+    if (tuple->items.size() == 2) {
+      return winapi_append_env_pair(runtime, tuple->items[0], tuple->items[1], entries, error);
+    }
+  } else if (auto* list = value_as_list(item)) {
+    if (list->items.size() == 2) {
+      return winapi_append_env_pair(runtime, list->items[0], list->items[1], entries, error);
+    }
+  }
+  error = "CreateProcess() environment items must be key/value pairs";
+  runtime.raise_class_error("ValueError", error);
+  return false;
+}
+
+bool winapi_collect_env_entries(Runtime& runtime, const Value& env, std::vector<std::wstring>& entries, std::string& error) {
+  if (const auto* dict = value_as_dict(env)) {
+    entries.reserve(dict->entries.size());
+    for (const auto& item : dict->entries) {
+      if (!winapi_append_env_pair(runtime, item.first, item.second, entries, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Value items_method;
+  std::string attr_error;
+  if (!object_get_attr(env, "items", items_method, attr_error)) {
+    error = "CreateProcess() environment must be a mapping";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value items_result;
+  if (!runtime_call_callable(runtime, items_method, nullptr, 0, items_result, error)) {
+    return false;
+  }
+  std::vector<Value> items;
+  if (!runtime_collect_iterable(runtime, items_result, items, error)) {
+    return false;
+  }
+  entries.reserve(items.size());
+  for (const auto& item : items) {
+    if (!winapi_append_env_item(runtime, item, entries, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::wstring winapi_make_environment_block(std::vector<std::wstring> entries) {
+  std::sort(entries.begin(), entries.end());
+  std::wstring block;
+  size_t total = 1;
+  for (const auto& entry : entries) {
+    total += entry.size() + 1;
+  }
+  block.reserve(total);
+  for (const auto& entry : entries) {
+    block.append(entry);
+    block.push_back(L'\0');
+  }
+  block.push_back(L'\0');
+  return block;
 }
 
 bool winapi_startup_attr_handle(const Value& startupinfo, const char* name, HANDLE& out) {
@@ -544,12 +650,19 @@ bool winapi_create_process(Runtime& runtime, const Value* args, uint32_t argc, V
       !winapi_optional_string_arg(runtime, args[7], "CreateProcess", current_directory, has_current_directory, error)) {
     return false;
   }
-  if (args[6].tag != ValueTag::None) {
-    error = "CreateProcess() env mappings are not implemented yet";
-    runtime.raise_class_error("NotImplementedError", error);
-    return false;
-  }
 #if defined(_WIN32)
+  std::wstring env_block;
+  void* environment = nullptr;
+  DWORD native_creation_flags = static_cast<DWORD>(creation_flags);
+  if (args[6].tag != ValueTag::None) {
+    std::vector<std::wstring> env_entries;
+    if (!winapi_collect_env_entries(runtime, args[6], env_entries, error)) {
+      return false;
+    }
+    env_block = winapi_make_environment_block(std::move(env_entries));
+    environment = env_block.empty() ? nullptr : env_block.data();
+    native_creation_flags |= CREATE_UNICODE_ENVIRONMENT;
+  }
   STARTUPINFOW startup{};
   startup.cb = sizeof(startup);
   PROCESS_INFORMATION process{};
@@ -581,8 +694,8 @@ bool winapi_create_process(Runtime& runtime, const Value* args, uint32_t argc, V
           nullptr,
           nullptr,
           inherit_handles != 0,
-          static_cast<DWORD>(creation_flags),
-          nullptr,
+          native_creation_flags,
+          environment,
           has_current_directory ? cwd.c_str() : nullptr,
           &startup,
           &process)) {

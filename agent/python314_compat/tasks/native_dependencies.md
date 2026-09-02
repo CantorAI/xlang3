@@ -13,7 +13,10 @@
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
   Additional coverage: XLang3 pseudo handles from native dependency shims can
   be closed without calling the Windows kernel handle table.
-  Remaining: process, handle, wait, pipe, environment, and detailed Windows error surfaces.
+  Additional coverage: `CreateProcess` accepts explicit environment mappings,
+  including plain dicts and CPython `os.environ` mapping objects, and passes a
+  Unicode environment block to the child process.
+  Remaining: deeper process, handle, wait, pipe, and detailed Windows error surfaces.
 
 - [~] _stat and os stat structures
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`

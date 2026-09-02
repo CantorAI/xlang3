@@ -3324,6 +3324,24 @@ except subprocess.CalledProcessError as err:
     print(err.returncode, err.cmd[2], err.stdout == "")
 shell_completed = subprocess.run("echo shell-ok", shell=True, capture_output=True, text=True)
 print(shell_completed.stdout.strip())
+env_copy = {
+    "ComSpec": os.environ.get("ComSpec", "C:\\Windows\\System32\\cmd.exe"),
+    "PATH": os.environ.get("PATH", ""),
+    "SystemRoot": os.environ.get("SystemRoot", "C:\\Windows"),
+    "XLANG3_SUBPROCESS_ENV": "env-copy-ok",
+}
+env_completed = subprocess.run(["cmd", "/c", "echo %XLANG3_SUBPROCESS_ENV%"], env=env_copy, capture_output=True, text=True)
+os.environ["XLANG3_SUBPROCESS_ENV"] = "env-mapping-ok"
+try:
+    env_mapping_completed = subprocess.run(
+        ["cmd", "/c", "echo %XLANG3_SUBPROCESS_ENV%"],
+        env=os.environ,
+        capture_output=True,
+        text=True,
+    )
+finally:
+    os.environ.pop("XLANG3_SUBPROCESS_ENV", None)
+print(env_completed.stdout.strip(), env_mapping_completed.stdout.strip())
 input_completed = subprocess.run(["cmd", "/c", "more"], input="stdin-ok", stdout=subprocess.PIPE, text=True)
 print(input_completed.stdout.strip())
 merged_completed = subprocess.run(["cmd", "/c", "echo merged-error 1>&2"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

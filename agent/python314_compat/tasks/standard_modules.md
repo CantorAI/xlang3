@@ -56,4 +56,6 @@
 
 - [~] socket, subprocess, winreg, urllib.parse, xmlrpc, http
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: socket/select foundations, subprocess fd/process support, registry APIs, and pure Python stdlib dependency chain.
+  Coverage update: subprocess now covers explicit environment mappings through
+  `_winapi.CreateProcess`.
+  Remaining: socket/select foundations, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

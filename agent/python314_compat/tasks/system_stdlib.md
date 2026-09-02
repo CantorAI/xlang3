@@ -93,12 +93,13 @@ fixture coverage, then update the row truthfully.
   CPython 3.14 `Lib/subprocess.py` and
   `Lib/socket.py` import from source; the process/socket probe covers
   `subprocess.run([sys.executable, "-c", ...], capture_output=True, text=True)`,
+  `subprocess.run(..., env=...)` with both dict and `os.environ` mappings,
   basic `socket.socket` construction/timeout/close, and empty `select.select`.
   Additional probes cover `socket.socketpair`, socket blocking/timeout state,
   `_overlapped` import foundation, CPython `Lib/asyncio` import, `_signal`
   `set_wakeup_fd`, and int-like signal enum arguments.
-  Remaining: complete truthful process/socket primitives for `subprocess` and
-  networking, exact daemon/shutdown lifecycle, deeper `_thread._local`
+  Remaining: complete truthful process/socket primitives for broader
+  `subprocess` and networking, exact daemon/shutdown lifecycle, deeper `_thread._local`
   subclass/reinitialization edge cases, deeper condition/lock edge cases,
   profile/trace propagation parity, and import-time/runtime performance.
 

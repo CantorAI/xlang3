@@ -5,7 +5,7 @@ native
 original doc text True 5
 original doc text True
 7
-True (2,) True
+True (2,) False
 managed_value managed doc managed_value
 changed doc
 123 123
@@ -1017,6 +1017,7 @@ True 0 xlang3-subprocess
 0 0
 7 exit 7 True
 shell-ok
+env-copy-ok env-mapping-ok
 stdin-ok
 merged-error
 True 0 True True True
