@@ -54,9 +54,14 @@ fixture coverage, then update the row truthfully.
   construction, type/member descriptor lookup, memoryview item sizing, `nt`
   terminal-color probes, bytearray/bytes concatenation, `_sre` character class
   translation, CPython `inspect.py` `CO_*` flag generation through live
-  `globals()`, and disabled `sys.monitoring` near-zero-cost frame handling.
-  Remaining: exact frame/source/traceback formatting, full regex semantics,
-  and deeper logging error formatting remain pending.
+  `globals()`, disabled `sys.monitoring` near-zero-cost frame handling, real
+  `mappingproxy` construction/iteration/views for `Signature.parameters` and
+  class dictionaries, CPython-shaped `f_lasti`/`tb_lasti`/`co_lines` offsets
+  for `traceback.py`, catchable `ZeroDivisionError`, dataclass
+  frozen/default_factory/slots basics, and logging exception formatter output.
+  Remaining: full regex semantics, exact traceback column/end-position
+  metadata, complete dataclass inheritance/slot/default edge semantics, and
+  deeper logging handler/filter/error behavior remain pending.
 
 - [~] `os`, `os.path`, `ntpath`, `posixpath`, `pathlib`, `glob`, and `fnmatch`
   Coverage: real CPython 3.14 `os.py`, `ntpath.py`, `posixpath.py`,

@@ -139,6 +139,14 @@ except LookupError as caught:
     print(tb.tb_lineno == line_probe.__code__.co_firstlineno + 2)
 
 
+# Arithmetic errors use CPython exception classes and bytecode-shaped offsets.
+for expr in ("1 / 0", "1 // 0", "1 % 0"):
+    try:
+        eval(expr)
+    except ZeroDivisionError as caught:
+        print(expr, type(caught).__name__, caught.__traceback__.tb_lasti % 2 == 0)
+
+
 # OSError exposes CPython-compatible errno fields and remaps common errno codes.
 plain_os_error = OSError("plain")
 missing_os_error = OSError(2, "missing", "name.txt")

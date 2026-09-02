@@ -1070,8 +1070,8 @@ bool code_lines_method(
   for (size_t i = 0; i < fn.source_lines.size(); ++i) {
     const int64_t line = fn.source_lines[i] == 0 ? -1 : static_cast<int64_t>(fn.source_lines[i]);
     ranges.push_back(Value::tuple({
-        Value::int64(static_cast<int64_t>(i)),
-        Value::int64(static_cast<int64_t>(i + 1)),
+        Value::int64(static_cast<int64_t>(i * 2)),
+        Value::int64(static_cast<int64_t>((i + 1) * 2)),
         line < 0 ? Value::none() : Value::int64(line),
     }));
   }
@@ -1985,7 +1985,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_lasti") {
-      out = Value::int64(static_cast<int64_t>(frame->instruction_index));
+      out = Value::int64(static_cast<int64_t>(frame->instruction_index) * 2);
       return true;
     }
     if (name == "f_locals") {
@@ -2027,7 +2027,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "tb_lasti") {
       if (auto* frame = value_as_frame(traceback->frame)) {
-        out = Value::int64(static_cast<int64_t>(frame->instruction_index));
+        out = Value::int64(static_cast<int64_t>(frame->instruction_index) * 2);
       } else {
         out = Value::int64(-1);
       }

@@ -9,3 +9,4 @@ system-stdlib-io-codecs True True True utf_8 b'x' y
 system-stdlib-source-helpers True True True True True True True Signature 7 xlang3 False
 system-stdlib-mappingproxy ['first', 'second', 'third'] ['first', 'second', 'third'] [1, 2, 3] ('second', 2) 3 True
 system-stdlib-source-helper-protocols ['a', 'b', 'c'] 4 {'x': 2, 'y': 3} (2, 9) ['x', 'y'] ['alpha', '  beta'] True True INFO:xlang3.fixture:hello
+system-stdlib-dataclass-logging-deep True FrozenInstanceError [7] [] 5 False True True True

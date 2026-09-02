@@ -28,6 +28,16 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+template <typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow raise_zero_division(
+    Runtime& runtime,
+    const char* message,
+    RaiseExceptionValue&& raise_exception_value) {
+  return raise_exception_value(runtime.make_exception("ZeroDivisionError", message))
+      ? XlangVMOpFlow::ContinueLoop
+      : XlangVMOpFlow::ReturnResult;
+}
+
 template <typename FastOp, typename SlowOp, typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic(
     const ir::Instr& in,
@@ -141,7 +151,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow div(
   bool divide_by_zero = false;
   if (!fast_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
     if (divide_by_zero) {
-      return raise_runtime_error("division by zero") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_zero_division(runtime, "division by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
       const auto flow = call_binary_special_method(
@@ -167,53 +177,74 @@ XLANG3_HOT_INLINE XlangVMOpFlow div(
     }
     std::string error;
     if (!value_div(lhs, rhs, regs[in.dst], error)) {
+      if (error == "division by zero") {
+        return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow floor_div(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow floor_div(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   const auto& lhs = regs[in.a];
   const auto& rhs = regs[in.b];
   bool divide_by_zero = false;
   if (!fast_floor_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
     if (divide_by_zero) {
-      return raise_runtime_error("division by zero") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_zero_division(runtime, "division by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     std::string error;
     if (!value_floor_div(lhs, rhs, regs[in.dst], error)) {
+      if (error == "integer division by zero" || error == "float floor division by zero" || error == "division by zero") {
+        return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
-XLANG3_HOT_INLINE XlangVMOpFlow mod(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow mod(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   const auto& lhs = regs[in.a];
   const auto& rhs = regs[in.b];
   bool modulo_by_zero = false;
   if (!fast_mod(lhs, rhs, regs[in.dst], modulo_by_zero)) {
     if (modulo_by_zero) {
-      return raise_runtime_error("integer modulo by zero") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     std::string error;
     if (!value_mod(lhs, rhs, regs[in.dst], error)) {
+      if (error == "integer modulo by zero" || error == "float modulo by zero") {
+        return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
     const ir::Instr& in,
     const ir::Function& fn,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     RuntimeResult& result,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   if (in.b >= fn.constants.size()) {
     result.errors.push_back("invalid modulo constant");
     return XlangVMOpFlow::ReturnResult;
@@ -222,7 +253,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
   const auto& rhs = fn.constants[in.b];
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     if (rhs.as.i64 == 0) {
-      return raise_runtime_error("integer modulo by zero") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     value_set_int64(regs[in.dst], lhs.as.i64 % rhs.as.i64);
     return XlangVMOpFlow::Next;
@@ -230,10 +261,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
   bool modulo_by_zero = false;
   if (!fast_mod(lhs, rhs, regs[in.dst], modulo_by_zero)) {
     if (modulo_by_zero) {
-      return raise_runtime_error("integer modulo by zero") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     std::string error;
     if (!value_mod(lhs, rhs, regs[in.dst], error)) {
+      if (error == "integer modulo by zero" || error == "float modulo by zero") {
+        return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }

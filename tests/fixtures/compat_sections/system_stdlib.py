@@ -174,6 +174,22 @@ class StdlibPoint:
     y: int = 0
 
 
+@dataclasses.dataclass(frozen=True, order=True)
+class FrozenStdlibPoint:
+    x: int
+    y: int = 0
+
+
+@dataclasses.dataclass
+class FactoryStdlibBox:
+    items: list = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass(slots=True)
+class SlotStdlibBox:
+    value: int
+
+
 sig = inspect.signature(lambda a, b=2, *, c=3: a + b + c)
 bound = sig.bind(1, c=4)
 dedented = textwrap.dedent(
@@ -195,6 +211,19 @@ logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 logger.propagate = False
 logger.info("hello")
+try:
+    FrozenStdlibPoint(1).x = 9
+except Exception as exc:
+    frozen_error_name = type(exc).__name__
+factory_left = FactoryStdlibBox()
+factory_right = FactoryStdlibBox()
+factory_left.items.append(7)
+slot_box = SlotStdlibBox(5)
+try:
+    1 / 0
+except Exception:
+    logger.exception("failed %s", "division")
+log_text = stream.getvalue()
 print(
     "system-stdlib-source-helper-protocols",
     list(sig.parameters),
@@ -205,5 +234,17 @@ print(
     dedented.splitlines(),
     any("ValueError: demo" in line for line in formatted_exception),
     linecache.getline(__file__, 1).startswith("# Copyright"),
-    stream.getvalue().strip(),
+    stream.getvalue().splitlines()[0],
+)
+print(
+    "system-stdlib-dataclass-logging-deep",
+    FrozenStdlibPoint(1) < FrozenStdlibPoint(2),
+    frozen_error_name,
+    factory_left.items,
+    factory_right.items,
+    slot_box.value,
+    hasattr(slot_box, "__dict__"),
+    "ERROR:xlang3.fixture:failed division" in log_text,
+    "ZeroDivisionError" in log_text,
+    "1 / 0" in log_text,
 )
