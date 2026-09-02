@@ -603,6 +603,20 @@ subprocess_cwd = "xlang3_subprocess_cwd_probe"
 os.makedirs(subprocess_cwd, exist_ok=True)
 try:
     child_result = subprocess.run([sys.executable, "-c", "print('child-xlang')"], capture_output=True, text=True)
+    stdin_process = subprocess.Popen(
+        [sys.executable, "-c", "import sys; data=sys.stdin.read(); print(data.upper())"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    stdin_stdout, stdin_stderr = stdin_process.communicate("abc")
+    check_call_result = subprocess.check_call([sys.executable, "-c", "import sys; sys.exit(0)"])
+    called_error_state = None
+    try:
+        subprocess.run([sys.executable, "-c", "import sys; sys.exit(3)"], check=True)
+    except subprocess.CalledProcessError as called_error:
+        called_error_state = (called_error.returncode, called_error.cmd[0].endswith("xlang3.exe") or called_error.cmd[0].endswith("python.exe"))
     cwd_result = subprocess.run(["cmd", "/c", "cd"], cwd=subprocess_cwd, capture_output=True, text=True)
     devnull_result = subprocess.run(["cmd", "/c", "echo hidden"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
@@ -616,6 +630,11 @@ print(
     source_lib_module(subprocess),
     child_result.returncode,
     child_result.stdout.strip(),
+    stdin_process.returncode,
+    stdin_stdout.strip(),
+    stdin_stderr.strip(),
+    check_call_result,
+    called_error_state,
     cwd_result.returncode,
     cwd_result.stdout.strip().replace("\\", "/").endswith(subprocess_cwd),
     devnull_result.returncode,

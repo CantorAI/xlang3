@@ -1576,7 +1576,7 @@ bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  int64_t size = 1;
+  int64_t size = -1;
   if (argc == 2) {
     if (args[1].tag == ValueTag::None) {
       size = -1;
@@ -1679,7 +1679,7 @@ bool sys_stdio_binary_read(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  int64_t size = 1;
+  int64_t size = -1;
   if (argc == 2) {
     if (args[1].tag == ValueTag::None) {
       size = -1;

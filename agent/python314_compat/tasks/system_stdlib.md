@@ -109,8 +109,11 @@ fixture coverage, then update the row truthfully.
   also succeeds against a loopback listener. CPython `http.client.HTTPConnection`
   now succeeds for a loopback GET using CPython `Lib/socket.py` file-object
   semantics over native `_socket.recv_into` and `_io.BufferedReader`.
-  `subprocess` coverage now also includes `sys.executable -c`, `cwd`,
-  `DEVNULL`, and timeout cleanup through CPython `Lib/subprocess.py`.
+  `subprocess` coverage now also includes `sys.executable -c`, pipe-backed
+  `Popen.communicate(input=...)` over `sys.stdin.read()`, `check_call`
+  seeing `sys.exit(0)` as process success, `CalledProcessError` preserving
+  nonzero `SystemExit` status, `cwd`, `DEVNULL`, and timeout cleanup through
+  CPython `Lib/subprocess.py`.
   Additional probes cover `socket.socketpair`, socket blocking/timeout state,
   `_overlapped` import foundation, CPython `Lib/asyncio` import, `_signal`
   `set_wakeup_fd`, and int-like signal enum arguments.

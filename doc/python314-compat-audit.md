@@ -1416,10 +1416,12 @@ High-level pure-Python stdlib modules must be source-backed:
   primitives. Windows `subprocess.run([sys.executable, "-c", ...],
   capture_output=True, text=True, timeout=...)` now launches the active
   XLang3-compatible executable and captures stdout/stderr through the source
-  module; `cwd`, `DEVNULL`, mapped `env`, input pipes, context-manager
-  `Popen`, and timeout cleanup are covered. POSIX process launch, exact file-handle inheritance, advanced
-  `Popen.communicate`, lifecycle/session/group semantics, and full CPython
-  edge behavior pending.
+  module; `Popen.communicate(input=...)` over `sys.stdin.read()`,
+  `check_call`/`CalledProcessError` with child `SystemExit` process-code
+  propagation, `cwd`, `DEVNULL`, mapped `env`, input pipes, context-manager
+  `Popen`, and timeout cleanup are covered. POSIX process launch, exact
+  file-handle inheritance, advanced lifecycle/session/group semantics, and
+  full CPython edge behavior pending.
 - [~] `sysconfig`: path names/dicts, platform/version, scheme name/default/preferred helpers,
   `_get_preferred_schemes`, `_expand_vars`, `_get_sysconfigdata_name`, `is_python_build`,
   config filename helpers, common config-var helpers, and makefile-variable expansion;
