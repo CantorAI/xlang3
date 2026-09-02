@@ -513,8 +513,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       regs[in.a].tag == ValueTag::Object &&
       regs[in.a].as.obj != nullptr) {
     auto& cache = instr_cache[ip].call;
-    if (cache.kind == CallSiteKind::BoundNativeFunction &&
-        cache.class_version == static_cast<uint64_t>(regs[in.a].as.obj->kind)) {
+    auto* cached_receiver_class = value_as_class(regs[in.a]);
+    const bool cached_bound_native_matches =
+        cached_receiver_class != nullptr
+            ? cache.callee_object == &cached_receiver_class->header &&
+                  cache.class_version == cached_receiver_class->version
+            : cache.callee_object == nullptr &&
+                  cache.class_version == static_cast<uint64_t>(regs[in.a].as.obj->kind);
+    if (cache.kind == CallSiteKind::BoundNativeFunction && cached_bound_native_matches) {
       CallArgsView bound_args = call_args;
       bound_args.leading = &regs[in.a];
       bound_args.leading_count = 1;
@@ -949,9 +955,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     if (auto* native = value_as_native_function(bound->function)) {
       if (!receiver_is_super && !instr_cache.empty() && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
         auto& cache = instr_cache[ip].call;
-        cache.callee_object = nullptr;
+        if (auto* receiver_class = value_as_class(regs[in.a])) {
+          cache.callee_object = &receiver_class->header;
+          cache.class_version = receiver_class->version;
+        } else {
+          cache.callee_object = nullptr;
+          cache.class_version = static_cast<uint64_t>(regs[in.a].as.obj->kind);
+        }
         cache.kind = CallSiteKind::BoundNativeFunction;
-        cache.class_version = static_cast<uint64_t>(regs[in.a].as.obj->kind);
         cache.cached_values.clear();
         cache.cached_values.push_back(bound->function);
         cache.native = value_as_native_function(cache.cached_values[0]);

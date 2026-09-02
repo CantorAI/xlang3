@@ -24,7 +24,11 @@
 
 - [~] _io
   Coverage: `tests/fixtures/core/io_module_streams.py`, `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, StringIO/BytesIO, detach/reconfigure, and exact errors.
+  Coverage update: native `_io` now supports StringIO/BytesIO keyword construction,
+  truncate, IOBase closed/readable/writable guards, and buffered wrapper delegation
+  over raw `readinto` streams so CPython `socket.py`, `email.parser`, and
+  `http.client` can use normal stdlib file-object paths.
+  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, detach/reconfigure, and exact errors.
 
 - [~] _socket, select, and _signal
   Coverage: `tests/fixtures/core/socket_select_modules.py`,
@@ -35,6 +39,10 @@
   `select.select` socket readability with original object return lists, and
   OS-backed IPv4 `getaddrinfo`. CPython `Lib/selectors.py` now runs a
   `SelectSelector` socketpair readiness path over these primitives.
+  `_socket.socket.recv_into` writes into writable bytearray and memoryview
+  buffers, `TCP_NODELAY` is exported, and native file-like socket helpers were
+  removed from `_socket.socket` so CPython `Lib/socket.py` owns
+  `socket.socket.makefile` as in CPython.
   `_overlapped` now keeps native overlapped address state and an IOCP completion
   queue/fallback for immediate and cancelled operations, enough for CPython
   `asyncio.run()` startup/shutdown over the Windows proactor path.

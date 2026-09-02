@@ -615,12 +615,15 @@ bool socket_setsockopt(Runtime&, const Value* args, uint32_t argc, Value& out, s
   }
   if (args[1].tag == ValueTag::Int64 && args[2].tag == ValueTag::Int64 && args[3].tag == ValueTag::Int64) {
     int value = static_cast<int>(args[3].as.i64);
-    setsockopt(
+    if (setsockopt(
         fd,
         static_cast<int>(args[1].as.i64),
         static_cast<int>(args[2].as.i64),
         reinterpret_cast<const char*>(&value),
-        sizeof(value));
+        sizeof(value)) != 0) {
+      error = socket_last_error_text("setsockopt");
+      return false;
+    }
   }
   value_set_none(out);
   return true;
@@ -952,25 +955,9 @@ bool socket_recv(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool socket_makefile(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 3) {
-    error = "socket.makefile() expected optional mode and buffering";
-    return false;
-  }
-  auto* state = socket_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
-  if (make_native_socket(*state, error) == kInvalidSocket) {
-    return false;
-  }
-  value_assign_fast(out, args[0]);
-  return true;
-}
-
-bool socket_read(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[1].tag != ValueTag::Int64) {
-    error = "socket file read() expected size";
+bool socket_recv_into(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "socket.recv_into() expected buffer and optional nbytes";
     return false;
   }
   auto* state = socket_state(args[0], error);
@@ -981,65 +968,53 @@ bool socket_read(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   if (fd == kInvalidSocket) {
     return false;
   }
-  const int size = static_cast<int>(std::max<int64_t>(0, args[1].as.i64));
-  std::string data(static_cast<size_t>(size), '\0');
-  const int received = ::recv(fd, data.data(), size, 0);
+
+  char* data = nullptr;
+  size_t capacity = 0;
+  if (auto* array = value_as_bytearray(args[1])) {
+    data = array->value.data();
+    capacity = array->value.size();
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    if (view->readonly) {
+      error = "recv_into() argument must be read-write bytes-like object";
+      return false;
+    }
+    auto* owner = value_as_bytearray(view->owner);
+    if (owner == nullptr || view->offset > owner->value.size() || owner->value.size() - view->offset < view->size) {
+      error = "recv_into() memoryview owner is not writable";
+      return false;
+    }
+    data = owner->value.data() + view->offset;
+    capacity = view->size;
+  } else {
+    error = "recv_into() argument must be read-write bytes-like object";
+    return false;
+  }
+
+  if (argc == 3) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "recv_into() nbytes must be int";
+      return false;
+    }
+    if (args[2].as.i64 >= 0) {
+      capacity = std::min(capacity, static_cast<size_t>(args[2].as.i64));
+    }
+  }
+  if (capacity == 0) {
+    value_set_int64(out, 0);
+    return true;
+  }
+
+  const int received = ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), 0);
   if (received < 0) {
-    error = socket_last_error_text("read");
+    error = socket_last_error_text("recv_into");
     return false;
   }
-  data.resize(static_cast<size_t>(received));
-  out = Value::bytes(std::move(data));
-  return true;
-}
-
-bool socket_readline(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "socket file readline() expected no arguments";
-    return false;
-  }
-  auto* state = socket_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
-  NativeSocket fd = make_native_socket(*state, error);
-  if (fd == kInvalidSocket) {
-    return false;
-  }
-  std::string line;
-  char ch = 0;
-  while (true) {
-    const int received = ::recv(fd, &ch, 1, 0);
-    if (received <= 0) {
-      break;
-    }
-    line.push_back(ch);
-    if (ch == '\n') {
-      break;
-    }
-  }
-  out = Value::bytes(std::move(line));
-  return true;
-}
-
-bool socket_write(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!socket_send_impl(args, argc, out, error, true)) {
-    return false;
-  }
-  if (auto* bytes = value_as_bytes(args[1])) {
-    value_set_int64(out, static_cast<int64_t>(bytes->size));
-  } else if (auto* text = value_as_string(args[1])) {
-    value_set_int64(out, static_cast<int64_t>(text->size));
-  }
-  return true;
-}
-
-bool socket_flush(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "socket file flush() expected no arguments";
-    return false;
-  }
-  value_set_none(out);
+  value_set_int64(out, received);
   return true;
 }
 
@@ -1197,11 +1172,7 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"send", runtime.make_native_function("_socket.socket.send", socket_send)});
   attrs.push_back({"sendall", runtime.make_native_function("_socket.socket.sendall", socket_sendall)});
   attrs.push_back({"recv", runtime.make_native_function("_socket.socket.recv", socket_recv)});
-  attrs.push_back({"makefile", runtime.make_native_function("_socket.socket.makefile", socket_makefile)});
-  attrs.push_back({"read", runtime.make_native_function("_socket.socket.read", socket_read)});
-  attrs.push_back({"readline", runtime.make_native_function("_socket.socket.readline", socket_readline)});
-  attrs.push_back({"write", runtime.make_native_function("_socket.socket.write", socket_write)});
-  attrs.push_back({"flush", runtime.make_native_function("_socket.socket.flush", socket_flush)});
+  attrs.push_back({"recv_into", runtime.make_native_function("_socket.socket.recv_into", socket_recv_into)});
   attrs.push_back({"shutdown", runtime.make_native_function("_socket.socket.shutdown", socket_shutdown)});
   return Value::class_object("socket", std::move(attrs));
 }
@@ -1217,6 +1188,11 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("SOCK_STREAM", Value::int64(kSockStream))
       .value("SOCK_DGRAM", Value::int64(kSockDgram))
       .value("IPPROTO_TCP", Value::int64(IPPROTO_TCP))
+#ifdef TCP_NODELAY
+      .value("TCP_NODELAY", Value::int64(TCP_NODELAY))
+#else
+      .value("TCP_NODELAY", Value::int64(1))
+#endif
 #ifdef TCP_KEEPIDLE
       .value("TCP_KEEPIDLE", Value::int64(TCP_KEEPIDLE))
 #else

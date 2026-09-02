@@ -269,6 +269,31 @@ bool parse_scoped_inline_flags(std::string_view pattern, size_t open, size_t& co
   return false;
 }
 
+bool regex_parse_octal_escape(std::string_view pattern, size_t& index, unsigned char& out) {
+  if (index >= pattern.size() || pattern[index] < '0' || pattern[index] > '7') {
+    return false;
+  }
+  unsigned int value = 0;
+  uint32_t count = 0;
+  while (index < pattern.size() && count < 3 && pattern[index] >= '0' && pattern[index] <= '7') {
+    value = value * 8u + static_cast<unsigned int>(pattern[index] - '0');
+    ++index;
+    ++count;
+  }
+  --index;
+  out = static_cast<unsigned char>(value & 0xffu);
+  return true;
+}
+
+void regex_append_literal_char(std::string& out, unsigned char value, bool in_class) {
+  const char ch = static_cast<char>(value);
+  const std::string_view special = in_class ? std::string_view(R"(\^-[])") : std::string_view(R"(\.^$|()[]{}*+?)");
+  if (special.find(ch) != std::string_view::npos) {
+    out.push_back('\\');
+  }
+  out.push_back(ch);
+}
+
 std::string normalize_std_regex_pattern(std::string_view pattern) {
   std::string out;
   out.reserve(pattern.size());
@@ -280,7 +305,10 @@ std::string normalize_std_regex_pattern(std::string_view pattern) {
   for (size_t i = 0; i < pattern.size(); ++i) {
     const char ch = pattern[i];
     if (escaped) {
-      if (ch == 'z' || ch == 'Z') {
+      unsigned char octal = 0;
+      if (regex_parse_octal_escape(pattern, i, octal)) {
+        regex_append_literal_char(out, octal, in_class);
+      } else if (ch == 'z' || ch == 'Z') {
         out.push_back('$');
       } else {
         out.push_back('\\');

@@ -69,4 +69,7 @@
   registration and readable socketpair dispatch.
   Coverage update: CPython `socket.create_connection` now succeeds against a
   loopback listener using native `_socket` resolver/connect primitives.
+  Coverage update: CPython `http.client.HTTPConnection` now performs a loopback
+  GET over CPython `Lib/socket.py`, native `_socket.recv_into`, `_io.BufferedReader`,
+  `email.parser`, and native regex octal escape support.
   Remaining: deeper selectors edge behavior, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

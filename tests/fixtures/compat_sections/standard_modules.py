@@ -3396,6 +3396,39 @@ finally:
     server.close()
 print("socket-create-connection", create_connection_data, isinstance(peer, tuple))
 
+import http.client
+import threading
+
+server = socket.socket()
+http_client = None
+http_accepted = None
+http_seen = []
+
+def serve_http_once():
+    http_accepted, _ = server.accept()
+    request = http_accepted.recv(1024)
+    http_seen.append(request.startswith(b"GET /x HTTP/1.1"))
+    http_accepted.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+    http_accepted.close()
+
+try:
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    host, port = server.getsockname()
+    http_thread = threading.Thread(target=serve_http_once)
+    http_thread.start()
+    http_client = http.client.HTTPConnection(host, port, timeout=2.0)
+    http_client.request("GET", "/x")
+    http_response = http_client.getresponse()
+    http_status = http_response.status
+    http_body = http_response.read()
+    http_thread.join()
+finally:
+    if http_client is not None:
+        http_client.close()
+    server.close()
+print("http-client-loopback", http_status, http_body, http_seen[0])
+
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)
 print(isinstance(completed, subprocess.CompletedProcess), completed.returncode, completed.stdout.strip())

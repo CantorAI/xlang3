@@ -79,7 +79,15 @@ Value memory_stream_result(const MemoryStreamState& state, std::string data) {
   return state.binary ? Value::bytes(std::move(data)) : Value::string(std::move(data));
 }
 
-bool memory_stream_init(const char* type, bool binary, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool memory_stream_init(
+    const char* type,
+    bool binary,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
   if (argc > 2) {
     error = "memory stream constructor expected optional initial value";
     return false;
@@ -94,6 +102,34 @@ bool memory_stream_init(const char* type, bool binary, const Value* args, uint32
       return false;
     }
   }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const char* name = kwargs[i].name;
+    const Value* value = kwargs[i].value;
+    if (name == nullptr || value == nullptr) {
+      delete state;
+      error = "memory stream constructor received invalid keyword";
+      return false;
+    }
+    const std::string_view keyword(name);
+    if ((!binary && keyword == "initial_value") || (binary && keyword == "initial_bytes")) {
+      bool ok = binary ? bytes_value(*value, state->buffer) : string_value(*value, state->buffer);
+      if (!ok) {
+        delete state;
+        error = binary ? "BytesIO initial_bytes must be bytes-like" : "StringIO initial_value must be str";
+        return false;
+      }
+    } else if (!binary && keyword == "newline") {
+      if (value->tag != ValueTag::None && value_as_string(*value) == nullptr) {
+        delete state;
+        error = "StringIO newline must be str or None";
+        return false;
+      }
+    } else {
+      delete state;
+      error = std::string(binary ? "BytesIO" : "StringIO") + " got an unexpected keyword argument '" + std::string(keyword) + "'";
+      return false;
+    }
+  }
   if (!instance_set_native_data(args[0], type, state, memory_stream_cleanup, error)) {
     delete state;
     return false;
@@ -103,11 +139,35 @@ bool memory_stream_init(const char* type, bool binary, const Value* args, uint32
 }
 
 bool string_io_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return memory_stream_init("_io.StringIO", false, args, argc, out, error);
+  return memory_stream_init("_io.StringIO", false, args, argc, nullptr, 0, out, error);
 }
 
 bool bytes_io_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return memory_stream_init("_io.BytesIO", true, args, argc, out, error);
+  return memory_stream_init("_io.BytesIO", true, args, argc, nullptr, 0, out, error);
+}
+
+bool string_io_init_kw(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return memory_stream_init("_io.StringIO", false, args, argc, kwargs, kwargc, out, error);
+}
+
+bool bytes_io_init_kw(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return memory_stream_init("_io.BytesIO", true, args, argc, kwargs, kwargc, out, error);
 }
 
 std::string text_io_encoding_from_args(
@@ -211,6 +271,51 @@ bool text_io_wrapper_new_kw(
   return text_io_wrapper_load_buffer(runtime, out, args[1], text_io_encoding_from_args(args, argc, 2, kwargs, kwargc), ignored, error);
 }
 
+bool buffered_stream_load_buffer(const Value& self, const Value& buffer, const char* type, Value& out, std::string& error) {
+  auto* state = new MemoryStreamState();
+  state->binary = true;
+  state->wraps_buffer = true;
+  state->wrapped_buffer = buffer;
+  if (!instance_set_native_data(self, type, state, memory_stream_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool buffered_reader_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "_io.BufferedReader() expected raw stream and optional buffer size";
+    return false;
+  }
+  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedReader", out, error);
+}
+
+bool buffered_writer_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "_io.BufferedWriter() expected raw stream and optional buffer size";
+    return false;
+  }
+  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedWriter", out, error);
+}
+
+bool buffered_random_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "_io.BufferedRandom() expected raw stream and optional buffer size";
+    return false;
+  }
+  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedRandom", out, error);
+}
+
+bool buffered_rw_pair_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 3 || argc > 4) {
+    error = "_io.BufferedRWPair() expected reader, writer, and optional buffer size";
+    return false;
+  }
+  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedRWPair", out, error);
+}
+
 bool decode_text_io_data(const Value& data, const std::string& encoding, Value& out, std::string& error) {
   if (auto* string = value_as_string(data)) {
     out = Value::string(string_object_to_string(*string));
@@ -241,14 +346,60 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
   if (state->wraps_buffer) {
     Value read_method;
-    if (!attribute_get(state->wrapped_buffer, "read", read_method, error)) {
-      return false;
+    std::string read_error;
+    if (!attribute_get(state->wrapped_buffer, "read", read_method, read_error)) {
+      Value readinto_method;
+      if (!attribute_get(state->wrapped_buffer, "readinto", readinto_method, error)) {
+        error = read_error.empty() ? error : read_error;
+        return false;
+      }
+      const int64_t requested_size = argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : -1;
+      const size_t chunk_size = requested_size >= 0 ? static_cast<size_t>(requested_size) : 8192;
+      std::string collected;
+      for (;;) {
+        Value buffer = Value::bytearray(std::string(chunk_size, '\0'));
+        Value readinto_result;
+        if (!runtime_call_callable(runtime, readinto_method, &buffer, 1, readinto_result, error)) {
+          return false;
+        }
+        if (readinto_result.tag == ValueTag::None) {
+          value_set_none(out);
+          return true;
+        }
+        if (readinto_result.tag != ValueTag::Int64) {
+          error = "_io.BufferedReader readinto() returned non-int";
+          return false;
+        }
+        const size_t count = readinto_result.as.i64 <= 0 ? 0 : static_cast<size_t>(readinto_result.as.i64);
+        auto* array = value_as_bytearray(buffer);
+        if (array == nullptr) {
+          error = "_io.BufferedReader internal buffer is invalid";
+          return false;
+        }
+        if (count > array->value.size()) {
+          error = "_io.BufferedReader readinto() returned an invalid byte count";
+          return false;
+        }
+        if (requested_size >= 0) {
+          out = Value::bytes(array->value.substr(0, count));
+          return true;
+        }
+        if (count == 0) {
+          out = Value::bytes(std::move(collected));
+          return true;
+        }
+        collected.append(array->value.data(), count);
+      }
     }
     Value data;
     const Value* read_args = argc == 2 ? &args[1] : nullptr;
     const uint32_t read_argc = argc == 2 ? 1 : 0;
     if (!runtime_call_callable(runtime, read_method, read_args, read_argc, data, error)) {
       return false;
+    }
+    if (state->binary) {
+      value_assign_fast(out, data);
+      return true;
     }
     return decode_text_io_data(data, state->encoding, out, error);
   }
@@ -274,7 +425,47 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   if (state->wraps_buffer) {
     Value read_method;
-    if (!attribute_get(state->wrapped_buffer, "readline", read_method, error)) {
+    std::string readline_error;
+    if (state->binary) {
+      Value readinto_method;
+      if (attribute_get(state->wrapped_buffer, "readinto", readinto_method, readline_error)) {
+        const int64_t limit = argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : -1;
+        std::string line;
+        while (limit < 0 || static_cast<int64_t>(line.size()) < limit) {
+          Value buffer = Value::bytearray(std::string(1, '\0'));
+          Value readinto_result;
+          if (!runtime_call_callable(runtime, readinto_method, &buffer, 1, readinto_result, error)) {
+            return false;
+          }
+          if (readinto_result.tag == ValueTag::None) {
+            value_set_none(out);
+            return true;
+          }
+          if (readinto_result.tag != ValueTag::Int64) {
+            error = "_io.BufferedReader readinto() returned non-int";
+            return false;
+          }
+          if (readinto_result.as.i64 <= 0) {
+            out = Value::bytes(std::move(line));
+            return true;
+          }
+          auto* array = value_as_bytearray(buffer);
+          if (array == nullptr || array->value.empty()) {
+            error = "_io.BufferedReader internal buffer is invalid";
+            return false;
+          }
+          line.push_back(array->value[0]);
+          if (array->value[0] == '\n') {
+            out = Value::bytes(std::move(line));
+            return true;
+          }
+        }
+        out = Value::bytes(std::move(line));
+        return true;
+      }
+    }
+    if (!attribute_get(state->wrapped_buffer, "readline", read_method, readline_error)) {
+      error = readline_error;
       return false;
     }
     Value data;
@@ -282,6 +473,10 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     const uint32_t read_argc = argc == 2 ? 1 : 0;
     if (!runtime_call_callable(runtime, read_method, read_args, read_argc, data, error)) {
       return false;
+    }
+    if (state->binary) {
+      value_assign_fast(out, data);
+      return true;
     }
     return decode_text_io_data(data, state->encoding, out, error);
   }
@@ -487,6 +682,29 @@ bool stream_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
+bool stream_truncate(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "memory stream truncate() expected optional size";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  if (state == nullptr) {
+    return false;
+  }
+  size_t size = state->cursor;
+  if (argc == 2 && args[1].tag != ValueTag::None) {
+    if (args[1].tag != ValueTag::Int64 || args[1].as.i64 < 0) {
+      error = "memory stream truncate size must be a non-negative int";
+      return false;
+    }
+    size = static_cast<size_t>(args[1].as.i64);
+  }
+  state->buffer.resize(size, '\0');
+  value_set_int64(out, static_cast<int64_t>(size));
+  return true;
+}
+
 bool stream_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "memory stream close() expected no arguments";
@@ -628,8 +846,29 @@ Value make_memory_stream_class(
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
   attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
+  attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});
   attrs.push_back({"flush", runtime.make_native_function(std::string("_io.") + name + ".flush", stream_flush, const_cast<char*>(type))});
+  attrs.push_back({"closed", runtime.make_native_function(std::string("_io.") + name + ".closed", stream_closed, const_cast<char*>(type))});
+  attrs.push_back({"readable", runtime.make_native_function(std::string("_io.") + name + ".readable", stream_capability, const_cast<char*>(type))});
+  attrs.push_back({"writable", runtime.make_native_function(std::string("_io.") + name + ".writable", stream_capability, const_cast<char*>(type))});
+  attrs.push_back({"seekable", runtime.make_native_function(std::string("_io.") + name + ".seekable", stream_capability, const_cast<char*>(type))});
+  return Value::class_object(name, std::move(attrs));
+}
+
+Value make_buffered_stream_class(Runtime& runtime, const char* name, const char* type, NativeFunctionCallback init) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});
+  attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
+  attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});
+  attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
+  attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
+  attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
+  attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
+  attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
+  attrs.push_back({"flush", runtime.make_native_function(std::string("_io.") + name + ".flush", stream_flush, const_cast<char*>(type))});
+  attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
+  attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});
   attrs.push_back({"closed", runtime.make_native_function(std::string("_io.") + name + ".closed", stream_closed, const_cast<char*>(type))});
   attrs.push_back({"readable", runtime.make_native_function(std::string("_io.") + name + ".readable", stream_capability, const_cast<char*>(type))});
   attrs.push_back({"writable", runtime.make_native_function(std::string("_io.") + name + ".writable", stream_capability, const_cast<char*>(type))});
@@ -691,6 +930,15 @@ bool io_base_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
+bool io_base_init(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_io._IOBase.__init__() expected no arguments";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool io_base_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "_io._IOBase.close() expected no arguments";
@@ -716,6 +964,46 @@ bool io_base_closed_get(Runtime&, const Value* args, uint32_t argc, Value& out, 
     return true;
   }
   value_set_bool(out, false);
+  return true;
+}
+
+bool io_base_check_closed(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_io._IOBase._checkClosed() expected no arguments";
+    return false;
+  }
+  Value closed;
+  if (!io_base_closed_get(runtime, args, argc, closed, error, nullptr)) {
+    return false;
+  }
+  if (value_truthy(closed)) {
+    error = "I/O operation on closed file";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool io_base_check_capability(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = std::string("_io._IOBase.") + static_cast<const char*>(user_data) + "() expected no arguments";
+    return false;
+  }
+  const std::string_view check_name(static_cast<const char*>(user_data));
+  const char* capability_name = check_name == "_checkReadable" ? "readable" : "writable";
+  Value capability;
+  if (!object_get_attr(args[0], capability_name, capability, error)) {
+    return false;
+  }
+  Value allowed;
+  if (!runtime_call_callable(runtime, capability, nullptr, 0, allowed, error)) {
+    return false;
+  }
+  if (!value_truthy(allowed)) {
+    error = check_name == "_checkReadable" ? "File or stream is not readable" : "File or stream is not writable";
+    return false;
+  }
+  value_set_none(out);
   return true;
 }
 
@@ -806,10 +1094,14 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
   Value closed_getter = runtime.make_native_function("_io._IOBase.closed.get", io_base_closed_get);
   const std::vector<std::pair<std::string, Value>> base_attrs = {
       {"__doc__", Value::none()},
+      {"__init__", runtime.make_native_function("_io._IOBase.__init__", io_base_init)},
       {"__enter__", runtime.make_native_function("_io._IOBase.__enter__", io_base_enter)},
       {"__exit__", runtime.make_native_function("_io._IOBase.__exit__", io_base_exit)},
       {"close", runtime.make_native_function("_io._IOBase.close", io_base_close)},
       {"closed", Value::property(std::move(closed_getter), Value::none(), Value::none(), Value::none())},
+      {"_checkClosed", runtime.make_native_function("_io._IOBase._checkClosed", io_base_check_closed)},
+      {"_checkReadable", runtime.make_native_function("_io._IOBase._checkReadable", io_base_check_capability, const_cast<char*>("_checkReadable"))},
+      {"_checkWritable", runtime.make_native_function("_io._IOBase._checkWritable", io_base_check_capability, const_cast<char*>("_checkWritable"))},
       {"readable", runtime.make_native_function("_io._IOBase.readable", io_base_false_method, const_cast<char*>("readable"))},
       {"writable", runtime.make_native_function("_io._IOBase.writable", io_base_false_method, const_cast<char*>("writable"))},
       {"seekable", runtime.make_native_function("_io._IOBase.seekable", io_base_false_method, const_cast<char*>("seekable"))},
@@ -821,12 +1113,16 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
   Value text_io_base = Value::class_object("_TextIOBase", base_attrs);
   Value buffered_io_base = Value::class_object("_BufferedIOBase", base_attrs, io_base);
   Value file_io = Value::class_object("FileIO", {}, raw_io_base);
-  Value buffered_reader = Value::class_object("BufferedReader", {}, buffered_io_base);
-  Value buffered_writer = Value::class_object("BufferedWriter", {}, buffered_io_base);
-  Value buffered_random = Value::class_object("BufferedRandom", {}, buffered_io_base);
-  Value buffered_rw_pair = Value::class_object("BufferedRWPair", {}, buffered_io_base);
+  Value buffered_reader = make_buffered_stream_class(runtime, "BufferedReader", "_io.BufferedReader", buffered_reader_init);
+  Value buffered_writer = make_buffered_stream_class(runtime, "BufferedWriter", "_io.BufferedWriter", buffered_writer_init);
+  Value buffered_random = make_buffered_stream_class(runtime, "BufferedRandom", "_io.BufferedRandom", buffered_random_init);
+  Value buffered_rw_pair = make_buffered_stream_class(runtime, "BufferedRWPair", "_io.BufferedRWPair", buffered_rw_pair_init);
   Value text_io_wrapper = make_memory_stream_class(runtime, "TextIOWrapper", "_io.TextIOWrapper", text_io_wrapper_init, text_io_wrapper_init_kw);
   std::string ignored;
+  class_set_base(buffered_reader, buffered_io_base, ignored);
+  class_set_base(buffered_writer, buffered_io_base, ignored);
+  class_set_base(buffered_random, buffered_io_base, ignored);
+  class_set_base(buffered_rw_pair, buffered_io_base, ignored);
   class_set_base(text_io_wrapper, text_io_base, ignored);
   Value incremental_newline_decoder = Value::class_object("IncrementalNewlineDecoder", {});
   builder.value("_IOBase", io_base)
@@ -854,8 +1150,8 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
 } // namespace
 
 void register_io_module(Runtime& runtime) {
-  Value string_io = make_memory_stream_class(runtime, "StringIO", "_io.StringIO", string_io_init);
-  Value bytes_io = make_memory_stream_class(runtime, "BytesIO", "_io.BytesIO", bytes_io_init);
+  Value string_io = make_memory_stream_class(runtime, "StringIO", "_io.StringIO", string_io_init, string_io_init_kw);
+  Value bytes_io = make_memory_stream_class(runtime, "BytesIO", "_io.BytesIO", bytes_io_init, bytes_io_init_kw);
   Value unsupported_operation = make_unsupported_operation_class(runtime);
 
   NativeModuleBuilder low_level(runtime, "_io");

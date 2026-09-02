@@ -1016,6 +1016,7 @@ socket-loopback b'pong' b'ping' True True True True True
 socket-addrinfo True True True 127.0.0.1 80
 selectors-readiness 1 r True True
 socket-create-connection b'hi' True
+http-client-loopback 200 b'ok' True
 True 0 xlang3-subprocess
 0 True
 0 0

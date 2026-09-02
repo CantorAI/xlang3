@@ -1287,8 +1287,8 @@ Native or runtime-backed foundation:
   `S_IFMT`/`S_IMODE`, and `S_IS*` helpers
 - [~] `_imp`: import-lock state, `is_builtin`, frozen-probe helpers, registered-module
   `create_builtin`/`exec_builtin`, `get_magic`, `extension_suffixes`, source-hash, and dynamic-load errors
-- [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek helpers, iterator hooks, and text newline/encoding basics; exact buffering and full CPython IO internals pending
-- [~] `_socket`: constants and socket object lifecycle facade; native networking pending
+- [~] `_io`: module exposes VFS-backed `open`, `open_code`, concrete class-name hierarchy shells (`FileIO`, `TextIOWrapper`, buffered classes), `StringIO`, `BytesIO`, file-like context/read/write/seek/truncate helpers, iterator hooks, text newline/encoding basics, StringIO/BytesIO keyword construction, IOBase closed/readable/writable checks, and buffered raw-`readinto` delegation used by CPython socket/http paths; exact buffering and full CPython IO internals pending
+- [~] `_socket`: constants and socket object lifecycle facade; native TCP loopback bind/listen/connect/accept/send/recv/recv_into, timeout state, getaddrinfo, and CPython-shaped socket surface basics are covered; broader descriptor behavior pending
 - [~] `_signal`: signal constants, stateful `signal`/`getsignal`, `raise_signal`, `valid_signals`, `strsignal`, and `default_int_handler` foundations; real OS signal delivery semantics pending
 - [~] `select`: `select()` shape for non-network readiness lists; native descriptor polling pending
 - [~] `_weakref`: `ref`, `proxy`, `ReferenceType`, `ProxyType`, `getweakrefcount`, `getweakrefs` facade, and non-public target storage for `ReferenceType` instances; true weak lifetime/callback semantics pending
@@ -1389,8 +1389,9 @@ High-level pure-Python stdlib modules must be source-backed:
   `.pth` processing/startup-site behavior pending
 - [~] `socket`: public module runs from CPython 3.14 `Lib/socket.py`
   on top of native `_socket`; basic socket construction, family/type
-  metadata, timeout get/set, and close are covered by the process/socket
-  probe. Real connect/bind/send/recv and network error semantics pending.
+  metadata, timeout get/set, close, loopback streams, socketpair,
+  create_connection, makefile over `_io.BufferedReader`, and recv_into are
+  covered by the process/socket probe. Broader network error semantics pending.
 - [~] `queue`: public module must run from CPython 3.14 `Lib/queue.py`
   on top of native `_queue` and `_thread`; blocking/wakeup semantics pending.
 - [~] `string`: public module must run from CPython 3.14 `Lib/string`
@@ -1471,7 +1472,7 @@ High-level pure-Python stdlib modules must be source-backed:
   primitives. Encrypted ZIP, true ZIP64 large-file archives, optional
   BZIP2/LZMA/Zstandard payload engines, `PyZipFile.writepy`, and exact CPython
   edge cases pending.
-- [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, and `http.server` class names; real HTTP/XML-RPC networking and complete protocol behavior pending
+- [~] `xmlrpc` / `http`: package/module import foundation plus `xmlrpc.client.dumps`/`loads` scalar round-trips, common XML-RPC classes, `http.HTTPStatus`, `http.client` constants/responses/classes, `http.client.HTTPConnection` loopback GET, and `http.server` class names; complete HTTP/XML-RPC protocol behavior pending
 
 ### Async, Tasks, And Threads
 
