@@ -356,6 +356,30 @@ bool importlib_finder_find_spec(Runtime& runtime, const Value* args, uint32_t ar
   return true;
 }
 
+bool importlib_path_finder_find_distributions(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "PathFinder.find_distributions() expected optional context";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value metadata_module;
+  if (!runtime.import_module("importlib.metadata", metadata_module, error)) {
+    return false;
+  }
+  Value metadata_path_finder;
+  if (!module_get_attr(metadata_module, "MetadataPathFinder", metadata_path_finder, error)) {
+    return false;
+  }
+  Value find_distributions;
+  if (!object_get_attr(metadata_path_finder, "find_distributions", find_distributions, error)) {
+    return false;
+  }
+  if (argc > 0) {
+    return runtime_call_callable(runtime, find_distributions, &args[argc - 1], 1, out, error);
+  }
+  return runtime_call_callable(runtime, find_distributions, nullptr, 0, out, error);
+}
+
 Value make_simple_class(const std::string& name, std::vector<std::pair<std::string, Value>> attrs = {}) {
   attrs.push_back({"__module__", Value::string("importlib")});
   return Value::class_object(name, std::move(attrs));
@@ -376,6 +400,9 @@ Value make_loader_class(Runtime& runtime, const std::string& name) {
 Value make_finder_class(Runtime& runtime, const std::string& name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"find_spec", runtime.make_native_function(name + ".find_spec", importlib_finder_find_spec)});
+  if (name == "PathFinder") {
+    attrs.push_back({"find_distributions", runtime.make_native_function(name + ".find_distributions", importlib_path_finder_find_distributions)});
+  }
   return make_simple_class(name, std::move(attrs));
 }
 

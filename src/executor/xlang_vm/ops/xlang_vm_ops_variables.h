@@ -203,16 +203,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
       global_cache.kind = 1;
       return XlangVMOpFlow::Next;
     }
-    Value current_globals = runtime.current_globals_module();
-    auto* current_module = value_as_module(current_globals);
-    if (current_module != nullptr &&
-        current_module != globals_module_obj &&
-        module_find_attr_slot(current_globals, name, slot, error) &&
-        slot < current_module->slots.size() &&
-        current_module->slots[slot].tag != ValueTag::Invalid) {
-      value_assign_fast(regs[in.dst], current_module->slots[slot]);
-      return XlangVMOpFlow::Next;
-    }
     if (const auto* builtin = runtime.find_builtin(name)) {
       value_assign_fast(regs[in.dst], *builtin);
       value_assign_fast(global_cache.value, regs[in.dst]);

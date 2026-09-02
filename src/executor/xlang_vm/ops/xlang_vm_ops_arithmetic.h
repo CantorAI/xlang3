@@ -523,6 +523,10 @@ XLANG3_HOT_INLINE bool try_rich_compare(
   }
   std::string error;
   if (runtime_call_callable(runtime, method, &rhs, 1, out, error)) {
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    if (not_implemented != nullptr && value_is(out, *not_implemented)) {
+      return false;
+    }
     return true;
   }
   Value pending;
@@ -546,6 +550,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow compare(
   const auto& lhs = regs[in.a];
   const auto& rhs = regs[in.b];
   const auto op = static_cast<ir::CompareOp>(in.c);
+  if (op == ir::CompareOp::Eq || op == ir::CompareOp::Ne ||
+      op == ir::CompareOp::Lt || op == ir::CompareOp::Le ||
+      op == ir::CompareOp::Gt || op == ir::CompareOp::Ge) {
+    if (value_int_like_compare(compare_name(op), lhs, rhs, regs[in.dst])) {
+      return XlangVMOpFlow::Next;
+    }
+  }
   XlangVMOpFlow rich_flow = XlangVMOpFlow::Next;
   if (value_as_instance(lhs) != nullptr &&
       try_rich_compare(runtime, op, lhs, rhs, regs[in.dst], rich_flow, raise_exception_value)) {

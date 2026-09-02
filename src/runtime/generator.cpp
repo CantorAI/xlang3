@@ -76,6 +76,21 @@ bool emit_generator_throw_monitoring_event(GeneratorObject& obj, const Value& ex
   return sys_monitoring_dispatch_event(*obj.runtime, kSysMonitoringEventPyThrow, code, -1, &exception, error);
 }
 
+bool exception_has_class_name(Runtime& runtime, const Value& exception, const char* class_name) {
+  auto* klass = value_as_class(runtime.exception_type(exception));
+  return klass != nullptr && klass->name == class_name;
+}
+
+void clear_expected_generator_exit(Runtime& runtime) {
+  Value pending;
+  if (runtime.take_pending_exception(pending) && !exception_has_class_name(runtime, pending, "GeneratorExit")) {
+    runtime.set_pending_exception(std::move(pending));
+  }
+  if (exception_has_class_name(runtime, runtime.active_exception(), "GeneratorExit")) {
+    runtime.clear_active_exception();
+  }
+}
+
 } // namespace
 
 Value Value::generator(
@@ -202,10 +217,13 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
         error = result.errors.front();
         return false;
       }
+      clear_expected_generator_exit(*obj->runtime);
     } else if (!done) {
       error = "generator ignored GeneratorExit";
       obj->runtime->raise_class_error("RuntimeError", error);
       return false;
+    } else {
+      clear_expected_generator_exit(*obj->runtime);
     }
   }
   if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {

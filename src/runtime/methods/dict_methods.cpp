@@ -43,6 +43,62 @@ bool raise_dict_type_error(Runtime& runtime, std::string& error) {
   return false;
 }
 
+const Value* mappingproxy_protocol_source(const Value& object) {
+  auto* proxy = value_as_mapping_proxy(object);
+  if (proxy == nullptr) {
+    return nullptr;
+  }
+  const Value& source = proxy->source;
+  if (value_as_dict(source) != nullptr ||
+      value_as_module(source) != nullptr ||
+      value_as_class(source) != nullptr ||
+      value_as_mapping_proxy(source) != nullptr) {
+    return nullptr;
+  }
+  return &source;
+}
+
+bool call_mapping_method(
+    Runtime& runtime,
+    const Value& source,
+    const char* name,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error) {
+  Value method;
+  std::string attr_error;
+  if (!object_get_attr(source, name, method, attr_error)) {
+    error = attr_error.empty() ? std::string("mapping object has no ") + name : attr_error;
+    return false;
+  }
+  return runtime_call_callable(runtime, method, args, argc, out, error);
+}
+
+bool mappingproxy_protocol_copy(Runtime& runtime, const Value& source, Value& out, std::string& error) {
+  std::vector<std::pair<Value, Value>> entries;
+  Value iterator;
+  if (!runtime_get_iter(runtime, source, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value key;
+    if (!sequence_iter_next(iterator, done, key, error)) {
+      return false;
+    }
+    if (done) {
+      out = Value::dict(std::move(entries));
+      return true;
+    }
+    Value value;
+    if (!call_mapping_method(runtime, source, "__getitem__", &key, 1, value, error)) {
+      return false;
+    }
+    entries.push_back({std::move(key), std::move(value)});
+  }
+}
+
 bool dict_len_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.__len__", error)) {
     return false;
@@ -55,6 +111,24 @@ bool dict_get_method_impl(Runtime& runtime, const Value* args, uint32_t argc, Va
     error = "dict.get expected 2 or 3 arguments, got " + std::to_string(argc);
     return raise_dict_type_error(runtime, error);
   }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    if (call_mapping_method(runtime, *source, "get", args + 1, argc - 1, out, error)) {
+      return true;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+      return false;
+    }
+    if (argc == 3) {
+      error.clear();
+      out = args[2];
+      return true;
+    }
+    error.clear();
+    value_set_none(out);
+    return true;
+  }
   if (mapping_get_item(args[0], args[1], out, error)) {
     return true;
   }
@@ -66,9 +140,12 @@ bool dict_get_method_impl(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
-bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_keys_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.keys", error)) {
     return false;
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "keys", nullptr, 0, out, error);
   }
   if (!mapping_is_mapping(args[0])) {
     error = "dict.keys target is not a mapping";
@@ -78,9 +155,12 @@ bool dict_keys_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_values_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.values", error)) {
     return false;
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "values", nullptr, 0, out, error);
   }
   if (!mapping_is_mapping(args[0])) {
     error = "dict.values target is not a mapping";
@@ -90,9 +170,12 @@ bool dict_values_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_items_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.items", error)) {
     return false;
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "items", nullptr, 0, out, error);
   }
   if (!mapping_is_mapping(args[0])) {
     error = "dict.items target is not a mapping";
@@ -105,6 +188,9 @@ bool dict_items_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
 bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "dict.__getitem__", error)) {
     return false;
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "__getitem__", args + 1, 1, out, error);
   }
   if (mapping_get_item(args[0], args[1], out, error)) {
     return true;
@@ -147,6 +233,9 @@ bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   if (!method_check_argc(argc, 2, "dict.__contains__", error)) {
     return raise_dict_type_error(runtime, error);
   }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "__contains__", args + 1, 1, out, error);
+  }
   Value ignored;
   std::string get_error;
   if (mapping_get_item(args[0], args[1], ignored, get_error)) {
@@ -162,9 +251,16 @@ bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
-bool dict_iter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.__iter__", error)) {
     return false;
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    Value keys;
+    if (!call_mapping_method(runtime, *source, "keys", nullptr, 0, keys, error)) {
+      return false;
+    }
+    return runtime_get_iter(runtime, keys, out, error);
   }
   return mapping_get_iter(args[0], out, error);
 }
@@ -244,9 +340,12 @@ bool dict_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool dict_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool dict_copy_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.copy", error)) {
     return false;
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return mappingproxy_protocol_copy(runtime, *source, out, error);
   }
   if (!mapping_is_mapping(args[0])) {
     error = "dict.copy target is not a mapping";

@@ -629,6 +629,57 @@ bool socket_setsockopt(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool wait_socket_readable(Runtime& runtime, NativeSocket fd, double timeout, const char* operation, std::string& error) {
+  if (timeout < 0.0) {
+    return true;
+  }
+  if (timeout == 0.0) {
+    runtime.raise_class_error("BlockingIOError", socket_last_error_text(operation));
+    return false;
+  }
+
+  fd_set read_set;
+  FD_ZERO(&read_set);
+  FD_SET(fd, &read_set);
+  fd_set error_set;
+  FD_ZERO(&error_set);
+  FD_SET(fd, &error_set);
+
+  timeval tv{};
+  tv.tv_sec = static_cast<long>(timeout);
+  tv.tv_usec = static_cast<long>((timeout - static_cast<double>(tv.tv_sec)) * 1000000.0);
+
+#ifdef _WIN32
+  const int ready = ::select(0, &read_set, nullptr, &error_set, &tv);
+#else
+  const int ready = ::select(fd + 1, &read_set, nullptr, &error_set, &tv);
+#endif
+  if (ready == 0) {
+    runtime.raise_class_error("TimeoutError", std::string(operation) + " timed out");
+    return false;
+  }
+  if (ready < 0) {
+    error = socket_last_error_text("select");
+    return false;
+  }
+  if (FD_ISSET(fd, &error_set)) {
+    error = socket_last_error_text(operation);
+    return false;
+  }
+  return true;
+}
+
+bool prepare_socket_read(Runtime& runtime, SocketState& state, NativeSocket fd, const char* operation, std::string& error) {
+  double timeout = -1.0;
+  if (!socket_timeout_seconds(state, timeout, error)) {
+    return false;
+  }
+  if (!state.blocking) {
+    return wait_socket_readable(runtime, fd, timeout, operation, error);
+  }
+  return true;
+}
+
 bool socket_bind(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.bind() expected address";
@@ -930,7 +981,7 @@ bool socket_sendall(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return socket_send_impl(args, argc, out, error, true);
 }
 
-bool socket_recv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 || args[1].tag != ValueTag::Int64) {
     error = "socket.recv() expected size";
     return false;
@@ -943,10 +994,17 @@ bool socket_recv(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   if (fd == kInvalidSocket) {
     return false;
   }
+  if (!prepare_socket_read(runtime, *state, fd, "recv", error)) {
+    return false;
+  }
   const int size = static_cast<int>(std::max<int64_t>(0, args[1].as.i64));
   std::string data(static_cast<size_t>(size), '\0');
   const int received = ::recv(fd, data.data(), size, 0);
   if (received < 0) {
+    if (socket_last_error_would_block()) {
+      runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv"));
+      return false;
+    }
     error = socket_last_error_text("recv");
     return false;
   }
@@ -955,7 +1013,7 @@ bool socket_recv(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool socket_recv_into(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "socket.recv_into() expected buffer and optional nbytes";
     return false;
@@ -966,6 +1024,9 @@ bool socket_recv_into(Runtime&, const Value* args, uint32_t argc, Value& out, st
   }
   NativeSocket fd = make_native_socket(*state, error);
   if (fd == kInvalidSocket) {
+    return false;
+  }
+  if (!prepare_socket_read(runtime, *state, fd, "recv_into", error)) {
     return false;
   }
 
@@ -1011,6 +1072,10 @@ bool socket_recv_into(Runtime&, const Value* args, uint32_t argc, Value& out, st
 
   const int received = ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), 0);
   if (received < 0) {
+    if (socket_last_error_would_block()) {
+      runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv_into"));
+      return false;
+    }
     error = socket_last_error_text("recv_into");
     return false;
   }

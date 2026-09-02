@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang_vm_ops_call.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
@@ -34,6 +35,14 @@ namespace xlang3::xlang_vm::ops {
 
 XLANG3_HOT_INLINE bool xlang_vm_is_default_object_hook(const Value& hook, const char* name) {
   auto* native = value_as_native_function(hook);
+  if (native != nullptr) {
+    return native->name == name;
+  }
+  auto* bound = value_as_bound_method(hook);
+  if (bound == nullptr) {
+    return false;
+  }
+  native = value_as_native_function(bound->function);
   return native != nullptr && native->name == name;
 }
 
@@ -59,6 +68,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   auto* instance = value_as_instance(receiver);
   if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
     if (instance != nullptr) {
+      if (value_as_dict(instance->mapping_storage) != nullptr) {
+        std::string ignored;
+        if (mapping_get_item(instance->mapping_storage, Value::string(descriptor.name), out, ignored)) {
+          return XlangVMOpFlow::Next;
+        }
+      }
       for (const auto& attr : instance->attrs) {
         if (attr.first == descriptor.name) {
           value_assign_fast(out, attr.second);
@@ -80,6 +95,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   }
   const auto& slot_value = instance_slot_at(instance, descriptor.index);
   if (slot_value.tag == ValueTag::Invalid) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      std::string ignored;
+      if (mapping_get_item(instance->mapping_storage, Value::string(descriptor.name), out, ignored)) {
+        return XlangVMOpFlow::Next;
+      }
+    }
     Value tuple_value;
     std::string tuple_error;
     if (object_get_attr(receiver, "_tuple", tuple_value, tuple_error)) {
@@ -819,6 +840,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_instance_slot(
     if (auto* klass = value_as_class(instance->klass)) {
       if (in.b < klass->instance_slot_names.size()) {
         std::string error;
+        if (value_as_dict(instance->mapping_storage) != nullptr &&
+            mapping_get_item(instance->mapping_storage, Value::string(klass->instance_slot_names[in.b]), regs[in.dst], error)) {
+          return XlangVMOpFlow::Next;
+        }
         if (object_get_attr(regs[in.a], klass->instance_slot_names[in.b], regs[in.dst], error)) {
           return XlangVMOpFlow::Next;
         }
@@ -849,6 +874,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_instance_slot(
     return raise_runtime_error("invalid instance slot store") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   value_assign_fast(instance_slot_at(instance, in.a), regs[in.b]);
+  if (auto* klass = value_as_class(instance->klass)) {
+    if (in.a < klass->instance_slot_names.size() && value_as_dict(instance->mapping_storage) != nullptr) {
+      std::string ignored;
+      mapping_set_item(instance->mapping_storage, Value::string(klass->instance_slot_names[in.a]), regs[in.b], ignored);
+    }
+  }
   return XlangVMOpFlow::Next;
 }
 

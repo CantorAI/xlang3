@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/attribute.h"
+#include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
@@ -317,7 +318,7 @@ bool runtime_call_callable(
       if (instance_class != nullptr && class_is_subclass(instance_class, klass)) {
         Value init;
         std::string init_error;
-        if (object_get_attr(new_result, "__init__", init, init_error)) {
+        if (object_get_attr(new_result, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
           Value ignored;
           if (!runtime_call_callable(runtime, init, args, argc, ignored, error)) {
             return false;
@@ -331,7 +332,7 @@ bool runtime_call_callable(
     Value instance = Value::instance(callable);
     Value init;
     std::string init_error;
-    if (object_get_attr(instance, "__init__", init, init_error)) {
+    if (object_get_attr(instance, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
       Value ignored;
       if (!runtime_call_callable(runtime, init, args, argc, ignored, error)) {
         return false;
@@ -450,7 +451,10 @@ bool runtime_call_callable_kw(
 }
 
 bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error) {
-  const bool protocol_first = value_as_instance(iterable) != nullptr || value_as_class(iterable) != nullptr;
+  const bool protocol_first =
+      value_as_instance(iterable) != nullptr ||
+      value_as_class(iterable) != nullptr ||
+      value_as_mapping_proxy(iterable) != nullptr;
   if (!protocol_first && sequence_get_iter(iterable, out, error)) {
     return true;
   }

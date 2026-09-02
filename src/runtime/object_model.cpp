@@ -508,6 +508,9 @@ bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, 
     }
     auto it = candidate->attrs.find(name);
     if (it != candidate->attrs.end()) {
+      if (it->second.tag == ValueTag::Invalid) {
+        continue;
+      }
       value_assign_fast(out, it->second);
       return true;
     }
@@ -2122,6 +2125,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (name == "__module__" || name == "__doc__" || name == "__annotations__" || name == "__text_signature__") {
       return callable_metadata_attr(bound->function, name, out);
     }
+    std::string function_error;
+    if (object_get_attr(bound->function, name, out, function_error)) {
+      return true;
+    }
     error = "method has no attribute '" + name + "'";
     return false;
   }
@@ -2373,8 +2380,22 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         error = "object has no attribute '__dict__'";
         return false;
       }
-      std::vector<std::pair<Value, Value>> entries;
-      entries.reserve(instance->attrs.size());
+      if (instance->mapping_storage.tag == ValueTag::Invalid) {
+        instance->mapping_storage = Value::dict({});
+      }
+      auto sync_dict_attr = [&](const std::string& attr_name, const Value& attr_value) {
+        std::string ignored;
+        mapping_set_item(instance->mapping_storage, Value::string(attr_name), attr_value, ignored);
+      };
+      if (klass != nullptr) {
+        const uint32_t count = instance_slot_count(instance);
+        for (size_t i = 0; i < klass->instance_slot_names.size() && i < count; ++i) {
+          const auto& slot_value = instance_slot_at(instance, static_cast<uint32_t>(i));
+          if (slot_value.tag != ValueTag::Invalid) {
+            sync_dict_attr(klass->instance_slot_names[i], slot_value);
+          }
+        }
+      }
       for (const auto& attr : instance->attrs) {
         if (!attr.first.empty() && attr.first[0] == '#') {
           continue;
@@ -2382,9 +2403,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         if (attr.first.rfind("__xlang3_", 0) == 0) {
           continue;
         }
-        entries.push_back({Value::string(attr.first), attr.second});
+        sync_dict_attr(attr.first, attr.second);
       }
-      out = Value::dict(std::move(entries));
+      value_assign_fast(out, instance->mapping_storage);
       return true;
     }
     if (instance->native_get_attr != nullptr && instance->native_get_attr(object, name, out, error)) {
@@ -2397,12 +2418,20 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         value_assign_fast(out, slot_value);
         return true;
       }
+      if (value_as_dict(instance->mapping_storage) != nullptr &&
+          mapping_get_item(instance->mapping_storage, Value::string(name), out, error)) {
+        return true;
+      }
     }
     for (const auto& attr : instance->attrs) {
       if (attr.first == name) {
         value_assign_fast(out, attr.second);
         return true;
       }
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr &&
+        mapping_get_item(instance->mapping_storage, Value::string(name), out, error)) {
+      return true;
     }
     if (name == "__name__") {
       Value fget;
@@ -2440,6 +2469,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       const auto& slot_value = instance_slot_at(instance, slot->index);
       if (slot_value.tag == ValueTag::Invalid) {
+        if (value_as_dict(instance->mapping_storage) != nullptr &&
+            mapping_get_item(instance->mapping_storage, Value::string(slot->name), out, error)) {
+          return true;
+        }
         Value tuple_value;
         std::string tuple_error;
         if (object_get_attr(object, "_tuple", tuple_value, tuple_error)) {
@@ -2753,6 +2786,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     for (auto& attr : instance->attrs) {
       if (attr.first == name) {
         value_assign_fast(attr.second, value);
+        if (value_as_dict(instance->mapping_storage) != nullptr) {
+          std::string ignored;
+          mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+        }
         if (klass != nullptr && name == "__name__" && class_has_builtin_base_name_impl(klass, "property")) {
           std::string ignored;
           object_set_attr(object, "__xlang3_name_from_getter__", Value::boolean(false), ignored);
@@ -2769,6 +2806,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       return false;
     }
     instance->attrs.push_back(std::make_pair(name, value));
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      std::string ignored;
+      mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+    }
     if (klass != nullptr && name == "__name__" && class_has_builtin_base_name_impl(klass, "property")) {
       std::string ignored;
       object_set_attr(object, "__xlang3_name_from_getter__", Value::boolean(false), ignored);

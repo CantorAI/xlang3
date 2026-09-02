@@ -173,6 +173,11 @@ bool no_args(uint32_t argc, const char* name, std::string& error) {
   return false;
 }
 
+bool raise_path_not_found(Runtime& runtime, const std::string& error) {
+  runtime.raise_class_error("FileNotFoundError", error);
+  return false;
+}
+
 bool os_getcwd(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "os.getcwd", error)) {
     return false;
@@ -200,7 +205,7 @@ bool os_chdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   if (!runtime.vfs().chdir(path.text, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -722,7 +727,7 @@ bool os_listdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   }
   std::vector<std::string> names;
   if (!runtime.vfs().list_dir(path.text, names, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   std::vector<Value> values;
   values.reserve(names.size());
@@ -946,7 +951,7 @@ bool dir_entry_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   out = Value::boolean(stat.kind == VfsNodeKind::Directory);
   return true;
@@ -989,7 +994,7 @@ bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   out = Value::boolean(stat.kind == VfsNodeKind::File);
   return true;
@@ -1015,7 +1020,7 @@ bool dir_entry_is_symlink(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_bool(out, stat.is_symlink);
   return true;
@@ -1033,7 +1038,7 @@ bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   out = make_stat_result(state->stat_result_class, stat);
   return true;
@@ -1059,7 +1064,7 @@ bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   VfsStat stat;
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_int64(out, static_cast<int64_t>(stat.inode));
   return true;
@@ -1190,7 +1195,7 @@ bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   }
   std::vector<std::string> names;
   if (!runtime.vfs().list_dir(path.text, names, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   const auto* module_state = static_cast<OsModuleState*>(user_data);
   if (module_state == nullptr) {
@@ -1221,7 +1226,7 @@ bool os_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   if (!runtime.vfs().remove(path.text, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -1254,7 +1259,7 @@ bool os_mkdir_impl(
   if (!parent.empty()) {
     VfsStat stat;
     if (!runtime.vfs().stat(parent, stat, error)) {
-      return false;
+      return raise_path_not_found(runtime, error);
     }
     if (stat.kind != VfsNodeKind::Directory) {
       error = "parent directory does not exist: " + parent;
@@ -1299,14 +1304,14 @@ bool os_rmdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   if (stat.kind != VfsNodeKind::Directory) {
     error = "not a directory: " + path.text;
     return false;
   }
   if (!runtime.vfs().remove(path.text, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -1324,7 +1329,7 @@ bool os_rename_common(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   if (!runtime.vfs().rename(src.text, dst.text, replace, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_none(out);
   return true;
@@ -1407,7 +1412,7 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   if (stat.kind == VfsNodeKind::Missing) {
     error = "file not found: " + path.text;
@@ -1434,7 +1439,7 @@ bool os_lstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   if (stat.kind == VfsNodeKind::Missing) {
     error = "file not found: " + path.text;
@@ -1483,7 +1488,7 @@ bool os_access(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   }
   VfsStat stat;
   if (!runtime.vfs().stat(path.text, stat, error)) {
-    return false;
+    return raise_path_not_found(runtime, error);
   }
   value_set_bool(out, stat.kind != VfsNodeKind::Missing);
   return true;

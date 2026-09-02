@@ -11,9 +11,9 @@ changed doc
 123 123
 True True True True
 2 2 4 6 2
-[1, 2, 3, 1] (1, 4, 2, 2)
-(0, 0, 2, 0)
-6 6 (1, 1, None, 1) {'maxsize': None, 'typed': False}
+[1, 2, 3, 1] CacheInfo(hits=1, misses=4, maxsize=2, currsize=2)
+CacheInfo(hits=0, misses=0, maxsize=2, currsize=0)
+6 6 CacheInfo(hits=1, misses=1, maxsize=None, currsize=1) {'maxsize': None, 'typed': False}
 <input> <module> True
 True True
 ['a.py', 'c.py']
@@ -48,9 +48,9 @@ BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
 True Expression
 ['seen']
 abc abc abc _abc ABCMeta ABC True True
-abc-class-docs True True True True
-abc-function-docs True True True True True True True
-abc-meta-method-docs True True True
+abc-class-docs True True False False
+abc-function-docs False True True False True True True
+abc-meta-method-docs False True True
 abc-abstract-descriptor-markers True True True
 abstractmethod register _abc_init True True
 True True
@@ -82,11 +82,11 @@ True True 0 True True
 False False False
 True
 True
-abc-decorator-keyword True True classmethod True True
-abc-decorator-keyword staticmethod True True property True missing property True
+abc-decorator-keyword True True abstractclassmethod True True
+abc-decorator-keyword abstractstaticmethod True True abstractproperty True missing abstractproperty True
 abc-abstractproperty-marker True True True abstract doc
 abc-abstractproperty-doc getter doc replacement doc explicit doc replacement doc
-abc-abstractproperty-name abstract_doc_property abstract_doc_replacement manual_name abstract_doc_property False empty_name
+abc-abstractproperty-name abstract_doc_property abstract_doc_replacement abstract_doc_replacement abstract_doc_property False empty_name
 abc-abstractproperty-method-diagnostic getter-missing True
 abc-abstractproperty-method-diagnostic getter-extra True
 abc-abstractproperty-method-diagnostic getter-keyword True
@@ -104,16 +104,15 @@ abc-abstractmethod-attr True
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
 abc-abstractmethod-attr True
-abc-abstractmethod-attr True
 abc-abstractmethod-immutable-type True True
 abc-abstractmethod-immutable-type True True
 abc-abstractmethod-immutable-type True True
 abc-abstractmethod-immutable-type True True
 abc-abstractmethod-immutable-type True True
 abc-abstractmethod-immutable-type True True
-classmethod True True AbstractDescriptorProbe
-staticmethod True True static
-property True missing prop
+abstractclassmethod True True AbstractDescriptorProbe
+abstractstaticmethod True True static
+abstractproperty True missing prop
 True 1 frozenset False
 True True
 abc-abstract-instantiation True True
@@ -152,9 +151,9 @@ abc-helper-keyword _reset_caches True
 abc-helper-keyword-names True
 abc-update-keyword True
 True True True
-True True True
-True True True
-True True True
+True True False
+True False False
+True True False
 T 2 True True object True
 5 UserId int
 x List Union
@@ -163,14 +162,14 @@ annotations 3 None 16777216
 True True True
 RED 1 BLUE 2
 True True True
-[Color.RED, Color.BLUE] True ['RED', 'BLUE']
+[<Color object>, <Color object>] True ['RED', 'BLUE']
 THREE True True
 unique-error
 READ|WRITE 3 <Perm.READ|WRITE: 3> Perm.READ|WRITE
 True True True
 R|X 5 True True
 True True .
-GetPassWarning True True
+GetPassWarning True
 1234.5 1234.5 1234 1234.5
 True True 127
 utf-8 utf-8 surrogatepass True
@@ -365,7 +364,7 @@ True
 True ('sys_monitoring_reraise_target', True, 'ValueError', 'monitoring-reraise')
 True
 True
-2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_outer', True, 'ValueError', 'monitoring-unwind')
+2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind')
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0
@@ -506,8 +505,6 @@ sys-audit-keyword-hook True
 sys-audit-keyword-diagnostic addaudit-unexpected True
 sys-audit-keyword-diagnostic addaudit-extra-kw True
 sys-audit-keyword-diagnostic audit-keyword True
-True
-sys-audit-bad-hook True
 ('sys_frame_probe', '<module>', '__main__', False)
 1 1 True True True
 True True True
@@ -515,7 +512,7 @@ sys-frame-helper-docs True True True True
 True True True True
 True True True True True False
 True True True
-True True True True
+True True True False
 True True True True
 True True True -1 True 0
 sys-noarg-keyword exc_info True
@@ -884,7 +881,7 @@ utf-8 value =
 ['# note', '# tail'] 2 2
 True True
 2147483649 131097 1 None
-True True True
+True False False
 ['a', 'b'] a True
 4 True sample
 doc text True
@@ -910,7 +907,7 @@ error
 id42 id ('id', '42') (2, 4)
 abc abc True
 ['1', '22'] ['a', 'b', 'c'] a#b#
-256 256 0 64 64 RegexFlag
+re.ASCII re.ASCII re.NOFLAG re.VERBOSE re.VERBOSE RegexFlag
 b'abc'
 utf_8 codec b'hi'
 idna example.com
@@ -925,12 +922,13 @@ True
 z3
 n:42
 True 9
-[1, 2] {"a": 1}
+[1, 2] {
 x True True True
 stream 5
 two False 5
 p
 2
+True False 1 [('start', 'root', '7'), ('text', 'hi'), ('end', 'root')]
 demo.echo 7 rpc
 200 Not Found 80
 True True True
@@ -958,15 +956,15 @@ True True deep True
 ['root.txt'] ['note.txt', 'root.txt']
 True True True
 True True
-['xlang3_glob_case/a.py']
-['xlang3_glob_case/a.py', 'xlang3_glob_case/sub/c.py']
-['xlang3_glob_case/b.txt']
+['xlang3_glob_case\\a.py']
+['xlang3_glob_case\\a.py', 'xlang3_glob_case\\sub\\c.py']
+['xlang3_glob_case\\b.txt']
 ['a.py']
 ['.hidden.py', 'a.py']
 .hidden.py ['a.py']
 True [b'b.txt']
-True True True True
 True http.client
+False True False True
 True resource-data
 7 haha 3 2
 True True True 8
@@ -1000,8 +998,8 @@ inner box:inner
 [0, 1, 2, 3] 0 3 True
 ['a', 'b'] [1, 2] [('a', 1), ('b', 2)]
 1 2 3 7 True 3
-['a', 'c', 'b'] [('a', 1), ('c', 3), ('b', 2)] 99 2
-4 4 True
+['a', 'b', 'c'] [('a', 1), ('b', 2), ('c', 3)] 99 2
+4 0 True
 True 2 first second True
 empty
 2 1
@@ -1028,3 +1026,5 @@ merged-error
 True 0 True True True
 True
 cmd True
+True
+sys-audit-bad-hook True

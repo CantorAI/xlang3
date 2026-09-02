@@ -223,7 +223,7 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
   if (instance_class != nullptr && klass != nullptr && class_is_subclass(instance_class, klass)) {
     Value init;
     std::string init_error;
-    if (object_get_attr(new_result, "__init__", init, init_error)) {
+    if (object_get_attr(new_result, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
       Value ignored;
       if (!runtime_call_callable(
               runtime,
@@ -1112,7 +1112,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     init_args.leading_count = 1;
     Value init_value;
     std::string init_error;
-    if (xlang_vm_get_init_attr(method, init_value, init_error)) {
+    if (xlang_vm_get_init_attr(method, init_value, init_error) && init_value.tag != ValueTag::Invalid) {
       if (auto* native = value_as_native_function(init_value)) {
         Value ignored;
         if (!xlang3::xlang_vm::ops::call_native_function(runtime, native, init_args, native_call_args, execution_lock, ignored, raise_runtime_error, raise_exception_value)) {
@@ -1241,7 +1241,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_metaclass_init_after_type_new(
 
   Value init_value;
   std::string init_error;
-  if (!xlang_vm_get_init_attr(metaclass_value, init_value, init_error)) {
+  if (!xlang_vm_get_init_attr(metaclass_value, init_value, init_error) || init_value.tag == ValueTag::Invalid) {
     return XlangVMOpFlow::Next;
   }
   if (auto* native = value_as_native_function(init_value)) {
@@ -1995,7 +1995,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
     Value init_value;
     std::string init_error;
-    if (xlang_vm_get_init_attr(callee, init_value, init_error)) {
+    if (xlang_vm_get_init_attr(callee, init_value, init_error) && init_value.tag != ValueTag::Invalid) {
       if (auto* native = value_as_native_function(init_value)) {
         if (!instr_cache.empty()) {
           auto& cache = instr_cache[ip].call;

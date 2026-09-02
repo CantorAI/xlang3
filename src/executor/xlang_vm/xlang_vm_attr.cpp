@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang_vm_attr.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
 
 namespace xlang3 {
@@ -99,6 +100,11 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         return true;
       }
     }
+    if (value_as_dict(instance->mapping_storage) != nullptr &&
+        mapping_get_item(instance->mapping_storage, Value::string(name), out, error)) {
+      cache.kind = AttrSiteKind::Empty;
+      return true;
+    }
   }
   return attribute_get(object, name, out, error);
 }
@@ -125,6 +131,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.version == klass->version &&
         cache.index < instance_slot_count(instance)) {
       value_assign_fast(instance_slot_at(instance, cache.index), value);
+      if (value_as_dict(instance->mapping_storage) != nullptr) {
+        std::string ignored;
+        mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+      }
       return true;
     }
     if (klass != nullptr &&
@@ -134,6 +144,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.index < instance->attrs.size() &&
         instance->attrs[cache.index].first == name) {
       value_assign_fast(instance->attrs[cache.index].second, value);
+      if (value_as_dict(instance->mapping_storage) != nullptr) {
+        std::string ignored;
+        mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+      }
       return true;
     }
     if (klass != nullptr &&
@@ -165,6 +179,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.owner = &klass->header;
         cache.version = klass->version;
         value_assign_fast(instance_slot_at(instance, slot_it->second), value);
+        if (value_as_dict(instance->mapping_storage) != nullptr) {
+          std::string ignored;
+          mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+        }
         return true;
       }
     }
@@ -177,6 +195,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
           cache.version = klass->version;
         }
         value_assign_fast(instance->attrs[attr_i].second, value);
+        if (value_as_dict(instance->mapping_storage) != nullptr) {
+          std::string ignored;
+          mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+        }
         return true;
       }
     }
@@ -190,6 +212,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     if (klass != nullptr) {
       cache.owner = &klass->header;
       cache.version = klass->version;
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      std::string ignored;
+      mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
     }
     return true;
   }

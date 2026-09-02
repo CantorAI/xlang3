@@ -126,6 +126,36 @@ print(
     type(metadata_distributions).__name__,
     len(metadata_distributions) >= 0,
 )
+
+# importlib.metadata should use CPython's pure Python package and XLang3's
+# import/path/object primitives to discover real dist-info metadata.
+metadata_root = "xlang3_meta_fixture"
+metadata_info = metadata_root + "/demo_pkg-1.2.dist-info"
+metadata_file = metadata_info + "/METADATA"
+if os.path.exists(metadata_file):
+    os.remove(metadata_file)
+if os.path.isdir(metadata_info):
+    os.rmdir(metadata_info)
+if os.path.isdir(metadata_root):
+    os.rmdir(metadata_root)
+os.makedirs(metadata_info, exist_ok=True)
+try:
+    with open(metadata_file, "w", encoding="utf-8") as f:
+        f.write("Metadata-Version: 2.1\nName: demo-pkg\nVersion: 1.2\n")
+    discovered_metadata = list(importlib.metadata.distributions(name="demo-pkg", path=[metadata_root]))
+    print(
+        "system-stdlib-importlib-metadata-dist",
+        len(discovered_metadata),
+        discovered_metadata[0].metadata["Name"],
+        discovered_metadata[0].version,
+    )
+finally:
+    if os.path.exists(metadata_file):
+        os.remove(metadata_file)
+    if os.path.isdir(metadata_info):
+        os.rmdir(metadata_info)
+    if os.path.isdir(metadata_root):
+        os.rmdir(metadata_root)
 print(
     "system-stdlib-enum",
     source_lib_module(enum),

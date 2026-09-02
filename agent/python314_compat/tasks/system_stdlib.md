@@ -125,7 +125,14 @@ fixture coverage, then update the row truthfully.
   `get_resource_reader` delegation to CPython `FileReader`, function
   `__annotate__`, lazy annotation basics, mapping-vs-dict-view detection,
   dict-subclass iteration, and module-level `__getattr__` fallback for lazy
-  source-backed module attributes such as `typing.Match`.
-  Remaining: package metadata, startup-site `.pth` handling, exact importlib
-  lock/cache semantics, namespace/zip resource discovery, and import-time
-  performance.
+  source-backed module attributes such as `typing.Match`. It now also covers
+  `importlib.metadata.distributions(name=..., path=...)` discovering a real
+  `.dist-info/METADATA` directory through CPython source code, backed by native
+  `_frozen_importlib_external.PathFinder.find_distributions`, VFS path errors
+  that raise catchable `FileNotFoundError`, live instance `__dict__` mapping
+  storage, decorator-added bound-method attributes, IntEnum/int rich comparison,
+  and `mappingproxy` protocol delegation for Python-level mappings such as
+  `OrderedDict`.
+  Remaining: startup-site `.pth` handling, exact importlib lock/cache
+  semantics, namespace/zip resource discovery, broader package metadata edge
+  behavior, and import-time performance.
