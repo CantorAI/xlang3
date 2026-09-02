@@ -71,6 +71,7 @@ fixture coverage, then update the row truthfully.
   `pathlib`, `glob.py`, and `fnmatch.py` import from `C:/Python/Python314/Lib`;
   the `system_stdlib` section fixture covers VFS-backed file creation/removal,
   `os.stat_result`, `os.scandir`/`DirEntry`, path-like and bytes path basics,
+  fd-level `os.open`/`write`/`lseek`/`read`/`fstat`/`close` delegation,
   `pathlib.Path` read/write/glob/rglob/match helpers, and `glob` root-dir,
   recursive, hidden-file, iterator, and bytes-path basics.
   Remaining: this path is correct but too slow for the full fixture, especially

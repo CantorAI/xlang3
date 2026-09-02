@@ -100,6 +100,7 @@ struct OsModuleState {
 };
 
 Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines);
+Value make_stat_result(const Value& klass, const VfsStat& stat);
 
 void scandir_state_cleanup(void* data) {
   delete static_cast<ScandirState*>(data);
@@ -400,6 +401,73 @@ bool os_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   value_set_int64(out, static_cast<int64_t>(count));
+  return true;
+}
+
+bool os_lseek(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64 || args[2].tag != ValueTag::Int64) {
+    error = "lseek() expected fd, position, and how";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const auto position =
+      _lseeki64(static_cast<int>(args[0].as.i64), static_cast<__int64>(args[1].as.i64), static_cast<int>(args[2].as.i64));
+  if (position < 0) {
+#else
+  const auto position =
+      ::lseek(static_cast<int>(args[0].as.i64), static_cast<off_t>(args[1].as.i64), static_cast<int>(args[2].as.i64));
+  if (position == static_cast<off_t>(-1)) {
+#endif
+    error = "lseek failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(position));
+  return true;
+}
+
+bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "fstat() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "fstat() missing os module state";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  VfsStat stat;
+#if defined(_WIN32)
+  struct _stat64 native_stat;
+  if (_fstat64(static_cast<int>(args[0].as.i64), &native_stat) != 0) {
+    error = "fstat failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  stat.kind = (native_stat.st_mode & _S_IFDIR) != 0 ? VfsNodeKind::Directory : VfsNodeKind::File;
+  stat.size = static_cast<uint64_t>(native_stat.st_size);
+  stat.inode = static_cast<uint64_t>(native_stat.st_ino);
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atime) * 1000000000LL;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
+#else
+  struct stat native_stat;
+  if (::fstat(static_cast<int>(args[0].as.i64), &native_stat) != 0) {
+    error = "fstat failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  stat.kind = S_ISDIR(native_stat.st_mode) ? VfsNodeKind::Directory : VfsNodeKind::File;
+  stat.size = static_cast<uint64_t>(native_stat.st_size);
+  stat.inode = static_cast<uint64_t>(native_stat.st_ino);
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atime) * 1000000000LL;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
+#endif
+  out = make_stat_result(state->stat_result_class, stat);
   return true;
 }
 
@@ -1394,6 +1462,8 @@ void register_os_module(Runtime& runtime) {
       .function("close", os_close)
       .function("read", os_read)
       .function("write", os_write)
+      .function("lseek", os_lseek)
+      .value("fstat", runtime.make_native_function("os.fstat", os_fstat, os_state))
       .function("getpid", os_getpid)
       .function("getppid", os_getppid)
       .function("cpu_count", os_cpu_count)
@@ -1426,6 +1496,9 @@ void register_os_module(Runtime& runtime) {
       .value("R_OK", Value::int64(4))
       .value("W_OK", Value::int64(2))
       .value("X_OK", Value::int64(1))
+      .value("SEEK_SET", Value::int64(SEEK_SET))
+      .value("SEEK_CUR", Value::int64(SEEK_CUR))
+      .value("SEEK_END", Value::int64(SEEK_END))
 #if defined(_WIN32)
       .value("O_RDONLY", Value::int64(_O_RDONLY))
       .value("O_WRONLY", Value::int64(_O_WRONLY))

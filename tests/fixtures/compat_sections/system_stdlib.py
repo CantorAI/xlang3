@@ -27,6 +27,7 @@ import io
 import json
 import linecache
 import logging
+import os
 import queue
 import pickle
 import textwrap
@@ -322,4 +323,27 @@ print(
     dataclass_error_name("@dataclasses.dataclass(frozen=True)\nclass BadFrozenChild2(StdlibDataclassBase):\n    b:int=1"),
     (slot_child.a, slot_child.b, hasattr(slot_child, "__dict__")),
     (dataclasses.is_dataclass(StdlibDataclassChild), dataclasses.is_dataclass(child)),
+)
+
+
+# os fd APIs: CPython os.py should delegate to native nt/posix primitives.
+fd_path = "xlang3_system_fd.tmp"
+fd = os.open(fd_path, os.O_CREAT | os.O_TRUNC | os.O_RDWR | getattr(os, "O_BINARY", 0), 0o666)
+try:
+    written = os.write(fd, b"abcdef")
+    end_pos = os.lseek(fd, 0, os.SEEK_END)
+    start_pos = os.lseek(fd, 2, os.SEEK_SET)
+    chunk = os.read(fd, 3)
+    stat_size = os.fstat(fd).st_size
+finally:
+    os.close(fd)
+    os.remove(fd_path)
+print(
+    "system-stdlib-os-fd",
+    source_lib_module(os),
+    written,
+    end_pos,
+    start_pos,
+    chunk,
+    stat_size,
 )

@@ -12,3 +12,4 @@ system-stdlib-source-helper-protocols ['a', 'b', 'c'] 4 {'x': 2, 'y': 3} (2, 9) 
 system-stdlib-dataclass-logging-deep True FrozenInstanceError [7] [] 5 False True True True
 system-stdlib-traceback-positions True True True True x
 system-stdlib-dataclass-inheritance-slots (1, 2, 8, [4]) ['a', 'b', 'xs'] TypeError TypeError (1, 2, False) (True, True)
+system-stdlib-os-fd True 6 6 2 b'cde' 6
