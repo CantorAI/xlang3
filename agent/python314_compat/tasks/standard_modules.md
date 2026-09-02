@@ -61,4 +61,6 @@
   Coverage update: socket now covers real loopback stream bind/listen/connect,
   accept, send, recv, close, and timeout connect handling through CPython
   `Lib/socket.py` over native `_socket`.
-  Remaining: select/selectors foundations, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.
+  Coverage update: `select.select` now performs native socket readiness and
+  returns the original Python objects in ready lists.
+  Remaining: selectors module integration, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.

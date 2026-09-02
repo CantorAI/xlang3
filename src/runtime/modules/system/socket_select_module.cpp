@@ -14,13 +14,17 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cerrno>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
 #ifdef _WIN32
@@ -68,6 +72,11 @@ struct SocketState {
   Value timeout;
   NativeSocket fd = kInvalidSocket;
   bool blocking = true;
+};
+
+struct SelectEntry {
+  Value value;
+  NativeSocket fd = kInvalidSocket;
 };
 
 void close_native_socket(NativeSocket fd) {
@@ -137,6 +146,28 @@ bool socket_timeout_seconds(const SocketState& state, double& timeout, std::stri
   }
   if (timeout < 0.0) {
     error = "socket timeout must be non-negative";
+    return false;
+  }
+  return true;
+}
+
+bool timeout_value_seconds(const Value& value, double& timeout, std::string& error) {
+  if (value.tag == ValueTag::None) {
+    timeout = -1.0;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    timeout = value.as.b ? 1.0 : 0.0;
+  } else if (value.tag == ValueTag::Int64) {
+    timeout = static_cast<double>(value.as.i64);
+  } else if (value.tag == ValueTag::Double) {
+    timeout = value.as.f64;
+  } else {
+    error = "timeout must be a number or None";
+    return false;
+  }
+  if (timeout < 0.0) {
+    error = "timeout must be non-negative";
     return false;
   }
   return true;
@@ -317,6 +348,92 @@ SocketState* socket_state(const Value& self, std::string& error) {
     error = "invalid socket object";
   }
   return state;
+}
+
+bool socket_value_fileno(Runtime& runtime, const Value& value, NativeSocket& fd, std::string& error) {
+  if (value.tag == ValueTag::Int64) {
+    fd = static_cast<NativeSocket>(value.as.i64);
+    return true;
+  }
+
+  if (value.tag == ValueTag::Bool) {
+    fd = static_cast<NativeSocket>(value.as.b ? 1 : 0);
+    return true;
+  }
+
+  std::string state_error;
+  if (auto* state = socket_state(value, state_error)) {
+    fd = make_native_socket(*state, error);
+    return fd != kInvalidSocket;
+  }
+
+  std::string attr_error;
+  Value fileno;
+  if (!object_get_attr(value, "fileno", fileno, attr_error)) {
+    error = "argument must be an int or have a fileno() method";
+    return false;
+  }
+
+  Value result;
+  if (!runtime_call_callable(runtime, fileno, nullptr, 0, result, error)) {
+    return false;
+  }
+  if (result.tag != ValueTag::Int64) {
+    error = "fileno() returned a non-integer";
+    return false;
+  }
+  fd = static_cast<NativeSocket>(result.as.i64);
+  return true;
+}
+
+bool collect_select_entries(
+    Runtime& runtime,
+    const Value& iterable,
+    std::vector<SelectEntry>& entries,
+    fd_set& set,
+    NativeSocket& max_fd,
+    std::string& error) {
+  std::vector<Value> values;
+  if (auto* list = value_as_list(iterable)) {
+    values = list->items;
+  } else if (auto* tuple = value_as_tuple(iterable)) {
+    values = tuple->items;
+  } else if (!runtime_collect_iterable(runtime, iterable, values, error)) {
+    return false;
+  }
+
+  entries.reserve(values.size());
+  for (const auto& value : values) {
+    NativeSocket fd = kInvalidSocket;
+    if (!socket_value_fileno(runtime, value, fd, error)) {
+      return false;
+    }
+    if (fd == kInvalidSocket) {
+      error = "file descriptor cannot be a negative integer (-1)";
+      return false;
+    }
+    FD_SET(fd, &set);
+#ifndef _WIN32
+    if (fd > max_fd) {
+      max_fd = fd;
+    }
+#else
+    (void)max_fd;
+#endif
+    entries.push_back({value, fd});
+  }
+  return true;
+}
+
+Value select_ready_values(const std::vector<SelectEntry>& entries, fd_set& set) {
+  std::vector<Value> ready;
+  ready.reserve(entries.size());
+  for (const auto& entry : entries) {
+    if (FD_ISSET(entry.fd, &set)) {
+      ready.push_back(entry.value);
+    }
+  }
+  return Value::list(std::move(ready));
 }
 
 bool socket_int_arg(const Value& value, int64_t& out) {
@@ -1072,12 +1189,65 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .function("getaddrinfo", socket_getaddrinfo);
 }
 
-bool select_select(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 3 || argc > 4) {
     error = "select.select() expected rlist, wlist, xlist, optional timeout";
     return false;
   }
-  out = Value::tuple({args[0], args[1], args[2]});
+
+  double timeout = -1.0;
+  if (argc == 4 && !timeout_value_seconds(args[3], timeout, error)) {
+    return false;
+  }
+
+  fd_set read_set;
+  fd_set write_set;
+  fd_set except_set;
+  FD_ZERO(&read_set);
+  FD_ZERO(&write_set);
+  FD_ZERO(&except_set);
+
+  std::vector<SelectEntry> read_entries;
+  std::vector<SelectEntry> write_entries;
+  std::vector<SelectEntry> except_entries;
+  NativeSocket max_fd = kInvalidSocket;
+  if (!collect_select_entries(runtime, args[0], read_entries, read_set, max_fd, error) ||
+      !collect_select_entries(runtime, args[1], write_entries, write_set, max_fd, error) ||
+      !collect_select_entries(runtime, args[2], except_entries, except_set, max_fd, error)) {
+    return false;
+  }
+
+  if (read_entries.empty() && write_entries.empty() && except_entries.empty()) {
+    if (timeout > 0.0) {
+      std::this_thread::sleep_for(std::chrono::duration<double>(timeout));
+    }
+    out = Value::tuple({Value::list({}), Value::list({}), Value::list({})});
+    return true;
+  }
+
+  timeval tv{};
+  timeval* tv_ptr = nullptr;
+  if (timeout >= 0.0) {
+    tv.tv_sec = static_cast<long>(timeout);
+    tv.tv_usec = static_cast<long>((timeout - static_cast<double>(tv.tv_sec)) * 1000000.0);
+    tv_ptr = &tv;
+  }
+
+#ifdef _WIN32
+  const int ready = ::select(0, &read_set, &write_set, &except_set, tv_ptr);
+#else
+  const int ready = ::select(static_cast<int>(max_fd) + 1, &read_set, &write_set, &except_set, tv_ptr);
+#endif
+  if (ready < 0) {
+    error = socket_last_error_text("select");
+    return false;
+  }
+
+  out = Value::tuple({
+      select_ready_values(read_entries, read_set),
+      select_ready_values(write_entries, write_set),
+      select_ready_values(except_entries, except_set),
+  });
   return true;
 }
 
