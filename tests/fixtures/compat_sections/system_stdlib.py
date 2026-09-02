@@ -36,6 +36,7 @@ import pickle
 import re
 import subprocess
 import sys
+import threading
 import textwrap
 import traceback
 import typing
@@ -594,6 +595,36 @@ print(
     env_external_putenv,
     os.getenv(env_key),
     (type(env_copy).__name__, len(env_copy) > 0, len(env_dict) > 0, len(env_update_dict) > 0),
+)
+
+
+# threading.py stays CPython source-backed; _thread owns native synchronization
+# and thread-local storage.
+class StdlibLocalWithInit(threading.local):
+    def __init__(self, value=1):
+        self.value = value
+        self.initialized = getattr(self, "initialized", 0) + 1
+
+
+thread_local = StdlibLocalWithInit(5)
+thread_seen = []
+
+
+def thread_local_worker():
+    thread_seen.append((hasattr(thread_local, "value"), getattr(thread_local, "initialized", None)))
+    thread_local.value = 9
+    thread_seen.append((thread_local.value, thread_local.initialized))
+
+
+thread = threading.Thread(target=thread_local_worker)
+thread.start()
+thread.join()
+print(
+    "system-stdlib-thread-local-subclass",
+    source_lib_module(threading),
+    thread_seen,
+    thread_local.value,
+    thread_local.initialized,
 )
 
 

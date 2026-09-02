@@ -45,6 +45,7 @@ struct XlangThreadHandleState {
 struct XlangThreadLocalState {
   std::mutex mutex;
   std::unordered_map<int64_t, std::shared_ptr<Value>> attrs_by_thread;
+  bool seed_subclass_threads = false;
 };
 
 XlangLockState* lock_state_from_self(const Value& self, std::string& error) {
@@ -1173,12 +1174,42 @@ std::shared_ptr<Value> thread_local_attrs_for_current_thread(XlangThreadLocalSta
   if (it != state.attrs_by_thread.end()) {
     return it->second;
   }
-  auto inserted = state.attrs_by_thread.emplace(ident, std::make_shared<Value>(Value::dict({})));
+  auto attrs = std::make_shared<Value>(Value::dict({}));
+  if (state.seed_subclass_threads && !state.attrs_by_thread.empty()) {
+    if (auto* source = value_as_dict(*state.attrs_by_thread.begin()->second)) {
+      std::vector<std::pair<Value, Value>> entries;
+      entries.reserve(source->entries.size());
+      for (const auto& entry : source->entries) {
+        entries.push_back(entry);
+      }
+      *attrs = Value::dict(std::move(entries));
+    }
+  }
+  auto inserted = state.attrs_by_thread.emplace(ident, std::move(attrs));
   return inserted.first->second;
 }
 
 void xlang_thread_local_state_cleanup(void* data) {
   delete static_cast<XlangThreadLocalState*>(data);
+}
+
+bool thread_local_get_attr(const Value& self, const std::string& name, Value& out, std::string& error);
+bool thread_local_set_attr(Value& self, const std::string& name, const Value& value, std::string& error);
+bool thread_local_delete_attr(Value& self, const std::string& name, std::string& error);
+
+bool thread_local_attach_native_state(Value& self, std::string& error) {
+  if (instance_get_native_data(self, kThreadLocalNativeType) != nullptr) {
+    return true;
+  }
+  auto* state = new XlangThreadLocalState();
+  if (!instance_set_native_data(self, kThreadLocalNativeType, state, xlang_thread_local_state_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  if (!instance_set_native_attr_hooks(self, thread_local_get_attr, thread_local_set_attr, thread_local_delete_attr, error)) {
+    return false;
+  }
+  return true;
 }
 
 bool thread_local_get_attr(const Value& self, const std::string& name, Value& out, std::string& error) {
@@ -1220,6 +1251,34 @@ bool thread_local_delete_attr(Value& self, const std::string& name, std::string&
   return mapping_delete_item(*attrs, Value::string(name), error);
 }
 
+bool thread_local_new(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1) {
+    error = "_local.__new__ expected a class";
+    return false;
+  }
+  if (value_as_class(args[0]) == nullptr) {
+    error = "_local.__new__ first argument must be a class";
+    return false;
+  }
+  out = Value::instance(args[0]);
+  if (!thread_local_attach_native_state(out, error)) {
+    return false;
+  }
+  auto* state = thread_local_state_from_self(out, error);
+  auto* klass = value_as_class(args[0]);
+  if (state != nullptr && klass != nullptr && klass->name != "_local") {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->seed_subclass_threads = true;
+  }
+  return state != nullptr;
+}
+
 bool thread_local_init(
     Runtime& runtime,
     const Value* args,
@@ -1233,15 +1292,8 @@ bool thread_local_init(
     error = "_local.__init__ expected no arguments";
     return false;
   }
-  auto* state = new XlangThreadLocalState();
-  if (!instance_set_native_data(args[0], kThreadLocalNativeType, state, xlang_thread_local_state_cleanup, error)) {
-    delete state;
-    return false;
-  }
   Value self = args[0];
-  if (!instance_set_native_attr_hooks(self, thread_local_get_attr, thread_local_set_attr, thread_local_delete_attr, error)) {
-    return false;
-  }
+  if (!thread_local_attach_native_state(self, error)) return false;
   value_set_none(out);
   return true;
 }
@@ -1285,6 +1337,7 @@ Value xlang_thread_make_handle_class(Runtime& runtime) {
 
 Value xlang_thread_make_local_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__new__", runtime.make_native_function("_thread._local.__new__", thread_local_new)});
   attrs.push_back({"__init__", runtime.make_native_function("_thread._local.__init__", thread_local_init)});
   return Value::class_object("_local", std::move(attrs));
 }

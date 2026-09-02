@@ -1305,8 +1305,9 @@ High-level pure-Python stdlib modules must be source-backed:
   joins through CPython `Thread.join()`, exposes `ident`, and keeps
   `current_thread()`/`active_count()` usable through the source module.
   `_thread._local` now provides per-thread attribute dictionaries for
-  `threading.local()` basic isolation. Remaining: exact daemon/shutdown
-  lifecycle, `_local` subclass/reinitialization edge cases, deeper
+  `threading.local()` basic isolation plus subclass initial attribute isolation
+  across worker/main threads. Remaining: exact daemon/shutdown lifecycle,
+  `_local` subclass `__init__` reexecution/reinitialization edge cases, deeper
   lock/condition edge cases, trace/profile propagation parity, and
   import-time/runtime performance.
 - [~] `os`: VFS-backed `listdir`, scandir iterator/context-manager foundation, exported/reused `DirEntry`, `mkdir`, `makedirs`, `remove`/`unlink`, `rmdir`, `rename`, `replace`, `stat`, shared `os.stat_result` tuple-subclass surface for `os.stat()`/`DirEntry.stat()` with CPython-style module/type metadata, field counts, sequence fields, named fields, match args, and repr prefix, `access`, `getcwd`, `getcwdb`, `chdir`, `fsencode`/`fsdecode`, plus `getenv`/`fspath` basics; full stat timestamps/device/link/symlink/dir_fd/environment/error semantics and low-level fd APIs remain pending
@@ -1516,8 +1517,9 @@ High-level pure-Python stdlib modules must be source-backed:
   exact lifecycle/shutdown/daemon semantics remain pending.
 - [~] CPython `threading.local` through `Lib/threading.py` over `_thread`:
   native `_local` keeps per-thread attribute dictionaries for ordinary
-  get/set/delete and `__dict__`; subclass/reinitialization and lifecycle edge
-  cases remain pending.
+  get/set/delete and `__dict__`, plus subclass initial attribute isolation
+  across worker/main threads; exact subclass `__init__` reexecution/reinitialization
+  and lifecycle edge cases remain pending.
 - [~] CPython `threading.Lock` / `RLock` / `Event` / `Condition` through
   `Lib/threading.py` over `_thread`: basic nonblocking lock acquire/release,
   RLock recursion, RLock private condition protocol, Event set/clear/wait,

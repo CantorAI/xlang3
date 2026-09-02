@@ -94,7 +94,8 @@ fixture coverage, then update the row truthfully.
   primitives, and the system stdlib probe covers `current_thread`,
   `active_count`, `Thread.start`, target execution, `Thread.join`, `is_alive`,
   `ident`, `stack_size`, and `_thread._local` per-thread attribute isolation
-  through `threading.local`. It also covers CPython `Lock`, `RLock`,
+  through `threading.local`, including subclass initial attribute isolation
+  across worker/main threads. It also covers CPython `Lock`, `RLock`,
   `RLock` private condition protocol, `Event`, and basic `Condition`
   ownership/notification over native synchronization primitives.
   CPython 3.14 `Lib/subprocess.py` and
@@ -119,7 +120,7 @@ fixture coverage, then update the row truthfully.
   `set_wakeup_fd`, and int-like signal enum arguments.
   Remaining: complete truthful process/socket primitives for broader
   `subprocess` and networking, exact daemon/shutdown lifecycle, deeper `_thread._local`
-  subclass/reinitialization edge cases, deeper condition/lock edge cases,
+  subclass `__init__` reexecution/reinitialization edge cases, deeper condition/lock edge cases,
   profile/trace propagation parity, and import-time/runtime performance.
 
 - [~] `site`, `runpy`, `importlib`, `pkgutil`, and package metadata/resources
