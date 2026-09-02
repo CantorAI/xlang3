@@ -43,6 +43,7 @@ import types
 import weakref
 import runpy
 import site
+import zipfile
 import _colorize
 
 
@@ -212,6 +213,70 @@ print(
     hasattr(descriptor_probe, "missing"),
     descriptor_hasattr_error,
 )
+
+# Namespace and zip package resources should be discovered by CPython's
+# importlib.resources readers through XLang3 loader/resource-reader hooks.
+namespace_root_a = "xlang3_ns_a"
+namespace_root_b = "xlang3_ns_b"
+namespace_pkg_a = namespace_root_a + "/ns_pkg"
+namespace_pkg_b = namespace_root_b + "/ns_pkg"
+namespace_file_a = namespace_pkg_a + "/a.txt"
+namespace_file_b = namespace_pkg_b + "/b.txt"
+for path in (namespace_file_a, namespace_file_b):
+    if os.path.exists(path):
+        os.remove(path)
+for path in (namespace_pkg_a, namespace_pkg_b, namespace_root_a, namespace_root_b):
+    if os.path.isdir(path):
+        os.rmdir(path)
+os.makedirs(namespace_pkg_a)
+os.makedirs(namespace_pkg_b)
+try:
+    with open(namespace_file_a, "w", encoding="utf-8") as f:
+        f.write("A")
+    with open(namespace_file_b, "w", encoding="utf-8") as f:
+        f.write("B")
+    sys.path.insert(0, namespace_root_a)
+    sys.path.insert(0, namespace_root_b)
+    import ns_pkg
+
+    namespace_files = importlib.resources.files(ns_pkg)
+    print(
+        "system-stdlib-namespace-resources",
+        type(namespace_files).__name__,
+        sorted([p.name for p in namespace_files.iterdir()]),
+        namespace_files.joinpath("a.txt").read_text(),
+        namespace_files.joinpath("b.txt").read_text(),
+    )
+finally:
+    for path in (namespace_file_a, namespace_file_b):
+        if os.path.exists(path):
+            os.remove(path)
+    for path in (namespace_pkg_a, namespace_pkg_b, namespace_root_a, namespace_root_b):
+        if os.path.isdir(path):
+            os.rmdir(path)
+
+zip_resource_path = "xlang3_zip_resource_probe.zip"
+if os.path.exists(zip_resource_path):
+    os.remove(zip_resource_path)
+try:
+    with zipfile.ZipFile(zip_resource_path, "w") as zf:
+        zf.writestr("zip_pkg/__init__.py", "VALUE = 123\n")
+        zf.writestr("zip_pkg/data.txt", "ZIPDATA")
+    sys.path.insert(0, zip_resource_path)
+    import zip_pkg
+
+    zip_files = importlib.resources.files(zip_pkg)
+    print(
+        "system-stdlib-zip-resources",
+        zip_pkg.__loader__.__class__.__name__,
+        zip_pkg.__spec__.loader is zip_pkg.__loader__,
+        type(zip_files).__name__,
+        pkgutil.get_data("zip_pkg", "data.txt"),
+        zip_files.joinpath("data.txt").read_text(),
+    )
+finally:
+    if os.path.exists(zip_resource_path):
+        os.remove(zip_resource_path)
 print(
     "system-stdlib-enum",
     source_lib_module(enum),

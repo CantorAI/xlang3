@@ -2217,8 +2217,26 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       error = "super object has invalid class";
       return false;
     }
+    ClassObject* lookup_klass = klass;
+    if (auto* self_instance = value_as_instance(super->self)) {
+      if (auto* self_klass = value_as_class(self_instance->klass)) {
+        lookup_klass = self_klass;
+      }
+    } else if (auto* self_klass = value_as_class(super->self)) {
+      lookup_klass = self_klass;
+    }
     const std::vector<Value>* mro = nullptr;
-    if (!class_mro_values(klass, mro, error)) {
+    if (!class_mro_values(lookup_klass, mro, error)) {
+      return false;
+    }
+    bool start_class_in_mro = false;
+    for (const auto& class_value : *mro) {
+      if (value_as_class(class_value) == klass) {
+        start_class_in_mro = true;
+        break;
+      }
+    }
+    if (!start_class_in_mro && lookup_klass != klass && !class_mro_values(klass, mro, error)) {
       return false;
     }
     bool use_next = false;

@@ -380,6 +380,57 @@ bool importlib_path_finder_find_distributions(Runtime& runtime, const Value* arg
   return runtime_call_callable(runtime, find_distributions, nullptr, 0, out, error);
 }
 
+bool importlib_namespace_resource_reader_files(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "NamespaceResourceReader.files expected self";
+    return false;
+  }
+  return object_get_attr(args[0], "__files", out, error);
+}
+
+bool importlib_namespace_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_resource_reader expected self and fullname";
+    return false;
+  }
+  auto* fullname_string = value_as_string(args[1]);
+  if (fullname_string == nullptr) {
+    error = "loader.get_resource_reader fullname must be str";
+    return false;
+  }
+  Value package;
+  if (!runtime.import_module(string_object_to_string(*fullname_string), package, error)) {
+    return false;
+  }
+  Value package_path;
+  if (!module_get_attr(package, "__path__", package_path, error)) {
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value multiplexed_path_class;
+  if (!module_get_attr(readers_module, "MultiplexedPath", multiplexed_path_class, error)) {
+    return false;
+  }
+  auto* paths = value_as_list(package_path);
+  if (paths == nullptr) {
+    error = "namespace package __path__ must be iterable";
+    return false;
+  }
+  Value files;
+  if (!runtime_call_callable(runtime, multiplexed_path_class, paths->items.data(), static_cast<uint32_t>(paths->items.size()), files, error)) {
+    return false;
+  }
+  out = Value::instance(Value::class_object(
+      "NamespaceResourceReader",
+      {{"files", runtime.make_native_function("NamespaceResourceReader.files", importlib_namespace_resource_reader_files)}}));
+  std::string ignored;
+  object_set_attr(out, "__files", files, ignored);
+  return true;
+}
+
 Value make_simple_class(const std::string& name, std::vector<std::pair<std::string, Value>> attrs = {}) {
   attrs.push_back({"__module__", Value::string("importlib")});
   return Value::class_object(name, std::move(attrs));
@@ -394,6 +445,9 @@ Value make_loader_class(Runtime& runtime, const std::string& name) {
   attrs.push_back({"get_filename", runtime.make_native_function(name + ".get_filename", importlib_loader_get_filename)});
   attrs.push_back({"get_data", runtime.make_native_function(name + ".get_data", importlib_loader_get_data)});
   attrs.push_back({"get_code", runtime.make_native_function(name + ".get_code", importlib_loader_get_code)});
+  if (name == "NamespaceLoader") {
+    attrs.push_back({"get_resource_reader", runtime.make_native_function(name + ".get_resource_reader", importlib_namespace_loader_get_resource_reader)});
+  }
   return make_simple_class(name, std::move(attrs));
 }
 

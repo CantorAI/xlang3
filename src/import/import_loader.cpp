@@ -137,36 +137,37 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
   return false;
 }
 
-void cache_zip_path_importer(Runtime& runtime, const std::string& archive_path) {
+Value cache_zip_path_importer(Runtime& runtime, const std::string& archive_path) {
   if (archive_path.empty()) {
-    return;
+    return Value::invalid();
   }
   Value sys;
   std::string ignored;
   if (!runtime.import_module("sys", sys, ignored)) {
-    return;
+    return Value::invalid();
   }
   Value cache;
   if (!module_get_attr(sys, "path_importer_cache", cache, ignored) || value_as_dict(cache) == nullptr) {
-    return;
+    return Value::invalid();
   }
   Value existing;
   if (mapping_get_item(cache, Value::string(archive_path), existing, ignored)) {
-    return;
+    return existing;
   }
   Value zipimport_module;
   if (!runtime.import_module("zipimport", zipimport_module, ignored)) {
-    return;
+    return Value::invalid();
   }
   Value zipimporter_class;
   if (!module_get_attr(zipimport_module, "zipimporter", zipimporter_class, ignored) ||
       value_as_class(zipimporter_class) == nullptr) {
-    return;
+    return Value::invalid();
   }
   Value importer = Value::instance(std::move(zipimporter_class));
   object_set_attr(importer, "archive", Value::string(archive_path), ignored);
   object_set_attr(importer, "prefix", Value::string(""), ignored);
   mapping_set_item(cache, Value::string(archive_path), importer, ignored);
+  return importer;
 }
 
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
@@ -343,8 +344,9 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     error = "module '" + name + "' not found";
     return false;
   }
+  Value zip_loader;
   if (module_file.is_zip_source) {
-    cache_zip_path_importer(runtime, module_file.path_importer_cache_key);
+    zip_loader = cache_zip_path_importer(runtime, module_file.path_importer_cache_key);
   }
   trace_import_timing(name, "found", import_start);
 
@@ -385,6 +387,9 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
   module_set_attr(module_value, "__annotations__", Value::dict({}), attr_error);
+  if (module_file.is_zip_source && zip_loader.tag != ValueTag::Invalid) {
+    module_set_attr(module_value, "__loader__", zip_loader, attr_error);
+  }
   if (module_file.is_package) {
     module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
   }

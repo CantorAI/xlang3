@@ -541,6 +541,27 @@ bool zipimporter_is_package(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool zipimporter_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "zipimporter.get_resource_reader expected fullname";
+    return false;
+  }
+  if (value_as_string(args[1]) == nullptr) {
+    error = "zipimporter.get_resource_reader fullname must be str";
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value zip_reader_class;
+  if (!module_get_attr(readers_module, "ZipReader", zip_reader_class, error)) {
+    return false;
+  }
+  Value reader_args[] = {args[0], args[1]};
+  return runtime_call_callable(runtime, zip_reader_class, reader_args, 2, out, error);
+}
+
 Value make_zipimporter_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("zipimport")});
@@ -556,6 +577,7 @@ Value make_zipimporter_class(Runtime& runtime) {
   attrs.push_back({"load_module", runtime.make_native_function("zipimport.zipimporter.load_module", zipimporter_load_module)});
   attrs.push_back({"exec_module", runtime.make_native_function("zipimport.zipimporter.exec_module", zipimporter_exec_module)});
   attrs.push_back({"is_package", runtime.make_native_function("zipimport.zipimporter.is_package", zipimporter_is_package)});
+  attrs.push_back({"get_resource_reader", runtime.make_native_function("zipimport.zipimporter.get_resource_reader", zipimporter_get_resource_reader)});
   return Value::class_object("zipimporter", std::move(attrs));
 }
 

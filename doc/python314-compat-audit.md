@@ -1346,8 +1346,9 @@ High-level pure-Python stdlib modules must be source-backed:
 - [~] `itertools`: finite foundations for `count`, `islice`, `takewhile`, `dropwhile`,
   `filterfalse`, `compress`, `repeat(times)`, lazy `chain` with `__next__`, `batched`,
   `product`, `combinations`, `combinations_with_replacement`, `permutations`, `accumulate`,
-  `starmap`, `zip_longest`, `pairwise`, and snapshot-backed `tee`; full lazy object identity
-  for every helper, keyword-only options, and complete iterator algebra pending
+  `starmap`, `zip_longest`, `pairwise`, adjacent-key `groupby` with positional/keyword
+  `key`, and snapshot-backed `tee`; full lazy object identity for every helper,
+  keyword-only options, and complete iterator algebra pending
 - [~] `json`: native `loads`/`load`/`dumps`/`dump`, file-like I/O, CPython-style default separators,
   `indent`, `sort_keys`, `ensure_ascii`, `separators`, `skipkeys`, `default`, `object_hook`,
   `object_pairs_hook`, `parse_int`, `parse_float`, `JSONEncoder.encode`/`iterencode`, and
@@ -1447,8 +1448,11 @@ High-level pure-Python stdlib modules must be source-backed:
   iteration shape is covered, and `.dist-info/METADATA` discovery through
   `distributions(name=..., path=...)` is covered. Runtime descriptor semantics
   now cover public `getattr`/`hasattr` dispatch through Python properties.
-  Startup import locks/caches, namespace/zip resource discovery, full package
-  metadata behavior, and import-time performance pending.
+  `importlib.resources.files()` now traverses file-backed packages, namespace
+  packages through CPython `MultiplexedPath`, and zip packages through
+  `zipimporter.get_resource_reader` plus CPython `ZipReader`.
+  Startup import locks/caches, full package metadata behavior, and import-time
+  performance pending.
 - [~] `types`: public module runs from CPython 3.14 `Lib/types.py` over
   runtime-backed type objects; native `mappingproxy` construction, iteration,
   views, item lookup, and live read-only mapping behavior are covered.

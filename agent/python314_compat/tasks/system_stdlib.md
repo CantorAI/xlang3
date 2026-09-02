@@ -138,7 +138,11 @@ fixture coverage, then update the row truthfully.
   `mappingproxy` protocol delegation for Python-level mappings such as
   `OrderedDict`, descriptor-aware public `getattr`/`hasattr` behavior for
   Python properties, and modern `importlib.resources.files()` traversal over
-  file-backed packages.
+  file-backed packages, namespace packages through CPython `MultiplexedPath`,
+  and zip packages through `zipimporter.get_resource_reader` plus CPython
+  `ZipReader`. Native dependency coverage also includes `itertools.groupby`
+  with keyword `key=` for CPython resource readers and receiver-MRO `super()`
+  lookup for multiple-inheritance stdlib classes.
   Remaining: startup-site `.pth` handling, exact importlib lock/cache
-  semantics, namespace/zip resource discovery, broader package metadata edge
-  behavior, and import-time performance.
+  semantics, broader package metadata edge behavior, and import-time
+  performance.

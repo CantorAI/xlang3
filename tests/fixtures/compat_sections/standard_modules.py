@@ -3231,6 +3231,7 @@ print(list(itertools.combinations(StandardIter([1, 2, 3]), 2)), list(itertools.p
 print(list(itertools.accumulate(StandardIter([1, 2, 3]))), list(itertools.starmap(original, StandardIter([(5, 6)]))))
 tee_left, tee_right = itertools.tee(StandardIter([4, 5, 6]))
 print(list(itertools.pairwise([1, 2, 3, 4])), next(tee_left), list(tee_left), list(tee_right))
+print([(key, list(group)) for key, group in itertools.groupby("aaabbc")], [(key, list(group)) for key, group in itertools.groupby([1, 3, 2, 4, 5], key=lambda value: value % 2)])
 
 # collections: Counter, OrderedDict, ChainMap, and namedtuple foundations.
 from collections import ChainMap, Counter, OrderedDict, deque, namedtuple
