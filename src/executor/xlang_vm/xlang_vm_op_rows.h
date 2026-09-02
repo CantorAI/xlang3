@@ -47,6 +47,7 @@ XLANG3_VM_FLOW(CallEx, xlang3::xlang_vm::ops::call_ex(in, fn, module, module_own
 XLANG3_VM_FLOW(CallMethod, xlang3::xlang_vm::ops::call_method(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(CallModuleMethod, xlang3::xlang_vm::ops::call_module_method(in, fn, module, module_owner, runtime_, regs, globals_module, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(ImportModule, xlang3::xlang_vm::ops::import_module(in, fn, runtime_, regs, result, raise_import_error))
+XLANG3_VM_FLOW(ImportModuleThru, xlang3::xlang_vm::ops::import_module_thru(in, fn, runtime_, regs, result, raise_import_error))
 XLANG3_VM_FLOW(ImportFrom, xlang3::xlang_vm::ops::import_from(in, fn, runtime_, regs, globals_module, result, raise_import_error))
 XLANG3_VM_FLOW(ImportStar, xlang3::xlang_vm::ops::import_star(in, fn, runtime_, globals_module, result, raise_import_error))
 XLANG3_VM_FLOW(RawBlock, xlang3::xlang_vm::ops::raw_block(in, fn, runtime_, locals, fn_obj_closure, globals_module, globals_, globals_version_, result, raise_runtime_error))

@@ -51,6 +51,7 @@ enum class TokenKind {
   KwFor,
   KwIn,
   KwImport,
+  KwThru,
   KwFrom,
   KwAs,
   KwGlobal,

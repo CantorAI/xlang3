@@ -120,6 +120,7 @@ foreach ($case in $cases) {
     $expectedPath = Join-Path $root "fixtures/expected/$case.out"
     $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
     $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
+    $actual = $actual -replace [regex]::Escape($root), "tests"
     if ($LASTEXITCODE -ne 0) {
         throw "$case failed with exit code $LASTEXITCODE"
     }

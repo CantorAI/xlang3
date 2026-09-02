@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "../xlang_vm_op_switch.h"
 
+#include "../../../ipc/ipc_runtime.h"
+
 #include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
@@ -66,6 +68,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow import_module(
   }
   std::string error;
   if (!runtime.import_module(fn.names[in.a], regs[in.dst], error)) {
+    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseRuntimeError>
+XLANG3_HOT_INLINE XlangVMOpFlow import_module_thru(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    RuntimeResult& result,
+    RaiseRuntimeError&& raise_runtime_error) {
+  if (in.a >= fn.names.size()) {
+    result.errors.push_back("invalid thru import module name");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  std::string error;
+  if (!ipc_import_thru(runtime, fn.names[in.a], regs[in.b], regs[in.dst], error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;

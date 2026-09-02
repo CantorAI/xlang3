@@ -73,6 +73,7 @@ enum class Op : uint16_t {
   LoadModuleSlot,
   StoreModuleSlot,
   ImportModule,
+  ImportModuleThru,
   ImportFrom,
   ImportStar,
   RawBlock,

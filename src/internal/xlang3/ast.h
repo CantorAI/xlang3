@@ -372,8 +372,9 @@ struct ImportBinding {
 struct ImportStmt final : Stmt {
   std::string name;
   std::string bind_name;
-  ImportStmt(std::string name, std::string bind_name)
-      : name(std::move(name)), bind_name(std::move(bind_name)) {}
+  ExprPtr thru;
+  ImportStmt(std::string name, std::string bind_name, ExprPtr thru = {})
+      : name(std::move(name)), bind_name(std::move(bind_name)), thru(std::move(thru)) {}
 };
 
 struct ImportManyStmt final : Stmt {

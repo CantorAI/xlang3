@@ -34,6 +34,7 @@ struct PackageState {
   X3Value cursor_class = x3_value_invalid();
   X3Value database_class = x3_value_invalid();
   X3Value statement_class = x3_value_invalid();
+  X3Value row_class = x3_value_invalid();
   X3Value error_class = x3_value_invalid();
   X3Value database_error_class = x3_value_invalid();
   X3Value operational_error_class = x3_value_invalid();
@@ -54,6 +55,7 @@ void cleanup_package_state(void* data) {
     state->host->value_release(state->cursor_class);
     state->host->value_release(state->database_class);
     state->host->value_release(state->statement_class);
+    state->host->value_release(state->row_class);
     state->host->value_release(state->error_class);
     state->host->value_release(state->database_error_class);
     state->host->value_release(state->operational_error_class);
@@ -199,6 +201,40 @@ X3Status sqlite3_connect(
     return X3_STATUS_ERROR;
   }
   return make_connection(state, context, runtime, path, state->connection_class, result);
+}
+
+X3Status sqlite3_register_adapter(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  if (!check_argc(state->host, context, argc, 2, "sqlite3.register_adapter()")) {
+    return X3_STATUS_ERROR;
+  }
+  (void)runtime;
+  (void)args;
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
+X3Status sqlite3_register_converter(
+    X3CallContext* context,
+    X3Runtime* runtime,
+    void* user_data,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result) {
+  auto* state = state_from(user_data);
+  if (!check_argc(state->host, context, argc, 2, "sqlite3.register_converter()")) {
+    return X3_STATUS_ERROR;
+  }
+  (void)runtime;
+  (void)args;
+  *result = x3_value_none();
+  return X3_STATUS_OK;
 }
 
 X3Status connection_cursor(
@@ -765,6 +801,47 @@ void def_method(X3NativeFunctionDef& def, const char* name, X3NativeFn callback,
   def.user_data = state;
 }
 
+void add_int(const X3PackageHost* host, X3Module* module, const char* name, int64_t value) {
+  host->module_add_value(module, name, x3_value_int64(value));
+}
+
+void add_dbapi_int_constants(const X3PackageHost* host, X3Module* module) {
+  add_int(host, module, "threadsafety", 1);
+  add_int(host, module, "PARSE_DECLTYPES", 1);
+  add_int(host, module, "PARSE_COLNAMES", 2);
+  add_int(host, module, "SQLITE_OK", SQLITE_OK);
+  add_int(host, module, "SQLITE_ERROR", SQLITE_ERROR);
+  add_int(host, module, "SQLITE_INTERNAL", SQLITE_INTERNAL);
+  add_int(host, module, "SQLITE_PERM", SQLITE_PERM);
+  add_int(host, module, "SQLITE_ABORT", SQLITE_ABORT);
+  add_int(host, module, "SQLITE_BUSY", SQLITE_BUSY);
+  add_int(host, module, "SQLITE_LOCKED", SQLITE_LOCKED);
+  add_int(host, module, "SQLITE_NOMEM", SQLITE_NOMEM);
+  add_int(host, module, "SQLITE_READONLY", SQLITE_READONLY);
+  add_int(host, module, "SQLITE_INTERRUPT", SQLITE_INTERRUPT);
+  add_int(host, module, "SQLITE_IOERR", SQLITE_IOERR);
+  add_int(host, module, "SQLITE_CORRUPT", SQLITE_CORRUPT);
+  add_int(host, module, "SQLITE_NOTFOUND", SQLITE_NOTFOUND);
+  add_int(host, module, "SQLITE_FULL", SQLITE_FULL);
+  add_int(host, module, "SQLITE_CANTOPEN", SQLITE_CANTOPEN);
+  add_int(host, module, "SQLITE_PROTOCOL", SQLITE_PROTOCOL);
+  add_int(host, module, "SQLITE_EMPTY", SQLITE_EMPTY);
+  add_int(host, module, "SQLITE_SCHEMA", SQLITE_SCHEMA);
+  add_int(host, module, "SQLITE_TOOBIG", SQLITE_TOOBIG);
+  add_int(host, module, "SQLITE_CONSTRAINT", SQLITE_CONSTRAINT);
+  add_int(host, module, "SQLITE_MISMATCH", SQLITE_MISMATCH);
+  add_int(host, module, "SQLITE_MISUSE", SQLITE_MISUSE);
+  add_int(host, module, "SQLITE_NOLFS", SQLITE_NOLFS);
+  add_int(host, module, "SQLITE_AUTH", SQLITE_AUTH);
+  add_int(host, module, "SQLITE_FORMAT", SQLITE_FORMAT);
+  add_int(host, module, "SQLITE_RANGE", SQLITE_RANGE);
+  add_int(host, module, "SQLITE_NOTADB", SQLITE_NOTADB);
+  add_int(host, module, "SQLITE_NOTICE", SQLITE_NOTICE);
+  add_int(host, module, "SQLITE_WARNING", SQLITE_WARNING);
+  add_int(host, module, "SQLITE_ROW", SQLITE_ROW);
+  add_int(host, module, "SQLITE_DONE", SQLITE_DONE);
+}
+
 } // namespace
 
 extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, X3Package* package) {
@@ -828,7 +905,18 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
   if (host->module_add_class(sqlite3, "Cursor", cursor_methods, 6, &state->cursor_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
+  if (host->module_add_class(sqlite3, "Row", nullptr, 0, &state->row_class) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+  host->module_add_value(sqlite3, "Row", state->row_class);
+  host->module_add_value(sqlite, "Connection", state->connection_class);
+  host->module_add_value(sqlite, "Cursor", state->cursor_class);
+  host->module_add_value(sqlite, "Row", state->row_class);
+  add_dbapi_int_constants(host, sqlite3);
+  add_dbapi_int_constants(host, sqlite);
   add_function(host, sqlite3, "connect", sqlite3_connect, state);
+  add_function(host, sqlite3, "register_adapter", sqlite3_register_adapter, state);
+  add_function(host, sqlite3, "register_converter", sqlite3_register_converter, state);
 
   X3NativeFunctionDef database_methods[8]{};
   def_method(database_methods[0], "__init__", connection_init, state);
@@ -857,6 +945,8 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
   if (host->module_add_class(sqlite, "Statement", statement_methods, 9, &state->statement_class) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
+  add_function(host, sqlite, "register_adapter", sqlite3_register_adapter, state);
+  add_function(host, sqlite, "register_converter", sqlite3_register_converter, state);
 
   host->module_add_value(sqlite, "OK", x3_value_int64(SQLITE_OK));
   host->module_add_value(sqlite, "ROW", x3_value_int64(SQLITE_ROW));

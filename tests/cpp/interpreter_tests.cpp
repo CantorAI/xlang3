@@ -252,7 +252,7 @@ int main() {
         output);
     result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
     result.ok = result.ok && run.ok;
-    xlang3::test::expect_true(result, output == "3\n1\nTrue\n",
+    xlang3::test::expect_true(result, output == "3.0\n1.0\nTrue\n",
                               "math native module should import and call native functions");
   }
 

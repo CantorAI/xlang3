@@ -43,6 +43,7 @@ const char* op_name(Op op) {
     case Op::LoadModuleSlot: return "LoadModuleSlot";
     case Op::StoreModuleSlot: return "StoreModuleSlot";
     case Op::ImportModule: return "ImportModule";
+    case Op::ImportModuleThru: return "ImportModuleThru";
     case Op::ImportFrom: return "ImportFrom";
     case Op::ImportStar: return "ImportStar";
     case Op::RawBlock: return "RawBlock";

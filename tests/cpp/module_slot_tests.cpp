@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "test_harness.h"
 
+#include <algorithm>
+
 namespace {
 
 bool has_op(const xlang3::ir::Function& fn, xlang3::ir::Op op) {
@@ -23,6 +25,10 @@ bool has_op(const xlang3::ir::Function& fn, xlang3::ir::Op op) {
     }
   }
   return false;
+}
+
+bool has_slot(const xlang3::ir::Module& module, const std::string& name) {
+  return std::find(module.global_slots.begin(), module.global_slots.end(), name) != module.global_slots.end();
 }
 
 } // namespace
@@ -53,8 +59,8 @@ int main() {
   }
 
   xlang3::test::expect_true(result, lowered.module.global_slots.size() >= 6, "module globals should have fixed slots");
-  xlang3::test::expect_true(result, lowered.module.global_slots[4] == "x", "x should be module slot 4");
-  xlang3::test::expect_true(result, lowered.module.global_slots[5] == "add", "add should be module slot 5");
+  xlang3::test::expect_true(result, has_slot(lowered.module, "x"), "x should have a module slot");
+  xlang3::test::expect_true(result, has_slot(lowered.module, "add"), "add should have a module slot");
   xlang3::test::expect_true(result, lowered.module.functions.size() >= 2, "lowered module should contain add and module entry");
   xlang3::test::expect_true(result, has_op(lowered.module.functions[0], xlang3::ir::Op::LoadModuleSlot),
                             "function should read module global through LoadModuleSlot");

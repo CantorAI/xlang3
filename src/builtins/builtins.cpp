@@ -25,6 +25,7 @@ void register_core_builtins(Runtime& runtime) {
   register_io_builtins(runtime);
   register_sequence_builtins(runtime);
   register_raw_block_builtins(runtime);
+  register_ipc_builtins(runtime);
   register_builtin_modules(runtime);
   register_math_module(runtime);
 #ifndef XLANG3_EMBEDDED

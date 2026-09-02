@@ -27,6 +27,7 @@ void register_io_builtins(Runtime& runtime);
 bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, std::string& error);
 void register_sequence_builtins(Runtime& runtime);
 void register_raw_block_builtins(Runtime& runtime);
+void register_ipc_builtins(Runtime& runtime);
 void register_builtin_modules(Runtime& runtime);
 void register_math_module(Runtime& runtime);
 void register_sys_module(Runtime& runtime);

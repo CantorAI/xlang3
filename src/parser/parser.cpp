@@ -677,9 +677,20 @@ ast::StmtPtr Parser::parse_statement_impl() {
       }
       imports.push_back(ast::ImportBinding{std::move(name), std::move(bind_name)});
     } while (match(TokenKind::Comma));
+    ast::ExprPtr thru;
+    if (match(TokenKind::KwThru)) {
+      if (imports.size() != 1) {
+        error_here("thru import supports one module name");
+        return nullptr;
+      }
+      thru = parse_expression();
+    }
     consume_simple_statement_end();
     if (imports.size() == 1) {
-      return std::make_unique<ast::ImportStmt>(std::move(imports[0].name), std::move(imports[0].as_name));
+      return std::make_unique<ast::ImportStmt>(
+          std::move(imports[0].name),
+          std::move(imports[0].as_name),
+          std::move(thru));
     }
     return std::make_unique<ast::ImportManyStmt>(std::move(imports));
   }

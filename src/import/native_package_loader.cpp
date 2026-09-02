@@ -103,6 +103,9 @@ void apply_package_metadata(X3Package& package, X3Module& module) {
 
 std::vector<std::string> native_package_name_candidates(const std::string& name) {
   std::vector<std::string> out{name};
+  if (name == "_sqlite3") {
+    out.push_back("xlang_sqlite3");
+  }
   if (name.rfind("xlang_", 0) != 0) {
     out.push_back("xlang_" + name);
   }
@@ -214,7 +217,7 @@ X3Status host_add_module(X3Package* package, const char* name, X3Module** out_mo
   module_set_attr(package->root_module, name, module->value, error);
   package->runtime->register_module(name, module->value);
   package->runtime->register_module(package->name + "." + name, module->value);
-  if (module->name == package->name) {
+  if (module->name == package->name || (package->name == "_sqlite3" && module->name == "sqlite3")) {
     value_assign_fast(package->requested_module, module->value);
   }
 
@@ -542,6 +545,17 @@ std::string format_native_not_found(const std::string& name, const std::vector<s
   return os.str();
 }
 
+void apply_sqlite3_compat_attrs(const std::string& package_name, Value& module) {
+  if (package_name != "_sqlite3" && package_name != "sqlite3") {
+    return;
+  }
+  std::string ignored;
+  module_set_attr(module, "sqlite_version", Value::string("3.0.0"), ignored);
+  module_set_attr(module, "version", Value::string("2.6.0"), ignored);
+  module_set_attr(module, "paramstyle", Value::string("qmark"), ignored);
+  module_set_attr(module, "apilevel", Value::string("2.0"), ignored);
+}
+
 } // namespace
 
 bool import_native_package(
@@ -592,9 +606,11 @@ bool import_native_package(
   }
   loaded_library_handles().push_back(handle);
   if (package.requested_module.tag != ValueTag::Invalid) {
+    apply_sqlite3_compat_attrs(package_name, package.requested_module);
     runtime.register_module(package_name, package.requested_module);
     out = std::move(package.requested_module);
   } else {
+    apply_sqlite3_compat_attrs(package_name, package.root_module);
     runtime.register_module(package_name, package.root_module);
     out = std::move(package.root_module);
   }

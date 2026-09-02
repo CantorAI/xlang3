@@ -1577,6 +1577,17 @@ private:
     }
   }
 
+  void lower_import_thru_binding(const ast::ImportStmt& import) {
+    const auto endpoint_reg = lower_expr(*import.thru);
+    const auto reg = new_reg();
+    emit(ir::Op::ImportModuleThru, reg, add_name(import.name), endpoint_reg);
+    store_named_value(import.bind_name, reg);
+    uint32_t import_slot = 0;
+    if (module_global_slot(import.bind_name, import_slot)) {
+      imported_module_slots_.insert(import_slot);
+    }
+  }
+
   bool direct_local_slot(const std::string& name, uint32_t& slot) const {
     const auto resolved = resolve_name(name);
     if (is_module_ || sema::contains(global_names_, resolved) || is_cell_local(resolved)) {
@@ -3136,7 +3147,11 @@ private:
       return;
     }
     if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
-      lower_import_binding(import->name, import->bind_name);
+      if (import->thru != nullptr) {
+        lower_import_thru_binding(*import);
+      } else {
+        lower_import_binding(import->name, import->bind_name);
+      }
       return;
     }
     if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(&stmt)) {

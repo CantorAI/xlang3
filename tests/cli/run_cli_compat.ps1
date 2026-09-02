@@ -37,15 +37,16 @@ function Assert-Output([string]$Name, [string]$Expected, [scriptblock]$Run) {
 }
 
 $commandSource = "import sys`nprint(sys.argv)"
-Assert-Output "command argv" "[-c, alpha, beta]" { & $XLang3 -c $commandSource alpha beta }
+Assert-Output "command argv" "['-c', 'alpha', 'beta']" { & $XLang3 -c $commandSource alpha beta }
 
 $scriptPath = Join-Path $WorkDir "script_argv.py"
+$scriptPathRepr = $scriptPath -replace "\\", "\\"
 Set-Content -LiteralPath $scriptPath -Value "import sys`nprint(sys.argv)" -NoNewline
-Assert-Output "script argv" "[$scriptPath, one, two]" { & $XLang3 $scriptPath one two }
+Assert-Output "script argv" "['$scriptPathRepr', 'one', 'two']" { & $XLang3 $scriptPath one two }
 
 $modulePath = Join-Path $WorkDir "cli_module_probe.py"
 Set-Content -LiteralPath $modulePath -Value "import sys`nprint(sys.argv)" -NoNewline
-Assert-Output "module argv" "[cli_module_probe, red, blue]" {
+Assert-Output "module argv" "['cli_module_probe', 'red', 'blue']" {
     Push-Location $WorkDir
     try {
         & $XLang3 -m cli_module_probe red blue
@@ -54,18 +55,19 @@ Assert-Output "module argv" "[cli_module_probe, red, blue]" {
     }
 }
 
-Assert-Output "ignored -X option" "[-c, gamma]" {
+Assert-Output "ignored -X option" "['-c', 'gamma']" {
     & $XLang3 -X frozen_modules=off -c "import sys`nprint(sys.argv)" gamma
 }
 
-Assert-Output "ignored compact -X option" "[-c, delta]" {
+Assert-Output "ignored compact -X option" "['-c', 'delta']" {
     & $XLang3 -Xdev -c "import sys`nprint(sys.argv)" delta
 }
 
 $packageDir = Join-Path $WorkDir "cli_package_dir"
+$packageDirRepr = $packageDir -replace "\\", "\\"
 New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
 Set-Content -LiteralPath (Join-Path $packageDir "__main__.py") -Value "import sys`nprint(sys.argv)" -NoNewline
-Assert-Output "directory __main__ argv" "[$packageDir, left, right]" {
+Assert-Output "directory __main__ argv" "['$packageDirRepr', 'left', 'right']" {
     & $XLang3 $packageDir left right
 }
 
@@ -81,6 +83,6 @@ if (-not (Test-Path $pythonExe)) {
     throw "python.exe copy missing next to xlang3.exe"
 }
 
-Assert-Output "python exe alias" "[-c, alias]" {
+Assert-Output "python exe alias" "['-c', 'alias']" {
     & $pythonExe -c "import sys`nprint(sys.argv)" alias
 }

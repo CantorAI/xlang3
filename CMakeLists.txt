@@ -47,6 +47,12 @@ set(XLANG3_RUNTIME_SOURCES
   src/builtins/object_type_builtins.cpp
   src/builtins/raw_block_builtins.cpp
   src/builtins/sequence_builtins.cpp
+  src/ipc/ipc_runtime.cpp
+  src/ipc/shared_memory_block_stream.cpp
+  src/ipc/shared_memory_transport.cpp
+  src/serialize/block_stream.cpp
+  src/serialize/ipc_value_marshal.cpp
+  src/serialize/xlang_stream.cpp
   src/runtime/c_api_bridge.cpp
   src/runtime/exceptions.cpp
   src/runtime/functional_iterators.cpp
@@ -93,6 +99,16 @@ set(XLANG3_RUNTIME_SOURCES
   src/rpc/object_table.cpp
   src/rpc/memory_file_store.cpp
 )
+
+if(WIN32)
+  list(APPEND XLANG3_RUNTIME_SOURCES
+    src/ipc/shared_memory_transport_win32.cpp
+  )
+else()
+  list(APPEND XLANG3_RUNTIME_SOURCES
+    src/ipc/shared_memory_transport_posix.cpp
+  )
+endif()
 
 set(XLANG3_THREAD_RUNTIME_SOURCES
   src/runtime/modules/thread/runtime_lock.cpp
@@ -181,6 +197,8 @@ add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
 add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
 
+find_package(Threads REQUIRED)
+
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
@@ -214,8 +232,8 @@ target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_
 target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 
 target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC)
-target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC)
-target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC)
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
 
 if(WIN32)
   target_link_libraries(xlang3_runtime PRIVATE ws2_32)
@@ -323,6 +341,20 @@ add_test(
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop
+)
+
+add_test(
+  NAME xlang3_ipc_lrpc_smoke
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+)
+
+add_test(
+  NAME xlang3_ipc_lrpc_server_exit
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
 )
 
 add_test(
