@@ -80,11 +80,13 @@ fixture coverage, then update the row truthfully.
   mapping-copy behavior through `copy()`, `dict(os.environ)`, and
   `dict.update(os.environ)`,
   `pathlib.Path` read/write/glob/rglob/match helpers, and `glob` root-dir,
-  recursive, hidden-file, iterator, and bytes-path basics.
-  Remaining: this path is correct but too slow for the full fixture, especially
-  `pathlib`/`glob`/`fnmatch`; continue by fixing runtime/VFS/path protocol
-  primitives and import/runtime hot paths instead of restoring `os.path`,
-  `pathlib`, `glob`, or `fnmatch` C++ facades.
+  recursive, hidden-file, iterator, and bytes-path basics. Runtime performance
+  coverage now includes near-zero-cost generic native-call dispatch when
+  monitoring/profile hooks are disabled, plus `_sre` fast paths used by
+  source-backed `fnmatch` cache callables.
+  Remaining: continue by fixing runtime/VFS/path protocol primitives and
+  import/runtime hot paths instead of restoring `os.path`, `pathlib`, `glob`,
+  or `fnmatch` C++ facades.
 
 - [~] `subprocess`, `_winapi`, `socket`, `select`, and `threading`
   Coverage: `_winapi`, `_socket`, `select`, and native thread foundations exist.

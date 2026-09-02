@@ -43,6 +43,12 @@ constexpr int64_t kFlagMultiline = 8;
 constexpr int64_t kFlagDotAll = 16;
 constexpr int64_t kFlagVerbose = 64;
 
+enum class FastRegexKind {
+  None,
+  LiteralPrefix,
+  AnySuffix,
+};
+
 struct LookbehindAssertion {
   size_t engine_offset = 0;
   std::string literal;
@@ -58,6 +64,9 @@ struct PatternState {
   bool regex_compiled = false;
   std::regex::flag_type regex_flags = std::regex::ECMAScript;
   std::regex regex;
+  FastRegexKind fast_kind = FastRegexKind::None;
+  std::string fast_literal;
+  int64_t group_count = 0;
   std::unordered_map<std::string, int64_t> group_names;
   std::vector<LookbehindAssertion> lookbehinds;
 };
@@ -348,6 +357,74 @@ void regex_append_literal_char(std::string& out, unsigned char value, bool in_cl
     out.push_back('\\');
   }
   out.push_back(ch);
+}
+
+bool regex_append_unescaped_literal(std::string_view text, std::string& out) {
+  bool escaped = false;
+  for (const char ch : text) {
+    if (escaped) {
+      switch (ch) {
+        case 'n': out.push_back('\n'); break;
+        case 'r': out.push_back('\r'); break;
+        case 't': out.push_back('\t'); break;
+        case 's':
+        case 'S':
+        case 'd':
+        case 'D':
+        case 'w':
+        case 'W':
+        case 'b':
+        case 'B':
+          return false;
+        default: out.push_back(ch); break;
+      }
+      escaped = false;
+      continue;
+    }
+    if (ch == '\\') {
+      escaped = true;
+      continue;
+    }
+    if (std::string_view(".^$|()[]{}*+?").find(ch) != std::string_view::npos) {
+      return false;
+    }
+    out.push_back(ch);
+  }
+  return !escaped;
+}
+
+FastRegexKind detect_fast_regex(std::string_view engine_pattern, std::string& literal) {
+  literal.clear();
+  if (engine_pattern.empty()) {
+    return FastRegexKind::None;
+  }
+
+  constexpr std::string_view dotall_prefix = "([\\s\\S]*";
+  if (engine_pattern.size() >= dotall_prefix.size() + 2 &&
+      engine_pattern.substr(0, dotall_prefix.size()) == dotall_prefix &&
+      engine_pattern.back() == '$') {
+    const std::string_view body = engine_pattern.substr(dotall_prefix.size(), engine_pattern.size() - dotall_prefix.size() - 1);
+    if (!body.empty() && body.back() == ')') {
+      if (regex_append_unescaped_literal(body.substr(0, body.size() - 1), literal)) {
+        return FastRegexKind::AnySuffix;
+      }
+    }
+  }
+
+  constexpr std::string_view any_prefix = ".*";
+  if (engine_pattern.size() >= any_prefix.size() + 1 &&
+      engine_pattern.substr(0, any_prefix.size()) == any_prefix &&
+      engine_pattern.back() == '$') {
+    if (regex_append_unescaped_literal(engine_pattern.substr(any_prefix.size(), engine_pattern.size() - any_prefix.size() - 1), literal)) {
+      return FastRegexKind::AnySuffix;
+    }
+  }
+
+  if (regex_append_unescaped_literal(engine_pattern, literal)) {
+    return FastRegexKind::LiteralPrefix;
+  }
+  literal.clear();
+  return FastRegexKind::None;
 }
 
 std::string normalize_std_regex_pattern(
@@ -809,6 +886,73 @@ Value make_match(
   return value;
 }
 
+Value make_simple_match(
+    Runtime& runtime,
+    const Value& pattern,
+    const std::string& text,
+    bool bytes_text,
+    size_t start,
+    size_t end,
+    size_t pos,
+    size_t endpos,
+    int64_t group_count) {
+  Value value = Value::instance(make_match_type(runtime));
+  auto* state = new MatchState();
+  state->pattern = pattern;
+  state->text = text;
+  state->bytes_text = bytes_text;
+  state->pos = static_cast<int64_t>(pos);
+  state->endpos = static_cast<int64_t>(endpos);
+  state->groups.reserve(static_cast<size_t>(std::max<int64_t>(1, group_count + 1)));
+  state->groups.push_back(MatchGroup{static_cast<int64_t>(start), static_cast<int64_t>(end), true});
+  for (int64_t i = 0; i < group_count; ++i) {
+    state->groups.push_back(MatchGroup{});
+  }
+  std::string error;
+  (void)instance_set_native_data(value, kMatchNativeType, state, match_cleanup, error);
+  (void)instance_set_native_attr_hooks(value, match_get_attr, nullptr, nullptr, error);
+  return value;
+}
+
+bool pattern_match_fast(
+    Runtime& runtime,
+    const PatternState& state,
+    const Value& pattern_value,
+    const std::string& text,
+    bool bytes_text,
+    size_t pos,
+    bool continuous,
+    bool full,
+    Value& out) {
+  if (!continuous || !state.lookbehinds.empty() || (state.flags & kFlagIgnoreCase) != 0) {
+    return false;
+  }
+  if (state.fast_kind == FastRegexKind::LiteralPrefix) {
+    const bool matched = pos <= text.size() &&
+                         text.compare(pos, state.fast_literal.size(), state.fast_literal) == 0 &&
+                         (!full || pos + state.fast_literal.size() == text.size());
+    if (!matched) {
+      value_set_none(out);
+      return true;
+    }
+    out = make_simple_match(runtime, pattern_value, text, bytes_text, pos, pos + state.fast_literal.size(), pos, text.size(), state.group_count);
+    return true;
+  }
+  if (state.fast_kind == FastRegexKind::AnySuffix) {
+    const size_t suffix_size = state.fast_literal.size();
+    const bool matched = pos <= text.size() &&
+                         suffix_size <= text.size() - pos &&
+                         text.compare(text.size() - suffix_size, suffix_size, state.fast_literal) == 0;
+    if (!matched) {
+      value_set_none(out);
+      return true;
+    }
+    out = make_simple_match(runtime, pattern_value, text, bytes_text, pos, text.size(), pos, text.size(), state.group_count);
+    return true;
+  }
+  return false;
+}
+
 bool match_satisfies_lookbehinds(
     const PatternState& state,
     const std::string& text,
@@ -852,6 +996,9 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   if (pos > text.size()) {
     value_set_none(out);
+    return true;
+  }
+  if (pattern_match_fast(runtime, *state, args[0], text, bytes_text, pos, continuous, full, out)) {
     return true;
   }
   if (!ensure_pattern_regex(*state, error)) {
@@ -1309,6 +1456,8 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   state->flags = flags;
   state->regex_available = !unsupported;
   state->regex_flags = regex_flags;
+  state->group_count = args[3].tag == ValueTag::Int64 ? args[3].as.i64 : 0;
+  state->fast_kind = detect_fast_regex(state->engine_pattern, state->fast_literal);
   state->group_names = std::move(group_names);
   state->lookbehinds = std::move(lookbehinds);
   try {
