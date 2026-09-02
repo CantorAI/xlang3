@@ -3346,6 +3346,15 @@ print(
     ready_write == [],
     ready_except == [],
 )
+addrinfo = socket.getaddrinfo("127.0.0.1", 80, socket.AF_INET, socket.SOCK_STREAM)
+print(
+    "socket-addrinfo",
+    len(addrinfo) > 0,
+    addrinfo[0][0] == socket.AF_INET,
+    addrinfo[0][1] == socket.SOCK_STREAM,
+    addrinfo[0][4][0],
+    addrinfo[0][4][1],
+)
 
 # subprocess: run/Popen foundations with captured text and catchable check failures.
 completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)

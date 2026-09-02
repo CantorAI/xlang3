@@ -1013,6 +1013,7 @@ before
 shutdown-empty
 shutdown-put
 socket-loopback b'pong' b'ping' True True True True True
+socket-addrinfo True True True 127.0.0.1 80
 True 0 xlang3-subprocess
 0 True
 0 0

@@ -1073,12 +1073,108 @@ bool socket_gethostname(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool socket_getaddrinfo(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "socket.getaddrinfo() expected host and port";
     return false;
   }
-  out = Value::list({});
+
+  std::string host_storage;
+  const char* host = nullptr;
+  if (args[0].tag != ValueTag::None) {
+    auto* host_string = value_as_string(args[0]);
+    if (host_string == nullptr) {
+      error = "getaddrinfo() host must be string or None";
+      return false;
+    }
+    host_storage = string_object_to_string(*host_string);
+    host = host_storage.c_str();
+  }
+
+  std::string service_storage;
+  const char* service = nullptr;
+  if (args[1].tag != ValueTag::None) {
+    if (args[1].tag == ValueTag::Int64) {
+      service_storage = std::to_string(args[1].as.i64);
+    } else if (auto* service_string = value_as_string(args[1])) {
+      service_storage = string_object_to_string(*service_string);
+    } else {
+      error = "getaddrinfo() port must be integer, string, or None";
+      return false;
+    }
+    service = service_storage.c_str();
+  }
+
+  int64_t family = kAfUnspec;
+  int64_t type = 0;
+  int64_t proto = 0;
+  int64_t flags = 0;
+  if (argc >= 3 && !socket_int_arg(args[2], family)) {
+    error = "getaddrinfo() family must be integer";
+    return false;
+  }
+  if (argc >= 4 && !socket_int_arg(args[3], type)) {
+    error = "getaddrinfo() type must be integer";
+    return false;
+  }
+  if (argc >= 5 && !socket_int_arg(args[4], proto)) {
+    error = "getaddrinfo() proto must be integer";
+    return false;
+  }
+  if (argc >= 6 && !socket_int_arg(args[5], flags)) {
+    error = "getaddrinfo() flags must be integer";
+    return false;
+  }
+
+  std::string startup_error;
+  if (!ensure_socket_runtime(startup_error)) {
+    error = startup_error;
+    return false;
+  }
+
+  addrinfo hints{};
+  hints.ai_family = family == kAfUnspec ? AF_UNSPEC : to_native_family(family);
+  hints.ai_socktype = type == 0 ? 0 : to_native_type(type);
+  hints.ai_protocol = static_cast<int>(proto);
+  hints.ai_flags = static_cast<int>(flags);
+
+  addrinfo* results = nullptr;
+  const int rc = ::getaddrinfo(host, service, &hints, &results);
+  if (rc != 0) {
+#ifdef _WIN32
+    error = "getaddrinfo failed with WSA error " + std::to_string(rc);
+#else
+    error = std::string("getaddrinfo failed: ") + gai_strerror(rc);
+#endif
+    return false;
+  }
+
+  std::vector<Value> rows;
+  for (addrinfo* item = results; item != nullptr; item = item->ai_next) {
+    if (item->ai_family != AF_INET || item->ai_addr == nullptr) {
+      continue;
+    }
+    auto* address = reinterpret_cast<sockaddr_in*>(item->ai_addr);
+    char numeric_host[INET_ADDRSTRLEN] = {};
+    if (inet_ntop(AF_INET, &address->sin_addr, numeric_host, sizeof(numeric_host)) == nullptr) {
+      continue;
+    }
+
+    const int64_t result_type = item->ai_socktype == SOCK_DGRAM ? kSockDgram : kSockStream;
+    const int64_t result_proto = static_cast<int64_t>(item->ai_protocol);
+    const char* canonname = item->ai_canonname == nullptr ? "" : item->ai_canonname;
+    Value sockaddr = Value::tuple({Value::string(numeric_host), Value::int64(ntohs(address->sin_port))});
+    rows.push_back(Value::tuple({
+        Value::int64(kAfInet),
+        Value::int64(result_type),
+        Value::int64(result_proto),
+        Value::string(canonname),
+        std::move(sockaddr),
+    }));
+  }
+  freeaddrinfo(results);
+
+  out = Value::list(std::move(rows));
   return true;
 }
 

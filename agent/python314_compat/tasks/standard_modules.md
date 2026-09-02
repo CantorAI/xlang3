@@ -63,4 +63,6 @@
   `Lib/socket.py` over native `_socket`.
   Coverage update: `select.select` now performs native socket readiness and
   returns the original Python objects in ready lists.
+  Coverage update: `socket.getaddrinfo` now resolves loopback IPv4 addresses
+  through native `_socket` and returns CPython-shaped tuples.
   Remaining: selectors module integration, broader subprocess process support, registry APIs, and pure Python stdlib dependency chain.
