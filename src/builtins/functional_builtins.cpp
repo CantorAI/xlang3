@@ -47,6 +47,16 @@ bool raise_type_error(Runtime& runtime, std::string message, std::string& error)
   return false;
 }
 
+bool exception_matches_builtin(Runtime& runtime, const Value& exception, const char* name) {
+  auto* actual = value_as_class(runtime.exception_type(exception));
+  const Value* expected_value = runtime.find_builtin(name);
+  auto* expected = expected_value == nullptr ? nullptr : value_as_class(*expected_value);
+  if (actual == nullptr || expected == nullptr) {
+    return false;
+  }
+  return actual == expected || class_is_subclass(actual, expected);
+}
+
 bool value_to_source_text(Runtime& runtime, const Value& value, std::string& out, std::string& error) {
   auto* string = value_as_string(value);
   if (string != nullptr) {
@@ -1082,6 +1092,36 @@ bool builtin_getattr(
   if (attr_name == "__class__" && runtime_type_of_value(runtime, args[0], out)) {
     return true;
   }
+  if (value_as_instance(args[0]) != nullptr) {
+    Value descriptor;
+    std::string descriptor_error;
+    if (object_get_class_attr_for_instance(args[0], attr_name, descriptor, descriptor_error) &&
+        object_value_has_descriptor_get(descriptor)) {
+      Value get_method;
+      std::string get_error;
+      if (attribute_get(descriptor, "__get__", get_method, get_error)) {
+        auto* instance = value_as_instance(args[0]);
+        Value get_args[2];
+        value_assign_fast(get_args[0], args[0]);
+        value_assign_fast(get_args[1], instance->klass);
+        if (runtime_call_callable(runtime, get_method, get_args, 2, out, get_error)) {
+          return true;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          if (exception_matches_builtin(runtime, pending, "AttributeError")) {
+            if (argc == 3) {
+              value_assign_fast(out, args[2]);
+              return true;
+            }
+          }
+          runtime.set_pending_exception(std::move(pending));
+          error = get_error;
+          return false;
+        }
+      }
+    }
+  }
   std::string attr_error;
   if (attribute_get(args[0], attr_name, out, attr_error)) {
     return true;
@@ -1170,7 +1210,24 @@ bool builtin_hasattr(
   }
   Value ignored;
   std::string attr_error;
-  out = Value::boolean(attribute_get(args[0], string_object_to_string(*name), ignored, attr_error));
+  Value attr_args[2];
+  value_assign_fast(attr_args[0], args[0]);
+  value_assign_fast(attr_args[1], args[1]);
+  if (builtin_getattr(runtime, attr_args, 2, ignored, attr_error, nullptr)) {
+    out = Value::boolean(true);
+    return true;
+  }
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    if (exception_matches_builtin(runtime, pending, "AttributeError")) {
+      out = Value::boolean(false);
+      return true;
+    }
+    runtime.set_pending_exception(std::move(pending));
+    error = std::move(attr_error);
+    return false;
+  }
+  out = Value::boolean(false);
   return true;
 }
 

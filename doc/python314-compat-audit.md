@@ -1442,11 +1442,13 @@ High-level pure-Python stdlib modules must be source-backed:
   source-backed package import, missing-module `ImportError.name`,
   `SourceFileLoader` filename/data/code behavior, and basic
   `importlib.resources.is_resource`/`read_text` over file packages are
-  covered. `importlib.metadata` imports from CPython source, distribution
+  covered, along with `importlib.resources.files()` traversal on file-backed
+  packages. `importlib.metadata` imports from CPython source, distribution
   iteration shape is covered, and `.dist-info/METADATA` discovery through
-  `distributions(name=..., path=...)` is covered. Startup import locks/caches,
-  namespace/zip resource discovery, full package metadata behavior, and
-  import-time performance pending.
+  `distributions(name=..., path=...)` is covered. Runtime descriptor semantics
+  now cover public `getattr`/`hasattr` dispatch through Python properties.
+  Startup import locks/caches, namespace/zip resource discovery, full package
+  metadata behavior, and import-time performance pending.
 - [~] `types`: public module runs from CPython 3.14 `Lib/types.py` over
   runtime-backed type objects; native `mappingproxy` construction, iteration,
   views, item lookup, and live read-only mapping behavior are covered.

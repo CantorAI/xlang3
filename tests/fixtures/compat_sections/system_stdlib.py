@@ -23,12 +23,14 @@ import dataclasses
 import encodings
 import enum
 import importlib.metadata
+import importlib.resources
 import inspect
 import io
 import json
 import linecache
 import logging
 import os
+import pkgutil
 import queue
 import pickle
 import re
@@ -39,6 +41,8 @@ import traceback
 import typing
 import types
 import weakref
+import runpy
+import site
 import _colorize
 
 
@@ -159,6 +163,55 @@ finally:
         os.rmdir(metadata_info)
     if os.path.isdir(metadata_root):
         os.rmdir(metadata_root)
+
+# importlib/pkgutil/runpy/site should stay CPython-source-backed while using
+# XLang3's import loader, VFS, descriptors, and module metadata underneath.
+sys.path.insert(0, "tests/fixtures/core")
+runpy_module_ns = runpy.run_module("runpy_support")
+sys.path.insert(0, "tests/fixtures/compat_sections")
+import resource_pkg
+
+resources_root = importlib.resources.files(resource_pkg)
+resources_item = resources_root.joinpath("data.txt")
+pkgutil_resource = pkgutil.get_data("resource_pkg", "data.txt")
+print(
+    "system-stdlib-site-runpy-importlib-resources",
+    source_lib_module(site),
+    source_lib_module(runpy),
+    source_lib_module(pkgutil),
+    source_lib_package(importlib.resources),
+    runpy_module_ns["result"],
+    pkgutil_resource.decode("utf-8").strip(),
+    getattr(resources_root, "name"),
+    getattr(resources_root, "parts")[-1],
+    resources_item.is_file(),
+    resources_item.read_text().strip(),
+)
+
+
+class StdlibGetattrDescriptor:
+    @property
+    def value(self):
+        return "descriptor-value"
+
+    @property
+    def boom(self):
+        raise ValueError("descriptor-error")
+
+
+descriptor_probe = StdlibGetattrDescriptor()
+try:
+    hasattr(descriptor_probe, "boom")
+except Exception as exc:
+    descriptor_hasattr_error = type(exc).__name__ + ":" + str(exc)
+print(
+    "system-stdlib-getattr-descriptor",
+    getattr(descriptor_probe, "value"),
+    getattr(descriptor_probe, "missing", "fallback"),
+    hasattr(descriptor_probe, "value"),
+    hasattr(descriptor_probe, "missing"),
+    descriptor_hasattr_error,
+)
 print(
     "system-stdlib-enum",
     source_lib_module(enum),

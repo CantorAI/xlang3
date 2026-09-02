@@ -135,8 +135,10 @@ fixture coverage, then update the row truthfully.
   `_frozen_importlib_external.PathFinder.find_distributions`, VFS path errors
   that raise catchable `FileNotFoundError`, live instance `__dict__` mapping
   storage, decorator-added bound-method attributes, IntEnum/int rich comparison,
-  and `mappingproxy` protocol delegation for Python-level mappings such as
-  `OrderedDict`.
+  `mappingproxy` protocol delegation for Python-level mappings such as
+  `OrderedDict`, descriptor-aware public `getattr`/`hasattr` behavior for
+  Python properties, and modern `importlib.resources.files()` traversal over
+  file-backed packages.
   Remaining: startup-site `.pth` handling, exact importlib lock/cache
   semantics, namespace/zip resource discovery, broader package metadata edge
   behavior, and import-time performance.
