@@ -28,7 +28,7 @@ set_target_properties(xlang_sqlite3_native_package PROPERTIES
 )
 
 target_include_directories(xlang_sqlite3_native_package PRIVATE
-  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/sdk
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/third_party/sqlite
 )

@@ -183,7 +183,7 @@ add_library(xlang3_runtime_embedded STATIC ${XLANG3_RUNTIME_SOURCES})
 target_compile_definitions(xlang3_runtime_embedded PUBLIC XLANG3_EMBEDDED=1 XLANG3_SIZE_OPT=1)
 target_include_directories(xlang3_runtime_embedded
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/sdk
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
@@ -213,7 +213,7 @@ target_compile_definitions(xlang3_runtime PRIVATE XLANG3_BUILD_SHARED)
 foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
 target_include_directories(${xlang3_runtime_target}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/sdk
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
@@ -304,8 +304,7 @@ set_target_properties(xlang1_compat_sample_package PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
 )
 target_include_directories(xlang1_compat_sample_package PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/xlang3/cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
 
 add_library(xlang3_curmodule_probe_package SHARED
@@ -319,14 +318,14 @@ set_target_properties(xlang3_curmodule_probe_package PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
 )
 target_include_directories(xlang3_curmodule_probe_package PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
 
 add_executable(xlang3_xlang1_compat_package_tests tests/cpp/xlang1_compat_package_tests.cpp)
 target_link_libraries(xlang3_xlang1_compat_package_tests PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3_xlang1_compat_package_tests PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3_xlang1_compat_package_tests PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
 add_dependencies(xlang3_xlang1_compat_package_tests xlang1_compat_sample_package)
 add_test(
@@ -335,7 +334,7 @@ add_test(
 )
 
 add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
-target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
 add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
 
 add_test(

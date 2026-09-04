@@ -24,6 +24,6 @@ set_target_properties(xlang_device_native_package PROPERTIES
 )
 
 target_include_directories(xlang_device_native_package PRIVATE
-  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/sdk
   ${PROJECT_SOURCE_DIR}/src/internal
 )
