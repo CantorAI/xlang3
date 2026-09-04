@@ -1446,9 +1446,13 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if ((flags & kFlagIgnoreCase) != 0) {
     regex_flags |= std::regex::icase;
   }
+  // MSVC's STL does not expose std::regex_constants::multiline in the VS 2022
+  // toolchain used by the CantorAI workspace build.
+#if !defined(_MSC_VER)
   if ((flags & kFlagMultiline) != 0) {
     regex_flags |= std::regex_constants::multiline;
   }
+#endif
   auto* state = new PatternState();
   state->pattern = pattern;
   state->engine_pattern = std::move(engine_pattern);

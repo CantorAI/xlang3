@@ -74,6 +74,7 @@ const char* diagnostic_value_kind(const Value& value) {
       case ObjectKind::Super: return "super";
       case ObjectKind::SlotDescriptor: return "member_descriptor";
       case ObjectKind::Property: return "property";
+      case ObjectKind::Event: return "event";
       case ObjectKind::Code: return "code";
       case ObjectKind::Frame: return "frame";
       case ObjectKind::Traceback: return "traceback";
@@ -172,7 +173,8 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
       value_as_traceback(object) != nullptr || value_as_class(object) != nullptr ||
       value_as_instance(object) != nullptr || value_as_super(object) != nullptr ||
       value_as_static_method(object) != nullptr || value_as_class_method(object) != nullptr ||
-      value_as_slot_descriptor(object) != nullptr || value_as_type_param(object) != nullptr ||
+      value_as_slot_descriptor(object) != nullptr || value_as_event(object) != nullptr ||
+      value_as_type_param(object) != nullptr ||
       value_as_generic_alias(object) != nullptr) {
     const bool ok = object_get_attr(object, name, out, error);
     if (!ok) {

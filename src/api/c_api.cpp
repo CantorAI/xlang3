@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/c_api_bridge.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
 #include "xlang3/mapping.h"
@@ -25,8 +26,11 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sequence.h"
+#include "xlang3/serialize/block_stream.h"
+#include "xlang3/serialize/ipc_value_marshal.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
+#include "runtime_lock.h"
 
 #include <filesystem>
 #include <fstream>
@@ -34,6 +38,7 @@ limitations under the License.
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -119,6 +124,81 @@ bool call_value(
     const std::vector<xlang3::Value>& args,
     xlang3::Value& out,
     std::string& error);
+
+bool materialize_wire_value(
+    const xlang3::serialize::IpcWireValue& wire,
+    xlang3::Value& out,
+    std::string& error) {
+  switch (wire.kind) {
+    case xlang3::serialize::IpcWireValueKind::Invalid:
+      out = xlang3::Value::invalid();
+      return true;
+    case xlang3::serialize::IpcWireValueKind::None:
+      out = xlang3::Value::none();
+      return true;
+    case xlang3::serialize::IpcWireValueKind::Bool:
+      out = xlang3::Value::boolean(wire.bool_value);
+      return true;
+    case xlang3::serialize::IpcWireValueKind::Int64:
+      out = xlang3::Value::int64(wire.int_value);
+      return true;
+    case xlang3::serialize::IpcWireValueKind::Double:
+      out = xlang3::Value::number(wire.double_value);
+      return true;
+    case xlang3::serialize::IpcWireValueKind::String:
+      out = xlang3::Value::string(wire.bytes);
+      return true;
+    case xlang3::serialize::IpcWireValueKind::Bytes:
+      out = xlang3::Value::bytes(wire.bytes);
+      return true;
+    case xlang3::serialize::IpcWireValueKind::Tuple: {
+      std::vector<xlang3::Value> items;
+      items.reserve(wire.items.size());
+      for (const auto& item_wire : wire.items) {
+        xlang3::Value item;
+        if (!materialize_wire_value(item_wire, item, error)) return false;
+        items.push_back(std::move(item));
+      }
+      out = xlang3::Value::tuple(std::move(items));
+      return true;
+    }
+    case xlang3::serialize::IpcWireValueKind::List: {
+      std::vector<xlang3::Value> items;
+      items.reserve(wire.items.size());
+      for (const auto& item_wire : wire.items) {
+        xlang3::Value item;
+        if (!materialize_wire_value(item_wire, item, error)) return false;
+        items.push_back(std::move(item));
+      }
+      out = xlang3::Value::list(std::move(items));
+      return true;
+    }
+    case xlang3::serialize::IpcWireValueKind::Dict: {
+      std::vector<std::pair<xlang3::Value, xlang3::Value>> entries;
+      entries.reserve(wire.entries.size());
+      for (const auto& entry_wire : wire.entries) {
+        xlang3::Value key;
+        xlang3::Value value;
+        if (!materialize_wire_value(entry_wire.first, key, error) ||
+            !materialize_wire_value(entry_wire.second, value, error)) {
+          return false;
+        }
+        entries.push_back({std::move(key), std::move(value)});
+      }
+      out = xlang3::Value::dict(std::move(entries));
+      return true;
+    }
+    case xlang3::serialize::IpcWireValueKind::ObjectRef:
+    case xlang3::serialize::IpcWireValueKind::Callable:
+      error = "serialized remote object references need an IPC endpoint";
+      return false;
+    case xlang3::serialize::IpcWireValueKind::Error:
+      error = wire.bytes;
+      return false;
+  }
+  error = "unknown serialized value kind";
+  return false;
+}
 
 bool construct_class(
     xlang3::Runtime& runtime,
@@ -272,6 +352,19 @@ X3Value x3_value_string(X3Runtime* runtime, const char* value) {
   return xlang3::to_c_value(xlang3::Value::string(value));
 }
 
+X3Value x3_value_bytes(X3Runtime* runtime, const void* data, uint64_t size) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || (size != 0 && data == nullptr)) {
+    return x3_value_invalid();
+  }
+  if (size > static_cast<uint64_t>(std::string().max_size())) {
+    rt->set_last_error("bytes value is too large");
+    return x3_value_invalid();
+  }
+  return xlang3::to_c_value(xlang3::Value::bytes(
+      std::string(static_cast<const char*>(data), static_cast<size_t>(size))));
+}
+
 X3Value x3_value_list(X3Runtime* runtime) {
   auto* rt = as_runtime(runtime);
   if (rt == nullptr) {
@@ -311,6 +404,14 @@ X3ObjectKind x3_value_object_kind(X3Value value) {
   switch (object->kind) {
     case xlang3::ObjectKind::String:
       return X3_OBJECT_KIND_STRING;
+    case xlang3::ObjectKind::Bytes:
+      return X3_OBJECT_KIND_BYTES;
+    case xlang3::ObjectKind::ByteArray:
+      return X3_OBJECT_KIND_BYTEARRAY;
+    case xlang3::ObjectKind::MemoryView:
+      return X3_OBJECT_KIND_MEMORYVIEW;
+    case xlang3::ObjectKind::Event:
+      return X3_OBJECT_KIND_EVENT;
     case xlang3::ObjectKind::Tuple:
       return X3_OBJECT_KIND_TUPLE;
     case xlang3::ObjectKind::List:
@@ -322,6 +423,168 @@ X3ObjectKind x3_value_object_kind(X3Value value) {
     default:
       return X3_OBJECT_KIND_UNKNOWN;
   }
+}
+
+X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** data, uint64_t* size) {
+  auto* rt = as_runtime(runtime);
+  if (data == nullptr || size == nullptr) {
+    return fail(rt, "data/size is null");
+  }
+  std::string error;
+  auto internal = xlang3::from_c_value(value, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  if (auto* bytes = xlang3::value_as_bytes(internal)) {
+    const auto view = xlang3::bytes_object_view(*bytes);
+    *data = view.data();
+    *size = static_cast<uint64_t>(view.size());
+    return X3_STATUS_OK;
+  }
+  if (auto* bytearray = xlang3::value_as_bytearray(internal)) {
+    *data = bytearray->value.data();
+    *size = static_cast<uint64_t>(bytearray->value.size());
+    return X3_STATUS_OK;
+  }
+  if (auto* view = xlang3::value_as_memoryview(internal)) {
+    if (view->released) {
+      return fail(rt, "memoryview is released");
+    }
+    if (auto* owner_bytes = xlang3::value_as_bytes(view->owner)) {
+      const auto owner = xlang3::bytes_object_view(*owner_bytes);
+      if (view->offset <= owner.size() && owner.size() - view->offset >= view->size) {
+        *data = owner.data() + view->offset;
+        *size = static_cast<uint64_t>(view->size);
+        return X3_STATUS_OK;
+      }
+    }
+    if (auto* owner_array = xlang3::value_as_bytearray(view->owner);
+        owner_array != nullptr && view->offset <= owner_array->value.size() &&
+        owner_array->value.size() - view->offset >= view->size) {
+      *data = owner_array->value.data() + view->offset;
+      *size = static_cast<uint64_t>(view->size);
+      return X3_STATUS_OK;
+    }
+  }
+  return fail(rt, "value is not bytes-like");
+}
+
+X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
+  }
+  std::string error;
+  auto internal = xlang3::from_c_value(value, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  xlang3::serialize::BlockStream stream;
+  if (!stream.MarshalToBytes(internal, {}, error)) {
+    return fail(rt, error);
+  }
+  std::string bytes;
+  bytes.resize(static_cast<size_t>(stream.Size()));
+  if (!bytes.empty() && !stream.FullCopyTo(bytes.data(), static_cast<xlang3::serialize::STREAM_SIZE>(bytes.size()))) {
+    return fail(rt, "failed to copy serialized value");
+  }
+  *result = xlang3::to_c_value(xlang3::Value::bytes(std::move(bytes)));
+  return X3_STATUS_OK;
+}
+
+X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
+  }
+  const void* data = nullptr;
+  uint64_t size = 0;
+  if (x3_value_bytes_data(runtime, bytes, &data, &size) != X3_STATUS_OK) {
+    return X3_STATUS_ERROR;
+  }
+  xlang3::serialize::BlockStream stream(static_cast<char*>(const_cast<void*>(data)), static_cast<xlang3::serialize::STREAM_SIZE>(size), false);
+  xlang3::serialize::IpcWireValue wire;
+  std::string error;
+  if (!stream.MarshalFromBytes(wire, error)) {
+    return fail(rt, error);
+  }
+  xlang3::Value out;
+  if (!materialize_wire_value(wire, out, error)) {
+    return fail(rt, error);
+  }
+  *result = xlang3::to_c_value(out);
+  return X3_STATUS_OK;
+}
+
+X3Status x3_event_create(X3Runtime* runtime, const char* name, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
+  }
+  *result = xlang3::to_c_value(xlang3::Value::event(name == nullptr ? std::string() : std::string(name)));
+  return X3_STATUS_OK;
+}
+
+X3Status x3_event_subscribe(X3Runtime* runtime, X3Value event, X3Value callable, uint64_t* cookie) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || cookie == nullptr) {
+    return fail(rt, "runtime/cookie is null");
+  }
+  std::string error;
+  auto internal_event = xlang3::from_c_value(event, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  auto internal_callable = xlang3::from_c_value(callable, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  if (!xlang3::event_subscribe(std::move(internal_event), std::move(internal_callable), *cookie, error)) {
+    return fail(rt, error);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status x3_event_unsubscribe(X3Runtime* runtime, X3Value event, uint64_t cookie) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr) {
+    return fail(rt, "runtime is null");
+  }
+  std::string error;
+  auto internal_event = xlang3::from_c_value(event, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  if (!xlang3::event_unsubscribe(std::move(internal_event), cookie, error)) {
+    return fail(rt, error);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status x3_event_fire(X3Runtime* runtime, X3Value event, const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr || (argc != 0 && args == nullptr)) {
+    return fail(rt, "runtime/args/result is null");
+  }
+  std::string error;
+  auto internal_event = xlang3::from_c_value(event, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  std::vector<xlang3::Value> internal_args;
+  internal_args.reserve(argc);
+  for (uint32_t i = 0; i < argc; ++i) {
+    internal_args.push_back(xlang3::from_c_value(args[i], error));
+    if (!error.empty()) {
+      return fail(rt, error);
+    }
+  }
+  xlang3::Value out;
+  if (!xlang3::event_fire(*rt, std::move(internal_event), internal_args.data(), argc, out, error)) {
+    return fail(rt, error);
+  }
+  *result = xlang3::to_c_value(out);
+  return X3_STATUS_OK;
 }
 
 X3Status x3_runtime_import_module(X3Runtime* runtime, const char* package_name, const char* module_name, X3Value* result) {
@@ -409,7 +672,14 @@ X3Status x3_call(X3Runtime* runtime, X3Value callable, const X3Value* args, uint
   }
 
   xlang3::Value out;
-  if (!call_value(*rt, internal_callable, internal_args, out, error)) {
+  xlang3::XlangRuntimeExecutionGuard execution_guard;
+  if (!xlang3::runtime_call_callable(
+          *rt,
+          internal_callable,
+          internal_args.empty() ? nullptr : internal_args.data(),
+          static_cast<uint32_t>(internal_args.size()),
+          out,
+          error)) {
     return fail(rt, error);
   }
   *result = xlang3::to_c_value(out);

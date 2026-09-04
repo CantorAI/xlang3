@@ -1114,6 +1114,15 @@ Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abs
   return v;
 }
 
+Value Value::event(std::string name) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<EventObject>(ObjectKind::Event);
+  obj->name = std::move(name);
+  v.as.obj = &obj->header;
+  return v;
+}
+
 Value Value::type_param(std::string name) {
   Value v;
   v.tag = ValueTag::Object;
@@ -1274,6 +1283,9 @@ void release(const Value& value) {
     case ObjectKind::Property:
       delete value_as_property(value);
       break;
+    case ObjectKind::Event:
+      delete value_as_event(value);
+      break;
     case ObjectKind::File:
       if (auto* file = as_file(value.as.obj); file != nullptr && file->fd_backed && file->closefd && file->fd >= 0 && !file->closed) {
 #if defined(_WIN32)
@@ -1403,6 +1415,9 @@ std::string value_to_string(const Value& value) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Property) {
         return "<property object>";
+      }
+      if (auto* event = value_as_event(value)) {
+        return "<event '" + event->name + "'>";
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::SlotDescriptor) {
         return object_model_to_string(value);

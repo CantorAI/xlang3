@@ -1585,6 +1585,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     } else {
       value_assign_fast(regs[in.dst], instance);
     }
+  } else if (value_as_event(callee) != nullptr) {
+    std::string error;
+    const Value* args = materialize_native_args(call_args, native_call_args);
+    if (!event_fire(runtime, callee, args, static_cast<uint32_t>(call_args.size()), regs[in.dst], error)) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
   } else if (value_as_instance(callee) != nullptr) {
     Value call_attr;
     std::string attr_error;
@@ -2079,6 +2085,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       return XlangVMOpFlow::ContinueLoop;
     }
   } else if (callee.tag == ValueTag::Object) {
+    if (value_as_event(callee) != nullptr) {
+      std::string error;
+      const Value* args = materialize_native_args(call_args, native_call_args);
+      if (!event_fire(runtime, callee, args, static_cast<uint32_t>(call_args.size()), regs[in.dst], error)) {
+        return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return XlangVMOpFlow::Next;
+    }
     if (value_as_instance(callee) != nullptr) {
       Value call_attr;
       std::string attr_error;
@@ -2535,6 +2549,14 @@ XLANG3_HOT_INLINE bool call_callable_value(
     return call_native_function(runtime, native, values, native_call_args, execution_lock, out,
                                 raise_runtime_error, raise_exception_value);
   }
+  if (value_as_event(function_value) != nullptr) {
+    std::string error;
+    const Value* args = materialize_native_args(values, native_call_args);
+    if (!event_fire(runtime, function_value, args, static_cast<uint32_t>(values.size()), out, error)) {
+      return raise_runtime_error(error);
+    }
+    return true;
+  }
 
   auto* fn_obj = value_as_function(function_value);
   if (fn_obj == nullptr) {
@@ -2657,6 +2679,14 @@ XLANG3_HOT_INLINE bool call_callable_value_ex(
   if (auto* fn_obj = value_as_function(function_value)) {
     return call_user_function(fn_obj, values, module, module_owner, return_dst, ip, out, pushed_frame,
                               make_generator_if_needed, push_frame);
+  }
+  if (value_as_event(function_value) != nullptr) {
+    std::string error;
+    const Value* args = materialize_native_args(values, native_call_args);
+    if (!event_fire(runtime, function_value, args, static_cast<uint32_t>(values.size()), out, error)) {
+      return raise_runtime_error(error);
+    }
+    return true;
   }
   if (xlang_vm_raise_not_callable(runtime, raise_exception_value)) return false;
   return false;

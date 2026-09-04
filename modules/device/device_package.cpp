@@ -1735,14 +1735,18 @@ void add_function(const X3PackageHost* host, X3Module* module, const char* name,
 
 } // namespace
 
-extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, X3Package* package) {
+extern "C" X3_DEVICE_EXPORT const uint32_t xlang3_package_abi_version = X3_ABI_VERSION;
+
+extern "C" X3_DEVICE_EXPORT X3Status Load(void* host_ptr, X3Value curModule) {
+  auto* host = static_cast<X3PackageHost*>(host_ptr);
+  (void)curModule;
   if (host == nullptr || host->abi_version != X3_ABI_VERSION) {
     return X3_STATUS_ERROR;
   }
 
   auto* state = new DevicePackageState();
   state->host = host;
-  host->package_set_cleanup(package, state, [](void* data) {
+  host->package_set_cleanup(host, state, [](void* data) {
     auto* state = static_cast<DevicePackageState*>(data);
     if (state->host != nullptr && state->device_class.tag != X3_TAG_INVALID) {
       state->host->value_release(state->device_class);
@@ -1762,12 +1766,12 @@ extern "C" X3_DEVICE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
     delete state;
   });
 
-  host->package_set_metadata(package, "package", "xlang_device");
-  host->package_set_metadata(package, "version", "0.1.0");
-  host->package_set_metadata(package, "abi", "8");
+  host->package_set_metadata(host, "package", "xlang_device");
+  host->package_set_metadata(host, "version", "0.1.0");
+  host->package_set_metadata(host, "abi", "10");
 
   X3Module* device = nullptr;
-  if (host->add_module(package, "device", &device) != X3_STATUS_OK) {
+  if (host->add_module(host, "device", &device) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 

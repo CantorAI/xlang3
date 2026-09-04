@@ -89,6 +89,7 @@ enum class ObjectKind : uint32_t {
   Super,
   SlotDescriptor,
   Property,
+  Event,
   Code,
   Frame,
   Traceback,
@@ -275,6 +276,7 @@ struct Value {
   static Value class_method(Value function);
   static Value super_object(Value klass, Value self);
   static Value property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract = false, bool doc_from_getter = false);
+  static Value event(std::string name);
   static Value generic_alias(Value origin, Value args);
   static Value type_param(std::string name);
 };
@@ -554,6 +556,18 @@ struct PropertyObject {
   bool name_from_getter = false;
 };
 
+struct EventHandlerObject {
+  uint64_t cookie = 0;
+  Value callable;
+};
+
+struct EventObject {
+  Object header;
+  std::string name;
+  uint64_t next_cookie = 1;
+  std::vector<EventHandlerObject> handlers;
+};
+
 struct TracebackObject {
   Object header;
   Value frame;
@@ -678,6 +692,13 @@ XLANG3_HOT_INLINE PropertyObject* value_as_property(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<PropertyObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE EventObject* value_as_event(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Event) {
+    return nullptr;
+  }
+  return reinterpret_cast<EventObject*>(value.as.obj);
 }
 
 XLANG3_HOT_INLINE TypeParamObject* value_as_type_param(const Value& value) {
@@ -871,5 +892,8 @@ bool value_invert(const Value& value, Value& out, std::string& error);
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_is(const Value& lhs, const Value& rhs);
 bool value_contains(const Value& container, const Value& item, bool& out, std::string& error);
+bool event_subscribe(Value event, Value callable, uint64_t& cookie, std::string& error);
+bool event_unsubscribe(Value event, uint64_t cookie, std::string& error);
+bool event_fire(Runtime& runtime, Value event, const Value* args, uint32_t argc, Value& out, std::string& error);
 
 } // namespace xlang3

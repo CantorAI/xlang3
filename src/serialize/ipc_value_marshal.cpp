@@ -2,7 +2,7 @@
 Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0
 */
-#include "ipc_value_marshal.h"
+#include "xlang3/serialize/ipc_value_marshal.h"
 
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
@@ -35,6 +35,7 @@ bool should_always_pass_by_reference(ObjectKind kind) {
     case ObjectKind::Super:
     case ObjectKind::SlotDescriptor:
     case ObjectKind::Property:
+    case ObjectKind::Event:
     case ObjectKind::Code:
     case ObjectKind::Frame:
     case ObjectKind::Traceback:

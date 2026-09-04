@@ -90,6 +90,7 @@ const char* xlang_perf_object_kind_name(ObjectKind kind) {
     case ObjectKind::Super: return "Super";
     case ObjectKind::SlotDescriptor: return "SlotDescriptor";
     case ObjectKind::Property: return "Property";
+    case ObjectKind::Event: return "Event";
     case ObjectKind::File: return "File";
     case ObjectKind::TypeParam: return "TypeParam";
   }

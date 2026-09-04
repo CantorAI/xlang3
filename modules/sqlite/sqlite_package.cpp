@@ -844,21 +844,25 @@ void add_dbapi_int_constants(const X3PackageHost* host, X3Module* module) {
 
 } // namespace
 
-extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, X3Package* package) {
+extern "C" X3_SQLITE_EXPORT const uint32_t xlang3_package_abi_version = X3_ABI_VERSION;
+
+extern "C" X3_SQLITE_EXPORT X3Status Load(void* host_ptr, X3Value curModule) {
+  auto* host = static_cast<X3PackageHost*>(host_ptr);
+  (void)curModule;
   if (host == nullptr || host->abi_version != X3_ABI_VERSION) {
     return X3_STATUS_ERROR;
   }
-  host->package_set_metadata(package, "package", "xlang_sqlite3");
-  host->package_set_metadata(package, "version", "0.1.0");
-  host->package_set_metadata(package, "abi", "8");
+  host->package_set_metadata(host, "package", "xlang_sqlite3");
+  host->package_set_metadata(host, "version", "0.1.0");
+  host->package_set_metadata(host, "abi", "10");
   auto* state = new PackageState();
   state->host = host;
-  host->package_set_cleanup(package, state, cleanup_package_state);
+  host->package_set_cleanup(host, state, cleanup_package_state);
 
   X3Module* sqlite3 = nullptr;
   X3Module* sqlite = nullptr;
-  if (host->add_module(package, "sqlite3", &sqlite3) != X3_STATUS_OK ||
-      host->add_module(package, "sqlite", &sqlite) != X3_STATUS_OK) {
+  if (host->add_module(host, "sqlite3", &sqlite3) != X3_STATUS_OK ||
+      host->add_module(host, "sqlite", &sqlite) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 
@@ -869,7 +873,7 @@ extern "C" X3_SQLITE_EXPORT X3Status x3_package_init(const X3PackageHost* host, 
     return X3_STATUS_ERROR;
   }
   X3Value exception_class = x3_value_invalid();
-  if (host->builtin_value(package, "Exception", &exception_class) != X3_STATUS_OK ||
+  if (host->builtin_value(host, "Exception", &exception_class) != X3_STATUS_OK ||
       host->class_set_base(state->error_class, exception_class) != X3_STATUS_OK ||
       host->class_set_base(state->database_error_class, state->error_class) != X3_STATUS_OK ||
       host->class_set_base(state->operational_error_class, state->database_error_class) != X3_STATUS_OK ||

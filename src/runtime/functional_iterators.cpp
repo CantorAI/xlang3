@@ -346,6 +346,10 @@ bool runtime_call_callable(
     return true;
   }
 
+  if (value_as_event(callable) != nullptr) {
+    return event_fire(runtime, callable, args, argc, out, error);
+  }
+
   if (auto* instance = value_as_instance(callable)) {
     Value call_method;
     std::string call_error;

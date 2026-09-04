@@ -55,10 +55,23 @@ X3_API X3Status x3_runtime_eval_file(
 X3_API void x3_value_retain(X3Value value);
 X3_API void x3_value_release(X3Value value);
 X3_API X3Value x3_value_string(X3Runtime* runtime, const char* value);
+X3_API X3Value x3_value_bytes(X3Runtime* runtime, const void* data, uint64_t size);
 X3_API X3Value x3_value_list(X3Runtime* runtime);
 X3_API X3Value x3_value_dict(X3Runtime* runtime);
 X3_API const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value);
 X3_API X3ObjectKind x3_value_object_kind(X3Value value);
+X3_API X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** data, uint64_t* size);
+X3_API X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result);
+X3_API X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result);
+X3_API X3Status x3_event_create(X3Runtime* runtime, const char* name, X3Value* result);
+X3_API X3Status x3_event_subscribe(X3Runtime* runtime, X3Value event, X3Value callable, uint64_t* cookie);
+X3_API X3Status x3_event_unsubscribe(X3Runtime* runtime, X3Value event, uint64_t cookie);
+X3_API X3Status x3_event_fire(
+    X3Runtime* runtime,
+    X3Value event,
+    const X3Value* args,
+    uint32_t argc,
+    X3Value* result);
 
 X3_API X3Status x3_runtime_import_module(
     X3Runtime* runtime,

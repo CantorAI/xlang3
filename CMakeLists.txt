@@ -35,6 +35,7 @@ add_subdirectory(modules/json)
 add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
 add_subdirectory(modules/device)
+add_subdirectory(modules/net)
 endif()
 
 set(XLANG3_RUNTIME_SOURCES
@@ -292,6 +293,47 @@ add_test(
   COMMAND xlang3_native_package_real_tests $<TARGET_FILE_DIR:xlang_json_native_package>
 )
 
+add_library(xlang1_compat_sample_package SHARED
+  tests/cpp/xlang1_compat_package.cpp
+)
+set_target_properties(xlang1_compat_sample_package PROPERTIES
+  OUTPUT_NAME "xlang1_compat_sample.x3pkg"
+  PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+)
+target_include_directories(xlang1_compat_sample_package PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/xlang3/cpp
+)
+
+add_library(xlang3_curmodule_probe_package SHARED
+  tests/cpp/curmodule_probe_package.cpp
+)
+set_target_properties(xlang3_curmodule_probe_package PROPERTIES
+  OUTPUT_NAME "xlang_curmodule_probe.x3pkg"
+  PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+)
+target_include_directories(xlang3_curmodule_probe_package PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_executable(xlang3_xlang1_compat_package_tests tests/cpp/xlang1_compat_package_tests.cpp)
+target_link_libraries(xlang3_xlang1_compat_package_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_xlang1_compat_package_tests PRIVATE XLANG3_USE_SHARED)
+target_include_directories(xlang3_xlang1_compat_package_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+add_dependencies(xlang3_xlang1_compat_package_tests xlang1_compat_sample_package)
+add_test(
+  NAME xlang3_xlang1_compat_package_tests
+  COMMAND xlang3_xlang1_compat_package_tests $<TARGET_FILE_DIR:xlang1_compat_sample_package>
+)
+
 add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
 target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
@@ -310,6 +352,30 @@ add_test(
   NAME xlang3_cli_real_native_imports
   COMMAND powershell -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+)
+
+add_test(
+  NAME xlang3_curmodule_probe_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/curmodule_probe_import.py
+)
+
+add_test(
+  NAME xlang3_xlang1_compat_import
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_xlang1_compat_import.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+)
+
+add_test(
+  NAME xlang3_cli_net_module_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/module.py
+)
+
+add_test(
+  NAME xlang3_cli_net_module_server_client
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
 

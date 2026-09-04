@@ -21,10 +21,10 @@ limitations under the License.
 extern "C" {
 #endif
 
-#define X3_ABI_VERSION 8u
-#define X3_PACKAGE_INIT_NAME x3_package_init
+#define X3_ABI_VERSION 14u
+#define X3_PACKAGE_INIT_NAME Load
+#define X3_PACKAGE_ABI_SYMBOL xlang3_package_abi_version
 
-typedef struct X3Package X3Package;
 typedef struct X3Module X3Module;
 typedef struct X3CallContext X3CallContext;
 
@@ -52,20 +52,35 @@ typedef struct X3NativeFunctionDef {
 typedef struct X3PackageHost {
   uint32_t abi_version;
   uint32_t size;
-  X3Status (*add_module)(X3Package* package, const char* name, X3Module** out_module);
+  void* package_context;
+  X3Runtime* runtime;
+  const char* package_name;
+  const char* library_path;
+  X3Status (*add_module)(struct X3PackageHost* host, const char* name, X3Module** out_module);
   X3Status (*module_add_value)(X3Module* module, const char* name, X3Value value);
   X3Status (*module_add_function)(X3Module* module, const X3NativeFunctionDef* def);
   X3Status (*set_error)(X3CallContext* context, const char* message);
   X3Status (*raise_class_error)(X3CallContext* context, const char* class_name, const char* message);
   X3Status (*raise_error)(X3CallContext* context, X3Value exception_class, const char* message);
   const char* (*runtime_last_error)(X3Runtime* runtime);
+  void (*value_retain)(X3Value value);
   void (*value_release)(X3Value value);
   X3Value (*value_string)(X3Runtime* runtime, const char* value);
+  X3Value (*value_bytes)(X3Runtime* runtime, const void* data, uint64_t size);
   X3Value (*value_list)(X3Runtime* runtime);
   X3Value (*value_dict)(X3Runtime* runtime);
   const char* (*value_to_cstr)(X3Runtime* runtime, X3Value value);
   X3ObjectKind (*value_object_kind)(X3Value value);
+  X3Status (*value_bytes_data)(X3Runtime* runtime, X3Value value, const void** data, uint64_t* size);
+  X3Status (*value_to_bytes)(X3Runtime* runtime, X3Value value, X3Value* result);
+  X3Status (*value_from_bytes)(X3Runtime* runtime, X3Value bytes, X3Value* result);
+  X3Status (*event_create)(X3Runtime* runtime, const char* name, X3Value* result);
+  X3Status (*event_subscribe)(X3Runtime* runtime, X3Value event, X3Value callable, uint64_t* cookie);
+  X3Status (*event_unsubscribe)(X3Runtime* runtime, X3Value event, uint64_t cookie);
+  X3Status (*event_fire)(X3Runtime* runtime, X3Value event, const X3Value* args, uint32_t argc, X3Value* result);
+  X3Status (*call)(X3Runtime* runtime, X3Value callable, const X3Value* args, uint32_t argc, X3Value* result);
   X3Status (*len)(X3Runtime* runtime, X3Value value, uint64_t* result);
+  X3Status (*get_attr)(X3Runtime* runtime, X3Value object, const char* name, X3Value* result);
   X3Status (*get_item)(X3Runtime* runtime, X3Value object, X3Value key, X3Value* result);
   X3Status (*set_attr)(X3Runtime* runtime, X3Value object, const char* name, X3Value value);
   X3Status (*list_append)(X3Runtime* runtime, X3Value list, X3Value item);
@@ -77,7 +92,7 @@ typedef struct X3PackageHost {
       const X3NativeFunctionDef* methods,
       uint32_t method_count,
       X3Value* out_class);
-  X3Status (*builtin_value)(X3Package* package, const char* name, X3Value* out_value);
+  X3Status (*builtin_value)(struct X3PackageHost* host, const char* name, X3Value* out_value);
   X3Status (*class_set_base)(X3Value klass, X3Value base);
   X3Status (*instance_set_native_data)(
       X3Value instance,
@@ -86,11 +101,22 @@ typedef struct X3PackageHost {
       X3NativeDataCleanup cleanup);
   void* (*instance_get_native_data)(X3Value instance, const char* type_name);
   X3Value (*value_instance)(X3Runtime* runtime, X3Value klass);
-  X3Status (*package_set_cleanup)(X3Package* package, void* data, X3PackageCleanup cleanup);
-  X3Status (*package_set_metadata)(X3Package* package, const char* key, const char* value);
+  X3Status (*package_set_cleanup)(struct X3PackageHost* host, void* data, X3PackageCleanup cleanup);
+  X3Status (*class_add_value)(X3Value klass, const char* name, X3Value value);
+  X3Status (*property_create)(
+      X3Runtime* runtime,
+      const char* name,
+      X3NativeFn getter,
+      X3NativeFn setter,
+      void* user_data,
+      X3Value* result);
+  X3Status (*package_set_metadata)(struct X3PackageHost* host, const char* key, const char* value);
+  X3Status (*module_get_value)(X3Module* module, X3Value* out_value);
+  X3Status (*module_get_attr)(X3Module* module, const char* name, X3Value* out_value);
+  X3Status (*module_set_attr)(X3Module* module, const char* name, X3Value value);
 } X3PackageHost;
 
-typedef X3Status (*X3PackageInitFn)(const X3PackageHost* host, X3Package* package);
+typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/builtin_methods.h"
 #include "xlang3/exceptions.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/ir.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -1474,6 +1475,111 @@ void object_model_release_object(Object* object) {
   }
 }
 
+bool event_subscribe(Value event, Value callable, uint64_t& cookie, std::string& error) {
+  auto* object = value_as_event(event);
+  if (object == nullptr) {
+    error = "subscribe expected event object";
+    return false;
+  }
+  if (callable.tag == ValueTag::Invalid || callable.tag == ValueTag::None) {
+    error = "event handler is not callable";
+    return false;
+  }
+  cookie = object->next_cookie++;
+  if (object->next_cookie == 0) {
+    object->next_cookie = 1;
+  }
+  object->handlers.push_back(EventHandlerObject{cookie, std::move(callable)});
+  return true;
+}
+
+bool event_unsubscribe(Value event, uint64_t cookie, std::string& error) {
+  auto* object = value_as_event(event);
+  if (object == nullptr) {
+    error = "unsubscribe expected event object";
+    return false;
+  }
+  auto it = std::remove_if(
+      object->handlers.begin(),
+      object->handlers.end(),
+      [cookie](const EventHandlerObject& handler) { return handler.cookie == cookie; });
+  if (it == object->handlers.end()) {
+    return true;
+  }
+  object->handlers.erase(it, object->handlers.end());
+  return true;
+}
+
+bool event_fire(Runtime& runtime, Value event, const Value* args, uint32_t argc, Value& out, std::string& error) {
+  auto* object = value_as_event(event);
+  if (object == nullptr) {
+    error = "fire expected event object";
+    return false;
+  }
+  std::vector<EventHandlerObject> handlers = object->handlers;
+  Value last = Value::none();
+  for (const auto& handler : handlers) {
+    Value result;
+    if (!runtime_call_callable(runtime, handler.callable, args, argc, result, error)) {
+      return false;
+    }
+    value_assign_fast(last, result);
+  }
+  value_assign_fast(out, last);
+  return true;
+}
+
+static bool event_subscribe_method(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "event.subscribe expects one handler";
+    return false;
+  }
+  uint64_t cookie = 0;
+  if (!event_subscribe(args[0], args[1], cookie, error)) {
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(cookie));
+  return true;
+}
+
+static bool event_unsubscribe_method(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "event.unsubscribe expects one subscription cookie";
+    return false;
+  }
+  if (!event_unsubscribe(args[0], static_cast<uint64_t>(args[1].as.i64), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+static bool event_fire_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc == 0) {
+    error = "event.fire missing event object";
+    return false;
+  }
+  return event_fire(runtime, args[0], args + 1, argc - 1, out, error);
+}
+
 std::string object_model_to_string(const Value& value) {
   if (auto* klass = value_as_class(value)) {
     return "<class '" + class_display_name(*klass) + "'>";
@@ -1525,6 +1631,9 @@ std::string object_model_to_string(const Value& value) {
   }
   if (auto* slot = value_as_slot_descriptor(value)) {
     return "<member '" + slot->name + "' of '" + slot->owner_name + "' objects>";
+  }
+  if (auto* event = value_as_event(value)) {
+    return "<event '" + event->name + "'>";
   }
   return "<object>";
 }
@@ -1631,6 +1740,31 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return object_get_attr(generic_alias->origin, name, out, error);
     }
     error = "GenericAlias object has no attribute '" + name + "'";
+    return false;
+  }
+
+  if (auto* event = value_as_event(object)) {
+    if (name == "__name__") {
+      out = Value::string(event->name);
+      return true;
+    }
+    if (name == "__doc__") {
+      value_set_none(out);
+      return true;
+    }
+    if (name == "subscribe") {
+      out = Value::bound_method(object, Value::native_function(0, "event.subscribe", event_subscribe_method));
+      return true;
+    }
+    if (name == "unsubscribe") {
+      out = Value::bound_method(object, Value::native_function(0, "event.unsubscribe", event_unsubscribe_method));
+      return true;
+    }
+    if (name == "fire" || name == "__call__") {
+      out = Value::bound_method(object, Value::native_function(0, "event.fire", event_fire_method));
+      return true;
+    }
+    error = "event has no attribute '" + name + "'";
     return false;
   }
 

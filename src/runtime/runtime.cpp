@@ -1214,6 +1214,29 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
         return true;
       }
     }
+    const auto dot = name.rfind('.');
+    if (dot != std::string::npos && dot > 0) {
+      const std::string parent_name = name.substr(0, dot);
+      Value parent_module;
+      std::string parent_error;
+      if (import_module(parent_name, parent_module, parent_error)) {
+        auto submodule_it = modules_.find(name);
+        if (submodule_it != modules_.end()) {
+          value_assign_fast(out, submodule_it->second);
+          return true;
+        }
+        if (modules_dict_.tag != ValueTag::Invalid) {
+          Value registry_module;
+          std::string registry_error;
+          if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error) &&
+              value_as_module(registry_module) != nullptr) {
+            modules_[name] = registry_module;
+            value_assign_fast(out, registry_module);
+            return true;
+          }
+        }
+      }
+    }
 #if !defined(XLANG3_EMBEDDED)
     std::string python_error;
     if (import_python_module(*this, name, out, python_error)) {

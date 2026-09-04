@@ -2,7 +2,7 @@
 Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0
 */
-#include "xlang_stream.h"
+#include "xlang3/serialize/xlang_stream.h"
 
 #include <cstring>
 

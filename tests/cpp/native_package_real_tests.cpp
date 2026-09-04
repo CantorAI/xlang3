@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/cpp/xlang.h"
+#include "xlang3/cpp/xlang3.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
     X::Package json(runtime, "json", "xlang_json");
     if (json["__xlang3_package__"].ToString() != "xlang_json" ||
-        json["__xlang3_abi__"].ToString() != "8") {
+        json["__xlang3_abi__"].ToString() != "10") {
       std::cerr << "bad json package metadata\n";
       return 1;
     }
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
     X::Package sqlite3(runtime, "sqlite3");
     if (sqlite3["__xlang3_package__"].ToString() != "xlang_sqlite3" ||
-        sqlite3["__xlang3_abi__"].ToString() != "8") {
+        sqlite3["__xlang3_abi__"].ToString() != "10") {
       std::cerr << "bad sqlite package metadata\n";
       return 1;
     }
