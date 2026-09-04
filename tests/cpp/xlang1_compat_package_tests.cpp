@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/cpp/xlang3.h"
+#include "xlang3/xlang3.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -38,11 +38,17 @@ int main(int argc, char** argv) {
     X::Runtime runtime;
     runtime.AddImportRoot(argv[1]);
 
-    X::Package package(runtime, "xlang1_compat_sample");
+    X::Module package(runtime, "xlang1_compat_sample");
 
     require(package["add"](20, 22).ToInt64() == 42, "old AddFunc<int,int> call failed");
     require(package["make_list"]()[1].ToString() == "two", "old List return failed");
     require(package["make_dict"]().GetItem("answer").ToInt64() == 42, "old Dict return failed");
+    require(package["operator_style"]().ToString() == "ok", "old X::Value operators failed");
+    X::Value list = runtime.List();
+    list += X::Value(runtime, 1);
+    list += X::Value(runtime, 2);
+    require(list[0] == X::Value(runtime, 1), "runtime wrapper list += or == failed");
+    require((X::Value(runtime, 20) + X::Value(runtime, 22)).ToInt64() == 42, "runtime wrapper operator+ failed");
     require(package["bytes_size"]("abcdef").ToInt64() == -1, "string must not be treated as binary");
     require(package["value_bytes_roundtrip"]().ToString() == "ok", "X::Value ToBytes/FromBytes roundtrip failed");
     require(package["stream_roundtrip"]().ToString() == "ok", "X::Value stream roundtrip failed");

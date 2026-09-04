@@ -2,7 +2,7 @@
 Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0
 */
-#include "xlang3/cpp/xpackage.h"
+#include "xlang3/xlang3.h"
 
 #include <cstring>
 #include <string>
@@ -37,8 +37,8 @@ public:
 
   X::Value make_list() {
     auto list = X::Value::List(Host());
-    list.Append(X::Value(1));
-    list.Append(X::Value::String(Host(), "two"));
+    list += X::Value(1);
+    list += X::Value::String(Host(), "two");
     return list;
   }
 
@@ -95,6 +95,22 @@ public:
     return X::Value::String(Host(), check_payload(restored) ? "ok" : "bad-stream-payload");
   }
 
+  X::Value operator_style() {
+    auto list = X::Value::List(Host());
+    list += X::Value(7);
+    list += X::Value::String(Host(), "eight");
+
+    auto dict = X::Value::Dict(Host());
+    dict.Set("items", list);
+    dict.Set("sum", X::Value(20) + X::Value(22));
+
+    const bool ok = dict["items"][0] == X::Value(7) &&
+                    dict["items"].second() == X::Value::String(Host(), "eight") &&
+                    dict["sum"] == X::Value(42) &&
+                    dict["sum"] != X::Value(43);
+    return X::Value::String(Host(), ok ? "ok" : "bad-operators");
+  }
+
   BEGIN_PACKAGE(xlang1_compat_sample)
     APISET().AddFunc<2>("add", &xlang1_compat_sample::add);
     APISET().AddFunc<0>("make_list", &xlang1_compat_sample::make_list);
@@ -104,6 +120,7 @@ public:
     APISET().AddFunc<0>("is_changed_event", &xlang1_compat_sample::is_changed_event);
     APISET().AddFunc<0>("value_bytes_roundtrip", &xlang1_compat_sample::value_bytes_roundtrip);
     APISET().AddFunc<0>("stream_roundtrip", &xlang1_compat_sample::stream_roundtrip);
+    APISET().AddFunc<0>("operator_style", &xlang1_compat_sample::operator_style);
     APISET().AddEvent("changed");
     APISET().AddClass<0, xlang1_compat_counter>("Counter");
     APISET().AddConst("name", "compat");
@@ -113,8 +130,8 @@ private:
   X::Value make_payload() {
     auto dict = X::Value::Dict(Host());
     auto list = X::Value::List(Host());
-    list.Append(X::Value(1));
-    list.Append(X::Value::String(Host(), "two"));
+    list += X::Value(1);
+    list += X::Value::String(Host(), "two");
 
     const char raw[] = {'a', '\0', 'b', 'c'};
     dict.Set("items", list);
@@ -133,8 +150,8 @@ private:
     uint64_t blob_size = 0;
     const auto* blob_data = static_cast<const char*>(blob.BytesData(&blob_size));
     return items.Size() == 2 &&
-           items.Get(uint64_t{0}).ToLongLong() == 1 &&
-           items.Get(uint64_t{1}).ToString(false) == "two" &&
+           items[0].ToLongLong() == 1 &&
+           items[1].ToString(false) == "two" &&
            blob_data != nullptr &&
            blob_size == 4 &&
            blob_data[0] == 'a' &&

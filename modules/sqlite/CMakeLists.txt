@@ -12,6 +12,7 @@
 # limitations under the License.
 
 add_library(xlang_sqlite3_native_package SHARED
+  main.cpp
   sqlite_package.cpp
   sqlite_values.cpp
   sqlite_handles.cpp

@@ -15,16 +15,10 @@ limitations under the License.
 #include "sqlite_handles.h"
 #include "sqlite_values.h"
 
-#include "xlang3/xmodule.h"
+#include "xlang3/xlang3.h"
 
 #include <cctype>
 #include <string>
-
-#if defined(_WIN32)
-#define X3_SQLITE_EXPORT __declspec(dllexport)
-#else
-#define X3_SQLITE_EXPORT __attribute__((visibility("default")))
-#endif
 
 namespace {
 
@@ -844,25 +838,23 @@ void add_dbapi_int_constants(const X3PackageHost* host, X3Module* module) {
 
 } // namespace
 
-extern "C" X3_SQLITE_EXPORT const uint32_t xlang3_package_abi_version = X3_ABI_VERSION;
+class xlang_sqlite3 {
+public:
+  BEGIN_PACKAGE(xlang_sqlite3)
+  END_PACKAGE
+};
 
-extern "C" X3_SQLITE_EXPORT X3Status Load(void* host_ptr, X3Value curModule) {
-  auto* host = static_cast<X3PackageHost*>(host_ptr);
-  (void)curModule;
-  if (host == nullptr || host->abi_version != X3_ABI_VERSION) {
-    return X3_STATUS_ERROR;
-  }
-  host->package_set_metadata(host, "package", "xlang_sqlite3");
-  host->package_set_metadata(host, "version", "0.1.0");
-  host->package_set_metadata(host, "abi", "10");
+namespace {
+
+X3Status register_sqlite_package(X::Package<xlang_sqlite3>* package) {
+  auto* host = package->host();
   auto* state = new PackageState();
   state->host = host;
   host->package_set_cleanup(host, state, cleanup_package_state);
 
-  X3Module* sqlite3 = nullptr;
+  X3Module* sqlite3 = package->module();
   X3Module* sqlite = nullptr;
-  if (host->add_module(host, "sqlite3", &sqlite3) != X3_STATUS_OK ||
-      host->add_module(host, "sqlite", &sqlite) != X3_STATUS_OK) {
+  if (sqlite3 == nullptr || host->add_module(host, "sqlite", &sqlite) != X3_STATUS_OK) {
     return X3_STATUS_ERROR;
   }
 
@@ -958,5 +950,21 @@ extern "C" X3_SQLITE_EXPORT X3Status Load(void* host_ptr, X3Value curModule) {
   host->module_add_value(sqlite3, "OK", x3_value_int64(SQLITE_OK));
   host->module_add_value(sqlite3, "ROW", x3_value_int64(SQLITE_ROW));
   host->module_add_value(sqlite3, "DONE", x3_value_int64(SQLITE_DONE));
+  return X3_STATUS_OK;
+}
+
+} // namespace
+
+X3Status register_sqlite_module(X3PackageHost* host, X3Value curModule) {
+  auto* object = new xlang_sqlite3();
+  auto* package = new X::Package<xlang_sqlite3>(host, "sqlite3", object);
+  object->__xlang3_host_ = host;
+  object->__xlang3_package_ = package;
+  package->SetCurrentModule(X::Value(host, curModule, true));
+  X3Status status = register_sqlite_package(package);
+  if (status != X3_STATUS_OK || !package->RegisterCleanup()) {
+    delete package;
+    return X3_STATUS_ERROR;
+  }
   return X3_STATUS_OK;
 }

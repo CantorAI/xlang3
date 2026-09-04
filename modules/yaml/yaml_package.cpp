@@ -14,172 +14,69 @@ limitations under the License.
 */
 #include "yaml_convert.h"
 
-#include "xlang3/xmodule.h"
+#include "xlang3/xlang3.h"
 
 #include <fstream>
 #include <sstream>
 #include <string>
 
-#if defined(_WIN32)
-#define X3_YAML_EXPORT __declspec(dllexport)
-#else
-#define X3_YAML_EXPORT __attribute__((visibility("default")))
-#endif
-
 namespace {
 
-bool require_string(X3Runtime* runtime, X3Value value, const char* name, std::string& out, const X3PackageHost* host, X3CallContext* context) {
-  if (host->value_object_kind(value) != X3_OBJECT_KIND_STRING) {
-    host->set_error(context, name);
-    return false;
+class xlang_yaml {
+public:
+  X::Value loads(X::Value text) {
+    if (!text.IsString()) {
+      throw X::Error("yaml.loads() argument must be a string");
+    }
+    try {
+      return X::Value(Host(), xlang3_yaml::yaml_to_value(Host(), Host()->runtime, YAML::Load(text.ToString(false))), false);
+    } catch (const std::exception& ex) {
+      throw X::Error(std::string("yaml.loads() parse error: ") + ex.what());
+    }
   }
-  out = host->value_to_cstr(runtime, value);
-  return true;
-}
 
-X3Status yaml_loads(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 1) {
-    host->set_error(context, "yaml.loads() expected 1 argument");
-    return X3_STATUS_ERROR;
+  X::Value saves(X::Value value) {
+    const char* error = nullptr;
+    YAML::Node node;
+    if (!xlang3_yaml::value_to_yaml(Host(), Host()->runtime, value.raw(), node, &error)) {
+      throw X::Error(error == nullptr ? "yaml.saves() conversion failed" : error);
+    }
+    YAML::Emitter emitter;
+    emitter << node;
+    return X::Value::String(Host(), emitter.c_str());
   }
-  std::string text;
-  if (!require_string(runtime, args[0], "yaml.loads() argument must be a string", text, host, context)) {
-    return X3_STATUS_ERROR;
-  }
-  try {
-    *result = xlang3_yaml::yaml_to_value(host, runtime, YAML::Load(text));
-    return X3_STATUS_OK;
-  } catch (const std::exception& ex) {
-    const std::string error = std::string("yaml.loads() parse error: ") + ex.what();
-    host->set_error(context, error.c_str());
-    return X3_STATUS_ERROR;
-  }
-}
 
-X3Status yaml_saves(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 1) {
-    host->set_error(context, "yaml.saves() expected 1 argument");
-    return X3_STATUS_ERROR;
+  X::Value load(std::string path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+      throw X::Error("yaml.load() cannot open " + path);
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return loads(X::Value::String(Host(), buffer.str()));
   }
-  const char* error = nullptr;
-  YAML::Node node;
-  if (!xlang3_yaml::value_to_yaml(host, runtime, args[0], node, &error)) {
-    host->set_error(context, error);
-    return X3_STATUS_ERROR;
-  }
-  YAML::Emitter emitter;
-  emitter << node;
-  *result = host->value_string(runtime, emitter.c_str());
-  return X3_STATUS_OK;
-}
 
-X3Status yaml_load(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 1) {
-    host->set_error(context, "yaml.load() expected 1 argument");
-    return X3_STATUS_ERROR;
+  bool save(X::Value value, std::string path) {
+    X::Value text = saves(value);
+    std::ofstream file(path, std::ios::binary);
+    if (!file) {
+      throw X::Error("yaml.save() cannot open " + path);
+    }
+    file << text.ToString(false);
+    return true;
   }
-  std::string path;
-  if (!require_string(runtime, args[0], "yaml.load() path must be a string", path, host, context)) {
-    return X3_STATUS_ERROR;
-  }
-  std::ifstream file(path, std::ios::binary);
-  if (!file) {
-    const std::string error = "yaml.load() cannot open " + path;
-    host->set_error(context, error.c_str());
-    return X3_STATUS_ERROR;
-  }
-  std::ostringstream buffer;
-  buffer << file.rdbuf();
-  X3Value text = host->value_string(runtime, buffer.str().c_str());
-  const X3Status status = yaml_loads(context, runtime, user_data, &text, 1, result);
-  host->value_release(text);
-  return status;
-}
 
-X3Status yaml_save(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 2) {
-    host->set_error(context, "yaml.save() expected 2 arguments");
-    return X3_STATUS_ERROR;
-  }
-  std::string path;
-  if (!require_string(runtime, args[1], "yaml.save() path must be a string", path, host, context)) {
-    return X3_STATUS_ERROR;
-  }
-  X3Value text = x3_value_invalid();
-  const X3Status status = yaml_saves(context, runtime, user_data, args, 1, &text);
-  if (status != X3_STATUS_OK) {
-    return status;
-  }
-  std::ofstream file(path, std::ios::binary);
-  if (!file) {
-    host->value_release(text);
-    const std::string error = "yaml.save() cannot open " + path;
-    host->set_error(context, error.c_str());
-    return X3_STATUS_ERROR;
-  }
-  file << host->value_to_cstr(runtime, text);
-  host->value_release(text);
-  *result = x3_value_bool(1);
-  return X3_STATUS_OK;
-}
-
-void add_function(const X3PackageHost* host, X3Module* module, const char* name, X3NativeFn callback) {
-  X3NativeFunctionDef def{};
-  def.size = sizeof(def);
-  def.name = name;
-  def.callback = callback;
-  def.user_data = const_cast<X3PackageHost*>(host);
-  host->module_add_function(module, &def);
-}
+  BEGIN_PACKAGE(xlang_yaml)
+    APISET().AddFunc<1>("loads", &xlang_yaml::loads);
+    APISET().AddFunc<1>("saves", &xlang_yaml::saves);
+    APISET().AddFunc<1>("load", &xlang_yaml::load);
+    APISET().AddFunc<2>("save", &xlang_yaml::save);
+  END_PACKAGE
+};
 
 } // namespace
 
-extern "C" X3_YAML_EXPORT const uint32_t xlang3_package_abi_version = X3_ABI_VERSION;
-
-extern "C" X3_YAML_EXPORT X3Status Load(void* host_ptr, X3Value curModule) {
-  auto* host = static_cast<X3PackageHost*>(host_ptr);
-  (void)curModule;
-  if (host == nullptr || host->abi_version != X3_ABI_VERSION) {
-    return X3_STATUS_ERROR;
-  }
-  host->package_set_metadata(host, "package", "xlang_yaml");
-  host->package_set_metadata(host, "version", "0.1.0");
-  host->package_set_metadata(host, "abi", "10");
-  X3Module* yaml = nullptr;
-  if (host->add_module(host, "yaml", &yaml) != X3_STATUS_OK) {
-    return X3_STATUS_ERROR;
-  }
-  add_function(host, yaml, "loads", yaml_loads);
-  add_function(host, yaml, "saves", yaml_saves);
-  add_function(host, yaml, "load", yaml_load);
-  add_function(host, yaml, "save", yaml_save);
-  return X3_STATUS_OK;
+X3Status register_yaml_module(X3PackageHost* host, X3Value curModule) {
+  xlang_yaml::BuildAPI();
+  return xlang_yaml::APISET().Create(host, "yaml", curModule);
 }

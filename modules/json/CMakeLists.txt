@@ -12,6 +12,7 @@
 # limitations under the License.
 
 add_library(xlang_json_native_package SHARED
+  main.cpp
   json_package.cpp
   json_convert.cpp
 )

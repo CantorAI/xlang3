@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0
 #pragma once
 
 #include "shared_memory_transport_internal.h"
-#include "xlang3/serialize/xlang_stream.h"
+#include "serialize/xlang_stream.h"
 
 #include <functional>
 #include <vector>

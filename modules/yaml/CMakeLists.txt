@@ -12,6 +12,7 @@
 # limitations under the License.
 
 add_library(xlang_yaml_native_package SHARED
+  main.cpp
   yaml_package.cpp
   yaml_convert.cpp
 )

@@ -12,8 +12,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef XLANG3_XVALUE_H
-#define XLANG3_XVALUE_H
+#ifndef XLANG3_ABI_VALUE_H
+#define XLANG3_ABI_VALUE_H
 
 #include <stdint.h>
 

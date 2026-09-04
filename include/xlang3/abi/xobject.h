@@ -12,10 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef XLANG3_XOBJECT_H
-#define XLANG3_XOBJECT_H
+#ifndef XLANG3_ABI_OBJECT_H
+#define XLANG3_ABI_OBJECT_H
 
-#include "xlang3/xvalue.h"
+#include "xlang3/abi/xvalue.h"
 
 #ifdef __cplusplus
 extern "C" {

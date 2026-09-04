@@ -2,7 +2,7 @@
 Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0
 */
-#include "xlang3/serialize/ipc_value_marshal.h"
+#include "serialize/ipc_value_marshal.h"
 
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"

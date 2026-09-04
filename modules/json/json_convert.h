@@ -14,7 +14,7 @@ limitations under the License.
 */
 #pragma once
 
-#include "xlang3/xmodule.h"
+#include "xlang3/xlang3.h"
 
 #include "json.hpp"
 

@@ -4,10 +4,11 @@ Licensed under the Apache License, Version 2.0
 */
 #pragma once
 
-#include "xlang3/cpp/xvalue.h"
+#include "xlang3/cpp/value.h"
 
 #include <cstdint>
 #include <functional>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -25,6 +26,18 @@ namespace detail {
 
 template <typename T>
 struct always_false : std::false_type {};
+
+class NativeError : public std::runtime_error {
+public:
+  explicit NativeError(const std::string& message) : std::runtime_error(message) {}
+};
+
+inline X3Status set_native_error(X3PackageHost* host, X3CallContext* context, const char* message) {
+  if (host != nullptr && host->set_error != nullptr) {
+    host->set_error(context, message == nullptr ? "native package error" : message);
+  }
+  return X3_STATUS_ERROR;
+}
 
 template <typename T, typename R, typename... Args>
 struct MemberBinding {
@@ -178,11 +191,15 @@ X3Status invoke_instance_member(
     return X3_STATUS_ERROR;
   }
   auto values = std::make_tuple(Value(host, args[I + 1], true)...);
-  if constexpr (std::is_void_v<R>) {
-    (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
-    *result = x3_value_none();
-  } else {
-    *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+  try {
+    if constexpr (std::is_void_v<R>) {
+      (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
+      *result = x3_value_none();
+    } else {
+      *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+    }
+  } catch (const std::exception& ex) {
+    return set_native_error(host, context, ex.what());
   }
   return X3_STATUS_OK;
 }
@@ -225,11 +242,15 @@ X3Status invoke_const_instance_member(
     return X3_STATUS_ERROR;
   }
   auto values = std::make_tuple(Value(host, args[I + 1], true)...);
-  if constexpr (std::is_void_v<R>) {
-    (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
-    *result = x3_value_none();
-  } else {
-    *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+  try {
+    if constexpr (std::is_void_v<R>) {
+      (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
+      *result = x3_value_none();
+    } else {
+      *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+    }
+  } catch (const std::exception& ex) {
+    return set_native_error(host, context, ex.what());
   }
   return X3_STATUS_OK;
 }
@@ -269,11 +290,15 @@ X3Status invoke_member(
   }
   auto values = std::make_tuple(Value(host, args[I], true)...);
   sync_package_fields(self, 0);
-  if constexpr (std::is_void_v<R>) {
-    (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
-    *result = x3_value_none();
-  } else {
-    *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+  try {
+    if constexpr (std::is_void_v<R>) {
+      (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
+      *result = x3_value_none();
+    } else {
+      *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+    }
+  } catch (const std::exception& ex) {
+    return set_native_error(host, context, ex.what());
   }
   return X3_STATUS_OK;
 }
@@ -314,11 +339,15 @@ X3Status invoke_const_member(
   }
   auto values = std::make_tuple(Value(host, args[I], true)...);
   sync_package_fields(self, 0);
-  if constexpr (std::is_void_v<R>) {
-    (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
-    *result = x3_value_none();
-  } else {
-    *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+  try {
+    if constexpr (std::is_void_v<R>) {
+      (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
+      *result = x3_value_none();
+    } else {
+      *result = return_to_raw(host, (self->*method)(arg_from_value<Args>(std::get<I>(values))...));
+    }
+  } catch (const std::exception& ex) {
+    return set_native_error(host, context, ex.what());
   }
   return X3_STATUS_OK;
 }
@@ -406,6 +435,8 @@ X3Status constructor_thunk(
 
 } // namespace detail
 
+using Error = detail::NativeError;
+
 template <typename T>
 class Package {
 public:
@@ -428,6 +459,7 @@ public:
   Package& operator=(const Package&) = delete;
 
   X3PackageHost* host() const { return host_; }
+  X3Module* module() const { return module_; }
   T* object() const { return object_; }
   T* operator->() const { return object_; }
 

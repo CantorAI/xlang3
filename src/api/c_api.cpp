@@ -12,8 +12,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/xapi.h"
-#include "xlang3/xmodule.h"
+#include "xlang3/abi/xapi.h"
+#include "xlang3/abi/xmodule.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/c_api_bridge.h"
@@ -26,8 +26,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sequence.h"
-#include "xlang3/serialize/block_stream.h"
-#include "xlang3/serialize/ipc_value_marshal.h"
+#include "serialize/block_stream.h"
+#include "serialize/ipc_value_marshal.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 #include "runtime_lock.h"
@@ -513,6 +513,80 @@ X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result)
     return fail(rt, error);
   }
   *result = xlang3::to_c_value(out);
+  return X3_STATUS_OK;
+}
+
+X3Status x3_value_binary_op(
+    X3Runtime* runtime,
+    X3ValueBinaryOp op,
+    X3Value left,
+    X3Value right,
+    X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
+  }
+  std::string error;
+  auto lhs = xlang3::from_c_value(left, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  auto rhs = xlang3::from_c_value(right, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  xlang3::Value out;
+  switch (op) {
+    case X3_VALUE_BINARY_ADD:
+      if (!xlang3::value_add(lhs, rhs, out, error)) {
+        return fail(rt, error);
+      }
+      break;
+    default:
+      return fail(rt, "unknown binary operator");
+  }
+  *result = xlang3::to_c_value(out);
+  return X3_STATUS_OK;
+}
+
+X3Status x3_value_compare_op(
+    X3Runtime* runtime,
+    X3ValueCompareOp op,
+    X3Value left,
+    X3Value right,
+    int32_t* result) {
+  auto* rt = as_runtime(runtime);
+  if (rt == nullptr || result == nullptr) {
+    return fail(rt, "runtime/result is null");
+  }
+  const char* op_text = nullptr;
+  switch (op) {
+    case X3_VALUE_COMPARE_EQ: op_text = "=="; break;
+    case X3_VALUE_COMPARE_NE: op_text = "!="; break;
+    case X3_VALUE_COMPARE_LT: op_text = "<"; break;
+    case X3_VALUE_COMPARE_LE: op_text = "<="; break;
+    case X3_VALUE_COMPARE_GT: op_text = ">"; break;
+    case X3_VALUE_COMPARE_GE: op_text = ">="; break;
+    default:
+      return fail(rt, "unknown compare operator");
+  }
+  std::string error;
+  auto lhs = xlang3::from_c_value(left, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  auto rhs = xlang3::from_c_value(right, error);
+  if (!error.empty()) {
+    return fail(rt, error);
+  }
+  xlang3::Value out;
+  if (!xlang3::value_compare(op_text, lhs, rhs, out, error)) {
+    return fail(rt, error);
+  }
+  if (out.tag != xlang3::ValueTag::Bool) {
+    return fail(rt, "compare operator did not return bool");
+  }
+  *result = out.as.b ? 1 : 0;
   return X3_STATUS_OK;
 }
 

@@ -14,170 +14,67 @@ limitations under the License.
 */
 #include "json_convert.h"
 
-#include "xlang3/xmodule.h"
+#include "xlang3/xlang3.h"
 
 #include <fstream>
 #include <sstream>
 #include <string>
 
-#if defined(_WIN32)
-#define X3_JSON_EXPORT __declspec(dllexport)
-#else
-#define X3_JSON_EXPORT __attribute__((visibility("default")))
-#endif
-
 namespace {
 
-bool require_string(X3Runtime* runtime, X3Value value, const char* message, std::string& out, const X3PackageHost* host, X3CallContext* context) {
-  if (host->value_object_kind(value) != X3_OBJECT_KIND_STRING) {
-    host->set_error(context, message);
-    return false;
+class xlang_json {
+public:
+  X::Value loads(X::Value text) {
+    if (!text.IsString()) {
+      throw X::Error("json.loads() argument must be a string");
+    }
+    try {
+      return X::Value(Host(), xlang3_json::json_to_value(Host(), Host()->runtime, xlang3_json::Json::parse(text.ToString(false))), false);
+    } catch (const std::exception& ex) {
+      throw X::Error(std::string("json.loads() parse error: ") + ex.what());
+    }
   }
-  out = host->value_to_cstr(runtime, value);
-  return true;
-}
 
-X3Status json_loads(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 1) {
-    host->set_error(context, "json.loads() expected 1 argument");
-    return X3_STATUS_ERROR;
+  X::Value dumps(X::Value value) {
+    const char* error = nullptr;
+    xlang3_json::Json json;
+    if (!xlang3_json::value_to_json(Host(), Host()->runtime, value.raw(), json, &error)) {
+      throw X::Error(error == nullptr ? "json.dumps() conversion failed" : error);
+    }
+    return X::Value::String(Host(), json.dump());
   }
-  std::string text;
-  if (!require_string(runtime, args[0], "json.loads() argument must be a string", text, host, context)) {
-    return X3_STATUS_ERROR;
-  }
-  try {
-    *result = xlang3_json::json_to_value(host, runtime, xlang3_json::Json::parse(text));
-    return X3_STATUS_OK;
-  } catch (const std::exception& ex) {
-    const std::string error = std::string("json.loads() parse error: ") + ex.what();
-    host->set_error(context, error.c_str());
-    return X3_STATUS_ERROR;
-  }
-}
 
-X3Status json_dumps(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 1) {
-    host->set_error(context, "json.dumps() expected 1 argument");
-    return X3_STATUS_ERROR;
+  X::Value load(std::string path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+      throw X::Error("json.load() cannot open " + path);
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return loads(X::Value::String(Host(), buffer.str()));
   }
-  const char* error = nullptr;
-  xlang3_json::Json json;
-  if (!xlang3_json::value_to_json(host, runtime, args[0], json, &error)) {
-    host->set_error(context, error);
-    return X3_STATUS_ERROR;
-  }
-  *result = host->value_string(runtime, json.dump().c_str());
-  return X3_STATUS_OK;
-}
 
-X3Status json_load(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 1) {
-    host->set_error(context, "json.load() expected 1 argument");
-    return X3_STATUS_ERROR;
+  bool save(X::Value value, std::string path) {
+    X::Value text = dumps(value);
+    std::ofstream file(path, std::ios::binary);
+    if (!file) {
+      throw X::Error("json.save() cannot open " + path);
+    }
+    file << text.ToString(false);
+    return true;
   }
-  std::string path;
-  if (!require_string(runtime, args[0], "json.load() path must be a string", path, host, context)) {
-    return X3_STATUS_ERROR;
-  }
-  std::ifstream file(path, std::ios::binary);
-  if (!file) {
-    const std::string error = "json.load() cannot open " + path;
-    host->set_error(context, error.c_str());
-    return X3_STATUS_ERROR;
-  }
-  std::ostringstream buffer;
-  buffer << file.rdbuf();
-  X3Value text = host->value_string(runtime, buffer.str().c_str());
-  const X3Status status = json_loads(context, runtime, user_data, &text, 1, result);
-  host->value_release(text);
-  return status;
-}
 
-X3Status json_save(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    X3Value* result) {
-  auto* host = static_cast<const X3PackageHost*>(user_data);
-  if (argc != 2) {
-    host->set_error(context, "json.save() expected 2 arguments");
-    return X3_STATUS_ERROR;
-  }
-  std::string path;
-  if (!require_string(runtime, args[1], "json.save() path must be a string", path, host, context)) {
-    return X3_STATUS_ERROR;
-  }
-  X3Value text = x3_value_invalid();
-  const X3Status status = json_dumps(context, runtime, user_data, args, 1, &text);
-  if (status != X3_STATUS_OK) {
-    return status;
-  }
-  std::ofstream file(path, std::ios::binary);
-  if (!file) {
-    host->value_release(text);
-    const std::string error = "json.save() cannot open " + path;
-    host->set_error(context, error.c_str());
-    return X3_STATUS_ERROR;
-  }
-  file << host->value_to_cstr(runtime, text);
-  host->value_release(text);
-  *result = x3_value_bool(1);
-  return X3_STATUS_OK;
-}
-
-void add_function(const X3PackageHost* host, X3Module* module, const char* name, X3NativeFn callback) {
-  X3NativeFunctionDef def{};
-  def.size = sizeof(def);
-  def.name = name;
-  def.callback = callback;
-  def.user_data = const_cast<X3PackageHost*>(host);
-  host->module_add_function(module, &def);
-}
+  BEGIN_PACKAGE(xlang_json)
+    APISET().AddFunc<1>("loads", &xlang_json::loads);
+    APISET().AddFunc<1>("dumps", &xlang_json::dumps);
+    APISET().AddFunc<1>("load", &xlang_json::load);
+    APISET().AddFunc<2>("save", &xlang_json::save);
+  END_PACKAGE
+};
 
 } // namespace
 
-extern "C" X3_JSON_EXPORT const uint32_t xlang3_package_abi_version = X3_ABI_VERSION;
-
-extern "C" X3_JSON_EXPORT X3Status Load(void* host_ptr, X3Value curModule) {
-  auto* host = static_cast<X3PackageHost*>(host_ptr);
-  (void)curModule;
-  if (host == nullptr || host->abi_version != X3_ABI_VERSION) {
-    return X3_STATUS_ERROR;
-  }
-  host->package_set_metadata(host, "package", "xlang_json");
-  host->package_set_metadata(host, "version", "0.1.0");
-  host->package_set_metadata(host, "abi", "10");
-  X3Module* json = nullptr;
-  if (host->add_module(host, "json", &json) != X3_STATUS_OK) {
-    return X3_STATUS_ERROR;
-  }
-  add_function(host, json, "loads", json_loads);
-  add_function(host, json, "dumps", json_dumps);
-  add_function(host, json, "load", json_load);
-  add_function(host, json, "save", json_save);
-  return X3_STATUS_OK;
+X3Status register_json_module(X3PackageHost* host, X3Value curModule) {
+  xlang_json::BuildAPI();
+  return xlang_json::APISET().Create(host, "json", curModule);
 }

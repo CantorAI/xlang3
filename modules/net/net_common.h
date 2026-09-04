@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0
 #pragma once
 
 #include "httplib.h"
-#include "xlang3/cpp/xpackage.h"
+#include "xlang3/xlang3.h"
 
 #include <functional>
 #include <string>

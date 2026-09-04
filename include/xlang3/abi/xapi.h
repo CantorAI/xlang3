@@ -12,10 +12,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef XLANG3_XAPI_H
-#define XLANG3_XAPI_H
+#ifndef XLANG3_ABI_API_H
+#define XLANG3_ABI_API_H
 
-#include "xlang3/xvalue.h"
+#include "xlang3/abi/xvalue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +42,19 @@ typedef enum X3Status {
   X3_STATUS_ERROR = 1
 } X3Status;
 
+typedef enum X3ValueBinaryOp {
+  X3_VALUE_BINARY_ADD = 1
+} X3ValueBinaryOp;
+
+typedef enum X3ValueCompareOp {
+  X3_VALUE_COMPARE_EQ = 1,
+  X3_VALUE_COMPARE_NE = 2,
+  X3_VALUE_COMPARE_LT = 3,
+  X3_VALUE_COMPARE_LE = 4,
+  X3_VALUE_COMPARE_GT = 5,
+  X3_VALUE_COMPARE_GE = 6
+} X3ValueCompareOp;
+
 X3_API X3Runtime* x3_runtime_create(void);
 X3_API void x3_runtime_destroy(X3Runtime* runtime);
 X3_API const char* x3_runtime_last_error(X3Runtime* runtime);
@@ -63,6 +76,18 @@ X3_API X3ObjectKind x3_value_object_kind(X3Value value);
 X3_API X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** data, uint64_t* size);
 X3_API X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result);
 X3_API X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result);
+X3_API X3Status x3_value_binary_op(
+    X3Runtime* runtime,
+    X3ValueBinaryOp op,
+    X3Value left,
+    X3Value right,
+    X3Value* result);
+X3_API X3Status x3_value_compare_op(
+    X3Runtime* runtime,
+    X3ValueCompareOp op,
+    X3Value left,
+    X3Value right,
+    int32_t* result);
 X3_API X3Status x3_event_create(X3Runtime* runtime, const char* name, X3Value* result);
 X3_API X3Status x3_event_subscribe(X3Runtime* runtime, X3Value event, X3Value callable, uint64_t* cookie);
 X3_API X3Status x3_event_unsubscribe(X3Runtime* runtime, X3Value event, uint64_t cookie);

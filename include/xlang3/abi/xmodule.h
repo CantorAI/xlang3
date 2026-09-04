@@ -12,16 +12,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef XLANG3_XMODULE_H
-#define XLANG3_XMODULE_H
+#ifndef XLANG3_ABI_MODULE_H
+#define XLANG3_ABI_MODULE_H
 
-#include "xlang3/xapi.h"
+#include "xlang3/abi/xapi.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define X3_ABI_VERSION 14u
+#define X3_ABI_VERSION 15u
 #define X3_PACKAGE_INIT_NAME Load
 #define X3_PACKAGE_ABI_SYMBOL xlang3_package_abi_version
 
@@ -74,6 +74,8 @@ typedef struct X3PackageHost {
   X3Status (*value_bytes_data)(X3Runtime* runtime, X3Value value, const void** data, uint64_t* size);
   X3Status (*value_to_bytes)(X3Runtime* runtime, X3Value value, X3Value* result);
   X3Status (*value_from_bytes)(X3Runtime* runtime, X3Value bytes, X3Value* result);
+  X3Status (*value_binary_op)(X3Runtime* runtime, X3ValueBinaryOp op, X3Value left, X3Value right, X3Value* result);
+  X3Status (*value_compare_op)(X3Runtime* runtime, X3ValueCompareOp op, X3Value left, X3Value right, int32_t* result);
   X3Status (*event_create)(X3Runtime* runtime, const char* name, X3Value* result);
   X3Status (*event_subscribe)(X3Runtime* runtime, X3Value event, X3Value callable, uint64_t* cookie);
   X3Status (*event_unsubscribe)(X3Runtime* runtime, X3Value event, uint64_t cookie);

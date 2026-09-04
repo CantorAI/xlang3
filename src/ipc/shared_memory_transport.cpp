@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0
 */
 #include "shared_memory_transport_internal.h"
 
-#include "xlang3/serialize/block_stream.h"
+#include "serialize/block_stream.h"
 #include "serialize/xlang_stream.h"
 #include "serialize/ipc_value_marshal.h"
 

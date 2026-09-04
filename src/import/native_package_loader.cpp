@@ -19,7 +19,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/native_call_context.h"
 #include "xlang3/object_model.h"
-#include "xlang3/xmodule.h"
+#include "xlang3/abi/xmodule.h"
 
 #include <filesystem>
 #include <memory>
@@ -620,6 +620,8 @@ const X3PackageHost kPackageHostTemplate = {
     x3_value_bytes_data,
     x3_value_to_bytes,
     x3_value_from_bytes,
+    x3_value_binary_op,
+    x3_value_compare_op,
     x3_event_create,
     x3_event_subscribe,
     x3_event_unsubscribe,

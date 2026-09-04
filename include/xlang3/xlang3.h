@@ -12,16 +12,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#pragma once
+#ifndef XLANG3_XLANG3_H
+#define XLANG3_XLANG3_H
 
-#include "xlang3/value.h"
+#include "xlang3/abi/xapi.h"
+#include "xlang3/abi/xmodule.h"
+#include "xlang3/abi/xobject.h"
 #include "xlang3/abi/xvalue.h"
 
-#include <string>
+#ifdef __cplusplus
+#include "xlang3/cpp/runtime.h"
+#endif
 
-namespace xlang3 {
-
-X3Value to_c_value(const Value& value);
-Value from_c_value(const X3Value& value, std::string& error);
-
-} // namespace xlang3
+#endif

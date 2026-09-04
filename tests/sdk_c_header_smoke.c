@@ -12,10 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "xlang3/xapi.h"
-#include "xlang3/xmodule.h"
-#include "xlang3/xobject.h"
-#include "xlang3/xvalue.h"
+#include "xlang3/xlang3.h"
 
 int main(void) {
   X3Value value = x3_value_int64(42);
