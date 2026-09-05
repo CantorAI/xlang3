@@ -16,12 +16,16 @@ limitations under the License.
 #define XLANG3_ABI_MODULE_H
 
 #include "xlang3/abi/xapi.h"
+#include "xlang3/abi/xstream.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define X3_ABI_VERSION 15u
+#define X3_ABI_VERSION 21u
+#define X3_NATIVE_CAPTURE_EXPRESSIONS 1u
+/* Copy the complete argument graph across IPC; local calls are unchanged. */
+#define X3_NATIVE_IPC_ARGS_BY_VALUE 2u
 #define X3_PACKAGE_INIT_NAME Load
 #define X3_PACKAGE_ABI_SYMBOL xlang3_package_abi_version
 
@@ -37,6 +41,9 @@ typedef X3Status (*X3NativeFn)(
     X3Value* result);
 
 typedef void (*X3NativeDataCleanup)(void* data);
+typedef X3Status (*X3NativeKeywordFn)(X3CallContext* context, X3Runtime* runtime,
+    void* user_data, const X3Value* args, uint32_t argc,
+    const X3KeywordArg* kwargs, uint32_t kwargc, X3Value* result);
 typedef void (*X3PackageCleanup)(void* data);
 
 typedef struct X3NativeFunctionDef {
@@ -47,6 +54,7 @@ typedef struct X3NativeFunctionDef {
   uint32_t min_argc;
   uint32_t max_argc;
   uint32_t flags;
+  X3NativeKeywordFn keyword_callback;
 } X3NativeFunctionDef;
 
 typedef struct X3PackageHost {
@@ -116,9 +124,37 @@ typedef struct X3PackageHost {
   X3Status (*module_get_value)(X3Module* module, X3Value* out_value);
   X3Status (*module_get_attr)(X3Module* module, const char* name, X3Value* out_value);
   X3Status (*module_set_attr)(X3Module* module, const char* name, X3Value value);
+  X3Status (*expression_evaluate)(X3Runtime* runtime, X3Value expression,
+      X3Value bindings, X3Value* result, X3Value* reservations);
+  X3Status (*expression_inspect)(X3Runtime* runtime, X3Value expression, X3Value* result);
+  X3Status (*call_kw)(X3Runtime*, X3Value, const X3Value*, uint32_t,
+      const X3KeywordArg*, uint32_t, X3Value*);
+  X3Status (*stream_create)(X3Runtime*, X3Stream**);
+  X3Status (*stream_from_blocks)(X3Runtime*, const X3StreamBlock*, uint32_t, X3Stream**);
+  X3Status (*stream_create_provider)(X3Runtime*, X3StreamAllocate, void*, X3Stream**);
+  void (*stream_destroy)(X3Stream*);
+  uint64_t (*stream_size)(const X3Stream*);
+  X3Status (*stream_rewind)(X3Stream*);
+  X3Status (*stream_write)(X3Stream*, const void*, uint64_t);
+  X3Status (*stream_read)(X3Stream*, void*, uint64_t);
+  X3Status (*stream_copy)(const X3Stream*, void*, uint64_t);
+  X3Status (*value_to_stream)(X3Runtime*, X3Value, X3Stream*);
+  X3Status (*value_from_stream)(X3Runtime*, X3Stream*, X3Value*);
+  X3Status (*register_native_serializer)(X3Runtime*, const X3NativeSerializerDef*);
+  X3Status (*collect_serialized_objects)(X3Runtime*, uint64_t*);
+  X3Status (*instance_set_native_owner)(X3Value, const char*, void*, void*, X3NativeDataCleanup);
+  X3Status (*event_set_change_handler)(X3Runtime*, X3Value, X3EventChanged, void*, void (*)(void*));
+  /* Creates a class value without publishing it as a module attribute. */
+  X3Status (*create_class)(struct X3PackageHost*, const char*, const X3NativeFunctionDef*, uint32_t, X3Value*);
+  X3Status (*instance_set_native_cast)(X3Value, X3NativeDataCast);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);
+/* Synchronous executable-package registration. Context is borrowed for this call;
+   the package host and registered modules remain owned by the runtime. */
+typedef X3Status (*X3EmbeddedPackageInitFn)(void* host, X3Value cur_module, void* context);
+X3_API X3Status x3_runtime_register_package(X3Runtime* runtime, const char* name,
+    X3EmbeddedPackageInitFn init, void* context, X3Value* result);
 
 #ifdef __cplusplus
 }

@@ -37,6 +37,14 @@ struct OutputSink {
   void (*write)(void* context, const char* data, std::size_t size) = nullptr;
 };
 
+struct NativeSerializationCodec {
+  std::string type_id;
+  std::string native_type;
+  uint32_t version = 0;
+  std::function<bool(const Value&, Value&, std::string&)> encode;
+  std::function<bool(Value&, const Value&, std::string&)> decode;
+};
+
 struct RuntimeFrameView {
   const std::shared_ptr<const ir::Module>* module_owner = nullptr;
   const Value* globals_module = nullptr;
@@ -108,6 +116,11 @@ public:
       bool fast_releases_vm_lock = false,
       NativeKeywordFunctionCallback keyword_callback = nullptr);
   const Value* find_builtin(const std::string& name) const;
+  const Value* find_native_symbol(const std::string& name) const;
+  bool register_native_codec(std::shared_ptr<NativeSerializationCodec> codec);
+  void begin_native_codec_registration();
+  void end_native_codec_registration(bool commit);
+  const NativeSerializationCodec* find_native_codec(const std::string& type_id, bool local_type = false) const;
   Value make_exception(std::string class_name, std::string message);
   Value make_exception_from_class(Value klass, std::string message);
   Value exception_type(const Value& exception);
@@ -130,6 +143,8 @@ public:
   void unregister_module(const std::string& name);
   const Value& module_registry_dict() const { return modules_dict_; }
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));
+  void retain_serialized_objects(std::vector<Value> objects);
+  uint64_t collect_serialized_objects(bool force = false);
   void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
   bool execute_raw_block(
       RawBlockContext& context,
@@ -246,6 +261,10 @@ private:
   std::unordered_map<std::string, Value> modules_;
   Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
+  std::vector<Value> serialized_objects_;
+  std::unordered_map<std::string, Value> native_symbols_;
+  std::unordered_map<std::string, std::shared_ptr<NativeSerializationCodec>> native_codecs_;
+  std::vector<std::vector<std::string>> native_codec_registrations_;
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
   std::vector<ExitFunction> exit_functions_;
   bool exit_functions_running_ = false;

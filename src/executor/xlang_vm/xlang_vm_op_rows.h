@@ -19,6 +19,7 @@ One row per converted IR opcode. This file is included inside switch(in.op).
 
 XLANG3_VM_FLOW(LoadConst, xlang3::xlang_vm::ops::load_const(in, fn, regs, result, raise_runtime_error))
 XLANG3_VM_FAST(Move, xlang3::xlang_vm::ops::move(in, regs))
+XLANG3_VM_FAST(CaptureExpressions, xlang3::xlang_vm::ops::capture_expressions(in, regs))
 XLANG3_VM_FLOW(LoadLocal, xlang3::xlang_vm::ops::load_local(in, regs, locals, result, raise_runtime_error))
 XLANG3_VM_FAST(StoreLocal, xlang3::xlang_vm::ops::store_local(in, regs, locals, frame.register_last_use, ip))
 XLANG3_VM_FAST(MoveLocal, xlang3::xlang_vm::ops::move_local(in, locals))

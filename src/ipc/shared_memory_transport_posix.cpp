@@ -7,6 +7,7 @@ Licensed under the Apache License, Version 2.0
 #if !defined(_WIN32)
 
 #include "shared_memory_block_stream.h"
+#include "shared_memory_backpressure.h"
 #include "serialize/ipc_value_marshal.h"
 #include "serialize/xlang_stream.h"
 
@@ -38,6 +39,8 @@ struct SharedRegion {
   uint32_t slot_size;
   uint32_t server_pid;
   uint32_t next_call_id;
+  uint64_t next_capacity_ticket;
+  SharedCapacityWaiter capacity_waiters[kSharedSlotCount];
   SharedSlot slots[kSharedSlotCount];
 };
 
@@ -146,21 +149,6 @@ std::vector<SharedSlotRef> collect_slot_chain(SharedRegion& region, uint32_t fir
   return slots;
 }
 
-void publish_response_chain_header(
-    SharedRegion& region,
-    uint32_t call_slot,
-    uint32_t response_first,
-    uint32_t response_size,
-    uint32_t owner_pid,
-    uint32_t call_id) {
-  SharedSlot& slot = region.slots[call_slot];
-  slot.owner_pid = owner_pid;
-  slot.call_id = call_id;
-  slot.next_slot = response_first;
-  slot.total_size = response_size;
-  slot.payload_size = 0;
-  slot.state = SlotResponseReady;
-}
 
 bool init_process_shared_sync(SharedRegion* region, std::string& error) {
   pthread_mutexattr_t mutex_attr;
@@ -243,25 +231,6 @@ bool open_client_region(const std::string& port, PosixMapping& mapping, std::str
   return true;
 }
 
-void write_error_to_call_slot(uint32_t slot_index, const std::string& message) {
-  std::string error;
-  SharedRegion* region = g_server_mapping.region;
-  std::string response;
-  make_error_response(message, response);
-  pthread_mutex_lock(&region->mutex);
-  SharedSlot& slot = region->slots[slot_index];
-  const uint32_t old_next = slot.next_slot;
-  if (old_next != kNoSharedSlot) {
-    free_slot_chain(*region, old_next);
-  }
-  reset_slot(slot);
-  slot.state = SlotWriting;
-  SharedMemoryBlockStream response_stream({SharedSlotRef{slot_index, &slot}}, true);
-  (void)response_stream.append(response.data(), static_cast<serialize::STREAM_SIZE>(response.size()));
-  response_stream.commit(0, 0, SlotResponseReady, SlotProcessing);
-  pthread_cond_broadcast(&region->slot_conds[slot_index]);
-  pthread_mutex_unlock(&region->mutex);
-}
 
 void process_slot(uint32_t slot_index, std::vector<SharedSlotRef> request_slots) {
   std::string error;
@@ -269,30 +238,40 @@ void process_slot(uint32_t slot_index, std::vector<SharedSlotRef> request_slots)
   SharedSlot& call_slot = region->slots[slot_index];
   const uint32_t owner_pid = call_slot.owner_pid;
   const uint32_t call_id = call_slot.call_id;
-  SharedMemoryBlockStream request_stream(std::move(request_slots), false);
-  auto allocate_response_slot = [region]() -> SharedSlotRef {
+  SharedMemoryBlockStream request_stream(request_slots, false);
+  size_t reused = 0;
+  auto allocate_response_slot = [region, &request_slots, &reused]() -> SharedSlotRef {
     pthread_mutex_lock(&region->mutex);
-    SharedSlotRef ref = allocate_free_slot(*region);
+    SharedSlotRef ref = reused < request_slots.size()
+        ? request_slots[reused++] : allocate_free_slot(*region);
+    if (ref.slot) ref.slot->next_slot = kNoSharedSlot;
     pthread_mutex_unlock(&region->mutex);
     return ref;
   };
-  pthread_mutex_lock(&region->mutex);
-  SharedSlotRef response_first = allocate_free_slot(*region);
-  pthread_mutex_unlock(&region->mutex);
-  if (response_first.slot == nullptr) {
-    write_error_to_call_slot(slot_index, "no free lrpc shared-memory slots for response");
-    return;
-  }
-  SharedMemoryBlockStream response_stream({response_first}, true, allocate_response_slot);
-  if (!(g_dispatch && g_dispatch(request_stream, response_stream, error))) {
-    response_stream.reset_to_single_slot_for_write(response_first.index, *response_first.slot);
-    response_stream.MarshalError(error.empty() ? "lrpc request failed" : error);
-  }
+  SharedMemoryBlockStream response_stream({}, true, allocate_response_slot, true);
+  bool dispatched = false;
+  try { dispatched = g_dispatch && g_dispatch(request_stream, response_stream, error); }
+  catch (const std::exception& exception) { error = exception.what(); }
+  catch (...) { error = "lrpc dispatch threw an unknown exception"; }
   pthread_mutex_lock(&region->mutex);
   SharedSlot& slot = region->slots[slot_index];
-  const uint32_t request_next = slot.next_slot;
-  if (request_next != kNoSharedSlot) {
-    free_slot_chain(*region, request_next);
+  // Unconsumed request blocks were never linked into the response.
+  for (size_t i = reused; i < request_slots.size(); ++i) {
+    if (request_slots[i].index != slot_index) reset_slot(*request_slots[i].slot);
+  }
+  if (dispatched && response_stream.has_spill()) {
+    dispatched = publish_spilled_message(*region, response_stream, slot_index, true,
+        owner_pid, free_slot_chain, allocate_free_slot,
+        [region] {
+          pthread_mutex_unlock(&region->mutex);
+          std::this_thread::sleep_for(std::chrono::milliseconds(1));
+          pthread_mutex_lock(&region->mutex);
+        }, process_is_alive, error);
+  }
+  if (!dispatched || response_stream.BlockNum() == 0) {
+    if (reused && slot.next_slot != kNoSharedSlot) free_slot_chain(*region, slot.next_slot);
+    response_stream.reset_to_single_slot_for_write(slot_index, slot);
+    response_stream.MarshalError(error.empty() ? "lrpc request failed" : error);
   }
   if (!process_is_alive(owner_pid)) {
     free_slot_chain(*region, response_stream.first_slot_index());
@@ -300,14 +279,7 @@ void process_slot(uint32_t slot_index, std::vector<SharedSlotRef> request_slots)
     pthread_mutex_unlock(&region->mutex);
     return;
   }
-  response_stream.commit(owner_pid, call_id, SlotProcessing, SlotProcessing);
-  publish_response_chain_header(
-      *region,
-      slot_index,
-      response_stream.first_slot_index(),
-      static_cast<uint32_t>(response_stream.Size()),
-      owner_pid,
-      call_id);
+  response_stream.commit(owner_pid, call_id, SlotResponseReady, SlotProcessing);
   pthread_cond_broadcast(&region->slot_conds[slot_index]);
   pthread_mutex_unlock(&region->mutex);
 }
@@ -383,6 +355,17 @@ bool lrpc_shared_memory_request_platform(
   SharedRegion* region = mapping.region;
   pthread_mutex_lock(&region->mutex);
   cleanup_abandoned_client_slots(*region);
+  if (!wait_for_message_capacity(*region, 1, region->server_pid,
+          [region] {
+            pthread_mutex_unlock(&region->mutex);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            pthread_mutex_lock(&region->mutex);
+            cleanup_abandoned_client_slots(*region);
+          }, process_is_alive, error)) {
+    pthread_mutex_unlock(&region->mutex);
+    close_posix_mapping(mapping);
+    return false;
+  }
   uint32_t slot_index = UINT32_MAX;
   for (uint32_t i = 0; i < region->slot_count; ++i) {
     if (region->slots[i].state == SlotFree) {
@@ -396,21 +379,36 @@ bool lrpc_shared_memory_request_platform(
     error = "no free lrpc shared-memory slots";
     return false;
   }
-  SharedSlot& slot = region->slots[slot_index];
   const uint32_t call_id = region->next_call_id++;
-  slot.state = SlotWriting;
-  slot.next_slot = kNoSharedSlot;
+  region->slots[slot_index].state = SlotWriting;
+  region->slots[slot_index].owner_pid = static_cast<uint32_t>(getpid());
+  region->slots[slot_index].next_slot = kNoSharedSlot;
   SharedMemoryBlockStream request_stream(
-      {SharedSlotRef{slot_index, &slot}},
+      {SharedSlotRef{slot_index, &region->slots[slot_index]}},
       true,
       [region]() -> SharedSlotRef {
         return allocate_free_slot(*region);
-      });
+      }, true);
   if (!write_request(request_stream, error)) {
+    free_slot_chain(*region, slot_index);
     pthread_mutex_unlock(&region->mutex);
     close_posix_mapping(mapping);
     return false;
   }
+  if (!publish_spilled_message(*region, request_stream, slot_index, false,
+          region->server_pid, free_slot_chain, allocate_free_slot,
+          [region] {
+            pthread_mutex_unlock(&region->mutex);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            pthread_mutex_lock(&region->mutex);
+            cleanup_abandoned_client_slots(*region);
+          }, process_is_alive, error)) {
+    free_slot_chain(*region, slot_index);
+    pthread_mutex_unlock(&region->mutex);
+    close_posix_mapping(mapping);
+    return false;
+  }
+  SharedSlot& slot = region->slots[slot_index];
   request_stream.commit(static_cast<uint32_t>(getpid()), call_id, SlotRequestReady, SlotProcessing);
   const uint32_t server_pid = region->server_pid;
   pthread_cond_signal(&region->server_cond);
@@ -456,6 +454,7 @@ bool lrpc_shared_memory_request_platform(
   std::vector<SharedSlotRef> response_slots = collect_slot_chain(*region, slot_index);
   SharedMemoryBlockStream response_stream(std::move(response_slots), false);
   if (!read_response(response_stream, error)) {
+    free_slot_chain(*region, slot_index);
     pthread_mutex_unlock(&region->mutex);
     close_posix_mapping(mapping);
     return false;

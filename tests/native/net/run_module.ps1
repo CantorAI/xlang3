@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$XLang3
+  [string]$XLang3,
+  [string]$NativeModules = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +13,9 @@ $serverErr = Join-Path $env:TEMP "xlang3_net_server.err"
 Remove-Item -LiteralPath $serverOut, $serverErr -Force -ErrorAction SilentlyContinue
 
 Write-Host "Starting net test server: $serverScript"
-$server = Start-Process -FilePath $XLang3 -ArgumentList @($serverScript) -PassThru -WindowStyle Hidden -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr
+$serverArguments = @('"' + $serverScript + '"')
+if ($NativeModules) { $serverArguments += '"' + $NativeModules + '"' }
+$server = Start-Process -FilePath $XLang3 -ArgumentList $serverArguments -PassThru -WindowStyle Hidden -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr
 try {
   $ready = $false
   for ($i = 0; $i -lt 100; ++$i) {
@@ -39,7 +42,7 @@ try {
   }
 
   Write-Host "Running net test client: $clientScript"
-  $output = & $XLang3 $clientScript
+  $output = & $XLang3 $clientScript $NativeModules
   if ($LASTEXITCODE -ne 0) {
     $output | Write-Host
     if (Test-Path $serverOut) { Get-Content $serverOut | Write-Host }

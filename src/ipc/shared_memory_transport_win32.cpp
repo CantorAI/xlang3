@@ -7,6 +7,7 @@ Licensed under the Apache License, Version 2.0
 #if defined(_WIN32)
 
 #include "shared_memory_block_stream.h"
+#include "shared_memory_backpressure.h"
 #include "serialize/ipc_value_marshal.h"
 #include "serialize/xlang_stream.h"
 
@@ -30,6 +31,8 @@ struct SharedRegion {
   uint32_t slot_size;
   uint32_t server_pid;
   uint32_t next_call_id;
+  uint64_t next_capacity_ticket;
+  SharedCapacityWaiter capacity_waiters[kSharedSlotCount];
   SharedSlot slots[kSharedSlotCount];
 };
 
@@ -189,21 +192,6 @@ std::vector<SharedSlotRef> collect_slot_chain(SharedRegion& region, uint32_t fir
   return slots;
 }
 
-void publish_response_chain_header(
-    SharedRegion& region,
-    uint32_t call_slot,
-    uint32_t response_first,
-    uint32_t response_size,
-    uint32_t owner_pid,
-    uint32_t call_id) {
-  SharedSlot& slot = region.slots[call_slot];
-  slot.owner_pid = owner_pid;
-  slot.call_id = call_id;
-  slot.next_slot = response_first;
-  slot.total_size = response_size;
-  slot.payload_size = 0;
-  slot.state = SlotResponseReady;
-}
 
 HANDLE create_slot_event(const SharedNames& names, uint32_t slot_index, SECURITY_ATTRIBUTES* sa) {
   return CreateEventA(sa, TRUE, FALSE, (names.slot_event_prefix + std::to_string(slot_index)).c_str());
@@ -243,6 +231,12 @@ bool init_server_region(const std::string& port, ServerState& state, std::string
     return false;
   }
   if (!wait_mutex(state.mutex, error)) {
+    return false;
+  }
+  if (state.region->magic == kSharedMagic && process_is_alive(state.region->server_pid)) {
+    const auto owner = state.region->server_pid;
+    ReleaseMutex(state.mutex);
+    error = "lrpc:" + port + " is already owned by server PID " + std::to_string(owner);
     return false;
   }
   std::memset(state.region, 0, sizeof(SharedRegion));
@@ -290,70 +284,52 @@ bool open_client_region(const std::string& port, ClientRegion& client, std::stri
   return false;
 }
 
-void write_error_to_call_slot(uint32_t slot_index, const std::string& message) {
-  std::string error;
-  std::string response;
-  make_error_response(message, response);
-  if (!wait_mutex(g_server_state.mutex, error)) {
-    return;
-  }
-  SharedSlot& call_slot = g_server_state.region->slots[slot_index];
-  call_slot.next_slot = kNoSharedSlot;
-  call_slot.total_size = 0;
-  call_slot.payload_size = 0;
-  reset_slot(call_slot);
-  call_slot.state = SlotWriting;
-  SharedMemoryBlockStream response_stream({SharedSlotRef{slot_index, &call_slot}}, true);
-  (void)response_stream.append(response.data(), static_cast<serialize::STREAM_SIZE>(response.size()));
-  response_stream.commit(0, 0, SlotResponseReady, SlotProcessing);
-  ReleaseMutex(g_server_state.mutex);
-  HANDLE event = open_slot_event(g_server_state.names, slot_index);
-  if (event != nullptr) {
-    SetEvent(event);
-    CloseHandle(event);
-  }
-}
 
 void process_slot(uint32_t slot_index, std::vector<SharedSlotRef> request_slots) {
   std::string error;
   SharedSlot& call_slot = g_server_state.region->slots[slot_index];
   const uint32_t owner_pid = call_slot.owner_pid;
   const uint32_t call_id = call_slot.call_id;
-  SharedMemoryBlockStream request_stream(std::move(request_slots), false);
-  auto allocate_response_slot = []() -> SharedSlotRef {
+  SharedMemoryBlockStream request_stream(request_slots, false);
+  size_t reused = 0;
+  auto allocate_response_slot = [&request_slots, &reused]() -> SharedSlotRef {
     std::string ignored;
     if (!wait_mutex(g_server_state.mutex, ignored)) {
       return {};
     }
-    SharedSlotRef ref = allocate_free_slot(*g_server_state.region);
+    SharedSlotRef ref = reused < request_slots.size()
+        ? request_slots[reused++] : allocate_free_slot(*g_server_state.region);
+    if (ref.slot) ref.slot->next_slot = kNoSharedSlot;
     ReleaseMutex(g_server_state.mutex);
     return ref;
   };
-  SharedSlotRef response_first;
-  {
-    std::string ignored;
-    if (!wait_mutex(g_server_state.mutex, ignored)) {
-      return;
-    }
-    response_first = allocate_free_slot(*g_server_state.region);
-    ReleaseMutex(g_server_state.mutex);
-  }
-  if (response_first.slot == nullptr) {
-    write_error_to_call_slot(slot_index, "no free lrpc shared-memory slots for response");
-    return;
-  }
-  SharedMemoryBlockStream response_stream({response_first}, true, allocate_response_slot);
-  if (!(g_dispatch && g_dispatch(request_stream, response_stream, error))) {
-    response_stream.reset_to_single_slot_for_write(response_first.index, *response_first.slot);
-    response_stream.MarshalError(error.empty() ? "lrpc request failed" : error);
-  }
+  SharedMemoryBlockStream response_stream({}, true, allocate_response_slot, true);
+  bool dispatched = false;
+  try { dispatched = g_dispatch && g_dispatch(request_stream, response_stream, error); }
+  catch (const std::exception& exception) { error = exception.what(); }
+  catch (...) { error = "lrpc dispatch threw an unknown exception"; }
   if (!wait_mutex(g_server_state.mutex, error)) {
     return;
   }
   SharedSlot& slot = g_server_state.region->slots[slot_index];
-  const uint32_t request_next = slot.next_slot;
-  if (request_next != kNoSharedSlot) {
-    free_slot_chain(*g_server_state.region, request_next);
+  // Unconsumed request blocks were never linked into the response.
+  for (size_t i = reused; i < request_slots.size(); ++i) {
+    if (request_slots[i].index != slot_index) reset_slot(*request_slots[i].slot);
+  }
+  if (dispatched && response_stream.has_spill()) {
+    dispatched = publish_spilled_message(*g_server_state.region, response_stream,
+        slot_index, true, owner_pid, free_slot_chain, allocate_free_slot,
+        [] {
+          ReleaseMutex(g_server_state.mutex);
+          Sleep(1);
+          WaitForSingleObject(g_server_state.mutex, INFINITE);
+        }, process_is_alive, error);
+  }
+  if (!dispatched || response_stream.BlockNum() == 0) {
+    if (reused && slot.next_slot != kNoSharedSlot)
+      free_slot_chain(*g_server_state.region, slot.next_slot);
+    response_stream.reset_to_single_slot_for_write(slot_index, slot);
+    response_stream.MarshalError(error.empty() ? "lrpc request failed" : error);
   }
   if (!process_is_alive(owner_pid)) {
     free_slot_chain(*g_server_state.region, response_stream.first_slot_index());
@@ -361,14 +337,7 @@ void process_slot(uint32_t slot_index, std::vector<SharedSlotRef> request_slots)
     ReleaseMutex(g_server_state.mutex);
     return;
   }
-  response_stream.commit(owner_pid, call_id, SlotProcessing, SlotProcessing);
-  publish_response_chain_header(
-      *g_server_state.region,
-      slot_index,
-      response_stream.first_slot_index(),
-      static_cast<uint32_t>(response_stream.Size()),
-      owner_pid,
-      call_id);
+  response_stream.commit(owner_pid, call_id, SlotResponseReady, SlotProcessing);
   ReleaseMutex(g_server_state.mutex);
   HANDLE event = open_slot_event(g_server_state.names, slot_index);
   if (event != nullptr) {
@@ -426,6 +395,12 @@ void server_loop() {
 
 bool lrpc_start_shared_memory_server_platform(const std::string& port, std::string& error) {
   if (!init_server_region(port, g_server_state, error)) {
+    for (HANDLE event : g_server_state.slot_events) CloseHandle(event);
+    if (g_server_state.region) UnmapViewOfFile(g_server_state.region);
+    if (g_server_state.mapping) CloseHandle(g_server_state.mapping);
+    if (g_server_state.mutex) CloseHandle(g_server_state.mutex);
+    if (g_server_state.server_event) CloseHandle(g_server_state.server_event);
+    g_server_state = ServerState{};
     return false;
   }
   std::thread(server_loop).detach();
@@ -453,6 +428,17 @@ bool lrpc_shared_memory_request_platform(
     return false;
   }
   cleanup_abandoned_client_slots(*client.region);
+  if (!wait_for_message_capacity(*client.region, 1, client.region->server_pid,
+          [&client] {
+            ReleaseMutex(client.mutex);
+            Sleep(1);
+            WaitForSingleObject(client.mutex, INFINITE);
+            cleanup_abandoned_client_slots(*client.region);
+          }, process_is_alive, error)) {
+    ReleaseMutex(client.mutex);
+    close_client_region(client);
+    return false;
+  }
   for (uint32_t i = 0; i < client.region->slot_count; ++i) {
     if (client.region->slots[i].state == SlotFree) {
       slot_index = i;
@@ -465,29 +451,45 @@ bool lrpc_shared_memory_request_platform(
     error = "no free lrpc shared-memory slots";
     return false;
   }
-  client.slot_event = open_slot_event(client.names, slot_index);
-  if (client.slot_event == nullptr) {
-    ReleaseMutex(client.mutex);
-    close_client_region(client);
-    error = "failed to open lrpc shared-memory response event";
-    return false;
-  }
-  ResetEvent(client.slot_event);
   const uint32_t call_id = client.region->next_call_id++;
   SharedSlotRef first{slot_index, &client.region->slots[slot_index]};
   first.slot->state = SlotWriting;
+  first.slot->owner_pid = GetCurrentProcessId();
   first.slot->next_slot = kNoSharedSlot;
   SharedMemoryBlockStream request_stream(
       {first},
       true,
       [&client]() -> SharedSlotRef {
         return allocate_free_slot(*client.region);
-      });
+      }, true);
   if (!write_request(request_stream, error)) {
+    free_slot_chain(*client.region, slot_index);
     ReleaseMutex(client.mutex);
     close_client_region(client);
     return false;
   }
+  if (!publish_spilled_message(*client.region, request_stream, slot_index, false,
+          client.region->server_pid, free_slot_chain, allocate_free_slot,
+          [&client] {
+            ReleaseMutex(client.mutex);
+            Sleep(1);
+            WaitForSingleObject(client.mutex, INFINITE);
+            cleanup_abandoned_client_slots(*client.region);
+          }, process_is_alive, error)) {
+    free_slot_chain(*client.region, slot_index);
+    ReleaseMutex(client.mutex);
+    close_client_region(client);
+    return false;
+  }
+  client.slot_event = open_slot_event(client.names, slot_index);
+  if (client.slot_event == nullptr) {
+    free_slot_chain(*client.region, slot_index);
+    ReleaseMutex(client.mutex);
+    close_client_region(client);
+    error = "failed to open lrpc shared-memory response event";
+    return false;
+  }
+  ResetEvent(client.slot_event);
   request_stream.commit(GetCurrentProcessId(), call_id, SlotRequestReady, SlotProcessing);
   const uint32_t server_pid = client.region->server_pid;
   ReleaseMutex(client.mutex);
@@ -542,6 +544,7 @@ bool lrpc_shared_memory_request_platform(
   std::vector<SharedSlotRef> response_slots = collect_slot_chain(*client.region, slot_index);
   SharedMemoryBlockStream response_stream(std::move(response_slots), false);
   if (!read_response(response_stream, error)) {
+    free_slot_chain(*client.region, slot_index);
     ReleaseMutex(client.mutex);
     close_client_region(client);
     return false;

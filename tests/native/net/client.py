@@ -1,3 +1,6 @@
+import sys
+if len(sys.argv) > 1:
+    sys.path.insert(0, sys.argv[1])
 from xlang_net import http
 
 client = http.Client("http://127.0.0.1:18173")

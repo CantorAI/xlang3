@@ -3,6 +3,7 @@ Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0
 */
 #include "serialize/block_stream.h"
+#include <memory>
 
 namespace xlang3::serialize {
 
@@ -35,13 +36,14 @@ blockInfo& BlockStream::GetBlockInfo(int index) {
 }
 
 bool BlockStream::NewBlock() {
-  char* data = new char[static_cast<size_t>(kBlockSize)];
+  std::unique_ptr<char[]> data(new char[static_cast<size_t>(kBlockSize)]);
   BlockInfo info;
-  info.buf = data;
+  info.buf = data.get();
   info.block_size = kBlockSize;
   info.data_size = 0;
   info.own_buf = true;
   blocks_.push_back(info);
+  data.release();
   return true;
 }
 
@@ -50,5 +52,13 @@ bool BlockStream::MoveToNextBlock() {
 }
 
 void BlockStream::Refresh() {}
+
+void BlockStream::AddBlock(char* data, STREAM_SIZE capacity, STREAM_SIZE used) {
+  BlockInfo info;
+  info.buf = data;
+  info.block_size = capacity;
+  info.data_size = used;
+  blocks_.push_back(info);
+}
 
 } // namespace xlang3::serialize

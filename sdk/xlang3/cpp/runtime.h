@@ -68,6 +68,18 @@ public:
 
   Value List();
   Value Dict();
+  Value ImportRemote(const char* name, const char* endpoint) {
+    X3Value result = x3_value_invalid();
+    check(x3_runtime_import_remote(runtime_, name, endpoint, &result));
+    return Value(&host_, result, false);
+  }
+  // The borrowed service must outlive this runtime and all its package values.
+  template<class T> Value RegisterPackage(const char* name, T& service);
+  uint64_t CollectSerializedObjects() {
+    uint64_t reclaimed = 0;
+    check(x3_runtime_collect_serialized_objects(runtime_, &reclaimed));
+    return reclaimed;
+  }
 
   void AddImportRoot(const std::string& path) {
     check(x3_runtime_add_import_root(runtime_, path.c_str()));
@@ -105,12 +117,34 @@ private:
     host_.value_binary_op = x3_value_binary_op;
     host_.value_compare_op = x3_value_compare_op;
     host_.event_create = x3_event_create;
+    host_.expression_evaluate = x3_expression_evaluate;
+    host_.expression_inspect = x3_expression_inspect;
     host_.event_subscribe = x3_event_subscribe;
     host_.event_unsubscribe = x3_event_unsubscribe;
     host_.event_fire = x3_event_fire;
+    host_.event_set_change_handler = x3_event_set_change_handler;
     host_.call = x3_call;
+    host_.call_kw = x3_call_kw;
+    host_.stream_create = x3_stream_create;
+    host_.stream_from_blocks = x3_stream_from_blocks;
+    host_.stream_create_provider = x3_stream_create_provider;
+    host_.stream_destroy = x3_stream_destroy;
+    host_.stream_size = x3_stream_size;
+    host_.stream_rewind = x3_stream_rewind;
+    host_.stream_write = x3_stream_write;
+    host_.stream_read = x3_stream_read;
+    host_.stream_copy = x3_stream_copy;
+    host_.value_to_stream = x3_value_to_stream;
+    host_.value_from_stream = x3_value_from_stream;
+    host_.register_native_serializer = x3_register_native_serializer;
+    host_.collect_serialized_objects = x3_runtime_collect_serialized_objects;
     host_.len = x3_len;
     host_.get_attr = x3_get_attr;
+    host_.instance_get_native_data = x3_instance_get_native_data;
+    host_.instance_set_native_data = x3_instance_set_native_data;
+    host_.instance_set_native_owner = x3_instance_set_native_owner;
+    host_.instance_set_native_cast = x3_instance_set_native_cast;
+    host_.value_instance = x3_value_instance;
     host_.get_item = x3_get_item;
     host_.set_attr = x3_set_attr;
     host_.list_append = x3_list_append;
@@ -174,3 +208,17 @@ public:
 } // namespace X
 
 #include "xlang3/cpp/package.h"
+
+namespace X {
+template<class T> Value Runtime::RegisterPackage(const char* name, T& service) {
+  struct Context { const char* name; T* service; } context{name, &service};
+  X3Value module = x3_value_invalid();
+  check(x3_runtime_register_package(runtime_, name,
+      [](void* raw_host, X3Value current, void* data) -> X3Status {
+        auto& context = *static_cast<Context*>(data);
+        T::BuildAPI();
+        return T::APISET().CreateBorrowed(static_cast<X3PackageHost*>(raw_host), context.name, current, *context.service);
+      }, &context, &module));
+  return Value(&host_, module, false);
+}
+}

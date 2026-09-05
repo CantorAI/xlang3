@@ -150,6 +150,8 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "eval");
   copy_builtin(runtime, builtins, "exec");
   copy_builtin(runtime, builtins, "open");
+  copy_builtin(runtime, builtins, "register_remote_object");
+  copy_builtin(runtime, builtins, "lrpc_listen");
   runtime.register_module("_builtins", builtins);
   runtime.register_module("builtins", std::move(builtins));
 

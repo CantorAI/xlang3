@@ -10,10 +10,15 @@ Licensed under the Apache License, Version 2.0
 #include <string>
 #include <utility>
 #include <vector>
+#include <typeinfo>
+#include <functional>
+#include <memory>
+#include <type_traits>
 
 namespace X {
 
 class Runtime;
+class Stream;
 
 class Value {
 public:
@@ -22,6 +27,12 @@ public:
   explicit Value(bool value) : value_(x3_value_bool(value ? 1 : 0)) {}
   explicit Value(int value) : value_(x3_value_int64(value)) {}
   explicit Value(long long value) : value_(x3_value_int64(value)) {}
+  template<class Integer, std::enable_if_t<std::is_integral_v<Integer> &&
+      !std::is_same_v<Integer, bool> && !std::is_same_v<Integer, int> &&
+      !std::is_same_v<Integer, long long>, int> = 0>
+  explicit Value(Integer value) : value_(std::is_unsigned_v<Integer>
+      ? x3_value_uint64(static_cast<uint64_t>(value))
+      : x3_value_int64(static_cast<int64_t>(value))) {}
   explicit Value(double value) : value_(x3_value_double(value)) {}
   Value(Runtime& runtime, X3Value value);
   Value(Runtime& runtime, int64_t value);
@@ -85,6 +96,10 @@ public:
   X3PackageHost* host() const { return host_; }
   X3Runtime* runtime() const { return host_ == nullptr ? nullptr : host_->runtime; }
   X3Value raw() const { return value_; }
+  template<class T> T* NativeData() const {
+    return host_ && host_->instance_get_native_data
+        ? static_cast<T*>(host_->instance_get_native_data(value_, typeid(T).name())) : nullptr;
+  }
 
   X3Value Detach() {
     X3Value raw = value_;
@@ -95,10 +110,21 @@ public:
 
   bool IsValid() const { return value_.tag != X3_TAG_INVALID; }
   bool IsInt64() const { return value_.tag == X3_TAG_INT64; }
+  bool IsDouble() const { return value_.tag == X3_TAG_DOUBLE; }
+  bool IsNone() const { return value_.tag == X3_TAG_NONE; }
   bool IsString() const { return object_kind() == X3_OBJECT_KIND_STRING; }
   bool IsList() const { return object_kind() == X3_OBJECT_KIND_LIST; }
   bool IsDict() const { return object_kind() == X3_OBJECT_KIND_DICT; }
   bool IsEvent() const { return object_kind() == X3_OBJECT_KIND_EVENT; }
+  bool IsExpression() const { return object_kind() == X3_OBJECT_KIND_EXPRESSION; }
+  bool Evaluate(const Value& bindings, Value& result, Value& reservations) const {
+    if (!host_ || !host_->expression_evaluate) return false;
+    X3Value raw_result = x3_value_invalid(), raw_reservations = x3_value_invalid();
+    if (host_->expression_evaluate(host_->runtime, value_, bindings.raw(), &raw_result, &raw_reservations) != X3_STATUS_OK) return false;
+    result = Adopt(raw_result);
+    reservations = Adopt(raw_reservations);
+    return true;
+  }
 
   bool IsBin() const {
     const void* data = nullptr;
@@ -187,6 +213,11 @@ public:
     return host_->dict_set_item(host_->runtime, value_, key_value.raw(), item.raw()) == X3_STATUS_OK;
   }
 
+  bool SetAttr(const char* name, const Value& value) {
+    return host_ && host_->set_attr && name &&
+        host_->set_attr(host_->runtime, value_, name, value.raw()) == X3_STATUS_OK;
+  }
+
   bool SetItem(const Value& key, const Value& item) {
     if (host_ != nullptr && host_->dict_set_item != nullptr) {
       return host_->dict_set_item(host_->runtime, value_, key.raw(), item.raw()) == X3_STATUS_OK;
@@ -198,7 +229,7 @@ public:
   bool SetItem(Key&& key, Item&& item) {
     Value owned_key = MakeValue(std::forward<Key>(key));
     Value owned_item = MakeValue(std::forward<Item>(item));
-    return SetItem(owned_key, owned_item);
+    return SetItem(static_cast<const Value&>(owned_key), static_cast<const Value&>(owned_item));
   }
 
   Value Get(const char* key) const {
@@ -287,6 +318,9 @@ public:
     return true;
   }
 
+  bool ToBytes(Stream& stream) const;
+  bool FromBytes(Stream& stream);
+
   bool FromBytes(Value& out) const {
     if (host_ == nullptr || host_->value_from_bytes == nullptr) return false;
     X3Value value = x3_value_invalid();
@@ -301,6 +335,19 @@ public:
       return host_->event_subscribe(host_->runtime, value_, callable.raw(), &cookie) == X3_STATUS_OK;
     }
     return false;
+  }
+
+  bool OnSubscribersChanged(std::function<void(uint64_t)> callback) const {
+    if (!host_ || !host_->event_set_change_handler) return false;
+    auto context = std::make_unique<std::function<void(uint64_t)>>(std::move(callback));
+    auto status = host_->event_set_change_handler(host_->runtime, value_,
+        [](void* data, uint64_t count) -> X3Status {
+          try { (*static_cast<std::function<void(uint64_t)>*>(data))(count); return X3_STATUS_OK; }
+          catch (...) { return X3_STATUS_ERROR; }
+        }, context.get(), [](void* data) { delete static_cast<std::function<void(uint64_t)>*>(data); });
+    if (status != X3_STATUS_OK) return false;
+    context.release();
+    return true;
   }
 
   bool Unsubscribe(uint64_t cookie) const {
@@ -344,6 +391,29 @@ public:
 
   bool Call(const std::vector<Value>& args, Value& out) const {
     return Call(args.empty() ? nullptr : args.data(), static_cast<uint32_t>(args.size()), out);
+  }
+
+  bool Call(const Value* args, uint32_t argc,
+      const std::vector<std::pair<std::string, Value>>& kwargs, Value& out) const {
+    if (kwargs.empty()) return Call(args, argc, out);
+    if (!host_ || !host_->call_kw || (argc && !args) || kwargs.size() > UINT32_MAX) return false;
+    std::vector<X3Value> raw_args;
+    raw_args.reserve(argc);
+    for (uint32_t i = 0; i < argc; ++i) raw_args.push_back(args[i].raw());
+    std::vector<X3KeywordArg> raw_kwargs;
+    raw_kwargs.reserve(kwargs.size());
+    for (const auto& kw : kwargs) raw_kwargs.push_back({kw.first.c_str(), kw.second.raw()});
+    X3Value result = x3_value_invalid();
+    if (host_->call_kw(host_->runtime, value_, raw_args.data(), argc, raw_kwargs.data(),
+        static_cast<uint32_t>(raw_kwargs.size()), &result) != X3_STATUS_OK) return false;
+    out = Adopt(result);
+    return true;
+  }
+
+  bool Call(const std::vector<Value>& args,
+      const std::vector<std::pair<std::string, Value>>& kwargs, Value& out) const {
+    if (args.size() > UINT32_MAX) return false;
+    return Call(args.data(), static_cast<uint32_t>(args.size()), kwargs, out);
   }
 
   template <typename... Args>

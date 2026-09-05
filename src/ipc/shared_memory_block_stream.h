@@ -8,6 +8,8 @@ Licensed under the Apache License, Version 2.0
 #include "serialize/xlang_stream.h"
 
 #include <functional>
+#include <memory>
+#include "serialize/block_stream.h"
 #include <vector>
 
 namespace xlang3::ipc {
@@ -21,7 +23,10 @@ class SharedMemoryBlockStream : public serialize::XLangStream {
 public:
   using AllocateSlot = std::function<SharedSlotRef()>;
 
-  SharedMemoryBlockStream(std::vector<SharedSlotRef> slots, bool writable, AllocateSlot allocate_slot = {});
+  SharedMemoryBlockStream(std::vector<SharedSlotRef> slots, bool writable, AllocateSlot allocate_slot = {}, bool allow_spill = false);
+  bool has_spill() const { return spilled_; }
+  std::unique_ptr<serialize::BlockStream> stage_spill();
+  bool restore(serialize::BlockStream& staged, std::vector<SharedSlotRef> slots);
 
   serialize::STREAM_SIZE Size() override;
   void Refresh() override {}
@@ -39,6 +44,7 @@ private:
   struct Block {
     SharedSlotRef ref;
     serialize::blockInfo info;
+    std::unique_ptr<char[]> owned;
   };
 
   void append_ref(SharedSlotRef ref, bool writable_block);
@@ -46,6 +52,8 @@ private:
   std::vector<Block> blocks_;
   bool writable_ = false;
   AllocateSlot allocate_slot_;
+  bool allow_spill_ = false;
+  bool spilled_ = false;
 };
 
 } // namespace xlang3::ipc

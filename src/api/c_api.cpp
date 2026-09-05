@@ -16,6 +16,7 @@ limitations under the License.
 #include "xlang3/abi/xmodule.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/expression.h"
 #include "xlang3/c_api_bridge.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
@@ -27,10 +28,11 @@ limitations under the License.
 #include "xlang3/parser.h"
 #include "xlang3/sequence.h"
 #include "serialize/block_stream.h"
-#include "serialize/ipc_value_marshal.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
 #include "runtime_lock.h"
+#include "stream_internal.h"
+#include "serialize/value_graph.h"
 
 #include <filesystem>
 #include <fstream>
@@ -124,81 +126,6 @@ bool call_value(
     const std::vector<xlang3::Value>& args,
     xlang3::Value& out,
     std::string& error);
-
-bool materialize_wire_value(
-    const xlang3::serialize::IpcWireValue& wire,
-    xlang3::Value& out,
-    std::string& error) {
-  switch (wire.kind) {
-    case xlang3::serialize::IpcWireValueKind::Invalid:
-      out = xlang3::Value::invalid();
-      return true;
-    case xlang3::serialize::IpcWireValueKind::None:
-      out = xlang3::Value::none();
-      return true;
-    case xlang3::serialize::IpcWireValueKind::Bool:
-      out = xlang3::Value::boolean(wire.bool_value);
-      return true;
-    case xlang3::serialize::IpcWireValueKind::Int64:
-      out = xlang3::Value::int64(wire.int_value);
-      return true;
-    case xlang3::serialize::IpcWireValueKind::Double:
-      out = xlang3::Value::number(wire.double_value);
-      return true;
-    case xlang3::serialize::IpcWireValueKind::String:
-      out = xlang3::Value::string(wire.bytes);
-      return true;
-    case xlang3::serialize::IpcWireValueKind::Bytes:
-      out = xlang3::Value::bytes(wire.bytes);
-      return true;
-    case xlang3::serialize::IpcWireValueKind::Tuple: {
-      std::vector<xlang3::Value> items;
-      items.reserve(wire.items.size());
-      for (const auto& item_wire : wire.items) {
-        xlang3::Value item;
-        if (!materialize_wire_value(item_wire, item, error)) return false;
-        items.push_back(std::move(item));
-      }
-      out = xlang3::Value::tuple(std::move(items));
-      return true;
-    }
-    case xlang3::serialize::IpcWireValueKind::List: {
-      std::vector<xlang3::Value> items;
-      items.reserve(wire.items.size());
-      for (const auto& item_wire : wire.items) {
-        xlang3::Value item;
-        if (!materialize_wire_value(item_wire, item, error)) return false;
-        items.push_back(std::move(item));
-      }
-      out = xlang3::Value::list(std::move(items));
-      return true;
-    }
-    case xlang3::serialize::IpcWireValueKind::Dict: {
-      std::vector<std::pair<xlang3::Value, xlang3::Value>> entries;
-      entries.reserve(wire.entries.size());
-      for (const auto& entry_wire : wire.entries) {
-        xlang3::Value key;
-        xlang3::Value value;
-        if (!materialize_wire_value(entry_wire.first, key, error) ||
-            !materialize_wire_value(entry_wire.second, value, error)) {
-          return false;
-        }
-        entries.push_back({std::move(key), std::move(value)});
-      }
-      out = xlang3::Value::dict(std::move(entries));
-      return true;
-    }
-    case xlang3::serialize::IpcWireValueKind::ObjectRef:
-    case xlang3::serialize::IpcWireValueKind::Callable:
-      error = "serialized remote object references need an IPC endpoint";
-      return false;
-    case xlang3::serialize::IpcWireValueKind::Error:
-      error = wire.bytes;
-      return false;
-  }
-  error = "unknown serialized value kind";
-  return false;
-}
 
 bool construct_class(
     xlang3::Runtime& runtime,
@@ -412,6 +339,8 @@ X3ObjectKind x3_value_object_kind(X3Value value) {
       return X3_OBJECT_KIND_MEMORYVIEW;
     case xlang3::ObjectKind::Event:
       return X3_OBJECT_KIND_EVENT;
+    case xlang3::ObjectKind::Expression:
+      return X3_OBJECT_KIND_EXPRESSION;
     case xlang3::ObjectKind::Tuple:
       return X3_OBJECT_KIND_TUPLE;
     case xlang3::ObjectKind::List:
@@ -469,7 +398,7 @@ X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** dat
   return fail(rt, "value is not bytes-like");
 }
 
-X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) {
+X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) try {
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -480,7 +409,7 @@ X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) {
     return fail(rt, error);
   }
   xlang3::serialize::BlockStream stream;
-  if (!stream.MarshalToBytes(internal, {}, error)) {
+  if (!xlang3::serialize::write_value_graph(*rt, stream, internal, error)) {
     return fail(rt, error);
   }
   std::string bytes;
@@ -490,9 +419,51 @@ X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) {
   }
   *result = xlang3::to_c_value(xlang3::Value::bytes(std::move(bytes)));
   return X3_STATUS_OK;
+} catch (const std::exception& e) {
+  return fail(as_runtime(runtime), e.what());
 }
 
-X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result) {
+X3Status x3_value_to_stream(X3Runtime* runtime, X3Value value, X3Stream* stream) {
+  auto* rt = as_runtime(runtime);
+  if (!rt || !stream || stream->runtime != runtime || stream->reading || stream->failed)
+    return fail(rt, "invalid stream for serialization");
+  try {
+    std::string error;
+    auto internal = xlang3::from_c_value(value, error);
+    if (!error.empty() || !xlang3::serialize::write_value_graph(*rt, stream->storage, internal, error)) {
+      stream->failed = true;
+      return fail(rt, error);
+    }
+    stream->size = static_cast<uint64_t>(stream->storage.Size());
+    stream->position = stream->size;
+    return X3_STATUS_OK;
+  } catch (const std::exception& e) {
+    stream->failed = true;
+    return fail(rt, e.what());
+  }
+}
+
+X3Status x3_value_from_stream(X3Runtime* runtime, X3Stream* stream, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (!rt || !result || !stream || stream->runtime != runtime || !stream->reading || stream->failed)
+    return fail(rt, "invalid stream for deserialization");
+  try {
+    xlang3::Value value;
+    std::string error;
+    if (!xlang3::serialize::read_value_graph(*rt, stream->storage, value, error)) {
+      stream->failed = true;
+      return fail(rt, error);
+    }
+    stream->position = static_cast<uint64_t>(stream->storage.CalcSize(stream->storage.GetPos()));
+    *result = xlang3::to_c_value(value);
+    return X3_STATUS_OK;
+  } catch (const std::exception& e) {
+    stream->failed = true;
+    return fail(rt, e.what());
+  }
+}
+
+X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result) try {
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -503,15 +474,38 @@ X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result)
     return X3_STATUS_ERROR;
   }
   xlang3::serialize::BlockStream stream(static_cast<char*>(const_cast<void*>(data)), static_cast<xlang3::serialize::STREAM_SIZE>(size), false);
-  xlang3::serialize::IpcWireValue wire;
   std::string error;
-  if (!stream.MarshalFromBytes(wire, error)) {
-    return fail(rt, error);
-  }
   xlang3::Value out;
-  if (!materialize_wire_value(wire, out, error)) {
+  if (!xlang3::serialize::read_value_graph(*rt, stream, out, error)) {
     return fail(rt, error);
   }
+  *result = xlang3::to_c_value(out);
+  return X3_STATUS_OK;
+} catch (const std::exception& e) {
+  return fail(as_runtime(runtime), e.what());
+}
+
+X3Status x3_expression_evaluate(X3Runtime* runtime, X3Value expression,
+    X3Value bindings, X3Value* result, X3Value* reservations) {
+  auto* rt = as_runtime(runtime);
+  if (!rt || !result || !reservations) return fail(rt, "null expression evaluation argument");
+  std::string error;
+  auto expr = xlang3::from_c_value(expression, error);
+  auto scope = xlang3::from_c_value(bindings, error);
+  xlang3::Value out, pending;
+  if (!error.empty() || !xlang3::evaluate_expression(expr, scope, out, pending, error)) return fail(rt, error);
+  *result = xlang3::to_c_value(out);
+  *reservations = xlang3::to_c_value(pending);
+  return X3_STATUS_OK;
+}
+
+X3Status x3_expression_inspect(X3Runtime* runtime, X3Value expression, X3Value* result) {
+  auto* rt = as_runtime(runtime);
+  if (!rt || !result) return fail(rt, "null expression inspection argument");
+  std::string error;
+  auto expr = xlang3::from_c_value(expression, error);
+  xlang3::Value out;
+  if (!error.empty() || !xlang3::inspect_expression(expr, out, error)) return fail(rt, error);
   *result = xlang3::to_c_value(out);
   return X3_STATUS_OK;
 }
@@ -661,6 +655,28 @@ X3Status x3_event_fire(X3Runtime* runtime, X3Value event, const X3Value* args, u
   return X3_STATUS_OK;
 }
 
+X3Status x3_event_set_change_handler(X3Runtime* runtime, X3Value value,
+    X3EventChanged callback, void* context, void (*cleanup)(void*)) {
+  auto* rt = as_runtime(runtime);
+  std::string error;
+  auto event = xlang3::from_c_value(value, error);
+  auto* object = xlang3::value_as_event(event);
+  if (!rt || !object || !error.empty()) return fail(rt, "expected event object");
+  try {
+    // The deleter is armed only after registration succeeds.
+    struct Context { void* data; void (*cleanup)(void*) = nullptr; ~Context() { if (cleanup) cleanup(data); } };
+    auto owner = std::make_shared<Context>();
+    owner->data = context;
+    std::shared_ptr<std::function<bool(uint64_t)>> changed;
+    if (callback) changed = std::make_shared<std::function<bool(uint64_t)>>(
+        [owner, callback](uint64_t count) { return callback(owner->data, count) == X3_STATUS_OK; });
+    std::lock_guard<std::recursive_mutex> lock(object->mutex);
+    object->changed = std::move(changed);
+    owner->cleanup = cleanup;
+    return X3_STATUS_OK;
+  } catch (const std::exception& exception) { return fail(rt, exception.what()); }
+}
+
 X3Status x3_runtime_import_module(X3Runtime* runtime, const char* package_name, const char* module_name, X3Value* result) {
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
@@ -691,6 +707,7 @@ X3Status x3_runtime_import_module(X3Runtime* runtime, const char* package_name, 
 }
 
 X3Status x3_get_attr(X3Runtime* runtime, X3Value object, const char* name, X3Value* result) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || name == nullptr || result == nullptr) {
     return fail(rt, "runtime/name/result is null");
@@ -701,14 +718,19 @@ X3Status x3_get_attr(X3Runtime* runtime, X3Value object, const char* name, X3Val
     return fail(rt, error);
   }
   xlang3::Value attr;
-  if (!xlang3::attribute_get(internal, name, attr, error)) {
-    return fail(rt, error);
-  }
+  auto* instance = xlang3::value_as_instance(internal);
+  auto* klass = instance ? xlang3::value_as_class(instance->klass) : nullptr;
+  if (klass && klass->has_descriptors) {
+    const auto* getter = rt->find_builtin("getattr");
+    const xlang3::Value args[] = {internal, xlang3::Value::string(name)};
+    if (!getter || !xlang3::runtime_call_callable(*rt, *getter, args, 2, attr, error)) return fail(rt, error);
+  } else if (!xlang3::attribute_get(internal, name, attr, error)) return fail(rt, error);
   *result = xlang3::to_c_value(attr);
   return X3_STATUS_OK;
 }
 
 X3Status x3_set_attr(X3Runtime* runtime, X3Value object, const char* name, X3Value value) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || name == nullptr) {
     return fail(rt, "runtime/name is null");
@@ -719,15 +741,32 @@ X3Status x3_set_attr(X3Runtime* runtime, X3Value object, const char* name, X3Val
   if (!error.empty()) {
     return fail(rt, error);
   }
-  if (!xlang3::module_set_attr(internal, name, internal_value, error)) {
+  xlang3::Value descriptor;
+  if (xlang3::value_as_instance(internal) &&
+      xlang3::object_get_class_attr_for_instance(internal, name, descriptor, error) &&
+      xlang3::object_value_has_descriptor_set(descriptor)) {
+    xlang3::Value setter, ignored;
+    const xlang3::Value args[] = {internal, internal_value};
+    if (!xlang3::attribute_get(descriptor, "__set__", setter, error) ||
+        !xlang3::runtime_call_callable(*rt, setter, args, 2, ignored, error)) return fail(rt, error);
+    return X3_STATUS_OK;
+  }
+  error.clear();
+  if (!xlang3::attribute_set(internal, name, internal_value, error)) {
     return fail(rt, error);
   }
   return X3_STATUS_OK;
 }
 
 X3Status x3_call(X3Runtime* runtime, X3Value callable, const X3Value* args, uint32_t argc, X3Value* result) {
+  return x3_call_kw(runtime, callable, args, argc, nullptr, 0, result);
+}
+
+X3Status x3_call_kw(X3Runtime* runtime, X3Value callable, const X3Value* args,
+    uint32_t argc, const X3KeywordArg* kwargs, uint32_t kwargc, X3Value* result) {
   auto* rt = as_runtime(runtime);
-  if (rt == nullptr || result == nullptr || (argc != 0 && args == nullptr)) {
+  if (rt == nullptr || result == nullptr || (argc != 0 && args == nullptr) ||
+      (kwargc != 0 && kwargs == nullptr)) {
     return fail(rt, "runtime/args/result is null");
   }
   std::string error;
@@ -745,13 +784,25 @@ X3Status x3_call(X3Runtime* runtime, X3Value callable, const X3Value* args, uint
     }
   }
 
+  std::vector<std::pair<std::string, xlang3::Value>> keywords;
+  keywords.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr) return fail(rt, "keyword name is null");
+    for (const auto& previous : keywords) {
+      if (previous.first == kwargs[i].name) return fail(rt, "duplicate keyword argument");
+    }
+    auto value = xlang3::from_c_value(kwargs[i].value, error);
+    if (!error.empty()) return fail(rt, error);
+    keywords.emplace_back(kwargs[i].name, std::move(value));
+  }
   xlang3::Value out;
   xlang3::XlangRuntimeExecutionGuard execution_guard;
-  if (!xlang3::runtime_call_callable(
+  if (!xlang3::runtime_call_callable_kw(
           *rt,
           internal_callable,
           internal_args.empty() ? nullptr : internal_args.data(),
           static_cast<uint32_t>(internal_args.size()),
+          keywords,
           out,
           error)) {
     return fail(rt, error);
@@ -852,6 +903,53 @@ X3Status x3_dict_get_entry(X3Runtime* runtime, X3Value dict, uint64_t index, X3V
   const auto& entry = dict_object->entries[static_cast<size_t>(index)];
   *key = xlang3::to_c_value(entry.first);
   *value = xlang3::to_c_value(entry.second);
+  return X3_STATUS_OK;
+}
+
+void* x3_instance_get_native_data(X3Value instance, const char* type_name) {
+  if (!type_name) return nullptr;
+  std::string error;
+  auto value = xlang3::from_c_value(instance, error);
+  return error.empty() ? xlang3::instance_get_native_data(value, type_name) : nullptr;
+}
+
+X3Status x3_instance_set_native_data(X3Value instance, const char* type_name,
+    void* data, void (*cleanup)(void*)) {
+  if (!type_name) return X3_STATUS_ERROR;
+  std::string error;
+  auto value = xlang3::from_c_value(instance, error);
+  return error.empty() && xlang3::instance_set_native_data(value, type_name, data, cleanup, error)
+      ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
+X3Value x3_value_instance(X3Runtime* runtime, X3Value klass) {
+  auto* rt = as_runtime(runtime);
+  if (!rt) return x3_value_invalid();
+  xlang3::XlangRuntimeExecutionGuard guard;
+  std::string error;
+  auto value = xlang3::from_c_value(klass, error);
+  if (!error.empty() || !xlang3::value_as_class(value)) {
+    fail(rt, error.empty() ? "object is not a class" : error);
+    return x3_value_invalid();
+  }
+  return xlang3::to_c_value(xlang3::Value::instance(std::move(value)));
+}
+
+X3Status x3_instance_set_native_owner(X3Value instance, const char* type_name,
+    void* data, void* owner, void (*cleanup)(void*)) {
+  if (!type_name || !data || !owner || !cleanup) return X3_STATUS_ERROR;
+  std::string error;
+  auto value = xlang3::from_c_value(instance, error);
+  return error.empty() && xlang3::instance_set_native_owner(value, type_name, data, owner, cleanup, error)
+      ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
+X3Status x3_instance_set_native_cast(X3Value instance, X3NativeDataCast cast) {
+  std::string error;
+  auto value = xlang3::from_c_value(instance, error);
+  auto* object = error.empty() ? xlang3::value_as_instance(value) : nullptr;
+  if (!object || !object->native_data) return X3_STATUS_ERROR;
+  object->native_data_cast = cast;
   return X3_STATUS_OK;
 }
 

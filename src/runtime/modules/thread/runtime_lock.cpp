@@ -21,4 +21,9 @@ std::recursive_mutex& xlang_runtime_execution_lock() {
   return lock;
 }
 
+uint32_t& xlang_runtime_execution_depth() {
+  static thread_local uint32_t depth = 0;
+  return depth;
+}
+
 } // namespace xlang3

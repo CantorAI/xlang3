@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include <mutex>
+#include <cstdint>
 
 namespace xlang3 {
 
@@ -23,32 +24,51 @@ namespace xlang3 {
 #endif
 
 std::recursive_mutex& xlang_runtime_execution_lock();
+uint32_t& xlang_runtime_execution_depth();
 
 class XlangRuntimeExecutionGuard {
 public:
   XlangRuntimeExecutionGuard() {
 #if XLANG3_VM_GLOBAL_LOCK
-    xlang_runtime_execution_lock().lock();
+    auto& depth = xlang_runtime_execution_depth();
+    if (depth == 0) xlang_runtime_execution_lock().lock();
+    ++depth;
 #endif
   }
 
   ~XlangRuntimeExecutionGuard() {
 #if XLANG3_VM_GLOBAL_LOCK
-    xlang_runtime_execution_lock().unlock();
+    if (!held_) lock();
+    auto& depth = xlang_runtime_execution_depth();
+    if (--depth == 0) xlang_runtime_execution_lock().unlock();
 #endif
   }
 
   void lock() {
 #if XLANG3_VM_GLOBAL_LOCK
+    if (held_) return;
     xlang_runtime_execution_lock().lock();
+    xlang_runtime_execution_depth() = suspended_depth_;
+    suspended_depth_ = 0;
+    held_ = true;
 #endif
   }
 
   void unlock() {
 #if XLANG3_VM_GLOBAL_LOCK
+    if (!held_) return;
+    // Blocking native calls must release embedding and nested VM guards together.
+    suspended_depth_ = xlang_runtime_execution_depth();
+    xlang_runtime_execution_depth() = 0;
+    held_ = false;
     xlang_runtime_execution_lock().unlock();
 #endif
   }
+  XlangRuntimeExecutionGuard(const XlangRuntimeExecutionGuard&) = delete;
+  XlangRuntimeExecutionGuard& operator=(const XlangRuntimeExecutionGuard&) = delete;
+private:
+  uint32_t suspended_depth_ = 0;
+  bool held_ = true;
 };
 
 } // namespace xlang3

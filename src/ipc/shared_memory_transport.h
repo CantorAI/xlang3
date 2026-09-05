@@ -14,6 +14,8 @@ class XLangStream;
 
 namespace xlang3::ipc {
 
+// Dispatch must finish reading the request before its first response write.
+// The transport may reuse request blocks for that response.
 using LrpcDispatch = std::function<bool(serialize::XLangStream& request, serialize::XLangStream& response, std::string& error)>;
 using LrpcRequestWriter = std::function<bool(serialize::XLangStream& request, std::string& error)>;
 using LrpcResponseReader = std::function<bool(serialize::XLangStream& response, std::string& error)>;

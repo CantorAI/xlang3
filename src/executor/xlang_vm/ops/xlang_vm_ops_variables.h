@@ -19,6 +19,7 @@ limitations under the License.
 #include "../xlang_vm_op_switch.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/expression.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 
@@ -27,6 +28,10 @@ limitations under the License.
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+XLANG3_HOT_INLINE void capture_expressions(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
+  value_assign_fast(regs[in.dst], Value::boolean(expression_capture_enabled(regs[in.a])));
+}
 
 XLANG3_HOT_INLINE void move(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
   value_assign_fast(regs[in.dst], regs[in.a]);

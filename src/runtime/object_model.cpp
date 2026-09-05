@@ -109,13 +109,15 @@ void function_annotate_cleanup(void* user_data) {
 
 void recycle_instance_object(InstanceObject* instance) {
   if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
-    instance->native_data_cleanup(instance->native_data);
+    instance->native_data_cleanup(instance->native_owner);
   }
   instance->klass = Value::invalid();
   instance->mapping_storage = Value::invalid();
   instance->sequence_storage = Value::invalid();
   instance->native_type.clear();
   instance->native_data = nullptr;
+  instance->native_data_cast = nullptr;
+  instance->native_owner = nullptr;
   instance->native_data_cleanup = nullptr;
   instance->native_data_truthy = nullptr;
   instance->native_get_attr = nullptr;
@@ -1485,11 +1487,17 @@ bool event_subscribe(Value event, Value callable, uint64_t& cookie, std::string&
     error = "event handler is not callable";
     return false;
   }
+  std::lock_guard<std::recursive_mutex> lock(object->mutex);
   cookie = object->next_cookie++;
   if (object->next_cookie == 0) {
     object->next_cookie = 1;
   }
   object->handlers.push_back(EventHandlerObject{cookie, std::move(callable)});
+  auto changed = object->changed;
+  if (changed && !(*changed)(object->handlers.size())) {
+    error = "event subscription change handler failed";
+    return false;
+  }
   return true;
 }
 
@@ -1499,6 +1507,7 @@ bool event_unsubscribe(Value event, uint64_t cookie, std::string& error) {
     error = "unsubscribe expected event object";
     return false;
   }
+  std::lock_guard<std::recursive_mutex> lock(object->mutex);
   auto it = std::remove_if(
       object->handlers.begin(),
       object->handlers.end(),
@@ -1507,6 +1516,11 @@ bool event_unsubscribe(Value event, uint64_t cookie, std::string& error) {
     return true;
   }
   object->handlers.erase(it, object->handlers.end());
+  auto changed = object->changed;
+  if (changed && !(*changed)(object->handlers.size())) {
+    error = "event subscription change handler failed";
+    return false;
+  }
   return true;
 }
 
@@ -1516,7 +1530,8 @@ bool event_fire(Runtime& runtime, Value event, const Value* args, uint32_t argc,
     error = "fire expected event object";
     return false;
   }
-  std::vector<EventHandlerObject> handlers = object->handlers;
+  std::vector<EventHandlerObject> handlers;
+  { std::lock_guard<std::recursive_mutex> lock(object->mutex); handlers = object->handlers; }
   Value last = Value::none();
   for (const auto& handler : handlers) {
     Value result;
@@ -3236,16 +3251,24 @@ bool instance_set_native_data(
     void* native_data,
     void (*native_data_cleanup)(void*),
     std::string& error) {
+  return instance_set_native_owner(std::move(instance), std::move(native_type), native_data,
+      native_data, native_data_cleanup, error);
+}
+
+bool instance_set_native_owner(Value instance, std::string native_type, void* native_data,
+    void* owner, void (*native_data_cleanup)(void*), std::string& error) {
   auto* instance_obj = value_as_instance(instance);
   if (instance_obj == nullptr) {
     error = "object is not an instance";
     return false;
   }
   if (instance_obj->native_data_cleanup != nullptr && instance_obj->native_data != nullptr) {
-    instance_obj->native_data_cleanup(instance_obj->native_data);
+    instance_obj->native_data_cleanup(instance_obj->native_owner);
   }
   instance_obj->native_type = std::move(native_type);
   instance_obj->native_data = native_data;
+  instance_obj->native_data_cast = nullptr;
+  instance_obj->native_owner = owner;
   instance_obj->native_data_cleanup = native_data_cleanup;
   instance_obj->native_data_truthy = nullptr;
   instance_obj->native_get_attr = nullptr;
@@ -3256,10 +3279,12 @@ bool instance_set_native_data(
 
 void* instance_get_native_data(const Value& instance, const std::string& native_type) {
   auto* instance_obj = value_as_instance(instance);
-  if (instance_obj == nullptr || instance_obj->native_type != native_type) {
+  if (instance_obj == nullptr) {
     return nullptr;
   }
-  return instance_obj->native_data;
+  if (instance_obj->native_type == native_type) return instance_obj->native_data;
+  return instance_obj->native_data_cast
+      ? instance_obj->native_data_cast(instance_obj->native_data, native_type.c_str()) : nullptr;
 }
 
 bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std::string& error) {

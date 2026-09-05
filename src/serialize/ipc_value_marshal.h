@@ -28,6 +28,9 @@ enum class IpcWireValueKind : uint8_t {
   ObjectRef = 10,
   Callable = 11,
   Error = 12,
+  Expression = 13,
+  ExpressionDecoratorRef = 14,
+  ValueCallRef = 15,
 };
 
 struct RemoteObjectId {
@@ -53,5 +56,7 @@ public:
   virtual ~IpcMarshalContext() = default;
   virtual bool make_object_ref(const Value& value, RemoteObjectId& out, std::string& error) = 0;
 };
+
+bool ipc_arguments_by_value(const Value& callable);
 
 } // namespace xlang3::serialize

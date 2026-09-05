@@ -13,7 +13,7 @@ Licensed under the Apache License, Version 2.0
 namespace xlang3::ipc {
 
 constexpr uint32_t kSharedMagic = 0x33435049u;
-constexpr uint32_t kSharedVersion = 1;
+constexpr uint32_t kSharedVersion = 2;
 constexpr uint32_t kSharedSlotCount = 32;
 constexpr uint32_t kSharedSlotSize = 64 * 1024;
 

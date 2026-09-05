@@ -56,7 +56,8 @@ typedef enum X3ObjectKind {
   X3_OBJECT_KIND_BYTES = 6,
   X3_OBJECT_KIND_BYTEARRAY = 7,
   X3_OBJECT_KIND_MEMORYVIEW = 8,
-  X3_OBJECT_KIND_EVENT = 9
+  X3_OBJECT_KIND_EVENT = 9,
+  X3_OBJECT_KIND_EXPRESSION = 10
 } X3ObjectKind;
 
 static inline X3Value x3_value_invalid(void) {

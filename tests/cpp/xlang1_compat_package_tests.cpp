@@ -44,6 +44,19 @@ int main(int argc, char** argv) {
     require(package["make_list"]()[1].ToString() == "two", "old List return failed");
     require(package["make_dict"]().GetItem("answer").ToInt64() == 42, "old Dict return failed");
     require(package["operator_style"]().ToString() == "ok", "old X::Value operators failed");
+    X::Value reference_dict = runtime.Dict();
+    X::Value reference_list = runtime.List();
+    X::Value returned_dict = package["set_item"](reference_dict, reference_list);
+    require(returned_dict == reference_dict, "module Value reference lost dictionary identity");
+    require(reference_dict["item"] == reference_list, "module const Value reference lost list identity");
+    require(package["read_value"](42).ToInt64() == 42, "const module method reference binding failed");
+    X::Value counter = package["Counter"]();
+    require(counter["add"](7).ToInt64() == 7, "counter construction failed");
+    X::Value returned_list = counter["append_total"](reference_list);
+    require(returned_list == reference_list, "class Value reference lost list identity");
+    require(reference_list.Size() == 1 && reference_dict["item"][0].ToInt64() == 7,
+            "class Value reference mutation did not reach caller");
+    require(counter["read_value"](42).ToInt64() == 42, "const class method reference binding failed");
     X::Value list = runtime.List();
     list += X::Value(runtime, 1);
     list += X::Value(runtime, 2);

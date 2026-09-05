@@ -1,3 +1,6 @@
+import sys
+if len(sys.argv) > 1:
+    sys.path.insert(0, sys.argv[1])
 from xlang_net import http
 
 server = http.Server()

@@ -2,7 +2,11 @@
 # Licensed under the Apache License, Version 2.0
 param(
     [string]$XLang3,
-    [int]$Port = 0
+    [int]$Port = 0,
+    [string]$NativeModules = "",
+    [string]$ClientScript = "client.py",
+    [string]$Expected = "expected.out",
+    [string]$NativeClient = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,12 +17,14 @@ if (-not $XLang3) {
 
 $root = $PSScriptRoot
 $serverSource = Join-Path $root "server.py"
-$clientSource = Join-Path $root "client.py"
-$expectedPath = Join-Path $root "expected.out"
+$clientSource = Join-Path $root $ClientScript
+$expectedPath = Join-Path $root $Expected
 
 if ($Port -eq 0) {
     $Port = Get-Random -Minimum 19000 -Maximum 24000
 }
+$serverArguments = @($serverSource, [string]$Port)
+if ($NativeModules) { $serverArguments += $NativeModules }
 
 $logPrefix = Join-Path ([System.IO.Path]::GetTempPath()) "xlang3_lrpc_smoke_$PID"
 $serverOut = "$logPrefix.out.log"
@@ -27,14 +33,17 @@ $serverErr = "$logPrefix.err.log"
 Remove-Item -LiteralPath $serverOut, $serverErr -ErrorAction SilentlyContinue
 
 $server = $null
+$parallelClients = @()
 try {
     $server = Start-Process `
         -FilePath $XLang3 `
-        -ArgumentList @($serverSource, [string]$Port) `
+        -ArgumentList $serverArguments `
         -RedirectStandardOutput $serverOut `
         -RedirectStandardError $serverErr `
         -WindowStyle Hidden `
         -PassThru
+
+    $null = $server.Handle
 
     $ready = "lrpc-ready:$Port"
     $deadline = (Get-Date).AddSeconds(10)
@@ -42,7 +51,7 @@ try {
         if ($server.HasExited) {
             $stdout = if (Test-Path $serverOut) { Get-Content -LiteralPath $serverOut -Raw } else { "" }
             $stderr = if (Test-Path $serverErr) { Get-Content -LiteralPath $serverErr -Raw } else { "" }
-            throw "LRPC server exited before ready. stdout='$stdout' stderr='$stderr'"
+            throw "LRPC server PID $($server.Id) exited before ready on port $Port (exit $($server.ExitCode)). stdout='$stdout' stderr='$stderr'"
         }
 
         if ((Test-Path $serverOut) -and ((Get-Content -LiteralPath $serverOut -Raw) -like "*$ready*")) {
@@ -67,7 +76,6 @@ try {
         throw "LRPC client output mismatch. Expected '$expected', got '$actual'"
     }
 
-    $parallelClients = @()
     for ($i = 0; $i -lt 4; $i++) {
         $clientOut = "$logPrefix.client.$i.out.log"
         $clientErr = "$logPrefix.client.$i.err.log"
@@ -84,6 +92,7 @@ try {
                 -WindowStyle Hidden `
                 -PassThru
         }
+        $null = $parallelClients[-1].Process.Handle
     }
 
     foreach ($client in $parallelClients) {
@@ -93,20 +102,31 @@ try {
         }
         $client.Process.WaitForExit()
         $client.Process.Refresh()
-        $clientActual = if (Test-Path $client.Out) { ((Get-Content -LiteralPath $client.Out -Raw) -replace "`r`n", "`n").TrimEnd() } else { "" }
+        $clientActual = if (Test-Path $client.Out) { (([string](Get-Content -LiteralPath $client.Out -Raw)) -replace "`r`n", "`n").TrimEnd() } else { "" }
         $clientError = if (Test-Path $client.Err) { Get-Content -LiteralPath $client.Err -Raw } else { "" }
         $clientExitCode = $client.Process.ExitCode
         if ($null -ne $clientExitCode -and $clientExitCode -ne 0) {
-            throw "Parallel LRPC client $($client.Index) failed with exit code $clientExitCode. stdout='$clientActual' stderr='$clientError'"
+            $serverStatus = if ($server.HasExited) { "exit=$($server.ExitCode)" } else { "running" }
+            throw "Parallel LRPC client $($client.Index) failed with exit code $clientExitCode. stdout='$clientActual' stderr='$clientError' server=$serverStatus"
         }
         if ($clientActual -ne $expected) {
-            throw "Parallel LRPC client $($client.Index) output mismatch. Expected '$expected', got '$clientActual'"
+            throw "Parallel LRPC client $($client.Index) output mismatch. Expected '$expected', got '$clientActual'. stderr='$clientError'"
         }
     }
 
+    if ($NativeClient) {
+        & $NativeClient $Port
+        if ($LASTEXITCODE -ne 0) { throw "C++ LRPC client failed with exit code $LASTEXITCODE" }
+    }
     Write-Host "ipc lrpc smoke ok"
 }
 finally {
+    foreach ($client in $parallelClients) {
+        if (-not $client.Process.HasExited) {
+            Stop-Process -Id $client.Process.Id -Force
+            $client.Process.WaitForExit()
+        }
+    }
     if ($server -ne $null -and -not $server.HasExited) {
         Stop-Process -Id $server.Id -Force
         $server.WaitForExit()

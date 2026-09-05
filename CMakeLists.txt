@@ -56,6 +56,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/serialize/xlang_stream.cpp
   src/runtime/c_api_bridge.cpp
   src/runtime/exceptions.cpp
+  src/runtime/expression.cpp
   src/runtime/functional_iterators.cpp
   src/runtime/generator.cpp
   src/runtime/attribute.cpp
@@ -173,6 +174,12 @@ if(NOT XLANG3_EMBEDDED)
     src/debug/dap_session.cpp
     src/ir/dump.cpp
     src/api/c_api.cpp
+    src/api/stream_api.cpp
+    src/api/native_serialization_api.cpp
+    src/api/ipc_api.cpp
+    src/serialize/value_graph_writer.cpp
+    src/serialize/value_graph_reader.cpp
+    src/serialize/value_graph_lifetime.cpp
     src/import/import_loader.cpp
     src/import/native_package_loader.cpp
   )
@@ -256,6 +263,9 @@ if(WIN32)
 endif()
 
 enable_testing()
+add_executable(xlang3_cpp_ipc_client tests/cpp/ipc_client.cpp)
+target_link_libraries(xlang3_cpp_ipc_client PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_cpp_ipc_client PRIVATE XLANG3_USE_SHARED)
 
 function(add_xlang3_cpp_test name source)
   add_executable(${name} ${source})
@@ -271,7 +281,35 @@ function(add_xlang3_cpp_test name source)
 endfunction()
 
 add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
+add_executable(xlang3_embedded_package_tests tests/cpp/embedded_package_tests.cpp)
+target_link_libraries(xlang3_embedded_package_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_embedded_package_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_embedded_package_tests COMMAND xlang3_embedded_package_tests)
+add_executable(xlang3_sdk_stream_call_tests tests/cpp/sdk_stream_call_tests.cpp)
+target_link_libraries(xlang3_sdk_stream_call_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_sdk_stream_call_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_sdk_stream_call_tests COMMAND xlang3_sdk_stream_call_tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp)
+add_executable(xlang3_graph_process_tests tests/serialize/graph_process_tests.cpp)
+add_library(xlang3_graph_native_package SHARED tests/serialize/native_package.cpp)
+target_include_directories(xlang3_graph_native_package PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
+set_target_properties(xlang3_graph_native_package PROPERTIES
+  OUTPUT_NAME "xlang_graph_native.x3pkg" PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules")
+add_dependencies(xlang3_graph_process_tests xlang3_graph_native_package)
+target_link_libraries(xlang3_graph_process_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_graph_process_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_graph_producer COMMAND xlang3_graph_process_tests write ${CMAKE_CURRENT_BINARY_DIR}/graph_payload.bin ${CMAKE_CURRENT_SOURCE_DIR}/tests/serialize/graph_source.py $<TARGET_FILE_DIR:xlang3_graph_native_package>)
+set_tests_properties(xlang3_graph_producer PROPERTIES FIXTURES_SETUP serialized_graph)
+add_test(NAME xlang3_graph_consumer COMMAND xlang3_graph_process_tests read ${CMAKE_CURRENT_BINARY_DIR}/graph_payload.bin ${CMAKE_CURRENT_SOURCE_DIR}/tests/serialize/graph_source.py $<TARGET_FILE_DIR:xlang3_graph_native_package>)
+set_tests_properties(xlang3_graph_consumer PROPERTIES FIXTURES_REQUIRED serialized_graph)
+foreach(failure IN ITEMS BAD_VERSION NO_CODEC DECODE_FAIL)
+  add_test(NAME xlang3_graph_reject_${failure} COMMAND xlang3_graph_process_tests reject ${CMAKE_CURRENT_BINARY_DIR}/graph_payload.bin ${CMAKE_CURRENT_SOURCE_DIR}/tests/serialize/graph_source.py $<TARGET_FILE_DIR:xlang3_graph_native_package>)
+  set_tests_properties(xlang3_graph_reject_${failure} PROPERTIES FIXTURES_REQUIRED serialized_graph ENVIRONMENT "XLANG3_TEST_GRAPH_${failure}=1")
+endforeach()
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
+add_xlang3_cpp_test(xlang3_ipc_capacity_tests tests/cpp/ipc_capacity_tests.cpp)
 add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
@@ -306,6 +344,12 @@ set_target_properties(xlang1_compat_sample_package PROPERTIES
 target_include_directories(xlang1_compat_sample_package PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
+if(NOT PROJECT_IS_TOP_LEVEL)
+  add_custom_command(TARGET xlang1_compat_sample_package POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:xlang3>/modules"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:xlang1_compat_sample_package>"
+      "$<TARGET_FILE_DIR:xlang3>/modules/$<TARGET_FILE_NAME:xlang1_compat_sample_package>")
+endif()
 
 add_library(xlang3_curmodule_probe_package SHARED
   tests/cpp/curmodule_probe_package.cpp
@@ -320,6 +364,12 @@ set_target_properties(xlang3_curmodule_probe_package PROPERTIES
 target_include_directories(xlang3_curmodule_probe_package PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
+if(NOT PROJECT_IS_TOP_LEVEL)
+  add_custom_command(TARGET xlang3_curmodule_probe_package POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:xlang3>/modules"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:xlang3_curmodule_probe_package>"
+      "$<TARGET_FILE_DIR:xlang3>/modules/$<TARGET_FILE_NAME:xlang3_curmodule_probe_package>")
+endif()
 
 add_executable(xlang3_xlang1_compat_package_tests tests/cpp/xlang1_compat_package_tests.cpp)
 target_link_libraries(xlang3_xlang1_compat_package_tests PRIVATE xlang3_runtime)
@@ -328,6 +378,18 @@ target_include_directories(xlang3_xlang1_compat_package_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
 add_dependencies(xlang3_xlang1_compat_package_tests xlang1_compat_sample_package)
+add_test(NAME xlang3_expression_decorators
+  COMMAND xlang3 -c "exec(open('${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/expression_decorators.py').read())")
+set_tests_properties(xlang3_expression_decorators PROPERTIES
+  WORKING_DIRECTORY "$<TARGET_FILE_DIR:xlang1_compat_sample_package>")
+if(WIN32)
+  add_test(NAME xlang3_expression_decorators_ipc
+    COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+      -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
+      -XLang3 $<TARGET_FILE:xlang3>
+      -NativeModules $<TARGET_FILE_DIR:xlang1_compat_sample_package>
+      -ClientScript expression_client.py -Expected expression_expected.out)
+endif()
 add_test(
   NAME xlang3_xlang1_compat_package_tests
   COMMAND xlang3_xlang1_compat_package_tests $<TARGET_FILE_DIR:xlang1_compat_sample_package>
@@ -339,7 +401,7 @@ add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
 
 add_test(
   NAME xlang3_cli_yaml_module_import
-  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py $<TARGET_FILE_DIR:xlang_yaml_native_package>
 )
 
 add_test(
@@ -368,7 +430,7 @@ add_test(
 
 add_test(
   NAME xlang3_cli_net_module_import
-  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/module.py
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/module.py $<TARGET_FILE_DIR:xlang_net_native_package>
 )
 
 add_test(
@@ -376,6 +438,7 @@ add_test(
   COMMAND powershell -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.ps1
           -XLang3 $<TARGET_FILE:xlang3>
+          -NativeModules $<TARGET_FILE_DIR:xlang_net_native_package>
 )
 
 add_test(
@@ -383,6 +446,7 @@ add_test(
   COMMAND powershell -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/run_sqlite_tests.ps1
           -XLang3 $<TARGET_FILE:xlang3>
+          -NativeModules $<TARGET_FILE_DIR:xlang_sqlite3_native_package>
 )
 
 add_test(
@@ -413,6 +477,7 @@ add_test(
   COMMAND powershell -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
           -XLang3 $<TARGET_FILE:xlang3>
+          -NativeClient $<TARGET_FILE:xlang3_cpp_ipc_client>
 )
 
 add_test(
@@ -421,6 +486,23 @@ add_test(
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
+
+add_test(
+  NAME xlang3_ipc_lrpc_backpressure
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+          -ClientScript pressure_client.py
+          -Expected pressure_expected.out
+)
+set_tests_properties(xlang3_ipc_lrpc_backpressure PROPERTIES TIMEOUT 120)
+add_test(
+  NAME xlang3_ipc_lrpc_backpressure_server_exit
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.ps1
+          -XLang3 $<TARGET_FILE:xlang3>
+)
+set_tests_properties(xlang3_ipc_lrpc_backpressure_server_exit PROPERTIES TIMEOUT 45)
 
 add_test(
   NAME xlang3_cli_dap_stdio_smoke

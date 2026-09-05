@@ -72,5 +72,7 @@ if(WIN32)
     normaliz
     bcrypt
   )
-  target_link_options(xlang_net_native_package PRIVATE /NODEFAULTLIB:LIBCMT)
+  # The bundled curl/OpenSSL/zlib archives use the static MSVC runtime.
+  set_property(TARGET xlang_net_native_package PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()

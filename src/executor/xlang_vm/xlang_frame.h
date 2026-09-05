@@ -289,6 +289,7 @@ private:
       case ir::Op::StoreModuleSlot:
       case ir::Op::StoreGlobal:
       case ir::Op::Len:
+      case ir::Op::CaptureExpressions:
       case ir::Op::GetIter:
       case ir::Op::IterNext:
       case ir::Op::Not:

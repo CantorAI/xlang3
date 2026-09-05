@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/ir_codec.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
+#include "xlang3/expression.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -45,12 +46,17 @@ int main() {
       "\n"
       "for item in gen():\n"
       "    x = x + item\n"
-      "print('sum', x)\n";
+      "print('sum', x)\n"
+      "@Task(NPU=1 and OS == 'Windows')\n"
+      "def captured():\n"
+      "    pass\n";
 
   auto parsed = xlang3::parse_source(source.c_str());
   require(parsed.errors.empty(), "parse failed");
   auto lowered = xlang3::lower_to_ir(parsed.module);
   require(lowered.errors.empty(), "lower failed");
+  lowered.module.functions[0].constants.push_back(xlang3::Value::tuple({
+      xlang3::Value::int64(42), xlang3::Value::tuple({xlang3::Value::string("nested"), xlang3::Value::invalid()})}));
 
   const uint64_t hash = xlang3::ir::source_hash64(
       reinterpret_cast<const uint8_t*>(source.data()),
@@ -65,6 +71,30 @@ int main() {
       xlang3::ir::decode_module(encoded.bytes.data(), encoded.bytes.size(), hash, decoded, error),
       error.c_str());
   require(xlang3::ir::dump_module(decoded) == xlang3::ir::dump_module(lowered.module), "IR round-trip mismatch");
+  auto* tuple = xlang3::value_as_tuple(decoded.functions[0].constants.back());
+  require(tuple && tuple->items.size() == 2 && tuple->items[0].as.i64 == 42, "tuple constant lost");
+  auto* nested = xlang3::value_as_tuple(tuple->items[1]);
+  require(nested && nested->items.size() == 2 && nested->items[1].tag == xlang3::ValueTag::Invalid, "nested invalid constant lost");
+  bool found_expression = false;
+  for (const auto& function : decoded.functions) {
+    for (const auto& value : function.constants) {
+      if (value.tag != xlang3::ValueTag::Object || !value.as.obj || value.as.obj->kind != xlang3::ObjectKind::Expression) continue;
+      found_expression = true;
+      std::string bytes;
+      require(xlang3::encode_expression(value, bytes, error), "expression encoding failed");
+      for (size_t size = 0; size < bytes.size(); ++size) {
+        xlang3::Value invalid;
+        require(!xlang3::decode_expression(bytes.substr(0, size), invalid, error), "truncated expression accepted");
+      }
+      xlang3::Value result, reservations;
+      const auto bindings = xlang3::Value::dict({
+        {xlang3::Value::string("NPU"), xlang3::Value::int64(2)},
+        {xlang3::Value::string("OS"), xlang3::Value::string("Windows")}});
+      require(xlang3::evaluate_expression(value, bindings, result, reservations, error), "decoded expression evaluation failed");
+      require(xlang3::value_truthy(result), "decoded expression should match");
+    }
+  }
+  require(found_expression, "IR did not preserve expression constants");
 
   xlang3::ir::Module stale;
   require(

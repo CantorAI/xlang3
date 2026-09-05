@@ -10,6 +10,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+if len(sys.argv) > 1:
+    sys.path.insert(0, sys.argv[1])
 from xlang_yaml import yaml
 
 data = yaml.loads("name: xlang3\nitems:\n  - 1\n  - 2\nenabled: true\n")

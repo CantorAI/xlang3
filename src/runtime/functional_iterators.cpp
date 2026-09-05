@@ -393,6 +393,51 @@ bool runtime_call_callable_kw(
     return runtime_call_callable(runtime, callable, args, argc, out, error);
   }
 
+  if (auto* klass = value_as_class(callable)) {
+    Value instance;
+    Value new_callable;
+    if (resolve_class_new_callable(callable, klass, new_callable)) {
+      std::vector<Value> new_args;
+      new_args.reserve(static_cast<size_t>(argc) + 1);
+      new_args.push_back(callable);
+      for (uint32_t i = 0; i < argc; ++i) new_args.push_back(args[i]);
+      if (!runtime_call_callable_kw(runtime, new_callable, new_args.data(),
+          static_cast<uint32_t>(new_args.size()), kwargs, instance, error)) return false;
+      auto* object = value_as_instance(instance);
+      auto* actual_class = object ? value_as_class(object->klass) : nullptr;
+      if (!actual_class || !class_is_subclass(actual_class, klass)) {
+        value_assign_fast(out, instance);
+        return true;
+      }
+    } else {
+      instance = Value::instance(callable);
+    }
+    Value init;
+    std::string init_error;
+    if (!object_get_attr(instance, "__init__", init, init_error) || init.tag == ValueTag::Invalid)
+      return raise_type_error(runtime, "class construction does not accept keyword arguments", error);
+    Value ignored;
+    if (!runtime_call_callable_kw(runtime, init, args, argc, kwargs, ignored, error)) return false;
+    if (ignored.tag != ValueTag::None)
+      return raise_type_error(runtime, "__init__ must return None", error);
+    value_assign_fast(out, instance);
+    return true;
+  }
+
+  if (auto* bound = value_as_bound_method(callable)) {
+    std::vector<Value> bound_args;
+    bound_args.reserve(static_cast<size_t>(argc) + 1);
+    bound_args.push_back(bound->self);
+    for (uint32_t i = 0; i < argc; ++i) bound_args.push_back(args[i]);
+    return runtime_call_callable_kw(runtime, bound->function, bound_args.data(),
+        static_cast<uint32_t>(bound_args.size()), kwargs, out, error);
+  }
+  if (value_as_instance(callable) != nullptr) {
+    Value method;
+    if (!object_get_attr(callable, "__call__", method, error)) return false;
+    return runtime_call_callable_kw(runtime, method, args, argc, kwargs, out, error);
+  }
+
   if (auto* native = value_as_native_function(callable)) {
     if (native->keyword_callback == nullptr) {
       error = native->name + " does not accept keyword arguments";

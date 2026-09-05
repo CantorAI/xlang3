@@ -150,6 +150,7 @@ enum class Op : uint16_t {
   YieldFrom,
   Pop,
   Return,
+  CaptureExpressions,
 };
 
 enum class CompareOp : uint16_t {

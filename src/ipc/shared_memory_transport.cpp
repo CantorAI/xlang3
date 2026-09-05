@@ -68,6 +68,7 @@ bool lrpc_listen_shared_memory(int64_t port, bool wait, LrpcDispatch dispatch, s
   g_dispatch = std::move(dispatch);
   if (!g_server_started.exchange(true)) {
     if (!lrpc_start_shared_memory_server_platform(std::to_string(port), error)) {
+      g_server_started.store(false);
       return false;
     }
   }

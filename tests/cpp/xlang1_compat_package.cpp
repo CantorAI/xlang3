@@ -5,6 +5,7 @@ Licensed under the Apache License, Version 2.0
 #include "xlang3/xlang3.h"
 
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,9 +21,20 @@ public:
     return total_;
   }
 
+  X::Value append_total(X::Value& list) {
+    if (!list.Append(X::Value(total_))) throw X::Error("expected a list");
+    return list;
+  }
+
+  long long read_value(const X::Value& value) const {
+    return value.ToLongLong();
+  }
+
   BEGIN_PACKAGE(xlang1_compat_counter)
     APISET().AddFunc<1>("add", &xlang1_compat_counter::add);
     APISET().AddProp("total", &xlang1_compat_counter::total);
+    APISET().AddFunc<1>("append_total", &xlang1_compat_counter::append_total);
+    APISET().AddFunc<1>("read_value", &xlang1_compat_counter::read_value);
   END_PACKAGE
 
 private:
@@ -31,6 +43,44 @@ private:
 
 class xlang1_compat_sample {
 public:
+  X::Value capture(std::vector<X::Value> expressions) {
+    auto captured = X::Value::List(Host());
+    for (const auto& expr : expressions) {
+      if (!expr.IsExpression()) throw X::Error("expected captured expression");
+      captured.Append(expr);
+    }
+    {
+      std::lock_guard<std::mutex> lock(captured_mutex_);
+      captured_ = std::move(captured);
+    }
+    return __xlang3_package_->GetLiveValue("identity");
+  }
+
+  X::Value identity(X::Value function) { return function; }
+  X::Value captured() {
+    std::lock_guard<std::mutex> lock(captured_mutex_);
+    return captured_;
+  }
+  X::Value evaluate(X::Value expression, X::Value bindings) {
+    X::Value result, reservations;
+    if (!expression.Evaluate(bindings, result, reservations))
+      throw X::Error(Host()->runtime_last_error(Host()->runtime));
+    auto list = X::Value::List(Host());
+    list.Append(result);
+    list.Append(reservations);
+    return list;
+  }
+  X::Value expression_roundtrip(X::Value expression) {
+    X::Value bytes, restored;
+    if (!expression.ToBytes(bytes) || !bytes.FromBytes(restored)) throw X::Error("expression serialization failed");
+    return restored;
+  }
+  X::Value expression_info(X::Value expression) {
+    X3Value result = x3_value_invalid();
+    if (Host()->expression_inspect(Host()->runtime, expression.raw(), &result) != X3_STATUS_OK)
+      throw X::Error("expression inspection failed");
+    return X::Value(Host(), result, false);
+  }
   long long add(long long left, long long right) {
     return left + right;
   }
@@ -51,6 +101,15 @@ public:
 
   long long bytes_size(X::Value value) {
     return value.IsBin() ? static_cast<long long>(value.Size()) : -1;
+  }
+
+  X::Value set_item(X::Value& dict, const X::Value& value) {
+    if (!dict.Set("item", value)) throw X::Error("expected a dict");
+    return dict;
+  }
+
+  long long read_value(const X::Value& value) const {
+    return value.ToLongLong();
   }
 
   X::Value fire_changed(long long left, long long right) {
@@ -84,12 +143,12 @@ public:
 
   X::Value stream_roundtrip() {
     X::Value source = make_payload();
-    X::Value bytes;
-    if (!source.ToBytes(bytes)) {
+    X::Stream stream(Host());
+    if (!source.ToBytes(stream) || !stream.Rewind()) {
       return X::Value::String(Host(), "stream-write-failed");
     }
     X::Value restored;
-    if (!bytes.FromBytes(restored)) {
+    if (!restored.FromBytes(stream)) {
       return X::Value::String(Host(), "stream-read-failed");
     }
     return X::Value::String(Host(), check_payload(restored) ? "ok" : "bad-stream-payload");
@@ -112,10 +171,19 @@ public:
   }
 
   BEGIN_PACKAGE(xlang1_compat_sample)
+    APISET().AddExpressionDecorator("Task", &xlang1_compat_sample::capture);
+    APISET().AddFunc<1>("identity", &xlang1_compat_sample::identity);
+    APISET().AddFunc<1>("snapshot", &xlang1_compat_sample::identity, X3_NATIVE_IPC_ARGS_BY_VALUE);
+    APISET().AddFunc<0>("captured", &xlang1_compat_sample::captured);
+    APISET().AddFunc<2>("evaluate", &xlang1_compat_sample::evaluate);
+    APISET().AddFunc<1>("expression_roundtrip", &xlang1_compat_sample::expression_roundtrip);
+    APISET().AddFunc<1>("expression_info", &xlang1_compat_sample::expression_info);
     APISET().AddFunc<2>("add", &xlang1_compat_sample::add);
     APISET().AddFunc<0>("make_list", &xlang1_compat_sample::make_list);
     APISET().AddFunc<0>("make_dict", &xlang1_compat_sample::make_dict);
     APISET().AddFunc<1>("bytes_size", &xlang1_compat_sample::bytes_size);
+    APISET().AddFunc<2>("set_item", &xlang1_compat_sample::set_item);
+    APISET().AddFunc<1>("read_value", &xlang1_compat_sample::read_value);
     APISET().AddFunc<2>("fire_changed", &xlang1_compat_sample::fire_changed);
     APISET().AddFunc<0>("is_changed_event", &xlang1_compat_sample::is_changed_event);
     APISET().AddFunc<0>("value_bytes_roundtrip", &xlang1_compat_sample::value_bytes_roundtrip);
@@ -161,6 +229,8 @@ private:
   }
 
   std::string name_ = "compat";
+  X::Value captured_;
+  std::mutex captured_mutex_;
 };
 
 XLANG3_IMPLEMENT_PACKAGE(xlang1_compat_sample)

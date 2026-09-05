@@ -362,12 +362,12 @@ Value make_runtime_loader(Runtime& runtime, const std::string& class_name, const
   attrs.push_back({"__module__", Value::string("_frozen_importlib")});
   attrs.push_back({"__name__", Value::string(class_name)});
   if (class_name == "SourceFileLoader") {
-    attrs.push_back({"get_filename", runtime.make_native_function("SourceFileLoader.get_filename", runtime_loader_get_filename)});
-    attrs.push_back({"get_data", runtime.make_native_function("SourceFileLoader.get_data", runtime_loader_get_data)});
-    attrs.push_back({"get_resource_reader", runtime.make_native_function("SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader)});
+    attrs.push_back({"get_filename", runtime.make_native_function("xlang3.SourceFileLoader.get_filename", runtime_loader_get_filename)});
+    attrs.push_back({"get_data", runtime.make_native_function("xlang3.SourceFileLoader.get_data", runtime_loader_get_data)});
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("xlang3.SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader)});
   }
   if (class_name == "NamespaceLoader") {
-    attrs.push_back({"get_resource_reader", runtime.make_native_function("NamespaceLoader.get_resource_reader", runtime_namespace_loader_get_resource_reader)});
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("xlang3.NamespaceLoader.get_resource_reader", runtime_namespace_loader_get_resource_reader)});
   }
   auto loader = Value::instance(Value::class_object(class_name, std::move(attrs)));
   std::string ignored;
@@ -475,6 +475,10 @@ void canonicalize_module_loader_from_bootstrap(std::unordered_map<std::string, V
 } // namespace
 
 void Runtime::initialize() {
+  make_native_function("xlang3.SourceFileLoader.get_filename", runtime_loader_get_filename);
+  make_native_function("xlang3.SourceFileLoader.get_data", runtime_loader_get_data);
+  make_native_function("xlang3.SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader);
+  make_native_function("xlang3.NamespaceLoader.get_resource_reader", runtime_namespace_loader_get_resource_reader);
   modules_dict_ = Value::dict({});
   register_core_builtins(*this);
 #if !defined(XLANG3_EMBEDDED)
@@ -525,6 +529,21 @@ Runtime::~Runtime() {
   clear_current_frame();
   clear_runtime_frame_states(*this);
   runtime_clear_exception_states(*this);
+  collect_serialized_objects(true);
+  native_codecs_.clear();
+  // Module/function and sys.modules cycles must not retain native instances
+  // beyond package cleanup, which releases the hosts used by their destructors.
+  for (auto& entry : modules_) {
+    if (auto* module = value_as_module(entry.second)) {
+      module->slots.clear();
+      module->name_to_slot.clear();
+      ++module->version;
+    }
+  }
+  native_symbols_.clear();
+  modules_.clear();
+  value_set_invalid(modules_dict_);
+  builtins_.clear();
   for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
     if (it->second != nullptr) {
       it->second(it->first);
@@ -1136,7 +1155,7 @@ Value Runtime::make_native_function(
     NativeKeywordFunctionCallback keyword_callback,
     bool bind_as_descriptor) {
   const uint32_t native_id = next_native_id_++;
-  return Value::native_function(
+  auto result = Value::native_function(
       native_id,
       std::move(name),
       callback,
@@ -1146,6 +1165,41 @@ Value Runtime::make_native_function(
       fast_releases_vm_lock,
       keyword_callback,
       bind_as_descriptor);
+  if (user_data == nullptr && user_data_cleanup == nullptr) {
+    native_symbols_.emplace(value_as_native_function(result)->name, result);
+  }
+  return result;
+}
+
+const Value* Runtime::find_native_symbol(const std::string& name) const {
+  auto it = native_symbols_.find(name);
+  return it == native_symbols_.end() ? nullptr : &it->second;
+}
+bool Runtime::register_native_codec(std::shared_ptr<NativeSerializationCodec> codec) {
+  if (native_codecs_.count(codec->type_id)) return false;
+  for (const auto& item : native_codecs_) if (item.second->native_type == codec->native_type) return false;
+  auto inserted = native_codecs_.emplace(codec->type_id, std::move(codec));
+  if (!native_codec_registrations_.empty()) {
+    try { native_codec_registrations_.back().push_back(inserted.first->first); }
+    catch (...) { native_codecs_.erase(inserted.first); throw; }
+  }
+  return true;
+}
+void Runtime::begin_native_codec_registration() {
+  native_codec_registrations_.emplace_back();
+}
+void Runtime::end_native_codec_registration(bool commit) {
+  auto registered = std::move(native_codec_registrations_.back());
+  native_codec_registrations_.pop_back();
+  if (!commit) for (const auto& name : registered) native_codecs_.erase(name);
+}
+const NativeSerializationCodec* Runtime::find_native_codec(const std::string& type, bool local_type) const {
+  if (local_type) {
+    for (const auto& item : native_codecs_) if (item.second->native_type == type) return item.second.get();
+    return nullptr;
+  }
+  auto it = native_codecs_.find(type);
+  return it == native_codecs_.end() ? nullptr : it->second.get();
 }
 
 void Runtime::register_module(std::string name, Value module) {

@@ -22,6 +22,7 @@ void XLangStream::SetProvider(XLStream* provider) {
 }
 
 void XLangStream::ResetPos() {
+  io_failed_ = false;
   curPos_ = {0, 0};
   size_ = CalcSize(curPos_);
 }
@@ -77,6 +78,22 @@ bool XLangStream::CopyTo(char* buf, STREAM_SIZE size) {
   return true;
 }
 
+bool XLangStream::CanRead(STREAM_SIZE size) {
+  if (size < 0) return false;
+  int index = curPos_.block_index;
+  STREAM_SIZE offset = curPos_.offset;
+  while (size > 0) {
+    if (index < 0 || index >= BlockNum()) return false;
+    const auto available = GetBlockInfo(index).data_size - offset;
+    if (available < 0) return false;
+    if (size <= available) return true;
+    size -= available;
+    ++index;
+    offset = 0;
+  }
+  return true;
+}
+
 bool XLangStream::appendchar(char c) {
   return append(&c, 1);
 }
@@ -128,7 +145,7 @@ bool XLangStream::append_view(std::string_view data) {
 }
 
 bool XLangStream::fetch_bytes(std::string& bytes, STREAM_SIZE size) {
-  if (size < 0) {
+  if (!CanRead(size)) {
     return false;
   }
   bytes.resize(static_cast<size_t>(size));
@@ -136,9 +153,10 @@ bool XLangStream::fetch_bytes(std::string& bytes, STREAM_SIZE size) {
 }
 
 XLangStream& XLangStream::operator<<(std::string_view value) {
+  if (value.size() > UINT32_MAX) { io_failed_ = true; return *this; }
   const auto size = static_cast<uint32_t>(value.size());
   (*this) << size;
-  append_view(value);
+  if (!io_failed_ && !append_view(value)) io_failed_ = true;
   return *this;
 }
 
@@ -149,11 +167,12 @@ XLangStream& XLangStream::operator<<(const std::string& value) {
 XLangStream& XLangStream::operator>>(std::string& value) {
   uint32_t size = 0;
   (*this) >> size;
-  fetch_bytes(value, size);
+  if (!io_failed_ && !fetch_bytes(value, size)) io_failed_ = true;
   return *this;
 }
 
 void XLangStream::SetPos(blockIndex pos) {
+  io_failed_ = false;
   curPos_ = pos;
   size_ = CalcSize(curPos_);
 }

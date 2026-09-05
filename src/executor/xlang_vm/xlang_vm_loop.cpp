@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/interpreter.h"
+#include "xlang3/expression.h"
 
 #include "xlang_frame.h"
 #include "xlang_vm_arithmetic.h"

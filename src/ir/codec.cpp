@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/ir_codec.h"
 
 #include "xlang3/value.h"
+#include "xlang3/expression.h"
 
 #include <cstring>
 #include <limits>
@@ -24,7 +25,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 12;
+constexpr uint32_t kVersion = 14;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -35,6 +36,9 @@ enum class ConstTag : uint8_t {
   Double = 4,
   String = 5,
   Bytes = 6,
+  Expression = 7,
+  Tuple = 8,
+  Invalid = 9,
 };
 
 struct Writer {
@@ -549,8 +553,12 @@ bool read_call_specs(Reader& r, std::vector<CallSpec>& specs, std::string& error
   return true;
 }
 
-bool write_value(Writer& w, const Value& value, std::string& error) {
+bool write_value(Writer& w, const Value& value, std::string& error, uint32_t depth = 0) {
+  if (depth > 256) { error = "IR constant nesting exceeds limit"; return false; }
   switch (value.tag) {
+    case ValueTag::Invalid:
+      w.u8(static_cast<uint8_t>(ConstTag::Invalid));
+      return true;
     case ValueTag::None:
       w.u8(static_cast<uint8_t>(ConstTag::None));
       return true;
@@ -567,11 +575,23 @@ bool write_value(Writer& w, const Value& value, std::string& error) {
       w.f64(value.as.f64);
       return true;
     case ValueTag::Object:
+      if (auto* tuple = value_as_tuple(value)) {
+        w.u8(static_cast<uint8_t>(ConstTag::Tuple));
+        if (!write_count(w, tuple->items.size(), error)) return false;
+        for (const auto& item : tuple->items) if (!write_value(w, item, error, depth + 1)) return false;
+        return true;
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         w.u8(static_cast<uint8_t>(ConstTag::String));
         return w.string(string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj)), error);
       }
-      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Expression) {
+          std::string bytes;
+          if (!encode_expression(value, bytes, error)) return false;
+          w.u8(static_cast<uint8_t>(ConstTag::Expression));
+          return w.string(bytes, error);
+        }
+        if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         w.u8(static_cast<uint8_t>(ConstTag::Bytes));
         return w.string(bytes_object_to_string(*reinterpret_cast<BytesObject*>(value.as.obj)), error);
       }
@@ -579,16 +599,30 @@ bool write_value(Writer& w, const Value& value, std::string& error) {
     default:
       break;
   }
-  error = "IR constant type is not serializable";
+  error = "IR constant type is not serializable: tag=" + std::to_string(static_cast<uint32_t>(value.tag)) +
+      (value.tag == ValueTag::Object && value.as.obj ? ", kind=" + std::to_string(static_cast<uint32_t>(value.as.obj->kind)) : std::string());
   return false;
 }
 
-bool read_value(Reader& r, Value& value) {
+bool read_value(Reader& r, Value& value, uint32_t depth = 0) {
+  if (depth > 256) return false;
   uint8_t tag = 0;
   if (!r.u8(tag)) {
     return false;
   }
   switch (static_cast<ConstTag>(tag)) {
+    case ConstTag::Invalid: value = Value::invalid(); return true;
+    case ConstTag::Tuple: {
+      uint32_t count = 0;
+      if (!r.u32(count) || count > kMaxVectorItems || count > r.size - r.pos) return false;
+      value = Value::tuple_reserved(count);
+      for (uint32_t i = 0; i < count; ++i) {
+        Value item;
+        if (!read_value(r, item, depth + 1)) return false;
+        value_as_tuple(value)->items.push_back(std::move(item));
+      }
+      return true;
+    }
     case ConstTag::None:
       value = Value::none();
       return true;
@@ -623,6 +657,11 @@ bool read_value(Reader& r, Value& value) {
       }
       value = Value::string(std::move(s));
       return true;
+    }
+    case ConstTag::Expression: {
+      std::string bytes;
+      std::string error;
+      return r.string(bytes) && decode_expression(bytes, value, error);
     }
     case ConstTag::Bytes: {
       std::string s;

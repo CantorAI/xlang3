@@ -20,6 +20,8 @@ limitations under the License.
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -96,6 +98,7 @@ enum class ObjectKind : uint32_t {
   File,
   GenericAlias,
   TypeParam,
+  Expression,
 };
 
 struct Object {
@@ -148,6 +151,8 @@ struct NativeFunctionObject {
   NativeFastCallCallback fast_callback = nullptr;
   bool fast_releases_vm_lock = false;
   bool bind_as_descriptor = true;
+  bool capture_expressions = false;
+  bool ipc_args_by_value = false;
   void* user_data = nullptr;
   void (*user_data_cleanup)(void*) = nullptr;
   Value* attrs_dict = nullptr;
@@ -566,6 +571,8 @@ struct EventObject {
   std::string name;
   uint64_t next_cookie = 1;
   std::vector<EventHandlerObject> handlers;
+  std::recursive_mutex mutex;
+  std::shared_ptr<std::function<bool(uint64_t)>> changed;
 };
 
 struct TracebackObject {

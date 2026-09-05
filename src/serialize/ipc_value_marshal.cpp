@@ -5,6 +5,7 @@ Licensed under the Apache License, Version 2.0
 #include "serialize/ipc_value_marshal.h"
 
 #include "xlang3/mapping.h"
+#include "xlang3/expression.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
@@ -54,21 +55,49 @@ bool should_always_pass_by_reference(ObjectKind kind) {
 
 bool write_object_ref(XLangStream& stream, IpcMarshalContext* context, const Value& value, std::string& error) {
   if (context == nullptr) {
-    error = "IPC marshal needs an object table for this object kind";
+    error = "standalone serialization does not support this object kind; function transfer is not implemented";
     return false;
   }
   RemoteObjectId id;
   if (!context->make_object_ref(value, id, error)) {
     return false;
   }
-  const auto kind = IpcWireValueKind::ObjectRef;
+  const auto kind = ipc_arguments_by_value(value) ? IpcWireValueKind::ValueCallRef :
+      expression_capture_enabled(value) ? IpcWireValueKind::ExpressionDecoratorRef : IpcWireValueKind::ObjectRef;
   stream << kind << id.node_id << id.session_id << id.object_id << id.generation;
+  if (kind == IpcWireValueKind::ValueCallRef)
+    stream << static_cast<uint8_t>(expression_capture_enabled(value));
   return true;
 }
 
 } // namespace
 
+bool ipc_arguments_by_value(const Value& callable) {
+  const Value* function = &callable;
+  Value method;
+  if (value_as_instance(callable)) {
+    std::string error;
+    if (!object_get_class_attr_for_instance(callable, "__call__", method, error)) return false;
+    function = &method;
+  }
+  if (auto* bound = value_as_bound_method(*function)) function = &bound->function;
+  if (auto* native = value_as_native_function(*function)) return native->ipc_args_by_value;
+  return false;
+}
+
 bool XLangStream::MarshalToBytes(const Value& value, const std::string& callable_name, std::string& error) {
+  if (io_failed_ || marshal_depth_ >= 256) {
+    error = "serialization failed or nesting limit exceeded";
+    return false;
+  }
+  struct DepthGuard { unsigned& depth; ~DepthGuard() { --depth; } } guard{marshal_depth_};
+  ++marshal_depth_;
+  const bool ok = MarshalToBytesImpl(value, callable_name, error);
+  if (io_failed_ && error.empty()) error = "stream write failed";
+  return ok && !io_failed_;
+}
+
+bool XLangStream::MarshalToBytesImpl(const Value& value, const std::string& callable_name, std::string& error) {
   if (!callable_name.empty()) {
     const auto kind = IpcWireValueKind::Callable;
     (*this) << kind << callable_name;
@@ -96,6 +125,12 @@ bool XLangStream::MarshalToBytes(const Value& value, const std::string& callable
       if (value.as.obj == nullptr) {
         kind = IpcWireValueKind::None;
         (*this) << kind;
+        return true;
+      }
+      if (value.as.obj->kind == ObjectKind::Expression) {
+        std::string bytes;
+        if (!encode_expression(value, bytes, error)) return false;
+        (*this) << IpcWireValueKind::Expression << bytes;
         return true;
       }
       if (auto* string = value_as_string(value)) {
@@ -140,7 +175,7 @@ bool XLangStream::MarshalToBytes(const Value& value, const std::string& callable
         return write_object_ref(*this, MarshalContext(), value, error);
       }
       if (auto* tuple = value_as_tuple(value)) {
-        if (tuple->items.size() > kMarshalContainerByRefThreshold) {
+        if (MarshalContext() && tuple->items.size() > kMarshalContainerByRefThreshold) {
           return write_object_ref(*this, MarshalContext(), value, error);
         }
         kind = IpcWireValueKind::Tuple;
@@ -151,7 +186,7 @@ bool XLangStream::MarshalToBytes(const Value& value, const std::string& callable
         return true;
       }
       if (auto* list = value_as_list(value)) {
-        if (list->items.size() > kMarshalContainerByRefThreshold) {
+        if (MarshalContext() && list->items.size() > kMarshalContainerByRefThreshold) {
           return write_object_ref(*this, MarshalContext(), value, error);
         }
         kind = IpcWireValueKind::List;
@@ -162,7 +197,7 @@ bool XLangStream::MarshalToBytes(const Value& value, const std::string& callable
         return true;
       }
       if (auto* dict = value_as_dict(value)) {
-        if (dict->entries.size() > kMarshalContainerByRefThreshold) {
+        if (MarshalContext() && dict->entries.size() > kMarshalContainerByRefThreshold) {
           return write_object_ref(*this, MarshalContext(), value, error);
         }
         kind = IpcWireValueKind::Dict;
@@ -181,6 +216,18 @@ bool XLangStream::MarshalToBytes(const Value& value, const std::string& callable
 }
 
 bool XLangStream::MarshalFromBytes(IpcWireValue& value, std::string& error) {
+  if (io_failed_ || marshal_depth_ >= 256) {
+    error = "deserialization failed or nesting limit exceeded";
+    return false;
+  }
+  struct DepthGuard { unsigned& depth; ~DepthGuard() { --depth; } } guard{marshal_depth_};
+  ++marshal_depth_;
+  const bool ok = MarshalFromBytesImpl(value, error);
+  if ((!ok || io_failed_) && error.empty()) error = "truncated or invalid serialized value";
+  return ok && !io_failed_;
+}
+
+bool XLangStream::MarshalFromBytesImpl(IpcWireValue& value, std::string& error) {
   if (!fetch_pod(*this, value.kind)) {
     error = "truncated IPC value";
     return false;
@@ -201,10 +248,19 @@ bool XLangStream::MarshalFromBytes(IpcWireValue& value, std::string& error) {
     case IpcWireValueKind::Error:
       (*this) >> value.bytes;
       return true;
+    case IpcWireValueKind::Expression: {
+      uint32_t size = 0;
+      if (!fetch_pod(*this, size) || size > 16 * 1024 * 1024 || !fetch_bytes(value.bytes, size)) {
+        error = "invalid or truncated expression payload";
+        return false;
+      }
+      return true;
+    }
     case IpcWireValueKind::Tuple:
     case IpcWireValueKind::List: {
       uint32_t count = 0;
       (*this) >> count;
+      if (io_failed_ || !CanRead(count)) return false;
       value.items.reserve(count);
       for (uint32_t i = 0; i < count; ++i) {
         IpcWireValue item;
@@ -216,6 +272,7 @@ bool XLangStream::MarshalFromBytes(IpcWireValue& value, std::string& error) {
     case IpcWireValueKind::Dict: {
       uint32_t count = 0;
       (*this) >> count;
+      if (io_failed_ || !CanRead(static_cast<STREAM_SIZE>(count) * 2)) return false;
       value.entries.reserve(count);
       for (uint32_t i = 0; i < count; ++i) {
         IpcWireValue key;
@@ -226,7 +283,15 @@ bool XLangStream::MarshalFromBytes(IpcWireValue& value, std::string& error) {
       return true;
     }
     case IpcWireValueKind::ObjectRef:
+    case IpcWireValueKind::ExpressionDecoratorRef:
+    case IpcWireValueKind::ValueCallRef:
       (*this) >> value.object_id.node_id >> value.object_id.session_id >> value.object_id.object_id >> value.object_id.generation;
+      if (value.kind == IpcWireValueKind::ValueCallRef) {
+        uint8_t capture = 0;
+        (*this) >> capture;
+        if (capture > 1) { error = "invalid IPC expression capture flag"; return false; }
+        value.bool_value = capture != 0;
+      }
       return true;
   }
   error = "unknown IPC value kind";

@@ -21,6 +21,7 @@ public:
   bool NewBlock() override;
   bool MoveToNextBlock() override;
   void Refresh() override;
+  void AddBlock(char* data, STREAM_SIZE capacity, STREAM_SIZE used);
 
 private:
   struct BlockInfo : blockInfo {

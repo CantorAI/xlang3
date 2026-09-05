@@ -11,7 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 param(
-    [string]$XLang3
+    [string]$XLang3,
+    [string]$NativeModules = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,7 +31,7 @@ foreach ($case in $cases) {
     $source = Join-Path $root "$case.py"
     $expectedPath = Join-Path $root "$case.out"
     $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
-    $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
+    $actual = ((& $XLang3 $source $NativeModules | Out-String) -replace "`r`n", "`n").TrimEnd()
     if ($LASTEXITCODE -ne 0) {
         throw "$case failed with exit code $LASTEXITCODE"
     }

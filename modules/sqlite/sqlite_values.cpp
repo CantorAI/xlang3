@@ -48,6 +48,13 @@ bool bind_value(const X3PackageHost* host, X3Runtime* runtime, sqlite3_stmt* stm
         const char* text = host->value_to_cstr(runtime, value);
         return sqlite3_bind_text(stmt, index, text, -1, SQLITE_TRANSIENT) == SQLITE_OK;
       }
+      if (host->value_object_kind(value) == X3_OBJECT_KIND_BYTES) {
+        const void* data = nullptr;
+        uint64_t size = 0;
+        if (host->value_bytes_data(runtime, value, &data, &size) != X3_STATUS_OK) return false;
+        if (size == 0) return sqlite3_bind_zeroblob(stmt, index, 0) == SQLITE_OK;
+        return sqlite3_bind_blob64(stmt, index, data, size, SQLITE_TRANSIENT) == SQLITE_OK;
+      }
       return false;
     default:
       return false;
@@ -84,8 +91,10 @@ X3Value column_value(const X3PackageHost* host, X3Runtime* runtime, sqlite3_stmt
     case SQLITE_NULL:
       return x3_value_none();
     case SQLITE_BLOB:
+      return host->value_bytes(runtime, sqlite3_column_blob(stmt, column),
+                               static_cast<uint64_t>(sqlite3_column_bytes(stmt, column)));
     default:
-      return host->value_string(runtime, reinterpret_cast<const char*>(sqlite3_column_text(stmt, column)));
+      return x3_value_none();
   }
 }
 

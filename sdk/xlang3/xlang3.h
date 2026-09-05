@@ -22,6 +22,7 @@ limitations under the License.
 
 #ifdef __cplusplus
 #include "xlang3/cpp/runtime.h"
+#include "xlang3/cpp/stream.h"
 #endif
 
 #endif

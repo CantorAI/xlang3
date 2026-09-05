@@ -57,6 +57,7 @@ public:
   STREAM_SIZE Size() override { return size_; }
   bool FullCopyTo(char* buf, STREAM_SIZE bufSize) override;
   bool CopyTo(char* buf, STREAM_SIZE size);
+  bool CanRead(STREAM_SIZE size);
   bool appendchar(char c);
   bool fetchchar(char& c);
   bool append(const void* data, STREAM_SIZE size);
@@ -65,13 +66,13 @@ public:
 
   template <typename T>
   XLangStream& operator<<(const T& value) {
-    append(&value, static_cast<STREAM_SIZE>(sizeof(value)));
+    if (!io_failed_ && !append(&value, static_cast<STREAM_SIZE>(sizeof(value)))) io_failed_ = true;
     return *this;
   }
 
   template <typename T>
   XLangStream& operator>>(T& value) {
-    CopyTo(reinterpret_cast<char*>(&value), static_cast<STREAM_SIZE>(sizeof(value)));
+    if (!io_failed_ && !CopyTo(reinterpret_cast<char*>(&value), static_cast<STREAM_SIZE>(sizeof(value)))) io_failed_ = true;
     return *this;
   }
 
@@ -96,6 +97,10 @@ public:
   bool MoveToNextBlock() override;
 
 private:
+  bool MarshalToBytesImpl(const Value& value, const std::string& callable_name, std::string& error);
+  bool MarshalFromBytesImpl(IpcWireValue& value, std::string& error);
+  bool io_failed_ = false;
+  unsigned marshal_depth_ = 0;
   XLStream* provider_ = nullptr;
   IpcMarshalContext* marshal_context_ = nullptr;
   blockIndex curPos_{0, 0};

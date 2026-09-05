@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/value.h"
+#include "xlang3/expression.h"
 
 #include "xlang3/builtins.h"
 #include "xlang3/generator.h"
@@ -1302,6 +1303,9 @@ void release(const Value& value) {
       break;
     case ObjectKind::TypeParam:
       delete value_as_type_param(value);
+      break;
+    case ObjectKind::Expression:
+      delete reinterpret_cast<ExpressionObject*>(value.as.obj);
       break;
   }
 }

@@ -58,7 +58,13 @@ typedef enum X3ValueCompareOp {
 X3_API X3Runtime* x3_runtime_create(void);
 X3_API void x3_runtime_destroy(X3Runtime* runtime);
 X3_API const char* x3_runtime_last_error(X3Runtime* runtime);
+typedef X3Status (*X3EventChanged)(void* context, uint64_t count);
+/* On success the event owns context until replacement or destruction. */
+X3_API X3Status x3_event_set_change_handler(X3Runtime*, X3Value,
+    X3EventChanged callback, void* context, void (*cleanup)(void*));
 X3_API X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path);
+X3_API X3Status x3_runtime_import_remote(X3Runtime* runtime, const char* name,
+    const char* endpoint, X3Value* result);
 
 X3_API X3Status x3_runtime_eval_file(
     X3Runtime* runtime,
@@ -76,6 +82,11 @@ X3_API X3ObjectKind x3_value_object_kind(X3Value value);
 X3_API X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** data, uint64_t* size);
 X3_API X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result);
 X3_API X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result);
+/* Evaluate against a resource snapshot without changing it. Reservations are
+   returned separately; the scheduler must commit them atomically. */
+X3_API X3Status x3_expression_evaluate(X3Runtime* runtime, X3Value expression,
+    X3Value bindings, X3Value* result, X3Value* reservations);
+X3_API X3Status x3_expression_inspect(X3Runtime* runtime, X3Value expression, X3Value* result);
 X3_API X3Status x3_value_binary_op(
     X3Runtime* runtime,
     X3ValueBinaryOp op,
@@ -123,7 +134,27 @@ X3_API X3Status x3_call(
     uint32_t argc,
     X3Value* result);
 
+/* Names and values are borrowed for the duration of the call. */
+typedef struct X3KeywordArg {
+  const char* name;
+  X3Value value;
+} X3KeywordArg;
+X3_API X3Status x3_call_kw(X3Runtime* runtime, X3Value callable,
+    const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
+    uint32_t kwargc, X3Value* result);
+
 X3_API X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result);
+/* Borrowed native payload, valid while the instance remains alive. */
+X3_API void* x3_instance_get_native_data(X3Value instance, const char* type_name);
+X3_API X3Status x3_instance_set_native_data(X3Value instance, const char* type_name,
+    void* data, void (*cleanup)(void*));
+X3_API X3Value x3_value_instance(X3Runtime* runtime, X3Value klass);
+/* The callback returns a borrowed, correctly adjusted native base pointer. */
+typedef void* (*X3NativeDataCast)(void* data, const char* type_name);
+X3_API X3Status x3_instance_set_native_cast(X3Value instance, X3NativeDataCast cast);
+/* On success, cleanup receives owner, not data. Ownership transfers only on success. */
+X3_API X3Status x3_instance_set_native_owner(X3Value instance, const char* type_name,
+    void* data, void* owner, void (*cleanup)(void*));
 X3_API X3Status x3_get_item(
     X3Runtime* runtime,
     X3Value object,

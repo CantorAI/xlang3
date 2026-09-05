@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/sema.h"
+#include "xlang3/expression.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/parser.h"
 #include "xlang3/python_names.h"
@@ -1584,7 +1585,8 @@ private:
     store_named_value(import.bind_name, reg);
     uint32_t import_slot = 0;
     if (module_global_slot(import.bind_name, import_slot)) {
-      imported_module_slots_.insert(import_slot);
+      // A thru binding is a remote object, not a locally cached module.
+      imported_module_slots_.erase(import_slot);
     }
   }
 
@@ -2011,10 +2013,50 @@ private:
 
   uint32_t apply_decorators(uint32_t object_reg, const std::vector<ast::ExprPtr>& decorators) {
     uint32_t current = object_reg;
-    for (auto it = decorators.rbegin(); it != decorators.rend(); ++it) {
-      const auto decorator = lower_expr(**it);
-      current = emit_call_value(decorator, {current});
+    std::vector<uint32_t> resolved;
+    for (const auto& expr : decorators) {
+      auto* call = dynamic_cast<const ast::CallExpr*>(expr.get());
+      if (!call) { resolved.push_back(lower_expr(*expr)); continue; }
+      const auto callee = lower_expr(*call->callee);
+      const auto mode = new_reg();
+      const auto decorator = new_reg();
+      emit(ir::Op::CaptureExpressions, mode, callee);
+      const auto normal = emit_jump(ir::Op::JumpIfFalse, mode);
+      std::vector<uint32_t> expressions;
+      auto quote = [&](const ast::Expr& arg, const std::string& name, bool expansion = false) {
+        const auto reg = new_reg();
+        emit(ir::Op::LoadConst, reg, add_const(capture_expression(arg, name, expansion)));
+        expressions.push_back(reg);
+      };
+      for (const auto& arg : call->args) quote(*arg, {});
+      for (const auto& arg : call->call_args) quote(*arg.value, arg.name, arg.star || arg.kw_star);
+      emit(ir::Op::Move, decorator, emit_call_value(callee, std::move(expressions)));
+      const auto done = emit_jump(ir::Op::Jump);
+      patch_jump(normal, static_cast<uint32_t>(fn_.code.size()));
+      if (call->call_args.empty()) {
+        std::vector<uint32_t> args;
+        for (const auto& arg : call->args) args.push_back(lower_expr(*arg));
+        emit(ir::Op::Move, decorator, emit_call_value(callee, std::move(args)));
+      } else {
+        ir::CallSpec spec;
+        for (const auto& arg : call->call_args) {
+          const auto value = lower_expr(*arg.value);
+          if (arg.kw_star) {
+            if (spec.kw_star_arg == UINT32_MAX) spec.kw_star_arg = value;
+            spec.kw_star_args.push_back(value);
+          } else if (arg.star) {
+            if (spec.star_arg == UINT32_MAX) spec.star_arg = value;
+            spec.star_args.push_back(value);
+          } else if (!arg.name.empty()) spec.keywords.push_back({arg.name, value});
+          else spec.positional.push_back(value);
+        }
+        emit(ir::Op::CallEx, decorator, callee, add_call_spec(std::move(spec)));
+      }
+      patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+      resolved.push_back(decorator);
     }
+    for (auto it = resolved.rbegin(); it != resolved.rend(); ++it)
+      current = emit_call_value(*it, {current});
     return current;
   }
 

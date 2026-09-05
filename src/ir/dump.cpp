@@ -120,6 +120,7 @@ const char* op_name(Op op) {
     case Op::YieldFrom: return "YieldFrom";
     case Op::Pop: return "Pop";
     case Op::Return: return "Return";
+    case Op::CaptureExpressions: return "CaptureExpressions";
   }
   return "Unknown";
 }

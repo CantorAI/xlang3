@@ -6,11 +6,12 @@ Licensed under the Apache License, Version 2.0
 
 #include <cstring>
 #include <utility>
+#include <stdexcept>
 
 namespace xlang3::ipc {
 
-SharedMemoryBlockStream::SharedMemoryBlockStream(std::vector<SharedSlotRef> slots, bool writable, AllocateSlot allocate_slot)
-    : writable_(writable), allocate_slot_(std::move(allocate_slot)) {
+SharedMemoryBlockStream::SharedMemoryBlockStream(std::vector<SharedSlotRef> slots, bool writable, AllocateSlot allocate_slot, bool allow_spill)
+    : writable_(writable), allocate_slot_(std::move(allocate_slot)), allow_spill_(allow_spill) {
   for (auto ref : slots) {
     append_ref(ref, writable_);
   }
@@ -26,7 +27,7 @@ void SharedMemoryBlockStream::append_ref(SharedSlotRef ref, bool writable_block)
   block.info.buf = ref.slot->payload;
   block.info.block_size = kSharedSlotSize;
   block.info.data_size = writable_block ? 0 : ref.slot->payload_size;
-  blocks_.push_back(block);
+  blocks_.push_back(std::move(block));
 }
 
 serialize::STREAM_SIZE SharedMemoryBlockStream::Size() {
@@ -49,8 +50,17 @@ bool SharedMemoryBlockStream::NewBlock() {
   if (!writable_ || !allocate_slot_) {
     return false;
   }
-  SharedSlotRef next = allocate_slot_();
+  if (blocks_.size() >= kSharedSlotCount) return false;
+  SharedSlotRef next = spilled_ ? SharedSlotRef{} : allocate_slot_();
   if (next.slot == nullptr || next.index == kNoSharedSlot) {
+    if (allow_spill_) {
+      Block block{};
+      block.owned = std::make_unique<char[]>(kSharedSlotSize);
+      block.info = {block.owned.get(), kSharedSlotSize, 0};
+      blocks_.push_back(std::move(block));
+      spilled_ = true;
+      return true;
+    }
     return false;
   }
   if (!blocks_.empty()) {
@@ -58,6 +68,27 @@ bool SharedMemoryBlockStream::NewBlock() {
   }
   next.slot->next_slot = kNoSharedSlot;
   append_ref(next, true);
+  return true;
+}
+
+std::unique_ptr<serialize::BlockStream> SharedMemoryBlockStream::stage_spill() {
+  auto staged = std::make_unique<serialize::BlockStream>();
+  for (const auto& block : blocks_) {
+    if (!staged->append(block.info.buf, block.info.data_size))
+      throw std::runtime_error("cannot stage lrpc message under capacity pressure");
+  }
+  return staged;
+}
+
+bool SharedMemoryBlockStream::restore(serialize::BlockStream& staged, std::vector<SharedSlotRef> slots) {
+  blocks_.clear();
+  spilled_ = false;
+  for (auto ref : slots) append_ref(ref, true);
+  SetPos({0, 0});
+  for (int i = 0; i < staged.BlockNum(); ++i) {
+    const auto& block = staged.GetBlockInfo(i);
+    if (!append(block.buf, block.data_size)) return false;
+  }
   return true;
 }
 
@@ -97,6 +128,7 @@ void SharedMemoryBlockStream::commit(uint32_t owner_pid, uint32_t call_id, uint3
 
 void SharedMemoryBlockStream::reset_to_single_slot_for_write(uint32_t first_index, SharedSlot& first_slot) {
   blocks_.clear();
+  spilled_ = false;
   first_slot.next_slot = kNoSharedSlot;
   append_ref(SharedSlotRef{first_index, &first_slot}, true);
   SetPos({0, 0});

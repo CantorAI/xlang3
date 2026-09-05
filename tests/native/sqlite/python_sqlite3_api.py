@@ -11,7 +11,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+if len(sys.argv) > 1:
+    sys.path.insert(0, sys.argv[1])
 import sqlite3
+
+blob_connection = sqlite3.connect(":memory:")
+blob_cursor = blob_connection.cursor()
+for payload in [b"", b"\x00\xff\x80binary\x00", b"\x00\xff" * 32768]:
+    blob_cursor.execute("SELECT ?, typeof(?), length(?)", [payload, payload, payload])
+    blob_row = blob_cursor.fetchone()
+    assert isinstance(blob_row[0], bytes)
+    assert blob_row[0] == payload
+    assert blob_row[1] == "blob"
+    assert blob_row[2] == len(payload)
+blob_cursor.close()
+blob_connection.close()
 
 print(sqlite3.OperationalError("manual sqlite error"))
 

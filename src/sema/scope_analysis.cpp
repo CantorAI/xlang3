@@ -569,6 +569,8 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
       for (const auto& decorator : fn->decorators) {
         collect_reads_expr(*decorator, names, seen);
       }
+      // A nested function may need a cell forwarded through this scope.
+      for (const auto& name : free_candidates_for(*fn)) add_unique(names, seen, name);
     } else if (auto* klass = dynamic_cast<const ast::ClassDef*>(stmt.get())) {
       for (const auto& base : klass->bases) {
         collect_reads_expr(*base, names, seen);
