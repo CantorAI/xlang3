@@ -197,6 +197,15 @@ class Module : public Value {
 public:
   using Value::operator=;
 
+  Module(X3PackageHost* host, const char* module_name, const char* package_name = nullptr)
+      : Value(host, x3_value_invalid(), false) {
+    if (!host || !host->runtime) throw std::invalid_argument("module import requires a host");
+    X3Value result = x3_value_invalid();
+    if (x3_runtime_import_module(host->runtime, package_name, module_name, &result) != X3_STATUS_OK)
+      throw std::runtime_error(x3_runtime_last_error(host->runtime));
+    static_cast<Value&>(*this) = Value(host, result, false);
+  }
+
   Module(Runtime& runtime, const char* module_name, const char* package_name = nullptr)
       : Value(runtime.host(), x3_value_invalid(), false) {
     X3Value result = x3_value_invalid();
