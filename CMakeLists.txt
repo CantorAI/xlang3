@@ -292,6 +292,7 @@ function(add_xlang3_cpp_test name source)
 endfunction()
 
 add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
+add_xlang3_cpp_test(xlang3_abi_ownership tests/cpp/abi_ownership_tests.cpp)
 add_executable(xlang3_embedded_package_tests tests/cpp/embedded_package_tests.cpp)
 target_link_libraries(xlang3_embedded_package_tests PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3_embedded_package_tests PRIVATE XLANG3_USE_SHARED)

@@ -101,6 +101,11 @@ std::vector<Value>& interned_string_table() {
   return *table;
 }
 
+std::mutex& interned_string_mutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
 bool is_auto_internable_string(std::string_view value) {
   for (unsigned char ch : value) {
     if (ch < 128 && !(std::isalnum(ch) || ch == '_')) {
@@ -224,6 +229,7 @@ std::string format_double_text(double value) {
 #endif
 
 Value intern_string_view(std::string_view value, bool immortal = true) {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
   for (const auto& item : table) {
     if (interned_string_equal(item, value)) {
@@ -857,6 +863,7 @@ Value intern_string_value(const Value& value) {
 }
 
 bool string_value_is_interned(const Value& value) {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
   for (const auto& item : interned_string_table()) {
     if (value_is(item, value)) {
       return true;
@@ -866,15 +873,22 @@ bool string_value_is_interned(const Value& value) {
 }
 
 bool string_value_is_immortal_interned(const Value& value) {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto* string = value_as_string(value);
-  return string != nullptr && string->immortal && string_value_is_interned(value);
+  if (!string || !string->immortal) return false;
+  for (const auto& item : interned_string_table()) {
+    if (value_is(item, value)) return true;
+  }
+  return false;
 }
 
 int64_t interned_string_count() {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
   return static_cast<int64_t>(interned_string_table().size());
 }
 
 int64_t immortal_interned_string_count() {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
   int64_t count = 0;
   for (const auto& item : interned_string_table()) {
     auto* string = value_as_string(item);

@@ -18,7 +18,9 @@ namespace xlang3 {
 
 X3Value to_c_value(const Value& value) {
   X3Value out = x3_value_invalid();
-  out.flags = value.flags;
+  // C ABI results own their references, including values borrowed by the VM
+  // from a register or constant pool. The internal borrow flag must not escape.
+  out.flags = value.flags & ~kXlangValueBorrowedRefFlag;
   switch (value.tag) {
     case ValueTag::Invalid:
       out.tag = X3_TAG_INVALID;
@@ -41,7 +43,14 @@ X3Value to_c_value(const Value& value) {
     case ValueTag::Object:
       out.tag = X3_TAG_OBJECT;
       out.as.obj = reinterpret_cast<X3Object*>(value.as.obj);
-      retain(value);
+      {
+        Value owned;
+        owned.tag = ValueTag::Object;
+        owned.flags = out.flags;
+        owned.as.obj = value.as.obj;
+        retain(owned);
+        owned.tag = ValueTag::Invalid;
+      }
       break;
   }
   return out;
@@ -49,7 +58,7 @@ X3Value to_c_value(const Value& value) {
 
 Value from_c_value(const X3Value& value, std::string& error) {
   Value out;
-  out.flags = value.flags;
+  out.flags = value.flags & ~kXlangValueBorrowedRefFlag;
   switch (value.tag) {
     case X3_TAG_INVALID:
       return Value::invalid();
