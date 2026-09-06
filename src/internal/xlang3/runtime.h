@@ -25,8 +25,10 @@ limitations under the License.
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -164,8 +166,8 @@ public:
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
   bool publish_sys_path(std::string& error);
 #endif
-  void set_last_error(std::string error) { last_error_ = std::move(error); }
-  const std::string& last_error() const { return last_error_; }
+  void set_last_error(std::string error);
+  const std::string& last_error() const;
   void set_current_globals_module(const Value& globals_module);
   const Value& current_globals_module() const;
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
@@ -229,7 +231,8 @@ private:
 
   OutputSink output_;
   std::unique_ptr<Vfs> vfs_;
-  std::string last_error_;
+  mutable std::mutex last_error_mutex_;
+  mutable std::unordered_map<std::thread::id, std::string> last_errors_;
   Value pending_exception_;
   Value active_exception_;
   Value current_globals_module_;

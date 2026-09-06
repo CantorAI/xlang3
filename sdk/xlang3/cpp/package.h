@@ -132,7 +132,11 @@ decltype(auto) arg_from_value(Value& value) {
 
 template <typename T>
 Value value_from_field(X3PackageHost* host, const T& value) {
-  if constexpr (std::is_same_v<T, std::string>) {
+  if constexpr (std::is_same_v<T, Value>) {
+    if (value.runtime() && host && value.runtime() != host->runtime)
+      throw NativeError("native property belongs to another runtime");
+    return value;
+  } else if constexpr (std::is_same_v<T, std::string>) {
     return Value::String(host, value);
   } else if constexpr (std::is_same_v<T, bool>) {
     return Value(value);
@@ -147,7 +151,9 @@ Value value_from_field(X3PackageHost* host, const T& value) {
 
 template <typename T>
 void field_from_value(T& out, Value& value) {
-  if constexpr (std::is_same_v<T, std::string>) {
+  if constexpr (std::is_same_v<T, Value>) {
+    out = value;
+  } else if constexpr (std::is_same_v<T, std::string>) {
     out = value.ToString(false);
   } else if constexpr (std::is_same_v<T, bool>) {
     out = value.ToLongLong() != 0;
@@ -159,16 +165,6 @@ void field_from_value(T& out, Value& value) {
     static_assert(always_false<T>::value, "Unsupported xlang3 package field property type");
   }
 }
-
-template <typename T>
-auto sync_package_fields(T* object, int) -> decltype(object->__xlang3_package_->SyncFieldsFromModule(), void()) {
-  if (object->__xlang3_package_ != nullptr) {
-    object->__xlang3_package_->SyncFieldsFromModule();
-  }
-}
-
-template <typename T>
-void sync_package_fields(T*, long) {}
 
 inline X3Value release_to_raw(Value&& value) {
   return value.Detach();
@@ -329,7 +325,6 @@ X3Status invoke_member(
     return X3_STATUS_ERROR;
   }
   auto values = std::make_tuple(Value(host, args[I], true)...);
-  sync_package_fields(self, 0);
   try {
     if constexpr (std::is_void_v<R>) {
       (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
@@ -378,7 +373,6 @@ X3Status invoke_const_member(
     return X3_STATUS_ERROR;
   }
   auto values = std::make_tuple(Value(host, args[I], true)...);
-  sync_package_fields(self, 0);
   try {
     if constexpr (std::is_void_v<R>) {
       (self->*method)(arg_from_value<Args>(std::get<I>(values))...);
@@ -428,6 +422,13 @@ template <typename T>
 void noop_native_instance_cleanup(void*) {}
 
 template<class T>
+auto call_instance_created(T* object, const Value& value, int)
+    -> decltype(object->OnInstanceCreated(value), void()) {
+  object->OnInstanceCreated(value);
+}
+template<class T> void call_instance_created(T*, const Value&, long) {}
+
+template<class T>
 X3Status attach_owned_instance(X3PackageHost* host, X3Value instance, std::unique_ptr<T> object) {
   T* native = object.get();
   if constexpr (std::is_base_of_v<std::enable_shared_from_this<T>, T>) {
@@ -441,7 +442,9 @@ X3Status attach_owned_instance(X3PackageHost* host, X3Value instance, std::uniqu
       return X3_STATUS_ERROR;
     object.release();
   }
-  return T::APISET().BindNativeInstance(host, instance, native);
+  const auto status = T::APISET().BindNativeInstance(host, instance, native);
+  if (status == X3_STATUS_OK) call_instance_created(native, Value(host, instance, true), 0);
+  return status;
 }
 
 template <typename T>
@@ -455,6 +458,9 @@ void call_package_created(T*, Package<T>*, long) {}
 template<class T> struct ConstructorBinding {
   X3PackageHost* host;
   T* borrowed;
+  void* owner = nullptr;
+  T* (*create)(void*, X3PackageHost*, const X3Value*) = nullptr;
+  T* (*create_range)(void*, X3PackageHost*, const X3Value*, uint32_t) = nullptr;
 };
 
 struct ConstructorArgument {
@@ -487,7 +493,25 @@ struct ConstructorArgument {
 
 template<class T, size_t... I>
 T* construct_native(X3PackageHost* host, const X3Value* args, std::index_sequence<I...>) {
-  return new T(ConstructorArgument{Value(host, args[I + 1], true)}...);
+  if constexpr (std::is_constructible_v<T, decltype((void)I, ConstructorArgument{})...>) {
+    return new T(ConstructorArgument{Value(host, args[I + 1], true)}...);
+  } else {
+    throw NativeError("native constructor requires its registered package owner");
+  }
+}
+
+template<class T, class Parent, size_t... I>
+T* construct_owned_native(Parent* owner, X3PackageHost* host,
+    const X3Value* args, std::index_sequence<I...>) {
+  return new T(owner, ConstructorArgument{Value(host, args[I + 1], true)}...);
+}
+
+template<class T, class Parent, uint32_t Min, uint32_t Max>
+T* construct_owned_range(void* owner, X3PackageHost* host, const X3Value* args, uint32_t argc) {
+  if (argc == Min + 1)
+    return construct_owned_native<T>(static_cast<Parent*>(owner), host, args, std::make_index_sequence<Min>{});
+  if constexpr (Min < Max) return construct_owned_range<T, Parent, Min + 1, Max>(owner, host, args, argc);
+  throw NativeError("unsupported native constructor argument count");
 }
 
 template <typename T, uint32_t Argc>
@@ -514,7 +538,11 @@ X3Status constructor_thunk(
       host->set_error(context, "native singleton is already bound to another runtime");
       return X3_STATUS_ERROR;
     }
-  } else if constexpr (Argc == 0) {
+  } else if (binding->create_range) {
+    object = binding->create_range(binding->owner, host, args, argc);
+  } else if (binding->create) {
+    object = binding->create(binding->owner, host, args);
+  } else if constexpr (Argc == 0 && std::is_default_constructible_v<T>) {
     object = new T();
   } else if constexpr (Argc == 1 && std::is_constructible_v<T, std::string>) {
     Value arg0(host, args[1], true);
@@ -557,6 +585,39 @@ using ARGS = std::vector<Value>;
 using KWARGS = std::vector<std::pair<std::string, Value>>;
 
 namespace detail {
+template<class T> struct VariableConstructor {
+  static X3Status Invoke(X3CallContext* context, X3Runtime*, void* data,
+      const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
+      uint32_t kwargc, X3Value* result) {
+    auto* host = static_cast<ConstructorBinding<T>*>(data)->host;
+    if (!host || !result) return X3_STATUS_ERROR;
+    try {
+      if (!argc) throw Error("native constructor requires an instance");
+      ARGS positional;
+      KWARGS keywords;
+      positional.reserve(argc - 1);
+      keywords.reserve(kwargc);
+      for (uint32_t i = 1; i < argc; ++i) positional.emplace_back(host, args[i], true);
+      for (uint32_t i = 0; i < kwargc; ++i)
+        keywords.emplace_back(kwargs[i].name, Value(host, kwargs[i].value, true));
+      auto object = std::make_unique<T>(positional, keywords);
+      if (attach_owned_instance(host, args[0], std::move(object)) != X3_STATUS_OK)
+        throw Error("failed to attach native instance data");
+      *result = x3_value_none();
+      return X3_STATUS_OK;
+    } catch (const std::exception& error) {
+      return set_native_error(host, context, error.what());
+    } catch (...) {
+      return set_native_error(host, context, "native constructor failed");
+    }
+  }
+
+  static X3Status Positional(X3CallContext* context, X3Runtime* runtime, void* data,
+      const X3Value* args, uint32_t argc, X3Value* result) {
+    return Invoke(context, runtime, data, args, argc, nullptr, 0, result);
+  }
+};
+
 template<class T> struct VariableBinding {
   X3PackageHost* host;
   T* object;
@@ -597,15 +658,19 @@ public:
   }
 
   ~Package() {
+    // Owned services must stop their workers while their host and bindings are still valid.
+    if (object_) {
+      if (owns_object_) delete object_;
+      else {
+        object_->__xlang3_package_ = nullptr;
+        object_->__xlang3_host_ = nullptr;
+      }
+      object_ = nullptr;
+    }
     for (auto& binding : bindings_) {
       if (binding.cleanup != nullptr) {
         binding.cleanup(binding.data);
       }
-    }
-    if (object_) {
-      object_->__xlang3_package_ = nullptr;
-      object_->__xlang3_host_ = nullptr;
-      if (owns_object_) delete object_;
     }
   }
 
@@ -614,6 +679,12 @@ public:
 
   X3PackageHost* host() const { return host_; }
   X3Module* module() const { return module_; }
+  Value ModuleValue() const {
+    if (!host_ || !module_ || !host_->module_get_value) return {};
+    X3Value value = x3_value_invalid();
+    if (host_->module_get_value(module_, &value) != X3_STATUS_OK) return {};
+    return Value(host_, value, false);
+  }
   T* object() const { return object_; }
   T* operator->() const { return object_; }
 
@@ -639,11 +710,6 @@ public:
     }
     values_[name] = value;
     return host_->module_set_attr(module_, name, value.raw()) == X3_STATUS_OK;
-  }
-  void SyncFieldsFromModule() {
-    for (auto& field : field_bindings_) {
-      field.sync(*this);
-    }
   }
 
   template <uint32_t Argc, typename R, typename... Args>
@@ -722,12 +788,12 @@ public:
 
   template <typename R>
   bool AddProp(const char* name, R(T::*getter)()) {
-    return AddFunc<0>(name, getter);
+    return AddModuleProperty(name, [getter](T* self) { return (self->*getter)(); }, nullptr);
   }
 
   template <typename R>
   bool AddProp(const char* name, R(T::*getter)() const) {
-    return AddFunc(name, getter);
+    return AddModuleProperty(name, [getter](T* self) { return (self->*getter)(); }, nullptr);
   }
 
   template <typename FieldT>
@@ -740,14 +806,44 @@ public:
     if (name == nullptr || field == nullptr || object_ == nullptr) {
       return false;
     }
-    const std::string registered_name(name);
-    field_bindings_.push_back({registered_name, [field, registered_name](Package<T>& package) {
-                                 Value value = package.GetLiveValue(registered_name.c_str());
-                                 if (value.IsValid()) {
-                                   detail::field_from_value(package.object_->*field, value);
-                                 }
-                               }});
-    return AddValue(registered_name.c_str(), detail::value_from_field(host_, object_->*field));
+    return AddModuleProperty(name,
+        [field, host = host_](T* self) { return detail::value_from_field(host, self->*field); },
+        [field](T* self, Value value) { detail::field_from_value(self->*field, value); });
+  }
+
+  template<class Getter, class Setter>
+  bool AddModuleProperty(const char* name, Getter getter, Setter setter) {
+    if (!host_ || !module_ || !object_ || !name || !*name ||
+        host_->size < offsetof(X3PackageHost, module_add_property) + sizeof(host_->module_add_property) ||
+        !host_->module_add_property) return false;
+    struct Binding { X3PackageHost* host; T* object; Getter getter; Setter setter; };
+    auto binding = std::make_unique<Binding>(Binding{host_, object_, getter, setter});
+    auto get = +[](X3CallContext* ctx, X3Runtime*, void* data,
+                  const X3Value*, uint32_t argc, X3Value* result) -> X3Status {
+      auto& b = *static_cast<Binding*>(data);
+      try {
+        if (argc != 1) throw Error("module property getter requires a module");
+        *result = detail::return_to_raw(b.host, b.getter(b.object));
+        return X3_STATUS_OK;
+      } catch (const std::exception& e) { return detail::set_native_error(b.host, ctx, e.what()); }
+    };
+    X3NativeFn set = nullptr;
+    if constexpr (!std::is_same_v<Setter, std::nullptr_t>) {
+      set = +[](X3CallContext* ctx, X3Runtime*, void* data,
+                const X3Value* args, uint32_t argc, X3Value* result) -> X3Status {
+        auto& b = *static_cast<Binding*>(data);
+        try {
+          if (argc != 2) throw Error("module property setter requires a module and value");
+          b.setter(b.object, Value(b.host, args[1], true));
+          *result = x3_value_none();
+          return X3_STATUS_OK;
+        } catch (const std::exception& e) { return detail::set_native_error(b.host, ctx, e.what()); }
+      };
+    }
+    // Store ownership before publishing callbacks, including registration failure paths.
+    bindings_.push_back({binding.get(), &detail::BindingCleanupFor<Binding>::cleanup});
+    auto* data = binding.release();
+    return host_->module_add_property(module_, name, get, set, data) == X3_STATUS_OK;
   }
 
   template <typename R>
@@ -858,13 +954,40 @@ public:
 
   template <uint32_t Argc, typename ClassT, typename ParentT>
   bool AddClass(const char* name) {
-    (void)static_cast<ParentT*>(nullptr);
-    return AddClass<Argc, ClassT>(name);
+    ClassT::BuildAPI();
+    X3Value klass = x3_value_invalid();
+    auto create = +[](void* owner, X3PackageHost* host, const X3Value* args) -> ClassT* {
+      return detail::construct_owned_native<ClassT>(static_cast<ParentT*>(owner), host, args,
+          std::make_index_sequence<Argc>{});
+    };
+    if (ClassT::APISET().template CreateClass<Argc>(host_, module_, name, &klass, nullptr,
+        static_cast<ParentT*>(object_), create) != X3_STATUS_OK) return false;
+    values_[name] = Value(host_, klass, false);
+    return true;
   }
 
   template <typename ClassT>
   bool AddVarClass(const char* name) {
-    return AddClass<0, ClassT>(name);
+    ClassT::BuildAPI();
+    X3Value klass = x3_value_invalid();
+    if (ClassT::APISET().template CreateClass<0>(host_, module_, name, &klass,
+        nullptr, nullptr, nullptr, UINT32_MAX, nullptr,
+        &detail::VariableConstructor<ClassT>::Positional,
+        &detail::VariableConstructor<ClassT>::Invoke) != X3_STATUS_OK) return false;
+    values_[name] = Value(host_, klass, false);
+    return true;
+  }
+
+  template<uint32_t Min, uint32_t Max, class ClassT, class ParentT>
+  bool AddClass(const char* name) {
+    static_assert(Min <= Max, "invalid native constructor argument range");
+    ClassT::BuildAPI();
+    X3Value klass = x3_value_invalid();
+    if (ClassT::APISET().template CreateClass<Min>(host_, module_, name, &klass, nullptr,
+        static_cast<ParentT*>(object_), nullptr, Max,
+        &detail::construct_owned_range<ClassT, ParentT, Min, Max>) != X3_STATUS_OK) return false;
+    values_[name] = Value(host_, klass, false);
+    return true;
   }
 
   template <typename ClassT>
@@ -923,10 +1046,6 @@ private:
     void* data = nullptr;
     void (*cleanup)(void*) = nullptr;
   };
-  struct FieldBinding {
-    std::string name;
-    std::function<void(Package<T>&)> sync;
-  };
 
   X3PackageHost* host_ = nullptr;
   X3Module* module_ = nullptr;
@@ -935,7 +1054,6 @@ private:
   Value cur_module_;
   std::unordered_map<std::string, Value> values_;
   std::vector<BindingCleanup> bindings_;
-  std::vector<FieldBinding> field_bindings_;
 };
 
 template <typename T>
@@ -1098,8 +1216,8 @@ public:
   template<class Setter, class Getter>
   bool AddPropL(const char* name, Setter setter, Getter getter) {
     const std::string registered_name(name);
-    registrations_.push_back([](Package<T>&) -> bool {
-      throw Error("writable properties must be registered on a native class");
+    registrations_.push_back([registered_name, setter, getter](Package<T>& package) -> bool {
+      return package.AddModuleProperty(registered_name.c_str(), getter, setter);
     });
     class_attr_builders_.push_back([registered_name, setter, getter](X3PackageHost* host, X3Value klass) {
       struct Binding { X3PackageHost* host; Setter setter; Getter getter; };
@@ -1137,7 +1255,7 @@ public:
   bool AddProp(const char* name, R(T::*getter)()) {
     const std::string registered_name = name == nullptr ? std::string() : std::string(name);
     registrations_.push_back([registered_name, getter](Package<T>& package) {
-      return package.template AddFunc<0>(registered_name.c_str(), getter);
+      return package.AddProp(registered_name.c_str(), getter);
     });
     class_attr_builders_.push_back([registered_name, getter](X3PackageHost* host, X3Value klass) {
       if (host == nullptr || host->property_create == nullptr || host->class_add_value == nullptr) {
@@ -1168,7 +1286,7 @@ public:
   bool AddProp(const char* name, R(T::*getter)() const) {
     const std::string registered_name = name == nullptr ? std::string() : std::string(name);
     registrations_.push_back([registered_name, getter](Package<T>& package) {
-      return package.template AddFunc<0>(registered_name.c_str(), getter);
+      return package.AddProp(registered_name.c_str(), getter);
     });
     class_attr_builders_.push_back([registered_name, getter](X3PackageHost* host, X3Value klass) {
       if (host == nullptr || host->property_create == nullptr || host->class_add_value == nullptr) {
@@ -1202,11 +1320,10 @@ public:
 
   template <typename FieldT>
   bool AddPropWithType(const char* name, FieldT T::*field) {
-    const std::string registered_name = name == nullptr ? std::string() : std::string(name);
-    registrations_.push_back([registered_name, field](Package<T>& package) {
-      return package.AddPropWithType(registered_name.c_str(), field);
-    });
-    return true;
+    if (!name || !*name || !field) return false;
+    return AddPropL(name,
+        [field](T* self, Value value) { detail::field_from_value(self->*field, value); },
+        [field](T* self) { return detail::value_from_field(self->Host(), self->*field); });
   }
 
   bool AddRawParamFunc(
@@ -1305,7 +1422,11 @@ public:
 
   template <uint32_t Argc>
   X3Status CreateClass(X3PackageHost* host, X3Module* module, const char* name,
-      X3Value* out_class = nullptr, T* borrowed = nullptr) {
+      X3Value* out_class = nullptr, T* borrowed = nullptr, void* owner = nullptr,
+      T* (*create)(void*, X3PackageHost*, const X3Value*) = nullptr,
+      uint32_t max_argc = Argc,
+      T* (*create_range)(void*, X3PackageHost*, const X3Value*, uint32_t) = nullptr,
+      X3NativeFn constructor = nullptr, X3NativeKeywordFn constructor_keywords = nullptr) {
     if (host == nullptr || name == nullptr ||
         (module ? host->module_add_class == nullptr : host->create_class == nullptr)) {
       return X3_STATUS_ERROR;
@@ -1315,8 +1436,9 @@ public:
     X3NativeFunctionDef init{};
     init.size = sizeof(init);
     init.name = "__init__";
-    init.callback = &detail::constructor_thunk<T, Argc>;
-    auto binding = std::make_unique<detail::ConstructorBinding<T>>(detail::ConstructorBinding<T>{host, borrowed});
+    init.callback = constructor ? constructor : &detail::constructor_thunk<T, Argc>;
+    init.keyword_callback = constructor_keywords;
+    auto binding = std::make_unique<detail::ConstructorBinding<T>>(detail::ConstructorBinding<T>{host, borrowed, owner, create, create_range});
     init.user_data = binding.get();
     if (host->package_set_cleanup(host, binding.get(), [](void* data) {
           auto* binding = static_cast<detail::ConstructorBinding<T>*>(data);
@@ -1327,7 +1449,7 @@ public:
         }) != X3_STATUS_OK) return X3_STATUS_ERROR;
     binding.release();
     init.min_argc = Argc + 1;
-    init.max_argc = Argc + 1;
+    init.max_argc = max_argc == UINT32_MAX ? UINT32_MAX : max_argc + 1;
     methods.push_back(init);
     for (auto& builder : class_method_builders_) {
       builder(host, methods);
@@ -1359,6 +1481,18 @@ public:
       host->value_release(klass);
     }
     return X3_STATUS_OK;
+  }
+
+  X3Status AttachInstance(X3PackageHost* host, X3Value instance, std::unique_ptr<T> object) const {
+    if (!host || !object || !host->instance_set_native_data) return X3_STATUS_ERROR;
+    return detail::attach_owned_instance(host, instance, std::move(object));
+  }
+
+  Value CreateInstance(X3PackageHost* host, const Value& klass, std::unique_ptr<T> object) const {
+    if (!host || !object || !host->value_instance || klass.runtime() != host->runtime) return {};
+    Value instance(host, host->value_instance(host->runtime, klass.raw()), false);
+    if (!instance.IsValid() || AttachInstance(host, instance.raw(), std::move(object)) != X3_STATUS_OK) return {};
+    return instance;
   }
 
   template<class Encode, class Decode>
@@ -1423,7 +1557,14 @@ public:
 
   template <uint32_t Argc, typename ClassT, typename ParentT>
   bool AddClass(const char* name) {
-    return AddClass<Argc, ClassT>(name);
+    const std::string registered_name = name ? name : "";
+    registrations_.push_back([registered_name](Package<T>& package) {
+      return package.template AddClass<Argc, ClassT, ParentT>(registered_name.c_str());
+    });
+    class_attr_builders_.push_back([](X3PackageHost*, X3Value) -> bool {
+      throw Error("owner-bound child classes must be registered on a package instance");
+    });
+    return true;
   }
 
   template <typename ClassT>
@@ -1431,6 +1572,19 @@ public:
     const std::string registered_name = name == nullptr ? std::string() : std::string(name);
     registrations_.push_back([registered_name](Package<T>& package) {
       return package.template AddVarClass<ClassT>(registered_name.c_str());
+    });
+    return true;
+  }
+
+  template<uint32_t Min, uint32_t Max, class ClassT, class ParentT>
+  bool AddClass(const char* name) {
+    static_assert(Min <= Max, "invalid native constructor argument range");
+    const std::string registered_name = name ? name : "";
+    registrations_.push_back([registered_name](Package<T>& package) {
+      return package.template AddClass<Min, Max, ClassT, ParentT>(registered_name.c_str());
+    });
+    class_attr_builders_.push_back([](X3PackageHost*, X3Value) -> bool {
+      throw Error("owner-bound child classes must be registered on a package instance");
     });
     return true;
   }

@@ -327,6 +327,7 @@ private:
       case ir::Op::Add:
       case ir::Op::Sub:
       case ir::Op::Mul:
+      case ir::Op::MatMul:
       case ir::Op::Div:
       case ir::Op::FloorDiv:
       case ir::Op::Mod:

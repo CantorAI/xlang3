@@ -128,6 +128,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_binary_special_method(
     }
     return XlangVMOpFlow::ContinueLoop;
   }
+  if (!pushed_frame) ++ip;
   return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;
 }
 
@@ -343,6 +344,24 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
 }
 
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow matmul(
+    const ir::Instr& in, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in, module, module_owner, runtime, regs, native_call_args, ip, result,
+      execution_lock, [](const Value&, const Value&, Value&) { return false; },
+      value_matmul, "__matmul__",
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow bit_and(
     const ir::Instr& in,
     const ir::Module& module,
@@ -479,12 +498,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow shr(const ir::Instr& in, XlangVMSmallRegisterBuf
   return XlangVMOpFlow::Next;
 }
 
-XLANG3_HOT_INLINE void bool_and(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_assign_fast(regs[in.dst], value_truthy(regs[in.a]) ? regs[in.b] : regs[in.a]);
-}
-
-XLANG3_HOT_INLINE void bool_or(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_assign_fast(regs[in.dst], value_truthy(regs[in.a]) ? regs[in.a] : regs[in.b]);
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow truth_op(const ir::Instr& in, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, int operation,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  bool truth = false;
+  std::string error;
+  if (!runtime_truthy(runtime, regs[in.a], truth, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending))
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (operation == 2) value_set_bool(regs[in.dst], !truth);
+  else value_assign_fast(regs[in.dst], truth == (operation == 0) ? regs[in.b] : regs[in.a]);
+  return XlangVMOpFlow::Next;
 }
 
 XLANG3_HOT_INLINE const char* rich_compare_method(ir::CompareOp op) {
@@ -586,13 +614,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains(const ir::Instr& in, XlangVMSmallRegist
   return XlangVMOpFlow::Next;
 }
 
-XLANG3_HOT_INLINE void not_op(
-    const ir::Instr& in,
-    const ir::Module& module,
-    XlangVMSmallRegisterBuffer& regs) {
-  value_set_bool(regs[in.dst], !xlang_vm_truthy(module, regs[in.a]));
-}
-
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow neg(
     const ir::Instr& in,
@@ -656,6 +677,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow neg(
             }
             return XlangVMOpFlow::ContinueLoop;
           }
+          if (!pushed_frame) ++ip;
           return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;
         }
       }
@@ -712,6 +734,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow invert(
           }
           return XlangVMOpFlow::ContinueLoop;
         }
+        if (!pushed_frame) ++ip;
         return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;
       }
     }

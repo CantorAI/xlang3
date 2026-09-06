@@ -12,6 +12,7 @@ Licensed under the Apache License, Version 2.0
 
 class xlang1_compat_counter {
 public:
+  X::Value payload;
   long long add(long long value) {
     total_ += value;
     return total_;
@@ -35,14 +36,49 @@ public:
     APISET().AddProp("total", &xlang1_compat_counter::total);
     APISET().AddFunc<1>("append_total", &xlang1_compat_counter::append_total);
     APISET().AddFunc<1>("read_value", &xlang1_compat_counter::read_value);
+    APISET().AddProp0("payload", &xlang1_compat_counter::payload);
+    APISET().AddProp0("count", &xlang1_compat_counter::total_);
   END_PACKAGE
 
 private:
   long long total_ = 0;
 };
 
+class variable_sample {
+  X::ARGS arguments_;
+  X::Value option_;
+  bool bound_ = false;
+public:
+  variable_sample(const X::ARGS& args, const X::KWARGS& kwargs) : arguments_(args) {
+    for (const auto& [name, value] : kwargs) {
+      if (name != "option") throw X::Error("unknown constructor keyword");
+      option_ = value;
+    }
+  }
+  void OnInstanceCreated(const X::Value& instance) {
+    bound_ = Host() && instance.NativeData<variable_sample>() == this;
+  }
+  X::Value snapshot() {
+    if (!bound_) throw X::Error("constructor instance hook was not bound");
+    auto result = X::Value::List(Host());
+    for (const auto& argument : arguments_) result.Append(argument);
+    if (option_.IsValid()) result.Append(option_);
+    return result;
+  }
+  BEGIN_PACKAGE(variable_sample)
+    APISET().AddFunc<0>("snapshot", &variable_sample::snapshot);
+  END_PACKAGE
+};
+
 class xlang1_compat_sample {
 public:
+  long long property_count = 3;
+  X::Value property_object;
+  long long current_count() const {
+    if (property_count < 0) throw X::Error("count is unavailable");
+    return property_count;
+  }
+  long long increment_count() { return ++property_count; }
   X::Value capture(std::vector<X::Value> expressions) {
     auto captured = X::Value::List(Host());
     for (const auto& expr : expressions) {
@@ -171,6 +207,19 @@ public:
   }
 
   BEGIN_PACKAGE(xlang1_compat_sample)
+    APISET().AddProp0("property_count", &xlang1_compat_sample::property_count);
+    APISET().AddProp0("property_object", &xlang1_compat_sample::property_object);
+    APISET().AddProp("current_count", &xlang1_compat_sample::current_count);
+    APISET().AddFunc<0>("increment_count", &xlang1_compat_sample::increment_count);
+    APISET().AddPropL("checked_count",
+        [](xlang1_compat_sample* self, X::Value value) {
+          const auto number = value.ToLongLong();
+          if (number < 0) throw X::Error("count must be nonnegative");
+          self->property_count = number;
+        }, [](xlang1_compat_sample* self) { return self->property_count; });
+    APISET().AddPropL("callback",
+        [](xlang1_compat_sample* self, X::Value value) { self->property_object = value; },
+        [](xlang1_compat_sample* self) { return self->property_object; });
     APISET().AddExpressionDecorator("Task", &xlang1_compat_sample::capture);
     APISET().AddFunc<1>("identity", &xlang1_compat_sample::identity);
     APISET().AddFunc<1>("snapshot", &xlang1_compat_sample::identity, X3_NATIVE_IPC_ARGS_BY_VALUE);
@@ -191,6 +240,7 @@ public:
     APISET().AddFunc<0>("operator_style", &xlang1_compat_sample::operator_style);
     APISET().AddEvent("changed");
     APISET().AddClass<0, xlang1_compat_counter>("Counter");
+    APISET().AddVarClass<variable_sample>("Variable");
     APISET().AddConst("name", "compat");
   END_PACKAGE
 

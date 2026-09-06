@@ -110,6 +110,8 @@ private:
     host_.value_list = x3_value_list;
     host_.value_dict = x3_value_dict;
     host_.value_to_cstr = x3_value_to_cstr;
+    host_.value_string_data = x3_value_string_data;
+    host_.value_string_utf8 = x3_value_string_utf8;
     host_.value_object_kind = x3_value_object_kind;
     host_.value_bytes_data = x3_value_bytes_data;
     host_.value_to_bytes = x3_value_to_bytes;
@@ -144,6 +146,8 @@ private:
     host_.instance_set_native_data = x3_instance_set_native_data;
     host_.instance_set_native_owner = x3_instance_set_native_owner;
     host_.instance_set_native_cast = x3_instance_set_native_cast;
+    host_.expression_compile = x3_expression_compile;
+    host_.value_memoryview = x3_value_memoryview;
     host_.value_instance = x3_value_instance;
     host_.get_item = x3_get_item;
     host_.set_attr = x3_set_attr;
@@ -171,7 +175,7 @@ inline Value::Value(Runtime& runtime, double value) : Value(runtime.host(), x3_v
 inline Value::Value(Runtime& runtime, bool value) : Value(runtime.host(), x3_value_bool(value ? 1 : 0), false) {}
 inline Value::Value(Runtime& runtime, const char* value)
     : Value(runtime.host(), runtime.host()->value_string(runtime.get(), value == nullptr ? "" : value), false) {}
-inline Value::Value(Runtime& runtime, const std::string& value) : Value(runtime, value.c_str()) {}
+inline Value::Value(Runtime& runtime, const std::string& value) : Value(Value::String(runtime.host(), value)) {}
 
 inline Value Runtime::List() {
   return Value::List(&host_);

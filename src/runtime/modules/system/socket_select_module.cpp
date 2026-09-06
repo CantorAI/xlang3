@@ -37,6 +37,7 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -942,11 +943,16 @@ bool socket_send_impl(const Value* args, uint32_t argc, Value& out, std::string&
     return false;
   }
 
-  std::string data;
+  std::string_view data;
   if (auto* bytes = value_as_bytes(args[1])) {
-    data = bytes_object_to_string(*bytes);
+    data = bytes_object_view(*bytes);
   } else if (auto* text = value_as_string(args[1])) {
-    data = string_object_to_string(*text);
+    data = string_object_view(*text);
+  } else if (auto* array = value_as_bytearray(args[1])) {
+    data = array->value;
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    data = memoryview_object_view(*view);
+    if (!data.data()) { error = "invalid or released memoryview"; return false; }
   } else {
     error = send_all ? "socket.sendall() data must be bytes-like" : "socket.send() data must be bytes-like";
     return false;
@@ -1044,12 +1050,11 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
       error = "recv_into() argument must be read-write bytes-like object";
       return false;
     }
-    auto* owner = value_as_bytearray(view->owner);
-    if (owner == nullptr || view->offset > owner->value.size() || owner->value.size() - view->offset < view->size) {
+    data = memoryview_object_writable_data(*view);
+    if (data == nullptr) {
       error = "recv_into() memoryview owner is not writable";
       return false;
     }
-    data = owner->value.data() + view->offset;
     capacity = view->size;
   } else {
     error = "recv_into() argument must be read-write bytes-like object";

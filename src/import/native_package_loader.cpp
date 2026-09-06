@@ -185,6 +185,10 @@ bool native_keyword_function_bridge(
     return false;
   }
 
+  // Protocol fallbacks can arrive after a failed builtin lookup. A successful
+  // native call must not inherit that earlier diagnostic.
+  error.clear();
+
   std::vector<X3Value> c_args;
   c_args.reserve(argc);
   for (uint32_t i = 0; i < argc; ++i) {
@@ -203,6 +207,7 @@ bool native_keyword_function_bridge(
   context.user_data = thunk->user_data;
   X3Status status = X3_STATUS_ERROR;
   try {
+    XlangRuntimeExecutionSuspension suspension;
     if (thunk->keyword_callback) status = thunk->keyword_callback(&context,
         reinterpret_cast<X3Runtime*>(&runtime), thunk->user_data,
         c_args.data(), argc, c_kwargs.data(), kwargc, &c_result);
@@ -580,6 +585,33 @@ X3Status host_property_create(
   return X3_STATUS_OK;
 }
 
+X3Status host_module_add_property(X3Module* module, const char* name,
+    X3NativeFn getter, X3NativeFn setter, void* user_data) {
+  if (!module || !module->runtime || !name || !*name || !getter) return X3_STATUS_ERROR;
+  auto* object = value_as_module(module->value);
+  if (!object) return X3_STATUS_ERROR;
+  if (name[0] == '_' && name[1] == '_') {
+    module->runtime->set_last_error("native module properties cannot replace special attributes");
+    return X3_STATUS_ERROR;
+  }
+  if (object->name_to_slot.count(name)) {
+    module->runtime->set_last_error("module attribute already registered: " + std::string(name));
+    return X3_STATUS_ERROR;
+  }
+  X3Value raw = x3_value_invalid();
+  if (host_property_create(reinterpret_cast<X3Runtime*>(module->runtime), name,
+      getter, setter, user_data, &raw) != X3_STATUS_OK) return X3_STATUS_ERROR;
+  std::string error;
+  Value property = from_c_value(raw, error);
+  x3_value_release(raw);
+  value_as_property(property)->native_module_runtime = module->runtime;
+  if (!module_set_attr(module->value, name, property, error)) {
+    module->runtime->set_last_error(error);
+    return X3_STATUS_ERROR;
+  }
+  return X3_STATUS_OK;
+}
+
 X3Status host_package_set_metadata(X3PackageHost* host, const char* key, const char* value) {
   X3Package* package = package_from_host(host);
   if (package == nullptr || package->runtime == nullptr || key == nullptr || key[0] == '\0' || value == nullptr) {
@@ -712,6 +744,11 @@ const X3PackageHost kPackageHostTemplate = {
     x3_event_set_change_handler,
     host_create_class,
     x3_instance_set_native_cast,
+    x3_expression_compile,
+    x3_value_memoryview,
+    host_module_add_property,
+    x3_value_string_data,
+    x3_value_string_utf8,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(

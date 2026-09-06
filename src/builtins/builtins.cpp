@@ -17,6 +17,9 @@ limitations under the License.
 namespace xlang3 {
 
 void register_tokenize_module(Runtime& runtime);
+#ifndef XLANG3_EMBEDDED
+namespace tensor { void register_module(Runtime&); }
+#endif
 
 void register_core_builtins(Runtime& runtime) {
   register_object_type_builtins(runtime);
@@ -29,6 +32,7 @@ void register_core_builtins(Runtime& runtime) {
   register_builtin_modules(runtime);
   register_math_module(runtime);
 #ifndef XLANG3_EMBEDDED
+  tensor::register_module(runtime);
   register_sys_module(runtime);
   register_time_module(runtime);
   register_abc_module(runtime);

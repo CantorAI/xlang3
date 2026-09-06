@@ -482,7 +482,7 @@ struct XlangVMBuiltinConstructorError {
   }
 };
 
-XLANG3_HOT_INLINE bool xlang_vm_collect_type_slots(const Value& value, std::vector<std::string>& slots) {
+inline bool xlang_vm_collect_type_slots(const Value& value, std::vector<std::string>& slots) {
   if (auto* string = value_as_string(value)) {
     const auto name = string_object_to_string(*string);
     if (name != "__dict__" && name != "__weakref__" &&
@@ -1345,7 +1345,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "bool() expected at most 1 argument";
       return false;
     }
-    out = Value::boolean(constructor_args.size() == 0 ? false : value_truthy(constructor_args.get(0)));
+    bool truth = false;
+    if (constructor_args.size() && !runtime_truthy(runtime, constructor_args.get(0), truth, error)) return false;
+    out = Value::boolean(truth);
     return true;
   }
 
@@ -2037,7 +2039,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     if (auto* view = value_as_memoryview(source)) {
-      out = Value::memoryview(view->owner, view->offset, view->size, view->readonly);
+      out = Value::memoryview(source, 0, view->size, view->readonly);
       return true;
     }
     error = "memoryview() requires a bytes-like object";

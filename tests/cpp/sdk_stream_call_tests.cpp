@@ -26,8 +26,52 @@ int main(int argc, char** argv) {
   try {
     require(argc == 2, "missing fixtures directory");
     X::Runtime runtime;
+    X::Value nulString(runtime.host(), x3_value_string_utf8(runtime.get(), "a\0b", 3), false);
+    auto strings = X::Value::Dict(runtime.host());
+    char mutableString[] = "script.py";
+    require(strings.SetItem("path", mutableString) && strings["path"].IsString() &&
+        strings["path"].ToString() == "script.py", "mutable C string was converted to bool");
+    require(nulString.ToString() == std::string("a\0b", 3), "SDK string conversion truncated an embedded NUL");
+    require(X::Value(runtime, std::string("a\0b", 3)).ToString() == std::string("a\0b", 3),
+        "SDK string construction truncated an embedded NUL");
+    const char byte = 'x';
+    require(!X::Value::Bytes(runtime.host(), &byte, UINT64_C(0x100000000)).IsValid(),
+        "oversized binary length accepted");
+    require(!X::Value::Bytes(runtime.host(), nullptr, 1).IsValid(), "null binary data accepted");
     runtime.AddImportRoot(argv[1]);
     X::Module module(runtime, "sdk_calls");
+    for (size_t size : {size_t(12), size_t(65536), size_t(200000), size_t(1048576)}) {
+      auto storage = std::make_shared<std::vector<char>>(size);
+      std::weak_ptr<std::vector<char>> lifetime = storage;
+      auto view = X::Value::MemoryView(runtime.host(), storage->data(), size, storage);
+      uint64_t length = 0;
+      require(view.BytesData(&length) == storage->data() && length == size,
+          "native memoryview copied storage");
+      X::Value derived;
+      require(module["check_native_view"].Call({view}, {}, derived),
+          "native memoryview Python operations failed");
+      require((*storage)[0] == 17 && (*storage)[size - 1] == 29,
+          "native memoryview writes lost");
+      view = X::Value();
+      storage.reset();
+      require(!lifetime.expired(), "derived native memoryview lost storage owner");
+      const auto* data = static_cast<const unsigned char*>(derived.BytesData(&length));
+      require(data && length == 4 && data[0] == 0x78 && data[3] == 0x12,
+          "derived native memoryview contents changed");
+      X::Stream encoded(runtime);
+      X::Value decoded;
+      require(derived.ToBytes(encoded) && encoded.Rewind() && decoded.FromBytes(encoded),
+          "native memoryview serialization failed");
+      require(decoded.BytesData(&length) && length == 4,
+          "native memoryview serialization size changed");
+      derived = X::Value();
+      require(lifetime.expired(), "native memoryview owner leaked");
+    }
+    int cleanups = 0;
+    auto invalid_view = x3_value_memoryview(runtime.get(), nullptr, 1, 0, &cleanups,
+        [](void* context) { ++*static_cast<int*>(context); });
+    require(invalid_view.tag == X3_TAG_INVALID && cleanups == 1,
+        "failed native memoryview did not release owner exactly once");
     auto binder = runtime.List();
     X::Value result;
     require(module["task"].Call({X::Value(runtime, 40)},

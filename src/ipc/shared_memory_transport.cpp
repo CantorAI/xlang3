@@ -7,6 +7,7 @@ Licensed under the Apache License, Version 2.0
 #include "serialize/block_stream.h"
 #include "serialize/xlang_stream.h"
 #include "serialize/ipc_value_marshal.h"
+#include "runtime_lock.h"
 
 #include <limits>
 #include <utility>
@@ -35,7 +36,18 @@ bool lrpc_shared_memory_request(
     LrpcRequestWriter write_request,
     LrpcResponseReader read_response,
     std::string& error) {
-  return lrpc_shared_memory_request_platform(strip_lrpc_prefix(endpoint), std::move(write_request), std::move(read_response), error);
+  // Embedding calls may still own the VM lock here. A remote peer can call back
+  // before replying, so retain the lock only while accessing runtime values.
+  XlangRuntimeExecutionSuspension suspension;
+  return lrpc_shared_memory_request_platform(strip_lrpc_prefix(endpoint),
+      [&](serialize::XLangStream& stream, std::string& message) {
+        XlangRuntimeExecutionGuard guard;
+        return write_request(stream, message);
+      },
+      [&](serialize::XLangStream& stream, std::string& message) {
+        XlangRuntimeExecutionGuard guard;
+        return read_response(stream, message);
+      }, error);
 }
 
 bool lrpc_shared_memory_request(const std::string& endpoint, const std::string& request, std::string& response, std::string& error) {

@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "../xlang_vm_names.h"
+#include "../xlang_vm_inline_support.h"
 #include "../xlang_vm_op_switch.h"
 
 #include "xlang3/object_model.h"
@@ -48,37 +49,6 @@ XLANG3_HOT_INLINE std::string xlang_vm_current_module_name(const Value& globals_
     }
   }
   return "__main__";
-}
-
-XLANG3_HOT_INLINE void xlang_vm_collect_set_name_descriptors(
-    const std::vector<std::pair<std::string, Value>>& attrs,
-    std::vector<std::pair<std::string, Value>>& descriptors) {
-  for (const auto& attr : attrs) {
-    Value set_name;
-    std::string ignored;
-    if (object_get_attr(attr.second, "__set_name__", set_name, ignored)) {
-      descriptors.push_back({attr.first, std::move(set_name)});
-    }
-  }
-}
-
-XLANG3_HOT_INLINE bool xlang_vm_call_set_name_descriptors(
-    Runtime& runtime,
-    const Value& cls,
-    const std::vector<std::pair<std::string, Value>>& descriptors,
-    std::string& error) {
-  for (const auto& descriptor : descriptors) {
-    Value name_arg = Value::string(descriptor.first);
-    Value call_args[] = {cls, name_arg};
-    Value ignored;
-    if (!runtime_call_callable(runtime, descriptor.second, call_args, 2, ignored, error)) {
-      if (error.empty()) {
-        error = "Error calling __set_name__";
-      }
-      return false;
-    }
-  }
-  return true;
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_class_slot_conflicts(

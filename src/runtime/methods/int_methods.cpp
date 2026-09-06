@@ -131,20 +131,11 @@ bool collect_from_bytes_input(const Value& value, std::vector<uint8_t>& bytes, s
       error = "operation forbidden on released memoryview object";
       return false;
     }
-    std::string_view data;
-    if (auto* owner = value_as_bytes(view->owner)) {
-      data = bytes_object_view(*owner);
-    } else if (auto* owner = value_as_bytearray(view->owner)) {
-      data = owner->value;
-    } else {
+    const auto data = memoryview_object_view(*view);
+    if (!data.data()) {
       error = "memoryview owner is not byte-addressable";
       return false;
     }
-    if (view->offset > data.size() || view->size > data.size() - view->offset) {
-      error = "memoryview slice is out of range";
-      return false;
-    }
-    data = data.substr(view->offset, view->size);
     bytes.assign(data.begin(), data.end());
     return true;
   }

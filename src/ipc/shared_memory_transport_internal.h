@@ -50,6 +50,7 @@ bool lrpc_shared_memory_request_platform(
     std::string& error);
 
 bool lrpc_start_shared_memory_server_platform(const std::string& port, std::string& error);
+void lrpc_stop_shared_memory_server_platform();
 void lrpc_wait_forever_platform();
 
 } // namespace xlang3::ipc

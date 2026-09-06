@@ -183,6 +183,7 @@ struct BytesObject {
 struct ByteArrayObject {
   Object header;
   std::string value;
+  size_t buffer_exports = 0;
 };
 
 struct Value {
@@ -211,7 +212,7 @@ struct Value {
   static Value string(std::string value);
   static Value string_view(std::string_view value);
   static Value string_uninitialized(size_t size);
-  static Value bytes(std::string value);
+  static Value bytes(std::string_view value);
   static Value bytearray(std::string value);
   static Value memoryview(Value owner, size_t offset, size_t size, bool readonly);
   static Value slice(Value start, Value stop, Value step);
@@ -506,15 +507,27 @@ struct FrameObject {
   Value builtins;
 };
 
+struct NativeBufferStorage {
+  char* data = nullptr;
+  size_t size = 0;
+  void* context = nullptr;
+  void (*cleanup)(void*) = nullptr;
+  ~NativeBufferStorage() { if (cleanup) cleanup(context); }
+};
+
 struct MemoryViewObject {
   Object header;
   Value owner;
+  std::shared_ptr<NativeBufferStorage> external;
   size_t offset = 0;
   size_t size = 0;
   std::string format = "B";
   bool readonly = true;
   bool released = false;
 };
+
+std::string_view memoryview_object_view(const MemoryViewObject& view);
+char* memoryview_object_writable_data(const MemoryViewObject& view);
 
 XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
   if (format.empty()) {
@@ -550,6 +563,7 @@ XLANG3_HOT_INLINE size_t memoryview_item_count(const MemoryViewObject& view) {
 
 struct PropertyObject {
   Object header;
+  Runtime* native_module_runtime = nullptr;
   Value fget;
   Value fset;
   Value fdel;

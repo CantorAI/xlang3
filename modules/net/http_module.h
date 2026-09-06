@@ -107,9 +107,10 @@ struct RouteDef {
   X::Value handler;
 };
 
+class xlang_net_http;
 class HttpServer {
 public:
-  HttpServer();
+  explicit HttpServer(xlang_net_http* owner);
   ~HttpServer();
 
   bool Listen(std::string address, int port, int backlog, int thread_pool_count);
@@ -144,6 +145,8 @@ private:
   bool CallHandler(X::Value handler, const httplib::Request& req, httplib::Response& res, std::vector<X::Value> args);
 
   std::unique_ptr<httplib::Server> server_;
+  X::Value request_class_;
+  X::Value response_class_;
   std::vector<RouteDef> routes_;
   X::Value auth_callback_;
   X::Value auth_parameters_;
@@ -155,11 +158,10 @@ private:
 class xlang_net_http {
 public:
   X::Value WritePad(X::Value input);
-  void OnPackageCreated(X::Package<xlang_net_http>* package);
 
   BEGIN_PACKAGE(xlang_net_http)
     APISET().AddFunc<1>("WritePad", &xlang_net_http::WritePad);
-    APISET().AddClass<0, HttpServer>("Server");
+    APISET().AddClass<0, HttpServer, xlang_net_http>("Server");
     APISET().AddClass<0, HttpResponse>("Response");
     APISET().AddClass<0, HttpRequest>("Request");
     APISET().AddClass<1, HttpClient>("Client");

@@ -196,6 +196,12 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
 void* instance_get_native_data(const Value& instance, const std::string& native_type);
 bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std::string& error);
 bool instance_native_truthy(const Value& instance, bool& out);
+bool runtime_instance_truthy(Runtime& runtime, const Value& value, bool& out, std::string& error);
+inline bool runtime_truthy(Runtime& runtime, const Value& value, bool& out, std::string& error) {
+  if (value_as_instance(value)) return runtime_instance_truthy(runtime, value, out, error);
+  out = value_truthy(value);
+  return true;
+}
 bool instance_set_native_attr_hooks(
     Value instance,
     NativeInstanceGetAttr get_attr,

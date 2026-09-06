@@ -675,11 +675,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
       }
     } else if (object->kind == ObjectKind::MemoryView) {
       auto* view = value_as_memoryview(regs[in.a]);
-      auto* owner = value_as_bytearray(view->owner);
-      if (owner != nullptr) {
+      const auto storage = memoryview_object_view(*view);
+      if (storage.data() != nullptr && view->format == "B") {
         int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(view->size) : raw_index;
         if (index >= 0 && index < static_cast<int64_t>(view->size)) {
-          value_set_int64(regs[in.dst], static_cast<unsigned char>(owner->value[view->offset + static_cast<size_t>(index)]));
+          value_set_int64(regs[in.dst], static_cast<unsigned char>(storage[static_cast<size_t>(index)]));
           xlang_vm_cache_note_hit(cache);
           maybe_specialize_get_item_int(cache, object->kind);
           return XlangVMOpFlow::Next;
@@ -738,6 +738,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
   error.clear();
   auto raise_set_item_error = [&]() -> XlangVMOpFlow {
     const std::string& mapped_error = error;
+    if (mapped_error == "Existing exports of data: object cannot be re-sized") {
+      return raise_exception_value(runtime.make_exception("BufferError", mapped_error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     bool is_mapping_miss = mapped_error == "key not found" && value_as_dict(regs[in.dst]) != nullptr;
     if (!is_mapping_miss) {
       if (auto* instance = value_as_instance(regs[in.dst])) {
@@ -770,12 +774,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       }
     } else if (regs[in.dst].as.obj->kind == ObjectKind::MemoryView) {
       auto* view = value_as_memoryview(regs[in.dst]);
-      if (!view->readonly) {
-        auto* owner = value_as_bytearray(view->owner);
-        if (owner != nullptr) {
+      if (view->format == "B") {
+        auto* storage = memoryview_object_writable_data(*view);
+        if (storage != nullptr) {
           int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(view->size) : raw_index;
           if (index >= 0 && index < static_cast<int64_t>(view->size)) {
-            owner->value[view->offset + static_cast<size_t>(index)] = byte;
+            storage[static_cast<size_t>(index)] = byte;
             return XlangVMOpFlow::Next;
           }
         }
@@ -830,6 +834,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
     RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   if (!sequence_delete_item(regs[in.dst], regs[in.a], error)) {
+    if (error == "Existing exports of data: object cannot be re-sized") {
+      return raise_exception_value(runtime.make_exception("BufferError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (value_as_instance(regs[in.dst]) != nullptr) {
       Value delitem;
       std::string attr_error;

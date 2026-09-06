@@ -968,10 +968,10 @@ ast::StmtPtr Parser::parse_simple_statement() {
     return std::make_unique<ast::DelStmt>(std::move(target));
   }
   if (match(TokenKind::KwAssert)) {
-    auto condition = parse_expression();
+    auto condition = parse_conditional();
     ast::ExprPtr message;
     if (match(TokenKind::Comma)) {
-      message = parse_expression();
+      message = parse_conditional();
     }
     consume_simple_statement_end();
     return std::make_unique<ast::AssertStmt>(std::move(condition), std::move(message));

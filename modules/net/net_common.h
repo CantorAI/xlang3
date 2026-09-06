@@ -30,8 +30,6 @@ private:
   bool shutdown_ = false;
 };
 
-extern X::Value g_request_class;
-extern X::Value g_response_class;
 
 template <typename T>
 X::Value create_native_instance(X3PackageHost* host, const X::Value& klass, T* object) {

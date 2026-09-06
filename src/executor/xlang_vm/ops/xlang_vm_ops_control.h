@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "../xlang_frame.h"
 #include "../xlang_vm_arithmetic.h"
+#include "../xlang_vm_inline_support.h"
 #include "../xlang_vm_op_switch.h"
 
 #include "xlang3/builtins.h"
@@ -41,14 +42,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump(
   return XlangVMOpFlow::ContinueLoop;
 }
 
-template <typename EmitMonitoringEvent>
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false(
     const ir::Instr& in,
-    const ir::Module& module,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip,
-    EmitMonitoringEvent&& emit_monitoring_event) {
-  const bool condition = xlang_vm_truthy(module, regs[in.a]);
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, regs[in.a], condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending))
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
   if (!emit_monitoring_event(

@@ -13,10 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include <atomic>
+#include <thread>
 
 #include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 #include "xlang3/value.h"
 #include "xlang3/value_hash.h"
 
@@ -24,6 +27,27 @@ int main() {
   xlang3::test::CaseResult result;
   std::string error;
   xlang3::Value out;
+
+  {
+    xlang3::Value escaped_set, escaped_iterator;
+    std::thread producer([&] {
+      escaped_set = xlang3::Value::set({xlang3::Value::int64(17), xlang3::Value::int64(29)});
+      std::string local_error;
+      xlang3::set_get_iter(escaped_set, escaped_iterator, local_error);
+    });
+    producer.join();
+    // Reuse heap pages after the creating thread has destroyed its caches.
+    std::vector<std::string> churn(256, std::string(16384, 'x'));
+    xlang3::Value count;
+    xlang3::test::expect_true(result, xlang3::set_len(escaped_set, count, error) && count.as.i64 == 2,
+        "set must survive its allocating thread");
+    bool done = false;
+    xlang3::Value item;
+    xlang3::test::expect_true(result, xlang3::set_iter_next(escaped_iterator, done, item, error) &&
+        !done && item.as.i64 == 17, "set iterator must survive its allocating thread");
+    std::thread consumer([set = std::move(escaped_set), iterator = std::move(escaped_iterator)] {});
+    consumer.join();
+  }
 
   xlang3::test::expect_true(result, xlang3::value_add(xlang3::Value::int64(20), xlang3::Value::int64(22), out, error),
                             "int64 add should succeed");
@@ -133,6 +157,23 @@ int main() {
                               "native module builder should expose values as attrs");
     xlang3::test::expect_true(result, answer.tag == xlang3::ValueTag::Int64 && answer.as.i64 == 42,
                               "native module attr should round-trip");
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::Runtime runtime(output);
+    std::atomic<int> ready{0}, failures{0};
+    std::vector<std::thread> workers;
+    for (int i = 0; i < 8; ++i) workers.emplace_back([&, i] {
+      const auto message = "native-error-" + std::to_string(i);
+      runtime.set_last_error(message);
+      ++ready;
+      while (ready.load() != 8) std::this_thread::yield();
+      if (runtime.last_error() != message) ++failures;
+    });
+    for (auto& worker : workers) worker.join();
+    xlang3::test::expect_true(result, failures == 0 && runtime.last_error().empty(),
+        "native error state must belong to the calling thread");
   }
 
   return xlang3::test::finish(result);

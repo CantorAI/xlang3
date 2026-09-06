@@ -8,6 +8,7 @@ Licensed under the Apache License, Version 2.0
 
 #include "shared_memory_block_stream.h"
 #include "shared_memory_backpressure.h"
+#include "shared_memory_server_threads.h"
 #include "serialize/ipc_value_marshal.h"
 #include "serialize/xlang_stream.h"
 
@@ -62,6 +63,7 @@ struct ClientRegion {
 };
 
 ServerState g_server_state;
+SharedMemoryServerThreads g_server_threads;
 
 struct WinSecurityAttributes {
   SECURITY_ATTRIBUTES sa{};
@@ -349,7 +351,9 @@ void process_slot(uint32_t slot_index, std::vector<SharedSlotRef> request_slots)
 void server_loop() {
   for (;;) {
     WaitForSingleObject(g_server_state.server_event, INFINITE);
+    if (g_server_threads.stopping) return;
     for (;;) {
+      if (g_server_threads.stopping) return;
       std::vector<std::pair<uint32_t, std::vector<SharedSlotRef>>> ready;
       std::string error;
       if (!wait_mutex(g_server_state.mutex, error)) {
@@ -385,7 +389,9 @@ void server_loop() {
         break;
       }
       for (auto& item : ready) {
-        std::thread(process_slot, item.first, std::move(item.second)).detach();
+        g_server_threads.launch([index = item.first, slots = std::move(item.second)]() mutable {
+          process_slot(index, std::move(slots));
+        });
       }
     }
   }
@@ -403,8 +409,28 @@ bool lrpc_start_shared_memory_server_platform(const std::string& port, std::stri
     g_server_state = ServerState{};
     return false;
   }
-  std::thread(server_loop).detach();
+  g_server_threads.stopping = false;
+  g_server_threads.listener = std::thread(server_loop);
   return true;
+}
+
+void lrpc_stop_shared_memory_server_platform() {
+  if (!g_server_state.region) return;
+  g_server_threads.stopping = true;
+  SetEvent(g_server_state.server_event);
+  g_server_threads.drain();
+  std::string ignored;
+  if (wait_mutex(g_server_state.mutex, ignored)) {
+    g_server_state.region->server_pid = 0;
+    g_server_state.region->magic = 0;
+    ReleaseMutex(g_server_state.mutex);
+  }
+  for (HANDLE event : g_server_state.slot_events) { SetEvent(event); CloseHandle(event); }
+  UnmapViewOfFile(g_server_state.region);
+  CloseHandle(g_server_state.mapping);
+  CloseHandle(g_server_state.mutex);
+  CloseHandle(g_server_state.server_event);
+  g_server_state = ServerState{};
 }
 
 void lrpc_wait_forever_platform() {

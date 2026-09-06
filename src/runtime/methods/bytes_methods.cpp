@@ -786,7 +786,14 @@ bool append_bytes_from_value(std::string& target, const Value& value, std::strin
   return false;
 }
 
-bool bytearray_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool bytearray_resize_allowed(Runtime& runtime, ByteArrayObject* value, std::string& error) {
+  if (!value->buffer_exports) return true;
+  error = "Existing exports of data: object cannot be re-sized";
+  runtime.raise_class_error("BufferError", error);
+  return false;
+}
+
+bool bytearray_append_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "bytearray.append", error)) {
     return false;
   }
@@ -799,12 +806,13 @@ bool bytearray_append_method(Runtime&, const Value* args, uint32_t argc, Value& 
   if (!int_to_byte_arg(args[1], byte, error)) {
     return false;
   }
+  if (!bytearray_resize_allowed(runtime, bytearray, error)) return false;
   bytearray->value.push_back(static_cast<char>(byte));
   value_set_none(out);
   return true;
 }
 
-bool bytearray_extend_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool bytearray_extend_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "bytearray.extend", error)) {
     return false;
   }
@@ -813,6 +821,13 @@ bool bytearray_extend_method(Runtime&, const Value* args, uint32_t argc, Value& 
     error = "bytearray.extend target is not bytearray";
     return false;
   }
+  if (bytearray->buffer_exports) {
+    std::string addition;
+    if (!append_bytes_from_value(addition, args[1], error)) return false;
+    if (!addition.empty() && !bytearray_resize_allowed(runtime, bytearray, error)) return false;
+    value_set_none(out);
+    return true;
+  }
   if (!append_bytes_from_value(bytearray->value, args[1], error)) {
     return false;
   }
@@ -820,7 +835,7 @@ bool bytearray_extend_method(Runtime&, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
-bool bytearray_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool bytearray_clear_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "bytearray.clear", error)) {
     return false;
   }
@@ -829,6 +844,7 @@ bool bytearray_clear_method(Runtime&, const Value* args, uint32_t argc, Value& o
     error = "bytearray.clear target is not bytearray";
     return false;
   }
+  if (!bytearray->value.empty() && !bytearray_resize_allowed(runtime, bytearray, error)) return false;
   bytearray->value.clear();
   value_set_none(out);
   return true;
@@ -877,6 +893,7 @@ bool bytearray_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
   const auto pos = static_cast<size_t>(index);
+  if (!bytearray_resize_allowed(runtime, bytearray, error)) return false;
   value_set_int64(out, static_cast<unsigned char>(bytearray->value[pos]));
   bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(pos));
   return true;
@@ -904,6 +921,7 @@ bool bytearray_remove_method(Runtime& runtime, const Value* args, uint32_t argc,
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  if (!bytearray_resize_allowed(runtime, bytearray, error)) return false;
   bytearray->value.erase(it);
   value_set_none(out);
   return true;
@@ -1214,7 +1232,7 @@ bool memoryview_cast_method(Runtime&, const Value* args, uint32_t argc, Value& o
       return false;
     }
   }
-  out = Value::memoryview(view->owner, view->offset, view->size, view->readonly);
+  out = Value::memoryview(args[0], 0, view->size, view->readonly);
   if (auto* cast_view = value_as_memoryview(out)) {
     cast_view->format = std::move(format);
   }
@@ -1234,7 +1252,7 @@ bool memoryview_toreadonly_method(Runtime&, const Value* args, uint32_t argc, Va
     error = "operation forbidden on released memoryview object";
     return false;
   }
-  out = Value::memoryview(view->owner, view->offset, view->size, true);
+  out = Value::memoryview(args[0], 0, view->size, true);
   if (auto* readonly = value_as_memoryview(out)) {
     readonly->format = view->format;
   }

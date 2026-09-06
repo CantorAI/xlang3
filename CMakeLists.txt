@@ -174,6 +174,13 @@ if(NOT XLANG3_EMBEDDED)
     src/debug/dap_session.cpp
     src/ir/dump.cpp
     src/api/c_api.cpp
+    src/api/buffer_api.cpp
+    src/tensor/tensor_storage.cpp
+    src/tensor/tensor_graph.cpp
+    src/tensor/tensor_cpu.cpp
+    src/tensor/tensor_module.cpp
+    src/tensor/tensor_api.cpp
+    src/api/protocol_api.cpp
     src/api/stream_api.cpp
     src/api/native_serialization_api.cpp
     src/api/ipc_api.cpp
@@ -263,6 +270,10 @@ if(WIN32)
 endif()
 
 enable_testing()
+option(XLANG3_BUILD_CPYTHON_BRIDGE "Build the optional CPython 3.14 extension" OFF)
+if(XLANG3_BUILD_CPYTHON_BRIDGE)
+  add_subdirectory(cpython_bridge)
+endif()
 add_executable(xlang3_cpp_ipc_client tests/cpp/ipc_client.cpp)
 target_link_libraries(xlang3_cpp_ipc_client PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3_cpp_ipc_client PRIVATE XLANG3_USE_SHARED)
@@ -309,6 +320,15 @@ foreach(failure IN ITEMS BAD_VERSION NO_CODEC DECODE_FAIL)
   set_tests_properties(xlang3_graph_reject_${failure} PROPERTIES FIXTURES_REQUIRED serialized_graph ENVIRONMENT "XLANG3_TEST_GRAPH_${failure}=1")
 endforeach()
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
+add_executable(xlang3_tensor_cpu_tests tests/tensor/cpu_tests.cpp)
+target_link_libraries(xlang3_tensor_cpu_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_tensor_cpu_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_tensor_cpu COMMAND xlang3_tensor_cpu_tests)
+set_tests_properties(xlang3_tensor_cpu PROPERTIES TIMEOUT 60)
+add_test(NAME xlang3_tensor_cpu_graph COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/tensor/cpu_graph.py)
+set_tests_properties(xlang3_tensor_cpu_graph PROPERTIES TIMEOUT 60)
+add_test(NAME xlang3_tensor_cpu_reference COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/tensor/cpu_reference.py)
+set_tests_properties(xlang3_tensor_cpu_reference PROPERTIES TIMEOUT 60)
 add_xlang3_cpp_test(xlang3_ipc_capacity_tests tests/cpp/ipc_capacity_tests.cpp)
 add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
@@ -406,7 +426,7 @@ add_test(
 
 add_test(
   NAME xlang3_cli_device_module_import
-  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/device_module.py
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/device_module.py $<TARGET_FILE_DIR:xlang_device_native_package>
 )
 
 add_test(

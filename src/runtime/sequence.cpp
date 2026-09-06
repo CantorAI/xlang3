@@ -192,11 +192,8 @@ BinaryStorageView binary_storage(const Value& value) {
     if (view->released) {
       return {};
     }
-    const auto storage = binary_storage(view->owner);
-    if (storage.data == nullptr || view->offset > storage.size) {
-      return {};
-    }
-    return BinaryStorageView{storage.data + view->offset, view->size, view->readonly || storage.readonly};
+    const auto storage = memoryview_object_view(*view);
+    return BinaryStorageView{storage.data(), storage.size(), memoryview_object_writable_data(*view) == nullptr};
   }
   return {};
 }
@@ -846,8 +843,8 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       if (object.as.obj->kind == ObjectKind::MemoryView && step == 1) {
         const auto normalized_size = stop >= start ? static_cast<size_t>(stop - start) : 0;
         out = Value::memoryview(
-            reinterpret_cast<MemoryViewObject*>(object.as.obj)->owner,
-            reinterpret_cast<MemoryViewObject*>(object.as.obj)->offset + static_cast<size_t>(start),
+            object,
+            static_cast<size_t>(start),
             normalized_size,
             storage.readonly);
       } else {
@@ -1006,6 +1003,15 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
         return false;
       }
       if (step == 1) {
+        const auto count = static_cast<size_t>(std::max<int64_t>(0, stop - start));
+        if (replacement.size() == count) {
+          std::copy(replacement.begin(), replacement.end(), bytearray->value.begin() + start);
+          return true;
+        }
+        if (bytearray->buffer_exports) {
+          error = "Existing exports of data: object cannot be re-sized";
+          return false;
+        }
         bytearray->value.erase(
             bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
             bytearray->value.begin() + static_cast<std::ptrdiff_t>(stop));
@@ -1060,8 +1066,8 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       error = "operation forbidden on released memoryview object";
       return false;
     }
-    auto* bytearray = value_as_bytearray(view->owner);
-    if (bytearray == nullptr) {
+    char* storage = memoryview_object_writable_data(*view);
+    if (storage == nullptr) {
       error = "memoryview owner is not writable";
       return false;
     }
@@ -1091,7 +1097,7 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
         return false;
       }
       for (size_t i = 0; i < indexes.size(); ++i) {
-        bytearray->value[view->offset + indexes[i]] = replacement[i];
+        storage[indexes[i]] = replacement[i];
       }
       return true;
     }
@@ -1116,7 +1122,7 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
     if (!int_to_byte(item, byte, error)) {
       return false;
     }
-    bytearray->value[view->offset + static_cast<size_t>(resolved)] = static_cast<char>(byte);
+    storage[static_cast<size_t>(resolved)] = static_cast<char>(byte);
     return true;
   }
   error = "object does not support item assignment";
@@ -1186,6 +1192,10 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
       }
       if (step == 1) {
         if (start < stop) {
+          if (bytearray->buffer_exports) {
+            error = "Existing exports of data: object cannot be re-sized";
+            return false;
+          }
           bytearray->value.erase(
               bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
               bytearray->value.begin() + static_cast<std::ptrdiff_t>(stop));
@@ -1203,6 +1213,10 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
         }
       }
       std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
+      if (!indexes.empty() && bytearray->buffer_exports) {
+        error = "Existing exports of data: object cannot be re-sized";
+        return false;
+      }
       for (const auto index_to_delete : indexes) {
         bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(index_to_delete));
       }
@@ -1215,6 +1229,10 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
     uint64_t resolved = 0;
     if (!normalize_index(index.as.i64, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
       error = "index out of range";
+      return false;
+    }
+    if (bytearray->buffer_exports) {
+      error = "Existing exports of data: object cannot be re-sized";
       return false;
     }
     bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(resolved));

@@ -16,5 +16,6 @@ bool ipc_register_remote_object(Runtime& runtime, const std::string& name, const
 bool ipc_lrpc_listen(Runtime& runtime, int64_t port, bool wait, Value& out, std::string& error);
 bool ipc_import_thru(Runtime& runtime, const std::string& name, const Value& endpoint, Value& out, std::string& error);
 void register_ipc_builtins(Runtime& runtime);
+void ipc_detach_runtime(Runtime& runtime);
 
 } // namespace xlang3

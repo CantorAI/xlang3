@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/runtime.h"
+#include "ipc/ipc_runtime.h"
 
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
@@ -513,10 +514,22 @@ Runtime::Runtime(OutputSink output)
   initialize();
 }
 
+void Runtime::set_last_error(std::string error) {
+  std::lock_guard<std::mutex> lock(last_error_mutex_);
+  last_errors_[std::this_thread::get_id()] = std::move(error);
+}
+
+const std::string& Runtime::last_error() const {
+  std::lock_guard<std::mutex> lock(last_error_mutex_);
+  // Rehashing preserves references; only the calling thread modifies its entry.
+  return last_errors_[std::this_thread::get_id()];
+}
+
 Runtime::~Runtime() {
   std::string ignored;
   run_exit_functions(ignored);
   xlang_thread_join_runtime_threads(this);
+  ipc_detach_runtime(*this);
   value_set_invalid(pending_exception_);
   value_set_invalid(active_exception_);
   value_set_invalid(runtime_current_exception_state(*this));
@@ -1458,13 +1471,17 @@ bool Runtime::import_star(const std::string& module_name, Value& target_module, 
     return false;
   }
 
+  // Getters may modify the module namespace while the import is in progress.
+  std::vector<std::string> names;
+  names.reserve(source->name_to_slot.size());
   for (const auto& item : source->name_to_slot) {
-    const std::string& name = item.first;
-    const uint32_t slot = item.second;
-    if (name.empty() || name[0] == '_' || slot >= source->slots.size()) {
-      continue;
-    }
-    if (!module_set_attr(target_module, name, source->slots[slot], error)) {
+    if (!item.first.empty() && item.first[0] != '_' && item.second < source->slots.size())
+      names.push_back(item.first);
+  }
+  for (const auto& name : names) {
+    Value value;
+    if (!module_get_attr(module, name, value, error) ||
+        !module_set_attr(target_module, name, value, error)) {
       return false;
     }
   }

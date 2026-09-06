@@ -20,3 +20,14 @@ class ConfiguredWorker:
 
 def broken(*, reason):
     raise ValueError(reason)
+
+def check_native_view(view):
+    import struct
+    view[0] = 17
+    view[-1] = 29
+    assert view[0] == 17 and view[-1] == 29
+    struct.pack_into('<I', view, 4, 0x12345678)
+    assert struct.unpack_from('<I', view, 4)[0] == 0x12345678
+    derived = memoryview(view)[4:8].toreadonly()
+    view.release()
+    return derived

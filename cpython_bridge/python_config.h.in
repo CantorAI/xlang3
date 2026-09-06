@@ -1,0 +1,3 @@
+#pragma once
+#define XLANG3_PYTHON_EXECUTABLE R"(@Python3_EXECUTABLE@)"
+#define XLANG3_PYTHON_HOME R"(@XLANG3_PYTHON_HOME@)"

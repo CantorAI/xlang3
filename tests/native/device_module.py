@@ -10,6 +10,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+if len(sys.argv) > 1:
+    sys.path.insert(0, sys.argv[1])
 import device
 
 dev = device.connect()

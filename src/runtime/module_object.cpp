@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
+#include "xlang3/functional_iterators.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -164,6 +165,10 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     return false;
   }
+  if (auto* property = value_as_property(module->slots[it->second]); property && property->native_module_runtime) {
+    const Value descriptor = module->slots[it->second];
+    return runtime_call_callable(*property->native_module_runtime, property->fget, &object, 1, out, error);
+  }
   value_assign_fast(out, module->slots[it->second]);
   return true;
 }
@@ -179,6 +184,20 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
   }
   auto it = module->name_to_slot.find(name);
   if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
+    if (auto* property = value_as_property(module->slots[it->second]); property && property->native_module_runtime) {
+      const Value descriptor = module->slots[it->second];
+      if (value.tag == ValueTag::Invalid) {
+        error = "native module property cannot be deleted: " + name;
+        return false;
+      }
+      if (property->fset.tag == ValueTag::None) {
+        error = "module property '" + name + "' is read-only";
+        return false;
+      }
+      const Value args[] = {object, value};
+      Value result;
+      return runtime_call_callable(*property->native_module_runtime, property->fset, args, 2, result, error);
+    }
     if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
       value_assign_fast(module->slots[it->second], value);
     } else {

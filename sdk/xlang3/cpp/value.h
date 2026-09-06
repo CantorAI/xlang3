@@ -78,11 +78,23 @@ public:
   ~Value() { reset(); }
 
   static Value String(X3PackageHost* host, const std::string& value) {
+    if (host->size >= offsetof(X3PackageHost, value_string_utf8) + sizeof(host->value_string_utf8) && host->value_string_utf8)
+      return Value(host, host->value_string_utf8(host->runtime, value.data(), value.size()), false);
     return Value(host, host->value_string(host->runtime, value.c_str()), false);
   }
 
   static Value Bytes(X3PackageHost* host, const void* data, uint64_t size) {
     return Value(host, host->value_bytes(host->runtime, data, size), false);
+  }
+
+  static Value MemoryView(X3PackageHost* host, void* data, uint64_t size,
+      std::shared_ptr<void> owner, bool readonly = false) {
+    if (!host || host->size < offsetof(X3PackageHost, value_memoryview) + sizeof(host->value_memoryview) ||
+        !host->value_memoryview || !owner) return {};
+    auto lifetime = std::make_unique<std::shared_ptr<void>>(std::move(owner));
+    auto raw = host->value_memoryview(host->runtime, data, size, readonly ? 1 : 0,
+        lifetime.release(), [](void* context) { delete static_cast<std::shared_ptr<void>*>(context); });
+    return Value(host, raw, false);
   }
 
   static Value List(X3PackageHost* host) {
@@ -109,7 +121,9 @@ public:
   }
 
   bool IsValid() const { return value_.tag != X3_TAG_INVALID; }
+  bool IsObject() const { return value_.tag == X3_TAG_OBJECT && value_.as.obj != nullptr; }
   bool IsInt64() const { return value_.tag == X3_TAG_INT64; }
+  bool IsUInt64() const { return value_.tag == X3_TAG_UINT64; }
   bool IsDouble() const { return value_.tag == X3_TAG_DOUBLE; }
   bool IsNone() const { return value_.tag == X3_TAG_NONE; }
   bool IsString() const { return object_kind() == X3_OBJECT_KIND_STRING; }
@@ -117,6 +131,13 @@ public:
   bool IsDict() const { return object_kind() == X3_OBJECT_KIND_DICT; }
   bool IsEvent() const { return object_kind() == X3_OBJECT_KIND_EVENT; }
   bool IsExpression() const { return object_kind() == X3_OBJECT_KIND_EXPRESSION; }
+  static Value Expression(X3PackageHost* host, const std::string& source) {
+    if (!host || host->size < offsetof(X3PackageHost, expression_compile) + sizeof(host->expression_compile) ||
+        !host->expression_compile || source.find('\0') != std::string::npos) return {};
+    X3Value result = x3_value_invalid();
+    if (host->expression_compile(host->runtime, source.c_str(), &result) != X3_STATUS_OK) return {};
+    return Value(host, result, false);
+  }
   bool Evaluate(const Value& bindings, Value& result, Value& reservations) const {
     if (!host_ || !host_->expression_evaluate) return false;
     X3Value raw_result = x3_value_invalid(), raw_reservations = x3_value_invalid();
@@ -141,6 +162,9 @@ public:
   }
 
   int64_t ToInt64() const { return static_cast<int64_t>(ToLongLong()); }
+  uint64_t ToUInt64() const {
+    return value_.tag == X3_TAG_UINT64 ? value_.as.u64 : static_cast<uint64_t>(ToLongLong());
+  }
 
   double ToDouble() const {
     if (value_.tag == X3_TAG_DOUBLE) return value_.as.f64;
@@ -148,6 +172,14 @@ public:
   }
 
   std::string ToString(bool = false) const {
+    if (IsString() && host_->size >= offsetof(X3PackageHost, value_string_data) + sizeof(host_->value_string_data) &&
+        host_->value_string_data) {
+      const char* data = nullptr;
+      uint64_t size = 0;
+      if (host_->value_string_data(host_->runtime, value_, &data, &size) == X3_STATUS_OK)
+        return std::string(data, static_cast<size_t>(size));
+      return {};
+    }
     const char* text = nullptr;
     if (host_ != nullptr && host_->value_to_cstr != nullptr) {
       text = host_->value_to_cstr(host_->runtime, value_);
@@ -473,6 +505,10 @@ private:
     return host_ == nullptr ? Value() : Value::String(host_, value == nullptr ? std::string() : std::string(value));
   }
 
+  Value MakeValue(char* value) const {
+    return MakeValue(static_cast<const char*>(value));
+  }
+
   Value MakeValue(const std::string& value) const {
     return host_ == nullptr ? Value() : Value::String(host_, value);
   }
@@ -557,6 +593,10 @@ private:
 
   void add_one_call_arg(std::vector<Value>& out, const char* value) const {
     out.push_back(MakeValue(value));
+  }
+
+  void add_one_call_arg(std::vector<Value>& out, char* value) const {
+    out.push_back(MakeValue(static_cast<const char*>(value)));
   }
 
   void add_one_call_arg(std::vector<Value>& out, const std::string& value) const {

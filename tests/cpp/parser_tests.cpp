@@ -18,6 +18,22 @@ limitations under the License.
 
 int main() {
   xlang3::test::CaseResult result;
+  auto assertions = xlang3::parse_source("assert False, 'failure'\nassert (False, 'tuple')\nassert True\n");
+  xlang3::test::expect_true(result, assertions.errors.empty() && assertions.module.body.size() == 3,
+      "parser should accept assertion forms");
+  if (assertions.module.body.size() == 3) {
+    auto* with_message = dynamic_cast<xlang3::ast::AssertStmt*>(assertions.module.body[0].get());
+    auto* with_tuple = dynamic_cast<xlang3::ast::AssertStmt*>(assertions.module.body[1].get());
+    auto* simple = dynamic_cast<xlang3::ast::AssertStmt*>(assertions.module.body[2].get());
+    xlang3::test::expect_true(result, with_message && with_message->message &&
+        !dynamic_cast<xlang3::ast::TupleExpr*>(with_message->condition.get()),
+        "assert message must not become part of the condition tuple");
+    xlang3::test::expect_true(result, with_tuple && !with_tuple->message &&
+        dynamic_cast<xlang3::ast::TupleExpr*>(with_tuple->condition.get()),
+        "parenthesized assertion tuple must remain a tuple");
+    xlang3::test::expect_true(result, simple && !simple->message,
+        "simple assertion must have no message");
+  }
   xlang3::SourceLines lines("alpha\r\n beta\n\nomega");
   xlang3::SourceLine line;
   xlang3::test::expect_true(result, lines.next(line) && line.text == "alpha" && line.line == 1, "SourceLines should read first CRLF line");

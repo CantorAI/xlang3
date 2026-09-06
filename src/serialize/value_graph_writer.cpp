@@ -206,12 +206,9 @@ private:
       node.kind = Kind::ByteArray; node.payload = std::string_view(bytes->value.data(), bytes->value.size());
     } else if (auto* view = value_as_memoryview(value)) {
       IO::require(!view->released, "cannot serialize a released memoryview");
-      std::string_view owner;
-      if (auto* bytes = value_as_bytes(view->owner)) owner = bytes_object_view(*bytes);
-      else if (auto* bytes = value_as_bytearray(view->owner)) owner = std::string_view(bytes->value.data(), bytes->value.size());
-      else throw std::runtime_error("memoryview owner cannot be serialized as bytes");
-      IO::require(view->offset <= owner.size() && view->size <= owner.size() - view->offset, "invalid memoryview bounds");
-      node.kind = Kind::Bytes; node.payload = owner.substr(view->offset, view->size);
+      const auto storage = memoryview_object_view(*view);
+      IO::require(storage.data() != nullptr, "invalid memoryview bounds");
+      node.kind = Kind::Bytes; node.payload = storage;
     } else if (auto* list = value_as_list(value)) {
       node.kind = Kind::List; node.refs = list->items;
     } else if (auto* tuple = value_as_tuple(value)) {

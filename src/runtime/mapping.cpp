@@ -628,6 +628,10 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
       error = "key not found";
       return false;
     }
+    if (auto* property = value_as_property(module->slots[it->second]); property && property->native_module_runtime) {
+      error = "native module property cannot be deleted: " + name;
+      return false;
+    }
     value_set_invalid(module->slots[it->second]);
     module->name_to_slot.erase(it);
     ++module->version;
@@ -817,6 +821,13 @@ bool mapping_clear(Value& value, std::string& error) {
     return true;
   }
   if (auto* module = value_as_module(value)) {
+    for (const auto& slot : module->slots) {
+      auto* property = value_as_property(slot);
+      if (property && property->native_module_runtime) {
+        error = "cannot clear a module containing native properties";
+        return false;
+      }
+    }
     for (auto& slot : module->slots) {
       value_set_invalid(slot);
     }

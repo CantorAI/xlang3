@@ -147,6 +147,15 @@ typedef struct X3PackageHost {
   /* Creates a class value without publishing it as a module attribute. */
   X3Status (*create_class)(struct X3PackageHost*, const char*, const X3NativeFunctionDef*, uint32_t, X3Value*);
   X3Status (*instance_set_native_cast)(X3Value, X3NativeDataCast);
+  X3Status (*expression_compile)(X3Runtime*, const char*, X3Value*);
+  X3Value (*value_memoryview)(X3Runtime*, void*, uint64_t, int32_t, void*, X3BufferCleanup);
+  /* Getter receives the module; setter receives module and value. A null setter
+     makes the property read-only. user_data must live until package cleanup. */
+  X3Status (*module_add_property)(X3Module*, const char*, X3NativeFn getter,
+      X3NativeFn setter, void* user_data);
+  /* Length-aware UTF-8 operations. These appended entries preserve the host prefix. */
+  X3Status (*value_string_data)(X3Runtime*, X3Value, const char**, uint64_t*);
+  X3Value (*value_string_utf8)(X3Runtime*, const char*, uint64_t);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);

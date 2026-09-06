@@ -33,19 +33,6 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
-XLANG3_HOT_INLINE bool xlang_vm_is_default_object_hook(const Value& hook, const char* name) {
-  auto* native = value_as_native_function(hook);
-  if (native != nullptr) {
-    return native->name == name;
-  }
-  auto* bound = value_as_bound_method(hook);
-  if (bound == nullptr) {
-    return false;
-  }
-  native = value_as_native_function(bound->function);
-  return native != nullptr && native->name == name;
-}
-
 XLANG3_HOT_INLINE bool xlang_vm_descriptor_method(const Value& descriptor, const char* name, Value& out) {
   std::string error;
   return object_get_attr(descriptor, name, out, error);
@@ -361,6 +348,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       }
     }
     if (value_as_module(regs[in.a]) != nullptr) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      auto* module_object = value_as_module(regs[in.a]);
+      auto slot = module_object->name_to_slot.find(fn.names[in.b]);
+      if (slot != module_object->name_to_slot.end() && slot->second < module_object->slots.size()) {
+        auto* property = value_as_property(module_object->slots[slot->second]);
+        if (property && property->native_module_runtime)
+          return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       Value module_getattr;
       std::string getattr_error;
       if (module_get_attr(regs[in.a], "__getattr__", module_getattr, getattr_error)) {
@@ -642,6 +640,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
   }
   if (!store_attr_cached(regs[in.dst], fn.names[in.a], regs[in.b], instr_cache[ip].attr, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (error == "object does not support attribute assignment" ||
         error.find("read-only") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("AttributeError", error))

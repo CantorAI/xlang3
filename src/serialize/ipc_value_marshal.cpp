@@ -153,19 +153,10 @@ bool XLangStream::MarshalToBytesImpl(const Value& value, const std::string& call
           error = "cannot marshal released memoryview";
           return false;
         }
-        if (auto* owner_bytes = value_as_bytes(view->owner)) {
-          const auto owner = bytes_object_view(*owner_bytes);
-          if (view->offset <= owner.size() && owner.size() - view->offset >= view->size) {
-            kind = IpcWireValueKind::Bytes;
-            (*this) << kind << std::string_view(owner.data() + view->offset, view->size);
-            return true;
-          }
-        }
-        if (auto* owner_array = value_as_bytearray(view->owner);
-            owner_array != nullptr && view->offset <= owner_array->value.size() &&
-            owner_array->value.size() - view->offset >= view->size) {
+        const auto storage = memoryview_object_view(*view);
+        if (storage.data()) {
           kind = IpcWireValueKind::Bytes;
-          (*this) << kind << std::string_view(owner_array->value.data() + view->offset, view->size);
+          (*this) << kind << storage;
           return true;
         }
         error = "memoryview owner cannot be marshaled as bytes";

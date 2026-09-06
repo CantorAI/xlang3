@@ -11,8 +11,6 @@ Licensed under the Apache License, Version 2.0
 
 namespace xlang_net {
 
-X::Value g_request_class;
-X::Value g_response_class;
 
 std::string lower(std::string value) {
   std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });

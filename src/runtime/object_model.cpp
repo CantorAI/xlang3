@@ -3306,6 +3306,31 @@ bool instance_native_truthy(const Value& instance, bool& out) {
   return true;
 }
 
+bool runtime_instance_truthy(Runtime& runtime, const Value& value, bool& out, std::string& error) {
+  if (instance_native_truthy(value, out)) return true;
+  Value hook;
+  std::string ignored;
+  const bool has_bool = object_get_class_attr_for_instance(value, "__bool__", hook, ignored);
+  if (!has_bool && !object_get_class_attr_for_instance(value, "__len__", hook, ignored)) {
+    out = true;
+    return true;
+  }
+  Value result;
+  error.clear();
+  if (!runtime_call_callable(runtime, hook, &value, 1, result, error)) return false;
+  if (has_bool && result.tag == ValueTag::Bool) { out = result.as.b; return true; }
+  if (!has_bool && (result.tag == ValueTag::Int64 || result.tag == ValueTag::Bool)) {
+    const int64_t length = result.tag == ValueTag::Bool ? result.as.b : result.as.i64;
+    if (length >= 0) { out = length != 0; return true; }
+    error = "__len__() should return >= 0";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  error = has_bool ? "__bool__ should return bool" : "__len__ should return an integer";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool instance_set_native_attr_hooks(
     Value instance,
     NativeInstanceGetAttr get_attr,

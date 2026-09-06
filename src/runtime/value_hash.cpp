@@ -41,6 +41,11 @@ HashBinaryView hash_binary_view(const Value& value) {
     if (memoryview->released) {
       return {};
     }
+    if (memoryview->external) {
+      const auto storage = memoryview_object_view(*memoryview);
+      // Native owners can change their buffer even through a read-only view.
+      return {storage.data(), storage.size(), false};
+    }
     const auto owner = hash_binary_view(memoryview->owner);
     if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
       return {};

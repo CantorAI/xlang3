@@ -19,10 +19,14 @@ limitations under the License.
 #include "xlang3/abi/xmodule.h"
 #include "xlang3/abi/xobject.h"
 #include "xlang3/abi/xvalue.h"
+#include "xlang3/abi/xbuffer.h"
+#include "xlang3/abi/xprotocol.h"
+#include "xlang3/abi/xtensor.h"
 
 #ifdef __cplusplus
 #include "xlang3/cpp/runtime.h"
 #include "xlang3/cpp/stream.h"
+#include "xlang3/cpp/tensor.h"
 #endif
 
 #endif

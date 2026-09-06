@@ -45,7 +45,37 @@ struct Payload : std::enable_shared_from_this<Payload> {
     number = static_cast<int>(state.ToInt64());
   }
 };
-struct Objects {
+struct OwnerData { int child_calls = 0; };
+struct OwnedChild {
+  OwnerData* owner;
+  std::string name;
+  bool attached = false;
+  explicit OwnedChild(OwnerData* value) : owner(value) {}
+  OwnedChild(OwnerData* value, std::string text) : owner(value), name(std::move(text)) {}
+  void OnInstanceCreated(const X::Value& value) {
+    attached = Host() && value.NativeData<OwnedChild>() == this;
+  }
+  int Next() { return ++owner->child_calls; }
+  BEGIN_PACKAGE(OwnedChild)
+    APISET().AddFunc<0>("next", &OwnedChild::Next);
+  END_PACKAGE
+};
+struct OwnedPair {
+  OwnerData* owner;
+  std::string name;
+  int number;
+  OwnedPair(OwnerData* value, std::string text, int n) : owner(value), name(std::move(text)), number(n) {}
+  std::string Describe() { return name + ":" + std::to_string(number + owner->child_calls); }
+  BEGIN_PACKAGE(OwnedPair)
+    APISET().AddFunc<0>("describe", &OwnedPair::Describe);
+  END_PACKAGE
+};
+struct OtherOwner : OwnerData {
+  BEGIN_PACKAGE(OtherOwner)
+    APISET().AddClass<0, OwnedChild, OwnerData>("Child");
+  END_PACKAGE
+};
+struct Objects : OwnerData {
   bool fail_creation = false;
   void OnPackageCreated(X::Package<Objects>*) {
     if (fail_creation) throw std::runtime_error("test serializer registration rollback");
@@ -62,6 +92,8 @@ struct Objects {
     return !missing.IsValid() && Payload::live == before;
   }
   BEGIN_PACKAGE(Objects)
+    APISET().AddClass<0, 1, OwnedChild, OwnerData>("Child");
+    APISET().AddClass<2, OwnedPair, OwnerData>("OwnedPair");
     APISET().AddClass<0, Nested>("Nested");
     APISET().AddClass<0, Counter>("Counter", &shared_counter);
     APISET().AddClass<0, Payload>("Payload");
@@ -104,6 +136,7 @@ int main() {
     Service service;
     {
       Objects objects;
+      OtherOwner other_objects;
       X::Runtime runtime;
       objects.fail_creation = true;
       bool codec_failure_rejected = false;
@@ -112,6 +145,28 @@ int main() {
       if (!codec_failure_rejected || objects.Host()) throw std::runtime_error("serializer package failure not rolled back");
       objects.fail_creation = false;
       auto module = runtime.RegisterPackage("embedded_objects", objects);
+      {
+        auto first_child = module["Child"]();
+        auto next_child = module["Child"]();
+        auto named_child = module["Child"]("named");
+        if (!named_child.NativeData<OwnedChild>() || named_child.NativeData<OwnedChild>()->name != "named" ||
+            !named_child.NativeData<OwnedChild>()->attached || !first_child.NativeData<OwnedChild>()->attached)
+          throw std::runtime_error("optional owner constructor or instance-created hook failed");
+        X::Value invalid_child;
+        if (module["Child"].Call({X::Value(1)}, invalid_child) ||
+            module["Child"].Call({X::Value(1), X::Value(2)}, invalid_child))
+          throw std::runtime_error("optional owner constructor accepted invalid arguments");
+        if (!first_child.NativeData<OwnedChild>() || first_child.NativeData<OwnedChild>()->owner != &objects ||
+            next_child["next"]().ToInt64() != 1 || first_child["next"]().ToInt64() != 2)
+          throw std::runtime_error("package parent was not passed into child constructor");
+        auto pair = module["OwnedPair"]("owned", 40);
+        if (pair["describe"]().ToString() != "owned:42")
+          throw std::runtime_error("owner-bound constructor arguments were lost");
+        auto other_module = runtime.RegisterPackage("other_objects", other_objects);
+        auto other_child = other_module["Child"]();
+        if (other_child["next"]().ToInt64() != 1 || objects.child_calls != 2)
+          throw std::runtime_error("owner-bound classes shared the wrong parent");
+      }
       {
         auto nested = module["Nested"]();
         auto pair = nested["Pair"]("native", 42);
@@ -123,6 +178,9 @@ int main() {
           throw std::runtime_error("invalid native constructor argument accepted");
         if (X::Value(4294967295u).ToLongLong() != 4294967295LL)
           throw std::runtime_error("unsigned SDK integer narrowed");
+        const X::Value maximum(UINT64_MAX);
+        if (!maximum.IsUInt64() || maximum.ToUInt64() != UINT64_MAX || maximum.IsObject() || !module.IsObject())
+          throw std::runtime_error("SDK value tags or unsigned conversion changed");
       }
       auto first = module["Counter"]();
       auto second = module["Counter"]();

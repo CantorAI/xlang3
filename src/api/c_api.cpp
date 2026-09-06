@@ -37,6 +37,7 @@ limitations under the License.
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -279,17 +280,84 @@ X3Value x3_value_string(X3Runtime* runtime, const char* value) {
   return xlang3::to_c_value(xlang3::Value::string(value));
 }
 
+X3Value x3_value_string_utf8(X3Runtime* runtime, const char* data, uint64_t size) {
+  auto* rt = as_runtime(runtime);
+  if (!rt || (!data && size)) return x3_value_invalid();
+  if (size > static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()) -
+      sizeof(xlang3::StringObject) - 1) {
+    rt->set_last_error("string value is too large");
+    return x3_value_invalid();
+  }
+  try {
+    return xlang3::to_c_value(xlang3::Value::string_view(
+        std::string_view(size ? data : "", static_cast<size_t>(size))));
+  } catch (const std::exception& error) {
+    rt->set_last_error(error.what());
+    return x3_value_invalid();
+  }
+}
+
+X3Status x3_value_string_data(X3Runtime* runtime, X3Value value,
+    const char** data, uint64_t* size) {
+  auto* rt = as_runtime(runtime);
+  if (!rt || !data || !size) return fail(rt, "runtime/data/size is null");
+  std::string error;
+  auto internal = xlang3::from_c_value(value, error);
+  if (!error.empty()) return fail(rt, error);
+  auto* string = xlang3::value_as_string(internal);
+  if (!string) return fail(rt, "expected a string value");
+  auto view = xlang3::string_object_view(*string);
+  *data = view.data();
+  *size = view.size();
+  return X3_STATUS_OK;
+}
+
 X3Value x3_value_bytes(X3Runtime* runtime, const void* data, uint64_t size) {
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || (size != 0 && data == nullptr)) {
     return x3_value_invalid();
   }
-  if (size > static_cast<uint64_t>(std::string().max_size())) {
+  if (size > static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()) -
+                 sizeof(xlang3::BytesObject) - 1) {
     rt->set_last_error("bytes value is too large");
     return x3_value_invalid();
   }
-  return xlang3::to_c_value(xlang3::Value::bytes(
-      std::string(static_cast<const char*>(data), static_cast<size_t>(size))));
+  try {
+    return xlang3::to_c_value(xlang3::Value::bytes(
+        std::string_view(size ? static_cast<const char*>(data) : "", static_cast<size_t>(size))));
+  } catch (const std::exception& error) {
+    rt->set_last_error(error.what());
+    return x3_value_invalid();
+  }
+}
+
+X3Value x3_value_memoryview(X3Runtime* runtime, void* data, uint64_t size,
+    int32_t readonly, void* context, X3BufferCleanup cleanup) {
+  struct Cleanup {
+    void* context;
+    X3BufferCleanup callback;
+    ~Cleanup() { if (callback) callback(context); }
+  } owner{context, cleanup};
+  auto* rt = as_runtime(runtime);
+  if (!rt || (!data && size) || size > static_cast<uint64_t>(std::numeric_limits<size_t>::max()) ||
+      size > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+    if (rt) rt->set_last_error("invalid native memoryview buffer");
+    return x3_value_invalid();
+  }
+  try {
+    auto storage = std::make_shared<xlang3::NativeBufferStorage>();
+    storage->data = static_cast<char*>(data);
+    storage->size = static_cast<size_t>(size);
+    storage->context = context;
+    storage->cleanup = cleanup;
+    owner.callback = nullptr;
+    auto value = xlang3::Value::memoryview(xlang3::Value::none(), 0, static_cast<size_t>(size), readonly != 0);
+    xlang3::value_as_memoryview(value)->external = std::move(storage);
+    return xlang3::to_c_value(value);
+  } catch (const std::exception& error) {
+    rt->set_last_error(error.what());
+    return x3_value_invalid();
+  }
 }
 
 X3Value x3_value_list(X3Runtime* runtime) {
@@ -379,19 +447,10 @@ X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** dat
     if (view->released) {
       return fail(rt, "memoryview is released");
     }
-    if (auto* owner_bytes = xlang3::value_as_bytes(view->owner)) {
-      const auto owner = xlang3::bytes_object_view(*owner_bytes);
-      if (view->offset <= owner.size() && owner.size() - view->offset >= view->size) {
-        *data = owner.data() + view->offset;
-        *size = static_cast<uint64_t>(view->size);
-        return X3_STATUS_OK;
-      }
-    }
-    if (auto* owner_array = xlang3::value_as_bytearray(view->owner);
-        owner_array != nullptr && view->offset <= owner_array->value.size() &&
-        owner_array->value.size() - view->offset >= view->size) {
-      *data = owner_array->value.data() + view->offset;
-      *size = static_cast<uint64_t>(view->size);
+    const auto storage = xlang3::memoryview_object_view(*view);
+    if (storage.data()) {
+      *data = storage.data();
+      *size = static_cast<uint64_t>(storage.size());
       return X3_STATUS_OK;
     }
   }
@@ -483,6 +542,27 @@ X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result)
   return X3_STATUS_OK;
 } catch (const std::exception& e) {
   return fail(as_runtime(runtime), e.what());
+}
+
+X3Status x3_expression_compile(X3Runtime* runtime, const char* source, X3Value* result) try {
+  auto* rt = as_runtime(runtime);
+  if (result) *result = x3_value_invalid();
+  if (!rt || !source || !result) return fail(rt, "null expression compilation argument");
+  auto parsed = xlang3::parse_expression_source(source);
+  if (!parsed.errors.empty()) return fail(rt, parsed.errors.front());
+  if (!parsed.expression) return fail(rt, "expression is empty");
+  auto expression = xlang3::capture_expression(*parsed.expression);
+  const auto& root = reinterpret_cast<xlang3::ExpressionObject*>(expression.as.obj)->root;
+  auto validate = [&](auto&& self, const xlang3::ExpressionNode& node) -> bool {
+    if (node.op == "error") return false;
+    for (const auto& child : node.children) if (!self(self, child)) return false;
+    return true;
+  };
+  if (!validate(validate, root)) return fail(rt, "unsupported captured expression syntax");
+  *result = xlang3::to_c_value(expression);
+  return X3_STATUS_OK;
+} catch (const std::exception& error) {
+  return fail(as_runtime(runtime), error.what());
 }
 
 X3Status x3_expression_evaluate(X3Runtime* runtime, X3Value expression,
@@ -678,6 +758,7 @@ X3Status x3_event_set_change_handler(X3Runtime* runtime, X3Value value,
 }
 
 X3Status x3_runtime_import_module(X3Runtime* runtime, const char* package_name, const char* module_name, X3Value* result) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -720,7 +801,7 @@ X3Status x3_get_attr(X3Runtime* runtime, X3Value object, const char* name, X3Val
   xlang3::Value attr;
   auto* instance = xlang3::value_as_instance(internal);
   auto* klass = instance ? xlang3::value_as_class(instance->klass) : nullptr;
-  if (klass && klass->has_descriptors) {
+  if (klass && (klass->has_descriptors || klass->has_getattribute_hook || klass->has_getattr_hook)) {
     const auto* getter = rt->find_builtin("getattr");
     const xlang3::Value args[] = {internal, xlang3::Value::string(name)};
     if (!getter || !xlang3::runtime_call_callable(*rt, *getter, args, 2, attr, error)) return fail(rt, error);
@@ -742,6 +823,16 @@ X3Status x3_set_attr(X3Runtime* runtime, X3Value object, const char* name, X3Val
     return fail(rt, error);
   }
   xlang3::Value descriptor;
+  if (auto* instance = xlang3::value_as_instance(internal)) {
+    auto* klass = xlang3::value_as_class(instance->klass);
+    if (klass && klass->has_setattr_hook) {
+      const auto* setter = rt->find_builtin("setattr");
+      const xlang3::Value args[] = {internal, xlang3::Value::string(name), internal_value};
+      xlang3::Value ignored;
+      if (!setter || !xlang3::runtime_call_callable(*rt, *setter, args, 3, ignored, error)) return fail(rt, error);
+      return X3_STATUS_OK;
+    }
+  }
   if (xlang3::value_as_instance(internal) &&
       xlang3::object_get_class_attr_for_instance(internal, name, descriptor, error) &&
       xlang3::object_value_has_descriptor_set(descriptor)) {
@@ -812,6 +903,7 @@ X3Status x3_call_kw(X3Runtime* runtime, X3Value callable, const X3Value* args,
 }
 
 X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -822,6 +914,14 @@ X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result) {
     return fail(rt, error);
   }
   xlang3::Value length;
+  if (xlang3::value_as_instance(internal)) {
+    xlang3::Value method;
+    if (!xlang3::object_get_attr(internal, "__len__", method, error) ||
+        !xlang3::runtime_call_callable(*rt, method, nullptr, 0, length, error)) return fail(rt, error);
+    if (length.tag != xlang3::ValueTag::Int64 || length.as.i64 < 0) return fail(rt, "invalid length");
+    *result = static_cast<uint64_t>(length.as.i64);
+    return X3_STATUS_OK;
+  }
   if (!xlang3::sequence_len(internal, length, error) || length.tag != xlang3::ValueTag::Int64) {
     return fail(rt, error.empty() ? "object has no len()" : error);
   }
@@ -830,6 +930,7 @@ X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result) {
 }
 
 X3Status x3_get_item(X3Runtime* runtime, X3Value object, X3Value key, X3Value* result) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -842,6 +943,17 @@ X3Status x3_get_item(X3Runtime* runtime, X3Value object, X3Value key, X3Value* r
   }
   xlang3::Value out;
   if (!xlang3::sequence_get_item(internal, internal_key, out, error)) {
+    xlang3::Value method;
+    std::string lookup;
+    if (xlang3::value_as_instance(internal) &&
+        xlang3::object_get_attr(internal, "__getitem__", method, lookup)) {
+      error.clear();
+      if (!xlang3::runtime_call_callable(*rt, method, &internal_key, 1, out, error)) return fail(rt, error);
+      *result = xlang3::to_c_value(out);
+      return X3_STATUS_OK;
+    }
+    if (error == "key not found") rt->raise_class_error("KeyError", error);
+    else if (error == "index out of range") rt->raise_class_error("IndexError", error);
     return fail(rt, error);
   }
   *result = xlang3::to_c_value(out);

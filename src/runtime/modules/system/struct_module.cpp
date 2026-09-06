@@ -161,9 +161,9 @@ bool calcsize_text(Runtime& runtime, const std::string& format, int64_t& size, s
   return true;
 }
 
-bool get_bytes_like(const Value& value, std::string& out, std::string& error) {
+bool get_bytes_like(const Value& value, std::string_view& out, std::string& error) {
   if (auto* bytes = value_as_bytes(value)) {
-    out = bytes_object_to_string(*bytes);
+    out = bytes_object_view(*bytes);
     return true;
   }
   if (auto* bytearray = value_as_bytearray(value)) {
@@ -171,15 +171,8 @@ bool get_bytes_like(const Value& value, std::string& out, std::string& error) {
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
-    if (auto* owner_bytes = value_as_bytes(view->owner)) {
-      const auto text = bytes_object_to_string(*owner_bytes);
-      out.assign(text.data() + view->offset, view->size);
-      return true;
-    }
-    if (auto* owner_array = value_as_bytearray(view->owner)) {
-      out.assign(owner_array->value.data() + view->offset, view->size);
-      return true;
-    }
+    out = memoryview_object_view(*view);
+    if (out.data()) return true;
   }
   error = "a bytes-like object is required";
   return false;
@@ -235,7 +228,7 @@ void append_uint(std::string& out, uint64_t value, uint32_t width, bool little) 
   }
 }
 
-uint64_t read_uint(const std::string& input, size_t offset, uint32_t width, bool little) {
+uint64_t read_uint(std::string_view input, size_t offset, uint32_t width, bool little) {
   uint64_t value = 0;
   for (uint32_t i = 0; i < width; ++i) {
     const uint32_t shift = little ? i * 8 : (width - 1 - i) * 8;
@@ -321,7 +314,7 @@ bool pack_values(Runtime& runtime, const ParsedFormat& parsed, const Value* valu
   return true;
 }
 
-bool unpack_values(Runtime& runtime, const ParsedFormat& parsed, const std::string& buffer, size_t offset, Value& out, std::string& error) {
+bool unpack_values(Runtime& runtime, const ParsedFormat& parsed, std::string_view buffer, size_t offset, Value& out, std::string& error) {
   if (offset > buffer.size() || buffer.size() - offset < parsed.size) {
     return struct_fail(runtime, "unpack requires a buffer of " + std::to_string(parsed.size) + " bytes", error);
   }
@@ -415,8 +408,8 @@ bool write_into_buffer(Runtime& runtime, Value& target, size_t offset, const std
     if (offset > view->size || view->size - offset < bytes.size()) {
       return struct_fail(runtime, "pack_into requires a buffer large enough", error);
     }
-    if (auto* owner = value_as_bytearray(view->owner)) {
-      std::copy(bytes.begin(), bytes.end(), owner->value.begin() + static_cast<std::ptrdiff_t>(view->offset + offset));
+    if (char* data = memoryview_object_writable_data(*view)) {
+      std::copy(bytes.begin(), bytes.end(), data + offset);
       return true;
     }
   }
@@ -450,7 +443,7 @@ bool struct_unpack(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   std::string format;
   if (!get_format(args[0], format, error)) return false;
-  std::string buffer;
+  std::string_view buffer;
   if (!get_bytes_like(args[1], buffer, error)) return false;
   ParsedFormat parsed;
   if (!parse_format(runtime, format, parsed, error)) return false;
@@ -467,7 +460,7 @@ bool struct_unpack_from(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::string format;
   if (!get_format(args[0], format, error)) return false;
-  std::string buffer;
+  std::string_view buffer;
   if (!get_bytes_like(args[1], buffer, error)) return false;
   int64_t offset = 0;
   if (argc == 3 && !get_i64_arg(args[2], offset, error)) return false;
@@ -484,7 +477,7 @@ bool struct_iter_unpack(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::string format;
   if (!get_format(args[0], format, error)) return false;
-  std::string buffer;
+  std::string_view buffer;
   if (!get_bytes_like(args[1], buffer, error)) return false;
   ParsedFormat parsed;
   if (!parse_format(runtime, format, parsed, error)) return false;

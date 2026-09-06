@@ -17,30 +17,29 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/value_hash.h"
 
-#include "runtime/memory/x3_runtime_memory.h"
+#include <array>
 
 namespace xlang3 {
 
 namespace {
 
-memory::X3ObjectPoolManager::PoolHandle set_object_pool_handle() {
-  thread_local auto handle = memory::x3_thread_object_pools().register_or_get_pool(memory::X3ObjectPoolDesc{
-      static_cast<uint32_t>(ObjectKind::Set),
-      static_cast<uint32_t>(sizeof(SetObject)),
-      static_cast<uint32_t>(alignof(SetObject))});
-  return handle;
-}
-
-memory::X3ObjectPoolManager::PoolHandle set_iterator_object_pool_handle() {
-  thread_local auto handle = memory::x3_thread_object_pools().register_or_get_pool(memory::X3ObjectPoolDesc{
-      static_cast<uint32_t>(ObjectKind::SetIterator),
-      static_cast<uint32_t>(sizeof(SetIteratorObject)),
-      static_cast<uint32_t>(alignof(SetIteratorObject))});
-  return handle;
-}
+// Cache only dead objects, as the list/dict caches do. A live set or iterator
+// may escape its allocating thread; it must not reside in a thread-owned slab.
+template<class T> struct SetFreeList {
+  std::array<T*, 256> items{};
+  size_t count = 0;
+  ~SetFreeList() { while (count) delete items[--count]; }
+  T* Allocate() { return count ? items[--count] : new T(); }
+  void Release(T* value) {
+    if (count < items.size()) items[count++] = value;
+    else delete value;
+  }
+};
+thread_local SetFreeList<SetObject> set_free_list;
+thread_local SetFreeList<SetIteratorObject> set_iterator_free_list;
 
 SetObject* allocate_set_object() {
-  auto* obj = new (memory::x3_thread_object_pools().allocate(set_object_pool_handle())) SetObject();
+  auto* obj = set_free_list.Allocate();
   obj->header.kind = ObjectKind::Set;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(ObjectKind::Set);
@@ -48,7 +47,7 @@ SetObject* allocate_set_object() {
 }
 
 SetIteratorObject* allocate_set_iterator_object() {
-  auto* obj = new (memory::x3_thread_object_pools().allocate(set_iterator_object_pool_handle())) SetIteratorObject();
+  auto* obj = set_iterator_free_list.Allocate();
   obj->header.kind = ObjectKind::SetIterator;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(ObjectKind::SetIterator);
@@ -56,13 +55,15 @@ SetIteratorObject* allocate_set_iterator_object() {
 }
 
 void recycle_set_object(SetObject* object) {
-  object->~SetObject();
-  memory::x3_thread_object_pools().release(set_object_pool_handle(), object);
+  object->items.clear();
+  object->frozen = false;
+  set_free_list.Release(object);
 }
 
 void recycle_set_iterator_object(SetIteratorObject* object) {
-  object->~SetIteratorObject();
-  memory::x3_thread_object_pools().release(set_iterator_object_pool_handle(), object);
+  object->source = Value();
+  object->index = 0;
+  set_iterator_free_list.Release(object);
 }
 
 bool append_unique(std::vector<Value>& items, const Value& value, std::string& error) {

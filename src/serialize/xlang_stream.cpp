@@ -4,6 +4,7 @@ Licensed under the Apache License, Version 2.0
 */
 #include "serialize/xlang_stream.h"
 
+#include <cstdint>
 #include <cstring>
 
 namespace xlang3::serialize {

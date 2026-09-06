@@ -183,7 +183,9 @@ bool HttpClient::CaptureResult(const httplib::Result& result) {
   return true;
 }
 
-HttpServer::HttpServer() {
+HttpServer::HttpServer(xlang_net_http* owner)
+    : request_class_(owner->__xlang3_package_->GetValue("Request")),
+      response_class_(owner->__xlang3_package_->GetValue("Response")) {
   Init();
 }
 
@@ -286,8 +288,8 @@ void HttpServer::Init() {
 }
 
 bool HttpServer::CallHandler(X::Value handler, const httplib::Request& req, httplib::Response& res, std::vector<X::Value> args) {
-  X::Value req_value = create_native_instance(Host(), g_request_class, new HttpRequest(&req));
-  X::Value res_value = create_native_instance(Host(), g_response_class, new HttpResponse(&res));
+  X::Value req_value = create_native_instance(Host(), request_class_, new HttpRequest(&req));
+  X::Value res_value = create_native_instance(Host(), response_class_, new HttpResponse(&res));
   if (!req_value.IsValid() || !res_value.IsValid()) return false;
   args.push_back(req_value);
   args.push_back(res_value);
@@ -309,11 +311,6 @@ bool HttpServer::CallHandler(X::Value handler, const httplib::Request& req, http
 
 X::Value xlang_net_http::WritePad(X::Value input) {
   return input;
-}
-
-void xlang_net_http::OnPackageCreated(X::Package<xlang_net_http>* package) {
-  g_request_class = package->GetValue("Request");
-  g_response_class = package->GetValue("Response");
 }
 
 } // namespace xlang_net

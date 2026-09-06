@@ -71,4 +71,32 @@ private:
   bool held_ = true;
 };
 
+// Native extension callbacks may block or re-enter the runtime from another
+// thread. VM calls already release the lock; direct embedding calls may not.
+class XlangRuntimeExecutionSuspension {
+public:
+  XlangRuntimeExecutionSuspension() {
+#if XLANG3_VM_GLOBAL_LOCK
+    auto& depth = xlang_runtime_execution_depth();
+    suspended_depth_ = depth;
+    if (suspended_depth_ != 0) {
+      depth = 0;
+      xlang_runtime_execution_lock().unlock();
+    }
+#endif
+  }
+  ~XlangRuntimeExecutionSuspension() {
+#if XLANG3_VM_GLOBAL_LOCK
+    if (suspended_depth_ != 0) {
+      xlang_runtime_execution_lock().lock();
+      xlang_runtime_execution_depth() = suspended_depth_;
+    }
+#endif
+  }
+  XlangRuntimeExecutionSuspension(const XlangRuntimeExecutionSuspension&) = delete;
+  XlangRuntimeExecutionSuspension& operator=(const XlangRuntimeExecutionSuspension&) = delete;
+private:
+  uint32_t suspended_depth_ = 0;
+};
+
 } // namespace xlang3

@@ -1092,6 +1092,32 @@ bool builtin_getattr(
   if (attr_name == "__class__" && runtime_type_of_value(runtime, args[0], out)) {
     return true;
   }
+  if (auto* instance = value_as_instance(args[0])) {
+    auto* klass = value_as_class(instance->klass);
+    Value hook;
+    std::string hook_error;
+    if (klass && klass->has_getattribute_hook &&
+        object_get_class_attr_for_instance(args[0], "__getattribute__", hook, hook_error)) {
+      if (runtime_call_callable(runtime, hook, args, 2, out, error)) return true;
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        if (exception_matches_builtin(runtime, pending, "AttributeError")) {
+          if (klass->has_getattr_hook &&
+              object_get_class_attr_for_instance(args[0], "__getattr__", hook, hook_error)) {
+            if (runtime_call_callable(runtime, hook, args, 2, out, error)) return true;
+            if (!runtime.take_pending_exception(pending)) return false;
+          }
+          if (argc == 3 && exception_matches_builtin(runtime, pending, "AttributeError")) {
+            value_assign_fast(out, args[2]);
+            error.clear();
+            return true;
+          }
+        }
+        runtime.set_pending_exception(std::move(pending));
+      }
+      return false;
+    }
+  }
   if (value_as_instance(args[0]) != nullptr) {
     Value descriptor;
     std::string descriptor_error;
@@ -1126,7 +1152,25 @@ bool builtin_getattr(
   if (attribute_get(args[0], attr_name, out, attr_error)) {
     return true;
   }
-  if (value_as_module(args[0]) != nullptr) {
+  if (auto* module = value_as_module(args[0])) {
+    auto slot = module->name_to_slot.find(attr_name);
+    if (slot != module->name_to_slot.end() && slot->second < module->slots.size()) {
+      auto* property = value_as_property(module->slots[slot->second]);
+      if (property && property->native_module_runtime) {
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          if (argc == 3 && exception_matches_builtin(runtime, pending, "AttributeError")) {
+            value_assign_fast(out, args[2]);
+            return true;
+          }
+          runtime.set_pending_exception(std::move(pending));
+        } else {
+          runtime.raise_class_error("RuntimeError", attr_error);
+        }
+        error = std::move(attr_error);
+        return false;
+      }
+    }
     Value module_getattr;
     std::string getattr_error;
     if (module_get_attr(args[0], "__getattr__", module_getattr, getattr_error)) {
@@ -1163,6 +1207,14 @@ bool builtin_setattr(
     return raise_type_error(runtime, "setattr(): attribute name must be string", error);
   }
   Value target = args[0];
+  if (auto* instance = value_as_instance(target)) {
+    auto* klass = value_as_class(instance->klass);
+    Value hook;
+    if (klass && klass->has_setattr_hook &&
+        object_get_class_attr_for_instance(target, "__setattr__", hook, error)) {
+      return runtime_call_callable(runtime, hook, args, argc, out, error);
+    }
+  }
   if (!attribute_set(target, string_object_to_string(*name), args[2], error)) {
     runtime.raise_class_error("AttributeError", error);
     return false;

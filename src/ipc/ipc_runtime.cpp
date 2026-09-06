@@ -15,8 +15,10 @@ Licensed under the Apache License, Version 2.0
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/value.h"
+#include "runtime_lock.h"
 
 #include <mutex>
+#include <condition_variable>
 #include <atomic>
 #include <string>
 #include <unordered_map>
@@ -51,11 +53,20 @@ struct RemoteProxyState {
 
 std::mutex g_registry_mutex;
 std::unordered_map<std::string, RegisteredObject> g_registered_objects;
-std::unordered_map<uint64_t, Value> g_exported_objects;
+std::unordered_map<uint64_t, RegisteredObject> g_exported_objects;
 std::unordered_map<Object*, uint64_t> g_exported_object_ids;
 uint64_t g_next_object_id = 1;
 std::atomic<uint64_t> g_session_id{0};
 std::recursive_mutex g_listener_mutex;
+struct ListenerContext {
+  Runtime* runtime;
+  std::mutex mutex;
+  std::condition_variable drained;
+  bool closing = false;
+  size_t active = 0;
+  explicit ListenerContext(Runtime* value) : runtime(value) {}
+};
+std::shared_ptr<ListenerContext> g_listener_context;
 
 uint64_t current_node_id() {
 #if defined(_WIN32)
@@ -87,12 +98,21 @@ public:
         if (!ipc_lrpc_listen(runtime_, callback_port, false, ignored, error)) return false;
       }
     }
+    {
+      std::lock_guard<std::recursive_mutex> lock(g_listener_mutex);
+      if (!g_listener_context || g_listener_context->runtime != &runtime_) {
+        error = "lrpc exports must belong to the process listener runtime";
+        return false;
+      }
+      std::lock_guard<std::mutex> state_lock(g_listener_context->mutex);
+      if (g_listener_context->closing) { error = "lrpc runtime is closing"; return false; }
+    }
     std::lock_guard<std::mutex> lock(g_registry_mutex);
     auto it = g_exported_object_ids.find(value.as.obj);
     if (it == g_exported_object_ids.end()) {
       const uint64_t id = g_next_object_id++;
       g_exported_object_ids.emplace(value.as.obj, id);
-      g_exported_objects.emplace(id, value);
+      g_exported_objects.emplace(id, RegisteredObject{&runtime_, value});
       it = g_exported_object_ids.find(value.as.obj);
     }
     out.node_id = current_node_id();
@@ -122,7 +142,7 @@ bool resolve_exported_object(const serialize::RemoteObjectId& id, Value& out) {
   if (it == g_exported_objects.end()) {
     return false;
   }
-  value_assign_fast(out, it->second);
+  value_assign_fast(out, it->second.object);
   return true;
 }
 
@@ -545,7 +565,7 @@ bool server_dispatch(Runtime& runtime, serialize::XLangStream& stream, serialize
   return write_response_value(runtime, result, response, error);
 }
 
-bool builtin_register_remote_object(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool builtin_register_remote_object(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "register_remote_object expects name and object";
     return false;
@@ -555,8 +575,7 @@ bool builtin_register_remote_object(Runtime&, const Value* args, uint32_t argc, 
     error = "register_remote_object name must be a string";
     return false;
   }
-  std::lock_guard<std::mutex> lock(g_registry_mutex);
-  g_registered_objects[name] = RegisteredObject{nullptr, args[1]};
+  if (!ipc_register_remote_object(runtime, name, args[1], error)) return false;
   out = Value::none();
   return true;
 }
@@ -597,7 +616,11 @@ Value make_remote_proxy(
 } // namespace
 
 bool ipc_register_remote_object(Runtime& runtime, const std::string& name, const Value& object, std::string& error) {
-  (void)error;
+  std::lock_guard<std::recursive_mutex> listener_lock(g_listener_mutex);
+  if (g_listener_context && g_listener_context->runtime != &runtime) {
+    error = "lrpc registration must use the process listener runtime";
+    return false;
+  }
   std::lock_guard<std::mutex> lock(g_registry_mutex);
   g_registered_objects[name] = RegisteredObject{&runtime, object};
   return true;
@@ -612,6 +635,10 @@ bool ipc_lrpc_listen(Runtime& runtime, int64_t port, bool wait, Value& out, std:
     return false;
   }
   if (current_port != 0) {
+    if (!g_listener_context || g_listener_context->runtime != &runtime) {
+      error = "this process already has an lrpc listener owned by another runtime";
+      return false;
+    }
     out = Value::none();
     listener_lock.unlock();
     if (wait) ipc::lrpc_wait_forever_platform();
@@ -620,19 +647,40 @@ bool ipc_lrpc_listen(Runtime& runtime, int64_t port, bool wait, Value& out, std:
   {
     std::lock_guard<std::mutex> lock(g_registry_mutex);
     for (auto& item : g_registered_objects) {
+      if (item.second.runtime && item.second.runtime != &runtime) {
+        error = "registered lrpc objects belong to another runtime";
+        return false;
+      }
       if (item.second.runtime == nullptr) {
         item.second.runtime = &runtime;
       }
     }
   }
+  auto context = std::make_shared<ListenerContext>(&runtime);
   bool ok = ipc::lrpc_listen_shared_memory(
       port,
       false,
-      [&runtime](serialize::XLangStream& request, serialize::XLangStream& response, std::string& dispatch_error) {
-        return server_dispatch(runtime, request, response, dispatch_error);
+      [context](serialize::XLangStream& request, serialize::XLangStream& response, std::string& dispatch_error) {
+        {
+          std::lock_guard<std::mutex> lock(context->mutex);
+          if (context->closing) { dispatch_error = "lrpc runtime is closing"; return false; }
+          ++context->active;
+        }
+        struct Lease {
+          ListenerContext& context;
+          ~Lease() {
+            std::lock_guard<std::mutex> lock(context.mutex);
+            if (!--context.active) context.drained.notify_all();
+          }
+        } lease{*context};
+        XlangRuntimeExecutionGuard execution;
+        return server_dispatch(*context->runtime, request, response, dispatch_error);
       },
       error);
-  if (ok) g_session_id.store(static_cast<uint64_t>(port));
+  if (ok) {
+    g_listener_context = context;
+    g_session_id.store(static_cast<uint64_t>(port));
+  }
   listener_lock.unlock();
   if (ok && wait) ipc::lrpc_wait_forever_platform();
   out = Value::none();
@@ -661,6 +709,47 @@ bool ipc_import_thru(Runtime& runtime, const std::string& name, const Value& end
 void register_ipc_builtins(Runtime& runtime) {
   runtime.register_native_builtin("register_remote_object", builtin_register_remote_object);
   runtime.register_native_builtin("lrpc_listen", builtin_lrpc_listen);
+}
+
+void ipc_detach_runtime(Runtime& runtime) {
+  XlangRuntimeExecutionSuspension suspension;
+  std::unique_lock<std::recursive_mutex> listener_lock(g_listener_mutex);
+  auto context = g_listener_context;
+  if (context && context->runtime == &runtime) {
+    {
+      std::unique_lock<std::mutex> lock(context->mutex);
+      context->closing = true;
+      // Existing callbacks can still need the listener mutex to finish exports.
+      listener_lock.unlock();
+      context->drained.wait(lock, [&] { return context->active == 0; });
+    }
+    listener_lock.lock();
+    ipc::lrpc_stop_shared_memory_server_platform();
+    ipc::g_dispatch = {};
+    ipc::g_server_started.store(false);
+    g_session_id.store(0);
+    g_listener_context.reset();
+  }
+  std::vector<Value> released;
+  {
+    std::lock_guard<std::mutex> lock(g_registry_mutex);
+    for (auto it = g_registered_objects.begin(); it != g_registered_objects.end();) {
+      if (it->second.runtime == &runtime) {
+        released.push_back(std::move(it->second.object));
+        it = g_registered_objects.erase(it);
+      } else ++it;
+    }
+    for (auto it = g_exported_objects.begin(); it != g_exported_objects.end();) {
+      if (it->second.runtime == &runtime) {
+        g_exported_object_ids.erase(it->second.object.as.obj);
+        released.push_back(std::move(it->second.object));
+        it = g_exported_objects.erase(it);
+      } else ++it;
+    }
+  }
+  listener_lock.unlock();
+  // Native destructors can acquire the GIL or re-enter other runtimes.
+  released.clear();
 }
 
 } // namespace xlang3

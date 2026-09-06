@@ -74,7 +74,17 @@ X3_API X3Status x3_runtime_eval_file(
 X3_API void x3_value_retain(X3Value value);
 X3_API void x3_value_release(X3Value value);
 X3_API X3Value x3_value_string(X3Runtime* runtime, const char* value);
+/* Length-aware UTF-8 access. The returned data is borrowed until value is released. */
+X3_API X3Value x3_value_string_utf8(X3Runtime* runtime, const char* data, uint64_t size);
+X3_API X3Status x3_value_string_data(X3Runtime* runtime, X3Value value,
+    const char** data, uint64_t* size);
 X3_API X3Value x3_value_bytes(X3Runtime* runtime, const void* data, uint64_t size);
+typedef void (*X3BufferCleanup)(void* context);
+/* No data copy. cleanup is called once after the last view object is destroyed,
+   including on construction failure. It must not throw. Without cleanup, the
+   caller must keep data valid until all view objects are destroyed. */
+X3_API X3Value x3_value_memoryview(X3Runtime* runtime, void* data, uint64_t size,
+    int32_t readonly, void* context, X3BufferCleanup cleanup);
 X3_API X3Value x3_value_list(X3Runtime* runtime);
 X3_API X3Value x3_value_dict(X3Runtime* runtime);
 X3_API const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value);
@@ -84,6 +94,8 @@ X3_API X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* re
 X3_API X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result);
 /* Evaluate against a resource snapshot without changing it. Reservations are
    returned separately; the scheduler must commit them atomically. */
+/* Captures an expression without evaluating names or executing calls. */
+X3_API X3Status x3_expression_compile(X3Runtime* runtime, const char* source, X3Value* result);
 X3_API X3Status x3_expression_evaluate(X3Runtime* runtime, X3Value expression,
     X3Value bindings, X3Value* result, X3Value* reservations);
 X3_API X3Status x3_expression_inspect(X3Runtime* runtime, X3Value expression, X3Value* result);

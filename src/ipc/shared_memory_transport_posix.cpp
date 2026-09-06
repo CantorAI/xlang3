@@ -8,6 +8,7 @@ Licensed under the Apache License, Version 2.0
 
 #include "shared_memory_block_stream.h"
 #include "shared_memory_backpressure.h"
+#include "shared_memory_server_threads.h"
 #include "serialize/ipc_value_marshal.h"
 #include "serialize/xlang_stream.h"
 
@@ -51,6 +52,7 @@ struct PosixMapping {
 };
 
 PosixMapping g_server_mapping;
+SharedMemoryServerThreads g_server_threads;
 
 std::string posix_name(const std::string& port) {
   return "/xlang3_lrpc_" + port;
@@ -288,6 +290,7 @@ void server_loop() {
   SharedRegion* region = g_server_mapping.region;
   for (;;) {
     pthread_mutex_lock(&region->mutex);
+    if (g_server_threads.stopping) { pthread_mutex_unlock(&region->mutex); return; }
     bool has_ready = false;
     for (uint32_t i = 0; i < region->slot_count; ++i) {
       if (region->slots[i].state == SlotRequestReady) {
@@ -298,6 +301,7 @@ void server_loop() {
     if (!has_ready) {
       pthread_cond_wait(&region->server_cond, &region->mutex);
     }
+    if (g_server_threads.stopping) { pthread_mutex_unlock(&region->mutex); return; }
     cleanup_abandoned_client_slots(*region);
     std::vector<std::pair<uint32_t, std::vector<SharedSlotRef>>> ready;
     for (uint32_t i = 0; i < region->slot_count; ++i) {
@@ -321,7 +325,9 @@ void server_loop() {
     }
     pthread_mutex_unlock(&region->mutex);
     for (auto& item : ready) {
-      std::thread(process_slot, item.first, std::move(item.second)).detach();
+      g_server_threads.launch([index = item.first, slots = std::move(item.second)]() mutable {
+        process_slot(index, std::move(slots));
+      });
     }
   }
 }
@@ -332,8 +338,26 @@ bool lrpc_start_shared_memory_server_platform(const std::string& port, std::stri
   if (!init_server_region(port, g_server_mapping, error)) {
     return false;
   }
-  std::thread(server_loop).detach();
+  g_server_threads.stopping = false;
+  g_server_threads.listener = std::thread(server_loop);
   return true;
+}
+
+void lrpc_stop_shared_memory_server_platform() {
+  auto* region = g_server_mapping.region;
+  if (!region) return;
+  pthread_mutex_lock(&region->mutex);
+  g_server_threads.stopping = true;
+  pthread_cond_broadcast(&region->server_cond);
+  pthread_mutex_unlock(&region->mutex);
+  g_server_threads.drain();
+  pthread_mutex_lock(&region->mutex);
+  region->server_pid = 0;
+  region->magic = 0;
+  for (uint32_t i = 0; i < kSharedSlotCount; ++i) pthread_cond_broadcast(&region->slot_conds[i]);
+  pthread_mutex_unlock(&region->mutex);
+  shm_unlink(g_server_mapping.name.c_str());
+  close_posix_mapping(g_server_mapping);
 }
 
 void lrpc_wait_forever_platform() {

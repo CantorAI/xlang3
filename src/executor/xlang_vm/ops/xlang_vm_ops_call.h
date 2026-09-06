@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "../xlang_frame.h"
 #include "../xlang_vm_inline_call.h"
+#include "../xlang_vm_inline_support.h"
 #include "../xlang_vm_names.h"
 #include "../xlang_vm_op_switch.h"
 
@@ -37,6 +38,65 @@ limitations under the License.
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+// Call dispatch templates below share these helpers in both directions.
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool call_cached_native_fast(
+    Runtime&, NativeFastCallCallback, void*, bool, CallArgsView,
+    XlangRuntimeExecutionGuard&, Value&, RaiseRuntimeError&&, RaiseExceptionValue&&);
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool call_native_function(
+    Runtime&, NativeFunctionObject*, CallArgsView, std::vector<Value>&,
+    XlangRuntimeExecutionGuard&, Value&, RaiseRuntimeError&&, RaiseExceptionValue&&);
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE bool call_native_function_ex(
+    Runtime&, NativeFunctionObject*, CallArgsView, std::vector<Value>&,
+    std::vector<NativeKeywordArg>&, XlangRuntimeExecutionGuard&, Value&,
+    RaiseRuntimeError&&, RaiseExceptionValue&&,
+    const Value* monitoring_code = nullptr, int64_t monitoring_instruction_offset = -1);
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame>
+XLANG3_HOT_INLINE bool call_user_function(
+    FunctionObject*, CallArgsView, const ir::Module&, const std::shared_ptr<const ir::Module>&,
+    uint32_t, size_t&, Value&, bool&, MakeGeneratorIfNeeded&&, PushFrame&&,
+    FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
+    Value continuation_value = Value::invalid());
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+inline bool call_callable_value(
+    Runtime&, const Value&, CallArgsView, const ir::Module&, const std::shared_ptr<const ir::Module>&,
+    uint32_t, size_t&, std::vector<Value>&, XlangRuntimeExecutionGuard&, Value&, bool&,
+    MakeGeneratorIfNeeded&&, PushFrame&&, RaiseRuntimeError&&, RaiseExceptionValue&&);
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+inline bool call_callable_value_ex(
+    Runtime&, const Value&, CallArgsView, const ir::Module&, const std::shared_ptr<const ir::Module>&,
+    uint32_t, size_t&, std::vector<Value>&, std::vector<NativeKeywordArg>&,
+    XlangRuntimeExecutionGuard&, Value&, bool&, MakeGeneratorIfNeeded&&, PushFrame&&,
+    RaiseRuntimeError&&, RaiseExceptionValue&&,
+    const Value* monitoring_code = nullptr, int64_t monitoring_instruction_offset = -1);
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow call_metaclass_init_after_type_new(
+    const Value&, const Value&, CallArgsView, const ir::Module&,
+    const std::shared_ptr<const ir::Module>&, Runtime&, std::vector<Value>&, size_t&, uint32_t,
+    RuntimeResult&, XlangRuntimeExecutionGuard&, MakeGeneratorIfNeeded&&, PushFrame&&,
+    RaiseRuntimeError&&, RaiseExceptionValue&&);
+
+XLANG3_HOT_INLINE bool xlang_vm_is_default_object_hook(const Value& hook, const char* name) {
+  auto* native = value_as_native_function(hook);
+  if (native != nullptr) {
+    return native->name == name;
+  }
+  auto* bound = value_as_bound_method(hook);
+  if (bound == nullptr) {
+    return false;
+  }
+  native = value_as_native_function(bound->function);
+  return native != nullptr && native->name == name;
+}
 
 XLANG3_HOT_INLINE Value monitoring_code_object_for_function(
     const ir::Module& module,
@@ -481,6 +541,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   call_args.register_args = &call_arg_regs;
   bool pushed_frame = false;
   const bool allow_inline_calls = !runtime.debug_step_active();
+
+  if (auto* instance = value_as_instance(regs[in.a])) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass && klass->has_getattribute_hook) {
+      Value hook;
+      std::string error;
+      if (object_get_class_attr_for_instance(regs[in.a], "__getattribute__", hook, error) &&
+          !xlang_vm_is_default_object_hook(hook, "object.__getattribute__")) {
+        // Dynamic lookup can return a new callable on every access; do not cache it.
+        Value lookup_args[] = {regs[in.a], Value::string(name)};
+        Value callable;
+        std::vector<Value> arguments;
+        arguments.reserve(call_arg_regs.size());
+        for (auto index : call_arg_regs) arguments.push_back(regs[index]);
+        if (!runtime_call_callable(runtime, hook, lookup_args, 2, callable, error) ||
+            !runtime_call_callable(runtime, callable, arguments.data(),
+                static_cast<uint32_t>(arguments.size()), regs[in.dst], error)) {
+          Value pending;
+          const bool handled = runtime.take_pending_exception(pending)
+              ? raise_exception_value(std::move(pending)) : raise_runtime_error(error);
+          return handled ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+        return XlangVMOpFlow::Next;
+      }
+    }
+  }
 
   const bool receiver_is_super = value_as_super(regs[in.a]) != nullptr;
   bool receiver_has_direct_method_attr = false;
@@ -2318,8 +2404,8 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     Value& out,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value,
-    const Value* monitoring_code = nullptr,
-    int64_t monitoring_instruction_offset = -1) {
+    const Value* monitoring_code,
+    int64_t monitoring_instruction_offset) {
   std::string error;
   bool has_materialized_keywords = false;
   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
@@ -2482,8 +2568,8 @@ XLANG3_HOT_INLINE bool call_user_function(
     bool& pushed_frame,
     MakeGeneratorIfNeeded&& make_generator_if_needed,
     PushFrame&& push_frame,
-    FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
-    Value continuation_value = Value::invalid()) {
+    FrameReturnMode return_mode,
+    Value continuation_value) {
   bool made_generator = false;
   if (!make_generator_if_needed(fn_obj, values, out, made_generator)) {
     return false;
@@ -2508,7 +2594,7 @@ XLANG3_HOT_INLINE bool call_user_function(
 }
 
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
-XLANG3_HOT_INLINE bool call_callable_value(
+inline bool call_callable_value(
     Runtime& runtime,
     const Value& function_value,
     CallArgsView values,
@@ -2629,7 +2715,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains_dynamic(
 }
 
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
-XLANG3_HOT_INLINE bool call_callable_value_ex(
+inline bool call_callable_value_ex(
     Runtime& runtime,
     const Value& function_value,
     CallArgsView values,
@@ -2646,8 +2732,8 @@ XLANG3_HOT_INLINE bool call_callable_value_ex(
     PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value,
-    const Value* monitoring_code = nullptr,
-    int64_t monitoring_instruction_offset = -1) {
+    const Value* monitoring_code,
+    int64_t monitoring_instruction_offset) {
   if (auto* bound = value_as_bound_method(function_value)) {
     CallArgsView bound_args = values;
     bound_args.leading = &bound->self;
@@ -2895,7 +2981,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
   }
-  const Value& callee = module_object->slots[module_slot];
+  Value property_value;
+  const auto* property = value_as_property(module_object->slots[module_slot]);
+  const bool module_property = property && property->native_module_runtime;
+  if (module_property && !module_get_attr(module_value, name, property_value, module_error)) {
+    return raise_runtime_error(module_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const Value& callee = module_property ? property_value : module_object->slots[module_slot];
   auto* native = value_as_native_function(callee);
   if (native == nullptr) {
     if (auto* klass = value_as_class(callee)) {
@@ -3025,7 +3117,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
     }
     return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
   }
-  if (!instr_cache.empty()) {
+  if (!module_property && !instr_cache.empty()) {
     auto& cache = instr_cache[ip].call;
     cache.callee_object = module_value.as.obj;
     cache.kind = CallSiteKind::NativeFunction;

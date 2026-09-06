@@ -128,6 +128,22 @@ bool winapi_int_arg(Runtime& runtime, const Value& value, int64_t& out, uint32_t
   return false;
 }
 
+bool winapi_optional_string_arg(
+    Runtime& runtime,
+    const Value& value,
+    const char* function_name,
+    std::string& out,
+    bool& has_value,
+    std::string& error) {
+  if (value.tag == ValueTag::None) {
+    out.clear();
+    has_value = false;
+    return true;
+  }
+  has_value = true;
+  return winapi_string_arg(runtime, value, function_name, out, error);
+}
+
 #if defined(_WIN32)
 std::wstring utf8_to_wide(const std::string& text) {
   if (text.empty()) {
@@ -163,22 +179,6 @@ bool raise_win32_permission_error(Runtime& runtime, const char* operation, DWORD
   error = std::string(operation) + " failed with Win32 error " + std::to_string(code);
   runtime.raise_class_error("PermissionError", error);
   return false;
-}
-
-bool winapi_optional_string_arg(
-    Runtime& runtime,
-    const Value& value,
-    const char* function_name,
-    std::string& out,
-    bool& has_value,
-    std::string& error) {
-  if (value.tag == ValueTag::None) {
-    out.clear();
-    has_value = false;
-    return true;
-  }
-  has_value = true;
-  return winapi_string_arg(runtime, value, function_name, out, error);
 }
 
 bool winapi_env_text(Runtime& runtime, const Value& value, const char* field, std::wstring& out, std::string& error) {

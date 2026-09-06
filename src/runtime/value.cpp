@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/value.h"
+#ifndef XLANG3_EMBEDDED
+#include "tensor/tensor_internal.h"
+#endif
 #include "xlang3/expression.h"
 
 #include "xlang3/builtins.h"
@@ -38,6 +41,7 @@ limitations under the License.
 #include <iomanip>
 #include <limits>
 #include <new>
+#include <stdexcept>
 #include <system_error>
 #include <vector>
 #if defined(_WIN32)
@@ -243,7 +247,7 @@ BytesObject* allocate_bytes_object(size_t size) {
   constexpr size_t kMaxBytesPayload =
       static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - sizeof(BytesObject) - 1;
   if (size > kMaxBytesPayload) {
-    size = kMaxBytesPayload;
+    throw std::length_error("bytes value is too large");
   }
   const size_t total_size = sizeof(BytesObject) + size + 1;
   void* block = memory::x3_thread_buckets().allocate(total_size);
@@ -447,11 +451,8 @@ BinaryCompareView binary_compare_view(const Value& value) {
     if (memoryview->released) {
       return {};
     }
-    const auto owner = binary_compare_view(memoryview->owner);
-    if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
-      return {};
-    }
-    return {owner.data + memoryview->offset, memoryview->size};
+    const auto view = memoryview_object_view(*memoryview);
+    return {view.data(), view.size()};
   }
   return {};
 }
@@ -884,7 +885,7 @@ int64_t immortal_interned_string_count() {
   return count;
 }
 
-Value Value::bytes(std::string value) {
+Value Value::bytes(std::string_view value) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_bytes_object(value.size());
@@ -914,8 +915,45 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
   obj->format = "B";
   obj->readonly = readonly;
   obj->released = false;
+  if (auto* source = value_as_memoryview(obj->owner)) {
+    if (source->released || offset > source->size || size > source->size - offset) {
+      delete obj;
+      throw std::invalid_argument("invalid memoryview source or bounds");
+    }
+    obj->external = source->external;
+    obj->offset += source->offset;
+    obj->readonly = readonly || source->readonly;
+    // Retain the underlying owner before dropping the source view reference.
+    Value root = source->owner;
+    obj->owner = std::move(root);
+  }
   v.as.obj = &obj->header;
   return v;
+}
+
+std::string_view memoryview_object_view(const MemoryViewObject& view) {
+  if (view.released) return {};
+  std::string_view storage;
+  if (view.external) {
+    storage = std::string_view(view.external->data ? view.external->data : "", view.external->size);
+  } else if (auto* bytes = value_as_bytes(view.owner)) {
+    storage = bytes_object_view(*bytes);
+  } else if (auto* bytes = value_as_bytearray(view.owner)) {
+    storage = std::string_view(bytes->value.data(), bytes->value.size());
+  } else if (auto* parent = value_as_memoryview(view.owner)) {
+    storage = memoryview_object_view(*parent);
+  } else return {};
+  if (!storage.data() || view.offset > storage.size() || view.size > storage.size() - view.offset) return {};
+  return storage.substr(view.offset, view.size);
+}
+
+char* memoryview_object_writable_data(const MemoryViewObject& view) {
+  if (view.readonly || view.released) return nullptr;
+  if (!view.external && !value_as_bytearray(view.owner)) {
+    auto* parent = value_as_memoryview(view.owner);
+    if (!parent || !memoryview_object_writable_data(*parent)) return nullptr;
+  }
+  return const_cast<char*>(memoryview_object_view(view).data());
 }
 
 Value Value::slice(Value start, Value stop, Value step) {
@@ -1952,6 +1990,9 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
       return true;
     }
   }
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"add",out,error);
+#endif
   error = std::string("unsupported operand type(s) for +: '") + value_binary_type_name(lhs) +
           "' and '" + value_binary_type_name(rhs) + "'";
   return false;
@@ -1993,6 +2034,9 @@ bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     value_set_number(out, as_double(lhs) - as_double(rhs));
     return true;
   }
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"sub",out,error);
+#endif
   error = "unsupported operands for -";
   return false;
 }
@@ -2129,17 +2173,26 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     value_set_number(out, as_double(lhs) * as_double(rhs));
     return true;
   }
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"mul",out,error);
+#endif
   error = "unsupported operands for *";
   return false;
 }
 
-bool value_matmul(const Value&, const Value&, Value&, std::string& error) {
+bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"matmul",out,error);
+#endif
   error = "unsupported operands for @";
   return false;
 }
 
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   if (!is_number(lhs) || !is_number(rhs)) {
+#ifndef XLANG3_EMBEDDED
+    if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"div",out,error);
+#endif
     error = "unsupported operands for /";
     return false;
   }
