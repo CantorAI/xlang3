@@ -40,6 +40,101 @@ int main(int argc, char** argv) {
     require(!X::Value::Bytes(runtime.host(), nullptr, 1).IsValid(), "null binary data accepted");
     runtime.AddImportRoot(argv[1]);
     X::Module module(runtime, "sdk_calls");
+    for (uint64_t number : {uint64_t{0}, static_cast<uint64_t>(INT64_MAX),
+        static_cast<uint64_t>(INT64_MAX) + 1, UINT64_MAX}) {
+      X::Value input(number);
+      X::Value echoed;
+      require(module["uint64_roundtrip"].Call({input}, echoed), "uint64 Python call failed");
+      require(echoed.ToUInt64() == number, "uint64 Python call narrowed result");
+      require(echoed.raw().tag == (number > static_cast<uint64_t>(INT64_MAX) ? X3_TAG_UINT64 : X3_TAG_INT64),
+          "integer Python call returned wrong ABI representation");
+      auto values = runtime.Dict();
+      require(values.SetItem("unsigned", input) && values.SetItem(input, echoed), "uint64 dict insertion failed");
+      require(values["unsigned"].ToUInt64() == number && values.GetItem(input).ToUInt64() == number,
+          "uint64 dict key/value roundtrip failed");
+      X::Stream encoded(runtime);
+      X::Value decoded;
+      if (!input.ToBytes(encoded)) throw std::runtime_error("uint64 encode " + std::to_string(number) + ": " + runtime.LastError());
+      if (!encoded.Rewind()) throw std::runtime_error("uint64 rewind " + std::to_string(number) + ": " + runtime.LastError());
+      if (!decoded.FromBytes(encoded)) throw std::runtime_error("uint64 decode " + std::to_string(number) + ": " + runtime.LastError());
+      require(decoded.ToUInt64() == number, "uint64 serialization narrowed result");
+      X::Stream dictionaryStream(runtime);
+      require(values.ToBytes(dictionaryStream) && dictionaryStream.Rewind() && decoded.FromBytes(dictionaryStream),
+          "uint64 dictionary serialization failed");
+      require(decoded["unsigned"].ToUInt64() == number && decoded.GetItem(input).ToUInt64() == number,
+          "serialized uint64 dictionary lost key/value");
+    }
+    X::Value huge;
+    require(module["integer_successor"].Call({X::Value(UINT64_MAX)}, huge), "uint64 overflow promotion call failed");
+    require(huge.raw().tag == X3_TAG_OBJECT, "integer larger than uint64 was narrowed");
+    X::Value hugeCheck;
+    require(module["check_large_integer"].Call({huge}, hugeCheck) && hugeCheck == X::Value(true),
+        "huge bigint numeric value changed");
+    X::Stream hugeStream(runtime);
+    X::Value hugeDecoded;
+    require(huge.ToBytes(hugeStream) && hugeStream.Rewind() && hugeDecoded.FromBytes(hugeStream),
+        "huge bigint serialization failed");
+    require(hugeDecoded.raw().tag == X3_TAG_OBJECT &&
+        module["check_large_integer"].Call({hugeDecoded}, hugeCheck) && hugeCheck == X::Value(true),
+        "huge bigint serialization changed numeric value");
+    X::Value negative;
+    require(module["negative_large_integer"].Call({}, negative) && negative.raw().tag == X3_TAG_OBJECT,
+        "negative bigint was converted to unsigned scalar");
+    X::Value pair;
+    require(module["bigint_pair"].Call({}, pair), "cannot create arbitrary-size bigint graph");
+    X::Stream pairStream(runtime);
+    X::Value pairDecoded;
+    require(pair.ToBytes(pairStream) && pairStream.Rewind() && pairDecoded.FromBytes(pairStream),
+        "arbitrary-size signed bigint graph serialization failed");
+    require(module["check_bigint_pair"].Call({pairDecoded}, hugeCheck) && hugeCheck == X::Value(true),
+        "arbitrary-size signed bigint graph changed keys, signs or limbs");
+    X::Stream limbStream(runtime);
+    require(X::Value(UINT64_MAX).ToBytes(limbStream), "cannot encode malformed-bigint fixture");
+    std::vector<char> limbWire(limbStream.Size());
+    require(limbStream.FullCopyTo(limbWire.data(), limbWire.size()), "cannot copy bigint fixture");
+    // One BigInt record: header16, kind1, number-count4, sign8,
+    // name-count4, payload-length8, then two little-endian limbs.
+    require(limbWire.size() >= 49, "bigint fixture is missing binary limbs");
+    auto badSign = limbWire;
+    badSign[21] = 2;
+    X::Stream badSignStream(runtime, badSign.data(), badSign.size());
+    require(!pairDecoded.FromBytes(badSignStream), "invalid bigint sign accepted");
+    auto badLimbs = limbWire;
+    std::fill(badLimbs.begin() + 45, badLimbs.begin() + 49, 0);
+    X::Stream badLimbsStream(runtime, badLimbs.data(), badLimbs.size());
+    require(!pairDecoded.FromBytes(badLimbsStream), "noncanonical bigint limbs accepted");
+    auto rejectBigint = [&](const std::vector<char>& wire, const char* message) {
+      X::Stream malformed(runtime, wire.data(), wire.size());
+      X::Value ignored;
+      require(!ignored.FromBytes(malformed), message);
+    };
+    auto badKind = limbWire;
+    badKind[16] = static_cast<char>(0xff);
+    rejectBigint(badKind, "unknown graph kind accepted");
+    auto badSignCount = limbWire;
+    badSignCount[17] = 2;
+    badSignCount.insert(badSignCount.begin() + 29, 8, 0);
+    rejectBigint(badSignCount, "bigint with extra sign field accepted");
+    auto countOverflow = limbWire;
+    std::fill(countOverflow.begin() + 17, countOverflow.begin() + 21, static_cast<char>(0xff));
+    rejectBigint(countOverflow, "overflowing bigint field count accepted");
+    auto lengthOverflow = limbWire;
+    std::fill(lengthOverflow.begin() + 33, lengthOverflow.begin() + 41, static_cast<char>(0xff));
+    rejectBigint(lengthOverflow, "overflowing bigint payload length accepted");
+    auto emptyLimbs = limbWire;
+    std::fill(emptyLimbs.begin() + 33, emptyLimbs.begin() + 41, 0);
+    emptyLimbs.erase(emptyLimbs.begin() + 41, emptyLimbs.begin() + 49);
+    rejectBigint(emptyLimbs, "empty bigint limb payload accepted");
+    auto unalignedLimbs = limbWire;
+    unalignedLimbs[33] = 7;
+    unalignedLimbs.erase(unalignedLimbs.begin() + 48);
+    rejectBigint(unalignedLimbs, "unaligned bigint limb payload accepted");
+    for (char sign : {char{0}, char{1}}) {
+      auto zeroLimbs = limbWire;
+      zeroLimbs[21] = sign;
+      std::fill(zeroLimbs.begin() + 41, zeroLimbs.begin() + 49, 0);
+      rejectBigint(zeroLimbs, "noncanonical signed zero bigint accepted");
+    }
     for (size_t size : {size_t(12), size_t(65536), size_t(200000), size_t(1048576)}) {
       auto storage = std::make_shared<std::vector<char>>(size);
       std::weak_ptr<std::vector<char>> lifetime = storage;

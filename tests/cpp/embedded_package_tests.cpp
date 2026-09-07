@@ -46,6 +46,17 @@ struct Payload : std::enable_shared_from_this<Payload> {
   }
 };
 struct OwnerData { int child_calls = 0; };
+struct UnsignedBox {
+  uint64_t number;
+  explicit UnsignedBox(uint64_t value) : number(value) {}
+  uint64_t Echo(uint64_t value) { return value; }
+  int64_t SignedEcho(int64_t value) { return value; }
+  BEGIN_PACKAGE(UnsignedBox)
+    APISET().AddFunc<1>("echo", &UnsignedBox::Echo);
+    APISET().AddFunc<1>("signed_echo", &UnsignedBox::SignedEcho);
+    APISET().AddProp0("number", &UnsignedBox::number);
+  END_PACKAGE
+};
 struct OwnedChild {
   OwnerData* owner;
   std::string name;
@@ -92,6 +103,7 @@ struct Objects : OwnerData {
     return !missing.IsValid() && Payload::live == before;
   }
   BEGIN_PACKAGE(Objects)
+    APISET().AddClass<1, UnsignedBox>("UnsignedBox");
     APISET().AddClass<0, 1, OwnedChild, OwnerData>("Child");
     APISET().AddClass<2, OwnedPair, OwnerData>("OwnedPair");
     APISET().AddClass<0, Nested>("Nested");
@@ -146,6 +158,27 @@ int main() {
       objects.fail_creation = false;
       auto module = runtime.RegisterPackage("embedded_objects", objects);
       {
+        auto box = module["UnsignedBox"](UINT64_MAX);
+        if (!box.IsValid())
+          throw std::runtime_error("typed uint64 constructor failed: " + runtime.LastError());
+        auto number = box["number"];
+        if (!number.IsUInt64() || number.ToUInt64() != UINT64_MAX)
+          throw std::runtime_error("typed uint64 constructor/field narrowed value: " + runtime.LastError());
+        auto echoed = box["echo"](UINT64_MAX);
+        if (!echoed.IsUInt64() || echoed.ToUInt64() != UINT64_MAX)
+          throw std::runtime_error("typed uint64 method narrowed value: " + runtime.LastError());
+        if (!box.SetAttr("number", X::Value(static_cast<uint64_t>(INT64_MAX) + 1)) ||
+            box["number"].ToUInt64() != static_cast<uint64_t>(INT64_MAX) + 1)
+          throw std::runtime_error("typed uint64 setter narrowed value");
+        X::Value invalid;
+        if (module["UnsignedBox"].Call({X::Value(-1)}, invalid))
+          throw std::runtime_error("unsigned constructor accepted negative value");
+        if (box["signed_echo"].Call({X::Value(UINT64_MAX)}, invalid))
+          throw std::runtime_error("signed native argument accepted overflowing uint64");
+        if (X::Value(UINT64_MAX).ToDouble() != static_cast<double>(UINT64_MAX))
+          throw std::runtime_error("uint64 to double changed sign");
+      }
+      {
         auto first_child = module["Child"]();
         auto next_child = module["Child"]();
         auto named_child = module["Child"]("named");
@@ -170,6 +203,10 @@ int main() {
       {
         auto nested = module["Nested"]();
         auto pair = nested["Pair"]("native", 42);
+        const std::string binary_name("native\0name", 11);
+        auto binary_pair = nested["Pair"](binary_name, 42);
+        if (binary_pair["describe"]().ToString() != binary_name + ":42")
+            throw std::runtime_error("native std::string result lost embedded NUL bytes");
         if (!pair.NativeData<NamedPair>() || pair["describe"]().ToString() != "native:42" ||
             nested["Pair"]["KIND"].ToInt64() != 7 || module["Pair"].IsValid())
           throw std::runtime_error("nested native class construction failed");

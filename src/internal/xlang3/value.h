@@ -312,6 +312,7 @@ XLANG3_HOT_INLINE Value Value::int64(int64_t value) {
 }
 
 Value value_bigint_from_i64(int64_t value);
+Value value_bigint_from_u64(uint64_t value);
 Value value_bigint_from_decimal(std::string_view text, int base, std::string& error);
 bool value_bigint_from_bytes(const uint8_t* bytes, size_t size, bool is_big, bool signed_value, Value& out, std::string& error);
 bool value_int_like_to_bytes(const Value& value, size_t length, bool is_big, bool signed_value, std::string& out, std::string& error);
@@ -319,6 +320,9 @@ void value_bigint_destroy(BigIntObject* value);
 std::string value_bigint_to_string(const Value& value);
 bool value_bigint_truthy(const Value& value);
 bool value_bigint_to_i64(const Value& value, int64_t& out);
+bool value_bigint_to_u64(const Value& value, uint64_t& out);
+bool value_bigint_limb_view(const Value& value, bool& negative, const uint32_t*& limbs, uint32_t& count);
+bool value_bigint_from_binary_limbs(const void* data, size_t bytes, bool negative, Value& out, std::string& error);
 bool value_int_like_to_i64(const Value& value, int64_t& out);
 bool value_int_like_bit_length(const Value& value, int64_t& out);
 bool value_int_like_hash(const Value& value, size_t& out);

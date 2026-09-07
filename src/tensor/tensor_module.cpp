@@ -9,6 +9,7 @@ namespace xlang3::tensor {
 namespace {
 struct Region { Runtime* runtime; Value attributes; };
 thread_local std::vector<Region> regions;
+std::atomic<uint64_t> next_region_id{1};
 Value kwargs_value(const NativeKeywordArg* kwargs, uint32_t count) {
   std::vector<std::pair<Value,Value>> result;
   for (uint32_t i=0; i<count; ++i) result.emplace_back(Value::string(kwargs[i].name),*kwargs[i].value);
@@ -76,7 +77,12 @@ bool fusion_call(Runtime& rt,const Value* args,uint32_t argc,const NativeKeyword
   return guarded(error,[&] {
     auto& fusion=*static_cast<Fusion*>(data);
     const bool root=current_regions(rt).tag==ValueTag::None;
-    regions.push_back({&rt,fusion.attributes});
+    // A decorator can be called repeatedly in a model loop. Each invocation
+    // needs its own identity so backend partitioning does not merge layers.
+    auto region_attributes = value_as_dict(fusion.attributes)->entries;
+    region_attributes.emplace_back(Value::string("id"),
+        Value::int64(static_cast<int64_t>(next_region_id.fetch_add(1))));
+    regions.push_back({&rt,Value::dict(std::move(region_attributes))});
     struct Pop { ~Pop(){ regions.pop_back(); } } pop;
     std::vector<X3Value> cargs; std::vector<X3KeywordArg> ckw;
     for (uint32_t i=0;i<argc;++i) cargs.push_back(to_c_value(args[i]));
@@ -96,7 +102,22 @@ bool fusion_plain(Runtime& rt,const Value* args,uint32_t argc,Value& out,std::st
 bool decorate(Runtime& rt,const Value* args,uint32_t argc,Value& out,std::string& error,void* data) {
   return guarded(error,[&] {
     if (argc!=1) throw std::runtime_error("fusion decorator expects one function");
-    auto f=std::make_unique<Fusion>(); f->function=args[0]; f->attributes=*static_cast<Value*>(data);
+    auto f=std::make_unique<Fusion>(); f->function=args[0];
+    auto attributes=value_as_dict(*static_cast<Value*>(data))->entries;
+    Value function_name;
+    std::string ignored;
+    if (!object_get_attr(args[0],"__qualname__",function_name,ignored) ||
+        !value_as_string(function_name)) {
+      ignored.clear();
+      if (!object_get_attr(args[0],"__name__",function_name,ignored) ||
+          !value_as_string(function_name)) function_name=Value::string("fusion");
+    }
+    bool named=false;
+    for (const auto& entry:attributes)
+      if (value_to_string(entry.first)=="name") named=true;
+    if (!named) attributes.emplace_back(Value::string("name"),function_name);
+    attributes.emplace_back(Value::string("function"),function_name);
+    f->attributes=Value::dict(std::move(attributes));
     out=rt.make_native_function("tensor.fused",fusion_plain,f.get(),[](void* p){delete static_cast<Fusion*>(p);},nullptr,false,fusion_call,false);
     f.release();
   });
@@ -122,6 +143,10 @@ bool dispatch(Runtime& rt,const Value* args,uint32_t argc,const NativeKeywordArg
         case X3_TENSOR_FLOAT64: fill<double>(*t,values); break;
         case X3_TENSOR_INT32: fill<int32_t>(*t,values); break;
         case X3_TENSOR_INT64: fill<int64_t>(*t,values); break;
+        case X3_TENSOR_UINT16: fill<uint16_t>(*t,values); break;
+        default:
+          if (!values.empty()) throw std::runtime_error("low-precision tensor data must be supplied through the native storage API");
+          break;
       }
       out=wrap_tensor(rt,std::move(t)); return;
     }
@@ -136,6 +161,19 @@ bool dispatch(Runtime& rt,const Value* args,uint32_t argc,const NativeKeywordArg
     }
     if (action=="graph") { if (argc!=1) throw std::runtime_error("graph expects outputs"); out=build_graph(rt,args[0]); return; }
     if (action=="fusion") {
+      for (const auto& entry : value_as_dict(attrs)->entries) {
+        const auto name = value_to_string(entry.first);
+        const bool text = name == "name" || name == "role" || name == "boundary";
+        const bool flag = name == "atomic" || name == "cuda_graph";
+        if ((!text && !flag) || (text && !value_as_string(entry.second)) ||
+            (flag && entry.second.tag != ValueTag::Bool))
+          throw std::runtime_error("invalid fusion attribute: " + name);
+        if (name == "boundary") {
+          const auto boundary = value_to_string(entry.second);
+          if (boundary != "none" && boundary != "preferred" && boundary != "required")
+            throw std::runtime_error("invalid fusion boundary");
+        }
+      }
       if (argc) throw std::runtime_error("fusion accepts keyword annotations");
       auto p=std::make_unique<Value>(snapshot(attrs));
       out=rt.make_native_function("tensor.decorate",decorate,p.get(),[](void* q){delete static_cast<Value*>(q);},nullptr,false,nullptr,false);
@@ -160,11 +198,15 @@ bool dispatch(Runtime& rt,const Value* args,uint32_t argc,const NativeKeywordArg
       if (action=="id") { out=Value::int64(t->id); return; }
       if (!t->storage || t->storage->device) throw std::runtime_error("tolist requires CPU data; evaluate the graph first");
       validate_layout(*t);
+      X3TensorExecution host{}; host.size = sizeof(host);
+      StorageUse use(t->storage, X3_TENSOR_READ, host);
       switch(t->dtype) {
         case X3_TENSOR_FLOAT32: out=as_list<float>(*t); break;
         case X3_TENSOR_FLOAT64: out=as_list<double>(*t); break;
         case X3_TENSOR_INT32: out=as_list<int32_t>(*t); break;
         case X3_TENSOR_INT64: out=as_list<int64_t>(*t); break;
+        case X3_TENSOR_UINT16: out=as_list<uint16_t>(*t); break;
+        default: throw std::runtime_error("tolist does not support this tensor storage dtype");
       }
       return;
     }
@@ -213,6 +255,12 @@ void register_module(Runtime& rt) {
   put("Tensor",klass); put("Operator",op); put("Graph",graph);
   for (auto name:{"tensor","input","graph","fusion"}) put(name,function(name,name));
   put("float32",Value::int64(X3_TENSOR_FLOAT32)); put("float64",Value::int64(X3_TENSOR_FLOAT64));
+  put("float16",Value::int64(X3_TENSOR_FLOAT16)); put("bfloat16",Value::int64(X3_TENSOR_BFLOAT16));
+  put("uint16",Value::int64(X3_TENSOR_UINT16));
+  put("float8_e4m3fn",Value::int64(X3_TENSOR_FLOAT8_E4M3FN));
+  put("float8_e4m3fnuz",Value::int64(X3_TENSOR_FLOAT8_E4M3FNUZ));
+  put("float8_e5m2",Value::int64(X3_TENSOR_FLOAT8_E5M2));
+  put("float8_e5m2fnuz",Value::int64(X3_TENSOR_FLOAT8_E5M2FNUZ));
   put("int32",Value::int64(X3_TENSOR_INT32)); put("int64",Value::int64(X3_TENSOR_INT64));
   for (uint32_t arity:{1u,2u}) {
     auto reg=std::make_shared<Registration>(); reg->provider="cpu"; reg->arity=arity; reg->name=arity==1 ? "unary_op" : "binary_op";

@@ -1,4 +1,5 @@
 #include "xlang3/xlang3.h"
+#include "readiness_tests.h"
 #include <iostream>
 #include <stdexcept>
 #include <cstring>
@@ -156,6 +157,7 @@ int main() {
     float expected[]={2,8,4,10,6,12};
     Require(std::memcmp(viewOutput.Info().data,expected,sizeof(expected))==0,"strided CPU addition");
     OwnershipAndValidation(runtime);
+    TensorReadiness(runtime);
     RegisteredReplay(runtime);
     LargeAndThreaded(runtime);
     std::cout<<"tensor-cpu-passed\n";

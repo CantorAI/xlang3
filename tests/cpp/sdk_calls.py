@@ -21,6 +21,27 @@ class ConfiguredWorker:
 def broken(*, reason):
     raise ValueError(reason)
 
+def uint64_roundtrip(value):
+    assert isinstance(value, int)
+    return value
+
+def integer_successor(value):
+    return value + 1
+
+def check_large_integer(value):
+    return value == (1 << 64)
+
+def negative_large_integer():
+    return -(1 << 64)
+
+def bigint_pair():
+    value = (1 << 4096) + (1 << 97) + 123
+    return {value: -value, 'positive': value, 'negative': -value}
+
+def check_bigint_pair(values):
+    value = (1 << 4096) + (1 << 97) + 123
+    return values[value] == -value and values['positive'] == value and values['negative'] == -value
+
 def check_native_view(view):
     import struct
     view[0] = 17

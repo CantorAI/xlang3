@@ -4,6 +4,7 @@
 #include <cstring>
 #include <limits>
 #include <type_traits>
+#include <optional>
 
 namespace xlang3::tensor {
 Kernel resolve(const Tensor& t) {
@@ -194,6 +195,12 @@ Value compute(Runtime& rt, const Tensor&, Kernel op, const std::vector<Value>& a
     }
   }
   if (!first) throw std::runtime_error("CPU operation requires tensor data");
+  for (const auto& v : args) if (auto* t = get(v)) {
+    if ((t->dtype != X3_TENSOR_FLOAT32 && t->dtype != X3_TENSOR_FLOAT64 &&
+         t->dtype != X3_TENSOR_INT32 && t->dtype != X3_TENSOR_INT64) &&
+        op != Kernel::Reshape && op != Kernel::Permute)
+      throw std::runtime_error("CPU arithmetic does not support this storage-only tensor dtype");
+  }
   for (const auto& v : args) if (v.tag == ValueTag::Double && (dtype == X3_TENSOR_INT32 || dtype == X3_TENSOR_INT64)) dtype = X3_TENSOR_FLOAT64;
   if ((op == Kernel::Div || op == Kernel::Exp) && (dtype == X3_TENSOR_INT32 || dtype == X3_TENSOR_INT64)) dtype = X3_TENSOR_FLOAT64;
   auto shape = first->shape;
@@ -231,12 +238,24 @@ Value compute(Runtime& rt, const Tensor&, Kernel op, const std::vector<Value>& a
       shape.erase(shape.begin()+d);
     }
   }
+  // At most two operands: acquire once per kernel, in storage order, without
+  // heap-allocating completion records for synchronous CPU reads.
+  auto left = first->storage;
+  std::shared_ptr<Storage> right;
+  if (binary) if (auto* t = get(args[1])) right = t->storage;
+  if (right == left) right.reset();
+  if (right && std::less<Storage*>{}(right.get(), left.get())) left.swap(right);
+  X3TensorExecution host{}; host.size = sizeof(host);
+  StorageUse leftUse(left, X3_TENSOR_READ, host);
+  std::optional<StorageUse> rightUse;
+  if (right) rightUse.emplace(right, X3_TENSOR_READ, host);
   auto out = allocate(rt,dtype,std::move(shape));
   switch (dtype) {
     case X3_TENSOR_FLOAT32: execute<float>(*out,op,args,attrs); break;
     case X3_TENSOR_FLOAT64: execute<double>(*out,op,args,attrs); break;
     case X3_TENSOR_INT32: execute<int32_t>(*out,op,args,attrs); break;
     case X3_TENSOR_INT64: execute<int64_t>(*out,op,args,attrs); break;
+    default: throw std::runtime_error("unsupported CPU tensor dtype");
   }
   return wrap_tensor(rt,std::move(out));
 }

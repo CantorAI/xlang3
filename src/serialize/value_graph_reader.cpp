@@ -31,6 +31,7 @@ public:
     for (uint32_t i = 0; i < count; ++i) {
       Record record;
       record.kind = static_cast<Kind>(io.number<uint8_t>());
+      IO::require(static_cast<uint8_t>(record.kind) <= static_cast<uint8_t>(Kind::BigInt), "invalid graph object kind");
       auto n = io.count();
       IO::require(io.stream.CanRead(static_cast<int64_t>(n) * 8), "truncated graph numbers");
       for (uint32_t j = 0; j < n; ++j) record.numbers.push_back(io.number<uint64_t>());
@@ -101,9 +102,17 @@ private:
   void allocate(size_t i) {
     auto& r = records[i];
     auto& v = values[i];
-    if (r.kind != Kind::String && r.kind != Kind::Bytes && r.kind != Kind::ByteArray && r.kind != Kind::Expression)
+    if (r.kind != Kind::String && r.kind != Kind::Bytes && r.kind != Kind::ByteArray && r.kind != Kind::Expression && r.kind != Kind::BigInt)
       IO::require(r.payload.empty(), "unexpected graph payload");
     switch (r.kind) {
+      case Kind::BigInt: {
+        shape(r, 1, 0, 0);
+        IO::require(r.numbers[0] <= 1, "invalid bigint sign");
+        std::string error;
+        if (!value_bigint_from_binary_limbs(r.payload.data(), r.payload.size(), r.numbers[0] != 0, v, error))
+          throw std::runtime_error(error);
+        break;
+      }
       case Kind::String: shape(r, 0, 0, 0); v = Value::string(std::move(r.payload)); break;
       case Kind::Bytes: shape(r, 0, 0, 0); v = Value::bytes(std::move(r.payload)); break;
       case Kind::ByteArray: shape(r, 0, 0, 0); v = Value::bytearray(std::move(r.payload)); break;

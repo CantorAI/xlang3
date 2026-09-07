@@ -747,10 +747,61 @@ bool value_bigint_truthy(const Value& value) {
   return p != nullptr && p->sign != 0;
 }
 
+Value value_bigint_from_u64(uint64_t value) {
+  if (value <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+    return Value::int64(static_cast<int64_t>(value));
+  BigIntPayload p = make_payload_from_u64(value, 1);
+  return compact_payload(p);
+}
+
+bool value_bigint_to_u64(const Value& value, uint64_t& out) {
+  const BigIntPayload* p = payload(value_as_bigint(value));
+  if (p == nullptr || p->sign < 0 || p->limb_count > 2) return false;
+  uint64_t magnitude = p->limb_count == 0 ? 0 : p->limbs[0];
+  if (p->limb_count == 2) magnitude |= static_cast<uint64_t>(p->limbs[1]) << 32u;
+  out = magnitude;
+  return true;
+}
+
 bool value_bigint_to_i64(const Value& value, int64_t& out) {
   auto* object = value_as_bigint(value);
   const BigIntPayload* p = payload(object);
   return p != nullptr && payload_to_i64(*p, out);
+}
+
+bool value_bigint_limb_view(const Value& value, bool& negative, const uint32_t*& limbs, uint32_t& count) {
+  const auto* p = payload(value_as_bigint(value));
+  if (!p) return false;
+  negative = p->sign < 0;
+  limbs = p->limbs;
+  count = p->limb_count;
+  return true;
+}
+
+bool value_bigint_from_binary_limbs(const void* data, size_t bytes, bool negative, Value& out, std::string& error) {
+  if (!data || !bytes || bytes % sizeof(uint32_t) != 0 || bytes > UINT32_MAX) {
+    error = "invalid bigint limb payload";
+    return false;
+  }
+  BigIntPayload p;
+  const auto count = static_cast<uint32_t>(bytes / sizeof(uint32_t));
+  ensure_capacity(p, count);
+  std::memcpy(p.limbs, data, bytes);
+  p.limb_count = count;
+  p.sign = negative ? -1 : 1;
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  for (uint32_t i = 0; i < count; ++i) {
+    auto* b = reinterpret_cast<unsigned char*>(p.limbs + i);
+    std::reverse(b, b + sizeof(uint32_t));
+  }
+#endif
+  if (p.limbs[count - 1] == 0) {
+    release_limbs(p);
+    error = "noncanonical bigint limb payload";
+    return false;
+  }
+  out = compact_payload(p);
+  return true;
 }
 
 bool value_int_like_to_i64(const Value& value, int64_t& out) {

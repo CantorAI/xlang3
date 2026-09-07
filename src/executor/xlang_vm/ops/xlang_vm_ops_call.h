@@ -1034,12 +1034,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         : XlangVMOpFlow::ReturnResult;
   }
 
+  // Positional obj.property(...) uses CallMethod rather than LoadAttr + Call.
+  // Resolve the property first, without binding self to the returned callable
+  // or caching a value that may differ across receivers/accesses.
+  bool resolved_property = false;
+  if (auto* property = value_as_property(method); property && value_as_instance(regs[in.a])) {
+    Value callable;
+    if (!runtime_call_callable(runtime, property->fget, &regs[in.a], 1, callable, attr_error)) {
+      Value pending;
+      const bool handled = runtime.take_pending_exception(pending)
+          ? raise_exception_value(std::move(pending)) : raise_runtime_error(attr_error);
+      return handled ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    method = std::move(callable);
+    resolved_property = true;
+  }
+
   if (auto* bound = value_as_bound_method(method)) {
     CallArgsView bound_args = call_args;
     bound_args.leading = &bound->self;
     bound_args.leading_count = 1;
     if (auto* native = value_as_native_function(bound->function)) {
-      if (!receiver_is_super && !instr_cache.empty() && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
+      if (!resolved_property && !receiver_is_super && !instr_cache.empty() && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
         auto& cache = instr_cache[ip].call;
         if (auto* receiver_class = value_as_class(regs[in.a])) {
           cache.callee_object = &receiver_class->header;

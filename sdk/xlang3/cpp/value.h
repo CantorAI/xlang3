@@ -167,6 +167,7 @@ public:
   }
 
   double ToDouble() const {
+    if (value_.tag == X3_TAG_UINT64) return static_cast<double>(value_.as.u64);
     if (value_.tag == X3_TAG_DOUBLE) return value_.as.f64;
     return static_cast<double>(ToLongLong());
   }

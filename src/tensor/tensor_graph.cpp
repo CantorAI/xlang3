@@ -42,7 +42,11 @@ void collect(const Value& v, std::vector<Value>& result) {
   if (auto* l = value_as_tuple(v)) for (const auto& x : l->items) collect(x, result);
   if (auto* d = value_as_dict(v)) for (const auto& kv : d->entries) collect(kv.second, result);
 }
-Value node_attributes(const Tensor& t) { return t.attributes.tag == ValueTag::Invalid ? Value::dict({}) : t.attributes; }
+Value node_attributes(const Tensor& t) {
+  if (!t.registration && !t.storage)
+    return Value::dict({{Value::string("name"), Value::string(t.name)}});
+  return t.attributes.tag == ValueTag::Invalid ? Value::dict({}) : t.attributes;
+}
 }
 Value snapshot(const Value& v) { std::unordered_set<const Object*> active; return transform(v, nullptr, active, 0); }
 Value substitute(const Value& v, const std::unordered_map<uint64_t, Value>& b) {

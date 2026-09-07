@@ -166,6 +166,22 @@ private:
   }
   void describe(Node& node) {
     const auto& value = node.value;
+    if (value_as_bigint(value)) {
+      bool negative = false;
+      const uint32_t* limbs = nullptr;
+      uint32_t count = 0;
+      IO::require(value_bigint_limb_view(value, negative, limbs, count) && count, "invalid bigint payload");
+      node.kind = Kind::BigInt;
+      node.numbers = {negative ? 1u : 0u};
+      // Node::value owns this immutable limb storage through the stream write.
+      node.payload = std::string_view(reinterpret_cast<const char*>(limbs), static_cast<size_t>(count) * sizeof(uint32_t));
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+      node.owned_payload.assign(node.payload);
+      for (size_t offset = 0; offset < node.owned_payload.size(); offset += sizeof(uint32_t))
+        std::reverse(node.owned_payload.begin() + offset, node.owned_payload.begin() + offset + sizeof(uint32_t));
+#endif
+      return;
+    }
     if (auto* native = value_as_native_function(value)) {
       const auto* registered = runtime.find_native_symbol(native->name);
       auto* other = registered ? value_as_native_function(*registered) : nullptr;

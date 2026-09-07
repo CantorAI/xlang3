@@ -36,6 +36,14 @@ add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
 add_subdirectory(modules/device)
 add_subdirectory(modules/net)
+if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  foreach(native_module xlang_json_native_package xlang_sqlite3_native_package
+      xlang_yaml_native_package xlang_device_native_package xlang_net_native_package)
+    set_target_properties(${native_module} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  endforeach()
+endif()
 endif()
 
 set(XLANG3_RUNTIME_SOURCES

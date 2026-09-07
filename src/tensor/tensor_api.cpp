@@ -1,7 +1,9 @@
 #include "tensor_internal.h"
 #include "xlang3/c_api_bridge.h"
+#include "xlang3/object_model.h"
 #include "runtime/modules/thread/runtime_lock.h"
 #include <cstring>
+#include <map>
 
 namespace {
 using namespace xlang3;
@@ -27,7 +29,73 @@ Graph& graph(Runtime& rt, const Value& v) {
   auto* g = get_graph(v); if (!g || g->runtime != &rt) throw std::runtime_error("expected a graph belonging to this runtime"); return *g;
 }
 }
+struct X3TensorUse {
+  std::vector<std::unique_ptr<xlang3::tensor::StorageUse>> uses;
+};
 extern "C" {
+X3Status x3_tensor_begin_use(X3Runtime* rt, X3Value v, X3TensorAccess access,
+    const X3TensorExecution* execution, X3TensorUse** out) {
+  X3TensorUseRequest request{v, access};
+  return x3_tensor_begin_uses(rt, &request, 1, execution, out);
+}
+X3Status x3_tensor_begin_uses(X3Runtime* rt, const X3TensorUseRequest* requests, uint32_t count,
+    const X3TensorExecution* execution, X3TensorUse** out) {
+  return protect(rt,[&](Runtime& r) {
+    if (!out || !count || !requests || (execution && execution->size != sizeof(*execution)))
+      throw std::runtime_error("invalid tensor execution descriptor/result");
+    *out = nullptr;
+    std::map<Storage*, std::pair<std::shared_ptr<Storage>, X3TensorAccess>> storages;
+    for (uint32_t index = 0; index < count; ++index) {
+      const auto& request = requests[index];
+      if (request.access != X3_TENSOR_READ && request.access != X3_TENSOR_WRITE)
+        throw std::runtime_error("invalid tensor access mode");
+      auto owner = value(request.tensor);
+      auto storage = checked(r, owner).storage;
+      if (!storage || (request.access == X3_TENSOR_WRITE && storage->readonly))
+        throw std::runtime_error("tensor access requires writable/materialized storage");
+      auto inserted = storages.emplace(storage.get(), std::make_pair(storage, request.access));
+      if (request.access == X3_TENSOR_WRITE) inserted.first->second.second = X3_TENSOR_WRITE;
+    }
+    X3TensorExecution host{}; host.size = sizeof(host);
+    auto uses = std::make_unique<X3TensorUse>();
+    uses->uses.reserve(storages.size());
+    for (const auto& entry : storages)
+      uses->uses.push_back(std::make_unique<StorageUse>(entry.second.first, entry.second.second,
+          execution ? *execution : host, true));
+    *out = uses.release();
+  });
+}
+X3Status x3_tensor_end_use(X3TensorUse* use, const X3TensorCompletion* completion) {
+  if (!use || (completion && (completion->size != sizeof(*completion) ||
+      !completion->wait || !completion->query || !completion->cleanup))) return X3_STATUS_ERROR;
+  try {
+    std::shared_ptr<Completion> shared;
+    if (completion) {
+      shared = use->uses.front()->completion->front().completion;
+      shared->callback = *completion;
+    }
+    for (auto& member : use->uses) member->finish(shared);
+    delete use;
+    return X3_STATUS_OK;
+  }
+  catch (...) { return X3_STATUS_ERROR; }
+}
+int32_t x3_tensor_is_tensor(X3Value v) {
+  XlangRuntimeExecutionGuard guard;
+  if (v.tag != X3_TAG_OBJECT || !v.as.obj) return 0;
+  auto* object = reinterpret_cast<Object*>(v.as.obj);
+  if (object->kind != ObjectKind::Instance) return 0;
+  auto* instance = reinterpret_cast<InstanceObject*>(object);
+  return instance->native_type == tensor_type && instance->native_data != nullptr;
+}
+int32_t x3_tensor_is_graph(X3Value v) {
+  XlangRuntimeExecutionGuard guard;
+  if (v.tag != X3_TAG_OBJECT || !v.as.obj) return 0;
+  auto* object = reinterpret_cast<Object*>(v.as.obj);
+  if (object->kind != ObjectKind::Instance) return 0;
+  auto* instance = reinterpret_cast<InstanceObject*>(object);
+  return instance->native_type == graph_type && instance->native_data != nullptr;
+}
 X3Status x3_tensor_create(X3Runtime* rt, X3TensorDType dtype, const int64_t* dims, uint32_t rank,
     const void* data, uint64_t bytes, X3Value* out) {
   return protect(rt,[&](Runtime& r) {
@@ -109,5 +177,8 @@ X3Status x3_tensor_graph_replay(X3Runtime* rt, X3Value g, X3TensorVisitor visito
 }
 X3Status x3_tensor_graph_inspect(X3Runtime* rt, X3Value g, X3Value* out) {
   return protect(rt,[&](Runtime& r) { if (!out) throw std::runtime_error("null graph result"); auto v=value(g); result(out,inspect(graph(r,v))); });
+}
+X3Status x3_tensor_graph_outputs(X3Runtime* rt, X3Value g, X3Value* out) {
+  return protect(rt,[&](Runtime& r) { if (!out) throw std::runtime_error("null graph result"); auto v=value(g); result(out,snapshot(graph(r,v).outputs)); });
 }
 }

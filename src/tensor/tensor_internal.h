@@ -8,8 +8,19 @@
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
+#include <mutex>
+#include <condition_variable>
+#include <list>
 
 namespace xlang3::tensor {
+struct Completion {
+  X3TensorCompletion callback{};
+  ~Completion() { if (callback.cleanup) callback.cleanup(callback.context); }
+};
+struct PendingCompletion {
+  std::shared_ptr<Completion> completion;
+  X3TensorAccess access;
+};
 struct Storage {
   void* data = nullptr;
   uint64_t bytes = 0;
@@ -17,7 +28,22 @@ struct Storage {
   bool readonly = false;
   void* owner = nullptr;
   void (*cleanup)(void*) = nullptr;
-  ~Storage() { if (cleanup) cleanup(owner); }
+  std::mutex use_mutex;
+  std::condition_variable use_changed;
+  uint64_t readers = 0, waiting_writers = 0;
+  bool writer = false;
+  std::list<PendingCompletion> pending;
+  ~Storage();
+};
+struct StorageUse {
+  std::shared_ptr<Storage> storage;
+  X3TensorAccess access;
+  std::unique_ptr<std::list<PendingCompletion>> completion;
+  StorageUse(std::shared_ptr<Storage>, X3TensorAccess, const X3TensorExecution&, bool async = false);
+  ~StorageUse();
+  void finish(std::shared_ptr<Completion> = {});
+  StorageUse(const StorageUse&) = delete;
+  StorageUse& operator=(const StorageUse&) = delete;
 };
 struct Registration {
   Runtime* runtime = nullptr;

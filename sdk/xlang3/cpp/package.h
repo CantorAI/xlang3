@@ -120,7 +120,10 @@ decltype(auto) arg_from_value(Value& value) {
   } else if constexpr (std::is_same_v<U, std::string>) {
     return value.ToString(false);
   } else if constexpr (std::is_integral_v<U> && !std::is_same_v<U, bool>) {
-    return static_cast<U>(value.ToLongLong());
+    if (value.IsUInt64() && value.ToUInt64() > static_cast<uint64_t>((std::numeric_limits<U>::max)()))
+      throw NativeError("native integer argument out of range");
+    if constexpr (std::is_unsigned_v<U>) return static_cast<U>(value.ToUInt64());
+    else return static_cast<U>(value.ToLongLong());
   } else if constexpr (std::is_floating_point_v<U>) {
     return static_cast<U>(value.ToDouble());
   } else if constexpr (std::is_same_v<U, bool>) {
@@ -141,7 +144,8 @@ Value value_from_field(X3PackageHost* host, const T& value) {
   } else if constexpr (std::is_same_v<T, bool>) {
     return Value(value);
   } else if constexpr (std::is_integral_v<T>) {
-    return Value(static_cast<long long>(value));
+    if constexpr (std::is_unsigned_v<T>) return Value(static_cast<unsigned long long>(value));
+    else return Value(static_cast<long long>(value));
   } else if constexpr (std::is_floating_point_v<T>) {
     return Value(static_cast<double>(value));
   } else {
@@ -158,7 +162,10 @@ void field_from_value(T& out, Value& value) {
   } else if constexpr (std::is_same_v<T, bool>) {
     out = value.ToLongLong() != 0;
   } else if constexpr (std::is_integral_v<T>) {
-    out = static_cast<T>(value.ToLongLong());
+    if (value.IsUInt64() && value.ToUInt64() > static_cast<uint64_t>((std::numeric_limits<T>::max)()))
+      throw NativeError("native integer field out of range");
+    if constexpr (std::is_unsigned_v<T>) out = static_cast<T>(value.ToUInt64());
+    else out = static_cast<T>(value.ToLongLong());
   } else if constexpr (std::is_floating_point_v<T>) {
     out = static_cast<T>(value.ToDouble());
   } else {
@@ -186,7 +193,7 @@ inline X3Value return_to_raw(X3PackageHost*, std::nullptr_t) {
 }
 
 inline X3Value return_to_raw(X3PackageHost* host, const std::string& value) {
-  return host->value_string(host->runtime, value.c_str());
+  return Value::String(host, value).Detach();
 }
 
 inline X3Value return_to_raw(X3PackageHost* host, const char* value) {
@@ -200,7 +207,8 @@ inline X3Value return_to_raw(X3PackageHost*, bool value) {
 template <typename T>
 X3Value return_to_raw(X3PackageHost*, T value) {
   if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-    return x3_value_int64(static_cast<int64_t>(value));
+    if constexpr (std::is_unsigned_v<T>) return x3_value_uint64(static_cast<uint64_t>(value));
+    else return x3_value_int64(static_cast<int64_t>(value));
   } else if constexpr (std::is_floating_point_v<T>) {
     return x3_value_double(static_cast<double>(value));
   } else {
@@ -476,16 +484,22 @@ struct ConstructorArgument {
       if (value.raw().tag != X3_TAG_BOOL) throw NativeError("constructor requires a boolean");
       return value.ToLongLong() != 0;
     } else if constexpr (std::is_integral_v<U>) {
-      if (!value.IsInt64()) throw NativeError("constructor requires an integer");
-      const auto n = value.ToLongLong();
+      if (!value.IsInt64() && !value.IsUInt64()) throw NativeError("constructor requires an integer");
       if constexpr (std::is_unsigned_v<U>) {
-        if (n < 0 || static_cast<uint64_t>(n) > (std::numeric_limits<U>::max)())
+        const auto n = value.ToUInt64();
+        if ((value.IsInt64() && value.ToLongLong() < 0) || n > (std::numeric_limits<U>::max)())
           throw NativeError("constructor integer out of range");
-      } else if (n < (std::numeric_limits<U>::min)() || n > (std::numeric_limits<U>::max)())
-        throw NativeError("constructor integer out of range");
-      return static_cast<U>(n);
+        return static_cast<U>(n);
+      } else {
+        if (value.IsUInt64() && value.ToUInt64() > static_cast<uint64_t>((std::numeric_limits<U>::max)()))
+          throw NativeError("constructor integer out of range");
+        const auto n = value.ToLongLong();
+        if (n < (std::numeric_limits<U>::min)() || n > (std::numeric_limits<U>::max)())
+          throw NativeError("constructor integer out of range");
+        return static_cast<U>(n);
+      }
     } else {
-      if (!value.IsDouble() && !value.IsInt64()) throw NativeError("constructor requires a number");
+      if (!value.IsDouble() && !value.IsInt64() && !value.IsUInt64()) throw NativeError("constructor requires a number");
       return static_cast<U>(value.ToDouble());
     }
   }
@@ -550,8 +564,6 @@ X3Status constructor_thunk(
   } else if constexpr (Argc == 1 && std::is_constructible_v<T, Value>) {
     object = new T(Value(host, args[1], true));
   } else if constexpr (Argc == 1 && std::is_constructible_v<T, long long>) {
-    Value argument(host, args[1], true);
-    if (!argument.IsInt64()) return set_native_error(host, context, "constructor requires an integer");
     object = construct_native<T>(host, args, std::make_index_sequence<1>{});
   } else if constexpr (Argc > 1) {
     object = construct_native<T>(host, args, std::make_index_sequence<Argc>{});

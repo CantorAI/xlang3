@@ -21,6 +21,14 @@ set_target_properties(xlang3_cpython PROPERTIES
   OUTPUT_NAME xlang3
   LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/cpython_bridge"
   RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/cpython_bridge")
+if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  set_target_properties(xlang_cpython_native_package PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  set_target_properties(xlang3_cpython PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cpython_bridge"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cpython_bridge")
+endif()
 # Keep the shared runtime next to the extension for CPython's DLL loader.
 if(WIN32)
   add_custom_target(xlang_cpython_runtime

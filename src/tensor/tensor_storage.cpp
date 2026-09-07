@@ -3,14 +3,87 @@
 #include "xlang3/module_object.h"
 #include <cstring>
 #include <limits>
+#include "runtime/modules/thread/runtime_lock.h"
 
 namespace xlang3::tensor {
+Storage::~Storage() {
+  XlangRuntimeExecutionSuspension suspension;
+  // A batch fence may also be retained by another storage. Waiting cannot be
+  // delegated to its final shared cleanup: this allocation is retiring now.
+  X3TensorExecution host{}; host.size = sizeof(host);
+  for (const auto& pendingUse : pending)
+    pendingUse.completion->callback.wait(pendingUse.completion->callback.context, &host);
+  pending.clear();
+  if (cleanup) cleanup(owner);
+}
+StorageUse::StorageUse(std::shared_ptr<Storage> source, X3TensorAccess mode,
+    const X3TensorExecution& execution, bool async) : storage(std::move(source)), access(mode) {
+  if (!storage || (mode != X3_TENSOR_READ && mode != X3_TENSOR_WRITE))
+    throw std::runtime_error("tensor access requires concrete storage and valid mode");
+  if (mode == X3_TENSOR_WRITE && storage->readonly)
+    throw std::runtime_error("tensor storage is readonly");
+  if (async) {
+    completion = std::make_unique<std::list<PendingCompletion>>();
+    completion->push_back({std::make_shared<Completion>(), mode});
+  }
+  XlangRuntimeExecutionSuspension suspension;
+  std::vector<std::shared_ptr<Completion>> dependencies;
+  std::vector<std::shared_ptr<Completion>> retired;
+  std::unique_lock<std::mutex> lock(storage->use_mutex);
+  if (mode == X3_TENSOR_WRITE) ++storage->waiting_writers;
+  try {
+    storage->use_changed.wait(lock, [&] {
+      // Nested read operands may alias; a queued writer must not block the
+      // second read while the first read still belongs to this operation.
+      return !storage->writer && (mode != X3_TENSOR_WRITE || !storage->readers);
+    });
+    for (auto it = storage->pending.begin(); it != storage->pending.end();) {
+      auto& fence = *it->completion;
+      const auto ready = fence.callback.query(fence.callback.context);
+      if (ready < 0) throw std::runtime_error("tensor completion failed");
+      if (ready) { retired.push_back(it->completion); it = storage->pending.erase(it); }
+      else {
+        if (mode == X3_TENSOR_WRITE || it->access == X3_TENSOR_WRITE) dependencies.push_back(it->completion);
+        ++it;
+      }
+    }
+  } catch (...) {
+    if (mode == X3_TENSOR_WRITE) --storage->waiting_writers;
+    lock.unlock(); storage->use_changed.notify_all(); throw;
+  }
+  if (mode == X3_TENSOR_WRITE) { --storage->waiting_writers; storage->writer = true; }
+  else ++storage->readers;
+  lock.unlock();
+  try {
+    for (const auto& fence : dependencies)
+      if (fence->callback.wait(fence->callback.context, &execution) != X3_STATUS_OK)
+        throw std::runtime_error("tensor dependency wait failed");
+  } catch (...) { finish(); throw; }
+}
+StorageUse::~StorageUse() { finish(); }
+void StorageUse::finish(std::shared_ptr<Completion> callback) {
+  if (!storage) return;
+  auto retained = std::move(storage);
+  {
+    std::lock_guard<std::mutex> lock(retained->use_mutex);
+    if (callback) {
+      completion->front().completion = std::move(callback);
+      retained->pending.splice(retained->pending.end(), *completion);
+    }
+    if (access == X3_TENSOR_WRITE) retained->writer = false;
+    else --retained->readers;
+  }
+  retained->use_changed.notify_all();
+}
 namespace { std::atomic_uint64_t next_id{1}; }
 Tensor* get(const Value& v) { return static_cast<Tensor*>(instance_get_native_data(v, tensor_type)); }
 Operator* get_operator(const Value& v) { return static_cast<Operator*>(instance_get_native_data(v, operator_type)); }
 Graph* get_graph(const Value& v) { return static_cast<Graph*>(instance_get_native_data(v, graph_type)); }
 uint64_t item_size(X3TensorDType dtype) {
   switch (dtype) {
+    case X3_TENSOR_FLOAT8_E4M3FN: case X3_TENSOR_FLOAT8_E4M3FNUZ:
+    case X3_TENSOR_FLOAT8_E5M2: case X3_TENSOR_FLOAT8_E5M2FNUZ: return 1;
+    case X3_TENSOR_FLOAT16: case X3_TENSOR_BFLOAT16: case X3_TENSOR_UINT16: return 2;
     case X3_TENSOR_FLOAT32: case X3_TENSOR_INT32: return 4;
     case X3_TENSOR_FLOAT64: case X3_TENSOR_INT64: return 8;
     default: throw std::runtime_error("unsupported tensor dtype");

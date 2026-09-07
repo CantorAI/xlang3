@@ -23,7 +23,7 @@ constexpr uint64_t max_payload = 1024ull * 1024 * 1024;
 enum class Kind : uint8_t {
   String, Bytes, List, Tuple, Dict, Cell, Function, Globals, Module,
   Class, Instance, BoundMethod, StaticMethod, ClassMethod, Property,
-  Slot, Symbol, Expression, ByteArray, NativeInstance
+  Slot, Symbol, Expression, ByteArray, NativeInstance, BigInt
 };
 struct Reference {
   uint8_t tag = 0;

@@ -7,7 +7,14 @@ extern "C" {
 
 typedef enum X3TensorDType {
   X3_TENSOR_FLOAT32 = 1, X3_TENSOR_FLOAT64 = 2,
-  X3_TENSOR_INT32 = 3, X3_TENSOR_INT64 = 4
+  X3_TENSOR_INT32 = 3, X3_TENSOR_INT64 = 4,
+  /* Additional storage/capture formats for external backends. CPU arithmetic
+     is not implemented for these types. Floating formats retain their packed
+     IEEE binary16, bfloat16, or named FP8 encodings without conversion. */
+  X3_TENSOR_FLOAT16 = 5, X3_TENSOR_BFLOAT16 = 6,
+  X3_TENSOR_UINT16 = 7,
+  X3_TENSOR_FLOAT8_E4M3FN = 8, X3_TENSOR_FLOAT8_E4M3FNUZ = 9,
+  X3_TENSOR_FLOAT8_E5M2 = 10, X3_TENSOR_FLOAT8_E5M2FNUZ = 11
 } X3TensorDType;
 
 /* Shape/strides are borrowed until the tensor is released. Strides are bytes.
@@ -30,6 +37,48 @@ typedef struct X3TensorInfo {
   int32_t readonly;
   int32_t symbolic;
 } X3TensorInfo;
+
+/* Access ordering belongs to storage, including every view. Info() does not
+   acquire access. Native clients must bracket payload access with a use lease.
+   READ leases may overlap; WRITE excludes other leases until end_use publishes
+   completion. Acquire one WRITE for in-place operations (do not nest a READ on
+   the same storage). Acquire multiple storages in a consistent caller order.
+   Leases retain storage, not the runtime, and may be ended on another thread. */
+typedef struct X3TensorUse X3TensorUse;
+typedef enum X3TensorAccess { X3_TENSOR_READ = 1, X3_TENSOR_WRITE = 2 } X3TensorAccess;
+typedef struct X3TensorExecution {
+  uint32_t size;
+  int32_t device_type; /* 0 requests a blocking host wait. */
+  int32_t device_id;
+  void* stream; /* Backend-defined; borrowed only during begin_use. */
+} X3TensorExecution;
+typedef struct X3TensorCompletion {
+  uint32_t size;
+  void* context;
+  /* Enqueue a dependency on execution, or block for host/unsupported execution.
+     A host wait must quiesce access even when reporting a computation failure.
+     Callbacks must be thread-safe, nonthrowing and must not re-enter this storage. */
+  X3Status (*wait)(void*, const X3TensorExecution*);
+  /* Nonblocking: 1 completed, 0 pending, -1 failed. Required for bounded tracking. */
+  int32_t (*query)(void*);
+  /* Must ensure no work still touches storage, even after wait/query errors.
+     Called exactly once, before storage owner cleanup. Must not throw. */
+  void (*cleanup)(void*);
+} X3TensorCompletion;
+X3_API X3Status x3_tensor_begin_use(X3Runtime*, X3Value, X3TensorAccess,
+    const X3TensorExecution*, X3TensorUse**);
+typedef struct X3TensorUseRequest {
+  X3Value tensor;
+  X3TensorAccess access;
+} X3TensorUseRequest;
+/* Deduplicates views by storage, promotes aliases to WRITE if any request
+   writes, and orders storage acquisition consistently. Use this for operations
+   with multiple tensors; do not mix nested single/batch acquisitions. */
+X3_API X3Status x3_tensor_begin_uses(X3Runtime*, const X3TensorUseRequest*, uint32_t count,
+    const X3TensorExecution*, X3TensorUse**);
+/* null completion means synchronous access has finished. Transfers completion
+   ownership and consumes the lease only on success. No runtime entry required. */
+X3_API X3Status x3_tensor_end_use(X3TensorUse*, const X3TensorCompletion*);
 
 /* Values and strings supplied to replay are borrowed for the callback only.
    inputs includes tensor dependencies in attributes, in addition to operands.
@@ -69,6 +118,9 @@ X3_API X3Status x3_tensor_wrap(X3Runtime*, const X3TensorInfo*,
 X3_API X3Status x3_tensor_input(X3Runtime*, const char* name, X3TensorDType,
     const int64_t* shape, uint32_t rank, X3Value*);
 X3_API X3Status x3_tensor_info(X3Runtime*, X3Value, X3TensorInfo*);
+/* Non-throwing type query; does not set the runtime error on non-tensors. */
+X3_API int32_t x3_tensor_is_tensor(X3Value);
+X3_API int32_t x3_tensor_is_graph(X3Value);
 X3_API X3Status x3_tensor_view(X3Runtime*, X3Value,
     const int64_t* shape, const int64_t* strides, uint32_t rank, uint64_t offset, X3Value*);
 /* Returns a callable factory: factory(op_name, **attributes) creates an operator.
@@ -83,6 +135,9 @@ X3_API X3Status x3_tensor_graph_run(X3Runtime*, X3Value graph, X3Value bindings,
 /* A null visitor invokes the registered per-operator callbacks. */
 X3_API X3Status x3_tensor_graph_replay(X3Runtime*, X3Value graph, X3TensorVisitor, void*);
 X3_API X3Status x3_tensor_graph_inspect(X3Runtime*, X3Value graph, X3Value*);
+/* Returns a container snapshot, retaining tensor references without copying
+   their payloads. Tensor aliases and output container structure are preserved. */
+X3_API X3Status x3_tensor_graph_outputs(X3Runtime*, X3Value graph, X3Value*);
 
 #ifdef __cplusplus
 }

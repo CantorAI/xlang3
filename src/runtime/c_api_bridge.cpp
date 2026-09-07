@@ -41,6 +41,13 @@ X3Value to_c_value(const Value& value) {
       out.as.f64 = value.as.f64;
       break;
     case ValueTag::Object:
+      if (uint64_t integer = 0; value_as_bigint(value) != nullptr && value_bigint_to_u64(value, integer)) {
+        // The ABI owns a scalar here, not another reference to the bigint.
+        out.tag = X3_TAG_UINT64;
+        out.flags = 0;
+        out.as.u64 = integer;
+        break;
+      }
       out.tag = X3_TAG_OBJECT;
       out.as.obj = reinterpret_cast<X3Object*>(value.as.obj);
       {
@@ -70,8 +77,7 @@ Value from_c_value(const X3Value& value, std::string& error) {
       return Value::int64(value.as.i64);
     case X3_TAG_UINT64:
       if (value.as.u64 > static_cast<uint64_t>(INT64_MAX)) {
-        error = "uint64 value does not fit in XLang3 int64";
-        return Value::invalid();
+        return value_bigint_from_u64(value.as.u64);
       }
       return Value::int64(static_cast<int64_t>(value.as.u64));
     case X3_TAG_DOUBLE:

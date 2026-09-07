@@ -61,6 +61,10 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "id");
   copy_builtin(runtime, builtins, "isinstance");
   copy_builtin(runtime, builtins, "issubclass");
+  copy_builtin(runtime, builtins, "getattr");
+  copy_builtin(runtime, builtins, "setattr");
+  copy_builtin(runtime, builtins, "delattr");
+  copy_builtin(runtime, builtins, "hasattr");
   copy_builtin(runtime, builtins, "bool");
   copy_builtin(runtime, builtins, "int");
   copy_builtin(runtime, builtins, "float");

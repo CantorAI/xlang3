@@ -82,7 +82,36 @@ model_output = model_graph.run({"x": T.tensor([1, 2, 3]), "b": T.tensor([1, 1, 1
 same(model_output["last"], (3,), [4, 5, 6])
 assert model_output["last"] is model_output["outputs"][0]
 assert len(model_graph.inspect()[-1]["regions"]) == 2
+layer_regions = [node["regions"][-1]["id"] for node in model_graph.inspect()
+                 if node["name"] == "relu"]
+assert len(set(layer_regions)) == 3
 print("tensor-fusion-passed", flush=True)
+
+class OperatorProvider:
+    @property
+    def unary_op(self):
+        return T.unary_op
+
+for provider in [OperatorProvider(), OperatorProvider()]:
+    same((a * provider.unary_op("relu")).eval(), (2, 3), [1, 2, 3, 4, 5, 6])
+
+class BoundTarget:
+    def __init__(self, value):
+        self.value = value
+
+    def read(self):
+        return self.value
+
+class BoundProvider:
+    def __init__(self, target):
+        self.target = target
+
+    @property
+    def read(self):
+        return self.target.read
+
+assert [provider.read() for provider in [BoundProvider(BoundTarget(3)),
+                                        BoundProvider(BoundTarget(7))]] == [3, 7]
 
 # Tensor-valued kwargs must be visible dependencies, not discarded attributes.
 dep = x + 1
@@ -107,7 +136,30 @@ fails(lambda: (a * T.unary_op("unknown_backend_operation")).eval())
 fails(lambda: (a * T.unary_op("sum", axiss=1)).eval())
 fails(lambda: (a * T.unary_op("relu", extra=1)).eval())
 fails(lambda: bool(x))
+fails(lambda: T.fusion(id=1))
+fails(lambda: T.fusion(atomic="yes"))
+fails(lambda: T.fusion(boundary="unknown"))
+for dtype in [T.float16, T.bfloat16]:
+    low = T.tensor(shape=[2, 3], dtype=dtype)
+    assert low.dtype == dtype and low.strides == (6, 2)
+    view = (low * T.unary_op("permute", axes=[1, 0])).eval()
+    assert view.shape == (3, 2) and view.strides == (2, 6)
+    fails(lambda: low.tolist())
+    fails(lambda: (low + low).eval())
+    fails(lambda: T.tensor([1], dtype=dtype))
 fails(lambda: bool(a))
+bits = T.tensor([0, 65535, 32768], dtype=T.uint16)
+assert bits.tolist() == [0, 65535, 32768]
+fails(lambda: T.tensor([-1], dtype=T.uint16))
+fails(lambda: T.tensor([65536], dtype=T.uint16))
+fails(lambda: (bits + bits).eval())
+for dtype in [T.float8_e4m3fn, T.float8_e4m3fnuz, T.float8_e5m2, T.float8_e5m2fnuz]:
+    packed = T.tensor(shape=[2, 3], dtype=dtype)
+    assert packed.dtype == dtype and packed.strides == (3, 1)
+    view = (packed * T.unary_op("permute", axes=[1, 0])).eval()
+    assert view.strides == (1, 3)
+    fails(lambda: (packed + packed).eval())
+    fails(lambda: packed.tolist())
 fails(lambda: T.graph(x * T.binary_op("add")))
 fails(lambda: T.graph([x, T.input("x", shape=[3])]))
 fails(lambda: (T.tensor([9223372036854775807], dtype=T.int64) + 1).eval())

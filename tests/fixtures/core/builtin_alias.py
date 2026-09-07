@@ -12,3 +12,16 @@
 # limitations under the License.
 p = print
 p(99)
+import builtins
+
+class AttributeProbe:
+    pass
+
+probe = AttributeProbe()
+builtins.setattr(probe, "answer", 42)
+assert builtins.getattr(probe, "answer") == 42
+assert builtins.hasattr(probe, "answer")
+builtins.delattr(probe, "answer")
+assert not builtins.hasattr(probe, "answer")
+assert builtins.getattr(probe, "answer", None) is None
+assert builtins.getattr(builtins, "missing_attribute", 17) == 17
