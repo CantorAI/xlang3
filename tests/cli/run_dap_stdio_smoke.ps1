@@ -97,9 +97,17 @@ $start.RedirectStandardError = $true
 $start.StandardOutputEncoding = [Text.Encoding]::UTF8
 $start.StandardErrorEncoding = [Text.Encoding]::UTF8
 
-$process = [Diagnostics.Process]::Start($start)
-$process.StandardInput.Write($inputText)
-$process.StandardInput.Close()
+# DAP framing is byte-oriented; the default Windows StreamWriter can emit a BOM.
+$previousInputEncoding = [Console]::InputEncoding
+try {
+  [Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
+  $process = [Diagnostics.Process]::Start($start)
+} finally {
+  [Console]::InputEncoding = $previousInputEncoding
+}
+$inputBytes = [Text.Encoding]::UTF8.GetBytes($inputText)
+$process.StandardInput.BaseStream.Write($inputBytes, 0, $inputBytes.Length)
+$process.StandardInput.BaseStream.Close()
 $stdout = $process.StandardOutput.ReadToEnd()
 $stderr = $process.StandardError.ReadToEnd()
 $process.WaitForExit()

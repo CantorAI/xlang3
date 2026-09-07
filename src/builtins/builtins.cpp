@@ -41,6 +41,9 @@ void register_core_builtins(Runtime& runtime) {
   register_binascii_module(runtime);
   register_io_module(runtime);
   register_os_module(runtime);
+#if !defined(_WIN32)
+  register_posix_process_module(runtime);
+#endif
   register_stat_module(runtime);
   register_string_module(runtime);
   register_imp_module(runtime);

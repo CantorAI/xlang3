@@ -37,6 +37,12 @@ public:
   Value(Runtime& runtime, X3Value value);
   Value(Runtime& runtime, int64_t value);
   Value(Runtime& runtime, int value);
+  template<class Integer, std::enable_if_t<std::is_integral_v<Integer> &&
+      !std::is_same_v<Integer, bool> && !std::is_same_v<Integer, int> &&
+      !std::is_same_v<Integer, int64_t>, int> = 0>
+  Value(Runtime& runtime, Integer value) : Value(runtime, std::is_unsigned_v<Integer>
+      ? x3_value_uint64(static_cast<uint64_t>(value))
+      : x3_value_int64(static_cast<int64_t>(value))) {}
   Value(Runtime& runtime, double value);
   Value(Runtime& runtime, bool value);
   Value(Runtime& runtime, const char* value);
@@ -314,6 +320,13 @@ public:
   }
 
   Value operator[](long long index) const {
+    return Get(static_cast<uint64_t>(index));
+  }
+
+  template<class Integer, std::enable_if_t<std::is_integral_v<Integer> &&
+      !std::is_same_v<Integer, bool> && !std::is_same_v<Integer, int> &&
+      !std::is_same_v<Integer, long long>, int> = 0>
+  Value operator[](Integer index) const {
     return Get(static_cast<uint64_t>(index));
   }
 

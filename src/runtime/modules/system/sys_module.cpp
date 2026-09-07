@@ -61,7 +61,11 @@ thread_local int64_t g_coroutine_origin_tracking_depth = 0;
 Value g_asyncgen_firstiter = Value::none();
 Value g_asyncgen_finalizer = Value::none();
 std::string g_filesystem_encoding = "utf-8";
+#ifdef _WIN32
 std::string g_filesystem_encode_errors = "surrogatepass";
+#else
+std::string g_filesystem_encode_errors = "surrogateescape";
+#endif
 constexpr int64_t kMonitoringToolCount = 6;
 constexpr int64_t kMonitoringEventPyStart = 1;
 constexpr int64_t kMonitoringEventPyResume = 2;
@@ -1162,13 +1166,21 @@ std::string runtime_stdlib_dir(const Runtime& runtime) {
   std::error_code ec;
   const auto& roots = runtime.import_roots();
   for (const auto& root : roots) {
+    if (std::filesystem::is_regular_file(root / "os.py", ec)) {
+      return root.string();
+    }
+    ec.clear();
     const auto lib = root / "Lib";
-    if (std::filesystem::is_directory(lib, ec)) {
+    if (std::filesystem::is_regular_file(lib / "os.py", ec)) {
       return lib.string();
     }
     ec.clear();
   }
+#ifdef _WIN32
   return (std::filesystem::path(runtime_prefix(runtime)) / "Lib").string();
+#else
+  return (std::filesystem::path(runtime_prefix(runtime)) / "lib" / "python3.14").string();
+#endif
 }
 
 Value make_version_info(Runtime& runtime) {
@@ -1360,6 +1372,9 @@ Value make_builtin_module_names() {
       Value::string("_opcode"),
       Value::string("_operator"),
       Value::string("_pickle"),
+#if !defined(_WIN32)
+      Value::string("_posixsubprocess"),
+#endif
       Value::string("_random"),
       Value::string("_sha1"),
       Value::string("_sha2"),
@@ -1380,7 +1395,9 @@ Value make_builtin_module_names() {
       Value::string("_typing"),
       Value::string("_warnings"),
       Value::string("_weakref"),
+#if defined(_WIN32)
       Value::string("_winapi"),
+#endif
       Value::string("array"),
       Value::string("atexit"),
       Value::string("binascii"),
@@ -1393,11 +1410,17 @@ Value make_builtin_module_names() {
       Value::string("marshal"),
       Value::string("math"),
       Value::string("mmap"),
+#if defined(_WIN32)
       Value::string("msvcrt"),
       Value::string("nt"),
+#else
+      Value::string("posix"),
+#endif
       Value::string("sys"),
       Value::string("time"),
+#if defined(_WIN32)
       Value::string("winreg"),
+#endif
       Value::string("xxsubtype"),
       Value::string("zlib"),
   });
@@ -4291,7 +4314,7 @@ void register_sys_module(Runtime& runtime) {
   object_set_attr(implementation, "cache_tag", Value::string("xlang3-314"), error);
   object_set_attr(implementation, "hexversion", Value::int64(0x030e07f0), error);
 #if !defined(_WIN32)
-  object_set_attr(implementation, "_multiarch", Value::string(""), error);
+  object_set_attr(implementation, "_multiarch", Value::string(XLANG3_MULTIARCH), error);
 #endif
   object_set_attr(implementation, "supports_isolated_interpreters", Value::boolean(true), error);
   Value implementation_version;
@@ -4301,7 +4324,7 @@ void register_sys_module(Runtime& runtime) {
       value_to_string(implementation_version) +
       ", hexversion=51251184, supports_isolated_interpreters=True";
 #if !defined(_WIN32)
-  implementation_repr += ", _multiarch=''";
+  implementation_repr += ", _multiarch='" XLANG3_MULTIARCH "'";
 #endif
   implementation_repr += ")";
   object_set_attr(implementation, "__xlang3_string_value__", Value::string(std::move(implementation_repr)), error);

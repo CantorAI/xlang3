@@ -94,7 +94,7 @@ XLANG3_VM_FLOW(BoolAnd, xlang3::xlang_vm::ops::truth_op(in, runtime_, regs, 0, r
 XLANG3_VM_FLOW(BoolOr, xlang3::xlang_vm::ops::truth_op(in, runtime_, regs, 1, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Compare, xlang3::xlang_vm::ops::compare(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FAST(Is, xlang3::xlang_vm::ops::is_op(in, regs))
-XLANG3_VM_FLOW(Contains, xlang3::xlang_vm::ops::contains_dynamic(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+XLANG3_VM_FLOW(Contains, xlang3::xlang_vm::ops::contains_dynamic(in, module, module_owner, runtime_, regs, frames, frame_count, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Not, xlang3::xlang_vm::ops::truth_op(in, runtime_, regs, 2, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Neg, xlang3::xlang_vm::ops::neg(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Invert, xlang3::xlang_vm::ops::invert(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))

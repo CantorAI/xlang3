@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/sequence.h"
+#include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
@@ -44,6 +45,7 @@ T* allocate_sequence_object(ObjectKind kind) {
 
 struct ListObjectFreeList {
   ~ListObjectFreeList() {
+    memory::object_caches_alive = false;
     for (auto* object : items) {
       delete object;
     }
@@ -56,7 +58,7 @@ thread_local ListObjectFreeList list_object_free_list;
 
 ListObject* allocate_list_object() {
   xlang_perf_count_object_alloc(ObjectKind::List);
-  if (!list_object_free_list.items.empty()) {
+  if (memory::object_caches_alive && !list_object_free_list.items.empty()) {
     auto* obj = list_object_free_list.items.back();
     list_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::List;
@@ -71,7 +73,7 @@ ListObject* allocate_list_object() {
 
 void recycle_list_object(ListObject* object) {
   object->items.clear();
-  if (list_object_free_list.items.size() < 4096) {
+  if (memory::object_caches_alive && list_object_free_list.items.size() < 4096) {
     list_object_free_list.items.push_back(object);
     return;
   }

@@ -31,6 +31,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include "runtime/memory/x3_runtime_memory.h"
+#include "runtime/memory/object_cache_lifetime.h"
 
 #include <algorithm>
 #include <array>
@@ -291,6 +292,7 @@ void release_tuple_block(TupleObject* object) {
 
 struct TupleObjectFreeLists {
   ~TupleObjectFreeLists() {
+    memory::object_caches_alive = false;
     for (auto& list : small) {
       for (auto* object : list) {
         release_tuple_block(object);
@@ -309,7 +311,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
   if (capacity > kMaxTupleItems) {
     capacity = kMaxTupleItems;
   }
-  if (capacity < tuple_object_free_lists.small.size()) {
+  if (memory::object_caches_alive && capacity < tuple_object_free_lists.small.size()) {
     auto& list = tuple_object_free_lists.small[capacity];
     if (!list.empty()) {
       auto* obj = list.back();
@@ -339,7 +341,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
 void recycle_tuple_object(TupleObject* object) {
   const uint32_t capacity = object->items.capacity();
   object->items.clear();
-  if (object->allocator == &memory::x3_thread_buckets() && capacity < tuple_object_free_lists.small.size()) {
+  if (memory::object_caches_alive && object->allocator == &memory::x3_thread_buckets() && capacity < tuple_object_free_lists.small.size()) {
     auto& list = tuple_object_free_lists.small[capacity];
     if (list.size() < 4096) {
       list.push_back(object);

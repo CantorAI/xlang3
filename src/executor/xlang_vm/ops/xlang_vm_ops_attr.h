@@ -235,7 +235,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_descriptor_set(
     RaiseExceptionValue&& raise_exception_value) {
   Value set_method;
   if (!xlang_vm_descriptor_method(descriptor, "__set__", set_method)) {
-    return raise_runtime_error("can't set attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_exception_value(runtime.make_exception("AttributeError", "can't set attribute")) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   Value args[2];
   value_assign_fast(args[0], receiver);
@@ -264,7 +264,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_descriptor_delete(
     RaiseExceptionValue&& raise_exception_value) {
   Value delete_method;
   if (!xlang_vm_descriptor_method(descriptor, "__delete__", delete_method)) {
-    return raise_runtime_error("can't delete attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_exception_value(runtime.make_exception("AttributeError", "can't delete attribute")) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   Value args[1];
   value_assign_fast(args[0], receiver);
@@ -383,7 +383,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   }
   if (auto* property = value_as_instance(regs[in.a]) != nullptr ? value_as_property(attr) : nullptr) {
     if (property->fget.tag == ValueTag::None || property->fget.tag == ValueTag::Invalid) {
-      return raise_runtime_error("unreadable attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_exception_value(runtime.make_exception("AttributeError", "unreadable attribute")) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     Value self_arg[1];
     value_assign_fast(self_arg[0], regs[in.a]);
@@ -559,7 +559,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fset.tag == ValueTag::None || property->fset.tag == ValueTag::Invalid) {
-        return raise_runtime_error("can't set attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        return raise_exception_value(runtime.make_exception("AttributeError", "can't set attribute")) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
       Value property_values[2];
       value_assign_fast(property_values[0], regs[in.dst]);
@@ -739,7 +739,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
     }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fdel.tag == ValueTag::None || property->fdel.tag == ValueTag::Invalid) {
-        return raise_runtime_error("can't delete attribute") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        return raise_exception_value(runtime.make_exception("AttributeError", "can't delete attribute")) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
       Value self_arg[1];
       value_assign_fast(self_arg[0], regs[in.dst]);

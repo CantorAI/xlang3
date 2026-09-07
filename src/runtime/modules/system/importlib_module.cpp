@@ -287,8 +287,9 @@ bool importlib_loader_load_module(Runtime& runtime, const Value* args, uint32_t 
   if (!get_string_arg(args[1], "loader fullname", name, error)) {
     return false;
   }
-  if (!runtime.import_module(name, out, error)) {
-    runtime.raise_class_error("ImportError", error);
+  bool module_not_found = false;
+  if (!runtime.import_module(name, out, error, &module_not_found)) {
+    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
     return false;
   }
   return true;
@@ -498,8 +499,9 @@ bool importlib_import_module(Runtime& runtime, const Value* args, uint32_t argc,
       name += tail;
     }
   }
-  if (!runtime.import_module(name, out, error)) {
-    runtime.raise_class_error("ImportError", error);
+  bool module_not_found = false;
+  if (!runtime.import_module(name, out, error, &module_not_found)) {
+    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
     return false;
   }
   return true;
@@ -548,8 +550,9 @@ bool bootstrap_gcd_import(Runtime& runtime, const Value* args, uint32_t argc, Va
     name = string_object_to_string(*resolved_text);
   }
 
-  if (!runtime.import_module(name, out, error)) {
-    runtime.raise_class_error("ImportError", error);
+  bool module_not_found = false;
+  if (!runtime.import_module(name, out, error, &module_not_found)) {
+    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
     return false;
   }
   return true;

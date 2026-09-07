@@ -2676,6 +2676,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains_dynamic(
     const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
+    std::vector<VMFrame>& frames,
+    size_t& frame_count,
     std::vector<Value>& native_call_args,
     size_t& ip,
     RuntimeResult& result,
@@ -2724,6 +2726,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains_dynamic(
     return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   if (pushed_frame) {
+    frames[frame_count - 1].return_mode = in.c != 0 ?
+        FrameReturnMode::StoreNegatedBoolean : FrameReturnMode::StoreBoolean;
     return XlangVMOpFlow::SwitchFrame;
   }
   value_set_bool(regs[in.dst], value_truthy(regs[in.dst]) != (in.c != 0));

@@ -95,17 +95,22 @@ std::vector<void*>& loaded_library_handles() {
 
 std::vector<std::filesystem::path> native_library_candidates(const std::filesystem::path& root, const std::string& name) {
   std::vector<std::filesystem::path> out;
+  const auto requested = std::filesystem::u8path(name);
+  const auto directory = root / requested.parent_path();
+  const auto stem = requested.filename().string();
 #if defined(_WIN32)
-  out.push_back(root / (name + ".x3pkg.dll"));
-  out.push_back(root / (name + ".dll"));
+  out.push_back(directory / (stem + ".x3pkg.dll"));
+  out.push_back(directory / (stem + ".dll"));
 #elif defined(__APPLE__)
-  out.push_back(root / ("lib" + name + ".x3pkg.dylib"));
-  out.push_back(root / (name + ".x3pkg.dylib"));
-  out.push_back(root / ("lib" + name + ".dylib"));
+  out.push_back(directory / ("lib" + stem + ".x3pkg.dylib"));
+  out.push_back(directory / (stem + ".x3pkg.dylib"));
+  out.push_back(directory / ("lib" + stem + ".dylib"));
+  out.push_back(directory / (stem + ".dylib"));
 #else
-  out.push_back(root / ("lib" + name + ".x3pkg.so"));
-  out.push_back(root / (name + ".x3pkg.so"));
-  out.push_back(root / ("lib" + name + ".so"));
+  out.push_back(directory / ("lib" + stem + ".x3pkg.so"));
+  out.push_back(directory / (stem + ".x3pkg.so"));
+  out.push_back(directory / ("lib" + stem + ".so"));
+  out.push_back(directory / (stem + ".so"));
 #endif
   return out;
 }
@@ -135,7 +140,7 @@ std::vector<std::string> native_package_name_candidates(const std::string& name)
   if (name == "_sqlite3") {
     out.push_back("xlang_sqlite3");
   }
-  if (name.rfind("xlang_", 0) != 0) {
+  if (!std::filesystem::u8path(name).has_parent_path() && name.rfind("xlang_", 0) != 0) {
     out.push_back("xlang_" + name);
   }
   return out;

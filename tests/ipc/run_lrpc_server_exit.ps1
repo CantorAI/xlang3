@@ -6,6 +6,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$processOptions = @{}
+if ($env:OS -eq 'Windows_NT') { $processOptions.WindowStyle = 'Hidden' }
 
 if (-not $XLang3) {
     throw "XLang3 executable path is required"
@@ -32,7 +34,7 @@ try {
         -ArgumentList @($serverSource, [string]$Port) `
         -RedirectStandardOutput $serverOut `
         -RedirectStandardError $serverErr `
-        -WindowStyle Hidden `
+        @processOptions `
         -PassThru
 
     $ready = "lrpc-ready:$Port"
@@ -66,7 +68,7 @@ try {
         -ArgumentList @($clientSource, [string]$Port) `
         -RedirectStandardOutput $clientOut `
         -RedirectStandardError $clientErr `
-        -WindowStyle Hidden `
+        @processOptions `
         -PassThru
     if (-not $client.WaitForExit(10000)) {
         Stop-Process -Id $client.Id -Force

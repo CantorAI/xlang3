@@ -63,7 +63,7 @@ with open("xlang3_file_io_newline.tmp", "rb") as f:
 
 # newline="" preserves raw newline bytes in text reads.
 with open("xlang3_file_io_newline.tmp", "r", newline="") as f:
-    print(f.read())
+    print(repr(f.read()))
 
 # default text reads use universal newline translation.
 with open("xlang3_file_io_newline.tmp", "r") as f:

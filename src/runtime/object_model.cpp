@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/object_model.h"
+#include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/builtin_methods.h"
 #include "xlang3/exceptions.h"
@@ -46,6 +47,7 @@ T* allocate_object_model(ObjectKind kind) {
 
 struct InstanceFreeList {
   ~InstanceFreeList() {
+    memory::object_caches_alive = false;
     for (auto* instance : items) {
       delete instance;
     }
@@ -57,7 +59,7 @@ struct InstanceFreeList {
 thread_local InstanceFreeList instance_free_list;
 
 InstanceObject* allocate_instance_object() {
-  if (!instance_free_list.items.empty()) {
+  if (memory::object_caches_alive && !instance_free_list.items.empty()) {
     auto* obj = instance_free_list.items.back();
     instance_free_list.items.pop_back();
     obj->header.kind = ObjectKind::Instance;
@@ -129,7 +131,7 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->overflow_slots.clear();
   instance->attrs.clear();
   instance->slot_count = 0;
-  if (instance_free_list.items.size() < 1024) {
+  if (memory::object_caches_alive && instance_free_list.items.size() < 1024) {
     instance_free_list.items.push_back(instance);
     return;
   }
@@ -1334,6 +1336,9 @@ Value Value::class_object(
       collect_slot_names_from_value(attr.second, obj->instance_slot_names, obj->allow_instance_dict, obj->allow_weakref);
     }
     update_special_attr_flags(*obj, attr.first);
+    if (obj->attrs.find(attr.first) == obj->attrs.end()) {
+      obj->definition_attr_order.push_back(attr.first);
+    }
     obj->attrs[std::move(attr.first)] = std::move(attr.second);
   }
   if (obj->attrs.find("__qualname__") == obj->attrs.end()) {
@@ -2997,6 +3002,9 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
         return false;
       }
     }
+    if (klass->attrs.find(name) == klass->attrs.end()) {
+      klass->definition_attr_order.push_back(name);
+    }
     klass->attrs[name] = value;
     if (object_value_is_descriptor(value)) {
       klass->has_descriptors = true;
@@ -3100,6 +3108,8 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
       return false;
     }
     klass->attrs.erase(it);
+    auto& order = klass->definition_attr_order;
+    order.erase(std::remove(order.begin(), order.end(), name), order.end());
     ++klass->version;
     return true;
   }

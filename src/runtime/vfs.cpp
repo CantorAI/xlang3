@@ -32,6 +32,16 @@ namespace {
 #if !defined(XLANG3_EMBEDDED)
 class OsFileSystem final : public FileSystem {
 public:
+  bool read_link(const std::string& path, std::string& out, std::string& error) override {
+    std::error_code ec;
+    const auto target = std::filesystem::read_symlink(path, ec);
+    if (ec) {
+      error = "cannot read symbolic link " + path + ": " + ec.message();
+      return false;
+    }
+    out = target.string();
+    return true;
+  }
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) override {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -242,6 +252,11 @@ bool Vfs::resolve(const std::string& path, ResolvedPath& out, std::string& error
 bool Vfs::read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->read_file(resolved.path, out, error);
+}
+
+bool Vfs::read_link(const std::string& path, std::string& out, std::string& error) {
+  ResolvedPath resolved;
+  return resolve(path, resolved, error) && resolved.fs->read_link(resolved.path, out, error);
 }
 
 bool Vfs::write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error) {

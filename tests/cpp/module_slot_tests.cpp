@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "xlang3/module_object.h"
 
 #include <algorithm>
 
@@ -72,6 +73,40 @@ int main() {
   result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
   result.ok = result.ok && run.ok;
   xlang3::test::expect_true(result, output == "15\n", "module slot program should run correctly");
+
+  auto membership = xlang3::test::run_source(
+      "class Container:\n"
+      "    def __contains__(self, key):\n"
+      "        return [key] if key == 7 else []\n"
+      "c = Container()\n"
+      "print(7 in c, 7 not in c, 8 in c, 8 not in c)\n", output);
+  result.errors.insert(result.errors.end(), membership.errors.begin(), membership.errors.end());
+  result.ok = result.ok && membership.ok;
+  xlang3::test::expect_true(result, output == "True False False True\n",
+      "Python __contains__ results must be coerced and negated after returning");
+
+  auto module = xlang3::Value::module("conditional");
+  std::string error;
+  xlang3::Value value;
+  uint32_t slot = 0;
+  xlang3::module_set_attr(module, "optional", xlang3::Value(), error);
+  xlang3::test::expect_true(result, !xlang3::module_get_attr(module, "optional", value, error),
+      "uninitialized module slots must not be visible as attributes");
+  xlang3::test::expect_true(result, !xlang3::module_find_attr_slot(module, "optional", slot, error),
+      "uninitialized module slots must not enter attribute caches");
+  xlang3::module_set_attr(module, "present", xlang3::Value::int64(42), error);
+  std::ostringstream captured;
+  xlang3::Runtime runtime(captured);
+  runtime.register_module("conditional", module);
+  auto target = xlang3::Value::module("target");
+  xlang3::test::expect_true(result, runtime.import_star("conditional", target, error),
+      "star imports must skip uninitialized module slots");
+  xlang3::test::expect_true(result, !xlang3::module_get_attr(target, "optional", value, error) &&
+      xlang3::module_get_attr(target, "present", value, error) && value.as.i64 == 42,
+      "star imports must preserve only initialized attributes");
+  xlang3::module_set_attr(module, "optional", xlang3::Value::none(), error);
+  xlang3::test::expect_true(result, xlang3::module_get_attr(module, "optional", value, error) &&
+      value.tag == xlang3::ValueTag::None, "an initialized None attribute must remain visible");
 
   return xlang3::test::finish(result);
 }

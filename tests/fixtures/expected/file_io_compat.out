@@ -25,9 +25,7 @@ b'one'
 b'xy'
 3
 b'a\r\nb'
-a
-
-b
+'a\r\nb'
 ['a\n', 'b']
 2
 b'\xe9?'

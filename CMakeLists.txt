@@ -170,6 +170,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/weakref_module.cpp
   src/runtime/modules/system/warnings_module.cpp
   src/runtime/modules/system/winapi_module.cpp
+  src/runtime/modules/system/posix_process_module.cpp
   src/runtime/modules/system/winreg_module.cpp
   src/runtime/modules/system/zlib_module.cpp
   src/runtime/modules/system/zip_archive.cpp
@@ -220,8 +221,13 @@ add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
 add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
+target_compile_definitions(xlang3_system_runtime PRIVATE
+  XLANG3_MULTIARCH="${CMAKE_LIBRARY_ARCHITECTURE}")
 
 find_package(Threads REQUIRED)
+
+set_target_properties(xlang3_thread_runtime xlang3_task_runtime
+  xlang3_system_runtime zlibstatic PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
@@ -279,6 +285,11 @@ if(WIN32)
 endif()
 
 enable_testing()
+find_program(XLANG3_POWERSHELL NAMES powershell pwsh REQUIRED)
+add_test(NAME xlang3_import_errors
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/import_errors.py)
+add_test(NAME xlang3_bytes_split
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/bytes_split.py)
 option(XLANG3_BUILD_CPYTHON_BRIDGE "Build the optional CPython 3.14 extension" OFF)
 if(XLANG3_BUILD_CPYTHON_BRIDGE)
   add_subdirectory(cpython_bridge)
@@ -303,6 +314,10 @@ endfunction()
 add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
 add_xlang3_cpp_test(xlang3_abi_ownership tests/cpp/abi_ownership_tests.cpp)
 add_executable(xlang3_embedded_package_tests tests/cpp/embedded_package_tests.cpp)
+add_executable(xlang3_static_runtime_shutdown tests/cpp/static_runtime_shutdown.cpp)
+target_link_libraries(xlang3_static_runtime_shutdown PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_static_runtime_shutdown PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_static_runtime_shutdown COMMAND xlang3_static_runtime_shutdown)
 target_link_libraries(xlang3_embedded_package_tests PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3_embedded_package_tests PRIVATE XLANG3_USE_SHARED)
 add_test(NAME xlang3_embedded_package_tests COMMAND xlang3_embedded_package_tests)
@@ -421,11 +436,33 @@ set_tests_properties(xlang3_expression_decorators PROPERTIES
   WORKING_DIRECTORY "$<TARGET_FILE_DIR:xlang1_compat_sample_package>")
 if(WIN32)
   add_test(NAME xlang3_expression_decorators_ipc
-    COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+    COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
       -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
       -XLang3 $<TARGET_FILE:xlang3>
       -NativeModules $<TARGET_FILE_DIR:xlang1_compat_sample_package>
       -ClientScript expression_client.py -Expected expression_expected.out)
+else()
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(NAME xlang3_os_readlink
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/test_readlink.py
+      $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_posix_subprocess
+    COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/posix_subprocess.py)
+  set_tests_properties(xlang3_posix_subprocess PROPERTIES TIMEOUT 60)
+  foreach(ipc_case IN ITEMS client pressure_client expression_client)
+    if(ipc_case STREQUAL "client")
+      set(ipc_expected "expected.out")
+    elseif(ipc_case STREQUAL "pressure_client")
+      set(ipc_expected "pressure_expected.out")
+    else()
+      set(ipc_expected "expression_expected.out")
+    endif()
+    add_test(NAME xlang3_ipc_${ipc_case}
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.py
+        $<TARGET_FILE:xlang3> --client ${ipc_case}.py --expected ${ipc_expected}
+        --native-modules $<TARGET_FILE_DIR:xlang1_compat_sample_package>)
+    set_tests_properties(xlang3_ipc_${ipc_case} PROPERTIES TIMEOUT 180)
+  endforeach()
 endif()
 add_test(
   NAME xlang3_xlang1_compat_package_tests
@@ -448,7 +485,7 @@ add_test(
 
 add_test(
   NAME xlang3_cli_real_native_imports
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
@@ -460,7 +497,7 @@ add_test(
 
 add_test(
   NAME xlang3_xlang1_compat_import
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_xlang1_compat_import.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
@@ -472,7 +509,7 @@ add_test(
 
 add_test(
   NAME xlang3_cli_net_module_server_client
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -NativeModules $<TARGET_FILE_DIR:xlang_net_native_package>
@@ -480,7 +517,7 @@ add_test(
 
 add_test(
   NAME xlang3_cli_sqlite_module_imports
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/run_sqlite_tests.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -NativeModules $<TARGET_FILE_DIR:xlang_sqlite3_native_package>
@@ -488,14 +525,14 @@ add_test(
 
 add_test(
   NAME xlang3_cli_fixtures
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
 
 add_test(
   NAME xlang3_cli_compat
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/cli_compat
@@ -503,7 +540,7 @@ add_test(
 
 add_test(
   NAME xlang3_cli_pickle_interop
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop
@@ -511,7 +548,7 @@ add_test(
 
 add_test(
   NAME xlang3_ipc_lrpc_smoke
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -NativeClient $<TARGET_FILE:xlang3_cpp_ipc_client>
@@ -519,14 +556,14 @@ add_test(
 
 add_test(
   NAME xlang3_ipc_lrpc_server_exit
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
 
 add_test(
   NAME xlang3_ipc_lrpc_backpressure
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
           -XLang3 $<TARGET_FILE:xlang3>
           -ClientScript pressure_client.py
@@ -535,7 +572,7 @@ add_test(
 set_tests_properties(xlang3_ipc_lrpc_backpressure PROPERTIES TIMEOUT 120)
 add_test(
   NAME xlang3_ipc_lrpc_backpressure_server_exit
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )
@@ -543,7 +580,7 @@ set_tests_properties(xlang3_ipc_lrpc_backpressure_server_exit PROPERTIES TIMEOUT
 
 add_test(
   NAME xlang3_cli_dap_stdio_smoke
-  COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
           -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.ps1
           -XLang3 $<TARGET_FILE:xlang3>
 )

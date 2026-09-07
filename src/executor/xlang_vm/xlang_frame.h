@@ -133,6 +133,8 @@ struct XlangVMInstrCache : XlangVMInstrCacheCore {
 enum class FrameReturnMode : uint8_t {
   StoreReturnValue,
   StoreConstructedInstance,
+  StoreBoolean,
+  StoreNegatedBoolean,
 };
 
 enum class ExceptionHandlerKind : uint8_t {

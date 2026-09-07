@@ -10,6 +10,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$processOptions = @{}
+if ($env:OS -eq 'Windows_NT') { $processOptions.WindowStyle = 'Hidden' }
 
 if (-not $XLang3) {
     throw "XLang3 executable path is required"
@@ -40,7 +42,7 @@ try {
         -ArgumentList $serverArguments `
         -RedirectStandardOutput $serverOut `
         -RedirectStandardError $serverErr `
-        -WindowStyle Hidden `
+        @processOptions `
         -PassThru
 
     $null = $server.Handle
@@ -89,7 +91,7 @@ try {
                 -ArgumentList @($clientSource, [string]$Port) `
                 -RedirectStandardOutput $clientOut `
                 -RedirectStandardError $clientErr `
-                -WindowStyle Hidden `
+                @processOptions `
                 -PassThru
         }
         $null = $parallelClients[-1].Process.Handle

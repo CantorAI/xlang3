@@ -157,7 +157,8 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     return true;
   }
   auto it = module->name_to_slot.find(name);
-  if (it == module->name_to_slot.end() || it->second >= module->slots.size()) {
+  if (it == module->name_to_slot.end() || it->second >= module->slots.size() ||
+      module->slots[it->second].tag == ValueTag::Invalid) {
     error = "module '" + module->name + "' has no attribute '" + name + "'";
     if (missing_lookup_diagnostics_enabled() && !is_expected_import_probe_attr(name)) {
       std::cerr << "XLANG3_MISSING_ATTR kind=\"module\" object=\"" << module->name
@@ -225,7 +226,8 @@ bool module_find_attr_slot(const Value& object, const std::string& name, uint32_
     return false;
   }
   auto it = module->name_to_slot.find(name);
-  if (it == module->name_to_slot.end() || it->second >= module->slots.size()) {
+  if (it == module->name_to_slot.end() || it->second >= module->slots.size() ||
+      module->slots[it->second].tag == ValueTag::Invalid) {
     error = "module '" + module->name + "' has no attribute '" + name + "'";
     return false;
   }

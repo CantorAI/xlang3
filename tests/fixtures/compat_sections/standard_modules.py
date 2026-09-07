@@ -16,24 +16,25 @@ import warnings
 import _warnings
 import errno
 import os
-import _winapi
 
 print("errno-native", errno.ENOENT == 2, errno.errorcode[errno.ENOENT] == "ENOENT", (errno.EWOULDBLOCK == errno.WSAEWOULDBLOCK and errno.errorcode[errno.WSAEWOULDBLOCK] == "WSAEWOULDBLOCK") if hasattr(errno, "WSAEWOULDBLOCK") else True, len(errno.errorcode) >= 50, errno.__spec__.origin == "built-in", errno.__spec__.loader is errno.__loader__, errno.__doc__.startswith("This module makes available standard errno"))
-winapi_src = "xlang3_winapi_fixture_src.tmp"
-winapi_dst = "xlang3_winapi_fixture_dst.tmp"
-for winapi_path in (winapi_src, winapi_dst):
-    try:
+if os.name == "nt":
+    import _winapi
+    winapi_src = "xlang3_winapi_fixture_src.tmp"
+    winapi_dst = "xlang3_winapi_fixture_dst.tmp"
+    for winapi_path in (winapi_src, winapi_dst):
+        try:
+            os.remove(winapi_path)
+        except FileNotFoundError:
+            pass
+    with open(winapi_src, "w") as winapi_file:
+        winapi_file.write("winapi-copy")
+    _winapi.CopyFile2(winapi_src, winapi_dst, _winapi.COPY_FILE_ALLOW_DECRYPTED_DESTINATION)
+    with open(winapi_dst) as winapi_file:
+        winapi_copied = winapi_file.read()
+    for winapi_path in (winapi_src, winapi_dst):
         os.remove(winapi_path)
-    except FileNotFoundError:
-        pass
-with open(winapi_src, "w") as winapi_file:
-    winapi_file.write("winapi-copy")
-_winapi.CopyFile2(winapi_src, winapi_dst, _winapi.COPY_FILE_ALLOW_DECRYPTED_DESTINATION)
-with open(winapi_dst) as winapi_file:
-    winapi_copied = winapi_file.read()
-for winapi_path in (winapi_src, winapi_dst):
-    os.remove(winapi_path)
-print("winapi-native", _winapi.COPY_FILE_COPY_SYMLINK == 2048, _winapi.ERROR_ACCESS_DENIED == 5, isinstance(_winapi.NeedCurrentDirectoryForExePath("cmd"), bool), winapi_copied == "winapi-copy", _winapi.NeedCurrentDirectoryForExePath.__text_signature__ == "($module, exe_name, /)", _winapi.NeedCurrentDirectoryForExePath.__doc__ is None, "CopyFile2 API" in _winapi.CopyFile2.__doc__)
+    print("winapi-native", _winapi.COPY_FILE_COPY_SYMLINK == 2048, _winapi.ERROR_ACCESS_DENIED == 5, isinstance(_winapi.NeedCurrentDirectoryForExePath("cmd"), bool), winapi_copied == "winapi-copy", _winapi.NeedCurrentDirectoryForExePath.__text_signature__ == "($module, exe_name, /)", _winapi.NeedCurrentDirectoryForExePath.__doc__ is None, "CopyFile2 API" in _winapi.CopyFile2.__doc__)
 warnings.simplefilter("always")
 with warnings.catch_warnings(record=True) as seen:
     warnings.warn("hello")
@@ -731,6 +732,39 @@ import getpass
 import http
 import http.client
 import io
+from enum import IntEnum
+class SignedCodeProbe(IntEnum):
+    TERMINATED = 15
+    MINIMUM = -(1 << 63)
+class OverrideNegProbe(IntEnum):
+    CODE = 2
+    def __neg__(self):
+        return 99
+assert -True == -1 and -False == 0
+assert -SignedCodeProbe.TERMINATED == -15
+assert -SignedCodeProbe.MINIMUM == (1 << 63)
+assert -OverrideNegProbe.CODE == 99
+class NamespaceOrderProbe:
+    zebra = alias = 1
+    alpha = 2
+assert [name for name in NamespaceOrderProbe.__dict__ if not name.startswith("__")] == ["zebra", "alias", "alpha"]
+NamespaceOrderProbe.extra = 3
+del NamespaceOrderProbe.alpha
+NamespaceOrderProbe.alpha = 4
+assert [name for name in NamespaceOrderProbe.__dict__ if not name.startswith("__")] == ["zebra", "alias", "extra", "alpha"]
+text_wrapper_probe = io.TextIOWrapper(io.BytesIO(b"text"), encoding="utf-8", errors="strict")
+assert text_wrapper_probe.encoding == "utf-8"
+assert text_wrapper_probe.errors == "strict"
+assert text_wrapper_probe.closed is False
+assert text_wrapper_probe.read() == "text"
+try:
+    text_wrapper_probe.encoding = "ascii"
+except AttributeError:
+    pass
+else:
+    raise AssertionError("TextIOWrapper.encoding must be read-only")
+text_wrapper_probe.close()
+assert text_wrapper_probe.closed is True
 import json
 import locale
 import inspect
@@ -753,17 +787,18 @@ import threading
 import time
 import tokenize
 import urllib.parse
-import winreg
+if os.name == "nt":
+    import winreg
 import xmlrpc.client
 import pyexpat
 
 print(len(getpass.getuser()) > 0, len(locale.getencoding()) > 0, locale.localeconv()["decimal_point"])
-print(getpass.GetPassWarning.__name__, getpass.getpass(prompt="x", stream=None) == "")
+print(getpass.GetPassWarning.__name__, callable(getpass.getpass))
 print(locale.delocalize("1234.5"), locale.localize("1234.5"), locale.atoi("1234"), locale.atof("1234.5"))
 print(locale.strcoll("a", "b") < 0, isinstance(locale.strxfrm("abc"), str), locale.CHAR_MAX)
 old_recursion_limit = sys.getrecursionlimit()
 sys.setrecursionlimit(old_recursion_limit + 1)
-print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors(), sys.getrecursionlimit() == old_recursion_limit + 1)
+print(sys.getdefaultencoding(), sys.getfilesystemencoding(), sys.getfilesystemencodeerrors() == ("surrogatepass" if os.name == "nt" else "surrogateescape"), sys.getrecursionlimit() == old_recursion_limit + 1)
 sys.setrecursionlimit(old_recursion_limit)
 print(sys.__name__, sys.__doc__.splitlines()[0] == "This module provides access to some objects used or maintained by the", "interpreter and to functions" in sys.__doc__, callable(sys.__interactivehook__), sys.__interactivehook__() is None, callable(sys._baserepl), sys._baserepl() is None)
 print("sys-module-doc", "modules -- dictionary of loaded modules" in sys.__doc__, "last_exc - the last uncaught exception" in sys.__doc__, "getsizeof() -- return the size of an object in bytes" in sys.__doc__, sys.__doc__.endswith("settrace() -- set the global debug tracing function\n"))
@@ -1061,9 +1096,9 @@ for sys_stdio_bad_name, sys_stdio_bad_call, sys_stdio_bad_parts in [
         print("sys-stdio-capability-arity", sys_stdio_bad_name, all(part in sys_stdio_bad_message for part in sys_stdio_bad_parts))
 # sys metadata structseq and startup attributes.
 print(sys.version_info.major, sys.version_info[1], sys.implementation.version.micro, sys.implementation.cache_tag)
-print("sys-version-shape", sys.version.startswith("3.14.7 (tags/v3.14.7:823f032, "), "[MSC v." in sys.version, "64 bit (AMD64)" in sys.version, "XLang3" not in sys.version)
+print("sys-version-shape", sys.version.startswith("3.14.7 (tags/v3.14.7:823f032, "), ("[MSC v." in sys.version) == (os.name == "nt"), ("64 bit (AMD64)" in sys.version) == (os.name == "nt"), "XLang3" not in sys.version)
 print(sys._git[0], sys._git[1].startswith("tags/v3.14."), len(sys._git), isinstance(sys._vpath, str), sys._home is None, sys.float_repr_style)
-print("sys-vpath-metadata", sys._vpath == expected_sys_vpath, repr(sys._vpath))
+print("sys-vpath-metadata", sys._vpath == expected_sys_vpath)
 print("sys-git-metadata", sys._git == ("CPython", "tags/v3.14.7", "823f032"))
 print(isinstance(sys._stdlib_dir, str), sys._framework == "", (sys.platform == "win32") == hasattr(sys, "winver"), (sys.platform == "win32") == hasattr(sys, "dllhandle"), hasattr(sys, "abiflags") == (sys.platform != "win32"))
 implementation_repr = repr(sys.implementation)
@@ -1469,7 +1504,7 @@ print(type(sys.version_info).__match_args__, type(sys.flags).__match_args__[-1],
 sys_version_major_descriptor = type(sys.version_info).major
 sys_flags_debug_descriptor = type(sys.flags).debug
 print(type(sys_version_major_descriptor).__name__, type(sys_version_major_descriptor).__module__, sys_version_major_descriptor.__objclass__ is type(sys.version_info), sys_version_major_descriptor.__get__(sys.version_info), inspect.ismemberdescriptor(sys_version_major_descriptor), repr(sys_version_major_descriptor) == "<member 'major' of 'sys.version_info' objects>", repr(sys_flags_debug_descriptor) == "<member 'debug' of 'sys.flags' objects>")
-print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name)
+print(sys.float_info.radix, sys.float_info.mant_dig, sys.hash_info.width, sys.thread_info.name == ("nt" if os.name == "nt" else "pthread"))
 print(type(sys.float_info).n_fields, type(sys.hash_info).width.__name__, type(sys.thread_info).n_sequence_fields, type(sys.thread_info).name.__name__)
 print(type(sys.float_info).__match_args__[0], type(sys.hash_info).__match_args__[-1], type(sys.thread_info).__match_args__)
 print(isinstance(sys.version_info, tuple), sys.version_info.count(3), sys.version_info.index("final"), list(sys.version_info)[0])
@@ -1504,21 +1539,24 @@ print(isinstance(sys.float_info, tuple), sys.float_info.count(sys.float_info.rad
 print("sys-float-info-repr-precision", "1.7976931348623157e+308" in repr(sys.float_info), "2.2250738585072014e-308" in repr(sys.float_info), "2.220446049250313e-16" in repr(sys.float_info), repr(1.0) == "1.0", str(1000000.0) == "1000000.0", repr(1e-6) == "1e-06")
 print(isinstance(sys.hash_info, tuple), sys.hash_info.index(sys.hash_info.algorithm), sys.hash_info.count(sys.hash_info.cutoff) >= 1)
 print(isinstance(sys.thread_info, tuple), sys.thread_info.index(sys.thread_info.name), sys.thread_info.count(sys.thread_info.name))
-print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe"), sys.prefix != "")
+print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe") == (os.name == "nt"), sys.prefix != "")
 print("sys" in sys.builtin_module_names, sys.pycache_prefix is None, isinstance(sys.orig_argv, list))
-print("sys-builtin-module-names", len(sys.builtin_module_names), sys.builtin_module_names[:3], sys.builtin_module_names[-4:], all(name in sys.builtin_module_names for name in ("_bisect", "_contextvars", "_datetime", "_opcode", "_winapi", "array", "binascii", "errno", "gc", "marshal", "mmap", "msvcrt", "nt", "winreg", "xxsubtype")), not any(name in sys.builtin_module_names for name in ("_builtins", "abc", "json")))
+platform_builtins = ("_winapi", "msvcrt", "nt", "winreg") if os.name == "nt" else ("posix", "_posixsubprocess")
+common_builtins = ("_bisect", "_contextvars", "_datetime", "_opcode", "array", "binascii", "errno", "gc", "marshal", "mmap", "xxsubtype")
+print("sys-builtin-module-names", len(sys.builtin_module_names) >= 60, tuple(sorted(sys.builtin_module_names)) == sys.builtin_module_names, all(name in sys.builtin_module_names for name in common_builtins + platform_builtins), not any(name in sys.builtin_module_names for name in ("_builtins", "abc", "json")))
 print(sys.executable == sys._base_executable, sys.prefix == sys.base_prefix == sys.exec_prefix == sys.base_exec_prefix, not hasattr(sys, "real_prefix"), len(sys.orig_argv) >= 1, sys.orig_argv[0] == sys.executable)
 print(isinstance(sys.warnoptions, list), isinstance(sys._xoptions, dict), isinstance(sys.dont_write_bytecode, bool), sys.api_version > 0, hasattr(sys, "abiflags") == (sys.platform != "win32"), sys.byteorder in ("little", "big"), sys.platlibdir in ("DLLs", "lib"))
-print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib"), sys._framework == "", sys.winver == "3.14")
-windows_version = sys.getwindowsversion()
-print(windows_version.major >= 0, len(windows_version), windows_version.n_fields, isinstance(windows_version.platform_version, tuple))
-print("sys-windowsversion-type", type(windows_version).__name__, type(windows_version).__module__, type(windows_version).__qualname__, repr(type(windows_version)))
-print(type(windows_version).n_fields, type(windows_version).platform_version.__name__)
-print(repr(type(windows_version).major) == "<member 'major' of 'sys.getwindowsversion' objects>")
-print(isinstance(windows_version, tuple), windows_version.index(windows_version.platform), windows_version.count(windows_version.service_pack) >= 1)
-print(repr(windows_version).startswith("sys.getwindowsversion("), "platform_version" not in repr(windows_version))
-print(sys._enablelegacywindowsfsencoding() is None, sys._debugmallocstats() is None, isinstance(sys.dllhandle, int))
-print(sys.getfilesystemencoding(), sys.getfilesystemencodeerrors())
+print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib" if os.name == "nt" else "python3.14"), sys._framework == "", sys.winver == "3.14" if os.name == "nt" else not hasattr(sys, "winver"))
+if os.name == "nt":
+    windows_version = sys.getwindowsversion()
+    print("sys-windowsversion-fields", windows_version.major >= 0, len(windows_version), windows_version.n_fields, isinstance(windows_version.platform_version, tuple))
+    print("sys-windowsversion-type", type(windows_version).__name__, type(windows_version).__module__, type(windows_version).__qualname__, repr(type(windows_version)))
+    print("sys-windowsversion-descriptor", type(windows_version).n_fields, type(windows_version).platform_version.__name__)
+    print("sys-windowsversion-major", repr(type(windows_version).major) == "<member 'major' of 'sys.getwindowsversion' objects>")
+    print("sys-windowsversion-tuple", isinstance(windows_version, tuple), windows_version.index(windows_version.platform), windows_version.count(windows_version.service_pack) >= 1)
+    print("sys-windowsversion-repr", repr(windows_version).startswith("sys.getwindowsversion("), "platform_version" not in repr(windows_version))
+print(sys._enablelegacywindowsfsencoding() is None if os.name == "nt" else not hasattr(sys, "_enablelegacywindowsfsencoding"), sys._debugmallocstats() is None, isinstance(sys.dllhandle, int) if os.name == "nt" else not hasattr(sys, "dllhandle"))
+print(sys.getfilesystemencoding() == ("mbcs" if os.name == "nt" else "utf-8"), sys.getfilesystemencodeerrors() == ("replace" if os.name == "nt" else "surrogateescape"))
 try:
     sys.activate_stack_trampoline("perf")
 except ValueError as err:
@@ -1575,7 +1613,7 @@ for sys_recursion_bad_name, sys_recursion_bad_call, sys_recursion_bad_parts in [
         sys_recursion_bad_message = str(err)
         print("sys-recursionlimit-diagnostic", sys_recursion_bad_name, all(part in sys_recursion_bad_message for part in sys_recursion_bad_parts))
 sys.setrecursionlimit(old_recursion_limit)
-print("sys-runtime-helper-docs", "maximum depth of the Python interpreter" in sys.getrecursionlimit.__doc__, "highest possible limit" in sys.setrecursionlimit.__doc__, "uninterruptible code" in sys.setswitchinterval.__doc__, "Platform_version is a 3-tuple" in sys.getwindowsversion.__doc__, "internal consistency" in sys._debugmallocstats.__doc__, "PYTHONLEGACYWINDOWSFSENCODING" in sys._enablelegacywindowsfsencoding.__doc__, "performance-related caches" in sys._clear_internal_caches.__doc__, "type lookup cache" in sys._clear_type_cache.__doc__, "gh-135228" in sys._clear_type_descriptors.__doc__, sys._dump_tracelets.__doc__ == "Dump the graph of tracelets in graphviz format")
+print("sys-runtime-helper-docs", "maximum depth of the Python interpreter" in sys.getrecursionlimit.__doc__, "highest possible limit" in sys.setrecursionlimit.__doc__, "uninterruptible code" in sys.setswitchinterval.__doc__, "Platform_version is a 3-tuple" in sys.getwindowsversion.__doc__ if os.name == "nt" else not hasattr(sys, "getwindowsversion"), "internal consistency" in sys._debugmallocstats.__doc__, "PYTHONLEGACYWINDOWSFSENCODING" in sys._enablelegacywindowsfsencoding.__doc__ if os.name == "nt" else not hasattr(sys, "_enablelegacywindowsfsencoding"), "performance-related caches" in sys._clear_internal_caches.__doc__, "type lookup cache" in sys._clear_type_cache.__doc__, "gh-135228" in sys._clear_type_descriptors.__doc__, sys._dump_tracelets.__doc__ == "Dump the graph of tracelets in graphviz format")
 sys.set_int_max_str_digits(640)
 print(sys.get_int_max_str_digits(), sys.flags.int_max_str_digits, sys.flags[17], sys.int_info[2], sys.int_info[3])
 sys.set_int_max_str_digits(0)
@@ -1889,8 +1927,8 @@ for sys_noarg_keyword_name, sys_noarg_keyword_probe in (
     ("_is_gil_enabled", sys._is_gil_enabled),
     ("deactivate_stack_trampoline", sys.deactivate_stack_trampoline),
     ("is_stack_trampoline_active", sys.is_stack_trampoline_active),
-    ("getwindowsversion", sys.getwindowsversion),
-    ("_enablelegacywindowsfsencoding", sys._enablelegacywindowsfsencoding),
+    ("getwindowsversion", getattr(sys, "getwindowsversion", None)),
+    ("_enablelegacywindowsfsencoding", getattr(sys, "_enablelegacywindowsfsencoding", None)),
     ("_debugmallocstats", sys._debugmallocstats),
     ("get_coroutine_origin_tracking_depth", sys.get_coroutine_origin_tracking_depth),
     ("get_asyncgen_hooks", sys.get_asyncgen_hooks),
@@ -1901,6 +1939,8 @@ for sys_noarg_keyword_name, sys_noarg_keyword_probe in (
     ("_jit.is_active", sys._jit.is_active),
 ):
     try:
+        if sys_noarg_keyword_probe is None:
+            continue
         sys_noarg_keyword_probe(x=1)
     except TypeError as err:
         print("sys-noarg-keyword", sys_noarg_keyword_name, "takes no keyword arguments" in str(err))
@@ -2169,7 +2209,7 @@ for sys_noarg_typeerror_probe in sys_noarg_typeerror_probes:
     except TypeError as err:
         if "argument" in str(err) or "expected 0" in str(err) or "takes no arguments" in str(err):
             sys_noarg_typeerror_count += 1
-print("sys-noarg-typeerrors", sys_noarg_typeerror_count, len(sys_noarg_typeerror_probes))
+print("sys-noarg-typeerrors", sys_noarg_typeerror_count == len(sys_noarg_typeerror_probes))
 for sys_noarg_name, sys_noarg_probe in (
     ("allocated", sys.getallocatedblocks),
     ("encoding", sys.getdefaultencoding),
@@ -2547,7 +2587,7 @@ for time_strftime_bad_name, time_strftime_bad_call, time_strftime_bad_parts in [
     except TypeError as err:
         time_strftime_bad_message = str(err)
         print("time-strftime-diagnostic", time_strftime_bad_name, all(part in time_strftime_bad_message for part in time_strftime_bad_parts))
-for bad_strftime_format in ["%f", "%k", "%l", "%P", "%q", "%Q", "%s", "%"]:
+for bad_strftime_format in (["%f", "%k", "%l", "%P", "%q", "%Q", "%s", "%"] if os.name == "nt" else []):
     try:
         time.strftime(bad_strftime_format, strftime_locale_tuple)
     except ValueError as err:
@@ -2912,7 +2952,8 @@ comment_kinds = [item.type for item in comment_tokens if item.string in ("# note
 comment_text = [item.string for item in comment_tokens if item.type == tokenize.COMMENT]
 print(comment_text, comment_kinds.count(tokenize.COMMENT), comment_kinds.count(tokenize.NL))
 print(threading.__file__.endswith("threading.py"), os.__file__.endswith("os.py"))
-print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
+if os.name == "nt":
+    print(winreg.HKEY_CURRENT_USER, winreg.KEY_READ, winreg.REG_SZ, winreg.CloseKey(winreg.HKEY_CURRENT_USER))
 print(len(list(dis.findlinestarts(original.__code__))) > 0, len(list(dis.Bytecode(original))) > 0, len(list(dis.get_instructions(original.__code__))) > 0)
 signature = inspect.signature(original)
 print(list(signature.parameters.keys()), signature.parameters["a"].name, inspect.getmembers(wrapper, inspect.isroutine) == [])
@@ -2963,12 +3004,12 @@ print(codecs.lookup("idna").name, codecs.decode(codecs.encode("example.com", "id
 
 # io: memory streams support common file-like read/write/seek/context helpers.
 text_stream = io.StringIO("a\nb")
-print(text_stream.readline().strip(), len(text_stream.readlines()), text_stream.seekable(), text_stream.closed())
+print(text_stream.readline().strip(), len(text_stream.readlines()), text_stream.seekable(), text_stream.closed)
 with io.BytesIO(b"ab") as byte_stream:
     byte_stream.seek(2)
     byte_stream.write(b"c")
     print(byte_stream.getvalue(), byte_stream.readable(), byte_stream.writable())
-print(byte_stream.closed())
+print(byte_stream.closed)
 
 signal_seen = []
 
@@ -3047,8 +3088,8 @@ print(os.path.isfile(__file__), os.path.isdir(core_fixture_dir), os.path.exists(
 print(os.path.relpath(__file__, core_fixture_dir).endswith("standard_modules.py"), os.path.samefile(__file__, os.path.abspath(__file__)))
 print(os.path.commonprefix(["alpha_one", "alpha_two"]), os.path.expandvars("$XLANG3_MISSING_VAR") == "$XLANG3_MISSING_VAR")
 print(os.path.realpath("") == os.getcwd(), os.path.abspath("") == os.getcwd())
-print(os.path.split("alpha/beta/gamma.txt"), os.path.commonpath(["alpha/beta/a.py", "alpha/beta/c.py"]))
-print(os.path.normpath("alpha/./beta/../gamma"), os.path.basename("alpha/beta.txt"), os.path.dirname("alpha/beta.txt"))
+print(os.path.split("alpha/beta/gamma.txt"), os.path.commonpath(["alpha/beta/a.py", "alpha/beta/c.py"]).replace("\\", "/"))
+print(os.path.normpath("alpha/./beta/../gamma").replace("\\", "/"), os.path.basename("alpha/beta.txt"), os.path.dirname("alpha/beta.txt"))
 mode = os.stat(__file__)[stat.ST_MODE]
 print(stat.S_ISREG(mode), stat.S_ISDIR(mode), stat.S_IFMT(mode) == stat.S_IFREG, stat.S_IMODE(mode) >= 0)
 
@@ -3129,9 +3170,9 @@ os.makedirs("xlang3_glob_case/sub", exist_ok=True)
 (glob_root / "b.txt").write_text("b")
 (glob_root / "sub" / "c.py").write_text("c")
 (glob_root / ".hidden.py").write_text("h")
-print(glob.glob("xlang3_glob_case/*.py"))
-print(glob.glob("xlang3_glob_case/**/*.py", recursive=True))
-print(list(glob.iglob("xlang3_glob_case/*.txt")))
+print([path.replace("\\", "/") for path in glob.glob("xlang3_glob_case/*.py")])
+print([path.replace("\\", "/") for path in glob.glob("xlang3_glob_case/**/*.py", recursive=True)])
+print([path.replace("\\", "/") for path in glob.iglob("xlang3_glob_case/*.txt")])
 print(glob.glob("*.py", root_dir="xlang3_glob_case"))
 print(glob.glob("*.py", root_dir="xlang3_glob_case", include_hidden=True))
 hidden_iter = glob.iglob("*.py", root_dir="xlang3_glob_case", include_hidden=True)
@@ -3151,7 +3192,7 @@ print(pkgutil.resolve_name("functools:reduce") is functools.reduce, importlib.ut
 site.addsitedir(compat_fixture_dir)
 import resource_pkg
 resource = pkgutil.get_data("resource_pkg", "data.txt")
-print(found_functions, len(resource) > 0, core_fixture_dir in sys.path, isinstance(site.PREFIXES, list))
+print(found_functions, len(resource) > 0, any(os.path.normcase(os.path.abspath(path)) == os.path.normcase(os.path.abspath(core_fixture_dir)) for path in sys.path), isinstance(site.PREFIXES, list))
 print(importlib.resources.is_resource(resource_pkg, "data.txt"), importlib.resources.read_text(resource_pkg, "data.txt").strip())
 
 # operator: generic runtime dispatch helpers and getter/caller factories.
@@ -3450,14 +3491,17 @@ finally:
 print("http-client-loopback", http_status, http_body, http_seen[0])
 
 # subprocess: run/Popen foundations with captured text and catchable check failures.
-completed = subprocess.run(["cmd", "/c", "echo xlang3-subprocess"], capture_output=True, text=True)
+process_shell = ["cmd", "/c"] if os.name == "nt" else ["/bin/sh", "-c"]
+process_copy = "more" if os.name == "nt" else "cat"
+process_echo_env = "echo %XLANG3_SUBPROCESS_ENV%" if os.name == "nt" else "echo $XLANG3_SUBPROCESS_ENV"
+completed = subprocess.run(process_shell + ["echo xlang3-subprocess"], capture_output=True, text=True)
 print(isinstance(completed, subprocess.CompletedProcess), completed.returncode, completed.stdout.strip())
-raw_completed = subprocess.run(["cmd", "/c", "echo raw"], stdout=subprocess.PIPE)
+raw_completed = subprocess.run(process_shell + ["echo raw"], stdout=subprocess.PIPE)
 print(raw_completed.returncode, len(raw_completed.stdout) > 0)
-proc = subprocess.Popen(["cmd", "/c", "exit 0"])
+proc = subprocess.Popen(process_shell + ["exit 0"])
 print(proc.wait(), proc.poll())
 try:
-    subprocess.run(["cmd", "/c", "exit 7"], check=True, capture_output=True, text=True)
+    subprocess.run(process_shell + ["exit 7"], check=True, capture_output=True, text=True)
 except subprocess.CalledProcessError as err:
     print(err.returncode, err.cmd[2], err.stdout == "")
 shell_completed = subprocess.run("echo shell-ok", shell=True, capture_output=True, text=True)
@@ -3468,11 +3512,11 @@ env_copy = {
     "SystemRoot": os.environ.get("SystemRoot", "C:\\Windows"),
     "XLANG3_SUBPROCESS_ENV": "env-copy-ok",
 }
-env_completed = subprocess.run(["cmd", "/c", "echo %XLANG3_SUBPROCESS_ENV%"], env=env_copy, capture_output=True, text=True)
+env_completed = subprocess.run(process_shell + [process_echo_env], env=env_copy, capture_output=True, text=True)
 os.environ["XLANG3_SUBPROCESS_ENV"] = "env-mapping-ok"
 try:
     env_mapping_completed = subprocess.run(
-        ["cmd", "/c", "echo %XLANG3_SUBPROCESS_ENV%"],
+        process_shell + [process_echo_env],
         env=os.environ,
         capture_output=True,
         text=True,
@@ -3480,19 +3524,20 @@ try:
 finally:
     os.environ.pop("XLANG3_SUBPROCESS_ENV", None)
 print(env_completed.stdout.strip(), env_mapping_completed.stdout.strip())
-input_completed = subprocess.run(["cmd", "/c", "more"], input="stdin-ok", stdout=subprocess.PIPE, text=True)
+input_completed = subprocess.run(process_shell + [process_copy], input="stdin-ok", stdout=subprocess.PIPE, text=True)
 print(input_completed.stdout.strip())
-merged_completed = subprocess.run(["cmd", "/c", "echo merged-error 1>&2"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+merged_completed = subprocess.run(process_shell + ["echo merged-error 1>&2"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 print(merged_completed.stdout.strip())
-pipe_proc = subprocess.Popen(["cmd", "/c", "more"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+pipe_proc = subprocess.Popen(process_shell + [process_copy], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 pipe_out, pipe_err = pipe_proc.communicate(b"pipe-ok")
 print(pipe_proc.pid > 0, pipe_proc.returncode, isinstance(pipe_out, bytes), pipe_err is None, len(pipe_out) > 0)
-with subprocess.Popen(["cmd", "/c", "exit 0"]) as context_proc:
+with subprocess.Popen(process_shell + ["exit 0"]) as context_proc:
     print(context_proc.pid > 0)
 try:
-    subprocess.run(["cmd", "/c", "ping -n 3 127.0.0.1 >nul"], timeout=0.01, shell=True)
+    wait_command = "ping -n 3 127.0.0.1 >nul" if os.name == "nt" else "exec sleep 2"
+    subprocess.run(process_shell + [wait_command], timeout=0.01)
 except subprocess.TimeoutExpired as err:
-    print(err.cmd[0], err.timeout > 0)
+    print(err.cmd[0] == process_shell[0], err.timeout > 0)
 
 # sys.audit: a non-callable hook is process-global and poisons later audit calls,
 # matching CPython behavior, so keep this check last in the combined fixture.

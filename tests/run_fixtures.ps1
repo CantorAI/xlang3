@@ -121,6 +121,9 @@ foreach ($case in $cases) {
     $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
     $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
     $actual = $actual -replace [regex]::Escape($root), "tests"
+    if ($env:OS -ne 'Windows_NT') {
+        $expected = $expected.Replace('tests\fixtures\core\', 'tests/fixtures/core/')
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "$case failed with exit code $LASTEXITCODE"
     }
@@ -148,6 +151,12 @@ foreach ($case in $sectionCases) {
     $source = Join-Path $root "fixtures/compat_sections/$case.py"
     $expectedPath = Join-Path $root "fixtures/expected/compat_sections/$case.out"
     $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
+    if ($case -eq 'standard_modules' -and $env:OS -ne 'Windows_NT') {
+        # These assertions exercise APIs that exist only on Windows.
+        $expected = ($expected -split "`n" | Where-Object {
+            $_ -notmatch '^(winapi-native |time-clock-info-windows |strftime-invalid |sys-windowsversion-|sys-noarg-keyword (getwindowsversion|_enablelegacywindowsfsencoding) |2147483649 131097 1 None$)'
+        }) -join "`n"
+    }
     $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
     if ($LASTEXITCODE -ne 0) {
         throw "compat section $case failed with exit code $LASTEXITCODE"

@@ -47,6 +47,10 @@ public:
   virtual bool make_dirs(const std::string& path, bool exist_ok, std::string& error) = 0;
   virtual bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) = 0;
   virtual bool stat(const std::string& path, VfsStat& out, std::string& error) = 0;
+  virtual bool read_link(const std::string&, std::string&, std::string& error) {
+    error = "filesystem does not support symbolic links";
+    return false;
+  }
 };
 
 struct ResolvedPath {
@@ -68,6 +72,7 @@ public:
   bool make_dirs(const std::string& path, bool exist_ok, std::string& error);
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error);
   bool stat(const std::string& path, VfsStat& out, std::string& error);
+  bool read_link(const std::string& path, std::string& out, std::string& error);
   const std::string& cwd() const { return current_directory_; }
   bool chdir(const std::string& path, std::string& error);
 

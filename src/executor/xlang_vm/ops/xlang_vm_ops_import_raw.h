@@ -67,8 +67,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow import_module(
     return XlangVMOpFlow::ReturnResult;
   }
   std::string error;
-  if (!runtime.import_module(fn.names[in.a], regs[in.dst], error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  bool module_not_found = false;
+  if (!runtime.import_module(fn.names[in.a], regs[in.dst], error, &module_not_found)) {
+    return raise_runtime_error(error, module_not_found) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }
@@ -107,8 +108,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow import_from(
   }
   const std::string module_name = resolve_relative_import_name(fn.names[in.a], globals_module);
   std::string error;
-  if (!runtime.import_from(module_name, fn.names[in.b], regs[in.dst], error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  bool module_not_found = false;
+  if (!runtime.import_from(module_name, fn.names[in.b], regs[in.dst], error, &module_not_found)) {
+    return raise_runtime_error(error, module_not_found) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }
@@ -127,8 +129,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow import_star(
   }
   std::string error;
   const std::string module_name = resolve_relative_import_name(fn.names[in.dst], globals_module);
-  if (!runtime.import_star(module_name, globals_module, error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  bool module_not_found = false;
+  if (!runtime.import_star(module_name, globals_module, error, &module_not_found)) {
+    return raise_runtime_error(error, module_not_found) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }

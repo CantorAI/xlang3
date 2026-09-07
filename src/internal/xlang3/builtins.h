@@ -64,6 +64,7 @@ void register_ast_module(Runtime& runtime);
 void register_binascii_module(Runtime& runtime);
 void register_io_module(Runtime& runtime);
 void register_os_module(Runtime& runtime);
+void register_posix_process_module(Runtime& runtime);
 void register_stat_module(Runtime& runtime);
 void register_string_module(Runtime& runtime);
 void register_imp_module(Runtime& runtime);

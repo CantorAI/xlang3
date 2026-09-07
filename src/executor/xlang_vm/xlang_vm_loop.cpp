@@ -725,6 +725,9 @@ RuntimeResult Interpreter::run_function(
     Value& target = frames[frame_count - 1].regs[return_dst];
     if (return_mode == FrameReturnMode::StoreConstructedInstance) {
       value_assign_fast(target, finished.continuation_value);
+    } else if (return_mode == FrameReturnMode::StoreBoolean ||
+               return_mode == FrameReturnMode::StoreNegatedBoolean) {
+      value_set_bool(target, value_truthy(return_value) != (return_mode == FrameReturnMode::StoreNegatedBoolean));
     } else {
       value_assign_fast(target, return_value);
     }
@@ -937,8 +940,8 @@ RuntimeResult Interpreter::run_function(
       return raise_exception_value(runtime_.make_exception("NameError", message));
     };
 
-    auto raise_import_error = [&](const std::string& message) -> bool {
-      return raise_exception_value(runtime_.make_exception("ImportError", message));
+    auto raise_import_error = [&](const std::string& message, bool module_not_found = false) -> bool {
+      return raise_exception_value(runtime_.make_exception(module_not_found ? "ModuleNotFoundError" : "ImportError", message));
     };
 
     XlangRuntimeExecutionGuard execution_lock;

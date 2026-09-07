@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/set_object.h"
+#include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/perf_counters.h"
 #include "xlang3/value_hash.h"
@@ -28,7 +29,10 @@ namespace {
 template<class T> struct SetFreeList {
   std::array<T*, 256> items{};
   size_t count = 0;
-  ~SetFreeList() { while (count) delete items[--count]; }
+  ~SetFreeList() {
+    memory::object_caches_alive = false;
+    while (count) delete items[--count];
+  }
   T* Allocate() { return count ? items[--count] : new T(); }
   void Release(T* value) {
     if (count < items.size()) items[count++] = value;
@@ -39,7 +43,7 @@ thread_local SetFreeList<SetObject> set_free_list;
 thread_local SetFreeList<SetIteratorObject> set_iterator_free_list;
 
 SetObject* allocate_set_object() {
-  auto* obj = set_free_list.Allocate();
+  auto* obj = memory::object_caches_alive ? set_free_list.Allocate() : new SetObject();
   obj->header.kind = ObjectKind::Set;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(ObjectKind::Set);
@@ -47,7 +51,7 @@ SetObject* allocate_set_object() {
 }
 
 SetIteratorObject* allocate_set_iterator_object() {
-  auto* obj = set_iterator_free_list.Allocate();
+  auto* obj = memory::object_caches_alive ? set_iterator_free_list.Allocate() : new SetIteratorObject();
   obj->header.kind = ObjectKind::SetIterator;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(ObjectKind::SetIterator);
@@ -57,13 +61,15 @@ SetIteratorObject* allocate_set_iterator_object() {
 void recycle_set_object(SetObject* object) {
   object->items.clear();
   object->frozen = false;
-  set_free_list.Release(object);
+  if (memory::object_caches_alive) set_free_list.Release(object);
+  else delete object;
 }
 
 void recycle_set_iterator_object(SetIteratorObject* object) {
   object->source = Value();
   object->index = 0;
-  set_iterator_free_list.Release(object);
+  if (memory::object_caches_alive) set_iterator_free_list.Release(object);
+  else delete object;
 }
 
 bool append_unique(std::vector<Value>& items, const Value& value, std::string& error) {

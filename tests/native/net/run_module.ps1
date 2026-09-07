@@ -5,17 +5,19 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$processOptions = @{}
+if ($env:OS -eq 'Windows_NT') { $processOptions.WindowStyle = 'Hidden' }
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $serverScript = Join-Path $root "server.py"
 $clientScript = Join-Path $root "client.py"
-$serverOut = Join-Path $env:TEMP "xlang3_net_server.out"
-$serverErr = Join-Path $env:TEMP "xlang3_net_server.err"
+$serverOut = Join-Path ([IO.Path]::GetTempPath()) "xlang3_net_server_$PID.out"
+$serverErr = Join-Path ([IO.Path]::GetTempPath()) "xlang3_net_server_$PID.err"
 Remove-Item -LiteralPath $serverOut, $serverErr -Force -ErrorAction SilentlyContinue
 
 Write-Host "Starting net test server: $serverScript"
 $serverArguments = @('"' + $serverScript + '"')
 if ($NativeModules) { $serverArguments += '"' + $NativeModules + '"' }
-$server = Start-Process -FilePath $XLang3 -ArgumentList $serverArguments -PassThru -WindowStyle Hidden -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr
+$server = Start-Process -FilePath $XLang3 -ArgumentList $serverArguments -PassThru @processOptions -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr
 try {
   $ready = $false
   for ($i = 0; $i -lt 100; ++$i) {

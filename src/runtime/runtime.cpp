@@ -149,6 +149,9 @@ std::filesystem::path runtime_library_dir() {
 #elif defined(__APPLE__) || defined(__linux__)
   Dl_info info{};
   if (dladdr(reinterpret_cast<void*>(&runtime_module_anchor), &info) != 0 && info.dli_fname != nullptr) {
+    std::error_code error;
+    const auto path = std::filesystem::absolute(info.dli_fname, error);
+    if (!error) return path.parent_path();
     return std::filesystem::path(info.dli_fname).parent_path();
   }
 #endif
@@ -1263,7 +1266,8 @@ bool Runtime::execute_raw_block(
   return it->second(*this, context, language, provider, body, error);
 }
 
-bool Runtime::import_module(const std::string& name, Value& out, std::string& error) {
+bool Runtime::import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found) {
+  if (module_not_found != nullptr) { *module_not_found = false; }
   static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
   static const bool diag_missing_imports = std::getenv("XLANG3_DIAG_MISSING_IMPORTS") != nullptr;
   if (trace_imports) {
@@ -1288,14 +1292,22 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     // would execute the same native initializer twice.
 #if !defined(XLANG3_EMBEDDED)
     if (native_library_path) {
-      return import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, error);
+      bool library_found = false;
+      const bool loaded = import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, error, &library_found);
+      if (!loaded && module_not_found != nullptr) { *module_not_found = !library_found; }
+      return loaded;
     }
 #endif
     if (dot != std::string::npos && dot > 0 && !native_library_path) {
       const std::string parent_name = name.substr(0, dot);
       Value parent_module;
       std::string parent_error;
-      if (import_module(parent_name, parent_module, parent_error)) {
+      bool parent_missing = false;
+      if (!import_module(parent_name, parent_module, parent_error, &parent_missing)) {
+        error = std::move(parent_error);
+        if (module_not_found != nullptr) { *module_not_found = parent_missing; }
+        return false;
+      } else {
         auto submodule_it = modules_.find(name);
         if (submodule_it != modules_.end()) {
           value_assign_fast(out, submodule_it->second);
@@ -1320,19 +1332,24 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     }
     const bool python_source_not_found = python_error == "module '" + name + "' not found";
     std::string native_error;
+    bool exact_library_found = false;
     if (python_source_not_found &&
-        import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error)) {
+        import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error, &exact_library_found)) {
       return true;
     }
     std::string prefixed_native_error;
+    bool prefixed_library_found = false;
     if (python_source_not_found &&
-        import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error)) {
+        import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error, &prefixed_library_found)) {
       return true;
     }
     if (!python_error.empty() && !native_error.empty()) {
       error = python_error + "; native package candidates tried:\n" + native_error + "\n" + prefixed_native_error;
     } else {
       error = native_error.empty() ? python_error : native_error;
+    }
+    if (module_not_found != nullptr) {
+      *module_not_found = python_source_not_found && !exact_library_found && !prefixed_library_found;
     }
     if (diag_missing_imports) {
       std::cerr << "XLANG3_MISSING_IMPORT name=\"" << name << "\"";
@@ -1348,6 +1365,7 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     }
 #else
     error = "module '" + name + "' not found in embedded runtime";
+    if (module_not_found != nullptr) { *module_not_found = true; }
 #endif
     return false;
   }
@@ -1359,13 +1377,14 @@ bool Runtime::has_registered_module(const std::string& name) const {
   return modules_.find(name) != modules_.end();
 }
 
-bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error) {
+bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found) {
+  if (module_not_found != nullptr) { *module_not_found = false; }
   std::string resolved_module = module_name;
   while (!resolved_module.empty() && resolved_module.front() == '.') {
     resolved_module.erase(resolved_module.begin());
   }
   Value module;
-  if (!import_module(resolved_module, module, error)) {
+  if (!import_module(resolved_module, module, error, module_not_found)) {
     return false;
   }
   if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
@@ -1423,13 +1442,14 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   return false;
 }
 
-bool Runtime::import_star(const std::string& module_name, Value& target_module, std::string& error) {
+bool Runtime::import_star(const std::string& module_name, Value& target_module, std::string& error, bool* module_not_found) {
+  if (module_not_found != nullptr) { *module_not_found = false; }
   std::string resolved_module = module_name;
   while (!resolved_module.empty() && resolved_module.front() == '.') {
     resolved_module.erase(resolved_module.begin());
   }
   Value module;
-  if (!import_module(resolved_module, module, error)) {
+  if (!import_module(resolved_module, module, error, module_not_found)) {
     return false;
   }
   auto* source = value_as_module(module);
@@ -1484,7 +1504,8 @@ bool Runtime::import_star(const std::string& module_name, Value& target_module, 
   std::vector<std::string> names;
   names.reserve(source->name_to_slot.size());
   for (const auto& item : source->name_to_slot) {
-    if (!item.first.empty() && item.first[0] != '_' && item.second < source->slots.size())
+    if (!item.first.empty() && item.first[0] != '_' && item.second < source->slots.size() &&
+        source->slots[item.second].tag != ValueTag::Invalid)
       names.push_back(item.first);
   }
   for (const auto& name : names) {

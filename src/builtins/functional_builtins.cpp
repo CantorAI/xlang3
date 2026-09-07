@@ -94,7 +94,9 @@ bool builtin_import(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   }
   name = string_object_to_string(*name_string);
   Value module;
-  if (!runtime.import_module(name, module, error)) {
+  bool module_not_found = false;
+  if (!runtime.import_module(name, module, error, &module_not_found)) {
+    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
     return false;
   }
 

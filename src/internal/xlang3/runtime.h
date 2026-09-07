@@ -154,10 +154,10 @@ public:
       const std::string& provider,
       const std::string& body,
       std::string& error);
-  bool import_module(const std::string& name, Value& out, std::string& error);
+  bool import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found = nullptr);
   bool has_registered_module(const std::string& name) const;
-  bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error);
-  bool import_star(const std::string& module_name, Value& target_module, std::string& error);
+  bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found = nullptr);
+  bool import_star(const std::string& module_name, Value& target_module, std::string& error, bool* module_not_found = nullptr);
   Vfs& vfs() { return *vfs_; }
   const Vfs& vfs() const { return *vfs_; }
 #if !defined(XLANG3_EMBEDDED)

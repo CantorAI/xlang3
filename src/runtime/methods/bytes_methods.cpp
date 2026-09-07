@@ -655,9 +655,10 @@ bool bytes_rstrip_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   return bytes_strip_common(args, argc, out, error, false, true, "bytes.rstrip");
 }
 
-bool bytes_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "bytes.split expected optional separator";
+bool bytes_split_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) {
+    error = "bytes.split expected optional separator and maxsplit";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string_view text;
@@ -665,6 +666,15 @@ bool bytes_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
     return false;
   }
   std::vector<Value> parts;
+  int64_t maxsplit = -1;
+  if (argc == 3) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "bytes.split maxsplit must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    maxsplit = args[2].as.i64;
+  }
   if (argc == 1 || args[1].tag == ValueTag::None) {
     size_t i = 0;
     while (i < text.size()) {
@@ -672,6 +682,10 @@ bool bytes_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
         ++i;
       }
       const size_t start = i;
+      if (i < text.size() && maxsplit >= 0 && parts.size() >= static_cast<uint64_t>(maxsplit)) {
+        parts.push_back(make_binary_like_result(args[0], std::string(text.substr(i))));
+        break;
+      }
       while (i < text.size() && !std::isspace(static_cast<unsigned char>(text[i]))) {
         ++i;
       }
@@ -688,11 +702,13 @@ bool bytes_split_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   }
   if (sep.empty()) {
     error = "empty separator";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   size_t start = 0;
   while (start <= text.size()) {
-    const size_t pos = text.find(sep, start);
+    const size_t pos = maxsplit >= 0 && parts.size() >= static_cast<uint64_t>(maxsplit) ?
+        std::string_view::npos : text.find(sep, start);
     if (pos == std::string_view::npos) {
       parts.push_back(make_binary_like_result(args[0], std::string(text.substr(start))));
       break;

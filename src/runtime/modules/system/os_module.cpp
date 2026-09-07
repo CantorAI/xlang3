@@ -23,6 +23,7 @@ limitations under the License.
 #include <cstring>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
 #include <random>
 #include <sstream>
 #include <thread>
@@ -64,17 +65,16 @@ Value make_process_environ_dict() {
     FreeEnvironmentStringsA(block);
   }
 #else
-  extern char** environ;
-  if (environ != nullptr) {
-    for (char** current = environ; *current != nullptr; ++current) {
+  if (::environ != nullptr) {
+    for (char** current = ::environ; *current != nullptr; ++current) {
       std::string_view item(*current);
       const size_t equals = item.find('=');
       if (equals == std::string_view::npos) {
         continue;
       }
       entries.push_back({
-          Value::string(std::string(item.substr(0, equals))),
-          Value::string(std::string(item.substr(equals + 1)))});
+          Value::bytes(std::string(item.substr(0, equals))),
+          Value::bytes(std::string(item.substr(equals + 1)))});
     }
   }
 #endif
@@ -183,6 +183,29 @@ bool os_getcwd(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::s
     return false;
   }
   out = Value::string(runtime.vfs().cwd());
+  return true;
+}
+
+bool os_readlink(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "os.readlink() expected one path argument";
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "os.readlink path", path, error)) {
+    return false;
+  }
+  if (path.text.find('\0') != std::string::npos) {
+    error = "embedded null character in path";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  std::string target;
+  if (!runtime.vfs().read_link(path.text, target, error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  out = path_name_value(target, path.bytes);
   return true;
 }
 
@@ -384,12 +407,18 @@ bool os_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  std::string owned;
   std::string_view data;
   if (auto* bytes = value_as_bytes(args[1])) {
     data = bytes_object_view(*bytes);
   } else if (auto* bytearray = value_as_bytearray(args[1])) {
     data = std::string_view(bytearray->value.data(), bytearray->value.size());
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    data = memoryview_object_view(*view);
+    if (data.data() == nullptr) {
+      error = "operation forbidden on invalid or released memoryview";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
   } else {
     error = "write data must be bytes-like";
     runtime.raise_class_error("TypeError", error);
@@ -1514,15 +1543,38 @@ bool os_getenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool os_putenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_strerror(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "strerror() requires an integer error code";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[0].as.i64 < (std::numeric_limits<int>::min)() ||
+      args[0].as.i64 > (std::numeric_limits<int>::max)()) {
+    error = "error code does not fit a C integer";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  out = Value::string(std::strerror(static_cast<int>(args[0].as.i64)));
+  return true;
+}
+
+bool os_putenv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "putenv() expected key and value";
     return false;
   }
-  std::string name;
-  std::string value;
-  if (!get_string_arg(args[0], "putenv key", name, error) ||
-      !get_string_arg(args[1], "putenv value", value, error)) {
+  PathArg key_arg, value_arg;
+  if (!get_path_arg(runtime, args[0], "putenv key", key_arg, error) ||
+      !get_path_arg(runtime, args[1], "putenv value", value_arg, error)) {
+    return false;
+  }
+  const auto& name = key_arg.text;
+  const auto& value = value_arg.text;
+  if (name.empty() || name.find('=') != std::string::npos ||
+      name.find('\0') != std::string::npos || value.find('\0') != std::string::npos) {
+    error = "illegal environment variable name or value";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
 #if defined(_WIN32)
@@ -1540,13 +1592,19 @@ bool os_putenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool os_unsetenv(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool os_unsetenv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "unsetenv() expected key";
     return false;
   }
-  std::string name;
-  if (!get_string_arg(args[0], "unsetenv key", name, error)) {
+  PathArg key_arg;
+  if (!get_path_arg(runtime, args[0], "unsetenv key", key_arg, error)) {
+    return false;
+  }
+  const auto& name = key_arg.text;
+  if (name.empty() || name.find('=') != std::string::npos || name.find('\0') != std::string::npos) {
+    error = "illegal environment variable name";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
 #if defined(_WIN32)
@@ -1629,6 +1687,7 @@ void register_os_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "posix");
 #endif
   builder.function("getcwd", os_getcwd)
+      .function("readlink", os_readlink)
       .function("getcwdb", os_getcwdb)
       .function("chdir", os_chdir)
       .function("fsencode", os_fsencode)
@@ -1647,6 +1706,7 @@ void register_os_module(Runtime& runtime) {
       .function("get_inheritable", os_get_inheritable)
       .function("set_inheritable", os_set_inheritable)
       .function("getpid", os_getpid)
+      .function("strerror", os_strerror)
       .function("getppid", os_getppid)
       .function("cpu_count", os_cpu_count)
       .value("get_terminal_size", runtime.make_native_function("os.get_terminal_size", os_get_terminal_size, os_state))
@@ -1724,7 +1784,7 @@ void register_os_module(Runtime& runtime) {
 #else
       .value("name", Value::string("posix"))
       .value("sep", Value::string("/"))
-      .value("altsep", Value())
+      .value("altsep", Value::none())
       .value("pathsep", Value::string(":"))
       .value("devnull", Value::string("/dev/null"))
       .value("curdir", Value::string("."))

@@ -638,6 +638,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow neg(
       return XlangVMOpFlow::Next;
     }
     value_set_int64(regs[in.dst], -regs[in.a].as.i64);
+  } else if (regs[in.a].tag == ValueTag::Bool) {
+    value_set_int64(regs[in.dst], regs[in.a].as.b ? -1 : 0);
   } else if (value_as_bigint(regs[in.a]) != nullptr) {
     if (!value_int_like_sub(Value::int64(0), regs[in.a], regs[in.dst])) {
       return raise_runtime_error("unsupported operand for unary -") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -680,6 +682,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow neg(
           if (!pushed_frame) ++ip;
           return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;
         }
+      }
+    }
+    if (auto* instance = value_as_instance(regs[in.a])) {
+      if (class_has_builtin_base_name(value_as_class(instance->klass), "int") &&
+          value_int_like_sub(Value::int64(0), regs[in.a], regs[in.dst])) {
+        return XlangVMOpFlow::Next;
       }
     }
     return raise_runtime_error("unsupported operand for unary -") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;

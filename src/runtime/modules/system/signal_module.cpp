@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <unordered_map>
 #include <vector>
+#include <csignal>
 
 namespace xlang3 {
 
@@ -194,9 +195,23 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
       .value("SIGFPE", Value::int64(8))
       .value("SIGSEGV", Value::int64(11))
       .value("SIGTERM", Value::int64(15))
+#if defined(_WIN32)
       .value("NSIG", Value::int64(23))
       .value("CTRL_C_EVENT", Value::int64(0))
       .value("CTRL_BREAK_EVENT", Value::int64(1));
+#else
+      .value("NSIG", Value::int64(NSIG))
+      .value("SIGKILL", Value::int64(SIGKILL))
+      .value("SIGSTOP", Value::int64(SIGSTOP))
+      .value("SIGCONT", Value::int64(SIGCONT))
+      .value("SIGCHLD", Value::int64(SIGCHLD))
+      .value("SIGPIPE", Value::int64(SIGPIPE))
+      .value("SIGHUP", Value::int64(SIGHUP))
+      .value("SIGQUIT", Value::int64(SIGQUIT))
+      .value("SIGALRM", Value::int64(SIGALRM))
+      .value("SIGUSR1", Value::int64(SIGUSR1))
+      .value("SIGUSR2", Value::int64(SIGUSR2));
+#endif
 }
 
 } // namespace

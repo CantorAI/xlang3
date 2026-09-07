@@ -27,12 +27,11 @@ if (-not $WorkDir) {
 
 $python = "C:\Python\Python314\python.exe"
 if (-not (Test-Path $python)) {
-    $python = (Get-Command python -ErrorAction SilentlyContinue).Source
+    $python = (Get-Command python3, python -ErrorAction SilentlyContinue | Select-Object -First 1).Source
 }
 
 if (-not $python) {
-    Write-Host "pickle interop skipped: CPython not found"
-    exit 0
+    throw "CPython is required for pickle interoperability tests"
 }
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")

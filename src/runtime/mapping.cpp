@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/mapping.h"
+#include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -28,6 +29,7 @@ namespace {
 
 struct DictObjectFreeList {
   ~DictObjectFreeList() {
+    memory::object_caches_alive = false;
     for (auto* object : items) {
       delete object;
     }
@@ -38,6 +40,7 @@ struct DictObjectFreeList {
 
 struct DictIteratorObjectFreeList {
   ~DictIteratorObjectFreeList() {
+    memory::object_caches_alive = false;
     for (auto* object : items) {
       delete object;
     }
@@ -48,6 +51,7 @@ struct DictIteratorObjectFreeList {
 
 struct DictViewObjectFreeList {
   ~DictViewObjectFreeList() {
+    memory::object_caches_alive = false;
     for (auto* object : items) {
       delete object;
     }
@@ -58,6 +62,7 @@ struct DictViewObjectFreeList {
 
 struct MappingProxyObjectFreeList {
   ~MappingProxyObjectFreeList() {
+    memory::object_caches_alive = false;
     for (auto* object : items) {
       delete object;
     }
@@ -73,7 +78,7 @@ thread_local MappingProxyObjectFreeList mapping_proxy_object_free_list;
 
 DictObject* allocate_dict_object() {
   xlang_perf_count_object_alloc(ObjectKind::Dict);
-  if (!dict_object_free_list.items.empty()) {
+  if (memory::object_caches_alive && !dict_object_free_list.items.empty()) {
     auto* obj = dict_object_free_list.items.back();
     dict_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::Dict;
@@ -88,7 +93,7 @@ DictObject* allocate_dict_object() {
 
 DictIteratorObject* allocate_dict_iterator_object() {
   xlang_perf_count_object_alloc(ObjectKind::DictIterator);
-  if (!dict_iterator_object_free_list.items.empty()) {
+  if (memory::object_caches_alive && !dict_iterator_object_free_list.items.empty()) {
     auto* obj = dict_iterator_object_free_list.items.back();
     dict_iterator_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::DictIterator;
@@ -103,7 +108,7 @@ DictIteratorObject* allocate_dict_iterator_object() {
 
 DictViewObject* allocate_dict_view_object(ObjectKind kind) {
   xlang_perf_count_object_alloc(kind);
-  if (!dict_view_object_free_list.items.empty()) {
+  if (memory::object_caches_alive && !dict_view_object_free_list.items.empty()) {
     auto* obj = dict_view_object_free_list.items.back();
     dict_view_object_free_list.items.pop_back();
     obj->header.kind = kind;
@@ -118,7 +123,7 @@ DictViewObject* allocate_dict_view_object(ObjectKind kind) {
 
 MappingProxyObject* allocate_mapping_proxy_object() {
   xlang_perf_count_object_alloc(ObjectKind::MappingProxy);
-  if (!mapping_proxy_object_free_list.items.empty()) {
+  if (memory::object_caches_alive && !mapping_proxy_object_free_list.items.empty()) {
     auto* obj = mapping_proxy_object_free_list.items.back();
     mapping_proxy_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::MappingProxy;
@@ -137,7 +142,7 @@ void recycle_dict_object(DictObject* object) {
     value_set_invalid(entry.second);
   }
   object->entries.clear();
-  if (dict_object_free_list.items.size() < 4096) {
+  if (memory::object_caches_alive && dict_object_free_list.items.size() < 4096) {
     dict_object_free_list.items.push_back(object);
     return;
   }
@@ -147,7 +152,7 @@ void recycle_dict_object(DictObject* object) {
 void recycle_dict_iterator_object(DictIteratorObject* object) {
   value_set_invalid(object->source);
   object->kind = DictIterationKind::Keys;
-  if (dict_iterator_object_free_list.items.size() < 4096) {
+  if (memory::object_caches_alive && dict_iterator_object_free_list.items.size() < 4096) {
     dict_iterator_object_free_list.items.push_back(object);
     return;
   }
@@ -157,7 +162,7 @@ void recycle_dict_iterator_object(DictIteratorObject* object) {
 void recycle_dict_view_object(DictViewObject* object) {
   value_set_invalid(object->source);
   object->kind = DictIterationKind::Keys;
-  if (dict_view_object_free_list.items.size() < 4096) {
+  if (memory::object_caches_alive && dict_view_object_free_list.items.size() < 4096) {
     dict_view_object_free_list.items.push_back(object);
     return;
   }
@@ -166,7 +171,7 @@ void recycle_dict_view_object(DictViewObject* object) {
 
 void recycle_mapping_proxy_object(MappingProxyObject* object) {
   value_set_invalid(object->source);
-  if (mapping_proxy_object_free_list.items.size() < 4096) {
+  if (memory::object_caches_alive && mapping_proxy_object_free_list.items.size() < 4096) {
     mapping_proxy_object_free_list.items.push_back(object);
     return;
   }
@@ -298,8 +303,15 @@ bool class_visible_name(const std::string& name) {
 std::vector<std::pair<Value, Value>> class_entries(const ClassObject& klass) {
   std::vector<std::pair<Value, Value>> entries;
   entries.reserve(klass.attrs.size());
+  for (const auto& name : klass.definition_attr_order) {
+    auto item = klass.attrs.find(name);
+    if (item != klass.attrs.end() && class_visible_name(name)) {
+      entries.push_back({Value::string(name), item->second});
+    }
+  }
   for (const auto& item : klass.attrs) {
-    if (class_visible_name(item.first)) {
+    if (class_visible_name(item.first) &&
+        std::find(klass.definition_attr_order.begin(), klass.definition_attr_order.end(), item.first) == klass.definition_attr_order.end()) {
       entries.push_back({Value::string(item.first), item.second});
     }
   }
@@ -308,8 +320,17 @@ std::vector<std::pair<Value, Value>> class_entries(const ClassObject& klass) {
 
 bool class_entry_at(const ClassObject& klass, uint64_t index, std::pair<Value, Value>& out) {
   uint64_t visible = 0;
+  for (const auto& name : klass.definition_attr_order) {
+    auto item = klass.attrs.find(name);
+    if (item == klass.attrs.end() || !class_visible_name(name)) continue;
+    if (visible++ == index) {
+      out = {Value::string(name), item->second};
+      return true;
+    }
+  }
   for (const auto& item : klass.attrs) {
-    if (!class_visible_name(item.first)) {
+    if (!class_visible_name(item.first) ||
+        std::find(klass.definition_attr_order.begin(), klass.definition_attr_order.end(), item.first) != klass.definition_attr_order.end()) {
       continue;
     }
     if (visible == index) {

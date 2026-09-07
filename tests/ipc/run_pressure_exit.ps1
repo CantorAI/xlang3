@@ -1,5 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$XLang3)
 $ErrorActionPreference = 'Stop'
+$processOptions = @{}
+if ($env:OS -eq 'Windows_NT') { $processOptions.WindowStyle = 'Hidden' }
 $port = Get-Random -Minimum 30001 -Maximum 35000
 $prefix = Join-Path ([IO.Path]::GetTempPath()) ('xlang3-pressure-exit-' + [Guid]::NewGuid().ToString('N'))
 $server = $null
@@ -22,7 +24,7 @@ try {
     }
     foreach ($index in 0..1) {
         $clients += Start-Process -FilePath $XLang3 -ArgumentList @("$PSScriptRoot/pressure_exit_client.py", "$port") `
-            -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.$index.out" -RedirectStandardError "$prefix.$index.err"
+            @processOptions -PassThru -RedirectStandardOutput "$prefix.$index.out" -RedirectStandardError "$prefix.$index.err"
     }
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     while (-not (Test-Path -LiteralPath "$prefix.entered")) {

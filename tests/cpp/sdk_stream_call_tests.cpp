@@ -26,6 +26,15 @@ int main(int argc, char** argv) {
   try {
     require(argc == 2, "missing fixtures directory");
     X::Runtime runtime;
+    require(X::Value(runtime, -42LL).ToLongLong() == -42,
+        "runtime-bound long long construction failed");
+    require(X::Value(runtime, ~0ULL).ToString() == "18446744073709551615",
+        "runtime-bound unsigned integer construction lost precision");
+    auto integerList = runtime.List();
+    integerList += X::Value(42);
+    require(integerList[int64_t{0}].ToLongLong() == 42 &&
+        integerList[size_t{0}].ToLongLong() == 42,
+        "platform-sized integer list indexing failed");
     X::Value nulString(runtime.host(), x3_value_string_utf8(runtime.get(), "a\0b", 3), false);
     auto strings = X::Value::Dict(runtime.host());
     char mutableString[] = "script.py";

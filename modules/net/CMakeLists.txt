@@ -75,4 +75,12 @@ if(WIN32)
   # The bundled curl/OpenSSL/zlib archives use the static MSVC runtime.
   set_property(TARGET xlang_net_native_package PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+  find_package(OpenSSL REQUIRED)
+  find_package(CURL REQUIRED)
+  find_package(Threads REQUIRED)
+  target_compile_definitions(xlang_net_native_package PRIVATE
+    CPPHTTPLIB_OPENSSL_SUPPORT XLANG_NET_WITH_CURL)
+  target_link_libraries(xlang_net_native_package PRIVATE
+    OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads)
 endif()
