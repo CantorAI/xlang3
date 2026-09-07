@@ -20,6 +20,14 @@ using LrpcDispatch = std::function<bool(serialize::XLangStream& request, seriali
 using LrpcRequestWriter = std::function<bool(serialize::XLangStream& request, std::string& error)>;
 using LrpcResponseReader = std::function<bool(serialize::XLangStream& response, std::string& error)>;
 
+struct LrpcEndpointInfo {
+  uint32_t pid = 0;
+  uint64_t session_id = 0;
+};
+// A successful probe with pid == 0 means unavailable or busy until the deadline.
+bool lrpc_probe(const std::string& endpoint, uint32_t timeout_ms,
+    LrpcEndpointInfo& info, std::string& error);
+
 bool lrpc_listen_shared_memory(int64_t port, bool wait, LrpcDispatch dispatch, std::string& error);
 bool lrpc_shared_memory_request(
     const std::string& endpoint,

@@ -186,11 +186,33 @@ teardown drains listener workers and releases exported objects before destroying
 the runtime. Shutdown waits for active requests; callbacks must finish. Unloading
 the bridge from inside its own active remote callback is not a supported lifecycle.
 
+For `import xlang3` inside CPython, the bridge registers a weak `atexit` hook.
+It stops new callback entry, lets active calls finish without holding the GIL,
+and destroys its owned runtime before CPython deletes interpreter thread states.
+Native packages must stop and join their own workers during runtime cleanup.
+The weak hook does not keep otherwise unreachable bridge modules alive.
+
+Remote imports create lazy proxies. Probe a listener without making a remote call:
+
+```python
+runtime = xlang3.importModule("builtins")
+state = runtime.lrpc_probe("lrpc:29137", 2000)
+if state is not None:
+    identity = (state["pid"], state["session_id"])
+    cantor = xlang3.importModule("cantor", thru="lrpc:29137")
+```
+
+The timeout is in milliseconds; zero does not wait. An unavailable or busy
+listener returns `None`; permission and protocol errors raise exceptions.
+Compare both identity fields when caching a proxy across reconnects. This is a
+liveness snapshot, not a guarantee that a later remote call will succeed.
+The equivalent C API is `x3_runtime_probe_remote`. Listener-instance identities
+use shared-memory protocol version 3; restart both peers after upgrading from 2.
+
 Existing runtime limits observed by these tests: shared-memory IPC messages must
 fit the session's 32 x 64 KiB slots, including protocol overhead. Larger requests
-raise an error. The native JSON module currently truncates embedded NULs through
-its older string API; direct bridge string round-trips preserve them. Neither
-limitation is corrected by this bridge.
+raise an error. Direct bridge strings and native JSON/YAML string conversions
+preserve embedded NULs using length-aware SDK access.
 
 Tests are in `tests/cpython_bridge`: imports, live objects and callbacks, cyclic
 lifetimes, IPC using a separate XLang3 server process, hosted CPython extension

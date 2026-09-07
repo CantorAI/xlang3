@@ -67,7 +67,15 @@ bool value_to_json_dict(const X3PackageHost* host, X3Runtime* runtime, X3Value v
     Json item_json;
     const bool ok = value_to_json(host, runtime, item, item_json, error);
     if (ok) {
-      out[host->value_to_cstr(runtime, key)] = std::move(item_json);
+      const char* data = nullptr;
+      uint64_t size = 0;
+      if (host->value_string_data(runtime, key, &data, &size) != X3_STATUS_OK) {
+        *error = host->runtime_last_error(runtime);
+        host->value_release(key);
+        host->value_release(item);
+        return false;
+      }
+      out[std::string(data, static_cast<size_t>(size))] = std::move(item_json);
     }
     host->value_release(key);
     host->value_release(item);
@@ -97,7 +105,8 @@ X3Value json_to_value(const X3PackageHost* host, X3Runtime* runtime, const Json&
     return x3_value_double(json.get<double>());
   }
   if (json.is_string()) {
-    return host->value_string(runtime, json.get<std::string>().c_str());
+    const auto& text = json.get_ref<const std::string&>();
+    return host->value_string_utf8(runtime, text.data(), text.size());
   }
   if (json.is_array()) {
     X3Value list = host->value_list(runtime);
@@ -111,7 +120,7 @@ X3Value json_to_value(const X3PackageHost* host, X3Runtime* runtime, const Json&
   if (json.is_object()) {
     X3Value dict = host->value_dict(runtime);
     for (auto it = json.begin(); it != json.end(); ++it) {
-      X3Value key = host->value_string(runtime, it.key().c_str());
+      X3Value key = host->value_string_utf8(runtime, it.key().data(), it.key().size());
       X3Value value = json_to_value(host, runtime, it.value());
       host->dict_set_item(runtime, dict, key, value);
       host->value_release(key);
@@ -150,9 +159,16 @@ bool value_to_json(const X3PackageHost* host, X3Runtime* runtime, X3Value value,
   }
 
   switch (host->value_object_kind(value)) {
-    case X3_OBJECT_KIND_STRING:
-      out = host->value_to_cstr(runtime, value);
+    case X3_OBJECT_KIND_STRING: {
+      const char* data = nullptr;
+      uint64_t size = 0;
+      if (host->value_string_data(runtime, value, &data, &size) != X3_STATUS_OK) {
+        *error = host->runtime_last_error(runtime);
+        return false;
+      }
+      out = std::string(data, static_cast<size_t>(size));
       return true;
+    }
     case X3_OBJECT_KIND_LIST:
     case X3_OBJECT_KIND_TUPLE:
       return value_to_json_list(host, runtime, value, out, error);

@@ -1525,6 +1525,11 @@ bool event_unsubscribe(Value event, uint64_t cookie, std::string& error) {
 }
 
 bool event_fire(Runtime& runtime, Value event, const Value* args, uint32_t argc, Value& out, std::string& error) {
+  return event_fire_kw(runtime, std::move(event), args, argc, {}, out, error);
+}
+
+bool event_fire_kw(Runtime& runtime, Value event, const Value* args, uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs, Value& out, std::string& error) {
   auto* object = value_as_event(event);
   if (object == nullptr) {
     error = "fire expected event object";
@@ -1535,7 +1540,7 @@ bool event_fire(Runtime& runtime, Value event, const Value* args, uint32_t argc,
   Value last = Value::none();
   for (const auto& handler : handlers) {
     Value result;
-    if (!runtime_call_callable(runtime, handler.callable, args, argc, result, error)) {
+    if (!runtime_call_callable_kw(runtime, handler.callable, args, argc, kwargs, result, error)) {
       return false;
     }
     value_assign_fast(last, result);

@@ -76,11 +76,13 @@ void StorageUse::finish(std::shared_ptr<Completion> callback) {
   retained->use_changed.notify_all();
 }
 namespace { std::atomic_uint64_t next_id{1}; }
+uint64_t next_tensor_id() { return next_id.fetch_add(1); }
 Tensor* get(const Value& v) { return static_cast<Tensor*>(instance_get_native_data(v, tensor_type)); }
 Operator* get_operator(const Value& v) { return static_cast<Operator*>(instance_get_native_data(v, operator_type)); }
 Graph* get_graph(const Value& v) { return static_cast<Graph*>(instance_get_native_data(v, graph_type)); }
 uint64_t item_size(X3TensorDType dtype) {
   switch (dtype) {
+    case X3_TENSOR_UINT8: return 1;
     case X3_TENSOR_FLOAT8_E4M3FN: case X3_TENSOR_FLOAT8_E4M3FNUZ:
     case X3_TENSOR_FLOAT8_E5M2: case X3_TENSOR_FLOAT8_E5M2FNUZ: return 1;
     case X3_TENSOR_FLOAT16: case X3_TENSOR_BFLOAT16: case X3_TENSOR_UINT16: return 2;
@@ -154,7 +156,7 @@ template<class T> Value wrap(Runtime& rt, const char* klass, const char* native,
   p.release(); return v;
 }
 Value wrap_tensor(Runtime& rt, std::unique_ptr<Tensor> t) {
-  t->id = next_id.fetch_add(1); t->runtime = &rt;
+  t->id = next_tensor_id(); t->runtime = &rt;
   return wrap(rt, "Tensor", tensor_type, std::move(t));
 }
 Value wrap_operator(Runtime& rt, std::unique_ptr<Operator> p) { return wrap(rt, "Operator", operator_type, std::move(p)); }

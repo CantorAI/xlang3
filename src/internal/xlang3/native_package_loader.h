@@ -30,6 +30,7 @@ bool import_native_package(
     const std::string& package_name,
     NativePackageLookupMode mode,
     Value& out,
-    std::string& error);
+    std::string& error,
+    bool* library_found = nullptr);
 
 } // namespace xlang3

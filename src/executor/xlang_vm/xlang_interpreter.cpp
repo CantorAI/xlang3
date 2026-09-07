@@ -23,6 +23,40 @@ namespace xlang3 {
 
 Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
 
+bool runtime_call_builtin_constructor(Runtime& runtime, const ClassObject& klass,
+    const Value* args, uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
+    bool& handled, Value& out, std::string& error) {
+  handled = false;
+  if (!xlang_vm_class_is_builtin_module_class(klass) ||
+      xlang_vm_find_builtin_constructor(klass.name) == XlangVMBuiltinConstructor::Unknown)
+    return true;
+  handled = true;
+  CallArgsView view;
+  view.leading = args;
+  view.leading_count = argc;
+  std::vector<Value> keyword_values;
+  std::vector<ir::CallKeywordArg> keyword_specs;
+  keyword_values.reserve(kwargs.size());
+  keyword_specs.reserve(kwargs.size());
+  for (const auto& item : kwargs) {
+    keyword_specs.push_back({item.first, static_cast<uint32_t>(keyword_values.size())});
+    keyword_values.push_back(item.second);
+  }
+  if (!kwargs.empty()) {
+    view.registers = keyword_values.data();
+    view.keyword_args = &keyword_specs;
+  }
+  XlangRuntimeExecutionGuard lock;
+  XlangVMBuiltinConstructorError detail;
+  if (call_builtin_type_constructor(runtime, klass, view, lock, out, detail)) return true;
+  error = detail.message.empty() ? "builtin constructor failed" : detail.message;
+  Value pending;
+  if (runtime.take_pending_exception(pending)) runtime.set_pending_exception(std::move(pending));
+  else runtime.raise_class_error(detail.type, error);
+  return false;
+}
+
 RuntimeResult Interpreter::run(const ir::Module& module) {
   auto globals_module = Value::module("__main__");
   return run_module(module, std::move(globals_module), nullptr);

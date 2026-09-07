@@ -920,5 +920,7 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
 bool event_subscribe(Value event, Value callable, uint64_t& cookie, std::string& error);
 bool event_unsubscribe(Value event, uint64_t cookie, std::string& error);
 bool event_fire(Runtime& runtime, Value event, const Value* args, uint32_t argc, Value& out, std::string& error);
+bool event_fire_kw(Runtime& runtime, Value event, const Value* args, uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs, Value& out, std::string& error);
 
 } // namespace xlang3

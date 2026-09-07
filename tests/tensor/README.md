@@ -25,6 +25,24 @@ ctest --test-dir <build>/components/xlang3 -C Release -R "^xlang3_tensor_" --out
   broadcasting, reductions, scalar tensors, the 32-axis limit, and explicit rejection of symbolic
   data-dependent branching.
 
+## Serialization
+
+Native value serialization snapshots concrete CPU tensors after waiting for
+pending storage writers. Dtype, shape, byte strides, offset, and readonly state
+are preserved. Repeated tensor references and distinct views sharing storage
+remain aliases within the restored value graph; restored storage is independent
+of the source. Snapshots are per storage, not atomic across different storages.
+
+Each entire backing storage is copied once per graph, including padding and
+elements outside a view. This preserves aliases and offsets but can increase
+message size and disclose data outside the visible view. GPU tensors require an
+explicit host transfer first; symbolic tensors and captured operation graphs are
+rejected. Multibyte storage from a different host byte order is also rejected.
+
+`serialization_tests.h` covers embedding widths, aliases, strided views,
+readonly storage, storage dtypes, delayed producers, and rejection cases through
+the real native tensor codec.
+
 ## Example
 
 ```python
@@ -45,14 +63,14 @@ outputs are included: state/effect operations must remain in that dependency cha
 
 ## Current Boundaries
 
-CPU dtypes are float32, float64, int32, and int64. Kernels cover add/sub/mul/div,
+CPU arithmetic dtypes are float32, float64, int32, and int64. Kernels cover add/sub/mul/div,
 neg, relu, exp, sum (all elements or one axis), reshape, permute, and rank-two-or-
 higher batched matmul. Views support nonnegative byte strides. Expression shape
 and dtype remain unknown until execution; named inputs have declared metadata.
 
 Custom backend operations can be captured and replayed, but the CPU executor
 rejects operations for which it has no kernel. These tests do not verify Garnet
-compilation/execution, tensor serialization, negative strides, data-dependent
+compilation/execution, negative strides, data-dependent
 control flow, or full NumPy compatibility. Matmul currently uses built-in scalar
 kernels, not a tuned BLAS implementation; no BLAS-equivalent performance claim
 is made. Graph runs have independent result buffers, without a buffer-reuse plan.

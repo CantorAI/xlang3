@@ -2,6 +2,7 @@
 #include "xlang_object.h"
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace x3py {
 namespace {
@@ -117,9 +118,18 @@ X3Status dispatch(X3CallContext* context, X3Runtime*, void* user,
     const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
     uint32_t kwargc, X3Value* result) {
   auto* raw_engine = static_cast<Engine*>(user);
+  std::optional<Engine::CallLease> invocation;
+  try {
+    invocation.emplace(raw_engine);
+  } catch (const std::exception& error) {
+    // Reject late native callbacks without creating a CPython thread state.
+    raw_engine->python_host->raise_class_error(context, "RuntimeError", error.what());
+    return X3_STATUS_ERROR;
+  }
   EnterPython python(raw_engine);
   try {
-    if (raw_engine->closing || !argc) throw std::runtime_error("CPython bridge is closed");
+    raw_engine->ensure_open();
+    if (!argc) throw std::runtime_error("CPython callback has no receiver");
     auto engine = raw_engine->shared_from_this();
     auto* payload = engine->run([&] { return static_cast<PythonPayload*>(
         x3_instance_get_native_data(args[0], payload_type)); });
@@ -270,7 +280,7 @@ void initialize_python_class(const std::shared_ptr<Engine>& engine, const char* 
 }
 
 X3Value wrap_python(const std::shared_ptr<Engine>& engine, PyObject* object) {
-  if (engine->closing) throw std::runtime_error("CPython bridge is closed");
+  engine->ensure_open();
   PyRef owner(Py_NewRef(object));
   return engine->run([&] {
     {

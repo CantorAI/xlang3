@@ -28,6 +28,9 @@ json = xlang3.importModule("json", fromPath="xlang_json")
 parsed = json.loads('{"key":[1,2,"native JSON"]}')
 assert parsed["key"][2] == "native JSON"
 assert json.loads(json.dumps(parsed))["key"][0] == 1
+binary_text = json.loads('{"nul\\u0000key":{"value":"a\\u0000b"}}')
+assert binary_text["nul\0key"]["value"] == "a\0b"
+assert json.loads(json.dumps(binary_text))["nul\0key"]["value"] == "a\0b"
 net = xlang3.importModule("xlang_net")
 http = xlang3.importModule("http", fromPath="xlang_net")
 assert net.http is http

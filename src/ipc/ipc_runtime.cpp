@@ -706,7 +706,26 @@ bool ipc_import_thru(Runtime& runtime, const std::string& name, const Value& end
   return true;
 }
 
+static bool builtin_lrpc_probe(Runtime&, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  std::string endpoint;
+  if (argc < 1 || argc > 2 || !value_to_string(args[0], endpoint) ||
+      (argc == 2 && (args[1].tag != ValueTag::Int64 || args[1].as.i64 < 0 ||
+          args[1].as.i64 > UINT32_MAX))) {
+    error = "lrpc_probe expects endpoint and optional nonnegative timeout milliseconds";
+    return false;
+  }
+  ipc::LrpcEndpointInfo info;
+  if (!ipc::lrpc_probe(endpoint, argc == 2 ? static_cast<uint32_t>(args[1].as.i64) : 0,
+          info, error)) return false;
+  out = info.pid ? Value::dict({
+      {Value::string("pid"), Value::int64(info.pid)},
+      {Value::string("session_id"), Value::int64(static_cast<int64_t>(info.session_id))}}) : Value::none();
+  return true;
+}
+
 void register_ipc_builtins(Runtime& runtime) {
+  runtime.register_native_builtin("lrpc_probe", builtin_lrpc_probe);
   runtime.register_native_builtin("register_remote_object", builtin_register_remote_object);
   runtime.register_native_builtin("lrpc_listen", builtin_lrpc_listen);
 }

@@ -11,6 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import sys
+
+# A data-only package directory must not shadow the native library.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "namespace_collision"))
+
 import json
 from xlang_json import json as prefixed_json
 from xlang_yaml import yaml

@@ -710,8 +710,13 @@ X3Status x3_event_unsubscribe(X3Runtime* runtime, X3Value event, uint64_t cookie
 }
 
 X3Status x3_event_fire(X3Runtime* runtime, X3Value event, const X3Value* args, uint32_t argc, X3Value* result) {
+  return x3_event_fire_kw(runtime, event, args, argc, nullptr, 0, result);
+}
+
+X3Status x3_event_fire_kw(X3Runtime* runtime, X3Value event, const X3Value* args, uint32_t argc,
+    const X3KeywordArg* kwargs, uint32_t kwargc, X3Value* result) {
   auto* rt = as_runtime(runtime);
-  if (rt == nullptr || result == nullptr || (argc != 0 && args == nullptr)) {
+  if (rt == nullptr || result == nullptr || (argc != 0 && args == nullptr) || (kwargc && !kwargs)) {
     return fail(rt, "runtime/args/result is null");
   }
   std::string error;
@@ -728,7 +733,18 @@ X3Status x3_event_fire(X3Runtime* runtime, X3Value event, const X3Value* args, u
     }
   }
   xlang3::Value out;
-  if (!xlang3::event_fire(*rt, std::move(internal_event), internal_args.data(), argc, out, error)) {
+  std::vector<std::pair<std::string, xlang3::Value>> keywords;
+  keywords.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (!kwargs[i].name) return fail(rt, "keyword name is null");
+    for (const auto& prior : keywords)
+      if (prior.first == kwargs[i].name) return fail(rt, "duplicate keyword argument");
+    auto value = xlang3::from_c_value(kwargs[i].value, error);
+    if (!error.empty()) return fail(rt, error);
+    keywords.emplace_back(kwargs[i].name, std::move(value));
+  }
+  xlang3::XlangRuntimeExecutionGuard execution_guard;
+  if (!xlang3::event_fire_kw(*rt, std::move(internal_event), internal_args.data(), argc, keywords, out, error)) {
     return fail(rt, error);
   }
   *result = xlang3::to_c_value(out);

@@ -144,6 +144,7 @@ bool dispatch(Runtime& rt,const Value* args,uint32_t argc,const NativeKeywordArg
         case X3_TENSOR_INT32: fill<int32_t>(*t,values); break;
         case X3_TENSOR_INT64: fill<int64_t>(*t,values); break;
         case X3_TENSOR_UINT16: fill<uint16_t>(*t,values); break;
+        case X3_TENSOR_UINT8: fill<uint8_t>(*t,values); break;
         default:
           if (!values.empty()) throw std::runtime_error("low-precision tensor data must be supplied through the native storage API");
           break;
@@ -206,6 +207,7 @@ bool dispatch(Runtime& rt,const Value* args,uint32_t argc,const NativeKeywordArg
         case X3_TENSOR_INT32: out=as_list<int32_t>(*t); break;
         case X3_TENSOR_INT64: out=as_list<int64_t>(*t); break;
         case X3_TENSOR_UINT16: out=as_list<uint16_t>(*t); break;
+        case X3_TENSOR_UINT8: out=as_list<uint8_t>(*t); break;
         default: throw std::runtime_error("tolist does not support this tensor storage dtype");
       }
       return;
@@ -257,6 +259,7 @@ void register_module(Runtime& rt) {
   put("float32",Value::int64(X3_TENSOR_FLOAT32)); put("float64",Value::int64(X3_TENSOR_FLOAT64));
   put("float16",Value::int64(X3_TENSOR_FLOAT16)); put("bfloat16",Value::int64(X3_TENSOR_BFLOAT16));
   put("uint16",Value::int64(X3_TENSOR_UINT16));
+  put("uint8",Value::int64(X3_TENSOR_UINT8));
   put("float8_e4m3fn",Value::int64(X3_TENSOR_FLOAT8_E4M3FN));
   put("float8_e4m3fnuz",Value::int64(X3_TENSOR_FLOAT8_E4M3FNUZ));
   put("float8_e5m2",Value::int64(X3_TENSOR_FLOAT8_E5M2));
@@ -267,5 +270,6 @@ void register_module(Runtime& rt) {
     put(reg->name.c_str(),make_factory(rt,reg));
   }
   rt.register_module("tensor",module);
+  register_serializer(rt);
 }
 }

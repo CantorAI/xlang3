@@ -40,6 +40,7 @@ struct SharedRegion {
   uint32_t slot_size;
   uint32_t server_pid;
   uint32_t next_call_id;
+  uint64_t session_id;
   uint64_t next_capacity_ticket;
   SharedCapacityWaiter capacity_waiters[kSharedSlotCount];
   SharedSlot slots[kSharedSlotCount];
@@ -206,6 +207,7 @@ bool init_server_region(const std::string& port, PosixMapping& mapping, std::str
   mapping.region->slot_count = kSharedSlotCount;
   mapping.region->slot_size = kSharedSlotSize;
   mapping.region->server_pid = static_cast<uint32_t>(getpid());
+  mapping.region->session_id = next_listener_session();
   mapping.region->next_call_id = 1;
   initialize_slots(*mapping.region);
   pthread_mutex_unlock(&mapping.region->mutex);
@@ -333,6 +335,49 @@ void server_loop() {
 }
 
 } // namespace
+
+bool lrpc_probe_platform(const std::string& port, LrpcEndpointInfo& info, std::string& error) {
+  info = {};
+  PosixMapping mapping;
+  mapping.fd = shm_open(posix_name(port).c_str(), O_RDWR, 0);
+  if (mapping.fd < 0) {
+    if (errno == ENOENT) return true;
+    error = "cannot probe lrpc shared memory: " + std::string(std::strerror(errno));
+    return false;
+  }
+  struct stat status{};
+  if (fstat(mapping.fd, &status) != 0 || status.st_size != sizeof(SharedRegion)) {
+    close_posix_mapping(mapping);
+    error = "incompatible lrpc shared-memory region size";
+    return false;
+  }
+  void* address = mmap(nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, mapping.fd, 0);
+  if (address == MAP_FAILED) {
+    error = "cannot map lrpc probe: " + std::string(std::strerror(errno));
+    close_posix_mapping(mapping); return false;
+  }
+  mapping.region = static_cast<SharedRegion*>(address);
+  auto* region = mapping.region;
+  if (!region->magic) { close_posix_mapping(mapping); return true; }
+  if (region->magic != kSharedMagic || region->version != kSharedVersion) {
+    error = "incompatible lrpc shared-memory protocol";
+    close_posix_mapping(mapping); return false;
+  }
+  int locked = pthread_mutex_trylock(&region->mutex);
+#if defined(__linux__)
+  if (locked == EOWNERDEAD) { pthread_mutex_consistent(&region->mutex); locked = 0; }
+#endif
+  if (locked == EBUSY) { close_posix_mapping(mapping); return true; }
+  if (locked != 0) {
+    error = "cannot lock lrpc probe mutex: " + std::string(std::strerror(locked));
+    close_posix_mapping(mapping); return false;
+  }
+  if (region->magic == kSharedMagic && process_is_alive(region->server_pid))
+    info = {region->server_pid, region->session_id};
+  pthread_mutex_unlock(&region->mutex);
+  close_posix_mapping(mapping);
+  return true;
+}
 
 bool lrpc_start_shared_memory_server_platform(const std::string& port, std::string& error) {
   if (!init_server_region(port, g_server_mapping, error)) {

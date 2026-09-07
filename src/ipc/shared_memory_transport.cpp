@@ -11,11 +11,45 @@ Licensed under the Apache License, Version 2.0
 
 #include <limits>
 #include <utility>
+#include <chrono>
+#include <thread>
+#include <algorithm>
 
 namespace xlang3::ipc {
 
 std::atomic_bool g_server_started{false};
 LrpcDispatch g_dispatch;
+
+uint64_t next_listener_session() {
+  static std::atomic<uint64_t> previous{0};
+  const auto now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count());
+  auto old = previous.load();
+  for (;;) {
+    const auto next = std::max(now, old + 1);
+    if (previous.compare_exchange_weak(old, next)) return next;
+  }
+}
+
+bool lrpc_probe(const std::string& endpoint, uint32_t timeout_ms,
+    LrpcEndpointInfo& info, std::string& error) {
+  info = {};
+  const auto port = strip_lrpc_prefix(endpoint);
+  if (endpoint.rfind("lrpc:", 0) != 0 || port.empty() ||
+      port.find_first_not_of("0123456789") != std::string::npos ||
+      port.find_first_not_of('0') == std::string::npos || port.size() > 19) {
+    error = "probe requires an lrpc endpoint with a positive numeric port";
+    return false;
+  }
+  XlangRuntimeExecutionSuspension suspension;
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+  for (;;) {
+    if (!lrpc_probe_platform(port, info, error)) return false;
+    if (info.pid || std::chrono::steady_clock::now() >= deadline) return true;
+    std::this_thread::sleep_until(std::min(deadline,
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(10)));
+  }
+}
 
 std::string strip_lrpc_prefix(const std::string& endpoint) {
   constexpr const char prefix[] = "lrpc:";

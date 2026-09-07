@@ -14,7 +14,8 @@ typedef enum X3TensorDType {
   X3_TENSOR_FLOAT16 = 5, X3_TENSOR_BFLOAT16 = 6,
   X3_TENSOR_UINT16 = 7,
   X3_TENSOR_FLOAT8_E4M3FN = 8, X3_TENSOR_FLOAT8_E4M3FNUZ = 9,
-  X3_TENSOR_FLOAT8_E5M2 = 10, X3_TENSOR_FLOAT8_E5M2FNUZ = 11
+  X3_TENSOR_FLOAT8_E5M2 = 10, X3_TENSOR_FLOAT8_E5M2FNUZ = 11,
+  X3_TENSOR_UINT8 = 12
 } X3TensorDType;
 
 /* Shape/strides are borrowed until the tensor is released. Strides are bytes.

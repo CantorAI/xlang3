@@ -26,6 +26,7 @@ limitations under the License.
 namespace xlang3 {
 
 struct GeneratorObject;
+struct ClassObject;
 struct RuntimeDebugPauseState;
 
 struct RuntimeResult {
@@ -74,6 +75,12 @@ struct CallArgsView {
     return registers[(*register_args)[index - leading_count]];
   }
 };
+
+// Embedding calls share the VM's exact builtin constructor implementation.
+bool runtime_call_builtin_constructor(Runtime& runtime, const ClassObject& klass,
+    const Value* args, uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
+    bool& handled, Value& out, std::string& error);
 
 class Interpreter {
 public:

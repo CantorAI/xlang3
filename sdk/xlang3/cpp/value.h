@@ -408,6 +408,24 @@ public:
     return Fire(args.empty() ? nullptr : args.data(), static_cast<uint32_t>(args.size()), out);
   }
 
+  bool Fire(const std::vector<Value>& args,
+      const std::vector<std::pair<std::string, Value>>& kwargs, Value& out) const {
+    if (kwargs.empty()) return Fire(args, out);
+    if (!host_ || host_->size < offsetof(X3PackageHost, event_fire_kw) + sizeof(host_->event_fire_kw) ||
+        !host_->event_fire_kw || args.size() > UINT32_MAX || kwargs.size() > UINT32_MAX) return false;
+    std::vector<X3Value> values;
+    values.reserve(args.size());
+    for (const auto& arg : args) values.push_back(arg.raw());
+    std::vector<X3KeywordArg> named;
+    named.reserve(kwargs.size());
+    for (const auto& kw : kwargs) named.push_back({kw.first.c_str(), kw.second.raw()});
+    X3Value result = x3_value_invalid();
+    if (host_->event_fire_kw(runtime(), raw(), values.data(), static_cast<uint32_t>(values.size()),
+        named.data(), static_cast<uint32_t>(named.size()), &result) != X3_STATUS_OK) return false;
+    out = Adopt(result);
+    return true;
+  }
+
   bool Call(const Value* args, uint32_t argc, Value& out) const {
     if (host_ == nullptr || host_->call == nullptr || (argc != 0 && args == nullptr)) return false;
     std::vector<X3Value> raw_args;

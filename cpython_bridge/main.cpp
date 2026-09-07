@@ -23,6 +23,9 @@ int exec_module(PyObject* module) {
     if (!state->owner) return nullptr;
     engine->owner = state->owner;
     initialize_python_class(engine);
+    // A weak registration does not keep an otherwise unreachable module/runtime
+    // alive, but still drains native listeners before CPython destroys threads.
+    register_interpreter_shutdown(engine);
     // Match normal Python script search locations without taking over imports.
     PyObject* paths = PySys_GetObject("path");
     std::vector<std::string> roots;

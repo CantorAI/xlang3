@@ -72,6 +72,9 @@ public:
 
 class xlang1_compat_sample {
 public:
+  inline static long long initialization_count = 0;
+  xlang1_compat_sample() { ++initialization_count; }
+  long long package_initializations() const { return initialization_count; }
   long long property_count = 3;
   X::Value property_object;
   long long current_count() const {
@@ -209,6 +212,7 @@ public:
   BEGIN_PACKAGE(xlang1_compat_sample)
     APISET().AddProp0("property_count", &xlang1_compat_sample::property_count);
     APISET().AddProp0("property_object", &xlang1_compat_sample::property_object);
+    APISET().AddFunc<0>("package_initializations", &xlang1_compat_sample::package_initializations);
     APISET().AddProp("current_count", &xlang1_compat_sample::current_count);
     APISET().AddFunc<0>("increment_count", &xlang1_compat_sample::increment_count);
     APISET().AddPropL("checked_count",

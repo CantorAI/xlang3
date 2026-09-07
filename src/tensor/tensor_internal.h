@@ -84,6 +84,7 @@ Tensor* get(const Value&);
 Operator* get_operator(const Value&);
 Graph* get_graph(const Value&);
 uint64_t item_size(X3TensorDType);
+uint64_t next_tensor_id();
 uint64_t count(const std::vector<int64_t>&);
 std::vector<int64_t> contiguous_strides(const std::vector<int64_t>&, uint64_t);
 void validate_layout(const Tensor&);
@@ -110,6 +111,7 @@ Value attr(const Value&, const std::string&, Value fallback = Value::invalid());
 Value record(std::initializer_list<std::pair<const char*, Value>>);
 std::vector<int64_t> dimensions(const Value&, bool validate_shape = true);
 void register_module(Runtime&);
+void register_serializer(Runtime&);
 Value current_regions(Runtime&);
 Value make_factory(Runtime&, std::shared_ptr<Registration>);
 }

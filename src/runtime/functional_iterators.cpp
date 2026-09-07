@@ -295,6 +295,9 @@ bool runtime_call_callable(
   }
 
   if (auto* klass = value_as_class(callable)) {
+    bool handled = false;
+    if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, {}, handled, out, error)) return false;
+    if (handled) return true;
     Value new_callable;
     if (resolve_class_new_callable(callable, klass, new_callable)) {
       std::vector<Value> new_args;
@@ -393,7 +396,14 @@ bool runtime_call_callable_kw(
     return runtime_call_callable(runtime, callable, args, argc, out, error);
   }
 
+  if (value_as_event(callable)) {
+    return event_fire_kw(runtime, callable, args, argc, kwargs, out, error);
+  }
+
   if (auto* klass = value_as_class(callable)) {
+    bool handled = false;
+    if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, kwargs, handled, out, error)) return false;
+    if (handled) return true;
     Value instance;
     Value new_callable;
     if (resolve_class_new_callable(callable, klass, new_callable)) {

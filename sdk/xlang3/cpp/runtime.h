@@ -85,6 +85,12 @@ public:
     check(x3_runtime_add_import_root(runtime_, path.c_str()));
   }
 
+  Value EvalFile(const std::string& path) {
+    X3Value result = x3_value_invalid();
+    check(x3_runtime_eval_file(runtime_, path.c_str(), &result));
+    return Value(&host_, result, false);
+  }
+
   std::string LastError() const {
     const char* error = x3_runtime_last_error(runtime_);
     return error == nullptr ? std::string() : std::string(error);
@@ -124,6 +130,7 @@ private:
     host_.event_subscribe = x3_event_subscribe;
     host_.event_unsubscribe = x3_event_unsubscribe;
     host_.event_fire = x3_event_fire;
+    host_.event_fire_kw = x3_event_fire_kw;
     host_.event_set_change_handler = x3_event_set_change_handler;
     host_.call = x3_call;
     host_.call_kw = x3_call_kw;

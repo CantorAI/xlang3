@@ -1282,7 +1282,16 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       }
     }
     const auto dot = name.rfind('.');
-    if (dot != std::string::npos && dot > 0) {
+    const auto extension = dot == std::string::npos ? std::string_view{} : std::string_view(name).substr(dot);
+    const bool native_library_path = extension == ".dll" || extension == ".so" || extension == ".dylib";
+    // A library suffix is not a Python child module; loading its stem first
+    // would execute the same native initializer twice.
+#if !defined(XLANG3_EMBEDDED)
+    if (native_library_path) {
+      return import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, error);
+    }
+#endif
+    if (dot != std::string::npos && dot > 0 && !native_library_path) {
       const std::string parent_name = name.substr(0, dot);
       Value parent_module;
       std::string parent_error;

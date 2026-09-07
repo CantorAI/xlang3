@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <atomic>
+#include <condition_variable>
 
 namespace x3py {
 // Every engine operation, including releases, runs without the GIL. This avoids
@@ -25,6 +26,9 @@ struct Engine : std::enable_shared_from_this<Engine> {
   std::mutex foreign_mutex;
   std::unordered_map<PyObject*, PythonPayload*> foreign;
   std::atomic<bool> closing{false};
+  std::mutex activity_mutex;
+  std::condition_variable activity_drained;
+  size_t active_calls = 0;
   PyObject* owner = nullptr; // Borrowed GC anchor, retained by module and proxies.
   PyTypeObject* proxy_type = nullptr;
   X3PackageHost* python_host = nullptr;
@@ -35,14 +39,31 @@ struct Engine : std::enable_shared_from_this<Engine> {
   Engine();
   explicit Engine(X3Runtime* borrowed) : runtime(borrowed), owns_runtime(false) {}
   ~Engine();
+  // Called with the GIL before CPython finalization, never from a callback.
+  void close();
+  struct CallLease {
+    Engine* engine;
+    explicit CallLease(Engine* value) : engine(value) {
+      std::lock_guard<std::mutex> lock(engine->activity_mutex);
+      engine->ensure_open();
+      ++Engine::call_depth(engine);
+      ++engine->active_calls;
+    }
+    ~CallLease() {
+      std::lock_guard<std::mutex> lock(engine->activity_mutex);
+      --Engine::call_depth(engine);
+      if (!--engine->active_calls) engine->activity_drained.notify_all();
+    }
+  };
   static unsigned& depth(Engine* engine);
+  static unsigned& call_depth(const Engine* engine);
   void ensure_open() const {
-    if (closing) throw std::runtime_error("CPython bridge is closed");
+    if (closing && call_depth(this) == 0) throw std::runtime_error("CPython bridge is closed");
   }
   // Guarded runtime APIs own the VM lock themselves. Do not hold the allocation
   // mutex over them: IPC may call back on a different thread before returning.
   template<class F> auto execute(F&& fn) {
-    ensure_open();
+    CallLease lease(this);
     AllowThreads allow;
     return fn();
   }
@@ -62,6 +83,8 @@ struct Engine : std::enable_shared_from_this<Engine> {
   void check(X3Status status);
   void check_protocol(X3Status status, const char* fallback);
 };
+
+void register_interpreter_shutdown(const std::shared_ptr<Engine>& engine);
 
 struct ProtocolError : std::runtime_error {
   std::string type;

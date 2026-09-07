@@ -23,3 +23,9 @@ text = yaml.saves({"a": 1, "b": [2, 3]})
 roundtrip = yaml.loads(text)
 print(roundtrip["a"])
 print(roundtrip["b"][0])
+
+nested = {"outer-key": {"inner-key": "different-value"},
+          "sequence-key": [{"entry-key": "entry-value"}],
+          "nul\x00key": "nul\x00value"}
+restored = yaml.loads(yaml.saves(nested))
+assert restored == nested

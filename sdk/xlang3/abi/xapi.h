@@ -65,6 +65,14 @@ X3_API X3Status x3_event_set_change_handler(X3Runtime*, X3Value,
 X3_API X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path);
 X3_API X3Status x3_runtime_import_remote(X3Runtime* runtime, const char* name,
     const char* endpoint, X3Value* result);
+typedef struct X3LrpcEndpointInfo {
+  uint32_t size;
+  uint32_t pid;
+  uint64_t session_id;
+} X3LrpcEndpointInfo;
+/* pid == 0 means unavailable/busy through the deadline. Errors remain errors. */
+X3_API X3Status x3_runtime_probe_remote(X3Runtime* runtime, const char* endpoint,
+    uint32_t timeout_ms, X3LrpcEndpointInfo* result);
 
 X3_API X3Status x3_runtime_eval_file(
     X3Runtime* runtime,
@@ -151,6 +159,9 @@ typedef struct X3KeywordArg {
   const char* name;
   X3Value value;
 } X3KeywordArg;
+X3_API X3Status x3_event_fire_kw(X3Runtime* runtime, X3Value event,
+    const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
+    uint32_t kwargc, X3Value* result);
 X3_API X3Status x3_call_kw(X3Runtime* runtime, X3Value callable,
     const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
     uint32_t kwargc, X3Value* result);

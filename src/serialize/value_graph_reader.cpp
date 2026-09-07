@@ -1,6 +1,7 @@
 /* Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
    Licensed under the Apache License, Version 2.0. */
 #include "value_graph_internal.h"
+#include "native_graph_context.h"
 #include "xlang3/expression.h"
 #include "runtime_lock.h"
 #include <algorithm>
@@ -285,6 +286,7 @@ namespace xlang3::serialize {
 bool read_value_graph(Runtime& runtime, XLangStream& stream, Value& value, std::string& error) {
   try {
     XlangRuntimeExecutionGuard guard;
+    NativeGraphScope scope;
     while (runtime.collect_serialized_objects()) {}
     graph::Reader reader(runtime, stream);
     value = reader.run();

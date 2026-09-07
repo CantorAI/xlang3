@@ -32,6 +32,8 @@ struct SharedRegion {
   uint32_t slot_size;
   uint32_t server_pid;
   uint32_t next_call_id;
+  uint64_t session_id;
+  uint64_t process_birth;
   uint64_t next_capacity_ticket;
   SharedCapacityWaiter capacity_waiters[kSharedSlotCount];
   SharedSlot slots[kSharedSlotCount];
@@ -247,6 +249,15 @@ bool init_server_region(const std::string& port, ServerState& state, std::string
   state.region->slot_count = kSharedSlotCount;
   state.region->slot_size = kSharedSlotSize;
   state.region->server_pid = GetCurrentProcessId();
+  state.region->session_id = next_listener_session();
+  FILETIME created{}, exited{}, kernel{}, user{};
+  if (!GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) {
+    state.region->magic = 0;
+    ReleaseMutex(state.mutex);
+    error = "cannot read lrpc listener process identity";
+    return false;
+  }
+  state.region->process_birth = (uint64_t(created.dwHighDateTime) << 32) | created.dwLowDateTime;
   state.region->next_call_id = 1;
   initialize_slots(*state.region);
   ReleaseMutex(state.mutex);
@@ -398,6 +409,68 @@ void server_loop() {
 }
 
 } // namespace
+
+bool lrpc_probe_platform(const std::string& port, LrpcEndpointInfo& info, std::string& error) {
+  info = {};
+  for (const auto* ns : {"Global\\", "Local\\"}) {
+    const auto names = make_names(port, ns);
+    HANDLE mapping = OpenFileMappingA(FILE_MAP_READ, FALSE, names.mapping.c_str());
+    if (!mapping) {
+      const auto code = GetLastError();
+      if (code == ERROR_FILE_NOT_FOUND) continue;
+      error = "cannot probe lrpc mapping (Windows error " + std::to_string(code) + ")";
+      return false;
+    }
+    const auto* region = static_cast<const SharedRegion*>(
+        MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, sizeof(SharedRegion)));
+    if (!region) {
+      const auto code = GetLastError();
+      CloseHandle(mapping);
+      error = "cannot map lrpc probe region; incompatible size or access (Windows error " +
+          std::to_string(code) + ")";
+      return false;
+    }
+    HANDLE mutex = OpenMutexA(SYNCHRONIZE | MUTEX_MODIFY_STATE, FALSE, names.mutex.c_str());
+    auto close = [&] { if (mutex) CloseHandle(mutex); if (region) UnmapViewOfFile(region); CloseHandle(mapping); };
+    if (!mutex) {
+      const auto code = GetLastError();
+      close();
+      if (code == ERROR_FILE_NOT_FOUND) continue;
+      error = "cannot probe lrpc region or mutex (Windows error " + std::to_string(code) + ")";
+      return false;
+    }
+    const auto locked = WaitForSingleObject(mutex, 0);
+    if (locked == WAIT_TIMEOUT) { close(); return true; }
+    if (locked != WAIT_OBJECT_0 && locked != WAIT_ABANDONED) {
+      error = "cannot lock lrpc probe mutex"; close(); return false;
+    }
+    if (!region->magic || !region->server_pid) { ReleaseMutex(mutex); close(); continue; }
+    if (region->magic != kSharedMagic || region->version != kSharedVersion ||
+        region->slot_count != kSharedSlotCount || region->slot_size != kSharedSlotSize) {
+      error = "incompatible lrpc shared-memory protocol";
+      ReleaseMutex(mutex); close(); return false;
+    }
+    HANDLE process = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, region->server_pid);
+    if (!process) {
+      const auto code = GetLastError();
+      ReleaseMutex(mutex); close();
+      if (code == ERROR_INVALID_PARAMETER) continue;
+      error = "cannot inspect lrpc server process (Windows error " + std::to_string(code) + ")";
+      return false;
+    }
+    FILETIME created{}, exited{}, kernel{}, user{};
+    const bool times = GetProcessTimes(process, &created, &exited, &kernel, &user) != 0;
+    const uint64_t birth = (uint64_t(created.dwHighDateTime) << 32) | created.dwLowDateTime;
+    if (times && birth == region->process_birth && WaitForSingleObject(process, 0) == WAIT_TIMEOUT)
+      info = {region->server_pid, region->session_id};
+    CloseHandle(process);
+    ReleaseMutex(mutex);
+    close();
+    if (!times) { error = "cannot read lrpc server process identity"; return false; }
+    if (info.pid) return true;
+  }
+  return true;
+}
 
 bool lrpc_start_shared_memory_server_platform(const std::string& port, std::string& error) {
   if (!init_server_region(port, g_server_state, error)) {

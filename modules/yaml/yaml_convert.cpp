@@ -25,20 +25,20 @@ namespace {
 X3Value scalar_to_value(const X3PackageHost* host, X3Runtime* runtime, const YAML::Node& node) {
   const std::string raw = node.Scalar();
   if (node.Tag() == "!!str" || node.Tag() == "!") {
-    return host->value_string(runtime, raw.c_str());
+    return host->value_string_utf8(runtime, raw.data(), raw.size());
   }
   if (std::regex_match(raw, std::regex("^[-+]?[0-9]+$"))) {
     try {
       return x3_value_int64(std::stoll(raw));
     } catch (...) {
-      return host->value_string(runtime, raw.c_str());
+      return host->value_string_utf8(runtime, raw.data(), raw.size());
     }
   }
   if (std::regex_match(raw, std::regex("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"))) {
     try {
       return x3_value_double(std::stod(raw));
     } catch (...) {
-      return host->value_string(runtime, raw.c_str());
+      return host->value_string_utf8(runtime, raw.data(), raw.size());
     }
   }
   if (raw == "true" || raw == "True" || raw == "TRUE" ||
@@ -51,7 +51,7 @@ X3Value scalar_to_value(const X3PackageHost* host, X3Runtime* runtime, const YAM
       raw == "off" || raw == "Off" || raw == "OFF") {
     return x3_value_bool(0);
   }
-  return host->value_string(runtime, raw.c_str());
+  return host->value_string_utf8(runtime, raw.data(), raw.size());
 }
 
 bool value_to_yaml_list(const X3PackageHost* host, X3Runtime* runtime, X3Value value, YAML::Node& out, const char** error) {
@@ -99,7 +99,15 @@ bool value_to_yaml_dict(const X3PackageHost* host, X3Runtime* runtime, X3Value v
       *error = "yaml.saves() currently requires string dict keys";
       return false;
     }
-    const char* key_text = host->value_to_cstr(runtime, key);
+    const char* key_data = nullptr;
+    uint64_t key_size = 0;
+    if (host->value_string_data(runtime, key, &key_data, &key_size) != X3_STATUS_OK) {
+      *error = host->runtime_last_error(runtime);
+      host->value_release(key);
+      host->value_release(item);
+      return false;
+    }
+    const std::string key_text(key_data, static_cast<size_t>(key_size));
     const bool ok = value_to_yaml(host, runtime, item, item_node, error);
     if (ok) {
       out[key_text] = item_node;
@@ -137,7 +145,8 @@ X3Value yaml_to_value(const X3PackageHost* host, X3Runtime* runtime, const YAML:
       if (!item.first.IsDefined() || !item.first.IsScalar()) {
         continue;
       }
-      X3Value key = host->value_string(runtime, item.first.Scalar().c_str());
+      const auto& key_text = item.first.Scalar();
+      X3Value key = host->value_string_utf8(runtime, key_text.data(), key_text.size());
       X3Value value = yaml_to_value(host, runtime, item.second);
       host->dict_set_item(runtime, dict, key, value);
       host->value_release(key);
@@ -176,9 +185,16 @@ bool value_to_yaml(const X3PackageHost* host, X3Runtime* runtime, X3Value value,
   }
 
   switch (host->value_object_kind(value)) {
-    case X3_OBJECT_KIND_STRING:
-      out = host->value_to_cstr(runtime, value);
+    case X3_OBJECT_KIND_STRING: {
+      const char* data = nullptr;
+      uint64_t size = 0;
+      if (host->value_string_data(runtime, value, &data, &size) != X3_STATUS_OK) {
+        *error = host->runtime_last_error(runtime);
+        return false;
+      }
+      out = std::string(data, static_cast<size_t>(size));
       return true;
+    }
     case X3_OBJECT_KIND_LIST:
     case X3_OBJECT_KIND_TUPLE:
       return value_to_yaml_list(host, runtime, value, out, error);

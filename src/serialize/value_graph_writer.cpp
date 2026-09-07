@@ -1,6 +1,7 @@
 /* Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
    Licensed under the Apache License, Version 2.0. */
 #include "value_graph_internal.h"
+#include "native_graph_context.h"
 #include "xlang3/expression.h"
 #include "runtime_lock.h"
 #include <algorithm>
@@ -321,7 +322,7 @@ private:
 
 namespace xlang3::serialize {
 bool write_value_graph(Runtime& runtime, XLangStream& stream, const Value& value, std::string& error) {
-  try { XlangRuntimeExecutionGuard guard; graph::Writer(runtime, stream).run(value); return true; }
+  try { XlangRuntimeExecutionGuard guard; NativeGraphScope scope; graph::Writer(runtime, stream).run(value); return true; }
   catch (const std::exception& e) { error = e.what(); return false; }
 }
 }

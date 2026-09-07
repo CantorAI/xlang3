@@ -156,6 +156,8 @@ typedef struct X3PackageHost {
   /* Length-aware UTF-8 operations. These appended entries preserve the host prefix. */
   X3Status (*value_string_data)(X3Runtime*, X3Value, const char**, uint64_t*);
   X3Value (*value_string_utf8)(X3Runtime*, const char*, uint64_t);
+  X3Status (*event_fire_kw)(X3Runtime*, X3Value, const X3Value*, uint32_t,
+      const X3KeywordArg*, uint32_t, X3Value*);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);

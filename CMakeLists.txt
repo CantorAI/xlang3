@@ -184,6 +184,7 @@ if(NOT XLANG3_EMBEDDED)
     src/api/c_api.cpp
     src/api/buffer_api.cpp
     src/tensor/tensor_storage.cpp
+    src/tensor/tensor_serialization.cpp
     src/tensor/tensor_graph.cpp
     src/tensor/tensor_cpu.cpp
     src/tensor/tensor_module.cpp
@@ -407,6 +408,13 @@ target_include_directories(xlang3_xlang1_compat_package_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/sdk
 )
 add_dependencies(xlang3_xlang1_compat_package_tests xlang1_compat_sample_package)
+add_executable(xlang3_native_path_tests tests/cpp/native_path_tests.cpp)
+target_link_libraries(xlang3_native_path_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_native_path_tests PRIVATE XLANG3_USE_SHARED)
+add_dependencies(xlang3_native_path_tests xlang1_compat_sample_package)
+add_test(NAME xlang3_native_library_path
+  COMMAND xlang3_native_path_tests $<TARGET_FILE:xlang1_compat_sample_package>)
+set_tests_properties(xlang3_native_library_path PROPERTIES TIMEOUT 30)
 add_test(NAME xlang3_expression_decorators
   COMMAND xlang3 -c "exec(open('${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/expression_decorators.py').read())")
 set_tests_properties(xlang3_expression_decorators PROPERTIES

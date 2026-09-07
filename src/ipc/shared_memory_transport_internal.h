@@ -13,7 +13,7 @@ Licensed under the Apache License, Version 2.0
 namespace xlang3::ipc {
 
 constexpr uint32_t kSharedMagic = 0x33435049u;
-constexpr uint32_t kSharedVersion = 2;
+constexpr uint32_t kSharedVersion = 3;
 constexpr uint32_t kSharedSlotCount = 32;
 constexpr uint32_t kSharedSlotSize = 64 * 1024;
 
@@ -41,6 +41,8 @@ extern std::atomic_bool g_server_started;
 extern LrpcDispatch g_dispatch;
 
 std::string strip_lrpc_prefix(const std::string& endpoint);
+uint64_t next_listener_session();
+bool lrpc_probe_platform(const std::string& port, LrpcEndpointInfo& info, std::string& error);
 void make_error_response(const std::string& message, std::string& out);
 
 bool lrpc_shared_memory_request_platform(

@@ -57,12 +57,25 @@ add_test(NAME xlang3_cpython_lifetime
   COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/test_lifetime.py
     $<TARGET_FILE_DIR:xlang3_cpython> ${PROJECT_SOURCE_DIR}/tests/cpython_bridge)
 set_tests_properties(xlang3_cpython_lifetime PROPERTIES TIMEOUT 30)
+add_test(NAME xlang3_cpython_shutdown
+  COMMAND Python3::Interpreter -B ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/test_shutdown.py
+    $<TARGET_FILE_DIR:xlang3_cpython>)
+set_tests_properties(xlang3_cpython_shutdown PROPERTIES TIMEOUT 90)
 add_dependencies(xlang3_cpython xlang_json_native_package xlang_net_native_package xlang3 xlang_cpython_native_package)
 add_test(NAME xlang3_cpython_ipc
   COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/test_ipc.py
     $<TARGET_FILE_DIR:xlang3_cpython> $<TARGET_FILE:xlang3>
     ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/ipc_server.py)
 set_tests_properties(xlang3_cpython_ipc PROPERTIES TIMEOUT 60)
+add_test(NAME xlang3_cpython_lrpc_probe
+  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/test_probe.py
+    $<TARGET_FILE_DIR:xlang3_cpython> $<TARGET_FILE:xlang3>
+    ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/ipc_server.py)
+set_tests_properties(xlang3_cpython_lrpc_probe PROPERTIES TIMEOUT 45)
+add_test(NAME xlang3_cpython_constructors
+  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/test_constructors.py
+    $<TARGET_FILE_DIR:xlang3_cpython>)
+set_tests_properties(xlang3_cpython_constructors PROPERTIES TIMEOUT 30)
 add_test(NAME xlang3_cpython_hosted
   COMMAND xlang3 ${PROJECT_SOURCE_DIR}/tests/cpython_bridge/test_hosted.py
     $<TARGET_FILE_DIR:xlang_cpython_native_package> ${PROJECT_SOURCE_DIR}/tests/cpython_bridge)

@@ -143,9 +143,12 @@ std::vector<std::string> native_package_name_candidates(const std::string& name)
 
 void* open_library(const std::filesystem::path& path, std::string& error) {
 #if defined(_WIN32)
-  HMODULE handle = LoadLibraryA(path.string().c_str());
+  const auto absolute = std::filesystem::absolute(path);
+  HMODULE handle = LoadLibraryExW(absolute.c_str(), nullptr,
+      LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
   if (handle == nullptr) {
-    error = "cannot load native package " + path.string();
+    error = "cannot load native package " + path.string() +
+        " (Windows error " + std::to_string(GetLastError()) + ")";
   }
   return reinterpret_cast<void*>(handle);
 #else
@@ -749,6 +752,7 @@ const X3PackageHost kPackageHostTemplate = {
     host_module_add_property,
     x3_value_string_data,
     x3_value_string_utf8,
+    x3_event_fire_kw,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(
@@ -756,6 +760,12 @@ std::vector<std::filesystem::path> collect_native_library_candidates(
     const std::string& name,
     NativePackageLookupMode mode) {
   std::vector<std::filesystem::path> out;
+  const auto explicit_path = std::filesystem::u8path(name);
+  const auto extension = explicit_path.extension().string();
+  if (extension == ".dll" || extension == ".so" || extension == ".dylib") {
+    out.push_back(std::filesystem::absolute(explicit_path).lexically_normal());
+    return out;
+  }
   std::vector<std::filesystem::path> roots;
   Value sys;
   std::string ignored;
@@ -918,13 +928,15 @@ static bool initialize_native_package(
 }
 
 bool import_native_package(Runtime& runtime, const std::string& package_name,
-    NativePackageLookupMode mode, Value& out, std::string& error) {
+    NativePackageLookupMode mode, Value& out, std::string& error, bool* library_found) {
+  if (library_found) *library_found = false;
   std::filesystem::path library_path;
   auto candidates = collect_native_library_candidates(runtime, package_name, mode);
   if (!find_native_library(candidates, library_path)) {
     error = format_native_not_found(package_name, candidates);
     return false;
   }
+  if (library_found) *library_found = true;
   void* handle = open_library(library_path, error);
   if (!handle) return false;
   auto init = reinterpret_cast<X3PackageInitFn>(find_symbol(handle, "Load"));

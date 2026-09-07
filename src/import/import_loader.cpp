@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
+#include "xlang3/native_package_loader.h"
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
@@ -351,6 +352,17 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   trace_import_timing(name, "found", import_start);
 
   if (module_file.is_namespace_package) {
+    // A data-only directory must not hide a concrete native module.
+    bool library_found = false;
+    std::string native_error;
+    if (import_native_package(runtime, name, NativePackageLookupMode::IncludeXlangPrefixFallback,
+                              out, native_error, &library_found)) {
+      return true;
+    }
+    if (library_found) {
+      error = std::move(native_error);
+      return false;
+    }
     auto module_value = Value::module(name);
     std::string attr_error;
     module_set_attr(module_value, "__name__", Value::string(name), attr_error);
