@@ -209,6 +209,20 @@ bool HttpServer::Stop() {
   return true;
 }
 
+bool HttpResponse::SetStatus(int status) {
+  if (!response_ || status < 100 || status > 599) return false;
+  response_->status = status;
+  return true;
+}
+
+bool HttpServer::IsRunning() const {
+  return server_ && server_->is_running();
+}
+
+bool HttpServer::Mount(std::string path, std::string folder) {
+  return server_ && !server_->is_running() && server_->set_mount_point(path, folder);
+}
+
 bool HttpServer::Get(std::string pattern, X::Value handler) {
   if (!server_) Init();
   server_->Get(pattern, [this, handler](const httplib::Request& req, httplib::Response& res) mutable {

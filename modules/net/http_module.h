@@ -47,12 +47,14 @@ public:
   explicit HttpResponse(httplib::Response* response);
 
   bool SetContent(X::Value value, std::string content_type);
+  bool SetStatus(int status);
   bool AddHeader(std::string name, X::Value value);
   bool StreamFile(std::string file_path, long long start, long long end, std::string content_type);
   bool StreamFileWithCallback(std::string file_path, long long start, long long end, std::string content_type, X::Value callback);
 
   BEGIN_PACKAGE(HttpResponse)
     APISET().AddFunc<2>("set_content", &HttpResponse::SetContent);
+    APISET().AddFunc<1>("set_status", &HttpResponse::SetStatus);
     APISET().AddFunc<2>("add_header", &HttpResponse::AddHeader);
     APISET().AddFunc<4>("stream_file", &HttpResponse::StreamFile);
     APISET().AddFunc<5>("stream_file_with_cb", &HttpResponse::StreamFileWithCallback);
@@ -115,6 +117,8 @@ public:
 
   bool Listen(std::string address, int port, int backlog, int thread_pool_count);
   bool Stop();
+  bool IsRunning() const;
+  bool Mount(std::string path, std::string folder);
   bool Get(std::string pattern, X::Value handler);
   bool AddRoute(std::string pattern, X::Value handler);
   bool Route(X::Value handler);
@@ -132,6 +136,8 @@ public:
     APISET().AddProp("StaticRoots", &HttpServer::StaticRoots);
     APISET().AddFunc<4>("listen", &HttpServer::Listen);
     APISET().AddFunc<0>("stop", &HttpServer::Stop);
+    APISET().AddFunc<0>("is_running", &HttpServer::IsRunning);
+    APISET().AddFunc<2>("mount", &HttpServer::Mount);
     APISET().AddFunc<2>("get", &HttpServer::Get);
     APISET().AddFunc<1>("route", &HttpServer::Route);
     APISET().AddFunc<2>("add_route", &HttpServer::AddRoute);

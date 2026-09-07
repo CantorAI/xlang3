@@ -904,6 +904,9 @@ X3Status x3_call_kw(X3Runtime* runtime, X3Value callable, const X3Value* args,
   }
   xlang3::Value out;
   xlang3::XlangRuntimeExecutionGuard execution_guard;
+  // A previous C API failure was returned as a status; it must not poison a new call.
+  xlang3::Value previous_exception;
+  rt->take_pending_exception(previous_exception);
   if (!xlang3::runtime_call_callable_kw(
           *rt,
           internal_callable,
