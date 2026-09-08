@@ -106,6 +106,10 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
   out.push_back(directory / (stem + ".x3pkg.dylib"));
   out.push_back(directory / ("lib" + stem + ".dylib"));
   out.push_back(directory / (stem + ".dylib"));
+  out.push_back(directory / ("lib" + stem + ".x3pkg.so"));
+  out.push_back(directory / (stem + ".x3pkg.so"));
+  out.push_back(directory / ("lib" + stem + ".so"));
+  out.push_back(directory / (stem + ".so"));
 #else
   out.push_back(directory / ("lib" + stem + ".x3pkg.so"));
   out.push_back(directory / (stem + ".x3pkg.so"));
