@@ -751,7 +751,9 @@ void collect_self_attr_slots_expr(
     return;
   }
   if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
-    collect_self_attr_slots_expr(*yield->expr, self_name, slots, seen);
+    if (yield->expr != nullptr) {
+      collect_self_attr_slots_expr(*yield->expr, self_name, slots, seen);
+    }
     return;
   }
   if (dynamic_cast<const ast::FStringExpr*>(&expr) != nullptr) {
@@ -799,9 +801,9 @@ void collect_self_attr_slots_expr(
     return;
   }
   if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
-    collect_self_attr_slots_expr(*slice->start, self_name, slots, seen);
-    collect_self_attr_slots_expr(*slice->stop, self_name, slots, seen);
-    collect_self_attr_slots_expr(*slice->step, self_name, slots, seen);
+    if (slice->start != nullptr) collect_self_attr_slots_expr(*slice->start, self_name, slots, seen);
+    if (slice->stop != nullptr) collect_self_attr_slots_expr(*slice->stop, self_name, slots, seen);
+    if (slice->step != nullptr) collect_self_attr_slots_expr(*slice->step, self_name, slots, seen);
     return;
   }
   if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
@@ -824,7 +826,7 @@ void collect_self_attr_slots_expr(
   }
   if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
     for (const auto& entry : dict->entries) {
-      collect_self_attr_slots_expr(*entry.first, self_name, slots, seen);
+      if (entry.first != nullptr) collect_self_attr_slots_expr(*entry.first, self_name, slots, seen);
       collect_self_attr_slots_expr(*entry.second, self_name, slots, seen);
     }
     return;
@@ -939,7 +941,9 @@ void collect_self_attr_slots_stmt(
     return;
   }
   if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
-    collect_self_attr_slots_expr(*ret->value, self_name, slots, seen);
+    if (ret->value != nullptr) {
+      collect_self_attr_slots_expr(*ret->value, self_name, slots, seen);
+    }
     return;
   }
   if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {

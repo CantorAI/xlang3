@@ -44,6 +44,13 @@ int main() {
         "        return\n"
         "    return generator\n"
         "\n"
+        "class OptionalAstChildren:\n"
+        "    def generator(self, mapping, values):\n"
+        "        copy = {**mapping}\n"
+        "        all_values = values[:]\n"
+        "        yield\n"
+        "        return\n"
+        "\n"
         "optional_ast_children({\"a\": 1}, [1, 2])\n"
         "print(\"optional AST children ok\")\n",
         output);
