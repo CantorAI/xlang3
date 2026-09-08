@@ -1,4 +1,5 @@
 import sys
+import threading
 if len(sys.argv) > 1:
     sys.path.insert(0, sys.argv[1])
 from xlang_net import http
@@ -17,7 +18,9 @@ def binary(req, res):
 
 def shutdown(req, res):
     res.set_content("bye", "text/plain")
-    server.stop()
+    # Let the request handler return so the response is flushed before the
+    # listening socket is closed. Stopping inline can drop the reply on Windows.
+    threading.Timer(0.05, server.stop).start()
 
 server.get("/small", small)
 server.get("/large", large)
