@@ -15,12 +15,25 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <crt_externs.h>
+#else
+extern char** environ;
+#endif
 #if defined(__linux__)
 #include <sys/syscall.h>
 #endif
 
 namespace xlang3 {
 namespace {
+char** process_environment() {
+#if defined(__APPLE__)
+  return *_NSGetEnviron();
+#else
+  return ::environ;
+#endif
+}
+
 bool os_error(Runtime& runtime, std::string& error) {
   const int code = errno;
   error = std::strerror(code);
@@ -106,6 +119,7 @@ bool fork_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
       !string_array(runtime, args[1], executables, paths, error)) return false;
   if (arguments.empty() || executables.empty()) { error = "empty process arguments"; return false; }
   const bool inherit_environment = args[5].tag == ValueTag::None;
+  char** inherited_environment = process_environment();
   if (!inherit_environment && !string_array(runtime, args[5], environment, envp, error)) return false;
   std::string cwd;
   if (args[4].tag != ValueTag::None && !text_arg(runtime, args[4], cwd, error)) return false;
@@ -206,7 +220,8 @@ bool fork_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     }
     int saved_errno = 0;
     for (const auto& executable : executables) {
-      ::execve(executable.c_str(), argv.data(), inherit_environment ? ::environ : envp.data());
+      ::execve(executable.c_str(), argv.data(),
+               inherit_environment ? inherited_environment : envp.data());
       if (errno != ENOENT && errno != ENOTDIR && saved_errno == 0) saved_errno = errno;
     }
     child_error(errpipe, saved_errno ? saved_errno : errno, "");

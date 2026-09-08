@@ -39,6 +39,11 @@ limitations under the License.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <crt_externs.h>
+#else
+extern char** environ;
+#endif
 #endif
 
 namespace xlang3 {
@@ -46,6 +51,16 @@ namespace xlang3 {
 namespace {
 
 constexpr const char* kScandirIteratorNativeType = "os.ScandirIterator";
+
+#if !defined(_WIN32)
+char** process_environment() {
+#if defined(__APPLE__)
+  return *_NSGetEnviron();
+#else
+  return ::environ;
+#endif
+}
+#endif
 
 Value make_process_environ_dict() {
   std::vector<std::pair<Value, Value>> entries;
@@ -65,8 +80,9 @@ Value make_process_environ_dict() {
     FreeEnvironmentStringsA(block);
   }
 #else
-  if (::environ != nullptr) {
-    for (char** current = ::environ; *current != nullptr; ++current) {
+  char** environment = process_environment();
+  if (environment != nullptr) {
+    for (char** current = environment; *current != nullptr; ++current) {
       std::string_view item(*current);
       const size_t equals = item.find('=');
       if (equals == std::string_view::npos) {
