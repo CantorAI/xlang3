@@ -68,9 +68,33 @@ struct RuntimeCurrentFrameState {
   bool profile_dispatch_active = false;
 };
 
-thread_local std::unordered_map<const Runtime*, RuntimeCurrentFrameState> g_runtime_current_frames;
-thread_local std::unordered_map<const Runtime*, std::vector<RuntimeCurrentFrameState>> g_runtime_current_frame_stack;
-thread_local std::unordered_map<const Runtime*, Value> g_runtime_active_exceptions;
+using CurrentFrameMap = std::unordered_map<const Runtime*, RuntimeCurrentFrameState>;
+using CurrentFrameStackMap = std::unordered_map<const Runtime*, std::vector<RuntimeCurrentFrameState>>;
+using ActiveExceptionMap = std::unordered_map<const Runtime*, Value>;
+
+#if defined(__APPLE__)
+// Darwin tears down main-thread TLS before executable-owned global objects. Keep
+// the containers alive so a global X::Runtime can still perform orderly cleanup.
+CurrentFrameMap& current_frames() {
+  thread_local auto* frames = new CurrentFrameMap();
+  return *frames;
+}
+CurrentFrameStackMap& current_frame_stacks() {
+  thread_local auto* stacks = new CurrentFrameStackMap();
+  return *stacks;
+}
+ActiveExceptionMap& active_exceptions() {
+  thread_local auto* exceptions = new ActiveExceptionMap();
+  return *exceptions;
+}
+#else
+thread_local CurrentFrameMap g_runtime_current_frames;
+thread_local CurrentFrameStackMap g_runtime_current_frame_stack;
+thread_local ActiveExceptionMap g_runtime_active_exceptions;
+CurrentFrameMap& current_frames() { return g_runtime_current_frames; }
+CurrentFrameStackMap& current_frame_stacks() { return g_runtime_current_frame_stack; }
+ActiveExceptionMap& active_exceptions() { return g_runtime_active_exceptions; }
+#endif
 
 std::mutex g_runtime_frame_registry_mutex;
 std::unordered_map<const Runtime*, std::unordered_map<int64_t, RuntimeCurrentFrameState>> g_runtime_frame_registry;
@@ -82,7 +106,7 @@ int64_t runtime_current_thread_ident() {
 }
 
 RuntimeCurrentFrameState& current_frame_state(const Runtime& runtime) {
-  return g_runtime_current_frames[&runtime];
+  return current_frames()[&runtime];
 }
 
 void publish_current_frame_state(const Runtime& runtime) {
@@ -110,7 +134,7 @@ void clear_runtime_frame_states(const Runtime& runtime) {
 } // namespace
 
 Value& runtime_current_exception_state(const Runtime& runtime) {
-  return g_runtime_active_exceptions[&runtime];
+  return active_exceptions()[&runtime];
 }
 
 void runtime_publish_current_exception_state(const Runtime& runtime) {
@@ -163,6 +187,7 @@ void add_default_import_layout(Runtime& runtime, const std::filesystem::path& ba
     return;
   }
   runtime.add_import_root(base / "lib");
+  runtime.add_import_root(base / "lib" / "python3.14");
   runtime.add_import_root(base / "modules");
   runtime.add_import_root(base / "site-packages");
   runtime.add_import_root(base);
@@ -878,19 +903,20 @@ void Runtime::set_current_frame(
 }
 
 void Runtime::push_current_frame_state() {
-  g_runtime_current_frame_stack[this].push_back(current_frame_state(*this));
+  current_frame_stacks()[this].push_back(current_frame_state(*this));
 }
 
 void Runtime::pop_current_frame_state() {
-  auto stack_it = g_runtime_current_frame_stack.find(this);
-  if (stack_it == g_runtime_current_frame_stack.end() || stack_it->second.empty()) {
+  auto& stacks = current_frame_stacks();
+  auto stack_it = stacks.find(this);
+  if (stack_it == stacks.end() || stack_it->second.empty()) {
     clear_current_frame();
     return;
   }
   current_frame_state(*this) = std::move(stack_it->second.back());
   stack_it->second.pop_back();
   if (stack_it->second.empty()) {
-    g_runtime_current_frame_stack.erase(stack_it);
+    stacks.erase(stack_it);
   }
   const auto& state = current_frame_state(*this);
   if (state.module_owner == nullptr && state.globals_module == nullptr && state.frame_stack == nullptr) {
