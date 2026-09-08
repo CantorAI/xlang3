@@ -195,7 +195,7 @@ bool fork_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     if (restore_signals) {
       struct sigaction action {};
       action.sa_handler = SIG_DFL;
-      ::sigemptyset(&action.sa_mask);
+      sigemptyset(&action.sa_mask);
       if (::sigaction(SIGPIPE, &action, nullptr) < 0) child_error(errpipe, errno, "noexec");
 #ifdef SIGXFZ
       ::sigaction(SIGXFZ, &action, nullptr);
