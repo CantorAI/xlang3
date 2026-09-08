@@ -8,14 +8,15 @@ with tempfile.TemporaryDirectory(prefix="xlang3-readlink-") as directory:
     root = pathlib.Path(directory)
     (root / "regular").write_text("test", encoding="utf-8")
     (root / "link").symlink_to("regular")
-    long_target = "/".join(["long-target"] * 100)
+    # Stay below Darwin's per-link target limit while exceeding small fixed buffers.
+    long_target = "/".join(["long-target"] * 50)
     (root / "long").symlink_to(long_target)
     source = '''import os
 import pathlib
 assert os.readlink("link") == "regular"
 assert os.readlink(b"link") == b"regular"
 assert os.readlink(pathlib.Path("link")) == "regular"
-assert os.readlink("long") == "/".join(["long-target"] * 100)
+assert os.readlink("long") == "/".join(["long-target"] * 50)
 for path in ["regular", "missing"]:
     try:
         os.readlink(path)
