@@ -221,8 +221,12 @@ add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
 add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
+set(XLANG3_MULTIARCH "${CMAKE_LIBRARY_ARCHITECTURE}")
+if(APPLE AND NOT XLANG3_MULTIARCH)
+  set(XLANG3_MULTIARCH "darwin")
+endif()
 target_compile_definitions(xlang3_system_runtime PRIVATE
-  XLANG3_MULTIARCH="${CMAKE_LIBRARY_ARCHITECTURE}")
+  XLANG3_MULTIARCH="${XLANG3_MULTIARCH}")
 
 find_package(Threads REQUIRED)
 
