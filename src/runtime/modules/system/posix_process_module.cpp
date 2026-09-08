@@ -164,7 +164,12 @@ bool fork_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   const bool new_session = value_truthy(args[15]);
   struct rlimit limit;
   if (::getrlimit(RLIMIT_NOFILE, &limit) < 0) return os_error(runtime, error);
-  const int max_fd = limit.rlim_max >= INT_MAX ? INT_MAX : static_cast<int>(limit.rlim_max);
+  rlim_t descriptor_limit = limit.rlim_cur;
+  if (descriptor_limit == RLIM_INFINITY || descriptor_limit > static_cast<rlim_t>(INT_MAX)) {
+    const long open_max = ::sysconf(_SC_OPEN_MAX);
+    descriptor_limit = open_max > 0 ? static_cast<rlim_t>(open_max) : 256;
+  }
+  const int max_fd = static_cast<int>(descriptor_limit);
   const pid_t pid = ::fork();
   if (pid < 0) return os_error(runtime, error);
   if (pid == 0) {
