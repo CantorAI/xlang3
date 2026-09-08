@@ -3175,10 +3175,10 @@ print([path.replace("\\", "/") for path in glob.glob("xlang3_glob_case/**/*.py",
 print([path.replace("\\", "/") for path in glob.iglob("xlang3_glob_case/*.txt")])
 print(glob.glob("*.py", root_dir="xlang3_glob_case"))
 hidden_glob = glob.glob("*.py", root_dir="xlang3_glob_case", include_hidden=True)
-hidden_glob.sort(key=lambda item: (item.startswith("."), item))
+hidden_glob.sort(key=lambda item: (not item.startswith("."), item))
 print(hidden_glob)
 hidden_iter = iter(sorted(glob.iglob("*.py", root_dir="xlang3_glob_case", include_hidden=True),
-                          key=lambda item: (item.startswith("."), item)))
+                          key=lambda item: (not item.startswith("."), item)))
 print(next(hidden_iter), list(hidden_iter))
 byte_glob = glob.glob(bytes("*.txt", "utf-8"), root_dir=bytes("xlang3_glob_case", "utf-8"))
 print(isinstance(byte_glob[0], bytes), byte_glob)
