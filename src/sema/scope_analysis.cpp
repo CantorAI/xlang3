@@ -266,7 +266,9 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
   } else if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
     collect_reads_expr(*await->expr, names, seen);
   } else if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
-    collect_reads_expr(*yield->expr, names, seen);
+    if (yield->expr != nullptr) {
+      collect_reads_expr(*yield->expr, names, seen);
+    }
   } else if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
     for (const auto& part : fstring->parts) {
       if (part.is_expr) {
@@ -301,9 +303,9 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     collect_reads_expr(*subscript->object, names, seen);
     collect_reads_expr(*subscript->index, names, seen);
   } else if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
-    collect_reads_expr(*slice->start, names, seen);
-    collect_reads_expr(*slice->stop, names, seen);
-    collect_reads_expr(*slice->step, names, seen);
+    if (slice->start != nullptr) collect_reads_expr(*slice->start, names, seen);
+    if (slice->stop != nullptr) collect_reads_expr(*slice->stop, names, seen);
+    if (slice->step != nullptr) collect_reads_expr(*slice->step, names, seen);
   } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
     collect_reads_expr(*attr->object, names, seen);
   } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
@@ -316,7 +318,8 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
     }
   } else if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
     for (const auto& entry : dict->entries) {
-      collect_reads_expr(*entry.first, names, seen);
+      // A null key represents a dictionary unpack entry: {**value}.
+      if (entry.first != nullptr) collect_reads_expr(*entry.first, names, seen);
       collect_reads_expr(*entry.second, names, seen);
     }
   } else if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
@@ -522,7 +525,9 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
     } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(stmt.get())) {
       collect_reads_expr(*expr_stmt->expr, names, seen);
     } else if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(stmt.get())) {
-      collect_reads_expr(*ret->value, names, seen);
+      if (ret->value != nullptr) {
+        collect_reads_expr(*ret->value, names, seen);
+      }
     } else if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(stmt.get())) {
       if (raise->value != nullptr) {
         collect_reads_expr(*raise->value, names, seen);

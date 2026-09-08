@@ -36,6 +36,26 @@ int main() {
   {
     std::string output;
     auto run = xlang3::test::run_source(
+        "def optional_ast_children(mapping, values):\n"
+        "    def generator():\n"
+        "        copy = {**mapping}\n"
+        "        all_values = values[:]\n"
+        "        yield\n"
+        "        return\n"
+        "    return generator\n"
+        "\n"
+        "optional_ast_children({\"a\": 1}, [1, 2])\n"
+        "print(\"optional AST children ok\")\n",
+        output);
+    result.errors.insert(result.errors.end(), run.errors.begin(), run.errors.end());
+    result.ok = result.ok && run.ok;
+    xlang3::test::expect_true(result, output == "optional AST children ok\n",
+                              "scope analysis should accept valid nullable expression children");
+  }
+
+  {
+    std::string output;
+    auto run = xlang3::test::run_source(
         "def main():\n"
         "    total = 0\n"
         "    i = 0\n"
