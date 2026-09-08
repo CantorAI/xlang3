@@ -346,7 +346,8 @@ bool lrpc_probe_platform(const std::string& port, LrpcEndpointInfo& info, std::s
     return false;
   }
   struct stat status{};
-  if (fstat(mapping.fd, &status) != 0 || status.st_size != sizeof(SharedRegion)) {
+  // Darwin rounds POSIX shared-memory objects up to the VM page size.
+  if (fstat(mapping.fd, &status) != 0 || status.st_size < static_cast<off_t>(sizeof(SharedRegion))) {
     close_posix_mapping(mapping);
     error = "incompatible lrpc shared-memory region size";
     return false;

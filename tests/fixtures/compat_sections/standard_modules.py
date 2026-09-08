@@ -3369,7 +3369,7 @@ try:
     client.connect((host, port))
     accepted, peer = server.accept()
     accepted.sendall(b"pong")
-    ready_read, ready_write, ready_except = select.select([client], [], [], 0)
+    ready_read, ready_write, ready_except = select.select([client], [], [], 2.0)
     client_data = client.recv(4)
     client.sendall(b"ping")
     server_data = accepted.recv(4)

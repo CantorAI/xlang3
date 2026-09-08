@@ -1111,7 +1111,9 @@ bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error)) {
     return raise_path_not_found(runtime, error);
   }
-  value_set_int64(out, static_cast<int64_t>(stat.inode));
+  out = stat.inode <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())
+      ? Value::int64(static_cast<int64_t>(stat.inode))
+      : value_bigint_from_u64(stat.inode);
   return true;
 }
 
