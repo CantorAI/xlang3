@@ -18,6 +18,7 @@ limitations under the License.
 #include <filesystem>
 #include <functional>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #if defined(_WIN32)
 #include <sys/stat.h>
@@ -43,6 +44,11 @@ public:
     return true;
   }
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) override {
+    std::error_code ec;
+    if (std::filesystem::is_directory(path, ec)) {
+      error = "cannot open directory as file " + path;
+      return false;
+    }
     std::ifstream file(path, std::ios::binary);
     if (!file) {
       error = "cannot open file " + path;
@@ -50,14 +56,36 @@ public:
     }
     file.seekg(0, std::ios::end);
     const auto end = file.tellg();
-    file.seekg(0, std::ios::beg);
     if (end > 0) {
-      out.resize(static_cast<std::size_t>(end));
-      file.read(reinterpret_cast<char*>(out.data()), static_cast<std::streamsize>(out.size()));
+      const auto size = static_cast<uintmax_t>(end);
+      if (size > out.max_size() || size > static_cast<uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+        error = "file is too large " + path;
+        return false;
+      }
+      file.seekg(0, std::ios::beg);
+      if (!file) {
+        error = "cannot seek file " + path;
+        return false;
+      }
+      out.resize(static_cast<std::size_t>(size));
+      if (size != 0) {
+        file.read(reinterpret_cast<char*>(out.data()), static_cast<std::streamsize>(size));
+        if (!file) {
+          out.clear();
+          error = "cannot read file " + path;
+          return false;
+        }
+      }
       return true;
     }
+    file.clear();
+    file.seekg(0, std::ios::beg);
     std::ostringstream buffer;
     buffer << file.rdbuf();
+    if (file.bad()) {
+      error = "cannot read file " + path;
+      return false;
+    }
     const std::string text = buffer.str();
     out.assign(text.begin(), text.end());
     return true;
