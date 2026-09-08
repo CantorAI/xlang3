@@ -1297,7 +1297,9 @@ private:
     } else if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
       prepare_captured_locals_from_expr(*expr->expr);
     } else if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
-      prepare_captured_locals_from_expr(*ret->value);
+      if (ret->value != nullptr) {
+        prepare_captured_locals_from_expr(*ret->value);
+      }
     } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
       prepare_captured_locals_from_expr(*assign->target);
       if (assign->value != nullptr) {
@@ -1387,7 +1389,9 @@ private:
       return;
     }
     if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
-      collect_expression_captures(*yield->expr, local_targets, names, seen);
+      if (yield->expr != nullptr) {
+        collect_expression_captures(*yield->expr, local_targets, names, seen);
+      }
       return;
     }
     if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
@@ -1432,9 +1436,9 @@ private:
       return;
     }
     if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
-      collect_expression_captures(*slice->start, local_targets, names, seen);
-      collect_expression_captures(*slice->stop, local_targets, names, seen);
-      collect_expression_captures(*slice->step, local_targets, names, seen);
+      if (slice->start != nullptr) collect_expression_captures(*slice->start, local_targets, names, seen);
+      if (slice->stop != nullptr) collect_expression_captures(*slice->stop, local_targets, names, seen);
+      if (slice->step != nullptr) collect_expression_captures(*slice->step, local_targets, names, seen);
       return;
     }
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
@@ -1455,7 +1459,7 @@ private:
     }
     if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
       for (const auto& entry : dict->entries) {
-        collect_expression_captures(*entry.first, local_targets, names, seen);
+        if (entry.first != nullptr) collect_expression_captures(*entry.first, local_targets, names, seen);
         collect_expression_captures(*entry.second, local_targets, names, seen);
       }
       return;
