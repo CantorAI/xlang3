@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--client", default="client.py")
     parser.add_argument("--expected", default="expected.out")
     parser.add_argument("--native-modules")
+    parser.add_argument("--native-client")
     args = parser.parse_args()
     root = Path(__file__).resolve().parent
     expected = (root / args.expected).read_text().rstrip()
@@ -53,6 +54,12 @@ def main():
             clients = [start(f"parallel-{i}", command) for i in range(4)]
             for client in clients:
                 check(client)
+            if args.native_client:
+                native = subprocess.run(
+                    [args.native_client, port], text=True, capture_output=True, timeout=30)
+                if native.returncode:
+                    raise RuntimeError(
+                        f"Native client exit={native.returncode}\n{native.stdout}\n{native.stderr}")
             if server.poll() is not None:
                 raise RuntimeError(f"Server exited unexpectedly: {errors.read_text()}")
             print(f"IPC {args.client}: serial and four parallel clients passed")

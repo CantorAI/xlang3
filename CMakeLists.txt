@@ -289,7 +289,11 @@ if(WIN32)
 endif()
 
 enable_testing()
-find_program(XLANG3_POWERSHELL NAMES powershell pwsh REQUIRED)
+if(WIN32)
+  find_program(XLANG3_POWERSHELL NAMES powershell pwsh REQUIRED)
+else()
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+endif()
 add_test(NAME xlang3_import_errors
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/import_errors.py)
 add_test(NAME xlang3_bytes_split
@@ -446,7 +450,6 @@ if(WIN32)
       -NativeModules $<TARGET_FILE_DIR:xlang1_compat_sample_package>
       -ClientScript expression_client.py -Expected expression_expected.out)
 else()
-  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   add_test(NAME xlang3_os_readlink
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/test_readlink.py
       $<TARGET_FILE:xlang3>)
@@ -488,22 +491,8 @@ add_test(
 )
 
 add_test(
-  NAME xlang3_cli_real_native_imports
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-)
-
-add_test(
   NAME xlang3_curmodule_probe_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/curmodule_probe_import.py
-)
-
-add_test(
-  NAME xlang3_xlang1_compat_import
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_xlang1_compat_import.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
 )
 
 add_test(
@@ -511,80 +500,36 @@ add_test(
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/module.py $<TARGET_FILE_DIR:xlang_net_native_package>
 )
 
-add_test(
-  NAME xlang3_cli_net_module_server_client
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-          -NativeModules $<TARGET_FILE_DIR:xlang_net_native_package>
-)
-
-add_test(
-  NAME xlang3_cli_sqlite_module_imports
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/run_sqlite_tests.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-          -NativeModules $<TARGET_FILE_DIR:xlang_sqlite3_native_package>
-)
-
-add_test(
-  NAME xlang3_cli_fixtures
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-)
-
-add_test(
-  NAME xlang3_cli_compat
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-          -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/cli_compat
-)
-
-add_test(
-  NAME xlang3_cli_pickle_interop
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-          -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop
-)
-
-add_test(
-  NAME xlang3_ipc_lrpc_smoke
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-          -NativeClient $<TARGET_FILE:xlang3_cpp_ipc_client>
-)
-
-add_test(
-  NAME xlang3_ipc_lrpc_server_exit
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-)
-
-add_test(
-  NAME xlang3_ipc_lrpc_backpressure
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-          -ClientScript pressure_client.py
-          -Expected pressure_expected.out
-)
-set_tests_properties(xlang3_ipc_lrpc_backpressure PROPERTIES TIMEOUT 120)
-add_test(
-  NAME xlang3_ipc_lrpc_backpressure_server_exit
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-)
+if(WIN32)
+  add_test(NAME xlang3_cli_real_native_imports COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_xlang1_compat_import COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_xlang1_compat_import.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_net_module_server_client COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeModules $<TARGET_FILE_DIR:xlang_net_native_package>)
+  add_test(NAME xlang3_cli_sqlite_module_imports COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/run_sqlite_tests.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeModules $<TARGET_FILE_DIR:xlang_sqlite3_native_package>)
+  add_test(NAME xlang3_cli_fixtures COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_compat COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.ps1 -XLang3 $<TARGET_FILE:xlang3> -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/cli_compat)
+  add_test(NAME xlang3_cli_pickle_interop COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1 -XLang3 $<TARGET_FILE:xlang3> -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop)
+  add_test(NAME xlang3_ipc_lrpc_smoke COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeClient $<TARGET_FILE:xlang3_cpp_ipc_client>)
+  add_test(NAME xlang3_ipc_lrpc_server_exit COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_ipc_lrpc_backpressure COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -ClientScript pressure_client.py -Expected pressure_expected.out)
+  add_test(NAME xlang3_ipc_lrpc_backpressure_server_exit COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_dap_stdio_smoke COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+else()
+  set(XLANG3_EXPECTED_RUNNER ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py)
+  add_test(NAME xlang3_cli_real_native_imports COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/real_native_imports.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/real_native_imports.out)
+  add_test(NAME xlang3_xlang1_compat_import COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/xlang1_compat_import.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/xlang1_compat_import.out)
+  add_test(NAME xlang3_cli_net_module_server_client COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.py $<TARGET_FILE:xlang3> $<TARGET_FILE_DIR:xlang_net_native_package>)
+  foreach(sqlite_case IN ITEMS old_xlang_sqlite_api python_sqlite3_api)
+    add_test(NAME xlang3_cli_sqlite_${sqlite_case} COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/${sqlite_case}.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/${sqlite_case}.out $<TARGET_FILE_DIR:xlang_sqlite3_native_package>)
+  endforeach()
+  add_test(NAME xlang3_cli_fixtures COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_compat COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.py $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_BINARY_DIR}/cli_compat)
+  add_test(NAME xlang3_cli_pickle_interop COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.py $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop)
+  add_test(NAME xlang3_ipc_lrpc_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.py $<TARGET_FILE:xlang3> --native-client $<TARGET_FILE:xlang3_cpp_ipc_client>)
+  add_test(NAME xlang3_ipc_lrpc_server_exit COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_server_exit.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_ipc_lrpc_backpressure_server_exit COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_dap_stdio_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.py $<TARGET_FILE:xlang3>)
+endif()
+if(TEST xlang3_ipc_lrpc_backpressure)
+  set_tests_properties(xlang3_ipc_lrpc_backpressure PROPERTIES TIMEOUT 120)
+endif()
 set_tests_properties(xlang3_ipc_lrpc_backpressure_server_exit PROPERTIES TIMEOUT 45)
-
-add_test(
-  NAME xlang3_cli_dap_stdio_smoke
-  COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
-          -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.ps1
-          -XLang3 $<TARGET_FILE:xlang3>
-)
