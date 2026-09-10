@@ -25,6 +25,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include "../thread/thread_objects.h"
+#include "../thread/runtime_lock.h"
 #include "runtime/memory/x3_runtime_memory.h"
 
 #include <algorithm>
@@ -121,6 +122,8 @@ struct MonitoringToolState {
 
 std::array<MonitoringToolState, kMonitoringToolCount> g_monitoring_tools;
 thread_local bool g_monitoring_dispatch_active = false;
+Value g_monitoring_missing = Value::none();
+Value g_monitoring_disable = Value::none();
 
 MonitoringCodeKey monitoring_code_key(const CodeObject& code) {
   return MonitoringCodeKey{code.module.get(), code.function_id};
@@ -3391,7 +3394,7 @@ bool sys_is_remote_debug_enabled(Runtime& runtime, const Value*, uint32_t argc, 
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.is_remote_debug_enabled", argc);
   }
-  out = Value::boolean(true);
+  out = Value::boolean(runtime.debug_enabled());
   return true;
 }
 
@@ -3399,7 +3402,7 @@ bool sys_is_gil_enabled(Runtime& runtime, const Value*, uint32_t argc, Value& ou
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys._is_gil_enabled", argc);
   }
-  out = Value::boolean(true);
+  out = Value::boolean(XLANG3_VM_GLOBAL_LOCK != 0);
   return true;
 }
 
@@ -3413,7 +3416,7 @@ bool sys_activate_stack_trampoline(Runtime& runtime, const Value* args, uint32_t
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  error = string_object_to_string(*backend) + " trampoline not available";
+  error = "perf trampoline not available";
   runtime.raise_class_error("ValueError", error);
   return false;
 }
@@ -3506,6 +3509,11 @@ bool monitoring_event_set(Runtime& runtime, const Value& value, int64_t& out, st
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  if ((out & kMonitoringEventBranch) != 0) {
+    out = (out & ~kMonitoringEventBranch) |
+          kMonitoringEventBranchLeft |
+          kMonitoringEventBranchRight;
+  }
   return true;
 }
 
@@ -3558,6 +3566,7 @@ bool sys_monitoring_free_tool_id(Runtime& runtime, const Value* args, uint32_t a
   auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
   tool.name = Value::none();
   tool.events = 0;
+  tool.local_events.clear();
   tool.callbacks.clear();
   value_set_none(out);
   return true;
@@ -3573,6 +3582,7 @@ bool sys_monitoring_clear_tool_id(Runtime& runtime, const Value* args, uint32_t 
   }
   auto& tool = g_monitoring_tools[static_cast<size_t>(tool_id)];
   tool.events = 0;
+  tool.local_events.clear();
   tool.callbacks.clear();
   value_set_none(out);
   return true;
@@ -3799,13 +3809,17 @@ bool sys_monitoring_dispatch_event(
     if (callback_it == tool.callbacks.end() || callback_it->second.tag == ValueTag::None) {
       continue;
     }
-    Value callback_args_storage[3] = {
+    Value callback_args_storage[4] = {
         code,
         Value::int64(instruction_offset),
         arg != nullptr ? *arg : Value::none(),
+        g_monitoring_missing,
     };
     Value ignored;
-    const uint32_t callback_argc = arg != nullptr ? 3u : 2u;
+    const bool call_event = event == kMonitoringEventCall ||
+                            event == kMonitoringEventCReturn ||
+                            event == kMonitoringEventCRaise;
+    const uint32_t callback_argc = call_event ? 4u : (arg != nullptr ? 3u : 2u);
     if (!runtime_call_callable(runtime, callback_it->second, callback_args_storage, callback_argc, ignored, error)) {
       return false;
     }
@@ -5065,6 +5079,8 @@ void register_sys_module(Runtime& runtime) {
   Value jit_module = jit_builder.finish();
   module_set_attr(sys, "_jit", jit_module, error);
   runtime.register_module("sys._jit", jit_module);
+  g_monitoring_missing = Value::instance(Value::class_object("object", {}));
+  g_monitoring_disable = Value::instance(Value::class_object("object", {}));
   NativeModuleBuilder monitoring_builder(runtime, "sys.monitoring");
   monitoring_builder.value("__doc__", Value::none())
       .value("__package__", Value::none())
@@ -5074,8 +5090,8 @@ void register_sys_module(Runtime& runtime) {
       .value("COVERAGE_ID", Value::int64(1))
       .value("PROFILER_ID", Value::int64(2))
       .value("OPTIMIZER_ID", Value::int64(5))
-      .value("MISSING", Value::instance(Value::class_object("object", {})))
-      .value("DISABLE", Value::instance(Value::class_object("object", {})))
+      .value("MISSING", g_monitoring_missing)
+      .value("DISABLE", g_monitoring_disable)
       .value("events", make_monitoring_events())
       .value("use_tool_id",
              sys_metadata_native_function_no_doc(

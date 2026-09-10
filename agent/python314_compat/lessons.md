@@ -442,3 +442,8 @@ batches.
   the anchor. Use an absolute negative lookahead for any remaining code point.
   Likewise, a string-pattern dot must consume one complete UTF-8 code point so
   `fullmatch` operates on Python characters rather than storage bytes.
+- Native `sys` capability queries must derive from the runtime or build switch
+  they describe, and related `_sysconfig` values must use the same source of
+  truth. PEP 669 `CALL`, `C_RETURN`, and `C_RAISE` callbacks receive four
+  arguments, with `sys.monitoring.MISSING` as the final argument when no call
+  argument is available.

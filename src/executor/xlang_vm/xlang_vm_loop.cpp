@@ -864,11 +864,14 @@ RuntimeResult Interpreter::run_function(
         : Value::none();
 
     std::string monitoring_error;
+    const int64_t monitoring_location = event == kSysMonitoringEventLine
+        ? static_cast<int64_t>(source_line_for_frame(monitoring_frame))
+        : static_cast<int64_t>(monitoring_frame.ip);
     if (!sys_monitoring_dispatch_event(
             runtime_,
             event,
             code,
-            static_cast<int64_t>(monitoring_frame.ip),
+            monitoring_location,
             arg,
             monitoring_error)) {
       result.errors.push_back(monitoring_error);

@@ -71,6 +71,7 @@ $cases = @(
     "json_module",
     "math_module",
     "time_module",
+    "native_sys_time_audit",
     "atexit_module",
     "io_os_modules",
     "io_module_streams",

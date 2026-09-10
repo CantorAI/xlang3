@@ -215,6 +215,7 @@ public:
   Value current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const;
   void set_debug_hook(Value hook);
   const Value& debug_hook() const { return debug_hook_; }
+  bool debug_enabled() const { return debug_enabled_; }
   bool debug_dispatch_active() const { return debug_dispatch_active_; }
   void set_debug_dispatch_active(bool active);
   bool debug_poll_needed() const { return debug_poll_needed_; }

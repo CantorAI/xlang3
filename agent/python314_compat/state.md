@@ -16,7 +16,7 @@ Do not grow native pure-Python stdlib clones as the main strategy.
 Last stable compatibility checkpoint:
 
 ```text
-os.stat_result tuple-subclass surface for os.stat and DirEntry.stat
+Native sys/time audit: runtime-backed debug/GIL state and live sys.monitoring dispatch.
 ```
 
 Current next loop:

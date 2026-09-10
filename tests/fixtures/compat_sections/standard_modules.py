@@ -1425,8 +1425,8 @@ sys.monitoring.set_local_events(monitoring_tool_id, sys_monitoring_local_branch_
 sys.monitoring.free_tool_id(monitoring_tool_id)
 print(monitoring_local_branch_events.count("sys_monitoring_local_branch_target") >= 2, "sys_monitoring_local_branch_other" in monitoring_local_branch_events)
 monitoring_c_events = []
-def sys_monitoring_c_callback(code, instruction_offset, callable):
-    monitoring_c_events.append((getattr(code, "co_name", None), isinstance(instruction_offset, int), callable))
+def sys_monitoring_c_callback(code, instruction_offset, callable, arg0):
+    monitoring_c_events.append((getattr(code, "co_name", None), isinstance(instruction_offset, int), callable, arg0 is sys.monitoring.MISSING))
 
 print(sys.monitoring.use_tool_id(monitoring_tool_id, "fixture-monitor-c") is None)
 print(sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.CALL, sys_monitoring_c_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RETURN, sys_monitoring_c_callback) is None, sys.monitoring.register_callback(monitoring_tool_id, monitoring_events.C_RAISE, sys_monitoring_c_callback) is None)
@@ -1437,7 +1437,7 @@ except ValueError:
     pass
 sys.monitoring.set_events(monitoring_tool_id, 0)
 sys.monitoring.free_tool_id(monitoring_tool_id)
-print(any(event[1] and event[2] == "sys.monitoring.get_tool" for event in monitoring_c_events), len([event for event in monitoring_c_events if event[2] == "sys.monitoring.get_tool"]) >= 4)
+print(any(event[1] and event[2] == "sys.monitoring.get_tool" for event in monitoring_c_events), len([event for event in monitoring_c_events if event[2] == "sys.monitoring.get_tool"]) >= 4, all(event[3] for event in monitoring_c_events))
 monitoring_exception_events = []
 def sys_monitoring_exception_callback(code, instruction_offset, exception):
     monitoring_exception_events.append((code.co_name, isinstance(instruction_offset, int), type(exception).__name__, str(exception)))

@@ -89,6 +89,7 @@ CORE_CASES = [
     "json_module",
     "math_module",
     "time_module",
+    "native_sys_time_audit",
     "atexit_module",
     "io_os_modules",
     "io_module_streams",
@@ -161,9 +162,9 @@ SECTION_CASES = [
 
 
 NEGATIVE_CASES = [
-    ("uncaught_exception", 1, ["runtime: uncaught exception", "top"]),
-    ("uncaught_runtime_error", 1, ["runtime: uncaught exception", "division by zero"]),
-    ("unset_instance_attr", 1, ["runtime: uncaught exception", "object has no attribute"]),
+    ("uncaught_exception", 1, ["Traceback (most recent call last):", "RuntimeError: top"]),
+    ("uncaught_runtime_error", 1, ["Traceback (most recent call last):", "ZeroDivisionError: division by zero"]),
+    ("unset_instance_attr", 1, ["Traceback (most recent call last):", "AttributeError: object has no attribute"]),
 ]
 
 

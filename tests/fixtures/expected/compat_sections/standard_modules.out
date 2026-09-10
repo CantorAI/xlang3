@@ -275,9 +275,9 @@ monitoring-c-event-pair True
 monitoring-local-c-event-pair True
 True True
 True True
-True True True True 0 32
+True True True True 0 0
 True True True
-True fixture-monitor-clear 0 32 True
+True fixture-monitor-clear 0 0 True
 monitoring-tool-id True
 monitoring-tool-name True
 monitoring-unused-tool True
@@ -355,7 +355,7 @@ True False
 True
 True True True
 True fixture-monitor-c
-True True
+True True True
 True
 True True
 True monitoring-caught
@@ -515,7 +515,7 @@ True True True True True False
 True True True
 True True True False
 True True True True
-True True True -1 True 0
+True True True -1 False 0
 sys-noarg-keyword exc_info True
 sys-noarg-keyword exception True
 sys-noarg-keyword getdefaultencoding True

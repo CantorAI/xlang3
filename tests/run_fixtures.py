@@ -16,7 +16,7 @@ property_descriptor chained_object_methods builtin_alias builtin_function_batch 
 iterator_protocol tuples tuple_methods dict_views slices slots_model raw_strings string_compat
 binary_buffers starred_expressions dict_set_comprehensions nested_comprehensions generator_expressions
 walrus_operator unpacking annotated_assignment augmented_assignment lists_for sequences_index dict_set
-raw_blocks native_import json_module math_module time_module atexit_module io_os_modules io_module_streams
+raw_blocks native_import json_module math_module time_module native_sys_time_audit atexit_module io_os_modules io_module_streams
 imp_stat_modules collections_queue_modules types_module traceback_module linecache_module runpy_module
 importlib_module zlib_module zipfile_module weakref_module inspect_module inspect_currentframe
 debug_frame_metadata debug_breakpoint_step logging_pathlib_modules socket_select_modules file_import
@@ -67,9 +67,9 @@ def main():
         run_case(executable, root / "fixtures" / "core" / f"{name}.py", root / "fixtures" / "expected" / f"{name}.out", root)
     for name in SECTION_CASES:
         run_case(executable, root / "fixtures" / "compat_sections" / f"{name}.py", root / "fixtures" / "expected" / "compat_sections" / f"{name}.out", root)
-    assert_failure(executable, root / "fixtures" / "core" / "uncaught_exception.py", ("runtime: uncaught exception", "top"))
-    assert_failure(executable, root / "fixtures" / "core" / "uncaught_runtime_error.py", ("runtime: uncaught exception", "division by zero"))
-    assert_failure(executable, root / "fixtures" / "core" / "unset_instance_attr.py", ("runtime: uncaught exception", "object has no attribute"))
+    assert_failure(executable, root / "fixtures" / "core" / "uncaught_exception.py", ("Traceback (most recent call last):", "RuntimeError: top"))
+    assert_failure(executable, root / "fixtures" / "core" / "uncaught_runtime_error.py", ("Traceback (most recent call last):", "ZeroDivisionError: division by zero"))
+    assert_failure(executable, root / "fixtures" / "core" / "unset_instance_attr.py", ("Traceback (most recent call last):", "AttributeError: object has no attribute"))
 
 
 if __name__ == "__main__":

@@ -87,7 +87,9 @@ bool opcode_get_executor(Runtime&, const Value*, uint32_t, Value& out, std::stri
 
 void register_opcode_module(Runtime& runtime) {
   NativeModuleBuilder private_builder(runtime, "_opcode");
-  private_builder.function("stack_effect", opcode_zero)
+  private_builder.value("ENABLE_SPECIALIZATION", Value::boolean(false))
+      .value("ENABLE_SPECIALIZATION_FT", Value::boolean(false))
+      .function("stack_effect", opcode_zero)
       .function("has_arg", opcode_has_arg)
       .function("has_const", opcode_has_const)
       .function("has_name", opcode_has_name)

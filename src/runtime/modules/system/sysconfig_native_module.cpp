@@ -17,6 +17,8 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
+#include "../thread/runtime_lock.h"
+
 namespace xlang3 {
 
 namespace {
@@ -29,7 +31,7 @@ bool sysconfig_config_vars(Runtime&, const Value*, uint32_t argc, Value& out, st
   out = Value::dict({
       {Value::string("EXT_SUFFIX"), Value::string(".cp314-win_amd64.pyd")},
       {Value::string("SOABI"), Value::string("cp314-win_amd64")},
-      {Value::string("Py_GIL_DISABLED"), Value::int64(0)},
+      {Value::string("Py_GIL_DISABLED"), Value::int64(XLANG3_VM_GLOBAL_LOCK == 0 ? 1 : 0)},
       {Value::string("Py_DEBUG"), Value::int64(0)},
   });
   return true;
