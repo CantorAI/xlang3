@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/import_loader.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -38,6 +39,13 @@ bool get_string_arg(const Value& value, const char* name, std::string& out, std:
   error = std::string(name) + " must be str";
   return false;
 }
+
+Value make_source_file_loader(Runtime& runtime, const std::string& name, const Value& path);
+void normalize_file_module_spec_loader(Runtime& runtime, const std::string& name, Value& module, Value& spec);
+bool importlib_finder_get_optional_code(
+    Runtime&, const Value*, uint32_t, Value&, std::string&, void*);
+bool importlib_finder_is_package(
+    Runtime&, const Value*, uint32_t, Value&, std::string&, void*);
 
 Value make_module_spec(const std::string& name, const Value& module) {
   std::vector<std::pair<std::string, Value>> attrs;
@@ -87,7 +95,12 @@ bool module_spec_init(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-Value make_module_spec_for_file(const std::string& name, const std::string& path, const Value& loader) {
+Value make_module_spec_for_file(
+    const std::string& name,
+    const std::string& path,
+    const Value& loader,
+    bool is_package = false,
+    const std::string& package_dir = {}) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("importlib")});
   Value klass = Value::class_object("ModuleSpec", std::move(attrs));
@@ -96,10 +109,59 @@ Value make_module_spec_for_file(const std::string& name, const std::string& path
   object_set_attr(spec, "name", Value::string(name), ignored);
   object_set_attr(spec, "loader", loader, ignored);
   object_set_attr(spec, "origin", Value::string(path), ignored);
-  object_set_attr(spec, "cached", Value::none(), ignored);
+  object_set_attr(spec, "cached", Value::string(path), ignored);
   const auto dot = name.rfind('.');
   object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  object_set_attr(spec, "has_location", Value::boolean(true), ignored);
+  object_set_attr(
+      spec,
+      "submodule_search_locations",
+      is_package ? Value::list({Value::string(package_dir)}) : Value::none(),
+      ignored);
   return spec;
+}
+
+bool find_module_spec_without_import(Runtime& runtime, const std::string& name, Value& out) {
+  Value registered;
+  std::string ignored;
+  if (runtime.module_registry_dict().tag != ValueTag::Invalid &&
+      mapping_get_item(runtime.module_registry_dict(), Value::string(name), registered, ignored)) {
+    if (registered.tag == ValueTag::None) {
+      value_set_none(out);
+      return true;
+    }
+    if (value_as_module(registered) != nullptr) {
+      if (module_get_attr(registered, "__spec__", out, ignored) &&
+          out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
+        normalize_file_module_spec_loader(runtime, name, registered, out);
+      } else {
+        out = make_module_spec(name, registered);
+        normalize_file_module_spec_loader(runtime, name, registered, out);
+      }
+      return true;
+    }
+  }
+
+  PythonModuleLocation location;
+  if (!find_python_module_location(runtime, name, location)) {
+    value_set_none(out);
+    return true;
+  }
+  if (location.is_namespace_package) {
+    out = make_module_spec_for_file(name, location.package_dir, Value::none(), true, location.package_dir);
+    object_set_attr(out, "origin", Value::none(), ignored);
+    object_set_attr(out, "cached", Value::none(), ignored);
+    object_set_attr(out, "has_location", Value::boolean(false), ignored);
+    std::vector<Value> paths;
+    for (const auto& path : location.namespace_dirs) {
+      paths.push_back(Value::string(path));
+    }
+    object_set_attr(out, "submodule_search_locations", Value::list(std::move(paths)), ignored);
+    return true;
+  }
+  Value loader = make_source_file_loader(runtime, name, Value::string(location.path));
+  out = make_module_spec_for_file(name, location.path, loader, location.is_package, location.package_dir);
+  return true;
 }
 
 bool object_string_attr_equals(const Value& object, const char* name, const char* expected) {
@@ -219,13 +281,18 @@ bool importlib_loader_get_code(Runtime& runtime, const Value* args, uint32_t arg
   if (!runtime.vfs().read_file(path, bytes, error)) {
     return false;
   }
+  std::string source;
+  if (!runtime.decode_python_source(
+          std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()), source, error)) {
+    return false;
+  }
   const Value* compile_builtin = runtime.find_builtin("compile");
   if (compile_builtin == nullptr) {
     error = "compile builtin is not registered";
     return false;
   }
   Value compile_args[3] = {
-      Value::string(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size())),
+      Value::string(std::move(source)),
       Value::string(path),
       Value::string("exec"),
   };
@@ -251,7 +318,12 @@ bool importlib_loader_exec_module(Runtime& runtime, const Value* args, uint32_t 
   if (!runtime.vfs().read_file(path, bytes, error)) {
     return false;
   }
-  std::string source(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+  std::string source;
+  if (!runtime.decode_python_source(
+          std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()), source, error)) {
+    runtime.raise_class_error("SyntaxError", error);
+    return false;
+  }
   auto parsed = parse_source(source);
   if (!parsed.errors.empty()) {
     error = parsed.errors.front();
@@ -319,6 +391,11 @@ void normalize_file_module_spec_loader(Runtime& runtime, const std::string& name
   if (!module_get_attr(module, "__file__", file, ignored) || file.tag == ValueTag::Invalid || file.tag == ValueTag::None) {
     return;
   }
+  Value cached;
+  if (module_get_attr(module, "__cached__", cached, ignored) &&
+      cached.tag != ValueTag::Invalid && cached.tag != ValueTag::None) {
+    object_set_attr(spec, "cached", cached, ignored);
+  }
   Value loader;
   if (object_get_attr(spec, "loader", loader, ignored)) {
     Value get_code;
@@ -341,20 +418,7 @@ bool importlib_finder_find_spec(Runtime& runtime, const Value* args, uint32_t ar
   if (!get_string_arg(name_arg, "finder fullname", name, error)) {
     return false;
   }
-  Value module;
-  std::string ignored;
-  if (runtime.has_registered_module(name) && runtime.import_module(name, module, ignored)) {
-    std::string ignored;
-    if (module_get_attr(module, "__spec__", out, ignored) && out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
-      normalize_file_module_spec_loader(runtime, name, module, out);
-      return true;
-    }
-    out = make_module_spec(name, module);
-    normalize_file_module_spec_loader(runtime, name, module, out);
-    return true;
-  }
-  value_set_none(out);
-  return true;
+  return find_module_spec_without_import(runtime, name, out);
 }
 
 bool importlib_path_finder_find_distributions(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -455,10 +519,48 @@ Value make_loader_class(Runtime& runtime, const std::string& name) {
 Value make_finder_class(Runtime& runtime, const std::string& name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"find_spec", runtime.make_native_function(name + ".find_spec", importlib_finder_find_spec)});
+  if (name == "BuiltinImporter" || name == "FrozenImporter") {
+    attrs.push_back({"get_code", runtime.make_native_function(name + ".get_code", importlib_finder_get_optional_code)});
+    attrs.push_back({"get_source", runtime.make_native_function(name + ".get_source", importlib_finder_get_optional_code)});
+    attrs.push_back({"is_package", runtime.make_native_function(name + ".is_package", importlib_finder_is_package)});
+  }
   if (name == "PathFinder") {
     attrs.push_back({"find_distributions", runtime.make_native_function(name + ".find_distributions", importlib_path_finder_find_distributions)});
   }
   return make_simple_class(name, std::move(attrs));
+}
+
+void importlib_value_cleanup(void* data) {
+  delete static_cast<Value*>(data);
+}
+
+bool importlib_file_finder_path_hook(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "FileFinder path hook expected one string path";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto* file_finder_class = static_cast<const Value*>(user_data);
+  if (file_finder_class == nullptr || value_as_class(*file_finder_class) == nullptr) {
+    error = "FileFinder path hook has no finder class";
+    return false;
+  }
+  const std::string path = string_object_to_string(*value_as_string(args[0]));
+  VfsStat stat;
+  std::string stat_error;
+  if (!runtime.vfs().stat(path, stat, stat_error) || stat.kind != VfsNodeKind::Directory) {
+    error = "only directories are supported by FileFinder";
+    runtime.raise_class_error("ImportError", error);
+    return false;
+  }
+  out = Value::instance(*file_finder_class);
+  return object_set_attr(out, "path", args[0], error);
 }
 
 bool bootstrap_resolve_name(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*);
@@ -567,28 +669,134 @@ bool importlib_invalidate_caches(Runtime&, const Value*, uint32_t argc, Value& o
   return true;
 }
 
+bool importlib_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "importlib._bootstrap._exec() expected spec and module";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value loader;
+  if (!object_get_attr(args[0], "loader", loader, error)) {
+    return false;
+  }
+  Value exec_module;
+  if (!object_get_attr(loader, "exec_module", exec_module, error)) {
+    return false;
+  }
+  Value ignored;
+  if (!runtime_call_callable(runtime, exec_module, &args[1], 1, ignored, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool module_spec_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 3) {
+    error = "ModuleSpec.__init__() takes 1 to 3 positional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value name_value = argc >= 2 ? args[1] : Value::invalid();
+  Value loader = argc == 3 ? args[2] : Value::invalid();
+  Value origin = Value::none();
+  Value loader_state = Value::none();
+  Value is_package = Value::none();
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (name == "name") {
+      if (name_value.tag != ValueTag::Invalid) {
+        error = "ModuleSpec.__init__() got multiple values for argument 'name'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      value_assign_fast(name_value, *kwargs[i].value);
+    } else if (name == "loader") {
+      if (loader.tag != ValueTag::Invalid) {
+        error = "ModuleSpec.__init__() got multiple values for argument 'loader'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      value_assign_fast(loader, *kwargs[i].value);
+    } else if (name == "origin") {
+      value_assign_fast(origin, *kwargs[i].value);
+    } else if (name == "loader_state") {
+      value_assign_fast(loader_state, *kwargs[i].value);
+    } else if (name == "is_package") {
+      value_assign_fast(is_package, *kwargs[i].value);
+    } else {
+      error = "ModuleSpec.__init__() got an unexpected keyword argument '" +
+          std::string(name) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (name_value.tag == ValueTag::Invalid) {
+    error = "ModuleSpec.__init__() missing required argument 'name'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (loader.tag == ValueTag::Invalid) {
+    error = "ModuleSpec.__init__() missing required argument 'loader'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value positional[5] = {args[0], name_value, loader, origin, is_package};
+  if (!module_spec_init(runtime, positional, 5, out, error, user_data)) {
+    return false;
+  }
+  std::string ignored;
+  object_set_attr(const_cast<Value&>(args[0]), "loader_state", loader_state, ignored);
+  return true;
+}
+
 bool importlib_find_spec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "importlib.util.find_spec() expected name and optional package";
+  if (argc < 1 || argc > 3) {
+    error = "importlib._find_spec() expected name, optional path, and optional target";
     return false;
   }
   std::string name;
   if (!get_string_arg(args[0], "importlib.util.find_spec name", name, error)) {
     return false;
   }
-  Value module;
-  std::string import_error;
-  if (runtime.import_module(name, module, import_error)) {
-    std::string ignored;
-    if (module_get_attr(module, "__spec__", out, ignored) && out.tag != ValueTag::None && out.tag != ValueTag::Invalid) {
-      normalize_file_module_spec_loader(runtime, name, module, out);
-      return true;
-    }
-    out = make_module_spec(name, module);
-    normalize_file_module_spec_loader(runtime, name, module, out);
-    return true;
+  return find_module_spec_without_import(runtime, name, out);
+}
+
+bool importlib_finder_get_optional_code(
+    Runtime&,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "loader method expected fullname";
+    return false;
   }
   value_set_none(out);
+  return true;
+}
+
+bool importlib_finder_is_package(
+    Runtime&,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "loader.is_package expected fullname";
+    return false;
+  }
+  out = Value::boolean(false);
   return true;
 }
 
@@ -999,7 +1207,14 @@ void register_importlib_module(Runtime& runtime) {
 
   Value module_spec_class = make_simple_class(
       "ModuleSpec",
-      {{"__init__", runtime.make_native_function("ModuleSpec.__init__", module_spec_init)}});
+      {{"__init__", runtime.make_native_function(
+          "ModuleSpec.__init__",
+          module_spec_init,
+          nullptr,
+          nullptr,
+          nullptr,
+          false,
+          module_spec_init_kw)}});
 
   NativeModuleBuilder frozen_builder(runtime, "_frozen_importlib");
   Value bootstrap_import;
@@ -1017,6 +1232,7 @@ void register_importlib_module(Runtime& runtime) {
       .function("_gcd_import", bootstrap_gcd_import)
       .function("_resolve_name", bootstrap_resolve_name)
       .function("spec_from_loader", bootstrap_spec_from_loader)
+      .function("_exec", importlib_exec)
       .function("_find_spec", importlib_find_spec);
   Value frozen = frozen_builder.finish();
   runtime.register_module("_frozen_importlib", frozen);
@@ -1055,10 +1271,16 @@ void register_importlib_module(Runtime& runtime) {
   Value sys;
   std::string error;
   if (runtime.import_module("sys", sys, error)) {
+    Value file_finder_path_hook = runtime.make_native_function(
+        "FileFinder.path_hook",
+        importlib_file_finder_path_hook,
+        new Value(file_finder),
+        importlib_value_cleanup);
     module_set_attr(sys,
                     "meta_path",
                     Value::list({builtin_importer, frozen_importer, path_finder}),
                     ignored);
+    module_set_attr(sys, "path_hooks", Value::list({std::move(file_finder_path_hook)}), ignored);
   }
 }
 

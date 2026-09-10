@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <cstdlib>
 #include <iostream>
+#include <set>
 
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
@@ -101,6 +102,34 @@ std::string module_package_name(const std::string& name) {
   return dot == std::string::npos ? std::string() : name.substr(0, dot);
 }
 
+bool module_dir_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 || value_as_module(args[0]) == nullptr) {
+    error = "module.__dir__ expected a module";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* module = value_as_module(args[0]);
+  std::set<std::string> names{"__name__"};
+  for (const auto& attr : module->name_to_slot) {
+    if (attr.second < module->slots.size() && module->slots[attr.second].tag != ValueTag::Invalid) {
+      names.insert(attr.first);
+    }
+  }
+  std::vector<Value> values;
+  values.reserve(names.size());
+  for (const auto& name : names) {
+    values.push_back(Value::string(name));
+  }
+  out = Value::list(std::move(values));
+  return true;
+}
+
 } // namespace
 
 Value Value::module(std::string name) {
@@ -145,6 +174,12 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
   }
   if (name == "__dict__") {
     value_assign_fast(out, object);
+    return true;
+  }
+  if (name == "__dir__") {
+    out = Value::bound_method(
+        object,
+        Value::native_function(0, "module.__dir__", module_dir_method));
     return true;
   }
   if (name == "__spec__") {

@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
+#include "source_encoding.h"
 
 #include <algorithm>
 #include <cctype>
@@ -28,6 +29,26 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+bool bytes_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "bytes.__getitem__ expected one index";
+    return false;
+  }
+  Value target = args[0];
+  if (value_as_instance(target) != nullptr) {
+    Value payload;
+    std::string ignored;
+    if (object_get_attr(target, "__xlang3_bytes_value__", payload, ignored)) {
+      target = std::move(payload);
+    }
+  }
+  if (sequence_get_item(target, args[1], out, error)) {
+    return true;
+  }
+  runtime.raise_class_error(error == "index out of range" ? "IndexError" : "TypeError", error);
+  return false;
+}
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::String) {
@@ -57,8 +78,14 @@ std::string canonical_encoding(std::string name) {
   if (name == "us_ascii" || name == "646") {
     return "ascii";
   }
-  if (name == "437" || name == "cp437" || name == "ibm437") {
+  if (name == "437" || name == "cp437" || name == "ibm437" || name == "oem") {
     return "cp437";
+  }
+  if (name == "locale" || name == "mbcs" || name == "ansi") {
+    return "mbcs";
+  }
+  if (name == "gbk" || name == "cp936" || name == "ms936") {
+    return "gbk";
   }
   return name;
 }
@@ -69,10 +96,113 @@ bool append_utf8(uint32_t codepoint, std::string& out) {
   } else if (codepoint <= 0x7ff) {
     out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
     out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
-  } else {
+  } else if (codepoint <= 0xffff) {
     out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
     out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
     out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else {
+    out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  }
+  return true;
+}
+
+uint16_t read_u16(std::string_view text, size_t offset, bool little_endian) {
+  const auto first = static_cast<unsigned char>(text[offset]);
+  const auto second = static_cast<unsigned char>(text[offset + 1]);
+  return little_endian ? static_cast<uint16_t>(first | (second << 8))
+                       : static_cast<uint16_t>((first << 8) | second);
+}
+
+uint32_t read_u32(std::string_view text, size_t offset, bool little_endian) {
+  uint32_t value = 0;
+  if (little_endian) {
+    for (int index = 3; index >= 0; --index) {
+      value = (value << 8) | static_cast<unsigned char>(text[offset + static_cast<size_t>(index)]);
+    }
+  } else {
+    for (size_t index = 0; index < 4; ++index) {
+      value = (value << 8) | static_cast<unsigned char>(text[offset + index]);
+    }
+  }
+  return value;
+}
+
+bool decode_utf16_or_utf32(Runtime& runtime, std::string_view text,
+                           const std::string& encoding, const std::string& errors,
+                           std::string& decoded, std::string& error) {
+  const bool utf32 = encoding.rfind("utf_32", 0) == 0;
+  bool little_endian = encoding == "utf_16_le" || encoding == "utf_32_le";
+  size_t offset = 0;
+  if (encoding == "utf_16") {
+    if (text.size() >= 2 && static_cast<unsigned char>(text[0]) == 0xff &&
+        static_cast<unsigned char>(text[1]) == 0xfe) {
+      little_endian = true;
+      offset = 2;
+    } else if (text.size() >= 2 && static_cast<unsigned char>(text[0]) == 0xfe &&
+               static_cast<unsigned char>(text[1]) == 0xff) {
+      little_endian = false;
+      offset = 2;
+    } else {
+      error = "UTF-16 stream does not start with BOM";
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+  } else if (encoding == "utf_32") {
+    if (text.size() >= 4 && static_cast<unsigned char>(text[0]) == 0xff &&
+        static_cast<unsigned char>(text[1]) == 0xfe &&
+        static_cast<unsigned char>(text[2]) == 0x00 &&
+        static_cast<unsigned char>(text[3]) == 0x00) {
+      little_endian = true;
+      offset = 4;
+    } else if (text.size() >= 4 && static_cast<unsigned char>(text[0]) == 0x00 &&
+               static_cast<unsigned char>(text[1]) == 0x00 &&
+               static_cast<unsigned char>(text[2]) == 0xfe &&
+               static_cast<unsigned char>(text[3]) == 0xff) {
+      little_endian = false;
+      offset = 4;
+    } else {
+      error = "UTF-32 stream does not start with BOM";
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+  }
+  const size_t unit_size = utf32 ? 4 : 2;
+  decoded.clear();
+  while (offset + unit_size <= text.size()) {
+    uint32_t codepoint = utf32 ? read_u32(text, offset, little_endian)
+                               : read_u16(text, offset, little_endian);
+    offset += unit_size;
+    if (!utf32 && codepoint >= 0xd800 && codepoint <= 0xdbff && offset + 2 <= text.size()) {
+      const uint32_t low = read_u16(text, offset, little_endian);
+      if (low >= 0xdc00 && low <= 0xdfff) {
+        codepoint = 0x10000 + ((codepoint - 0xd800) << 10) + (low - 0xdc00);
+        offset += 2;
+      }
+    }
+    const bool valid = codepoint <= 0x10ffff && !(codepoint >= 0xd800 && codepoint <= 0xdfff);
+    if (valid) {
+      append_utf8(codepoint, decoded);
+    } else if (errors == "ignore") {
+      continue;
+    } else if (errors == "replace") {
+      append_utf8(0xfffd, decoded);
+    } else {
+      error = (utf32 ? "utf-32" : "utf-16") + std::string(" codec can't decode bytes");
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+  }
+  if (offset != text.size() && errors != "ignore") {
+    if (errors == "replace") {
+      append_utf8(0xfffd, decoded);
+    } else {
+      error = "truncated Unicode data";
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
   }
   return true;
 }
@@ -104,8 +234,11 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
     encoding = canonical_encoding(std::move(encoding));
-    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" && encoding != "latin_1" && encoding != "cp437") {
-      error = "only utf-8/ascii/latin-1/cp437 encoding is supported";
+    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" &&
+        encoding != "latin_1" && encoding != "cp437" && encoding != "mbcs" && encoding != "gbk" &&
+        encoding != "utf_16" && encoding != "utf_16_le" && encoding != "utf_16_be" &&
+        encoding != "utf_32" && encoding != "utf_32_le" && encoding != "utf_32_be") {
+      error = "unsupported bytes decoding: " + encoding;
       return false;
     }
   }
@@ -128,6 +261,8 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
         continue;
       } else if (errors == "replace") {
         decoded += "\xef\xbf\xbd";
+      } else if (errors == "surrogateescape") {
+        append_utf8(0xdc00u + ch, decoded);
       } else {
         error = "ascii codec can't decode byte";
         runtime.raise_class_error("UnicodeDecodeError", error);
@@ -145,6 +280,32 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     out = Value::string(cp437_decode_bytes(text));
     return true;
   }
+  if (encoding.rfind("utf_16", 0) == 0 || encoding.rfind("utf_32", 0) == 0) {
+    std::string decoded;
+    if (!decode_utf16_or_utf32(runtime, text, encoding, errors, decoded, error)) {
+      return false;
+    }
+    out = Value::string(std::move(decoded));
+    return true;
+  }
+  if (encoding == "mbcs") {
+    std::string decoded;
+    if (!decode_mbcs_bytes(text, decoded, error)) {
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+    out = Value::string(std::move(decoded));
+    return true;
+  }
+  if (encoding == "gbk") {
+    std::string decoded;
+    if (!decode_gbk_bytes(text, decoded, error)) {
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+    out = Value::string(std::move(decoded));
+    return true;
+  }
   if (encoding == "utf_8_sig") {
     if (text.size() >= 3 &&
         static_cast<unsigned char>(text[0]) == 0xef &&
@@ -153,7 +314,59 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       text.remove_prefix(3);
     }
   }
-  out = Value::string(std::string(text));
+  std::string decoded;
+  decoded.reserve(text.size());
+  for (size_t i = 0; i < text.size();) {
+    const unsigned char lead = static_cast<unsigned char>(text[i]);
+    if (lead < 0x80u) {
+      decoded.push_back(static_cast<char>(lead));
+      ++i;
+      continue;
+    }
+    const size_t width = utf8_codepoint_width(lead);
+    bool valid = width >= 2 && i + width <= text.size();
+    if (valid) {
+      for (size_t j = 1; j < width; ++j) {
+        if ((static_cast<unsigned char>(text[i + j]) & 0xc0u) != 0x80u) {
+          valid = false;
+          break;
+        }
+      }
+    }
+    if (valid) {
+      uint32_t codepoint = lead & (0x7fu >> width);
+      for (size_t j = 1; j < width; ++j) {
+        codepoint = (codepoint << 6) |
+            (static_cast<unsigned char>(text[i + j]) & 0x3fu);
+      }
+      const uint32_t minimum = width == 2 ? 0x80u : width == 3 ? 0x800u : 0x10000u;
+      valid = codepoint >= minimum && codepoint <= 0x10ffffu &&
+          !(codepoint >= 0xd800u && codepoint <= 0xdfffu);
+    }
+    if (valid) {
+      decoded.append(text, i, width);
+      i += width;
+    } else if (errors == "ignore") {
+      ++i;
+    } else if (errors == "replace") {
+      decoded += "\xef\xbf\xbd";
+      ++i;
+    } else if (errors == "surrogateescape" && lead >= 0x80u) {
+      append_utf8(0xdc00u + lead, decoded);
+      ++i;
+    } else if (errors == "backslashreplace") {
+      static constexpr char digits[] = "0123456789abcdef";
+      decoded += "\\x";
+      decoded.push_back(digits[(lead >> 4) & 0x0f]);
+      decoded.push_back(digits[lead & 0x0f]);
+      ++i;
+    } else {
+      error = "utf-8 codec can't decode byte";
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+  }
+  out = Value::string(std::move(decoded));
   return true;
 }
 
@@ -218,6 +431,16 @@ bool get_bytes_like_view(const Value& value, const char* name, std::string_view&
   if (auto* bytearray = value_as_bytearray(value)) {
     out = std::string_view(bytearray->value.data(), bytearray->value.size());
     return true;
+  }
+  if (value_as_instance(value) != nullptr) {
+    Value payload;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_bytes_value__", payload, ignored)) {
+      if (auto* bytes = value_as_bytes(payload)) {
+        out = bytes_object_view(*bytes);
+        return true;
+      }
+    }
   }
   error = std::string(name) + " must be bytes-like";
   return false;
@@ -361,9 +584,10 @@ bool bytes_rindex_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   return bytes_find_common(runtime, args, argc, out, error, true, true);
 }
 
-bool bytes_replace_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool bytes_replace_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 3 || argc > 4) {
     error = "bytes.replace expected old, new, and optional count";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string_view text;
@@ -372,12 +596,14 @@ bool bytes_replace_method(Runtime&, const Value* args, uint32_t argc, Value& out
   if (!get_bytes_like_view(args[0], "bytes.replace target", text, error) ||
       !get_bytes_like_view(args[1], "bytes.replace old", old_text, error) ||
       !get_bytes_like_view(args[2], "bytes.replace new", new_text, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t max_count = -1;
   if (argc == 4) {
     if (args[3].tag != ValueTag::Int64) {
       error = "bytes.replace count must be int";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
     max_count = args[3].as.i64;
@@ -496,22 +722,44 @@ bool bytearray_fromhex_method(Runtime& runtime, const Value* args, uint32_t argc
   return bytes_fromhex_common(runtime, args, argc, out, error, true);
 }
 
-bool bytes_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "bytes.startswith", error)) {
+bool bytes_startswith_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "bytes.startswith expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string_view text;
   if (!get_bytes_like_view(args[0], "bytes.startswith target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int64_t start = 0;
+  int64_t end = static_cast<int64_t>(text.size());
+  if ((argc >= 3 && !value_int_like_to_i64(args[2], start)) ||
+      (argc >= 4 && !value_int_like_to_i64(args[3], end))) {
+    error = "slice indices must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const bool start_in_range = start <= static_cast<int64_t>(text.size());
+  if (start < 0) start = (std::max)(int64_t{0}, static_cast<int64_t>(text.size()) + start);
+  if (end < 0) end = (std::max)(int64_t{0}, static_cast<int64_t>(text.size()) + end);
+  start = (std::min)(start, static_cast<int64_t>(text.size()));
+  end = (std::min)(end, static_cast<int64_t>(text.size()));
+  if (end < start) end = start;
+  text = text.substr(static_cast<size_t>(start), static_cast<size_t>(end - start));
+  auto matches = [&](std::string_view prefix) {
+    return start_in_range && prefix.size() <= text.size() &&
+        (prefix.empty() || std::memcmp(text.data(), prefix.data(), prefix.size()) == 0);
+  };
   if (auto* tuple = value_as_tuple(args[1])) {
     for (const auto& item : tuple->items) {
       std::string_view prefix;
       if (!get_bytes_like_view(item, "bytes.startswith prefix", prefix, error)) {
+        runtime.raise_class_error("TypeError", error);
         return false;
       }
-      if (prefix.size() <= text.size() &&
-          (prefix.empty() || std::memcmp(text.data(), prefix.data(), prefix.size()) == 0)) {
+      if (matches(prefix)) {
         value_set_bool(out, true);
         return true;
       }
@@ -521,30 +769,52 @@ bool bytes_startswith_method(Runtime&, const Value* args, uint32_t argc, Value& 
   }
   std::string_view prefix;
   if (!get_bytes_like_view(args[1], "bytes.startswith prefix", prefix, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_bool(out, prefix.size() <= text.size() &&
-                          (prefix.empty() || std::memcmp(text.data(), prefix.data(), prefix.size()) == 0));
+  value_set_bool(out, matches(prefix));
   return true;
 }
 
-bool bytes_endswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (!method_check_argc(argc, 2, "bytes.endswith", error)) {
+bool bytes_endswith_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "bytes.endswith expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string_view text;
   if (!get_bytes_like_view(args[0], "bytes.endswith target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int64_t start = 0;
+  int64_t end = static_cast<int64_t>(text.size());
+  if ((argc >= 3 && !value_int_like_to_i64(args[2], start)) ||
+      (argc >= 4 && !value_int_like_to_i64(args[3], end))) {
+    error = "slice indices must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const bool start_in_range = start <= static_cast<int64_t>(text.size());
+  if (start < 0) start = (std::max)(int64_t{0}, static_cast<int64_t>(text.size()) + start);
+  if (end < 0) end = (std::max)(int64_t{0}, static_cast<int64_t>(text.size()) + end);
+  start = (std::min)(start, static_cast<int64_t>(text.size()));
+  end = (std::min)(end, static_cast<int64_t>(text.size()));
+  if (end < start) end = start;
+  text = text.substr(static_cast<size_t>(start), static_cast<size_t>(end - start));
+  auto matches = [&](std::string_view suffix) {
+    return start_in_range && suffix.size() <= text.size() &&
+        (suffix.empty() ||
+         std::memcmp(text.data() + (text.size() - suffix.size()), suffix.data(), suffix.size()) == 0);
+  };
   if (auto* tuple = value_as_tuple(args[1])) {
     for (const auto& item : tuple->items) {
       std::string_view suffix;
       if (!get_bytes_like_view(item, "bytes.endswith suffix", suffix, error)) {
+        runtime.raise_class_error("TypeError", error);
         return false;
       }
-      if (suffix.size() <= text.size() &&
-          (suffix.empty() ||
-           std::memcmp(text.data() + (text.size() - suffix.size()), suffix.data(), suffix.size()) == 0)) {
+      if (matches(suffix)) {
         value_set_bool(out, true);
         return true;
       }
@@ -554,11 +824,70 @@ bool bytes_endswith_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   }
   std::string_view suffix;
   if (!get_bytes_like_view(args[1], "bytes.endswith suffix", suffix, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_bool(out, suffix.size() <= text.size() &&
-                          (suffix.empty() ||
-                           std::memcmp(text.data() + (text.size() - suffix.size()), suffix.data(), suffix.size()) == 0));
+  value_set_bool(out, matches(suffix));
+  return true;
+}
+
+bool bytes_ascii_case_method(const Value* args, uint32_t argc, Value& out, std::string& error, bool upper) {
+  if (argc != 1) {
+    error = std::string("bytes.") + (upper ? "upper" : "lower") + " expected no arguments";
+    return false;
+  }
+  std::string_view text;
+  if (!get_bytes_like_view(args[0], "bytes case target", text, error)) return false;
+  std::string converted(text);
+  for (char& ch : converted) {
+    const unsigned char byte = static_cast<unsigned char>(ch);
+    if (upper && byte >= 'a' && byte <= 'z') ch = static_cast<char>(byte - ('a' - 'A'));
+    if (!upper && byte >= 'A' && byte <= 'Z') ch = static_cast<char>(byte + ('a' - 'A'));
+  }
+  out = make_binary_like_result(args[0], std::move(converted));
+  return true;
+}
+
+bool bytes_upper_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return bytes_ascii_case_method(args, argc, out, error, true);
+}
+
+bool bytes_lower_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return bytes_ascii_case_method(args, argc, out, error, false);
+}
+
+bool bytes_ljust_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "bytes.ljust expected width and optional fill byte";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = "integer argument expected";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view text;
+  if (!get_bytes_like_view(args[0], "bytes.ljust target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  char fill = ' ';
+  if (argc == 3) {
+    std::string_view fill_view;
+    if (!get_bytes_like_view(args[2], "bytes.ljust fill", fill_view, error) || fill_view.size() != 1) {
+      error = "ljust() argument 2 must be a byte string of length 1";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    fill = fill_view[0];
+  }
+  std::string result(text);
+  const int64_t width = args[1].as.i64;
+  if (width > static_cast<int64_t>(result.size())) {
+    result.append(static_cast<size_t>(width - static_cast<int64_t>(result.size())), fill);
+  }
+  out = make_binary_like_result(args[0], std::move(result));
   return true;
 }
 
@@ -643,16 +972,28 @@ bool bytes_strip_common(const Value* args, uint32_t argc, Value& out, std::strin
   return true;
 }
 
-bool bytes_strip_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return bytes_strip_common(args, argc, out, error, true, true, "bytes.strip");
+bool bytes_strip_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!bytes_strip_common(args, argc, out, error, true, true, "bytes.strip")) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
-bool bytes_lstrip_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return bytes_strip_common(args, argc, out, error, true, false, "bytes.lstrip");
+bool bytes_lstrip_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!bytes_strip_common(args, argc, out, error, true, false, "bytes.lstrip")) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
-bool bytes_rstrip_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return bytes_strip_common(args, argc, out, error, false, true, "bytes.rstrip");
+bool bytes_rstrip_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!bytes_strip_common(args, argc, out, error, false, true, "bytes.rstrip")) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool bytes_split_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -663,6 +1004,7 @@ bool bytes_split_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::string_view text;
   if (!get_bytes_like_view(args[0], "bytes.split target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::vector<Value> parts;
@@ -698,6 +1040,7 @@ bool bytes_split_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::string_view sep;
   if (!get_bytes_like_view(args[1], "bytes.split separator", sep, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (sep.empty()) {
@@ -1372,11 +1715,104 @@ bool bytes_maketrans_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool bytes_removeprefix_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "bytes.removeprefix expected one prefix";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view text;
+  std::string_view prefix;
+  if (!get_bytes_like_view(args[0], "bytes.removeprefix target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.removeprefix prefix", prefix, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (text.size() >= prefix.size() && text.substr(0, prefix.size()) == prefix) {
+    text.remove_prefix(prefix.size());
+  }
+  std::string result(text);
+  out = value_as_bytearray(args[0]) != nullptr
+      ? Value::bytearray(std::move(result))
+      : Value::bytes(std::move(result));
+  return true;
+}
+
+bool bytes_removesuffix_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "bytes.removesuffix expected one suffix";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view text;
+  std::string_view suffix;
+  if (!get_bytes_like_view(args[0], "bytes.removesuffix target", text, error) ||
+      !get_bytes_like_view(args[1], "bytes.removesuffix suffix", suffix, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (text.size() >= suffix.size() && text.substr(text.size() - suffix.size()) == suffix) {
+    text.remove_suffix(suffix.size());
+  }
+  std::string result(text);
+  out = value_as_bytearray(args[0]) != nullptr
+      ? Value::bytearray(std::move(result))
+      : Value::bytes(std::move(result));
+  return true;
+}
+
+bool bytes_splitlines_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "bytes.splitlines expected optional keepends";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view bytes;
+  if (!get_bytes_like_view(args[0], "bytes.splitlines target", bytes, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const bool keepends = argc == 2 && value_truthy(args[1]);
+  const bool mutable_result = value_as_bytearray(args[0]) != nullptr;
+  std::vector<Value> lines;
+  size_t start = 0;
+  size_t cursor = 0;
+  while (cursor < bytes.size()) {
+    const unsigned char ch = static_cast<unsigned char>(bytes[cursor]);
+    const bool boundary = ch == '\n' || ch == '\r' || ch == '\v' || ch == '\f' ||
+                          (ch >= 0x1c && ch <= 0x1e) || ch == 0x85;
+    if (!boundary) {
+      ++cursor;
+      continue;
+    }
+    const size_t content_end = cursor;
+    ++cursor;
+    if (ch == '\r' && cursor < bytes.size() && bytes[cursor] == '\n') ++cursor;
+    const size_t line_end = keepends ? cursor : content_end;
+    std::string line(bytes.substr(start, line_end - start));
+    lines.push_back(mutable_result ? Value::bytearray(std::move(line)) : Value::bytes(std::move(line)));
+    start = cursor;
+  }
+  if (start < bytes.size()) {
+    std::string line(bytes.substr(start));
+    lines.push_back(mutable_result ? Value::bytearray(std::move(line)) : Value::bytes(std::move(line)));
+  }
+  out = Value::list(std::move(lines));
+  return true;
+}
+
 } // namespace
 
 bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
+  bytes_class.attrs["__getitem__"] = runtime.make_native_function("bytes.__getitem__", bytes_getitem_method);
+  bytes_class.attrs["ljust"] = runtime.make_native_function("bytes.ljust", bytes_ljust_method);
+  bytes_class.attrs["translate"] = runtime.make_native_function("bytes.translate", bytes_translate_method);
   bytes_class.attrs["maketrans"] = runtime.make_native_function("bytes.maketrans", bytes_maketrans_method);
   const bool is_bytearray = bytes_class.name == "bytearray";
+  bytes_class.attrs["removeprefix"] = runtime.make_native_function(
+      is_bytearray ? "bytearray.removeprefix" : "bytes.removeprefix", bytes_removeprefix_method);
+  bytes_class.attrs["removesuffix"] = runtime.make_native_function(
+      is_bytearray ? "bytearray.removesuffix" : "bytes.removesuffix", bytes_removesuffix_method);
   bytes_class.attrs["fromhex"] = Value::class_method(
       runtime.make_native_function(
           is_bytearray ? "bytearray.fromhex" : "bytes.fromhex",
@@ -1397,17 +1833,23 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
       {"hex", "bytes.hex", bytes_hex_method},
       {"index", "bytes.index", bytes_index_method},
       {"join", "bytes.join", bytes_join_method},
+      {"ljust", "bytes.ljust", bytes_ljust_method},
+      {"lower", "bytes.lower", bytes_lower_method},
       {"lstrip", "bytes.lstrip", bytes_lstrip_method},
       {"partition", "bytes.partition", bytes_partition_method},
+      {"removeprefix", "bytes.removeprefix", bytes_removeprefix_method},
+      {"removesuffix", "bytes.removesuffix", bytes_removesuffix_method},
       {"replace", "bytes.replace", bytes_replace_method},
       {"rfind", "bytes.rfind", bytes_rfind_method},
       {"rindex", "bytes.rindex", bytes_rindex_method},
       {"rpartition", "bytes.rpartition", bytes_rpartition_method},
       {"rstrip", "bytes.rstrip", bytes_rstrip_method},
       {"split", "bytes.split", bytes_split_method},
+      {"splitlines", "bytes.splitlines", bytes_splitlines_method},
       {"startswith", "bytes.startswith", bytes_startswith_method},
       {"strip", "bytes.strip", bytes_strip_method},
       {"translate", "bytes.translate", bytes_translate_method},
+      {"upper", "bytes.upper", bytes_upper_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }
@@ -1428,9 +1870,12 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"hex", "bytearray.hex", bytes_hex_method},
       {"index", "bytearray.index", bytes_index_method},
       {"join", "bytearray.join", bytes_join_method},
+      {"lower", "bytearray.lower", bytes_lower_method},
       {"lstrip", "bytearray.lstrip", bytes_lstrip_method},
       {"pop", "bytearray.pop", bytearray_pop_method},
       {"partition", "bytearray.partition", bytes_partition_method},
+      {"removeprefix", "bytearray.removeprefix", bytes_removeprefix_method},
+      {"removesuffix", "bytearray.removesuffix", bytes_removesuffix_method},
       {"remove", "bytearray.remove", bytearray_remove_method},
       {"replace", "bytearray.replace", bytes_replace_method},
       {"reverse", "bytearray.reverse", bytearray_reverse_method},
@@ -1439,9 +1884,11 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"rpartition", "bytearray.rpartition", bytes_rpartition_method},
       {"rstrip", "bytearray.rstrip", bytes_rstrip_method},
       {"split", "bytearray.split", bytes_split_method},
+      {"splitlines", "bytearray.splitlines", bytes_splitlines_method},
       {"startswith", "bytearray.startswith", bytes_startswith_method},
       {"strip", "bytearray.strip", bytes_strip_method},
       {"translate", "bytearray.translate", bytes_translate_method},
+      {"upper", "bytearray.upper", bytes_upper_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
 }

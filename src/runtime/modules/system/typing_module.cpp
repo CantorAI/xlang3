@@ -346,6 +346,10 @@ void register_typing_module(Runtime& runtime) {
   Value typevartuple = make_typing_class(runtime, "TypeVarTuple", typevartuple_init, typevartuple_init_kw);
   Value type_alias_type = make_typing_class(runtime, "TypeAliasType", type_alias_type_init);
   Value generic = make_typing_class(runtime, "Generic");
+  if (auto* generic_class = value_as_class(generic)) {
+    generic_class->allow_instance_dict = false;
+    generic_class->allow_weakref = false;
+  }
   Value union_class = make_typing_class(runtime, "Union");
 
   runtime.register_builtin("TypeVar", typevar);

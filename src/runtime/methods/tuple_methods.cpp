@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
@@ -22,6 +24,30 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+bool tuple_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "tuple.__getitem__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_get_item(args[0], args[1], out, error)) {
+    runtime.raise_class_error(error.find("range") != std::string::npos ? "IndexError" : "TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool tuple_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "tuple.__iter__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_get_iter(args[0], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
 
 bool normalize_bound(const Value& value, size_t size, size_t& out, std::string& error) {
   if (value.tag != ValueTag::Int64) {
@@ -97,7 +123,93 @@ bool tuple_index_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return false;
 }
 
+const TupleObject* tuple_protocol_storage(const Value& value, Value& scratch) {
+  if (auto* tuple = value_as_tuple(value)) {
+    return tuple;
+  }
+  if (value_as_instance(value) == nullptr) {
+    return nullptr;
+  }
+  std::string ignored;
+  if (!object_get_attr(value, "_tuple", scratch, ignored)) {
+    return nullptr;
+  }
+  return value_as_tuple(scratch);
+}
+
+bool tuple_compare_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    const char* op,
+    const char* method_name) {
+  if (!method_check_argc(argc, 2, method_name, error)) {
+    return false;
+  }
+  Value left_scratch;
+  Value right_scratch;
+  const auto* left = tuple_protocol_storage(args[0], left_scratch);
+  const auto* right = tuple_protocol_storage(args[1], right_scratch);
+  if (left == nullptr || right == nullptr) {
+    if (const Value* not_implemented = runtime.find_builtin("NotImplemented")) {
+      value_assign_fast(out, *not_implemented);
+    } else {
+      value_set_bool(out, std::string_view(op) == "!=");
+    }
+    return true;
+  }
+  const size_t common = std::min(left->items.size(), right->items.size());
+  for (size_t i = 0; i < common; ++i) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", left->items[i], right->items[i], equal, error)) {
+      return false;
+    }
+    if (value_truthy(equal)) {
+      continue;
+    }
+    if (std::string_view(op) == "==" || std::string_view(op) == "!=") {
+      value_set_bool(out, std::string_view(op) == "!=");
+      return true;
+    }
+    return runtime_value_compare(runtime, op, left->items[i], right->items[i], out, error);
+  }
+  const bool equal_size = left->items.size() == right->items.size();
+  bool result = false;
+  if (std::string_view(op) == "==") result = equal_size;
+  else if (std::string_view(op) == "!=") result = !equal_size;
+  else if (std::string_view(op) == "<") result = left->items.size() < right->items.size();
+  else if (std::string_view(op) == "<=") result = left->items.size() <= right->items.size();
+  else if (std::string_view(op) == ">") result = left->items.size() > right->items.size();
+  else result = left->items.size() >= right->items.size();
+  value_set_bool(out, result);
+  return true;
+}
+
+#define XLANG3_TUPLE_COMPARE_METHOD(function_name, op_text, method_text) \
+  bool function_name(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) { \
+    return tuple_compare_impl(runtime, args, argc, out, error, op_text, method_text); \
+  }
+
+XLANG3_TUPLE_COMPARE_METHOD(tuple_eq_method, "==", "tuple.__eq__")
+XLANG3_TUPLE_COMPARE_METHOD(tuple_ne_method, "!=", "tuple.__ne__")
+XLANG3_TUPLE_COMPARE_METHOD(tuple_lt_method, "<", "tuple.__lt__")
+XLANG3_TUPLE_COMPARE_METHOD(tuple_le_method, "<=", "tuple.__le__")
+XLANG3_TUPLE_COMPARE_METHOD(tuple_gt_method, ">", "tuple.__gt__")
+XLANG3_TUPLE_COMPARE_METHOD(tuple_ge_method, ">=", "tuple.__ge__")
+
+#undef XLANG3_TUPLE_COMPARE_METHOD
+
 static constexpr BuiltinMethodSpec kTupleMethods[] = {
+    {"__getitem__", "tuple.__getitem__", tuple_getitem_method},
+    {"__iter__", "tuple.__iter__", tuple_iter_method},
+    {"__eq__", "tuple.__eq__", tuple_eq_method},
+    {"__ne__", "tuple.__ne__", tuple_ne_method},
+    {"__lt__", "tuple.__lt__", tuple_lt_method},
+    {"__le__", "tuple.__le__", tuple_le_method},
+    {"__gt__", "tuple.__gt__", tuple_gt_method},
+    {"__ge__", "tuple.__ge__", tuple_ge_method},
     {"count", "tuple.count", tuple_count_method},
     {"index", "tuple.index", tuple_index_method},
 };
@@ -109,6 +221,14 @@ bool tuple_get_method(const Value& object, const std::string& name, Value& out) 
     return false;
   }
   return bind_builtin_method_from_table(object, name, kTupleMethods, std::size(kTupleMethods), out);
+}
+
+bool tuple_install_class_methods(Runtime& runtime, ClassObject& tuple_class) {
+  for (const auto& method : kTupleMethods) {
+    tuple_class.attrs[method.name] = runtime.make_native_function(method.full_name, method.callback);
+  }
+  ++tuple_class.version;
+  return true;
 }
 
 } // namespace xlang3

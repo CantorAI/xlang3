@@ -32,10 +32,14 @@ struct MemoryStreamState {
   Value wrapped_buffer;
   std::string encoding = "utf-8";
   std::string errors = "strict";
+  std::string newline;
+  bool newline_is_none = true;
   size_t cursor = 0;
   bool binary = false;
   bool closed = false;
   bool wraps_buffer = false;
+  bool line_buffering = false;
+  bool write_through = false;
 };
 
 void memory_stream_cleanup(void* data) {
@@ -72,6 +76,16 @@ bool bytes_value(const Value& value, std::string& out) {
   if (auto* bytearray = value_as_bytearray(value)) {
     out = bytearray->value;
     return true;
+  }
+  if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      return false;
+    }
+    const auto bytes = memoryview_object_view(*view);
+    if (bytes.data() != nullptr) {
+      out.assign(bytes.data(), bytes.size());
+      return true;
+    }
   }
   return false;
 }
@@ -194,12 +208,56 @@ std::string text_io_option_from_args(
   return fallback;
 }
 
+void text_io_newline_from_args(
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    std::string& newline,
+    bool& newline_is_none) {
+  const Value* value = argc > 4 ? &args[4] : nullptr;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string_view(kwargs[i].name) == "newline") {
+      value = kwargs[i].value;
+      break;
+    }
+  }
+  newline_is_none = value == nullptr || value->tag == ValueTag::None;
+  newline.clear();
+  if (!newline_is_none) {
+    if (auto* string = value_as_string(*value)) {
+      newline = string_object_to_string(*string);
+    }
+  }
+}
+
+bool text_io_flag_from_args(
+    const Value* args,
+    uint32_t argc,
+    uint32_t positional_index,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    std::string_view name) {
+  const Value* value = argc > positional_index ? &args[positional_index] : nullptr;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name != nullptr && std::string_view(kwargs[i].name) == name) {
+      value = kwargs[i].value;
+      break;
+    }
+  }
+  return value != nullptr && value_truthy(*value);
+}
+
 bool text_io_wrapper_load_buffer(
     Runtime& runtime,
     const Value& self,
     const Value& buffer,
     std::string encoding,
     std::string errors,
+    std::string newline,
+    bool newline_is_none,
+    bool line_buffering,
+    bool write_through,
     Value& out,
     std::string& error) {
   auto* state = new MemoryStreamState();
@@ -208,6 +266,10 @@ bool text_io_wrapper_load_buffer(
   state->wrapped_buffer = buffer;
   state->encoding = std::move(encoding);
   state->errors = std::move(errors);
+  state->newline = std::move(newline);
+  state->newline_is_none = newline_is_none;
+  state->line_buffering = line_buffering;
+  state->write_through = write_through;
   if (!instance_set_native_data(self, "_io.TextIOWrapper", state, memory_stream_cleanup, error)) {
     delete state;
     return false;
@@ -221,7 +283,10 @@ bool text_io_wrapper_init(Runtime& runtime, const Value* args, uint32_t argc, Va
     error = "_io.TextIOWrapper() missing required buffer argument";
     return false;
   }
-  return text_io_wrapper_load_buffer(runtime, args[0], args[1], text_io_option_from_args(args, argc, 2, nullptr, 0), text_io_option_from_args(args, argc, 3, nullptr, 0, "errors", "strict"), out, error);
+  std::string newline;
+  bool newline_is_none = true;
+  text_io_newline_from_args(args, argc, nullptr, 0, newline, newline_is_none);
+  return text_io_wrapper_load_buffer(runtime, args[0], args[1], text_io_option_from_args(args, argc, 2, nullptr, 0), text_io_option_from_args(args, argc, 3, nullptr, 0, "errors", "strict"), std::move(newline), newline_is_none, text_io_flag_from_args(args, argc, 5, nullptr, 0, "line_buffering"), text_io_flag_from_args(args, argc, 6, nullptr, 0, "write_through"), out, error);
 }
 
 bool text_io_wrapper_new(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -235,7 +300,10 @@ bool text_io_wrapper_new(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   out = Value::instance(args[0]);
   Value ignored;
-  return text_io_wrapper_load_buffer(runtime, out, args[1], text_io_option_from_args(args, argc, 2, nullptr, 0), text_io_option_from_args(args, argc, 3, nullptr, 0, "errors", "strict"), ignored, error);
+  std::string newline;
+  bool newline_is_none = true;
+  text_io_newline_from_args(args, argc, nullptr, 0, newline, newline_is_none);
+  return text_io_wrapper_load_buffer(runtime, out, args[1], text_io_option_from_args(args, argc, 2, nullptr, 0), text_io_option_from_args(args, argc, 3, nullptr, 0, "errors", "strict"), std::move(newline), newline_is_none, text_io_flag_from_args(args, argc, 5, nullptr, 0, "line_buffering"), text_io_flag_from_args(args, argc, 6, nullptr, 0, "write_through"), ignored, error);
 }
 
 bool text_io_wrapper_init_kw(
@@ -251,7 +319,10 @@ bool text_io_wrapper_init_kw(
     error = "_io.TextIOWrapper() missing required buffer argument";
     return false;
   }
-  return text_io_wrapper_load_buffer(runtime, args[0], args[1], text_io_option_from_args(args, argc, 2, kwargs, kwargc), text_io_option_from_args(args, argc, 3, kwargs, kwargc, "errors", "strict"), out, error);
+  std::string newline;
+  bool newline_is_none = true;
+  text_io_newline_from_args(args, argc, kwargs, kwargc, newline, newline_is_none);
+  return text_io_wrapper_load_buffer(runtime, args[0], args[1], text_io_option_from_args(args, argc, 2, kwargs, kwargc), text_io_option_from_args(args, argc, 3, kwargs, kwargc, "errors", "strict"), std::move(newline), newline_is_none, text_io_flag_from_args(args, argc, 5, kwargs, kwargc, "line_buffering"), text_io_flag_from_args(args, argc, 6, kwargs, kwargc, "write_through"), out, error);
 }
 
 bool text_io_wrapper_new_kw(
@@ -273,10 +344,25 @@ bool text_io_wrapper_new_kw(
   }
   out = Value::instance(args[0]);
   Value ignored;
-  return text_io_wrapper_load_buffer(runtime, out, args[1], text_io_option_from_args(args, argc, 2, kwargs, kwargc), text_io_option_from_args(args, argc, 3, kwargs, kwargc, "errors", "strict"), ignored, error);
+  std::string newline;
+  bool newline_is_none = true;
+  text_io_newline_from_args(args, argc, kwargs, kwargc, newline, newline_is_none);
+  return text_io_wrapper_load_buffer(runtime, out, args[1], text_io_option_from_args(args, argc, 2, kwargs, kwargc), text_io_option_from_args(args, argc, 3, kwargs, kwargc, "errors", "strict"), std::move(newline), newline_is_none, text_io_flag_from_args(args, argc, 5, kwargs, kwargc, "line_buffering"), text_io_flag_from_args(args, argc, 6, kwargs, kwargc, "write_through"), ignored, error);
 }
 
-bool buffered_stream_load_buffer(const Value& self, const Value& buffer, const char* type, Value& out, std::string& error) {
+void io_set_instance_attr(const Value& self, const std::string& name, const Value& value) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) return;
+  for (auto& attr : instance->attrs) {
+    if (attr.first == name) {
+      value_assign_fast(attr.second, value);
+      return;
+    }
+  }
+  instance->attrs.push_back({name, value});
+}
+
+bool buffered_stream_load_buffer(Runtime& runtime, const Value& self, const Value& buffer, const char* type, Value& out, std::string& error) {
   auto* state = new MemoryStreamState();
   state->binary = true;
   state->wraps_buffer = true;
@@ -285,45 +371,86 @@ bool buffered_stream_load_buffer(const Value& self, const Value& buffer, const c
     delete state;
     return false;
   }
+  Value mode;
+  std::string ignored;
+  if (!object_get_attr(buffer, "_mode", mode, ignored)) {
+    attribute_get(buffer, "mode", mode, ignored);
+  }
+  if (value_as_string(mode) != nullptr) {
+    io_set_instance_attr(self, "mode", mode);
+  }
+  Value name;
+  if (object_get_attr(buffer, "_sock", name, ignored)) {
+    Value fileno;
+    if (attribute_get(name, "fileno", fileno, ignored)) {
+      Value descriptor;
+      if (runtime_call_callable(runtime, fileno, nullptr, 0, descriptor, ignored)) {
+        io_set_instance_attr(self, "name", descriptor);
+      }
+    }
+  } else if (attribute_get(buffer, "name", name, ignored) && value_as_property(name) == nullptr) {
+    io_set_instance_attr(self, "name", name);
+  }
   value_set_none(out);
   return true;
 }
 
-bool buffered_reader_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool buffered_reader_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "_io.BufferedReader() expected raw stream and optional buffer size";
     return false;
   }
-  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedReader", out, error);
+  return buffered_stream_load_buffer(runtime, args[0], args[1], "_io.BufferedReader", out, error);
 }
 
-bool buffered_writer_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool buffered_writer_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "_io.BufferedWriter() expected raw stream and optional buffer size";
     return false;
   }
-  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedWriter", out, error);
+  return buffered_stream_load_buffer(runtime, args[0], args[1], "_io.BufferedWriter", out, error);
 }
 
-bool buffered_random_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool buffered_random_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "_io.BufferedRandom() expected raw stream and optional buffer size";
     return false;
   }
-  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedRandom", out, error);
+  return buffered_stream_load_buffer(runtime, args[0], args[1], "_io.BufferedRandom", out, error);
 }
 
-bool buffered_rw_pair_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool buffered_rw_pair_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 3 || argc > 4) {
     error = "_io.BufferedRWPair() expected reader, writer, and optional buffer size";
     return false;
   }
-  return buffered_stream_load_buffer(args[0], args[1], "_io.BufferedRWPair", out, error);
+  return buffered_stream_load_buffer(runtime, args[0], args[1], "_io.BufferedRWPair", out, error);
 }
 
-bool decode_text_io_data(const Value& data, const std::string& encoding, Value& out, std::string& error) {
+bool decode_text_io_data(
+    Runtime& runtime,
+    const Value& data,
+    const MemoryStreamState& state,
+    Value& out,
+    std::string& error) {
+  const auto normalize_newlines = [&](std::string text) {
+    if (!state.newline_is_none) {
+      return text;
+    }
+    std::string normalized;
+    normalized.reserve(text.size());
+    for (size_t i = 0; i < text.size(); ++i) {
+      if (text[i] == '\r') {
+        if (i + 1 < text.size() && text[i + 1] == '\n') ++i;
+        normalized.push_back('\n');
+      } else {
+        normalized.push_back(text[i]);
+      }
+    }
+    return normalized;
+  };
   if (auto* string = value_as_string(data)) {
-    out = Value::string(string_object_to_string(*string));
+    out = Value::string(normalize_newlines(string_object_to_string(*string)));
     return true;
   }
   std::string bytes;
@@ -331,11 +458,22 @@ bool decode_text_io_data(const Value& data, const std::string& encoding, Value& 
     error = "_io.TextIOWrapper buffer read() must return bytes or str";
     return false;
   }
-  PythonSourceText decoded;
-  if (!decode_python_source_bytes_as(bytes, encoding, decoded, error)) {
+  Value encoded = Value::bytes(std::move(bytes));
+  Value decode;
+  if (!attribute_get(encoded, "decode", decode, error)) {
     return false;
   }
-  out = Value::string(std::move(decoded.text));
+  Value decode_args[] = {Value::string(state.encoding), Value::string(state.errors)};
+  Value decoded;
+  if (!runtime_call_callable(runtime, decode, decode_args, 2, decoded, error)) {
+    return false;
+  }
+  auto* string = value_as_string(decoded);
+  if (string == nullptr) {
+    error = "_io.TextIOWrapper decoder must return str";
+    return false;
+  }
+  out = Value::string(normalize_newlines(string_object_to_string(*string)));
   return true;
 }
 
@@ -406,7 +544,7 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       value_assign_fast(out, data);
       return true;
     }
-    return decode_text_io_data(data, state->encoding, out, error);
+    return decode_text_io_data(runtime, data, *state, out, error);
   }
   size_t size = state->buffer.size() - std::min(state->cursor, state->buffer.size());
   if (argc == 2 && args[1].tag == ValueTag::Int64 && args[1].as.i64 >= 0) {
@@ -483,7 +621,7 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
       value_assign_fast(out, data);
       return true;
     }
-    return decode_text_io_data(data, state->encoding, out, error);
+    return decode_text_io_data(runtime, data, *state, out, error);
   }
   size_t limit = state->buffer.size();
   if (argc == 2) {
@@ -505,6 +643,37 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   out = memory_stream_result(*state, state->buffer.substr(start, end - start));
   state->cursor = end;
+  return true;
+}
+
+bool stream_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "memory stream __iter__() expected no arguments";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool stream_next(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "memory stream __next__() expected no arguments";
+    return false;
+  }
+  if (!stream_readline(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  bool empty = false;
+  if (auto* text = value_as_string(out)) {
+    empty = string_object_view(*text).empty();
+  } else if (auto* bytes = value_as_bytes(out)) {
+    empty = bytes_object_view(*bytes).empty();
+  }
+  if (empty) {
+    error = "StopIteration";
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
   return true;
 }
 
@@ -572,22 +741,63 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       error = "TextIOWrapper.write() argument must be str";
       return false;
     }
+    const int64_t written = static_cast<int64_t>(utf8_codepoint_count(data));
+    const bool flush_line = state->line_buffering &&
+        (data.find('\n') != std::string::npos || data.find('\r') != std::string::npos);
+    std::string translated;
+    const std::string replacement = state->newline_is_none
+#if defined(_WIN32)
+        ? "\r\n"
+#else
+        ? "\n"
+#endif
+        : state->newline;
+    if (!replacement.empty() && replacement != "\n") {
+      translated.reserve(data.size());
+      for (char ch : data) {
+        if (ch == '\n') {
+          translated += replacement;
+        } else {
+          translated.push_back(ch);
+        }
+      }
+      data = std::move(translated);
+    }
+    Value text = Value::string(std::move(data));
+    Value encode;
+    if (!attribute_get(text, "encode", encode, error)) {
+      return false;
+    }
+    Value encode_args[] = {Value::string(state->encoding), Value::string(state->errors)};
+    Value bytes_arg;
+    if (!runtime_call_callable(runtime, encode, encode_args, 2, bytes_arg, error)) {
+      return false;
+    }
     Value write_method;
     if (!attribute_get(state->wrapped_buffer, "write", write_method, error)) {
       return false;
     }
-    Value bytes_arg = Value::bytes(data);
     Value ignored;
     if (!runtime_call_callable(runtime, write_method, &bytes_arg, 1, ignored, error)) {
       return false;
     }
-    value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(data)));
+    if (flush_line) {
+      Value flush_method;
+      if (attribute_get(state->wrapped_buffer, "flush", flush_method, error)) {
+        Value flush_result;
+        if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) {
+          return false;
+        }
+      }
+    }
+    value_set_int64(out, written);
     return true;
   }
   std::string data;
   const bool ok = state->binary ? bytes_value(args[1], data) : string_value(args[1], data);
   if (!ok) {
     error = state->binary ? "BytesIO.write() argument must be bytes-like" : "StringIO.write() argument must be str";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (state->cursor > state->buffer.size()) {
@@ -641,6 +851,22 @@ bool stream_getvalue(Runtime&, const Value* args, uint32_t argc, Value& out, std
     return false;
   }
   out = memory_stream_result(*state, state->buffer);
+  return true;
+}
+
+bool stream_getbuffer(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "BytesIO.getbuffer() expected no arguments";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  if (state == nullptr || !state->binary) {
+    if (error.empty()) error = "getbuffer() requires a binary memory stream";
+    return false;
+  }
+  Value owner = Value::bytearray(state->buffer);
+  out = Value::memoryview(owner, 0, state->buffer.size(), false);
   return true;
 }
 
@@ -800,17 +1026,15 @@ bool stream_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
-bool stream_exit(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool stream_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 4) {
     error = "memory stream __exit__() expected exc details";
     return false;
   }
-  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], static_cast<const char*>(user_data)));
-  if (state == nullptr) {
-    error = "invalid memory stream object";
+  Value close_result;
+  if (!stream_close(runtime, args, 1, close_result, error, user_data)) {
     return false;
   }
-  state->closed = true;
   value_set_bool(out, false);
   return true;
 }
@@ -844,6 +1068,62 @@ bool stream_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return runtime_call_callable(runtime, method, nullptr, 0, out, error);
 }
 
+bool buffered_wrapped_attr(Runtime&, const Value* args, uint32_t argc, Value& out,
+                           std::string& error, void* user_data, const char* attr_name) {
+  if (argc != 1) {
+    error = std::string(attr_name) + " getter expected self";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], type));
+  if (state == nullptr || !state->wraps_buffer) {
+    error = "invalid buffered stream object";
+    return false;
+  }
+  return attribute_get(state->wrapped_buffer, attr_name, out, error);
+}
+
+bool buffered_name_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                       std::string& error, void* user_data) {
+  return buffered_wrapped_attr(runtime, args, argc, out, error, user_data, "name");
+}
+
+bool buffered_mode_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                       std::string& error, void* user_data) {
+  return buffered_wrapped_attr(runtime, args, argc, out, error, user_data, "mode");
+}
+
+bool buffered_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                   std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "buffered stream repr expected self";
+    return false;
+  }
+  const char* type_name = static_cast<const char*>(user_data);
+  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], type_name));
+  Value name;
+  Value inherited_closed;
+  std::string ignored;
+  const bool is_closed = state != nullptr && (state->closed ||
+      (object_get_attr(args[0], "__xlang3_io_closed", inherited_closed, ignored) &&
+       value_truthy(inherited_closed)));
+  if (is_closed) {
+    name = Value::int64(-1);
+  } else if (!object_get_attr(args[0], "name", name, error)) {
+    name = Value::int64(-1);
+    error.clear();
+  }
+  std::string name_text;
+  if (auto* text = value_as_string(name)) {
+    name_text = "'" + string_object_to_string(*text) + "'";
+  } else {
+    name_text = value_to_string(name);
+  }
+  std::string type = type_name;
+  out = Value::string("<" + type + " name=" + name_text + ">");
+  return true;
+}
+
 bool text_io_option_get(Runtime&, const Value* args, uint32_t argc, Value& out,
                         std::string& error, void* user_data) {
   auto* state = argc == 1 ? static_cast<MemoryStreamState*>(
@@ -854,6 +1134,19 @@ bool text_io_option_get(Runtime&, const Value* args, uint32_t argc, Value& out,
   }
   out = Value::string(std::string_view(static_cast<const char*>(user_data)) == "encoding"
                           ? state->encoding : state->errors);
+  return true;
+}
+
+bool text_io_flag_get(Runtime&, const Value* args, uint32_t argc, Value& out,
+                      std::string& error, void* user_data) {
+  auto* state = argc == 1 ? static_cast<MemoryStreamState*>(
+      instance_get_native_data(args[0], "_io.TextIOWrapper")) : nullptr;
+  if (state == nullptr) {
+    error = "uninitialized TextIOWrapper";
+    return false;
+  }
+  value_set_bool(out, std::string_view(static_cast<const char*>(user_data)) == "line_buffering"
+                          ? state->line_buffering : state->write_through);
   return true;
 }
 
@@ -872,16 +1165,26 @@ Value make_memory_stream_class(
           text_io_option_get, const_cast<char*>(option));
       attrs.push_back({option, Value::property(std::move(getter), Value::none(), Value::none(), Value::none())});
     }
+    for (const char* option : {"line_buffering", "write_through"}) {
+      Value getter = runtime.make_native_function(std::string("_io.TextIOWrapper.") + option,
+          text_io_flag_get, const_cast<char*>(option));
+      attrs.push_back({option, Value::property(std::move(getter), Value::none(), Value::none(), Value::none())});
+    }
     attrs.push_back({"__new__", runtime.make_native_function("_io.TextIOWrapper.__new__", text_io_wrapper_new, nullptr, nullptr, nullptr, false, text_io_wrapper_new_kw)});
   }
   attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
   attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});
+  attrs.push_back({"__iter__", runtime.make_native_function(std::string("_io.") + name + ".__iter__", stream_iter, const_cast<char*>(type))});
+  attrs.push_back({"__next__", runtime.make_native_function(std::string("_io.") + name + ".__next__", stream_next, const_cast<char*>(type))});
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
   attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
+  if (std::string_view(name) == "BytesIO") {
+    attrs.push_back({"getbuffer", runtime.make_native_function("_io.BytesIO.getbuffer", stream_getbuffer, const_cast<char*>(type))});
+  }
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
   attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
   attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
@@ -896,10 +1199,14 @@ Value make_memory_stream_class(
 
 Value make_buffered_stream_class(Runtime& runtime, const char* name, const char* type, NativeFunctionCallback init) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_io")});
+  attrs.push_back({"__repr__", runtime.make_native_function(std::string("_io.") + name + ".__repr__", buffered_repr, const_cast<char*>(type))});
   attrs.push_back({"fileno", runtime.make_native_function(std::string("_io.") + name + ".fileno", stream_fileno, const_cast<char*>(type))});
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});
   attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
   attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});
+  attrs.push_back({"__iter__", runtime.make_native_function(std::string("_io.") + name + ".__iter__", stream_iter, const_cast<char*>(type))});
+  attrs.push_back({"__next__", runtime.make_native_function(std::string("_io.") + name + ".__next__", stream_next, const_cast<char*>(type))});
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
@@ -1137,6 +1444,7 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {"__enter__", runtime.make_native_function("_io._IOBase.__enter__", io_base_enter)},
       {"__exit__", runtime.make_native_function("_io._IOBase.__exit__", io_base_exit)},
       {"close", runtime.make_native_function("_io._IOBase.close", io_base_close)},
+      {"flush", runtime.make_native_function("_io._IOBase.flush", io_base_check_closed)},
       {"closed", Value::property(std::move(closed_getter), Value::none(), Value::none(), Value::none())},
       {"_checkClosed", runtime.make_native_function("_io._IOBase._checkClosed", io_base_check_closed)},
       {"_checkReadable", runtime.make_native_function("_io._IOBase._checkReadable", io_base_check_capability, const_cast<char*>("_checkReadable"))},

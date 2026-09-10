@@ -333,8 +333,26 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
   }
   const bool direct_subclass = class_is_subclass(sub, abc);
   const bool registered_subclass = registry_contains_registered_base(abc_class, subclass);
-  out = direct_subclass || registered_subclass;
-  if (direct_subclass) {
+  bool registered_through_subclass = false;
+  if (!direct_subclass && !registered_subclass) {
+    for (auto* child : abc->subclasses) {
+      if (child == nullptr) continue;
+      Value child_value;
+      child_value.tag = ValueTag::Object;
+      child_value.as.obj = &child->header;
+      retain(child_value);
+      bool child_matches = false;
+      if (!abc_subclass_matches(runtime, child_value, subclass, child_matches, error)) {
+        return false;
+      }
+      if (child_matches) {
+        registered_through_subclass = true;
+        break;
+      }
+    }
+  }
+  out = direct_subclass || registered_subclass || registered_through_subclass;
+  if (direct_subclass || registered_through_subclass) {
     append_unique_abc_ref(runtime, positive_cache, subclass);
   } else if (!registered_subclass) {
     append_unique_abc_ref(runtime, negative_cache, subclass);

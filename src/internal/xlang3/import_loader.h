@@ -17,9 +17,20 @@ limitations under the License.
 #include "xlang3/runtime.h"
 
 #include <string>
+#include <vector>
 
 namespace xlang3 {
 
+struct PythonModuleLocation {
+  std::string path;
+  std::string package_dir;
+  std::vector<std::string> namespace_dirs;
+  bool is_package = false;
+  bool is_namespace_package = false;
+  bool is_zip_source = false;
+};
+
+bool find_python_module_location(Runtime& runtime, const std::string& name, PythonModuleLocation& out);
 bool import_python_module(Runtime& runtime, const std::string& name, Value& out, std::string& error);
 
 } // namespace xlang3

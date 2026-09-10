@@ -205,6 +205,21 @@ bool imp_fix_co_filename(Runtime&, const Value*, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool imp_override_frozen_modules_for_tests(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "_imp._override_frozen_modules_for_tests() expected one integer argument";
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool imp_dynamic_not_available(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
   error = "dynamic extension loading is not available through _imp";
   runtime.raise_class_error("ImportError", error);
@@ -230,6 +245,7 @@ void register_imp_module(Runtime& runtime) {
       .function("extension_suffixes", imp_extension_suffixes)
       .function("source_hash", imp_source_hash)
       .function("_fix_co_filename", imp_fix_co_filename)
+      .function("_override_frozen_modules_for_tests", imp_override_frozen_modules_for_tests)
       .function("create_dynamic", imp_dynamic_not_available)
       .function("exec_dynamic", imp_dynamic_not_available)
       .value("pyc_magic_number_token", Value::int64(0x0a0d5833))

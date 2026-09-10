@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/config.h"
 #include "xlang3/dap_session.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
 #include "xlang3/module_object.h"
@@ -44,6 +45,14 @@ namespace {
 
 bool g_had_system_exit = false;
 int g_system_exit_code = 0;
+
+std::string path_to_utf8(const std::filesystem::path& path) {
+#if defined(_WIN32)
+  return path.u8string();
+#else
+  return path.string();
+#endif
+}
 
 void configure_no_popup_error_mode() {
 #if defined(_WIN32)
@@ -108,7 +117,7 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
         std::cerr << "--debug-dir requires a folder\n";
         return false;
       }
-      config.debug.output_dir = argv[++i];
+      config.debug.output_dir = std::filesystem::u8path(argv[++i]);
       continue;
     }
     if (arg == "-X") {
@@ -116,16 +125,39 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
         std::cerr << "-X requires an option value\n";
         return false;
       }
-      ++i;
+      const std::string option = argv[++i];
+      if (option == "no_debug_ranges") {
+        config.no_debug_ranges = true;
+      } else if (option == "warn_default_encoding") {
+        config.warn_default_encoding = true;
+      }
       continue;
     }
     if (arg.rfind("-X", 0) == 0) {
+      if (arg.substr(2) == "no_debug_ranges") {
+        config.no_debug_ranges = true;
+      } else if (arg.substr(2) == "warn_default_encoding") {
+        config.warn_default_encoding = true;
+      }
       continue;
     }
     if (arg == "-u" || arg == "-B" || arg == "-E" || arg == "-I" || arg == "-s" || arg == "-S") {
       continue;
     }
-    if (arg == "-c") {
+    if (arg == "-i") {
+      config.launch_mode = xlang3::RunConfig::LaunchMode::Repl;
+      continue;
+    }
+    bool combined_command_option = arg.size() >= 3 && arg.front() == '-' && arg.back() == 'c';
+    if (combined_command_option) {
+      for (size_t option_index = 1; option_index + 1 < arg.size(); ++option_index) {
+        if (std::string_view("uBEIsS").find(arg[option_index]) == std::string_view::npos) {
+          combined_command_option = false;
+          break;
+        }
+      }
+    }
+    if (arg == "-c" || combined_command_option) {
       if (i + 1 >= argc) {
         std::cerr << "-c requires code\n";
         return false;
@@ -159,7 +191,7 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       std::cerr << "only one source file is supported\n";
       return false;
     }
-    config.source_path = arg;
+    config.source_path = std::filesystem::u8path(arg);
     if (std::filesystem::is_directory(config.source_path)) {
       config.source_file_path = config.source_path / "__main__.py";
     } else {
@@ -222,27 +254,35 @@ void trace_frontend_timing(const char* phase, std::chrono::steady_clock::time_po
   std::cerr << "xlang3 frontend timing: " << phase << " " << seconds_since(start) << "s\n";
 }
 
-bool publish_process_sys_attrs(xlang3::Runtime& runtime, int argc, char** argv, std::string& error) {
+bool publish_process_sys_attrs(
+    xlang3::Runtime& runtime,
+    const xlang3::RunConfig& config,
+    int argc,
+    char** argv,
+    std::string& error) {
   xlang3::Value sys;
   if (!runtime.import_module("sys", sys, error)) {
     return false;
   }
-  std::filesystem::path executable = argc > 0 && argv != nullptr && argv[0] != nullptr ? std::filesystem::path(argv[0]) : std::filesystem::path();
+  std::filesystem::path executable = argc > 0 && argv != nullptr && argv[0] != nullptr
+      ? std::filesystem::u8path(argv[0])
+      : std::filesystem::path();
   std::error_code ec;
   auto absolute = std::filesystem::absolute(executable, ec);
   if (!ec) {
     executable = std::move(absolute);
   }
-  if (!xlang3::module_set_attr(sys, "executable", xlang3::Value::string(executable.string()), error)) {
+  const std::string executable_utf8 = path_to_utf8(executable);
+  if (!xlang3::module_set_attr(sys, "executable", xlang3::Value::string(executable_utf8), error)) {
     return false;
   }
-  if (!xlang3::module_set_attr(sys, "_base_executable", xlang3::Value::string(executable.string()), error)) {
+  if (!xlang3::module_set_attr(sys, "_base_executable", xlang3::Value::string(executable_utf8), error)) {
     return false;
   }
   std::vector<xlang3::Value> original_argv;
   if (argc > 0 && argv != nullptr) {
     original_argv.reserve(static_cast<size_t>(argc));
-    original_argv.push_back(xlang3::Value::string(executable.string()));
+    original_argv.push_back(xlang3::Value::string(executable_utf8));
     for (int i = 1; i < argc; ++i) {
       original_argv.push_back(xlang3::Value::string(argv[i] == nullptr ? "" : argv[i]));
     }
@@ -250,7 +290,7 @@ bool publish_process_sys_attrs(xlang3::Runtime& runtime, int argc, char** argv, 
   if (!xlang3::module_set_attr(sys, "orig_argv", xlang3::Value::list(std::move(original_argv)), error)) {
     return false;
   }
-  const auto prefix = executable.parent_path().string();
+  const auto prefix = path_to_utf8(executable.parent_path());
   if (!xlang3::module_set_attr(sys, "prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
@@ -263,7 +303,64 @@ bool publish_process_sys_attrs(xlang3::Runtime& runtime, int argc, char** argv, 
   if (!xlang3::module_set_attr(sys, "base_exec_prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
+  if (config.warn_default_encoding) {
+    xlang3::Value flags;
+    if (!xlang3::module_get_attr(sys, "flags", flags, error) ||
+        !xlang3::object_set_attr(
+            flags,
+            "warn_default_encoding",
+            xlang3::Value::int64(1),
+            error)) {
+      return false;
+    }
+  }
+  if (config.no_debug_ranges || config.warn_default_encoding) {
+    std::vector<std::pair<xlang3::Value, xlang3::Value>> xoptions;
+    if (config.no_debug_ranges) {
+      xoptions.push_back({
+          xlang3::Value::string("no_debug_ranges"),
+          xlang3::Value::boolean(true),
+      });
+    }
+    if (config.warn_default_encoding) {
+      xoptions.push_back({
+          xlang3::Value::string("warn_default_encoding"),
+          xlang3::Value::boolean(true),
+      });
+    }
+    if (!xlang3::module_set_attr(sys, "_xoptions", xlang3::Value::dict(std::move(xoptions)), error)) {
+      return false;
+    }
+  }
   return true;
+}
+
+bool report_uncaught_exception(
+    xlang3::Runtime& runtime,
+    const xlang3::RuntimeResult& result,
+    std::string& error) {
+  if (result.exception.tag == xlang3::ValueTag::None) {
+    return false;
+  }
+  xlang3::Value pending_exception;
+  runtime.take_pending_exception(pending_exception);
+  runtime.clear_active_exception();
+  xlang3::Value sys;
+  xlang3::Value excepthook;
+  xlang3::Value traceback = xlang3::Value::none();
+  std::string ignored;
+  if (!runtime.import_module("sys", sys, error) ||
+      !xlang3::module_get_attr(sys, "excepthook", excepthook, error)) {
+    return false;
+  }
+  xlang3::object_get_attr(result.exception, "__traceback__", traceback, ignored);
+  xlang3::Value arguments[] = {
+      runtime.exception_type(result.exception),
+      result.exception,
+      traceback,
+  };
+  xlang3::Value hook_result;
+  return xlang3::runtime_call_callable(runtime, excepthook, arguments, 3, hook_result, error);
 }
 
 bool publish_command_sys_path(xlang3::Runtime& runtime, const xlang3::RunConfig& config, std::string& error) {
@@ -282,9 +379,32 @@ bool publish_command_sys_path(xlang3::Runtime& runtime, const xlang3::RunConfig&
   values.reserve(roots.empty() ? 1 : roots.size());
   values.push_back(xlang3::Value::string(""));
   for (size_t i = 1; i < roots.size(); ++i) {
-    values.push_back(xlang3::Value::string(roots[i].string()));
+    values.push_back(xlang3::Value::string(path_to_utf8(roots[i])));
   }
   return xlang3::module_set_attr(sys, "path", xlang3::Value::list(std::move(values)), error);
+}
+
+bool register_command_source(
+    xlang3::Runtime& runtime,
+    const std::shared_ptr<const xlang3::ir::Module>& module,
+    const std::string& source,
+    const std::string& filename,
+    std::string& error) {
+  xlang3::Value linecache;
+  if (!runtime.import_module("linecache", linecache, error)) {
+    return false;
+  }
+  xlang3::Value register_code;
+  if (!xlang3::module_get_attr(linecache, "_register_code", register_code, error)) {
+    return false;
+  }
+  xlang3::Value arguments[] = {
+      xlang3::Value::code(module, module->entry),
+      xlang3::Value::string(source),
+      xlang3::Value::string(filename),
+  };
+  xlang3::Value ignored;
+  return xlang3::runtime_call_callable(runtime, register_code, arguments, 3, ignored, error);
 }
 
 bool run_source(
@@ -320,9 +440,14 @@ bool run_source(
 
   auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
   if (!config.source_path.empty()) {
-    module->source_file = source_file_for_run(config).string();
+    module->source_file = path_to_utf8(source_file_for_run(config));
   } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
     module->source_file = "<string>";
+    std::string registration_error;
+    if (!register_command_source(runtime, module, source, "<string>", registration_error)) {
+      std::cerr << "runtime: cannot register command source: " << registration_error << "\n";
+      return false;
+    }
   }
   trace_frontend_timing("exec-begin", run_start);
   auto result = interpreter.run(std::move(module));
@@ -330,6 +455,13 @@ bool run_source(
   if (!result.errors.empty()) {
     if (consume_system_exit_result(result)) {
       return false;
+    }
+    std::string hook_error;
+    if (report_uncaught_exception(runtime, result, hook_error)) {
+      return false;
+    }
+    if (!hook_error.empty()) {
+      std::cerr << "runtime: sys.excepthook failed: " << hook_error << "\n";
     }
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";
@@ -376,9 +508,16 @@ bool run_source_in_module(
   if (!source_file.empty()) {
     module->source_file = source_file;
   } else if (!config.source_path.empty()) {
-    module->source_file = source_file_for_run(config).string();
+    module->source_file = path_to_utf8(source_file_for_run(config));
   } else if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command) {
     module->source_file = "<string>";
+  }
+  if (!source_file.empty() && source_file.front() == '<' && source_file.back() == '>') {
+    std::string registration_error;
+    if (!register_command_source(runtime, module, source, source_file, registration_error)) {
+      std::cerr << "runtime: cannot register interactive source: " << registration_error << "\n";
+      return false;
+    }
   }
   trace_frontend_timing("exec-begin", run_start);
   auto result = interpreter.run_module(*module, std::move(globals_module), module);
@@ -386,6 +525,13 @@ bool run_source_in_module(
   if (!result.errors.empty()) {
     if (consume_system_exit_result(result)) {
       return false;
+    }
+    std::string hook_error;
+    if (report_uncaught_exception(runtime, result, hook_error)) {
+      return false;
+    }
+    if (!hook_error.empty()) {
+      std::cerr << "runtime: sys.excepthook failed: " << hook_error << "\n";
     }
     for (const auto& error : result.errors) {
       std::cerr << "runtime: " << error << "\n";
@@ -400,14 +546,43 @@ bool run_module_name(
     xlang3::Runtime& runtime,
     bool dump_ir) {
   (void)dump_ir;
-  (void)config;
   std::string error;
-  xlang3::Value module;
-  if (!runtime.import_module(config.module_name, module, error)) {
+  if (!runtime.has_registered_module("__main__")) {
+    xlang3::Value main_module = xlang3::Value::module("__main__");
+    xlang3::module_set_attr(main_module, "__spec__", xlang3::Value::none(), error);
+    runtime.register_module("__main__", std::move(main_module));
+  }
+  xlang3::Value runpy;
+  xlang3::Value run_module_as_main;
+  if (!runtime.import_module("runpy", runpy, error) ||
+      !xlang3::module_get_attr(runpy, "_run_module_as_main", run_module_as_main, error)) {
     std::cerr << "runtime: " << error << "\n";
     return false;
   }
-  return true;
+  xlang3::Value arguments[] = {
+      xlang3::Value::string(config.module_name),
+      xlang3::Value::boolean(true),
+  };
+  xlang3::Value ignored;
+  if (xlang3::runtime_call_callable(
+          runtime, run_module_as_main, arguments, 2, ignored, error)) {
+    return true;
+  }
+  xlang3::Value exception;
+  if (!runtime.take_pending_exception(exception)) {
+    std::cerr << "runtime: " << error << "\n";
+    return false;
+  }
+  xlang3::RuntimeResult result;
+  result.exception = exception;
+  if (consume_system_exit_result(result)) {
+    return false;
+  }
+  std::string hook_error;
+  if (!report_uncaught_exception(runtime, result, hook_error)) {
+    std::cerr << "runtime: " << (hook_error.empty() ? error : hook_error) << "\n";
+  }
+  return false;
 }
 
 bool looks_like_statement(const std::string& line) {
@@ -484,6 +659,7 @@ int run_repl() {
 
   xlang3::RunConfig config;
   xlang3::Runtime runtime(std::cout);
+  runtime.set_no_debug_ranges(config.no_debug_ranges);
   runtime.prepend_import_root(std::filesystem::current_path());
   xlang3::Interpreter interpreter(runtime);
   xlang3::Value globals_module = xlang3::Value::module("__main__");
@@ -529,6 +705,7 @@ void configure_binary_stdio() {
 #if defined(_WIN32)
   _setmode(_fileno(stdin), _O_BINARY);
   _setmode(_fileno(stdout), _O_BINARY);
+  _setmode(_fileno(stderr), _O_BINARY);
 #endif
 }
 
@@ -572,8 +749,11 @@ int run_dap_stdio() {
 
 } // namespace
 
-int main(int argc, char** argv) {
+int xlang3_main(int argc, char** argv) {
   configure_no_popup_error_mode();
+  // Keep the CRT streams byte-preserving.  Python's text stream performs
+  // newline translation, while sys.stdout.buffer must leave every byte intact.
+  configure_binary_stdio();
 
   if (argc >= 2 && std::string(argv[1]) == "--dap-stdio") {
     return run_dap_stdio();
@@ -590,6 +770,7 @@ int main(int argc, char** argv) {
   }
 
   xlang3::Runtime runtime(std::cout);
+  runtime.set_no_debug_ranges(config.no_debug_ranges);
   if (!config.source_path.empty()) {
     if (std::filesystem::is_directory(config.source_path)) {
       runtime.prepend_import_root(config.source_path);
@@ -600,7 +781,7 @@ int main(int argc, char** argv) {
     runtime.prepend_import_root(std::filesystem::current_path());
   }
   std::string argv_error;
-  if (!publish_process_sys_attrs(runtime, argc, argv, argv_error)) {
+  if (!publish_process_sys_attrs(runtime, config, argc, argv, argv_error)) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }
@@ -631,7 +812,13 @@ int main(int argc, char** argv) {
     }
     std::ostringstream buffer;
     buffer << file.rdbuf();
-    ok = run_source(buffer.str(), config, runtime, interpreter, config.debug.dump_ir);
+    std::string decoded_source;
+    std::string decode_error;
+    if (!runtime.decode_python_source(buffer.str(), decoded_source, decode_error)) {
+      std::cerr << "SyntaxError: " << decode_error << "\n";
+      return 1;
+    }
+    ok = run_source(decoded_source, config, runtime, interpreter, config.debug.dump_ir);
   }
   if (config.perf_counters) {
     xlang3::xlang_perf_set_enabled(false);
@@ -642,3 +829,39 @@ int main(int argc, char** argv) {
   }
   return ok ? 0 : 1;
 }
+
+#if defined(_WIN32)
+std::string wide_argument_to_utf8(const wchar_t* argument) {
+  if (argument == nullptr || *argument == L'\0') {
+    return {};
+  }
+  const int required = WideCharToMultiByte(
+      CP_UTF8, WC_ERR_INVALID_CHARS, argument, -1, nullptr, 0, nullptr, nullptr);
+  if (required <= 1) {
+    return {};
+  }
+  std::string utf8(static_cast<size_t>(required), '\0');
+  WideCharToMultiByte(
+      CP_UTF8, WC_ERR_INVALID_CHARS, argument, -1, utf8.data(), required, nullptr, nullptr);
+  utf8.resize(static_cast<size_t>(required - 1));
+  return utf8;
+}
+
+int wmain(int argc, wchar_t** argv) {
+  std::vector<std::string> utf8_arguments;
+  utf8_arguments.reserve(static_cast<size_t>(argc));
+  for (int i = 0; i < argc; ++i) {
+    utf8_arguments.push_back(wide_argument_to_utf8(argv[i]));
+  }
+  std::vector<char*> argument_pointers;
+  argument_pointers.reserve(utf8_arguments.size());
+  for (auto& argument : utf8_arguments) {
+    argument_pointers.push_back(argument.data());
+  }
+  return xlang3_main(argc, argument_pointers.data());
+}
+#else
+int main(int argc, char** argv) {
+  return xlang3_main(argc, argv);
+}
+#endif

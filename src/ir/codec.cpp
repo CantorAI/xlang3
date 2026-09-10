@@ -25,7 +25,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 14;
+constexpr uint32_t kVersion = 15;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -39,6 +39,7 @@ enum class ConstTag : uint8_t {
   Expression = 7,
   Tuple = 8,
   Invalid = 9,
+  Complex = 10,
 };
 
 struct Writer {
@@ -581,6 +582,12 @@ bool write_value(Writer& w, const Value& value, std::string& error, uint32_t dep
         for (const auto& item : tuple->items) if (!write_value(w, item, error, depth + 1)) return false;
         return true;
       }
+      if (auto* complex = value_as_complex(value)) {
+        w.u8(static_cast<uint8_t>(ConstTag::Complex));
+        w.f64(complex->real);
+        w.f64(complex->imag);
+        return true;
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         w.u8(static_cast<uint8_t>(ConstTag::String));
         return w.string(string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj)), error);
@@ -648,6 +655,13 @@ bool read_value(Reader& r, Value& value, uint32_t depth = 0) {
         return false;
       }
       value = Value::number(d);
+      return true;
+    }
+    case ConstTag::Complex: {
+      double real = 0.0;
+      double imag = 0.0;
+      if (!r.f64(real) || !r.f64(imag)) return false;
+      value = Value::complex(real, imag);
       return true;
     }
     case ConstTag::String: {

@@ -45,15 +45,6 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       cache.kind = AttrSiteKind::Empty;
     }
     if (klass != nullptr &&
-        cache.kind == AttrSiteKind::InstanceAttr &&
-        cache.owner == &klass->header &&
-        cache.version == klass->version &&
-        cache.index < instance->attrs.size() &&
-        instance->attrs[cache.index].first == name) {
-      value_assign_fast(out, instance->attrs[cache.index].second);
-      return true;
-    }
-    if (klass != nullptr &&
         cache.kind == AttrSiteKind::Descriptor &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
@@ -73,6 +64,22 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         value_assign_fast(out, descriptor);
         return true;
       }
+    }
+    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+      if (mapping_get_item(instance_attribute_storage(*instance), Value::string(name), out, error)) {
+        cache.kind = AttrSiteKind::InstanceDict;
+        return true;
+      }
+      error.clear();
+    }
+    if (klass != nullptr &&
+        cache.kind == AttrSiteKind::InstanceAttr &&
+        cache.owner == &klass->header &&
+        cache.version == klass->version &&
+        cache.index < instance->attrs.size() &&
+        instance->attrs[cache.index].first == name) {
+      value_assign_fast(out, instance->attrs[cache.index].second);
+      return true;
     }
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
@@ -100,12 +107,8 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         return true;
       }
     }
-    if (value_as_dict(instance->mapping_storage) != nullptr &&
-        mapping_get_item(instance->mapping_storage, Value::string(name), out, error)) {
-      cache.kind = AttrSiteKind::Empty;
-      return true;
-    }
   }
+  cache.kind = AttrSiteKind::Empty;
   return attribute_get(object, name, out, error);
 }
 
@@ -131,9 +134,9 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.version == klass->version &&
         cache.index < instance_slot_count(instance)) {
       value_assign_fast(instance_slot_at(instance, cache.index), value);
-      if (value_as_dict(instance->mapping_storage) != nullptr) {
+      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
         std::string ignored;
-        mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+        mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
       }
       return true;
     }
@@ -144,9 +147,9 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.index < instance->attrs.size() &&
         instance->attrs[cache.index].first == name) {
       value_assign_fast(instance->attrs[cache.index].second, value);
-      if (value_as_dict(instance->mapping_storage) != nullptr) {
+      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
         std::string ignored;
-        mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+        mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
       }
       return true;
     }
@@ -179,9 +182,9 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.owner = &klass->header;
         cache.version = klass->version;
         value_assign_fast(instance_slot_at(instance, slot_it->second), value);
-        if (value_as_dict(instance->mapping_storage) != nullptr) {
+        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
           std::string ignored;
-          mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+          mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
         }
         return true;
       }
@@ -195,9 +198,9 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
           cache.version = klass->version;
         }
         value_assign_fast(instance->attrs[attr_i].second, value);
-        if (value_as_dict(instance->mapping_storage) != nullptr) {
+        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
           std::string ignored;
-          mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+          mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
         }
         return true;
       }
@@ -213,9 +216,9 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
       cache.owner = &klass->header;
       cache.version = klass->version;
     }
-    if (value_as_dict(instance->mapping_storage) != nullptr) {
+    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
       std::string ignored;
-      mapping_set_item(instance->mapping_storage, Value::string(name), value, ignored);
+      mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
     }
     return true;
   }

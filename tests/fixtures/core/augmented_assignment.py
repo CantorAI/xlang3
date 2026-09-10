@@ -36,6 +36,12 @@ items = [1, 2, 3]
 items[1] += 20
 print(items)
 
+shared_items = []
+shared_alias = shared_items
+shared_items += [1, 2]
+assert shared_items is shared_alias
+assert shared_alias == [1, 2]
+
 class Box:
     def __init__(self):
         self.value = 4

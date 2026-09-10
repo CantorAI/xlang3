@@ -50,12 +50,15 @@ void register_core_builtins(Runtime& runtime) {
   register_sysconfig_native_module(runtime);
   register_warnings_module(runtime);
   register_errno_module(runtime);
+  register_gc_module(runtime);
+  register_array_module(runtime);
   register_itertools_module(runtime);
   register_codecs_module(runtime);
   register_contextvars_module(runtime);
   register_unicodedata_module(runtime);
   register_struct_module(runtime);
   register_signal_module(runtime);
+  register_sha2_module(runtime);
   register_sre_module(runtime);
   register_tokenize_module(runtime);
   register_collections_module(runtime);
@@ -72,6 +75,7 @@ void register_core_builtins(Runtime& runtime) {
 #if defined(_WIN32)
   register_msvcrt_module(runtime);
   register_overlapped_module(runtime);
+  register_multiprocessing_module(runtime);
   register_winapi_module(runtime);
 #endif
   register_winreg_module(runtime);

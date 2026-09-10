@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
@@ -146,6 +147,12 @@ bool builtin_len(
     return false;
   }
   if (!sequence_len(args[0], out, error)) {
+    Value method;
+    std::string attr_error;
+    if (attribute_get(args[0], "__len__", method, attr_error)) {
+      error.clear();
+      return runtime_call_callable(runtime, method, nullptr, 0, out, error);
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -168,6 +175,12 @@ bool builtin_len_fast(
     return false;
   }
   if (!sequence_len(registers[register_args[0]], out, error)) {
+    Value method;
+    std::string attr_error;
+    if (attribute_get(registers[register_args[0]], "__len__", method, attr_error)) {
+      error.clear();
+      return runtime_call_callable(runtime, method, nullptr, 0, out, error);
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -252,6 +265,69 @@ bool builtin_iter(
   return true;
 }
 
+bool builtin_aiter(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "aiter() takes exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value method;
+  if (!attribute_get(args[0], "__aiter__", method, error)) {
+    error = "aiter() argument must be an async iterable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!runtime_call_callable(runtime, method, nullptr, 0, out, error)) {
+    return false;
+  }
+  Value next_method;
+  std::string next_error;
+  if (!attribute_get(out, "__anext__", next_method, next_error)) {
+    error = "aiter() returned not an async iterator";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool builtin_anext(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 && argc != 2) {
+    error = "anext() expected 1 or 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value method;
+  if (!attribute_get(args[0], "__anext__", method, error)) {
+    error = "anext() argument must be an async iterator";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!runtime_call_callable(runtime, method, nullptr, 0, out, error)) {
+    return false;
+  }
+  // Native async generators use this internal awaitable.  Its unused ANext
+  // argument vector carries the optional default until exhaustion.
+  if (argc == 2) {
+    if (auto* awaitable = value_as_async_generator_awaitable(out);
+        awaitable != nullptr && awaitable->kind == AsyncGenAwaitableKind::ANext) {
+      awaitable->args = {args[1]};
+    }
+  }
+  return true;
+}
+
 bool builtin_ord(
     Runtime& runtime,
     const Value* args,
@@ -323,6 +399,21 @@ bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, st
       out = result;
       return true;
     }
+    Value repr_method;
+    attr_error.clear();
+    if (attribute_get(value, "__repr__", repr_method, attr_error)) {
+      Value result;
+      if (!runtime_call_callable(runtime, repr_method, nullptr, 0, result, error)) {
+        return false;
+      }
+      if (value_as_string(result) == nullptr) {
+        error = "__repr__ returned non-string";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      out = result;
+      return true;
+    }
   }
   out = noninterned_string_value(value_to_string(value));
   return true;
@@ -351,6 +442,8 @@ void register_sequence_builtins(Runtime& runtime) {
   runtime.register_native_builtin("len", builtin_len, builtin_len_fast);
   runtime.register_native_builtin("iter", builtin_iter);
   runtime.register_native_builtin("next", builtin_next);
+  runtime.register_native_builtin("aiter", builtin_aiter);
+  runtime.register_native_builtin("anext", builtin_anext);
   runtime.register_native_builtin("ord", builtin_ord);
 }
 

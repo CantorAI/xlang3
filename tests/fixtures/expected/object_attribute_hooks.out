@@ -1,7 +1,9 @@
 Dyn Base True 7 5
 missing:abc
+True 8
 99 12
 6
 x
 annotated (8,) int
 True hello
+['MultipleInheritanceHook']

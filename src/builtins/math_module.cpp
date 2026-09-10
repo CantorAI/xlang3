@@ -74,6 +74,21 @@ bool unary_math_bool(const char* name, bool (*fn)(double), const Value* args, ui
   return true;
 }
 
+bool math_modf(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "modf() expected 1 argument";
+    return false;
+  }
+  double value = 0.0;
+  if (!require_number_arg(args[0], "modf", value, error)) {
+    return false;
+  }
+  double integral = 0.0;
+  const double fractional = std::modf(value, &integral);
+  out = Value::tuple({Value::number(fractional), Value::number(integral)});
+  return true;
+}
+
 XLANG3_HOT_INLINE const Value& fast_arg(
     const Value* leading,
     uint32_t leading_count,
@@ -444,6 +459,7 @@ void register_math_module(Runtime& runtime) {
       .function("fabs", math_fabs, math_fabs_fast)
       .function("log2", math_log2, math_log2_fast)
       .function("sqrt", math_sqrt, math_sqrt_fast)
+      .function("modf", math_modf)
       .function("sin", math_sin, math_sin_fast)
       .function("cos", math_cos, math_cos_fast);
   runtime.register_module("math", builder.finish());

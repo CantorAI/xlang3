@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
@@ -45,6 +46,20 @@ struct UnpicklerState {
   Value file;
 };
 
+void raise_pickle_module_error(Runtime& runtime, const char* class_name, const std::string& message) {
+  Value pickle_module;
+  Value exception_class;
+  std::string ignored;
+  if (mapping_get_item(
+          runtime.module_registry_dict(), Value::string("_pickle"), pickle_module, ignored) &&
+      module_get_attr(pickle_module, class_name, exception_class, ignored) &&
+      value_as_class(exception_class) != nullptr) {
+    runtime.set_pending_exception(runtime.make_exception_from_class(std::move(exception_class), message));
+    return;
+  }
+  runtime.raise_class_error(class_name, message);
+}
+
 void pickler_cleanup(void* data) {
   delete static_cast<PicklerState*>(data);
 }
@@ -74,6 +89,14 @@ bool get_bytes_view(const Value& value, std::string_view& out, std::string& erro
   }
   if (auto* bytearray = value_as_bytearray(value)) {
     out = bytearray->value;
+    return true;
+  }
+  if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    out = memoryview_object_view(*view);
     return true;
   }
   error = "pickle.loads() expected bytes-like object";
@@ -114,7 +137,67 @@ void append_pickle_bytes(std::string& out, std::string_view text) {
   out.append(text.data(), text.size());
 }
 
-bool pickle_write_value(const Value& value, std::string& out, std::string& error) {
+bool pickle_write_global(Runtime& runtime, const Value& callable, std::string& out, std::string& error) {
+  Value module_value;
+  Value name_value;
+  if (!attribute_get(callable, "__module__", module_value, error) ||
+      !attribute_get(callable, "__qualname__", name_value, error)) {
+    error = "pickle reducer is not a global callable: " + value_to_repr(callable);
+    return false;
+  }
+  auto* module = value_as_string(module_value);
+  auto* name = value_as_string(name_value);
+  if (module == nullptr || name == nullptr) {
+    error = "pickle reducer global name must be a string";
+    return false;
+  }
+  std::string module_name = string_object_to_string(*module);
+  std::string qualified_name = string_object_to_string(*name);
+  if (module_name.find('\n') != std::string::npos || qualified_name.find('\n') != std::string::npos) {
+    error = "pickle reducer global name contains a newline";
+    return false;
+  }
+  Value resolved;
+  const ClassObject* callable_class = value_as_class(callable);
+  if (callable_class != nullptr && value_as_module(callable_class->globals_module) != nullptr) {
+    value_assign_fast(resolved, callable_class->globals_module);
+  } else if (!runtime.import_module(module_name, resolved, error)) {
+    error = "pickle global module '" + module_name + "' cannot be imported";
+    return false;
+  }
+  size_t start = 0;
+  while (start <= qualified_name.size()) {
+    const size_t dot = qualified_name.find('.', start);
+    const std::string component = qualified_name.substr(
+        start, dot == std::string::npos ? std::string::npos : dot - start);
+    Value next;
+    if (!attribute_get(resolved, component, next, error)) {
+      error = "pickle global '" + module_name + "." + qualified_name + "' cannot be resolved";
+      return false;
+    }
+    resolved = std::move(next);
+    if (dot == std::string::npos) break;
+    start = dot + 1;
+  }
+  if (!value_is(resolved, callable)) {
+    error = "pickle global '" + module_name + "." + qualified_name + "' is not the same object";
+    return false;
+  }
+  out.push_back('c'); // GLOBAL
+  out.append(module_name);
+  out.push_back('\n');
+  out.append(qualified_name);
+  out.push_back('\n');
+  return true;
+}
+
+bool pickle_write_value(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    const Value* dispatch_table = nullptr) {
   switch (value.tag) {
     case ValueTag::None:
       out.push_back('N');
@@ -181,7 +264,7 @@ bool pickle_write_value(const Value& value, std::string& out, std::string& error
     if (!list->items.empty()) {
       out.push_back('('); // MARK
       for (const auto& item : list->items) {
-        if (!pickle_write_value(item, out, error)) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
           return false;
         }
       }
@@ -196,7 +279,7 @@ bool pickle_write_value(const Value& value, std::string& out, std::string& error
     }
     out.push_back('('); // MARK
     for (const auto& item : tuple->items) {
-      if (!pickle_write_value(item, out, error)) {
+      if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
         return false;
       }
     }
@@ -208,7 +291,8 @@ bool pickle_write_value(const Value& value, std::string& out, std::string& error
     if (!dict->entries.empty()) {
       out.push_back('('); // MARK
       for (const auto& entry : dict->entries) {
-        if (!pickle_write_value(entry.first, out, error) || !pickle_write_value(entry.second, out, error)) {
+        if (!pickle_write_value(runtime, entry.first, protocol, out, error, dispatch_table) ||
+            !pickle_write_value(runtime, entry.second, protocol, out, error, dispatch_table)) {
           return false;
         }
       }
@@ -221,7 +305,7 @@ bool pickle_write_value(const Value& value, std::string& out, std::string& error
     if (!set->items.empty()) {
       out.push_back('('); // MARK
       for (const auto& item : set->items) {
-        if (!pickle_write_value(item, out, error)) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
           return false;
         }
       }
@@ -230,8 +314,171 @@ bool pickle_write_value(const Value& value, std::string& out, std::string& error
     return true;
   }
 
-  error = "cannot pickle this object yet";
-  return false;
+  if (value_as_class(value) != nullptr || value_as_function(value) != nullptr ||
+      value_as_native_function(value) != nullptr) {
+    return pickle_write_global(runtime, value, out, error);
+  }
+
+  if (auto* bound = value_as_bound_method(value)) {
+    const Value* getattr_function = runtime.find_builtin("getattr");
+    Value method_name;
+    if (getattr_function == nullptr ||
+        !attribute_get(bound->function, "__name__", method_name, error) ||
+        value_as_string(method_name) == nullptr) {
+      error = "cannot pickle bound method";
+      return false;
+    }
+    if (!pickle_write_global(runtime, *getattr_function, out, error) ||
+        !pickle_write_value(
+            runtime, Value::tuple({bound->self, std::move(method_name)}), protocol, out, error, dispatch_table)) {
+      return false;
+    }
+    out.push_back('R'); // REDUCE
+    return true;
+  }
+
+  Value reduced;
+  bool used_dispatch = false;
+  if (dispatch_table != nullptr && mapping_is_mapping(*dispatch_table)) {
+    Value object_type;
+    Value reducer;
+    std::string dispatch_error;
+    if (runtime_type_of_value(runtime, value, object_type) &&
+        mapping_get_item(*dispatch_table, object_type, reducer, dispatch_error)) {
+      if (!runtime_call_callable(runtime, reducer, &value, 1, reduced, error)) {
+        return false;
+      }
+      used_dispatch = true;
+    }
+  }
+  if (!used_dispatch) {
+    Value reduce_method;
+    std::string reduce_error;
+    if (attribute_get(value, "__reduce_ex__", reduce_method, reduce_error)) {
+      Value protocol_value = Value::int64(protocol);
+      if (!runtime_call_callable(runtime, reduce_method, &protocol_value, 1, reduced, error)) {
+        return false;
+      }
+    } else {
+      reduce_error.clear();
+      if (!attribute_get(value, "__reduce__", reduce_method, reduce_error)) {
+        Value getstate;
+        std::string getstate_error;
+        if (attribute_get(value, "__getstate__", getstate, getstate_error)) {
+          Value ignored_state;
+          if (!runtime_call_callable(runtime, getstate, nullptr, 0, ignored_state, error)) {
+            return false;
+          }
+        }
+        error = "cannot pickle this object yet";
+        return false;
+      }
+      if (!runtime_call_callable(runtime, reduce_method, nullptr, 0, reduced, error)) {
+        return false;
+      }
+    }
+  }
+  auto* reduced_tuple = value_as_tuple(reduced);
+  if (reduced_tuple == nullptr || reduced_tuple->items.size() < 2 || reduced_tuple->items.size() > 5 ||
+      value_as_tuple(reduced_tuple->items[1]) == nullptr) {
+    error = "__reduce__ must return a tuple with two through five items";
+    return false;
+  }
+  if (!pickle_write_global(runtime, reduced_tuple->items[0], out, error)) {
+    error += " while reducing " + value_to_repr(value);
+    return false;
+  }
+  if (!pickle_write_value(runtime, reduced_tuple->items[1], protocol, out, error, dispatch_table)) {
+    return false;
+  }
+  out.push_back('R'); // REDUCE
+
+  if (reduced_tuple->items.size() >= 4 && reduced_tuple->items[3].tag != ValueTag::None) {
+    std::vector<Value> list_items;
+    if (!runtime_collect_iterable(runtime, reduced_tuple->items[3], list_items, error)) {
+      return false;
+    }
+    if (!list_items.empty()) {
+      out.push_back('('); // MARK
+      for (const auto& item : list_items) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+          return false;
+        }
+      }
+      out.push_back('e'); // APPENDS
+    }
+  }
+
+  if (reduced_tuple->items.size() >= 5 && reduced_tuple->items[4].tag != ValueTag::None) {
+    std::vector<Value> dict_items;
+    if (!runtime_collect_iterable(runtime, reduced_tuple->items[4], dict_items, error)) {
+      return false;
+    }
+    if (!dict_items.empty()) {
+      out.push_back('('); // MARK
+      for (const auto& item : dict_items) {
+        const auto* pair = value_as_tuple(item);
+        if (pair == nullptr || pair->items.size() != 2) {
+          error = "dict items iterator must return 2-tuples";
+          return false;
+        }
+        if (!pickle_write_value(runtime, pair->items[0], protocol, out, error, dispatch_table) ||
+            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table)) {
+          return false;
+        }
+      }
+      out.push_back('u'); // SETITEMS
+    }
+  }
+
+  if (reduced_tuple->items.size() >= 3 && reduced_tuple->items[2].tag != ValueTag::None) {
+    if (!pickle_write_value(runtime, reduced_tuple->items[2], protocol, out, error, dispatch_table)) {
+      return false;
+    }
+    out.push_back('b'); // BUILD
+  }
+  return true;
+}
+
+bool pickle_apply_attribute_state(Value& instance, const Value& state, std::string& error) {
+  const auto* mapping = value_as_dict(state);
+  if (mapping == nullptr) {
+    error = "pickle object state is not a dictionary";
+    return false;
+  }
+  for (const auto& entry : mapping->entries) {
+    const auto* name = value_as_string(entry.first);
+    if (name == nullptr) {
+      error = "pickle object state contains a non-string attribute name";
+      return false;
+    }
+    if (!attribute_set(instance, string_object_to_string(*name), entry.second, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool pickle_apply_state(Runtime& runtime, Value& instance, const Value& state, std::string& error) {
+  Value setstate;
+  std::string attr_error;
+  if (attribute_get(instance, "__setstate__", setstate, attr_error)) {
+    Value ignored;
+    return runtime_call_callable(runtime, setstate, &state, 1, ignored, error);
+  }
+
+  if (const auto* pair = value_as_tuple(state); pair != nullptr && pair->items.size() == 2) {
+    if (pair->items[0].tag != ValueTag::None &&
+        !pickle_apply_attribute_state(instance, pair->items[0], error)) {
+      return false;
+    }
+    if (pair->items[1].tag != ValueTag::None &&
+        !pickle_apply_attribute_state(instance, pair->items[1], error)) {
+      return false;
+    }
+    return true;
+  }
+  return pickle_apply_attribute_state(instance, state, error);
 }
 
 struct PickleReader {
@@ -289,7 +536,114 @@ struct PickleReader {
     pos += size;
     return true;
   }
+
+  bool read_line(std::string_view& out) {
+    size_t end = data.find('\n', pos);
+    if (end == std::string_view::npos) {
+      return false;
+    }
+    out = data.substr(pos, end - pos);
+    pos = end + 1;
+    return true;
+  }
 };
+
+enum class PickleScanResult {
+  Incomplete,
+  Complete,
+  Invalid,
+};
+
+PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
+  size_t pos = 0;
+  auto skip = [&](size_t count) -> bool {
+    if (count > data.size() - pos) {
+      return false;
+    }
+    pos += count;
+    return true;
+  };
+  auto read_u32_size = [&](size_t& size) -> bool {
+    if (data.size() - pos < 4) {
+      return false;
+    }
+    size = 0;
+    for (int shift = 0; shift < 32; shift += 8) {
+      size |= static_cast<size_t>(static_cast<unsigned char>(data[pos++])) << shift;
+    }
+    return true;
+  };
+
+  while (pos < data.size()) {
+    const unsigned char opcode = static_cast<unsigned char>(data[pos++]);
+    switch (opcode) {
+      case '.':
+        return PickleScanResult::Complete;
+      case 0x80: // PROTO
+      case 'K':  // BININT1
+        if (!skip(1)) return PickleScanResult::Incomplete;
+        break;
+      case 'M': // BININT2
+        if (!skip(2)) return PickleScanResult::Incomplete;
+        break;
+      case 'J': // BININT
+        if (!skip(4)) return PickleScanResult::Incomplete;
+        break;
+      case 'G': // BINFLOAT
+      case 0x95: // FRAME
+        if (!skip(8)) return PickleScanResult::Incomplete;
+        break;
+      case 0x8a: { // LONG1
+        if (pos == data.size()) return PickleScanResult::Incomplete;
+        const size_t size = static_cast<unsigned char>(data[pos++]);
+        if (!skip(size)) return PickleScanResult::Incomplete;
+        break;
+      }
+      case 0x8c: // SHORT_BINUNICODE
+      case 'C': { // SHORT_BINBYTES
+        if (pos == data.size()) return PickleScanResult::Incomplete;
+        const size_t size = static_cast<unsigned char>(data[pos++]);
+        if (!skip(size)) return PickleScanResult::Incomplete;
+        break;
+      }
+      case 'X': // BINUNICODE
+      case 'B': { // BINBYTES
+        size_t size = 0;
+        if (!read_u32_size(size) || !skip(size)) return PickleScanResult::Incomplete;
+        break;
+      }
+      case 'c': { // GLOBAL
+        for (int line = 0; line < 2; ++line) {
+          const size_t newline = data.find('\n', pos);
+          if (newline == std::string_view::npos) return PickleScanResult::Incomplete;
+          pos = newline + 1;
+        }
+        break;
+      }
+      case 'N': // NONE
+      case 0x88: // NEWTRUE
+      case 0x89: // NEWFALSE
+      case 0x94: // MEMOIZE
+      case 0x93: // STACK_GLOBAL
+      case 'R': // REDUCE
+      case 'b': // BUILD
+      case ']': // EMPTY_LIST
+      case '}': // EMPTY_DICT
+      case ')': // EMPTY_TUPLE
+      case 0x8f: // EMPTY_SET
+      case '(': // MARK
+      case 'e': // APPENDS
+      case 't': // TUPLE
+      case 'u': // SETITEMS
+      case 0x90: // ADDITEMS
+        break;
+      default:
+        error = "unsupported pickle opcode in stream";
+        return PickleScanResult::Invalid;
+    }
+  }
+  return PickleScanResult::Incomplete;
+}
 
 bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, std::string& error) {
   PickleReader reader{payload};
@@ -406,6 +760,116 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         reader.stack.push_back(opcode == 'B' ? Value::bytes(std::string(bytes)) : Value::string(std::string(bytes)));
         break;
       }
+      case 'c': { // GLOBAL
+        std::string_view module_name;
+        std::string_view qualified_name;
+        if (!reader.read_line(module_name) || !reader.read_line(qualified_name)) {
+          error = "truncated pickle global";
+          return false;
+        }
+        Value global;
+        if (!runtime.import_module(std::string(module_name), global, error)) {
+          return false;
+        }
+        size_t start = 0;
+        while (start <= qualified_name.size()) {
+          size_t dot = qualified_name.find('.', start);
+          std::string component(qualified_name.substr(
+              start,
+              dot == std::string_view::npos ? qualified_name.size() - start : dot - start));
+          Value next;
+          if (!attribute_get(global, component, next, error)) {
+            return false;
+          }
+          global = next;
+          if (dot == std::string_view::npos) {
+            break;
+          }
+          start = dot + 1;
+        }
+        reader.stack.push_back(global);
+        break;
+      }
+      case 0x93: { // STACK_GLOBAL
+        if (reader.stack.size() < 2) {
+          error = "pickle STACK_GLOBAL needs module and name";
+          return false;
+        }
+        Value qualified_name_value = reader.stack.back();
+        reader.stack.pop_back();
+        Value module_name_value = reader.stack.back();
+        reader.stack.pop_back();
+        auto* module_name_string = value_as_string(module_name_value);
+        auto* qualified_name_string = value_as_string(qualified_name_value);
+        if (module_name_string == nullptr || qualified_name_string == nullptr) {
+          error = "STACK_GLOBAL requires str";
+          return false;
+        }
+        const std::string module_name = string_object_to_string(*module_name_string);
+        const std::string qualified_name = string_object_to_string(*qualified_name_string);
+        Value global;
+        if (!runtime.import_module(module_name, global, error)) {
+          return false;
+        }
+        size_t start = 0;
+        while (start <= qualified_name.size()) {
+          const size_t dot = qualified_name.find('.', start);
+          const std::string component = qualified_name.substr(
+              start,
+              dot == std::string::npos ? qualified_name.size() - start : dot - start);
+          Value next;
+          if (!attribute_get(global, component, next, error)) {
+            return false;
+          }
+          global = std::move(next);
+          if (dot == std::string::npos) {
+            break;
+          }
+          start = dot + 1;
+        }
+        reader.stack.push_back(std::move(global));
+        break;
+      }
+      case 'R': { // REDUCE
+        if (reader.stack.size() < 2) {
+          error = "pickle REDUCE needs a callable and arguments";
+          return false;
+        }
+        Value arguments = reader.stack.back();
+        reader.stack.pop_back();
+        Value callable = reader.stack.back();
+        reader.stack.pop_back();
+        auto* tuple = value_as_tuple(arguments);
+        if (tuple == nullptr) {
+          error = "pickle REDUCE arguments are not a tuple";
+          return false;
+        }
+        Value reduced;
+        if (!runtime_call_callable(
+                runtime,
+                callable,
+                tuple->items.empty() ? nullptr : tuple->items.begin(),
+                static_cast<uint32_t>(tuple->items.size()),
+                reduced,
+                error)) {
+          return false;
+        }
+        reader.stack.push_back(reduced);
+        break;
+      }
+      case 'b': { // BUILD
+        if (reader.stack.size() < 2) {
+          error = "pickle BUILD needs an instance and state";
+          return false;
+        }
+        Value state = reader.stack.back();
+        reader.stack.pop_back();
+        Value& instance = reader.stack.back();
+        if (!pickle_apply_state(runtime, instance, state, error)) {
+          return false;
+        }
+        break;
+      }
       case ']':
         reader.stack.push_back(Value::list({}));
         break;
@@ -505,7 +969,7 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         return true;
       default:
         error = "unsupported pickle opcode";
-        runtime.raise_class_error("UnpicklingError", error);
+        raise_pickle_module_error(runtime, "UnpicklingError", error);
         return false;
     }
   }
@@ -532,13 +996,56 @@ bool pickle_dumps(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   std::string payload;
   payload.push_back(static_cast<char>(0x80)); // PROTO
   payload.push_back(static_cast<char>(protocol));
-  if (!pickle_write_value(args[0], payload, error)) {
-    runtime.raise_class_error("PicklingError", error);
+  if (!pickle_write_value(runtime, args[0], protocol, payload, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      raise_pickle_module_error(runtime, "PicklingError", error);
+    }
     return false;
   }
   payload.push_back('.');
   out = Value::bytes(std::move(payload));
   return true;
+}
+
+bool pickle_dumps_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "pickle.dumps() expected object and optional protocol";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> positional(args, args + argc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (kwargs[i].value == nullptr) {
+      error = "pickle.dumps() received an invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (name == "protocol") {
+      if (positional.size() == 2) {
+        error = "pickle.dumps() got multiple values for argument 'protocol'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      positional.push_back(*kwargs[i].value);
+    } else if (name != "fix_imports" && name != "buffer_callback") {
+      error = "pickle.dumps() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return pickle_dumps(runtime, positional.data(), static_cast<uint32_t>(positional.size()), out, error, nullptr);
 }
 
 bool pickle_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -582,6 +1089,44 @@ bool pickle_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool pickle_dump_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 3) {
+    error = "pickle.dump() expected object, file, and optional protocol";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> positional(args, args + argc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (kwargs[i].value == nullptr) {
+      error = "pickle.dump() received an invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (name == "protocol") {
+      if (positional.size() == 3) {
+        error = "pickle.dump() got multiple values for argument 'protocol'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      positional.push_back(*kwargs[i].value);
+    } else if (name != "fix_imports" && name != "buffer_callback") {
+      error = "pickle.dump() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return pickle_dump(runtime, positional.data(), static_cast<uint32_t>(positional.size()), out, error, nullptr);
+}
+
 bool pickle_load(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "pickle.load() expected file";
@@ -591,10 +1136,32 @@ bool pickle_load(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (!attribute_get(args[0], "read", read, error)) {
     return false;
   }
-  Value data;
-  if (!runtime_call_callable(runtime, read, nullptr, 0, data, error)) {
-    return false;
+  std::string payload;
+  for (;;) {
+    Value read_size = Value::int64(1);
+    Value chunk;
+    if (!runtime_call_callable(runtime, read, &read_size, 1, chunk, error)) {
+      return false;
+    }
+    std::string_view chunk_view;
+    if (!get_bytes_view(chunk, chunk_view, error)) {
+      return false;
+    }
+    if (chunk_view.empty()) {
+      break;
+    }
+    payload.append(chunk_view.data(), chunk_view.size());
+    const PickleScanResult scan = scan_pickle_record(payload, error);
+    if (scan == PickleScanResult::Invalid) {
+      raise_pickle_module_error(runtime, "UnpicklingError", error);
+      return false;
+    }
+    if (scan == PickleScanResult::Complete) {
+      Value data = Value::bytes(std::move(payload));
+      return pickle_loads(runtime, &data, 1, out, error, nullptr);
+    }
   }
+  Value data = Value::bytes(std::move(payload));
   return pickle_loads(runtime, &data, 1, out, error, nullptr);
 }
 
@@ -626,8 +1193,37 @@ bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     error = "invalid Pickler object";
     return false;
   }
-  Value dump_args[] = {args[1], state->file, Value::int64(state->protocol)};
-  return pickle_dump(runtime, dump_args, 3, out, error, nullptr);
+  Value dispatch_table;
+  const Value* dispatch_table_ptr = nullptr;
+  std::string dispatch_error;
+  if (object_get_attr(args[0], "dispatch_table", dispatch_table, dispatch_error) &&
+      mapping_is_mapping(dispatch_table)) {
+    dispatch_table_ptr = &dispatch_table;
+  }
+  std::string payload;
+  payload.push_back(static_cast<char>(0x80)); // PROTO
+  payload.push_back(static_cast<char>(state->protocol));
+  if (!pickle_write_value(runtime, args[1], state->protocol, payload, error, dispatch_table_ptr)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      raise_pickle_module_error(runtime, "PicklingError", error);
+    }
+    return false;
+  }
+  payload.push_back('.');
+  Value data = Value::bytes(std::move(payload));
+  Value write;
+  if (!attribute_get(state->file, "write", write, error)) {
+    return false;
+  }
+  Value ignored;
+  if (!runtime_call_callable(runtime, write, &data, 1, ignored, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool unpickler_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -660,16 +1256,33 @@ bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& o
 
 Value make_pickler_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string(name)});
+  attrs.push_back({"__qualname__", Value::string("Pickler")});
+  attrs.push_back({
+      "__text_signature__",
+      Value::string("(file, protocol=None, fix_imports=True, buffer_callback=None)")});
   attrs.push_back({"__init__", runtime.make_native_function(std::string(name) + ".Pickler.__init__", pickler_init)});
-  attrs.push_back({"dump", runtime.make_native_function(std::string(name) + ".Pickler.dump", pickler_dump)});
-  return Value::class_object("Pickler", std::move(attrs));
+  Value dump = runtime.make_native_function(std::string(name) + ".Pickler.dump", pickler_dump);
+  builtin_method_set_text_signature(dump, "($self, obj, /)");
+  attrs.push_back({"dump", std::move(dump)});
+  const Value* object_class = runtime.find_builtin("object");
+  return Value::class_object(
+      "Pickler",
+      std::move(attrs),
+      object_class != nullptr ? *object_class : Value::invalid());
 }
 
 Value make_unpickler_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string(name)});
+  attrs.push_back({"__qualname__", Value::string("Unpickler")});
   attrs.push_back({"__init__", runtime.make_native_function(std::string(name) + ".Unpickler.__init__", unpickler_init)});
   attrs.push_back({"load", runtime.make_native_function(std::string(name) + ".Unpickler.load", unpickler_load)});
-  return Value::class_object("Unpickler", std::move(attrs));
+  const Value* object_class = runtime.find_builtin("object");
+  return Value::class_object(
+      "Unpickler",
+      std::move(attrs),
+      object_class != nullptr ? *object_class : Value::invalid());
 }
 
 Value make_pickle_module(Runtime& runtime, const char* name) {
@@ -690,8 +1303,8 @@ Value make_pickle_module(Runtime& runtime, const char* name) {
       .value("Pickler", make_pickler_class(runtime, name))
       .value("Unpickler", make_unpickler_class(runtime, name))
       .value("PickleBuffer", Value::class_object("PickleBuffer", std::move(buffer_attrs)))
-      .function("dump", pickle_dump)
-      .function("dumps", pickle_dumps)
+      .function("dump", pickle_dump, nullptr, false, pickle_dump_kw)
+      .function("dumps", pickle_dumps, nullptr, false, pickle_dumps_kw)
       .function("load", pickle_load)
       .function("loads", pickle_loads);
   return builder.finish();

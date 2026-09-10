@@ -66,6 +66,17 @@ bool zlib_bytes_arg(const Value& value, const char* name, std::string& out, std:
     out = bytearray->value;
     return true;
   }
+  if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    const auto bytes = memoryview_object_view(*view);
+    if (bytes.data() != nullptr) {
+      out.assign(bytes.data(), bytes.size());
+      return true;
+    }
+  }
   if (auto* string = value_as_string(value)) {
     out = string_object_to_string(*string);
     return true;

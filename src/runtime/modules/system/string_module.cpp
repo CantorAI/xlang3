@@ -38,9 +38,21 @@ bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chun
         ++i;
         continue;
       }
-      const size_t close = text.find('}', i + 1);
+      size_t close = std::string::npos;
+      size_t nested_fields = 0;
+      for (size_t j = i + 1; j < text.size(); ++j) {
+        if (text[j] == '{') {
+          ++nested_fields;
+        } else if (text[j] == '}') {
+          if (nested_fields == 0) {
+            close = j;
+            break;
+          }
+          --nested_fields;
+        }
+      }
       if (close == std::string::npos) {
-        error = "Single '{' encountered in format string";
+        error = "expected '}' before end of string";
         return false;
       }
       std::string field_text = text.substr(i + 1, close - i - 1);
@@ -56,6 +68,10 @@ bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chun
       chunk.field = field_text.substr(0, field_end);
       if (bang != std::string::npos) {
         const size_t conv_end = colon == std::string::npos ? field_text.size() : colon;
+        if (conv_end != bang + 2) {
+          error = "expected ':' after conversion specifier";
+          return false;
+        }
         chunk.conversion = field_text.substr(bang + 1, conv_end - bang - 1);
       }
       if (colon != std::string::npos) {
@@ -84,7 +100,7 @@ bool parse_format_chunks(const std::string& text, std::vector<FormatChunk>& chun
   return true;
 }
 
-bool formatter_parser(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool formatter_parser(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "_string.formatter_parser() expected format string";
     return false;
@@ -96,6 +112,7 @@ bool formatter_parser(Runtime&, const Value* args, uint32_t argc, Value& out, st
   }
   std::vector<FormatChunk> chunks;
   if (!parse_format_chunks(string_object_to_string(*text), chunks, error)) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   std::vector<Value> result;

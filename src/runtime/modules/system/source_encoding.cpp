@@ -78,8 +78,19 @@ std::string find_coding_cookie(std::string_view line) {
 
 std::string detect_source_encoding(std::string_view bytes, bool bom, std::string& error) {
   size_t next = bom ? 3 : 0;
-  const std::string first_cookie = find_coding_cookie(first_physical_line(bytes, next));
-  const std::string second_cookie = first_cookie.empty() ? find_coding_cookie(first_physical_line(bytes, next)) : "";
+  const std::string_view first_line = first_physical_line(bytes, next);
+  const std::string first_cookie = find_coding_cookie(first_line);
+  bool first_line_allows_second_cookie = true;
+  for (char ch : first_line) {
+    if (ch == ' ' || ch == '\t' || ch == '\f' || ch == '\r' || ch == '\n') {
+      continue;
+    }
+    first_line_allows_second_cookie = ch == '#';
+    break;
+  }
+  const std::string second_cookie = first_cookie.empty() && first_line_allows_second_cookie
+      ? find_coding_cookie(first_physical_line(bytes, next))
+      : "";
   std::string encoding = !first_cookie.empty() ? first_cookie : second_cookie;
   if (encoding.empty()) {
     return bom ? "utf-8-sig" : "utf-8";
@@ -190,6 +201,78 @@ bool mbcs_decode(std::string_view bytes, std::string& text, std::string& error) 
 
 } // namespace
 
+bool decode_mbcs_bytes(std::string_view bytes, std::string& text, std::string& error) {
+  return mbcs_decode(bytes, text, error);
+}
+
+bool encode_gbk_text(std::string_view text, std::string& bytes, std::string& error) {
+#if defined(_WIN32)
+  if (text.empty()) {
+    bytes.clear();
+    return true;
+  }
+  const int wide_size = MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0);
+  if (wide_size <= 0) {
+    error = "utf-8 codec can't decode byte";
+    return false;
+  }
+  std::wstring wide(static_cast<size_t>(wide_size), L'\0');
+  MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), wide.data(), wide_size);
+  BOOL used_default = FALSE;
+  const int byte_size = WideCharToMultiByte(
+      936, WC_NO_BEST_FIT_CHARS, wide.data(), wide_size, nullptr, 0, nullptr, &used_default);
+  if (byte_size <= 0 || used_default) {
+    error = "gbk codec can't encode character";
+    return false;
+  }
+  bytes.assign(static_cast<size_t>(byte_size), '\0');
+  used_default = FALSE;
+  if (WideCharToMultiByte(
+          936, WC_NO_BEST_FIT_CHARS, wide.data(), wide_size,
+          bytes.data(), byte_size, nullptr, &used_default) <= 0 || used_default) {
+    error = "gbk codec can't encode character";
+    return false;
+  }
+  return true;
+#else
+  error = "gbk text encoding is unavailable on this platform";
+  return false;
+#endif
+}
+
+bool decode_gbk_bytes(std::string_view bytes, std::string& text, std::string& error) {
+#if defined(_WIN32)
+  if (bytes.empty()) {
+    text.clear();
+    return true;
+  }
+  const int wide_size = MultiByteToWideChar(
+      936, MB_ERR_INVALID_CHARS, bytes.data(), static_cast<int>(bytes.size()), nullptr, 0);
+  if (wide_size <= 0) {
+    error = "gbk codec can't decode byte";
+    return false;
+  }
+  std::wstring wide(static_cast<size_t>(wide_size), L'\0');
+  MultiByteToWideChar(
+      936, MB_ERR_INVALID_CHARS, bytes.data(), static_cast<int>(bytes.size()), wide.data(), wide_size);
+  const int utf8_size = WideCharToMultiByte(
+      CP_UTF8, 0, wide.data(), wide_size, nullptr, 0, nullptr, nullptr);
+  if (utf8_size <= 0) {
+    error = "gbk codec can't decode byte";
+    return false;
+  }
+  text.assign(static_cast<size_t>(utf8_size), '\0');
+  WideCharToMultiByte(
+      CP_UTF8, 0, wide.data(), wide_size, text.data(), utf8_size, nullptr, nullptr);
+  return true;
+#else
+  error = "gbk source decoding is unavailable on this platform";
+  return false;
+#endif
+}
+
 std::string canonical_python_source_encoding(std::string name) {
   for (char& ch : name) {
     if (ch == '-' || ch == ' ' || ch == '.') {
@@ -212,6 +295,9 @@ std::string canonical_python_source_encoding(std::string name) {
   }
   if (name == "mbcs" || name == "ansi") {
     return "mbcs";
+  }
+  if (name == "gbk" || name == "cp936" || name == "ms936") {
+    return "gbk";
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
@@ -242,6 +328,9 @@ bool decode_python_source_bytes(std::string_view bytes, PythonSourceText& out, s
   if (encoding == "mbcs") {
     return mbcs_decode(payload, out.text, error);
   }
+  if (encoding == "gbk") {
+    return decode_gbk_bytes(payload, out.text, error);
+  }
   error = "unknown source encoding: " + encoding;
   return false;
 }
@@ -269,6 +358,9 @@ bool decode_python_source_bytes_as(
   }
   if (encoding == "mbcs") {
     return mbcs_decode(payload, out.text, error);
+  }
+  if (encoding == "gbk") {
+    return decode_gbk_bytes(payload, out.text, error);
   }
   error = "unknown source encoding: " + encoding;
   return false;

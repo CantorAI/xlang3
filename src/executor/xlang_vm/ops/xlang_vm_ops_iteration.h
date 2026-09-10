@@ -23,12 +23,13 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow get_iter(
     const ir::Instr& in,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   if (auto* range = value_as_range(regs[in.a])) {
     regs[in.dst] = Value::range_iterator(range->start, range->stop, range->step);
@@ -39,17 +40,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_iter(
     return XlangVMOpFlow::Next;
   }
   if (!runtime_get_iter(runtime, regs[in.a], regs[in.dst], error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_exception_value(runtime.make_exception("TypeError", error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip,
-    RaiseRuntimeError&& raise_runtime_error) {
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   bool done = false;
   if (auto* range = value_as_range_iterator(regs[in.a])) {
     done = range->step > 0 ? range->current >= range->stop : range->current <= range->stop;
@@ -76,6 +85,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
   }
   std::string error;
   if (!sequence_iter_next(regs[in.a], done, regs[in.dst], error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   if (done) {

@@ -108,6 +108,8 @@ bool ast_node_init(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 Value ast_class(Runtime& runtime, const char* name, const Value& base, std::initializer_list<const char*> fields = {}) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"_fields", Value::tuple(field_tuple(fields))});
+  attrs.push_back({"_field_types", Value::dict({})});
+  attrs.push_back({"__match_args__", Value::tuple(field_tuple(fields))});
   if (std::string(name) == "AST") {
     attrs.push_back({"__init__", runtime.make_native_function("_ast.AST.__init__", ast_node_init, nullptr, nullptr, nullptr, false, ast_node_init_kw)});
   }
@@ -202,29 +204,224 @@ Value ast_make_name(AstState* state, std::string_view name, std::string& error) 
   return node;
 }
 
-Value ast_parse_simple_expr(AstState* state, std::string_view source, std::string& error) {
+Value ast_make_arg(AstState* state, std::string_view name, std::string& error) {
+  Value node = ast_instance(state, "arg");
+  if (node.tag == ValueTag::Invalid) {
+    error = "missing _ast arg class";
+    return node;
+  }
+  object_set_attr(node, "arg", Value::string(std::string(ast_trim(name))), error);
+  object_set_attr(node, "annotation", Value::none(), error);
+  object_set_attr(node, "type_comment", Value::none(), error);
+  return node;
+}
+
+void ast_set_location(
+    Value& node,
+    uint32_t line,
+    uint32_t end_line,
+    uint32_t column,
+    uint32_t end_column,
+    std::string& error) {
+  object_set_attr(node, "lineno", Value::int64(line), error);
+  object_set_attr(node, "end_lineno", Value::int64(end_line), error);
+  object_set_attr(node, "col_offset", Value::int64(column), error);
+  object_set_attr(node, "end_col_offset", Value::int64(end_column), error);
+}
+
+Value ast_parse_simple_expr(
+    AstState* state,
+    std::string_view source,
+    std::string& error,
+    uint32_t source_line = 1,
+    uint32_t column_offset = 0) {
+  const std::string_view untrimmed_source = source;
   source = ast_trim(source);
-  size_t plus = source.find('+');
-  if (plus != std::string_view::npos) {
-    Value left = ast_parse_simple_expr(state, source.substr(0, plus), error);
-    Value right = ast_parse_simple_expr(state, source.substr(plus + 1), error);
+  column_offset += static_cast<uint32_t>(source.data() - untrimmed_source.data());
+  const auto find_top_level_operator = [&](std::string_view operators) {
+    size_t found = std::string_view::npos;
+    int depth = 0;
+    char quote = '\0';
+    bool escaped = false;
+    for (size_t i = 0; i < source.size(); ++i) {
+      const char ch = source[i];
+      if (quote != '\0') {
+        if (escaped) escaped = false;
+        else if (ch == '\\') escaped = true;
+        else if (ch == quote) quote = '\0';
+        continue;
+      }
+      if (ch == '\'' || ch == '"') {
+        quote = ch;
+      } else if (ch == '(' || ch == '[' || ch == '{') {
+        ++depth;
+      } else if (ch == ')' || ch == ']' || ch == '}') {
+        --depth;
+      } else if (depth == 0 && operators.find(ch) != std::string_view::npos && i != 0) {
+        found = i;
+      }
+    }
+    return found;
+  };
+  size_t binary = find_top_level_operator("|");
+  if (binary == std::string_view::npos) {
+    binary = find_top_level_operator("+-");
+  }
+  if (binary == std::string_view::npos) {
+    binary = find_top_level_operator("*/%@");
+  }
+  if (binary != std::string_view::npos) {
+    size_t operator_width = 1;
+    if (binary > 0 && source[binary] == source[binary - 1] &&
+        (source[binary] == '*' || source[binary] == '/')) {
+      --binary;
+      operator_width = 2;
+    }
+    Value left = ast_parse_simple_expr(state, source.substr(0, binary), error, source_line, column_offset);
+    Value right = ast_parse_simple_expr(
+        state, source.substr(binary + operator_width), error, source_line,
+        column_offset + static_cast<uint32_t>(binary + operator_width));
     Value binop = ast_instance(state, "BinOp");
     if (left.tag == ValueTag::Invalid || right.tag == ValueTag::Invalid || binop.tag == ValueTag::Invalid) {
       error = "missing _ast BinOp class";
       return Value::invalid();
     }
     object_set_attr(binop, "left", left, error);
-    object_set_attr(binop, "op", ast_instance(state, "Add"), error);
+    const std::string_view op = source.substr(binary, operator_width);
+    const char* op_class =
+        op == "|" ? "BitOr" :
+        op == "+" ? "Add" :
+        op == "-" ? "Sub" :
+        op == "*" ? "Mult" :
+        op == "**" ? "Pow" :
+        op == "/" ? "Div" :
+        op == "//" ? "FloorDiv" :
+        op == "%" ? "Mod" : "MatMult";
+    object_set_attr(
+        binop,
+        "op",
+        ast_instance(state, op_class),
+        error);
     object_set_attr(binop, "right", right, error);
+    ast_set_location(
+        binop, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
     return binop;
+  }
+  if (!source.empty() && source.back() == ']') {
+    int paren_depth = 0;
+    int bracket_depth = 0;
+    int brace_depth = 0;
+    char quote = '\0';
+    bool escaped = false;
+    size_t subscript_open = std::string_view::npos;
+    for (size_t i = 0; i < source.size(); ++i) {
+      const char ch = source[i];
+      if (quote != '\0') {
+        if (escaped) escaped = false;
+        else if (ch == '\\') escaped = true;
+        else if (ch == quote) quote = '\0';
+        continue;
+      }
+      if (ch == '\'' || ch == '"') {
+        quote = ch;
+      } else if (ch == '(') {
+        ++paren_depth;
+      } else if (ch == ')') {
+        --paren_depth;
+      } else if (ch == '{') {
+        ++brace_depth;
+      } else if (ch == '}') {
+        --brace_depth;
+      } else if (ch == '[') {
+        if (paren_depth == 0 && brace_depth == 0 && bracket_depth == 0) {
+          subscript_open = i;
+        }
+        ++bracket_depth;
+      } else if (ch == ']') {
+        --bracket_depth;
+      }
+    }
+    if (subscript_open != std::string_view::npos && subscript_open > 0 &&
+        bracket_depth == 0) {
+      Value base = ast_parse_simple_expr(
+          state, source.substr(0, subscript_open), error, source_line, column_offset);
+      Value slice = ast_parse_simple_expr(
+          state, source.substr(subscript_open + 1, source.size() - subscript_open - 2),
+          error, source_line,
+          column_offset + static_cast<uint32_t>(subscript_open + 1));
+      Value subscript = ast_instance(state, "Subscript");
+      if (base.tag != ValueTag::Invalid && slice.tag != ValueTag::Invalid &&
+          subscript.tag != ValueTag::Invalid) {
+        object_set_attr(subscript, "value", base, error);
+        object_set_attr(subscript, "slice", slice, error);
+        object_set_attr(subscript, "ctx", ast_make_load(state), error);
+        ast_set_location(
+            subscript, source_line, source_line, column_offset,
+            column_offset + static_cast<uint32_t>(source.size()), error);
+        return subscript;
+      }
+    }
+  }
+  if (!source.empty() && source.back() == ')') {
+    int depth = 0;
+    char quote = '\0';
+    bool escaped = false;
+    size_t call_open = std::string_view::npos;
+    for (size_t i = 0; i < source.size(); ++i) {
+      const char ch = source[i];
+      if (quote != '\0') {
+        if (escaped) escaped = false;
+        else if (ch == '\\') escaped = true;
+        else if (ch == quote) quote = '\0';
+        continue;
+      }
+      if (ch == '\'' || ch == '"') {
+        quote = ch;
+      } else if (ch == '(') {
+        if (depth == 0) call_open = i;
+        ++depth;
+      } else if (ch == ')') {
+        --depth;
+      }
+    }
+    if (call_open != std::string_view::npos && call_open > 0 && depth == 0) {
+      Value function = ast_parse_simple_expr(
+          state, source.substr(0, call_open), error, source_line, column_offset);
+      if (function.tag == ValueTag::Invalid) {
+        error.clear();
+        function = ast_make_constant(state, Value::none(), error);
+        ast_set_location(
+            function, source_line, source_line, column_offset,
+            column_offset + static_cast<uint32_t>(call_open), error);
+      }
+      Value call = ast_instance(state, "Call");
+      if (function.tag != ValueTag::Invalid && call.tag != ValueTag::Invalid) {
+        object_set_attr(call, "func", function, error);
+        object_set_attr(call, "args", Value::list({}), error);
+        object_set_attr(call, "keywords", Value::list({}), error);
+        ast_set_location(
+            call, source_line, source_line, column_offset,
+            column_offset + static_cast<uint32_t>(source.size()), error);
+        return call;
+      }
+    }
   }
   int64_t integer = 0;
   if (ast_parse_decimal(source, integer)) {
-    return ast_make_constant(state, Value::int64(integer), error);
+    Value constant = ast_make_constant(state, Value::int64(integer), error);
+    ast_set_location(
+        constant, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
+    return constant;
   }
   if (!source.empty() &&
       ((source.front() == '"' && source.back() == '"') || (source.front() == '\'' && source.back() == '\''))) {
-    return ast_make_constant(state, Value::string(std::string(source.substr(1, source.size() - 2))), error);
+    Value constant = ast_make_constant(state, Value::string(std::string(source.substr(1, source.size() - 2))), error);
+    ast_set_location(
+        constant, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
+    return constant;
   }
   bool is_identifier = !source.empty() &&
       (std::isalpha(static_cast<unsigned char>(source.front())) || source.front() == '_');
@@ -233,10 +430,119 @@ Value ast_parse_simple_expr(AstState* state, std::string_view source, std::strin
         (std::isalnum(static_cast<unsigned char>(ch)) || ch == '_');
   }
   if (is_identifier) {
-    return ast_make_name(state, source, error);
+    Value name = ast_make_name(state, source, error);
+    ast_set_location(
+        name, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
+    return name;
   }
   error = "unsupported _ast parse expression";
   return Value::invalid();
+}
+
+bool parse_simple_expression_module_ast(
+    Runtime&,
+    AstState* state,
+    std::string_view source,
+    Value& out,
+    std::string& error) {
+  std::string_view expression = ast_trim(source);
+  uint32_t source_line = 1;
+  uint32_t column_offset = 0;
+  if (expression.size() >= 2 && expression.front() == '(' && expression.back() == ')') {
+    expression.remove_prefix(1);
+    expression.remove_suffix(1);
+    size_t first = 0;
+    while (first < expression.size() && std::isspace(static_cast<unsigned char>(expression[first]))) {
+      if (expression[first] == '\n') {
+        ++source_line;
+        column_offset = 0;
+      } else {
+        ++column_offset;
+      }
+      ++first;
+    }
+    expression.remove_prefix(first);
+    expression = ast_trim(expression);
+  }
+  if (expression.empty() || expression.find('\n') != std::string_view::npos) {
+    return false;
+  }
+  // traceback wraps a physical source line in parentheses before asking AST
+  // for expression anchors.  Flow statements remain invalid in that form;
+  // accepting their trailing call as an expression would draw misleading
+  // carets across the entire return/raise statement.
+  if (expression.rfind("return ", 0) == 0 ||
+      expression.rfind("raise ", 0) == 0) {
+    return false;
+  }
+  Value value = ast_parse_simple_expr(state, expression, error, source_line, column_offset);
+  if (value.tag == ValueTag::Invalid) {
+    return false;
+  }
+  Value statement = ast_instance(state, "Expr");
+  Value module = ast_instance(state, "Module");
+  if (statement.tag == ValueTag::Invalid || module.tag == ValueTag::Invalid) {
+    return false;
+  }
+  object_set_attr(statement, "value", value, error);
+  ast_set_location(
+      statement, source_line, source_line, column_offset,
+      column_offset + static_cast<uint32_t>(expression.size()), error);
+  object_set_attr(module, "body", Value::list({statement}), error);
+  object_set_attr(module, "type_ignores", Value::list({}), error);
+  value_assign_fast(out, module);
+  return true;
+}
+
+bool parse_simple_flow_statement_ast(
+    AstState* state,
+    std::string_view source,
+    Value& out,
+    std::string& error) {
+  size_t leading = 0;
+  while (leading < source.size() &&
+         (source[leading] == ' ' || source[leading] == '\t')) {
+    ++leading;
+  }
+  source.remove_prefix(leading);
+  const char* node_name = nullptr;
+  size_t keyword_size = 0;
+  if (source.rfind("return ", 0) == 0) {
+    node_name = "Return";
+    keyword_size = 7;
+  } else if (source.rfind("raise ", 0) == 0) {
+    node_name = "Raise";
+    keyword_size = 6;
+  } else {
+    return false;
+  }
+  source = ast_trim(source);
+  if (source.empty() || source.find('\n') != std::string_view::npos) {
+    return false;
+  }
+  Value value = ast_parse_simple_expr(
+      state, source.substr(keyword_size), error, 1,
+      static_cast<uint32_t>(leading + keyword_size));
+  Value statement = ast_instance(state, node_name);
+  Value module = ast_instance(state, "Module");
+  if (value.tag == ValueTag::Invalid || statement.tag == ValueTag::Invalid ||
+      module.tag == ValueTag::Invalid) {
+    return false;
+  }
+  if (std::string_view(node_name) == "Return") {
+    object_set_attr(statement, "value", value, error);
+  } else {
+    object_set_attr(statement, "exc", value, error);
+    object_set_attr(statement, "cause", Value::none(), error);
+  }
+  ast_set_location(
+      statement, 1, 1, static_cast<uint32_t>(leading),
+      static_cast<uint32_t>(leading + source.size()), error);
+  object_set_attr(module, "body", Value::list({statement}), error);
+  object_set_attr(module, "type_ignores", Value::list({}), error);
+  value_assign_fast(out, module);
+  return true;
 }
 
 bool parse_simple_module_ast(Runtime&, AstState* state, std::string_view source, Value& out, std::string& error) {
@@ -294,14 +600,11 @@ bool parse_simple_function_ast(Runtime&, AstState* state, std::string_view sourc
     return false;
   }
   std::string name(text.substr(0, name_end));
-  size_t close = text.find(')', name_end + 1);
+  size_t close = text.rfind(')');
   if (close == std::string_view::npos) {
     return false;
   }
   std::string_view params = text.substr(name_end + 1, close - name_end - 1);
-  if (params.find_first_not_of(" \t\r\n") != std::string_view::npos) {
-    return false;
-  }
 
   Value module = ast_instance(state, "Module");
   Value function = ast_instance(state, "FunctionDef");
@@ -315,6 +618,160 @@ bool parse_simple_function_ast(Runtime&, AstState* state, std::string_view sourc
     error = "missing _ast arguments class";
     return false;
   }
+
+  std::vector<std::string> pieces;
+  size_t piece_start = 0;
+  int depth = 0;
+  char quote = '\0';
+  bool escaped = false;
+  for (size_t i = 0; i <= params.size(); ++i) {
+    const char ch = i < params.size() ? params[i] : ',';
+    if (quote != '\0') {
+      if (escaped) {
+        escaped = false;
+      } else if (ch == '\\') {
+        escaped = true;
+      } else if (ch == quote) {
+        quote = '\0';
+      }
+      continue;
+    }
+    if (ch == '\'' || ch == '"') {
+      quote = ch;
+      continue;
+    }
+    if (ch == '(' || ch == '[' || ch == '{') {
+      ++depth;
+      continue;
+    }
+    if (ch == ')' || ch == ']' || ch == '}') {
+      --depth;
+      continue;
+    }
+    if (ch == ',' && depth == 0) {
+      auto piece = ast_trim(params.substr(piece_start, i - piece_start));
+      if (!piece.empty()) {
+        pieces.emplace_back(piece);
+      }
+      piece_start = i + 1;
+    }
+  }
+
+  struct ParsedParameter {
+    Value node;
+    Value default_value;
+  };
+  std::vector<ParsedParameter> positional;
+  std::vector<Value> posonly;
+  std::vector<Value> regular;
+  std::vector<Value> kwonly;
+  std::vector<Value> kw_defaults;
+  Value vararg = Value::none();
+  Value kwarg = Value::none();
+  bool keyword_only = false;
+  bool saw_slash = false;
+  size_t positional_only_count = 0;
+
+  auto split_default = [](std::string_view piece, std::string_view& parameter_name,
+                          std::string_view& default_source) {
+    int nested = 0;
+    char nested_quote = '\0';
+    bool nested_escaped = false;
+    for (size_t i = 0; i < piece.size(); ++i) {
+      const char ch = piece[i];
+      if (nested_quote != '\0') {
+        if (nested_escaped) nested_escaped = false;
+        else if (ch == '\\') nested_escaped = true;
+        else if (ch == nested_quote) nested_quote = '\0';
+        continue;
+      }
+      if (ch == '\'' || ch == '"') {
+        nested_quote = ch;
+      } else if (ch == '(' || ch == '[' || ch == '{') {
+        ++nested;
+      } else if (ch == ')' || ch == ']' || ch == '}') {
+        --nested;
+      } else if (ch == '=' && nested == 0) {
+        parameter_name = ast_trim(piece.substr(0, i));
+        default_source = ast_trim(piece.substr(i + 1));
+        return;
+      }
+    }
+    parameter_name = ast_trim(piece);
+    default_source = {};
+  };
+
+  for (const auto& storage : pieces) {
+    std::string_view piece = ast_trim(storage);
+    if (piece == "/") {
+      if (saw_slash || keyword_only) return false;
+      saw_slash = true;
+      positional_only_count = positional.size();
+      continue;
+    }
+    if (piece == "*") {
+      keyword_only = true;
+      continue;
+    }
+    if (piece.rfind("**", 0) == 0) {
+      kwarg = ast_make_arg(state, ast_trim(piece.substr(2)), error);
+      if (kwarg.tag == ValueTag::Invalid) return false;
+      keyword_only = true;
+      continue;
+    }
+    if (piece.front() == '*') {
+      vararg = ast_make_arg(state, ast_trim(piece.substr(1)), error);
+      if (vararg.tag == ValueTag::Invalid) return false;
+      keyword_only = true;
+      continue;
+    }
+
+    std::string_view parameter_name;
+    std::string_view default_source;
+    split_default(piece, parameter_name, default_source);
+    if (parameter_name.empty() || parameter_name.find(':') != std::string_view::npos) {
+      return false;
+    }
+    Value parameter = ast_make_arg(state, parameter_name, error);
+    if (parameter.tag == ValueTag::Invalid) return false;
+    Value default_value = Value::invalid();
+    if (!default_source.empty()) {
+      default_value = ast_parse_simple_expr(state, default_source, error);
+      if (default_value.tag == ValueTag::Invalid) return false;
+    }
+    if (keyword_only) {
+      kwonly.push_back(parameter);
+      kw_defaults.push_back(
+          default_value.tag == ValueTag::Invalid ? Value::none() : default_value);
+    } else {
+      positional.push_back(ParsedParameter{parameter, default_value});
+    }
+  }
+
+  for (size_t i = 0; i < positional.size(); ++i) {
+    if (saw_slash && i < positional_only_count) {
+      posonly.push_back(positional[i].node);
+    } else {
+      regular.push_back(positional[i].node);
+    }
+  }
+  std::vector<Value> defaults;
+  bool found_default = false;
+  for (const auto& parameter : positional) {
+    if (parameter.default_value.tag != ValueTag::Invalid) {
+      found_default = true;
+      defaults.push_back(parameter.default_value);
+    } else if (found_default) {
+      return false;
+    }
+  }
+  object_set_attr(args, "posonlyargs", Value::list(std::move(posonly)), error);
+  object_set_attr(args, "args", Value::list(std::move(regular)), error);
+  object_set_attr(args, "vararg", vararg, error);
+  object_set_attr(args, "kwonlyargs", Value::list(std::move(kwonly)), error);
+  object_set_attr(args, "kw_defaults", Value::list(std::move(kw_defaults)), error);
+  object_set_attr(args, "kwarg", kwarg, error);
+  object_set_attr(args, "defaults", Value::list(std::move(defaults)), error);
 
   object_set_attr(function, "name", Value::string(name), error);
   object_set_attr(function, "args", args, error);
@@ -372,6 +829,14 @@ bool ast_parse_kw(
     return true;
   }
   if (mode == "exec" && parse_simple_module_ast(runtime, state, string_object_to_string(*source), parsed, error)) {
+    value_assign_fast(out, parsed);
+    return true;
+  }
+  if (mode == "exec" && parse_simple_flow_statement_ast(state, string_object_to_string(*source), parsed, error)) {
+    value_assign_fast(out, parsed);
+    return true;
+  }
+  if (mode == "exec" && parse_simple_expression_module_ast(runtime, state, string_object_to_string(*source), parsed, error)) {
     value_assign_fast(out, parsed);
     return true;
   }

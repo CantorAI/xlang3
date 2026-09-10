@@ -23,6 +23,7 @@ limitations under the License.
 #endif
 #include <cstddef>
 #include <cstdint>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -55,6 +56,11 @@ struct RuntimeFrameView {
   const size_t* instruction_index = nullptr;
   size_t local_count = 0;
   uint32_t function_id = 0;
+  uint64_t activation_id = 0;
+  Value* register_values = nullptr;
+  const std::vector<size_t>* register_last_use = nullptr;
+  size_t register_count = 0;
+  std::vector<Value>* native_call_args = nullptr;
 };
 
 enum class RuntimeDebugStepMode : uint8_t {
@@ -171,6 +177,7 @@ public:
   void set_current_globals_module(const Value& globals_module);
   const Value& current_globals_module() const;
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
+  bool decode_python_source(std::string_view bytes, std::string& source, std::string& error) const;
   void set_trace_function(Value trace_function);
   const Value& trace_function() const;
   bool trace_dispatch_active() const;
@@ -193,8 +200,12 @@ public:
   void push_current_frame_state();
   void pop_current_frame_state();
   void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
+  void release_dead_frame_registers();
   void clear_current_frame();
   Value current_frame_snapshot() const;
+  void track_live_frame_snapshot(const Value& frame);
+  void refresh_live_frame_snapshots(bool refresh_traceback_locals = false);
+  uint64_t allocate_frame_activation_id();
   uint32_t current_frame_function_id() const;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
@@ -224,6 +235,11 @@ public:
   void register_exit_function(Value callable, std::vector<Value> args, std::vector<std::pair<std::string, Value>> kwargs = {});
   void unregister_exit_function(const Value& callable);
   bool run_exit_functions(std::string& error);
+  int recursion_limit() const { return recursion_limit_; }
+  void set_recursion_limit(int limit) { recursion_limit_ = limit; }
+  bool no_debug_ranges() const { return no_debug_ranges_; }
+  void set_no_debug_ranges(bool disabled) { no_debug_ranges_ = disabled; }
+  bool finalizing() const { return finalizing_; }
 
 private:
   void initialize();
@@ -244,16 +260,21 @@ private:
   bool debug_dispatch_active_ = false;
   bool debug_poll_needed_ = false;
   bool debug_enabled_ = false;
+  bool no_debug_ranges_ = false;
+  bool finalizing_ = false;
   bool debug_pause_on_hit_ = false;
   bool debug_pause_requested_ = false;
   RuntimeDebugStepMode debug_step_mode_ = RuntimeDebugStepMode::Continue;
   size_t debug_step_frame_count_ = 0;
   uint32_t debug_step_line_ = 0;
   std::vector<RuntimeDebugBreakpoint> debug_breakpoints_;
+  mutable std::mutex live_frame_snapshots_mutex_;
+  mutable std::vector<Value> live_frame_snapshots_;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
   const Value* current_frame_globals_module_ = nullptr;
   uint32_t current_frame_function_id_ = 0;
   uint32_t current_frame_instruction_index_ = 0;
+  std::atomic<uint64_t> next_frame_activation_id_{1};
   const RuntimeFrameView* current_frame_stack_ = nullptr;
   size_t current_frame_stack_count_ = 0;
   const std::vector<std::string>* current_local_names_ = nullptr;
@@ -271,6 +292,7 @@ private:
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
   std::vector<ExitFunction> exit_functions_;
   bool exit_functions_running_ = false;
+  int recursion_limit_ = 1000;
 #if !defined(XLANG3_EMBEDDED)
   std::vector<std::filesystem::path> import_roots_;
 #endif

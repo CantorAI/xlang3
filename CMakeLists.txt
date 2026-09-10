@@ -95,6 +95,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/module_object.cpp
   src/runtime/module_slots.cpp
   src/runtime/runtime.cpp
+  src/runtime/unicode_names.cpp
   src/runtime/vfs.cpp
   src/parser/source_cursor.cpp
   src/parser/lexer.cpp
@@ -140,12 +141,15 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
   src/runtime/modules/system/errno_module.cpp
+  src/runtime/modules/system/gc_module.cpp
+  src/runtime/modules/system/array_module.cpp
   src/runtime/modules/system/imp_module.cpp
   src/runtime/modules/system/importlib_module.cpp
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
   src/runtime/modules/system/marshal_module.cpp
   src/runtime/modules/system/msvcrt_module.cpp
+  src/runtime/modules/system/multiprocessing_module.cpp
   src/runtime/modules/system/opcode_module.cpp
   src/runtime/modules/system/operator_module.cpp
   src/runtime/modules/system/os_module.cpp
@@ -155,6 +159,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/queue_module.cpp
   src/runtime/modules/system/random_module.cpp
   src/runtime/modules/system/signal_module.cpp
+  src/runtime/modules/system/sha2_module.cpp
   src/runtime/modules/system/socket_select_module.cpp
   src/runtime/modules/system/sre_module.cpp
   src/runtime/modules/system/source_encoding.cpp
@@ -270,8 +275,8 @@ target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_r
 target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
 
 if(WIN32)
-  target_link_libraries(xlang3_runtime PRIVATE ws2_32)
-  target_link_libraries(xlang3_runtime_static PRIVATE ws2_32)
+  target_link_libraries(xlang3_runtime PRIVATE ws2_32 advapi32)
+  target_link_libraries(xlang3_runtime_static PRIVATE ws2_32 advapi32)
 endif()
 
 add_executable(xlang3 src/xlang3.cpp)

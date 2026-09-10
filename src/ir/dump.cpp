@@ -121,6 +121,7 @@ const char* op_name(Op op) {
     case Op::Pop: return "Pop";
     case Op::Return: return "Return";
     case Op::CaptureExpressions: return "CaptureExpressions";
+    case Op::SetException: return "SetException";
   }
   return "Unknown";
 }

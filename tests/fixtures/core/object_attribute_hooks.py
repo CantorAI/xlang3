@@ -32,6 +32,19 @@ class Fallback:
 
 print(Fallback().abc)
 
+class DelegateTarget:
+    def ping(self, value):
+        return value + 5
+
+class Delegate:
+    def __init__(self):
+        self.target = DelegateTarget()
+    def __getattr__(self, name):
+        return getattr(self.target, name)
+
+delegate = Delegate()
+print(hasattr(delegate, "ping"), delegate.ping(3))
+
 
 class Override:
     def __init__(self):
@@ -77,3 +90,22 @@ def annotated(x: "int", y=8) -> "int":
 
 print(annotated.__name__, annotated.__defaults__, annotated.__annotations__["x"])
 print(d.hello.__self__ is d, d.hello.__func__.__name__)
+
+
+init_subclass_events = []
+
+
+class PassiveMixin:
+    pass
+
+
+class InitSubclassBase:
+    def __init_subclass__(cls):
+        init_subclass_events.append(cls.__name__)
+
+
+class MultipleInheritanceHook(PassiveMixin, InitSubclassBase):
+    pass
+
+
+print(init_subclass_events)

@@ -232,6 +232,15 @@ XLANG3_HOT_INLINE void load_exception(
   value_assign_fast(regs[in.dst], current_exception);
 }
 
+XLANG3_HOT_INLINE void set_exception(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    Value& current_exception) {
+  value_assign_fast(current_exception, regs[in.a]);
+  runtime.set_active_exception(current_exception);
+}
+
 XLANG3_HOT_INLINE void load_exception_type(
     const ir::Instr& in,
     Runtime& runtime,

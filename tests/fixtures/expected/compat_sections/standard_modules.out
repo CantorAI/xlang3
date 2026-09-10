@@ -10,6 +10,7 @@ managed_value managed doc managed_value
 changed doc
 123 123
 True True True True
+[1, 2, 3]
 2 2 4 6 2
 [1, 2, 3, 1] CacheInfo(hits=1, misses=4, maxsize=2, currsize=2)
 CacheInfo(hits=0, misses=0, maxsize=2, currsize=0)
@@ -48,9 +49,9 @@ BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
 True Expression
 ['seen']
 abc abc abc _abc ABCMeta ABC True True
-abc-class-docs True True False False
-abc-function-docs False True True False True True True
-abc-meta-method-docs False True True
+abc-class-docs True True True False
+abc-function-docs False True True True True True True
+abc-meta-method-docs True True True
 abc-abstract-descriptor-markers True True True
 abstractmethod register _abc_init True True
 True True
@@ -151,9 +152,9 @@ abc-helper-keyword _reset_caches True
 abc-helper-keyword-names True
 abc-update-keyword True
 True True True
-True True False
-True False False
-True True False
+True True True
+True False True
+True True True
 T 2 True True object True
 5 UserId int
 x List Union
@@ -364,7 +365,7 @@ True
 True ('sys_monitoring_reraise_target', True, 'ValueError', 'monitoring-reraise')
 True
 True
-2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind')
+2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_outer', True, 'ValueError', 'monitoring-unwind')
 0 0 False True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0
@@ -505,7 +506,7 @@ sys-audit-keyword-hook True
 sys-audit-keyword-diagnostic addaudit-unexpected True
 sys-audit-keyword-diagnostic addaudit-extra-kw True
 sys-audit-keyword-diagnostic audit-keyword True
-('sys_frame_probe', '<module>', '__main__', False)
+('sys_frame_probe', '<module>', '__main__', True)
 1 1 True True True
 True True True
 sys-frame-helper-docs True True True True
@@ -881,8 +882,8 @@ utf-8 value =
 ['# note', '# tail'] 2 2
 True True
 2147483649 131097 1 None
-True False False
-['a', 'b'] a True
+True True True
+['a', 'b'] a False
 4 True sample
 doc text True
 https example.com /a/b p q=1 frag
@@ -939,7 +940,7 @@ True True
 alpha/gamma beta.txt alpha
 True False True True
 True 3 True
-os-stat-result stat_result os True True 10 20 10 3 True True True True os stat_result ('st_mode', 'st_ino', 'st_dev', 'st_nlink', 'st_uid', 'st_gid', 'st_size')
+os-stat-result stat_result os True True 10 20 10 3 True True False True os stat_result ('st_mode', 'st_ino', 'st_dev', 'st_nlink', 'st_uid', 'st_gid', 'st_size')
 True 3 True
 True True
 True True True
@@ -964,7 +965,7 @@ True True
 .hidden.py ['a.py']
 True [b'b.txt']
 True http.client
-False True True True
+True True True True
 True resource-data
 7 haha 3 2
 True True True 8

@@ -32,6 +32,7 @@ struct ClassObject {
   std::string name;
   Value base;
   Value metaclass;
+  Value globals_module;
   std::vector<Value> bases;
   std::unordered_map<std::string, Value> attrs;
   std::vector<std::string> definition_attr_order;
@@ -47,6 +48,7 @@ struct ClassObject {
   bool restrict_instance_attrs = false;
   bool allow_instance_dict = true;
   bool allow_weakref = true;
+  std::vector<ClassObject*> subclasses;
   std::vector<Value> mro_cache;
   uint64_t mro_cache_version = 0;
 };
@@ -70,6 +72,15 @@ struct InstanceObject {
   std::vector<Value> overflow_slots;
   std::vector<std::pair<std::string, Value>> attrs;
 };
+
+Value& instance_attribute_storage(InstanceObject& instance);
+bool runtime_value_compare(Runtime& runtime, const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool runtime_value_contains(
+    Runtime& runtime,
+    const Value& container,
+    const Value& item,
+    bool& out,
+    std::string& error);
 
 struct BoundMethodObject {
   Object header;
@@ -174,7 +185,23 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_delete_attr(Value& object, const std::string& name, std::string& error);
 bool object_get_class_attr_for_instance(const Value& object, const std::string& name, Value& out, std::string& error);
+bool class_get_bound_attr(
+    Runtime& runtime,
+    const Value& owner_class,
+    const Value& instance,
+    const std::string& name,
+    Value& out,
+    std::string& error);
+bool object_get_special_method(
+    Runtime& runtime,
+    const Value& object,
+    const std::string& name,
+    Value& out,
+    std::string& error);
+bool object_get_function_annotations(Runtime& runtime, const Value& object, Value& out, std::string& error);
+bool object_get_class_annotations(Runtime& runtime, const Value& object, Value& out, std::string& error);
 bool object_lookup_class_attr(const Value& klass, const std::string& name, Value& out, std::string& error);
+bool object_lookup_inherited_class_attr(const Value& klass, const std::string& name, Value& out, std::string& error);
 bool object_value_has_descriptor_get(const Value& value);
 bool object_value_has_descriptor_set(const Value& value);
 bool object_value_has_descriptor_delete(const Value& value);
@@ -182,6 +209,7 @@ bool object_value_is_descriptor(const Value& value);
 bool object_value_is_data_descriptor(const Value& value);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool class_set_base(Value klass, Value base, std::string& error);
+bool class_get_subclasses(const Value& klass, Value& out, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name);
 bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out);

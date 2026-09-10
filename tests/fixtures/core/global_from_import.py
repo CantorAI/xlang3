@@ -12,6 +12,10 @@
 # limitations under the License.
 
 from import_helper import add as plus, read_value
+from import_helper import (
+    add as parenthesized_plus,
+    read_value as parenthesized_read,
+)
 from math import sqrt, pi
 import import_helper as ih
 
@@ -23,6 +27,8 @@ def inc():
     return count
 
 print(plus(4, 5))
+print(parenthesized_plus(3, 4))
+print(parenthesized_read())
 print(read_value())
 print(ih.value)
 print(sqrt(16))

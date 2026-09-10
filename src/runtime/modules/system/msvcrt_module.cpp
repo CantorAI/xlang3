@@ -86,6 +86,10 @@ bool msvcrt_open_osfhandle(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("OSError", error);
     return false;
   }
+  // Ownership has moved from the Python Handle wrapper into the CRT fd.  Drop
+  // the raw-handle tracking entry so a later recycled Windows handle cannot be
+  // mistaken for the old pipe endpoint by DuplicateHandle().
+  forget_winapi_pipe_handle(static_cast<intptr_t>(handle_value));
   out = Value::int64(fd);
 #else
   out = Value::int64(handle_value);
@@ -113,6 +117,35 @@ bool msvcrt_setmode(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     return false;
   }
   out = Value::int64(previous);
+#else
+  out = Value::int64(0);
+#endif
+  return true;
+}
+
+bool msvcrt_get_error_mode(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "GetErrorMode() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::int64(static_cast<int64_t>(GetErrorMode()));
+#else
+  out = Value::int64(0);
+#endif
+  return true;
+}
+
+bool msvcrt_set_error_mode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  int64_t mode = 0;
+  if (argc != 1 || !get_int_arg(args[0], "mode", mode, error)) {
+    if (error.empty()) error = "SetErrorMode() expects one integer argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  out = Value::int64(static_cast<int64_t>(SetErrorMode(static_cast<UINT>(mode))));
 #else
   out = Value::int64(0);
 #endif
@@ -200,6 +233,12 @@ void register_msvcrt_module(Runtime& runtime) {
   builder.function("get_osfhandle", msvcrt_get_osfhandle)
       .function("open_osfhandle", msvcrt_open_osfhandle)
       .function("setmode", msvcrt_setmode)
+      .function("GetErrorMode", msvcrt_get_error_mode)
+      .function("SetErrorMode", msvcrt_set_error_mode)
+      .value("SEM_FAILCRITICALERRORS", Value::int64(0x0001))
+      .value("SEM_NOGPFAULTERRORBOX", Value::int64(0x0002))
+      .value("SEM_NOALIGNMENTFAULTEXCEPT", Value::int64(0x0004))
+      .value("SEM_NOOPENFILEERRORBOX", Value::int64(0x8000))
       .function("kbhit", msvcrt_kbhit)
       .function("getch", msvcrt_getch)
       .function("getwch", msvcrt_getwch)

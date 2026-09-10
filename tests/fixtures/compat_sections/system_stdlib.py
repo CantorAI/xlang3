@@ -14,6 +14,7 @@
 # CPython system stdlib source import probes. These must exercise the real
 # Python files under C:/Python/Python314/Lib rather than public native facades.
 import abc
+import array
 import collections
 import _collections_abc
 import codecs
@@ -22,7 +23,9 @@ import copyreg
 import dataclasses
 import encodings
 import enum
+import gc
 import importlib.metadata
+import importlib.machinery
 import importlib.resources
 import inspect
 import io
@@ -39,18 +42,131 @@ import sys
 import threading
 import textwrap
 import traceback
+import unicodedata
+from contextlib import contextmanager
+
+empty_arrays = [array.array(typecode) for typecode in "bBhuwHiIlLfd"]
+assert all(len(value) == 0 and re.fullmatch(b"", value) is not None for value in empty_arrays)
+typed_bytes = array.array("B")
+typed_bytes.append(65)
+typed_bytes.frombytes(b"BC")
+assert len(typed_bytes) == 3
+assert typed_bytes[1] == 66
+assert typed_bytes.tobytes() == b"ABC"
+assert re.fullmatch(b"ABC", typed_bytes) is not None
+
+assert float.__getformat__("double") == "IEEE, little-endian"
+assert float.__getformat__("float") == "IEEE, little-endian"
+assert "%d" % (2**128) == "340282366920938463463374607431768211456"
+assert re.match(r".{,3}", "abcd").span() == (0, 3)
+assert re.match(
+    r"(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\119",
+    "abcdefghijklk9",
+).group(11) == "k"
+assert bytes("ÿ", "latin-1") == b"\xff"
+try:
+    bytes("ÿ", "ascii")
+except UnicodeEncodeError:
+    pass
+else:
+    raise AssertionError("ASCII bytes encoding accepted a non-ASCII code point")
+assert unicodedata.lookup("less-than sign") == "<"
+assert re.match(r"\N{SNAKE}", "🐍").group() == "🐍"
+assert re.match(r"^\d$", "๘").group() == "๘"
+assert re.match(r"^\d$", "０").group() == "０"
+assert re.match(r"^\d$", "Ⅵ") is None
+assert re.search(r"^\Aabc\z$", "abc", re.MULTILINE).group() == "abc"
+assert re.search(r"^\Aabc\z$", "\nabc\n", re.MULTILINE) is None
+assert re.search(r"\b(ьюя)\b", "ьюя").group(1) == "ьюя"
+assert re.search(r"\b(ьюя)\b", "ьюя", re.ASCII) is None
+assert len(re.findall(r"\b", "a")) == 2
+class StdlibIntSubclass(int):
+    pass
+assert 2 * StdlibIntSubclass(3) == 6
+
+class StdlibAbstractProbe(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def run(self):
+        pass
+
+assert inspect.isabstract(StdlibAbstractProbe)
+assert not inspect.isabstract(object)
+assert not isinstance(map(str, []), str)
+assert isinstance(map(str, []), object)
+assert "__path__" not in dir(linecache)
+assert "__path__" not in vars(linecache)
+assert "a\nb".splitlines(keepends=True) == ["a\n", "b"]
+assert "banana".count("a", 2, 5) == 1
+
+@contextmanager
+def stdlib_throw_context():
+    yield
+
+try:
+    with stdlib_throw_context():
+        raise ValueError("context-throw")
+except ValueError as stdlib_context_error:
+    assert str(stdlib_context_error) == "context-throw"
+else:
+    raise AssertionError("generator context manager suppressed ValueError")
 import typing
 import types
 import weakref
+
+gc_initial_state = gc.isenabled()
+gc_thresholds = gc.get_threshold()
+gc.disable()
+assert not gc.isenabled()
+gc.enable()
+assert gc.isenabled()
+gc.set_threshold(701, 11, 12)
+assert gc.get_threshold() == (701, 11, 12)
+gc.set_threshold(*gc_thresholds)
+if not gc_initial_state:
+    gc.disable()
+assert gc.collect() == 0
+assert ord(chr(0xD800)) == 0xD800
+print("system-stdlib-native-runtime", gc.__name__ == "gc", gc.isenabled() == gc_initial_state, gc.get_threshold() == gc_thresholds, ord(chr(0xD800)))
+import warnings
+
+assert getattr(importlib.machinery, "__warningregistry__", None) is None
+assert importlib.machinery.ModuleSpec is not None
+import_error = ImportError("missing", name="demo.module", path="demo.py")
+assert import_error.args == ("missing",)
+assert import_error.name == "demo.module"
+assert import_error.path == "demo.py"
+module_spec = importlib.machinery.ModuleSpec(
+    name="demo.module",
+    loader=None,
+    origin="demo.py",
+    loader_state={"ready": True},
+    is_package=True,
+)
+assert module_spec.name == "demo.module"
+assert module_spec.loader is None
+assert module_spec.origin == "demo.py"
+assert module_spec.loader_state == {"ready": True}
+assert module_spec.submodule_search_locations == []
+assert importlib.machinery.BuiltinImporter.get_code("sys") is None
 import runpy
+import select
 import site
+import socket
 import zipfile
 import _colorize
 
+try:
+    socket.SocketType.fixture_attribute = 1
+except TypeError as immutable_socket_error:
+    assert "immutable" in str(immutable_socket_error)
+else:
+    raise AssertionError("_socket.socket must be immutable")
 
-def source_lib_module(module):
+
+def source_lib_module(module, source_name=None):
     path = module.__file__.replace("\\", "/")
-    return path.endswith("/Lib/" + module.__name__ + ".py")
+    name = module.__name__ if source_name is None else source_name
+    return path.endswith("/Lib/" + name + ".py")
 
 
 def source_lib_package(module):
@@ -76,7 +192,7 @@ print(
 print(
     "system-stdlib-collections",
     source_lib_package(collections),
-    source_lib_module(_collections_abc),
+    source_lib_module(_collections_abc, "_collections_abc"),
     collections.deque.__module__ == "collections",
     list(collections.deque([1, 2, 3])) == [1, 2, 3],
     isinstance(collections.UserDict({"a": 1}), collections.abc.MutableMapping),
@@ -112,6 +228,18 @@ print(
     list(dictionary.values()),
     [item is box for item in weak_set],
 )
+proxy_box = WeakBox()
+proxy_box.value = 7
+proxy_ref = weakref.proxy(proxy_box)
+assert proxy_ref.value == 7
+proxy_box = None
+gc.collect()
+try:
+    proxy_ref.value
+except ReferenceError:
+    pass
+else:
+    raise AssertionError("weakref proxy retained its target")
 json_data = json.loads('{"name":"xlang3","items":[1,2,3],"enabled":true}')
 copied = copy.copy({"a": [1, 2]})
 payload = pickle.loads(pickle.dumps({"k": 7}))
@@ -126,6 +254,29 @@ print(
     payload["k"],
 )
 from typing import Match as TypingMatch
+
+# Dictionary entries and instance attributes must use separate storage. Metadata
+# discovery relies on defaultdict.values() excluding default_factory and _frozen.
+class MetadataDict(dict):
+    pass
+
+metadata_dict = MetadataDict()
+metadata_dict.label = "attribute"
+metadata_dict["label"] = "entry"
+assert metadata_dict.label == "attribute"
+assert metadata_dict["label"] == "entry"
+assert metadata_dict.__dict__ == {"label": "attribute"}
+assert list(metadata_dict.values()) == ["entry"]
+metadata_dict.__dict__["extra"] = 42
+assert metadata_dict.extra == 42
+assert "extra" not in metadata_dict
+metadata_defaults = collections.defaultdict(list)
+assert list(metadata_defaults.values()) == []
+metadata_defaults.note = "attribute"
+metadata_defaults["items"].append(7)
+assert list(metadata_defaults.values()) == [[7]]
+assert metadata_defaults.default_factory is list
+assert metadata_defaults.note == "attribute"
 
 metadata_distributions = list(importlib.metadata.distributions())
 print(
@@ -168,9 +319,10 @@ finally:
 
 # importlib/pkgutil/runpy/site should stay CPython-source-backed while using
 # XLang3's import loader, VFS, descriptors, and module metadata underneath.
-sys.path.insert(0, "tests/fixtures/core")
+fixture_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(fixture_dir), "core"))
 runpy_module_ns = runpy.run_module("runpy_support")
-sys.path.insert(0, "tests/fixtures/compat_sections")
+sys.path.insert(0, fixture_dir)
 import resource_pkg
 
 resources_root = importlib.resources.files(resource_pkg)
@@ -258,6 +410,7 @@ for path in (namespace_pkg_a, namespace_pkg_b, namespace_root_a, namespace_root_
         os.rmdir(path)
 os.makedirs(namespace_pkg_a)
 os.makedirs(namespace_pkg_b)
+os.makedirs(namespace_pkg_b + "/__pycache__")
 try:
     with open(namespace_file_a, "w", encoding="utf-8") as f:
         f.write("A")
@@ -279,7 +432,7 @@ finally:
     for path in (namespace_file_a, namespace_file_b):
         if os.path.exists(path):
             os.remove(path)
-    for path in (namespace_pkg_a, namespace_pkg_b, namespace_root_a, namespace_root_b):
+    for path in (namespace_pkg_b + "/__pycache__", namespace_pkg_a, namespace_pkg_b, namespace_root_a, namespace_root_b):
         if os.path.isdir(path):
             os.rmdir(path)
 
@@ -303,6 +456,13 @@ try:
         zip_files.joinpath("data.txt").read_text(),
     )
 finally:
+    zip_files = None
+    zip_pkg = None
+    sys.modules.pop("zip_pkg", None)
+    sys.path_importer_cache.pop(zip_resource_path, None)
+    if zip_resource_path in sys.path:
+        sys.path.remove(zip_resource_path)
+    gc.collect()
     if os.path.exists(zip_resource_path):
         os.remove(zip_resource_path)
 print(
@@ -347,6 +507,9 @@ print(
 # re.py is CPython source, while _sre is the native dependency behind it.
 named_match = re.search(r"(?P<word>[a-z]+)-(?P=word)", "abc-abc")
 lookbehind_split = re.split(r"(?<!x),", "a,bx,c")
+assert re.search(r"(?<!-):(.*?)(?<!-):", "a:bc-:de:f").group(1) == "bc-:de"
+assert re.search(r"(?<!\\):(.*?)(?<!\\):", r"a:bc\:de:f").group(1) == r"bc\:de"
+assert re.search(r"(?<!\?)'(.*?)(?<!\?)'", "a'bc?'de'f").group(1) == "bc?'de"
 print(
     "system-stdlib-re-semantics",
     source_lib_package(re),
@@ -363,6 +526,182 @@ print(
     re.findall(r"a+", "AaA", re.I),
 )
 
+assert re.findall(r"^a", "x\na\na", re.M) == ["a", "a"]
+assert re.findall(r"(?i:a)b", "Ab aB AB") == ["Ab"]
+assert re.findall(r"(?i:a(?-i:b))", "ab AB Ab") == ["ab", "Ab"]
+assert re.match(r"\w", "à") is not None
+assert re.match(r"\w", "à", re.ASCII) is None
+assert re.match("À", "à", re.IGNORECASE) is not None
+assert re.match("À", "à", re.ASCII | re.IGNORECASE) is None
+assert re.match("K", "K", re.IGNORECASE) is not None
+assert re.match(r"\u212a", "k", re.IGNORECASE) is not None
+assert re.match("S", "ſ", re.IGNORECASE) is not None
+assert re.match(r"\u017f", "s", re.IGNORECASE) is not None
+assert re.match(r"\u0412", "ᲀ", re.IGNORECASE) is not None
+assert re.match(r"\u1c80", "в", re.IGNORECASE) is not None
+assert re.match(r"\ufb05", "ﬆ", re.IGNORECASE) is not None
+assert re.match(r"[19\u212a]", "K", re.IGNORECASE) is not None
+assert re.match(r"[\u0411-\u0413]", "ᲀ", re.IGNORECASE) is not None
+assert re.match(r"[9-A]", "_", re.IGNORECASE) is None
+assert re.match(r"[N-\uffff]", "A", re.ASCII | re.IGNORECASE) is not None
+assert "K".lower() == "k"
+assert "ſ".upper() == "S"
+assert "ᲀ".upper() == "В"
+assert "ﬅ".upper() == "ST" and "ﬆ".upper() == "ST"
+assert re.match(r"(?-i:a)b", "Ab", re.IGNORECASE) is None
+assert re.match(r"(?-i:a)b", "aB", re.IGNORECASE) is not None
+assert re.match(r"\w(?a:\W)\w", "ààà") is not None
+assert re.match(r"\W(?u:\w)\W", "ààà", re.ASCII) is not None
+lookbehind_width_subject = "x" * 512
+assert re.search(r"(?<=((.{8}){8}){8})", lookbehind_width_subject).span() == (512, 512)
+assert re.search(r"(?<!((.{8}){8}){8})", lookbehind_width_subject).span() == (0, 0)
+assert re.match(br"\w", b"\xe0") is None
+assert re.fullmatch(r"(?is)a.b", "A\nb") is not None
+assert re.fullmatch(" a(?x: b) c", " ab c") is not None
+assert re.fullmatch(" a(?-x: b) c", "a bc", re.X) is not None
+assert re.match(r"(?P<left>x)(y)", "xy").expand(r"\g<left>-\2") == "x-y"
+assert re.split(r"\b", "Words") == ["", "Words", ""]
+assert re.split(r"(?<=:)", ":a:b::c") == [":", "a:", "b:", ":", "c"]
+assert re.split(r"\b|:+", "a::bc") == ["", "a", "", "", "bc", ""]
+assert re.split(r"(?<!\w)(?=\w)|:+", "a::bc") == ["", "a", "", "bc"]
+assert re.sub(r"\b|:+", "-", "a::bc") == "-a---bc-"
+assert re.findall(r"\b|:+", "a::bc") == ["", "", "::", "", ""]
+assert [match.span() for match in re.finditer(r"\b|\w+", "a::bc")] == [
+    (0, 0), (0, 1), (1, 1), (3, 3), (3, 5), (5, 5)
+]
+assert re.fullmatch(br"a|ab", bytearray(b"ab")).span() == (0, 2)
+assert re.fullmatch(br"a|ab", memoryview(b"ab")).span() == (0, 2)
+live_regex_buffer = bytearray(b"abcdefgh")
+live_regex_match = re.search(br"[a-h]+", live_regex_buffer)
+live_regex_buffer[:] = b"xyz"
+assert live_regex_match.group() == b"xyz"
+locked_regex_buffer = bytearray(b"x")
+locked_regex_iterator = re.finditer(br"a", locked_regex_buffer)
+try:
+    locked_regex_buffer.extend(b"x" * 400)
+except BufferError:
+    pass
+else:
+    raise AssertionError("finditer must export a mutable subject buffer")
+assert list(locked_regex_iterator) == []
+locked_regex_buffer.extend(b"x" * 400)
+class RegexString(str):
+    pass
+class RegexBytes(bytes):
+    pass
+assert re.fullmatch(r"a|ab", RegexString("ab")).span() == (0, 2)
+assert re.fullmatch(br"a|ab", RegexBytes(b"ab")).span() == (0, 2)
+assert re.fullmatch(r"a]", "a]") is not None
+assert re.fullmatch(r"w(?# first)xy(?# second)z", "wxyz") is not None
+assert re.fullmatch(r"\a[\b]\f\n\r\t\v", "\a\b\f\n\r\t\v") is not None
+assert re.fullmatch(r"(abc)\1", "abcabc").group(1) == "abc"
+assert re.fullmatch(r"(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)\11", "abcdefghijkk").group(11) == "k"
+assert re.fullmatch(r"(a)a(?<=\1)c", "aac") is not None
+assert re.fullmatch(r"(a)a(?<!\1)c", "aac") is None
+assert re.match(r"(?:(a)|(x))b(?<=(?(2)x|b))c", "abc") is not None
+assert re.match(r"(?:(a)|(x))b(?<=(?(1)c|x))c", "abc") is None
+captured_negative_lookbehind = re.match(r"^([ab]*?)(?<!(a))c", "abc")
+assert captured_negative_lookbehind.groups() == ("ab", None)
+assert captured_negative_lookbehind.span(2) == (-1, -1)
+named_unicode_escape = "\N{LATIN CAPITAL LETTER A WITH DIAERESIS}"
+assert named_unicode_escape == unicodedata.lookup("LATIN CAPITAL LETTER A WITH DIAERESIS")
+assert re.fullmatch(r"(?u)\b.\b", named_unicode_escape).group() == named_unicode_escape
+assert re.search(r"(?ms).*?x\s*\z(.*)", "xx\nx\n").group(1) == ""
+assert re.match(r"(?:(a)|(x))b(?=(?(1)c|x))c", "abc") is not None
+assert re.match(r"(a)b(?=(?(2)x|c))(c)", "abc") is not None
+assert re.match(r"^(\()?([^()]+)(?(1)\))$", "(a)").groups() == ("(", "a")
+assert re.match(r"^(\()?([^()]+)(?(1)\))$", "a").groups() == (None, "a")
+assert re.match(r"^(?:(a)|c)((?(1)b|d))$", "cd").groups() == (None, "d")
+assert re.match(r"(?P<g1>a)(?P<g2>b)?((?(g2)c|d))", "ad").groups() == ("a", None, "d")
+assert re.match(r"a(?>bc|b)c", "abc") is None
+assert re.match(r"a(?>bc|b)c", "abcc") is not None
+assert re.match(r"e*+e", "eeee") is None
+assert re.match(r"e{2,4}+a", "eeea").group() == "eeea"
+assert re.findall(r"(?:ab)++", "ababc") == ["abab"]
+assert re.match(r"((x)|y|z)*+", "xyz").groups() == ("z", "x")
+assert re.match(r"(?:(?:a|bc)*?(xx)??z)*", "axxzbcz").groups() == ("xx",)
+assert re.match(r"^((x|y)*)*", "xyyzy").groups() == ("", "y")
+assert re.match(r"((a))", "a").lastindex == 1
+assert re.match(r"(a)(b)?b", "ab").lastindex == 1
+assert re.match(r"(?P<a>a)(?P<b>b)?b", "ab").lastgroup == "a"
+for anchored_miss in (re.compile(r"\Ay"), re.compile(r"^y")):
+    assert anchored_miss.search("xxxxx") is None
+    assert anchored_miss.split("xxxxx") == ["xxxxx"]
+    assert anchored_miss.findall("xxxxx") == []
+    assert list(anchored_miss.finditer("xxxxx")) == []
+    assert anchored_miss.sub("", "xxxxx") == "xxxxx"
+assert re.fullmatch(r"\111", "I") is not None
+for invalid_regex_subject in (5, type):
+    try:
+        re.search("x*", invalid_regex_subject)
+    except TypeError as regex_subject_error:
+        assert "got '" in str(regex_subject_error)
+    else:
+        raise AssertionError("invalid regex subjects must raise TypeError")
+
+def increment_replacement(match):
+    return str(int(match.group()) + 1)
+
+assert re.sub(r"\d+", increment_replacement, "a1b22") == "a2b23"
+assert re.subn(r"\d+", "#", "a1b22") == ("a#b#", 2)
+assert re.sub(r"(?P<letter>[a-z])", r"\g<letter>\g<letter>", "ab") == "aabb"
+assert re.sub("x", r"\000\a\b\f\v", "x") == "\0\a\b\f\v"
+assert re.sub("x", r"\1111", "x") == "I1"
+assert re.sub("$", "#", "a\n") == "a#\n#"
+assert re.match(r"(a)(b)", "ab").group(2, 1) == ("b", "a")
+assert re.match(r"(a)(b)?", "a").groups("") == ("a", "")
+class RegexGroupIndex:
+    def __index__(self):
+        return 2
+assert re.match(r"(a)(b)", "ab").group(RegexGroupIndex()) == "b"
+assert [match.span() for match in re.compile(r"a").finditer(string="baac", pos=2, endpos=3)] == [(2, 3)]
+keyword_pattern = re.compile(r"(ab)")
+assert repr(re.compile("random pattern", re.I | re.S)) == "re.compile('random pattern', re.IGNORECASE|re.DOTALL)"
+re.purge()
+equal_pattern = re.compile(r"(ab)")
+assert equal_pattern == keyword_pattern and hash(equal_pattern) == hash(keyword_pattern)
+assert equal_pattern != re.compile(br"(ab)")
+assert pickle.loads(pickle.dumps(equal_pattern)) == equal_pattern
+assert copy.copy(keyword_pattern) is keyword_pattern
+assert copy.deepcopy(keyword_pattern) is keyword_pattern
+copy_match = keyword_pattern.match("ab")
+assert copy.copy(copy_match) is copy_match and copy.deepcopy(copy_match) is copy_match
+assert copy_match.regs == ((0, 2), (0, 2))
+assert repr(copy_match) == "<_sre.SRE_Match object; span=(0, 2), match='ab'>"
+named_pattern = re.compile(r"(?P<first>a)")
+format_match = re.match(r"(?P<first>a)(?P<second>b)?", "a")
+assert "first={first} second={second}".format_map(format_match) == "first=a second=None"
+
+class FormatDefaults(dict):
+    def __missing__(self, key):
+        return "<" + key + ">"
+
+assert "{present}:{absent}".format_map(FormatDefaults(present="yes")) == "yes:<absent>"
+try:
+    named_pattern.groupindex["first"] = 2
+except TypeError:
+    pass
+else:
+    raise AssertionError("Pattern.groupindex must be read-only")
+assert keyword_pattern.match(string="abracadabra", pos=7, endpos=10).span() == (7, 9)
+assert keyword_pattern.fullmatch(string="abracadabra", pos=7, endpos=9).span() == (7, 9)
+assert keyword_pattern.search(string="abracadabra", pos=3, endpos=10).span() == (7, 9)
+assert keyword_pattern.findall(string="abracadabra", pos=3, endpos=10) == ["ab"]
+assert keyword_pattern.split(string="abracadabra", maxsplit=1) == ["", "ab", "racadabra"]
+assert keyword_pattern.scanner(string="abracadabra", pos=3, endpos=10).search().span() == (7, 9)
+try:
+    keyword_pattern.match("ab").group(99)
+except IndexError as missing_group_error:
+    assert "no such group" in str(missing_group_error)
+else:
+    raise AssertionError("missing match groups must raise IndexError")
+try:
+    keyword_pattern.match("ab")[(0, 1)]
+except IndexError as invalid_group_error:
+    assert "no such group" in str(invalid_group_error)
+else:
+    raise AssertionError("non-integer match group keys must raise IndexError")
+
 # Source helpers need real mappingproxy/dict protocol behavior, not native
 # stand-ins for the libraries themselves.
 proxy_source = collections.OrderedDict([("first", 1), ("second", 2)])
@@ -378,6 +717,19 @@ print(
     hasattr(proxy, "__iter__"),
 )
 
+
+try:
+    proxy["missing"]
+except KeyError:
+    pass
+else:
+    raise AssertionError("mappingproxy subscription misses must raise KeyError")
+
+assert "name_1".isidentifier()
+assert "µ".isidentifier()
+assert "𝔘𝔫𝔦𝔠𝔬𝔡𝔢".isidentifier()
+for invalid_identifier in ("©", "㊀", "¹", "१"):
+    assert not invalid_identifier.isidentifier()
 
 @dataclasses.dataclass(order=True)
 class StdlibPoint:
@@ -653,6 +1005,110 @@ print(
     thread_local.value,
     thread_local.initialized,
 )
+
+# Constructor keywords must be replayed when each thread initializes a
+# threading.local subclass for the first time.
+local_keyword_events = []
+
+
+class KeywordLocal(threading.local):
+    def __init__(self, value, *, enabled=False):
+        self.value = value
+        self.enabled = enabled
+        local_keyword_events.append((value, enabled))
+
+
+keyword_local = KeywordLocal(12, enabled=True)
+keyword_thread_values = []
+
+
+def read_keyword_local():
+    keyword_thread_values.append((keyword_local.value, keyword_local.enabled))
+
+
+keyword_thread = threading.Thread(target=read_keyword_local)
+keyword_thread.start()
+keyword_thread.join()
+assert keyword_thread_values == [(12, True)]
+assert local_keyword_events == [(12, True), (12, True)]
+assert (keyword_local.value, keyword_local.enabled) == (12, True)
+
+# _thread.exit raises SystemExit, which threading suppresses while still
+# completing the thread lifecycle normally.
+thread_exit_events = []
+
+
+def exit_worker():
+    import _thread
+
+    thread_exit_events.append("before")
+    _thread.exit()
+    thread_exit_events.append("after")
+
+
+exit_thread = threading.Thread(target=exit_worker)
+exit_thread.start()
+exit_thread.join()
+assert thread_exit_events == ["before"]
+assert not exit_thread.is_alive()
+
+# CPython socket.py delegates datagram I/O to the native _socket methods.
+udp_left = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+udp_right = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+try:
+    udp_left.bind(("127.0.0.1", 0))
+    udp_right.bind(("127.0.0.1", 0))
+    assert udp_left.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) == socket.SOCK_DGRAM
+    assert len(udp_left.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE, 4)) == 4
+    assert udp_left.sendto(b"udp", udp_right.getsockname()) == 3
+    udp_readable, udp_writable, udp_exceptional = select.select([udp_right], [udp_left], [udp_left], 1.0)
+    udp_payload, udp_address = udp_right.recvfrom(16)
+    assert udp_payload == b"udp"
+    assert udp_address[0] == "127.0.0.1"
+    assert udp_readable == [udp_right]
+    assert udp_writable == [udp_left]
+    assert udp_exceptional == []
+finally:
+    udp_left.close()
+    udp_right.close()
+
+# reload() passes a target to _find_spec, reuses the module object, and asks
+# the source loader to execute the updated file. FileFinder path hooks also
+# drive pkgutil.iter_modules over ordinary directories.
+reload_root = "xlang3_importlib_reload_probe"
+reload_file = os.path.join(reload_root, "reload_target.py")
+warning_file = os.path.join(reload_root, "warning_target.py")
+os.makedirs(reload_root, exist_ok=True)
+sys.path.insert(0, reload_root)
+try:
+    with open(reload_file, "w", encoding="utf-8") as stream:
+        stream.write("VALUE = 1\n")
+    importlib.invalidate_caches()
+    reload_target = importlib.import_module("reload_target")
+    with open(reload_file, "w", encoding="utf-8") as stream:
+        stream.write("VALUE = 222\n")
+    importlib.invalidate_caches()
+    assert importlib.reload(reload_target) is reload_target
+    assert reload_target.VALUE == 222
+    assert [item.name for item in pkgutil.iter_modules([reload_root])] == ["reload_target"]
+    with open(warning_file, "w", encoding="utf-8") as stream:
+        stream.write("import warnings\nwarnings.warn('nested-frame', UserWarning, stacklevel=3)\n")
+    importlib.invalidate_caches()
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        importlib.import_module("warning_target")
+    assert len(caught_warnings) == 1
+    assert os.path.normcase(caught_warnings[0].filename) == os.path.normcase(__file__), (caught_warnings[0].filename, __file__)
+finally:
+    sys.path.remove(reload_root)
+    sys.modules.pop("reload_target", None)
+    sys.modules.pop("warning_target", None)
+    if os.path.exists(reload_file):
+        os.remove(reload_file)
+    if os.path.exists(warning_file):
+        os.remove(warning_file)
+    if os.path.isdir(reload_root):
+        os.rmdir(reload_root)
 
 
 # subprocess.py stays CPython source-backed and delegates process work to

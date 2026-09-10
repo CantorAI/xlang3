@@ -33,17 +33,32 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+XLANG3_HOT_INLINE Value xlang_vm_attribute_error(
+    Runtime& runtime,
+    const Value& receiver,
+    const std::string& name,
+    const std::string& message) {
+  Value exception = runtime.make_exception("AttributeError", message);
+  std::string ignored;
+  object_set_attr(exception, "name", Value::string(name), ignored);
+  ignored.clear();
+  object_set_attr(exception, "obj", receiver, ignored);
+  return exception;
+}
+
 XLANG3_HOT_INLINE bool xlang_vm_descriptor_method(const Value& descriptor, const char* name, Value& out) {
   std::string error;
   return object_get_attr(descriptor, name, out, error);
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
     const SlotDescriptorObject& descriptor,
     const Value& receiver,
     Value& out,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   if (receiver.tag == ValueTag::None) {
     Value descriptor_value;
     descriptor_value.tag = ValueTag::Object;
@@ -55,9 +70,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   auto* instance = value_as_instance(receiver);
   if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
     if (instance != nullptr) {
-      if (value_as_dict(instance->mapping_storage) != nullptr) {
+      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
         std::string ignored;
-        if (mapping_get_item(instance->mapping_storage, Value::string(descriptor.name), out, ignored)) {
+        if (mapping_get_item(instance_attribute_storage(*instance), Value::string(descriptor.name), out, ignored)) {
           return XlangVMOpFlow::Next;
         }
       }
@@ -82,9 +97,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   }
   const auto& slot_value = instance_slot_at(instance, descriptor.index);
   if (slot_value.tag == ValueTag::Invalid) {
-    if (value_as_dict(instance->mapping_storage) != nullptr) {
+    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
       std::string ignored;
-      if (mapping_get_item(instance->mapping_storage, Value::string(descriptor.name), out, ignored)) {
+      if (mapping_get_item(instance_attribute_storage(*instance), Value::string(descriptor.name), out, ignored)) {
         return XlangVMOpFlow::Next;
       }
     }
@@ -96,7 +111,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
         return XlangVMOpFlow::Next;
       }
     }
-    return raise_runtime_error("object has no attribute '" + descriptor.name + "'")
+    return raise_exception_value(runtime.make_exception(
+               "AttributeError", "object has no attribute '" + descriptor.name + "'"))
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
   }
@@ -104,14 +120,26 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
     const SlotDescriptorObject& descriptor,
     const Value& receiver,
     const Value& value,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   auto* instance = value_as_instance(receiver);
   if (instance == nullptr || descriptor.index >= instance_slot_count(instance)) {
+    Value tuple_value;
+    std::string tuple_error;
+    if (object_get_attr(receiver, "_tuple", tuple_value, tuple_error)) {
+      if (auto* tuple = value_as_tuple(tuple_value);
+          tuple != nullptr && descriptor.index < tuple->items.size()) {
+        return raise_exception_value(runtime.make_exception("AttributeError", "readonly attribute"))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
+      }
+    }
     return raise_runtime_error("descriptor does not apply to this object")
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
@@ -298,6 +326,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   if (fn.names[in.b] == "__class__" && runtime_type_of_value(runtime, regs[in.a], regs[in.dst])) {
     return XlangVMOpFlow::Next;
   }
+  if (value_as_frame(regs[in.a]) != nullptr &&
+      (fn.names[in.b] == "f_lineno" || fn.names[in.b] == "f_locals")) {
+    runtime.refresh_live_frame_snapshots(fn.names[in.b] == "f_locals");
+  }
+  if (fn.names[in.b] == "__annotations__" && value_as_function(regs[in.a]) != nullptr) {
+    std::string annotations_error;
+    if (object_get_function_annotations(runtime, regs[in.a], regs[in.dst], annotations_error)) {
+      return XlangVMOpFlow::Next;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(annotations_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (fn.names[in.b] == "__annotations__" && value_as_class(regs[in.a]) != nullptr) {
+    std::string annotations_error;
+    if (object_get_class_annotations(runtime, regs[in.a], regs[in.dst], annotations_error)) {
+      return XlangVMOpFlow::Next;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(annotations_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (auto* hook_instance = value_as_instance(regs[in.a])) {
     auto* hook_class = value_as_class(hook_instance->klass);
     Value hook;
@@ -323,6 +377,59 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
         }
         return XlangVMOpFlow::Next;
       }
+    }
+  }
+  if (auto* receiver_class = value_as_class(regs[in.a])) {
+    auto* metaclass = value_as_class(receiver_class->metaclass);
+    Value meta_descriptor;
+    std::string meta_error;
+    if (metaclass != nullptr &&
+        object_lookup_class_attr(receiver_class->metaclass, fn.names[in.b], meta_descriptor, meta_error) &&
+        object_value_is_data_descriptor(meta_descriptor) &&
+        object_value_has_descriptor_get(meta_descriptor)) {
+      if (auto* property = value_as_property(meta_descriptor)) {
+        if (property->fget.tag == ValueTag::None || property->fget.tag == ValueTag::Invalid) {
+          return raise_exception_value(runtime.make_exception("AttributeError", "unreadable attribute"))
+              ? XlangVMOpFlow::ContinueLoop
+              : XlangVMOpFlow::ReturnResult;
+        }
+        Value receiver;
+        value_assign_fast(receiver, regs[in.a]);
+        return call_attr_hook(
+            property->fget,
+            &receiver,
+            1,
+            module,
+            module_owner,
+            runtime,
+            native_call_args,
+            execution_lock,
+            regs[in.dst],
+            in.dst,
+            ip,
+            result,
+            make_generator_if_needed,
+            push_frame,
+            raise_runtime_error,
+            raise_exception_value);
+      }
+      return call_descriptor_get(
+          meta_descriptor,
+          regs[in.a],
+          receiver_class->metaclass,
+          module,
+          module_owner,
+          runtime,
+          native_call_args,
+          execution_lock,
+          regs[in.dst],
+          in.dst,
+          ip,
+          result,
+          make_generator_if_needed,
+          push_frame,
+          raise_runtime_error,
+          raise_exception_value);
     }
   }
   std::string error;
@@ -368,17 +475,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                               raise_runtime_error, raise_exception_value);
       }
     }
-    return raise_exception_value(runtime.make_exception("AttributeError", error))
+    return raise_exception_value(xlang_vm_attribute_error(runtime, regs[in.a], fn.names[in.b], error))
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
   }
   if (auto* slot = value_as_slot_descriptor(attr)) {
     if (auto* instance = value_as_instance(regs[in.a])) {
-      return slot_descriptor_get(*slot, regs[in.a], regs[in.dst], raise_runtime_error);
+      return slot_descriptor_get(*slot, regs[in.a], regs[in.dst], runtime, raise_runtime_error, raise_exception_value);
     }
     if (value_as_class(regs[in.a]) != nullptr) {
       Value none = Value::none();
-      return slot_descriptor_get(*slot, none, regs[in.dst], raise_runtime_error);
+      return slot_descriptor_get(*slot, none, regs[in.dst], runtime, raise_runtime_error, raise_exception_value);
     }
   }
   if (auto* property = value_as_instance(regs[in.a]) != nullptr ? value_as_property(attr) : nullptr) {
@@ -415,18 +522,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
           return XlangVMOpFlow::Next;
         }
       }
-      const ir::Module* call_module = &module;
-      auto call_module_owner = module_owner;
-      if (fn_obj->module != nullptr) {
-        call_module = fn_obj->module.get();
-        call_module_owner = fn_obj->module;
-      }
-      ++ip;
-      if (!push_frame(*call_module, fn_obj->function_id, property_args, fn_obj->closure, fn_obj->defaults,
-                      fn_obj->globals_module, std::move(call_module_owner), in.dst)) {
+      bool pushed_frame = false;
+      if (!call_user_function(
+              fn_obj,
+              property_args,
+              module,
+              module_owner,
+              in.dst,
+              ip,
+              regs[in.dst],
+              pushed_frame,
+              make_generator_if_needed,
+              push_frame)) {
         return XlangVMOpFlow::ReturnResult;
       }
-      return XlangVMOpFlow::SwitchFrame;
+      return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
     }
     if (auto* native = value_as_native_function(property->fget)) {
       Value native_result;
@@ -457,13 +567,43 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     }
     return raise_runtime_error("property getter is not callable") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
-  if (object_value_has_descriptor_get(attr)) {
+  const AttrSiteKind loaded_attr_kind = instr_cache[ip].attr.kind;
+  const bool loaded_from_instance =
+      value_as_instance(regs[in.a]) != nullptr &&
+      (loaded_attr_kind == AttrSiteKind::InstanceDict ||
+       loaded_attr_kind == AttrSiteKind::InstanceAttr ||
+       loaded_attr_kind == AttrSiteKind::InstanceSlot);
+  if (!loaded_from_instance && object_value_has_descriptor_get(attr)) {
     if (auto* instance = value_as_instance(regs[in.a])) {
       return call_descriptor_get(attr, regs[in.a], instance->klass, module, module_owner, runtime, native_call_args,
                                  execution_lock, regs[in.dst], in.dst, ip, result, make_generator_if_needed,
                                  push_frame, raise_runtime_error, raise_exception_value);
     }
     if (value_as_class(regs[in.a]) != nullptr) {
+      Value own_attr;
+      std::string own_error;
+      if (!object_lookup_class_attr(regs[in.a], fn.names[in.b], own_attr, own_error)) {
+        auto* receiver_class = value_as_class(regs[in.a]);
+        if (receiver_class != nullptr && value_as_class(receiver_class->metaclass) != nullptr) {
+          return call_descriptor_get(
+              attr,
+              regs[in.a],
+              receiver_class->metaclass,
+              module,
+              module_owner,
+              runtime,
+              native_call_args,
+              execution_lock,
+              regs[in.dst],
+              in.dst,
+              ip,
+              result,
+              make_generator_if_needed,
+              push_frame,
+              raise_runtime_error,
+              raise_exception_value);
+        }
+      }
       Value none = Value::none();
       return call_descriptor_get(attr, none, regs[in.a], module, module_owner, runtime, native_call_args,
                                  execution_lock, regs[in.dst], in.dst, ip, result, make_generator_if_needed,
@@ -555,7 +695,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
   }
   if (has_descriptor) {
     if (auto* slot = value_as_slot_descriptor(descriptor)) {
-      return slot_descriptor_set(*slot, regs[in.dst], regs[in.b], raise_runtime_error);
+      return slot_descriptor_set(
+          *slot, regs[in.dst], regs[in.b], runtime,
+          raise_runtime_error, raise_exception_value);
     }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fset.tag == ValueTag::None || property->fset.tag == ValueTag::Invalid) {
@@ -645,7 +787,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (error == "object does not support attribute assignment" ||
-        error.find("read-only") != std::string::npos) {
+        error.find("read-only") != std::string::npos ||
+        error.find("object has no attribute") != std::string::npos) {
+      if (auto* instance = value_as_instance(regs[in.dst]);
+          instance != nullptr && error.rfind("object has no attribute", 0) == 0) {
+        if (auto* klass = value_as_class(instance->klass)) {
+          error = "'" + klass->name + "' " + error;
+        }
+      }
       return raise_exception_value(runtime.make_exception("AttributeError", error))
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;
@@ -842,8 +991,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_instance_slot(
     if (auto* klass = value_as_class(instance->klass)) {
       if (in.b < klass->instance_slot_names.size()) {
         std::string error;
-        if (value_as_dict(instance->mapping_storage) != nullptr &&
-            mapping_get_item(instance->mapping_storage, Value::string(klass->instance_slot_names[in.b]), regs[in.dst], error)) {
+        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
+            mapping_get_item(instance_attribute_storage(*instance), Value::string(klass->instance_slot_names[in.b]), regs[in.dst], error)) {
           return XlangVMOpFlow::Next;
         }
         if (object_get_attr(regs[in.a], klass->instance_slot_names[in.b], regs[in.dst], error)) {
@@ -877,9 +1026,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_instance_slot(
   }
   value_assign_fast(instance_slot_at(instance, in.a), regs[in.b]);
   if (auto* klass = value_as_class(instance->klass)) {
-    if (in.a < klass->instance_slot_names.size() && value_as_dict(instance->mapping_storage) != nullptr) {
+    if (in.a < klass->instance_slot_names.size() && value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
       std::string ignored;
-      mapping_set_item(instance->mapping_storage, Value::string(klass->instance_slot_names[in.a]), regs[in.b], ignored);
+      mapping_set_item(instance_attribute_storage(*instance), Value::string(klass->instance_slot_names[in.a]), regs[in.b], ignored);
     }
   }
   return XlangVMOpFlow::Next;

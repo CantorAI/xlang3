@@ -22,6 +22,7 @@ limitations under the License.
 namespace xlang3 {
 
 Value& runtime_current_exception_state(const Runtime& runtime);
+Value& runtime_pending_exception_state(const Runtime& runtime);
 void runtime_publish_current_exception_state(const Runtime& runtime);
 
 namespace {
@@ -75,6 +76,17 @@ void initialize_exception_attrs(Value& instance, const std::string& class_name, 
     object_set_attr(instance, "filename", Value::none(), ignored);
     object_set_attr(instance, "filename2", Value::none(), ignored);
     object_set_attr(instance, "winerror", Value::none(), ignored);
+  }
+  if (class_name == "SyntaxError" || class_name == "IndentationError" || class_name == "TabError" ||
+      class_name == "_IncompleteInputError") {
+    object_set_attr(instance, "msg", Value::string(message), ignored);
+    object_set_attr(instance, "filename", Value::none(), ignored);
+    object_set_attr(instance, "lineno", Value::none(), ignored);
+    object_set_attr(instance, "offset", Value::none(), ignored);
+    object_set_attr(instance, "text", Value::none(), ignored);
+    object_set_attr(instance, "end_lineno", Value::none(), ignored);
+    object_set_attr(instance, "end_offset", Value::none(), ignored);
+    object_set_attr(instance, "print_file_and_line", Value::none(), ignored);
   }
 }
 
@@ -154,20 +166,21 @@ Value Runtime::exception_type(const Value& exception) {
 }
 
 bool Runtime::raise_class_error(std::string class_name, std::string message) {
-  pending_exception_ = make_exception(std::move(class_name), std::move(message));
+  runtime_pending_exception_state(*this) = make_exception(std::move(class_name), std::move(message));
   return true;
 }
 
 void Runtime::set_pending_exception(Value exception) {
-  pending_exception_ = std::move(exception);
+  runtime_pending_exception_state(*this) = std::move(exception);
 }
 
 bool Runtime::take_pending_exception(Value& out) {
-  if (pending_exception_.tag == ValueTag::Invalid) {
+  Value& pending = runtime_pending_exception_state(*this);
+  if (pending.tag == ValueTag::Invalid) {
     return false;
   }
-  value_assign_fast(out, pending_exception_);
-  value_set_invalid(pending_exception_);
+  value_assign_fast(out, pending);
+  value_set_invalid(pending);
   return true;
 }
 

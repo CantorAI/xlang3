@@ -15,13 +15,16 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
+#include "source_encoding.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
+#include <cstdlib>
 #include <cstring>
 
 #if defined(_WIN32)
@@ -32,6 +35,48 @@ limitations under the License.
 
 namespace xlang3 {
 namespace {
+
+#if defined(_WIN32)
+void ignore_file_invalid_parameter(
+    const wchar_t*,
+    const wchar_t*,
+    const wchar_t*,
+    unsigned int,
+    uintptr_t) {}
+
+int safe_fd_write(int fd, const void* buffer, unsigned int count) {
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_file_invalid_parameter);
+  const int result = _write(fd, buffer, count);
+  _set_thread_local_invalid_parameter_handler(previous);
+  return result;
+}
+
+int safe_fd_close(int fd) {
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_file_invalid_parameter);
+  const int result = _close(fd);
+  _set_thread_local_invalid_parameter_handler(previous);
+  return result;
+}
+
+intptr_t safe_fd_native_handle(int fd) {
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_file_invalid_parameter);
+  const intptr_t handle = _get_osfhandle(fd);
+  _set_thread_local_invalid_parameter_handler(previous);
+  return handle;
+}
+#endif
+
+bool raise_file_os_error(Runtime& runtime, int error_number, const std::string& message) {
+  const char* exception_name = error_number == EPIPE ? "BrokenPipeError" : "OSError";
+  Value exception = runtime.make_exception(exception_name, message);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
 
 FileObject* require_file(const Value& value, const char* name, std::string& error) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::File) {
@@ -107,14 +152,22 @@ std::string normalize_name(std::string text) {
 }
 
 std::string translate_newlines_for_write(std::string text, const FileObject& file) {
-  if (file.newline_is_none || file.newline.empty() || file.newline == "\n") {
+  std::string newline = file.newline;
+  if (file.newline_is_none) {
+#if defined(_WIN32)
+    newline = "\r\n";
+#else
+    return text;
+#endif
+  }
+  if (newline.empty() || newline == "\n") {
     return text;
   }
   std::string out;
   out.reserve(text.size());
   for (char ch : text) {
     if (ch == '\n') {
-      out += file.newline;
+      out += newline;
     } else {
       out.push_back(ch);
     }
@@ -133,10 +186,29 @@ uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
   return codepoint;
 }
 
-bool encode_text_buffer(const FileObject& file, std::string& out, std::string& error) {
+void append_backslash_escape(uint32_t codepoint, std::string& out) {
+  static constexpr char digits[] = "0123456789abcdef";
+  if (codepoint <= 0xff) {
+    out += "\\x";
+    out.push_back(digits[(codepoint >> 4) & 0xf]);
+    out.push_back(digits[codepoint & 0xf]);
+    return;
+  }
+  const int first_shift = codepoint <= 0xffff ? 12 : 28;
+  out += codepoint <= 0xffff ? "\\u" : "\\U";
+  for (int shift = first_shift; shift >= 0; shift -= 4) {
+    out.push_back(digits[(codepoint >> shift) & 0xf]);
+  }
+}
+
+bool encode_text_value(
+    const FileObject& file,
+    std::string text,
+    std::string& out,
+    std::string& error) {
   const std::string encoding = normalize_name(file.encoding);
   const std::string errors = normalize_name(file.errors);
-  const std::string text = translate_newlines_for_write(file.buffer, file);
+  text = translate_newlines_for_write(std::move(text), file);
   if (encoding == "utf_8" || encoding == "utf_8_sig") {
     out = encoding == "utf_8_sig" ? std::string("\xef\xbb\xbf", 3) + text : text;
     return true;
@@ -152,8 +224,14 @@ bool encode_text_buffer(const FileObject& file, std::string& out, std::string& e
       } else if (errors == "ignore") {
       } else if (errors == "replace") {
         out.push_back('?');
+      } else if (errors == "backslashreplace") {
+        append_backslash_escape(codepoint, out);
       } else {
-        error = "ascii codec can't encode character";
+        std::string escaped;
+        append_backslash_escape(codepoint, escaped);
+        error = "'ascii' codec can't encode character '" + escaped +
+            "' in position " + std::to_string(utf8_codepoint_count(std::string_view(text).substr(0, i))) +
+            ": ordinal not in range(128)";
         return false;
       }
       i += advance;
@@ -172,22 +250,141 @@ bool encode_text_buffer(const FileObject& file, std::string& out, std::string& e
       } else if (errors == "replace") {
         out.push_back('?');
       } else {
-        error = "latin-1 codec can't encode character";
+        std::string escaped;
+        append_backslash_escape(codepoint, escaped);
+        error = "'latin-1' codec can't encode character '" + escaped +
+            "' in position " + std::to_string(utf8_codepoint_count(std::string_view(text).substr(0, i))) +
+            ": ordinal not in range(256)";
         return false;
       }
       i += advance;
     }
     return true;
   }
+  if (encoding == "gbk" || encoding == "cp936") {
+    return encode_gbk_text(text, out, error);
+  }
   error = "unsupported file encoding: " + file.encoding;
   return false;
 }
 
-bool flush_file(FileObject& file, std::string& error) {
+bool encode_text_buffer(const FileObject& file, std::string& out, std::string& error) {
+  return encode_text_value(file, file.buffer, out, error);
+}
+
+bool decode_text_value(
+    const FileObject& file,
+    std::string_view bytes,
+    std::string& out,
+    std::string& error) {
+  const std::string encoding = normalize_name(file.encoding);
+  const std::string errors = normalize_name(file.errors);
+  std::string decoded;
+  if (encoding == "utf_8" || encoding == "utf_8_sig") {
+    size_t index = encoding == "utf_8_sig" && bytes.size() >= 3 &&
+            static_cast<unsigned char>(bytes[0]) == 0xefu &&
+            static_cast<unsigned char>(bytes[1]) == 0xbbu &&
+            static_cast<unsigned char>(bytes[2]) == 0xbfu
+        ? 3
+        : 0;
+    while (index < bytes.size()) {
+      const unsigned char lead = static_cast<unsigned char>(bytes[index]);
+      if (lead < 0x80u) {
+        decoded.push_back(static_cast<char>(lead));
+        ++index;
+        continue;
+      }
+      const size_t width = utf8_codepoint_width(lead);
+      bool valid = width >= 2 && index + width <= bytes.size();
+      uint32_t codepoint = valid ? lead & (0x7fu >> width) : 0;
+      for (size_t offset = 1; valid && offset < width; ++offset) {
+        const unsigned char continuation =
+            static_cast<unsigned char>(bytes[index + offset]);
+        if ((continuation & 0xc0u) != 0x80u) {
+          valid = false;
+        } else {
+          codepoint = (codepoint << 6u) | (continuation & 0x3fu);
+        }
+      }
+      const uint32_t minimum = width == 2 ? 0x80u : width == 3 ? 0x800u : 0x10000u;
+      valid = valid && codepoint >= minimum && codepoint <= 0x10ffffu &&
+          !(codepoint >= 0xd800u && codepoint <= 0xdfffu);
+      if (valid) {
+        decoded.append(bytes.substr(index, width));
+        index += width;
+      } else if (errors == "ignore") {
+        ++index;
+      } else if (errors == "replace") {
+        decoded += "\xef\xbf\xbd";
+        ++index;
+      } else {
+        error = "utf-8 codec can't decode byte";
+        return false;
+      }
+    }
+  } else if (encoding == "latin_1") {
+    for (unsigned char ch : bytes) {
+      if (ch < 0x80u) {
+        decoded.push_back(static_cast<char>(ch));
+      } else {
+        decoded.push_back(static_cast<char>(0xc0u | (ch >> 6u)));
+        decoded.push_back(static_cast<char>(0x80u | (ch & 0x3fu)));
+      }
+    }
+  } else if (encoding == "ascii") {
+    for (unsigned char ch : bytes) {
+      if (ch < 0x80u) {
+        decoded.push_back(static_cast<char>(ch));
+      } else if (errors == "ignore") {
+        continue;
+      } else if (errors == "replace") {
+        decoded += "\xef\xbf\xbd";
+      } else {
+        error = "ascii codec can't decode byte";
+        return false;
+      }
+    }
+  } else if (encoding == "gbk" || encoding == "cp936") {
+    if (!decode_gbk_bytes(bytes, decoded, error)) {
+      return false;
+    }
+  } else {
+    error = "unsupported file encoding: " + file.encoding;
+    return false;
+  }
+  if (!file.newline_is_none) {
+    out = std::move(decoded);
+    return true;
+  }
+  out.clear();
+  out.reserve(decoded.size());
+  for (size_t index = 0; index < decoded.size(); ++index) {
+    if (decoded[index] == '\r') {
+      if (index + 1 < decoded.size() && decoded[index + 1] == '\n') {
+        ++index;
+      }
+      out.push_back('\n');
+    } else {
+      out.push_back(decoded[index]);
+    }
+  }
+  return true;
+}
+
+bool fd_write(FileObject& file, std::string_view bytes, std::string& error, int* error_number);
+
+bool flush_file(FileObject& file, std::string& error, int* error_number = nullptr) {
   if (file.devnull) {
     return true;
   }
   if (file.fd_backed) {
+    if (file.buffer.empty()) {
+      return true;
+    }
+    if (!fd_write(file, file.buffer, error, error_number)) {
+      return false;
+    }
+    file.buffer.clear();
     return true;
   }
   if (!file.writable) {
@@ -260,7 +457,7 @@ bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string&
   }
 }
 
-bool fd_write(FileObject& file, std::string_view bytes, std::string& error) {
+bool fd_write(FileObject& file, std::string_view bytes, std::string& error, int* error_number) {
   if (file.fd < 0) {
     error = "file descriptor is closed";
     return false;
@@ -268,7 +465,7 @@ bool fd_write(FileObject& file, std::string_view bytes, std::string& error) {
   size_t offset = 0;
   while (offset < bytes.size()) {
 #if defined(_WIN32)
-    const int written = _write(
+    const int written = safe_fd_write(
         file.fd,
         bytes.data() + offset,
         static_cast<unsigned int>(std::min<size_t>(bytes.size() - offset, 0x7fffffffu)));
@@ -276,6 +473,9 @@ bool fd_write(FileObject& file, std::string_view bytes, std::string& error) {
     const ssize_t written = write(file.fd, bytes.data() + offset, bytes.size() - offset);
 #endif
     if (written < 0) {
+      if (error_number != nullptr) {
+        *error_number = errno;
+      }
       error = std::string("file descriptor write failed: ") + std::strerror(errno);
       return false;
     }
@@ -295,15 +495,23 @@ bool fd_close(FileObject& file, std::string& error) {
     return true;
   }
 #if defined(_WIN32)
-  if (_close(file.fd) != 0) {
+  const bool descriptor_still_owned = file.fd_native_handle == -1 ||
+      safe_fd_native_handle(file.fd) == file.fd_native_handle;
+  if (!descriptor_still_owned) errno = EBADF;
+  const int result = descriptor_still_owned ? safe_fd_close(file.fd) : -1;
 #else
-  if (close(file.fd) != 0) {
+  const int result = close(file.fd);
 #endif
-    error = std::string("file descriptor close failed: ") + std::strerror(errno);
-    return false;
-  }
+  const int close_error = errno;
+  // A failed close still retires this FileObject's descriptor number.  Keeping
+  // it live lets a later destructor close an unrelated descriptor after the
+  // CRT has reused the number.
   file.fd = -1;
   file.closed = true;
+  if (result != 0) {
+    error = std::string("file descriptor close failed: ") + std::strerror(close_error);
+    return false;
+  }
   return true;
 }
 
@@ -315,7 +523,7 @@ void file_read_result(FileObject& file, std::string data, Value& out) {
   }
 }
 
-bool file_read_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "file.read() expected optional size";
     return false;
@@ -341,6 +549,14 @@ bool file_read_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
     if (!fd_read(*file, requested, data, error)) {
       return false;
     }
+    if (!file->binary) {
+      std::string decoded;
+      if (!decode_text_value(*file, data, decoded, error)) {
+        runtime.raise_class_error("UnicodeDecodeError", error);
+        return false;
+      }
+      data = std::move(decoded);
+    }
     file_read_result(*file, std::move(data), out);
     return true;
   }
@@ -360,7 +576,7 @@ bool file_read_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "file.write", error)) {
     return false;
   }
@@ -388,14 +604,34 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (file->fd_backed) {
     std::string storage;
     std::string_view bytes(text);
+    const size_t written = file->binary ? text.size() : utf8_codepoint_count(text);
     if (!file->binary) {
-      storage = translate_newlines_for_write(std::move(text), *file);
+      if (!encode_text_value(*file, std::move(text), storage, error)) {
+        runtime.raise_class_error("UnicodeEncodeError", error);
+        return false;
+      }
       bytes = storage;
     }
-    if (!fd_write(*file, bytes, error)) {
-      return false;
+    if (file->buffering != 0) {
+      file->buffer.append(bytes.data(), bytes.size());
+      const size_t buffer_limit = file->buffering > 1
+          ? static_cast<size_t>(file->buffering)
+          : static_cast<size_t>(8192);
+      const bool line_flush = file->buffering == 1 && !file->binary &&
+          bytes.find('\n') != std::string_view::npos;
+      if (file->buffer.size() < buffer_limit && !line_flush) {
+        value_set_int64(out, static_cast<int64_t>(written));
+        return true;
+      }
     }
-    const size_t written = file->binary ? bytes.size() : utf8_codepoint_count(std::string(bytes));
+    int write_error = 0;
+    if (file->buffering != 0) {
+      if (!flush_file(*file, error, &write_error)) {
+        return raise_file_os_error(runtime, write_error, error);
+      }
+    } else if (!fd_write(*file, bytes, error, &write_error)) {
+      return raise_file_os_error(runtime, write_error, error);
+    }
     value_set_int64(out, static_cast<int64_t>(written));
     return true;
   }
@@ -406,16 +642,27 @@ bool file_write_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (file->cursor > file->buffer.size()) {
     file->cursor = file->buffer.size();
   }
+  const std::string original_buffer = file->buffer;
+  const size_t original_cursor = file->cursor;
   if (file->cursor + text.size() > file->buffer.size()) {
     file->buffer.resize(file->cursor + text.size(), '\0');
   }
   std::copy(text.begin(), text.end(), file->buffer.begin() + static_cast<std::ptrdiff_t>(file->cursor));
   file->cursor += text.size();
+  if (!file->binary) {
+    std::string encoded;
+    if (!encode_text_buffer(*file, encoded, error)) {
+      file->buffer = original_buffer;
+      file->cursor = original_cursor;
+      runtime.raise_class_error("UnicodeEncodeError", error);
+      return false;
+    }
+  }
   value_set_int64(out, static_cast<int64_t>(written));
   return true;
 }
 
-bool file_readline_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_readline_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "file.readline() expected optional size";
     return false;
@@ -455,6 +702,14 @@ bool file_readline_method(Runtime&, const Value* args, uint32_t argc, Value& out
       if (remaining > 0) {
         --remaining;
       }
+    }
+    if (!file->binary) {
+      std::string decoded;
+      if (!decode_text_value(*file, data, decoded, error)) {
+        runtime.raise_class_error("UnicodeDecodeError", error);
+        return false;
+      }
+      data = std::move(decoded);
     }
     file_read_result(*file, std::move(data), out);
     return true;
@@ -496,7 +751,7 @@ bool read_line(FileObject& file, Value& out, std::string& error) {
   return true;
 }
 
-bool file_readlines_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_readlines_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "file.readlines() expected optional hint";
     return false;
@@ -510,6 +765,35 @@ bool file_readlines_method(Runtime&, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   std::vector<Value> lines;
+  if (file->fd_backed) {
+    int64_t hint = -1;
+    if (argc == 2 && args[1].tag == ValueTag::Int64) {
+      hint = args[1].as.i64;
+    }
+    size_t total = 0;
+    for (;;) {
+      Value line;
+      if (!file_readline_method(runtime, args, 1, line, error, nullptr)) {
+        return false;
+      }
+      size_t length = 0;
+      if (auto* string = value_as_string(line)) {
+        length = string_object_view(*string).size();
+      } else if (auto* bytes = value_as_bytes(line)) {
+        length = bytes_object_view(*bytes).size();
+      }
+      if (length == 0) {
+        break;
+      }
+      total += length;
+      lines.push_back(std::move(line));
+      if (hint > 0 && total >= static_cast<size_t>(hint)) {
+        break;
+      }
+    }
+    out = Value::list(std::move(lines));
+    return true;
+  }
   while (file->cursor < file->buffer.size()) {
     Value line;
     if (!read_line(*file, line, error)) {
@@ -603,7 +887,7 @@ bool file_writelines_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
-bool file_seek_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_seek_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64) {
     error = "file.seek() expected offset and optional whence";
     return false;
@@ -613,6 +897,10 @@ bool file_seek_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   if (file->fd_backed) {
+    int write_error = 0;
+    if (!flush_file(*file, error, &write_error)) {
+      return raise_file_os_error(runtime, write_error, error);
+    }
 #if defined(_WIN32)
     const __int64 pos = _lseeki64(file->fd, static_cast<__int64>(args[1].as.i64), static_cast<int>(argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0));
 #else
@@ -620,6 +908,7 @@ bool file_seek_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
 #endif
     if (pos < 0) {
       error = std::string("file descriptor seek failed: ") + std::strerror(errno);
+      runtime.raise_class_error("OSError", error);
       return false;
     }
     file->cursor = static_cast<size_t>(pos);
@@ -663,25 +952,35 @@ bool file_tell_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
 #endif
     if (pos >= 0) {
       file->cursor = static_cast<size_t>(pos);
+      // Buffered writes have advanced the Python-visible file position even
+      // though the CRT descriptor has not moved until flush().
+      value_set_int64(
+          out,
+          static_cast<int64_t>(file->cursor + file->buffer.size()));
+      return true;
     }
   }
   value_set_int64(out, static_cast<int64_t>(file->cursor));
   return true;
 }
 
-bool file_flush_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_flush_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.flush", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.flush", error);
-  if (file == nullptr || !flush_file(*file, error)) {
+  if (file == nullptr) {
     return false;
+  }
+  int write_error = 0;
+  if (!flush_file(*file, error, &write_error)) {
+    return raise_file_os_error(runtime, write_error, error);
   }
   value_set_none(out);
   return true;
 }
 
-bool file_close_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_close_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.close", error)) {
     return false;
   }
@@ -694,8 +993,15 @@ bool file_close_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
     value_set_none(out);
     return true;
   }
-  if (!flush_file(*file, error) || !fd_close(*file, error)) {
-    return false;
+  int write_error = 0;
+  if (!flush_file(*file, error, &write_error)) {
+    std::string close_error;
+    fd_close(*file, close_error);
+    file->closed = true;
+    return raise_file_os_error(runtime, write_error, error);
+  }
+  if (!fd_close(*file, error)) {
+    return raise_file_os_error(runtime, errno, error);
   }
   value_set_none(out);
   return true;
@@ -857,6 +1163,23 @@ bool file_next_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (file == nullptr) {
     return false;
   }
+  if (file->fd_backed) {
+    if (!file_readline_method(runtime, args, 1, out, error, nullptr)) {
+      return false;
+    }
+    bool empty = false;
+    if (auto* string = value_as_string(out)) {
+      empty = string_object_view(*string).empty();
+    } else if (auto* bytes = value_as_bytes(out)) {
+      empty = bytes_object_view(*bytes).empty();
+    }
+    if (empty) {
+      error = "StopIteration";
+      runtime.raise_class_error("StopIteration", "");
+      return false;
+    }
+    return true;
+  }
   if (file->cursor >= file->buffer.size()) {
     error = "StopIteration";
     runtime.raise_class_error("StopIteration", "");
@@ -865,7 +1188,7 @@ bool file_next_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return read_line(*file, out, error);
 }
 
-bool file_exit_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_exit_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 4, "file.__exit__", error)) {
     return false;
   }
@@ -874,8 +1197,19 @@ bool file_exit_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   auto* file = reinterpret_cast<FileObject*>(args[0].as.obj);
-  if (!file->closed && (!flush_file(*file, error) || !fd_close(*file, error))) {
-    return false;
+  if (!file->closed) {
+    int write_error = 0;
+    if (!flush_file(*file, error, &write_error)) {
+      std::string close_error;
+      fd_close(*file, close_error);
+      file->closed = true;
+      runtime.raise_class_error(write_error == EPIPE ? "BrokenPipeError" : "OSError", error);
+      return false;
+    }
+    if (!fd_close(*file, error)) {
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
   }
   file->closed = true;
   out = Value::boolean(false);

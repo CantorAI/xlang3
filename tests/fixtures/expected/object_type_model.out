@@ -13,8 +13,8 @@ True True True
 True
 Child Base
 True True
-True builtin_function_or_method True
-True
+True method-wrapper False
+False
 TypeError unsupported format string passed to object.__format__
 True True True True
 False
@@ -24,7 +24,7 @@ MetaConstructed
 EnumShapedConstructed:ok
 10 20
 SetNameTarget tracked
-['__module__', '__qualname__', '__firstlineno__', '__static_attributes__', '__doc__', 'marker'] prepared
+['__module__', '__qualname__', '__firstlineno__', 'marker', '__static_attributes__'] prepared
 True Child
 True 7 True
 True True True

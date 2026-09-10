@@ -66,6 +66,7 @@ enum class CallSiteKind : uint8_t {
 
 enum class AttrSiteKind : uint8_t {
   Empty,
+  InstanceDict,
   InstanceAttr,
   InstanceSlot,
   Descriptor,
@@ -158,6 +159,7 @@ struct XlangVMFrame {
   Value globals_module;
   std::shared_ptr<const ir::Module> module_owner;
   uint32_t function_id = 0;
+  uint64_t activation_id = 0;
   uint32_t return_dst = 0;
   bool has_caller = false;
   FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
@@ -200,7 +202,7 @@ struct XlangVMFrame {
         has_caller(frame_has_caller),
         return_mode(frame_return_mode),
         continuation_value(std::move(frame_continuation_value)),
-        locals(fn->locals.size(), Value::none()),
+        locals(fn->locals.size(), Value::invalid()),
         cells(fn->cell_slots.size(), Value::invalid()),
         regs(fn->register_count, Value::invalid()),
         instr_cache(fn->code.size()) {
@@ -240,7 +242,7 @@ struct XlangVMFrame {
     last_debug_line = 0;
     trace_call_emitted = false;
 
-    locals.reset(fn->locals.size(), Value::none());
+    locals.reset(fn->locals.size(), Value::invalid());
     cells.reset(fn->cell_slots.size(), Value::invalid());
     regs.reset(fn->register_count, Value::invalid());
     temps.clear();
@@ -256,6 +258,22 @@ struct XlangVMFrame {
     for (size_t i = 0; i < args.size(); ++i) {
       value_assign_fast(locals[i], args.get(i));
     }
+  }
+
+  void clear_for_pop() {
+    value_set_invalid(globals_module);
+    value_set_invalid(continuation_value);
+    value_set_invalid(trace_function);
+    module_owner.reset();
+    module = nullptr;
+    fn = nullptr;
+    closure = nullptr;
+    locals.reset(0, Value::invalid());
+    cells.reset(0, Value::invalid());
+    regs.reset(0, Value::invalid());
+    temps.clear();
+    exception_handlers.clear();
+    native_call_args.clear();
   }
 
 private:
@@ -300,6 +318,7 @@ private:
       case ir::Op::JumpIfFalse:
       case ir::Op::Raise:
       case ir::Op::SetExceptionCause:
+      case ir::Op::SetException:
       case ir::Op::MatchException:
       case ir::Op::Yield:
       case ir::Op::Return:
@@ -361,6 +380,9 @@ private:
       case ir::Op::UnpackSequence:
         one(instr.a);
         break;
+      case ir::Op::ImportModuleThru:
+        one(instr.b);
+        break;
       case ir::Op::Call:
         one(instr.a);
         call_args(instr.b);
@@ -374,8 +396,8 @@ private:
         break;
       case ir::Op::CallEx:
         one(instr.a);
-        if (instr.c < this->fn->call_specs.size()) {
-          const auto& spec = this->fn->call_specs[instr.c];
+        if (instr.b < this->fn->call_specs.size()) {
+          const auto& spec = this->fn->call_specs[instr.b];
           list(spec.positional);
           for (const auto& keyword : spec.keywords) {
             one(keyword.value_reg);
@@ -455,6 +477,23 @@ private:
       for_each_register_read(fn->code[i], [&](uint32_t reg) {
         note_register_use(reg, i);
       });
+    }
+    // Values read in a loop may be needed again after a backward edge. Keep
+    // those registers for the frame lifetime; the linear last-use index alone
+    // cannot express loop-carried liveness.
+    for (size_t i = 0; i < fn->code.size(); ++i) {
+      const auto& instr = fn->code[i];
+      if ((instr.op != ir::Op::Jump && instr.op != ir::Op::JumpIfFalse) ||
+          instr.dst >= i) {
+        continue;
+      }
+      for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+        for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+          if (reg < register_last_use.size()) {
+            register_last_use[reg] = std::numeric_limits<size_t>::max();
+          }
+        });
+      }
     }
   }
 

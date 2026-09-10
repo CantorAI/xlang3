@@ -35,11 +35,16 @@ struct VfsStat {
   int64_t mtime_ns = 0;
   int64_t ctime_ns = 0;
   bool is_symlink = false;
+  bool is_character_device = false;
+  bool is_block_device = false;
+  uint32_t file_attributes = 0;
+  uint32_t reparse_tag = 0;
 };
 
 class FileSystem {
 public:
   virtual ~FileSystem() = default;
+  virtual bool native_path(const std::string&, std::string&) { return false; }
   virtual bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) = 0;
   virtual bool write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error) = 0;
   virtual bool remove(const std::string& path, std::string& error) = 0;

@@ -36,6 +36,7 @@ struct TupleGetterState {
 
 struct DequeState {
   std::deque<Value> items;
+  int64_t maxlen = -1;
 };
 
 bool collections_value_is_callable(Runtime& runtime, const Value& value) {
@@ -307,16 +308,63 @@ bool deque_extend_from_iterable(Runtime& runtime, DequeState& state, const Value
   return true;
 }
 
-bool deque_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "deque.__init__ expected optional iterable";
+void deque_trim(DequeState& state, bool added_left) {
+  while (state.maxlen >= 0 && state.items.size() > static_cast<size_t>(state.maxlen)) {
+    if (added_left) state.items.pop_back();
+    else state.items.pop_front();
+  }
+}
+
+bool deque_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 3) {
+    error = "deque.__init__ expected optional iterable and maxlen";
     return false;
   }
+  Value maxlen_value = argc == 3 ? args[2] : Value::none();
+  bool has_maxlen = argc == 3;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view name = kwargs[i].name == nullptr ? std::string_view() : std::string_view(kwargs[i].name);
+    if (name != "maxlen" || kwargs[i].value == nullptr) {
+      error = "deque.__init__ got an unexpected keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (has_maxlen) {
+      error = "deque.__init__ got multiple values for argument 'maxlen'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    maxlen_value = *kwargs[i].value;
+    has_maxlen = true;
+  }
   auto* state = new DequeState();
-  if (argc == 2 && !deque_extend_from_iterable(runtime, *state, args[1], false, error)) {
+  if (has_maxlen && maxlen_value.tag != ValueTag::None) {
+    if (!value_int_like_to_i64(maxlen_value, state->maxlen)) {
+      delete state;
+      error = "an integer is required";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (state->maxlen < 0) {
+      delete state;
+      error = "maxlen must be non-negative";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+  }
+  if (argc >= 2 && !deque_extend_from_iterable(runtime, *state, args[1], false, error)) {
     delete state;
     return false;
   }
+  deque_trim(*state, false);
   if (!instance_set_native_data(args[0], kDequeNativeType, state, deque_cleanup, error)) {
     delete state;
     return false;
@@ -326,6 +374,10 @@ bool deque_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   }
   value_set_none(out);
   return true;
+}
+
+bool deque_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return deque_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
 bool deque_append(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -338,6 +390,7 @@ bool deque_append(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
     return false;
   }
   state->items.push_back(args[1]);
+  deque_trim(*state, false);
   value_set_none(out);
   return true;
 }
@@ -352,11 +405,12 @@ bool deque_appendleft(Runtime&, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   state->items.push_front(args[1]);
+  deque_trim(*state, true);
   value_set_none(out);
   return true;
 }
 
-bool deque_pop(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_pop(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "deque.pop() expected no arguments";
     return false;
@@ -367,6 +421,7 @@ bool deque_pop(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   }
   if (state->items.empty()) {
     error = "pop from an empty deque";
+    runtime.raise_class_error("IndexError", error);
     return false;
   }
   value_assign_fast(out, state->items.back());
@@ -374,7 +429,7 @@ bool deque_pop(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
-bool deque_popleft(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_popleft(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "deque.popleft() expected no arguments";
     return false;
@@ -385,6 +440,7 @@ bool deque_popleft(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   }
   if (state->items.empty()) {
     error = "pop from an empty deque";
+    runtime.raise_class_error("IndexError", error);
     return false;
   }
   value_assign_fast(out, state->items.front());
@@ -415,6 +471,7 @@ bool deque_extend(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (state == nullptr || !deque_extend_from_iterable(runtime, *state, args[1], false, error)) {
     return false;
   }
+  deque_trim(*state, false);
   value_set_none(out);
   return true;
 }
@@ -428,6 +485,7 @@ bool deque_extendleft(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (state == nullptr || !deque_extend_from_iterable(runtime, *state, args[1], true, error)) {
     return false;
   }
+  deque_trim(*state, true);
   value_set_none(out);
   return true;
 }
@@ -464,7 +522,7 @@ bool deque_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool deque_remove(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "deque.remove() expected one argument";
     return false;
@@ -482,6 +540,7 @@ bool deque_remove(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
     }
   }
   error = "deque.remove(x): x not in deque";
+  runtime.raise_class_error("ValueError", error);
   return false;
 }
 
@@ -551,6 +610,44 @@ bool deque_getitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool deque_setitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3 || args[1].tag != ValueTag::Int64) {
+    error = "deque.__setitem__() expected integer index and value";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) return false;
+  int64_t index = args[1].as.i64;
+  if (index < 0) index += static_cast<int64_t>(state->items.size());
+  if (index < 0 || index >= static_cast<int64_t>(state->items.size())) {
+    error = "deque index out of range";
+    return false;
+  }
+  value_assign_fast(state->items[static_cast<size_t>(index)], args[2]);
+  value_set_none(out);
+  return true;
+}
+
+bool deque_delitem(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "deque.__delitem__() expected integer index";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) return false;
+  int64_t index = args[1].as.i64;
+  if (index < 0) index += static_cast<int64_t>(state->items.size());
+  if (index < 0 || index >= static_cast<int64_t>(state->items.size())) {
+    error = "deque index out of range";
+    return false;
+  }
+  auto item = state->items.begin() + static_cast<std::ptrdiff_t>(index);
+  value_set_invalid(*item);
+  state->items.erase(item);
+  value_set_none(out);
+  return true;
+}
+
 bool deque_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "deque.__contains__() expected value";
@@ -570,11 +667,64 @@ bool deque_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool defaultdict_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "defaultdict.__repr__ expected no arguments";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "defaultdict.__repr__ expected a defaultdict";
+    return false;
+  }
+  Value factory = Value::none();
+  std::string ignored;
+  (void)object_get_attr(args[0], "default_factory", factory, ignored);
+  out = Value::string(
+      "defaultdict(" + value_to_repr(factory) + ", " + value_to_repr(instance->mapping_storage) + ")");
+  return true;
+}
+
+bool deque_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "deque.__repr__() expected no arguments";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string text = "deque([";
+  for (size_t i = 0; i < state->items.size(); ++i) {
+    if (i != 0) text += ", ";
+    text += value_to_repr(state->items[i]);
+  }
+  text += "])";
+  out = Value::string(std::move(text));
+  return true;
+}
+
+bool deque_maxlen(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "deque.maxlen getter expected a deque";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) return false;
+  if (state->maxlen < 0) value_set_none(out);
+  else value_set_int64(out, state->maxlen);
+  return true;
+}
+
 Value make_deque_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("collections")});
   attrs.push_back({"__qualname__", Value::string("deque")});
-  attrs.push_back({"__init__", runtime.make_native_function("_collections.deque.__init__", deque_init)});
+  attrs.push_back({"__init__", runtime.make_native_function(
+      "_collections.deque.__init__", deque_init, nullptr, nullptr, nullptr, false, deque_init_kw)});
+  attrs.push_back({"maxlen", Value::property(
+      runtime.make_native_function("_collections.deque.maxlen", deque_maxlen),
+      Value::none(), Value::none(), Value::none())});
   attrs.push_back({"append", runtime.make_native_function("_collections.deque.append", deque_append)});
   attrs.push_back({"appendleft", runtime.make_native_function("_collections.deque.appendleft", deque_appendleft)});
   attrs.push_back({"pop", runtime.make_native_function("_collections.deque.pop", deque_pop)});
@@ -587,7 +737,10 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"__len__", runtime.make_native_function("_collections.deque.__len__", deque_len)});
   attrs.push_back({"__iter__", runtime.make_native_function("_collections.deque.__iter__", deque_iter)});
   attrs.push_back({"__getitem__", runtime.make_native_function("_collections.deque.__getitem__", deque_getitem)});
+  attrs.push_back({"__setitem__", runtime.make_native_function("_collections.deque.__setitem__", deque_setitem)});
+  attrs.push_back({"__delitem__", runtime.make_native_function("_collections.deque.__delitem__", deque_delitem)});
   attrs.push_back({"__contains__", runtime.make_native_function("_collections.deque.__contains__", deque_contains)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_collections.deque.__repr__", deque_repr)});
   attrs.push_back({"to_list", runtime.make_native_function("_collections.deque.to_list", deque_to_list)});
   return Value::class_object("deque", std::move(attrs));
 }
@@ -596,6 +749,7 @@ Value make_defaultdict_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("collections")});
   attrs.push_back({"__qualname__", Value::string("defaultdict")});
+  attrs.push_back({"default_factory", slot_descriptor("defaultdict", "default_factory", 0)});
   attrs.push_back({"__init__", runtime.make_native_function(
         "_collections.defaultdict.__init__",
         defaultdict_init,
@@ -607,6 +761,7 @@ Value make_defaultdict_class(Runtime& runtime) {
   attrs.push_back({"__getitem__", runtime.make_native_function("_collections.defaultdict.__getitem__", defaultdict_getitem)});
   attrs.push_back({"__missing__", runtime.make_native_function("_collections.defaultdict.__missing__", defaultdict_missing)});
   attrs.push_back({"copy", runtime.make_native_function("_collections.defaultdict.copy", defaultdict_copy)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr)});
   Value base = runtime.find_builtin("dict") != nullptr ? *runtime.find_builtin("dict") : Value::invalid();
   Value klass = Value::class_object("defaultdict", std::move(attrs), std::move(base));
   if (auto* class_object = value_as_class(klass)) {
@@ -622,6 +777,9 @@ Value make_defaultdict_class(Runtime& runtime) {
     class_object->attrs["__getitem__"] = runtime.make_native_function("_collections.defaultdict.__getitem__", defaultdict_getitem);
     class_object->attrs["__missing__"] = runtime.make_native_function("_collections.defaultdict.__missing__", defaultdict_missing);
     class_object->attrs["copy"] = runtime.make_native_function("_collections.defaultdict.copy", defaultdict_copy);
+    class_object->attrs["__repr__"] = runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr);
+    class_object->attrs["default_factory"] = slot_descriptor("defaultdict", "default_factory", 0);
+    slot_descriptor_set_owner_class(class_object->attrs["default_factory"], klass);
     ++class_object->version;
   }
   return klass;

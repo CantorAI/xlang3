@@ -17,7 +17,9 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/set_object.h"
 
+#include <cmath>
 #include <functional>
+#include <limits>
 
 namespace xlang3 {
 
@@ -168,6 +170,11 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
         return string_object_view(*reinterpret_cast<StringObject*>(lhs.as.obj)) ==
                string_object_view(*reinterpret_cast<StringObject*>(rhs.as.obj));
       }
+      if (auto* left = value_as_complex(lhs)) {
+        if (auto* right = value_as_complex(rhs)) {
+          return left->real == right->real && left->imag == right->imag;
+        }
+      }
       if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
           lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
         return bytes_object_view(*reinterpret_cast<BytesObject*>(lhs.as.obj)) ==
@@ -186,6 +193,12 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
           }
         }
         return true;
+      }
+      if (auto* left = value_as_bound_method(lhs)) {
+        if (auto* right = value_as_bound_method(rhs)) {
+          return value_key_equal(left->self, right->self) &&
+              value_is(left->function, right->function);
+        }
       }
       return false;
   }
@@ -206,9 +219,17 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
     case ValueTag::Int64:
       out = std::hash<int64_t>{}(value.as.i64);
       return true;
-    case ValueTag::Double:
+    case ValueTag::Double: {
+      double integral = 0.0;
+      if (std::isfinite(value.as.f64) && std::modf(value.as.f64, &integral) == 0.0 &&
+          integral >= static_cast<double>(std::numeric_limits<int64_t>::min()) &&
+          integral < 9223372036854775808.0) {
+        out = std::hash<int64_t>{}(static_cast<int64_t>(integral));
+        return true;
+      }
       out = std::hash<double>{}(value.as.f64);
       return true;
+    }
     case ValueTag::Object:
       {
         if (value_int_like_hash(value, out)) {
@@ -231,6 +252,12 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
+        return true;
+      }
+      if (auto* complex = value_as_complex(value)) {
+        const size_t real_hash = std::hash<double>{}(complex->real);
+        const size_t imag_hash = std::hash<double>{}(complex->imag);
+        out = real_hash + static_cast<size_t>(1000003) * imag_hash;
         return true;
       }
       if (auto* view = value_as_memoryview(value)) {
@@ -263,22 +290,31 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       if (value.as.obj != nullptr) {
         switch (value.as.obj->kind) {
           case ObjectKind::ByteArray:
+            error = "unhashable type: 'bytearray'";
+            return false;
           case ObjectKind::List:
+            error = "unhashable type: 'list'";
+            return false;
           case ObjectKind::Dict:
+            error = "unhashable type: 'dict'";
+            return false;
           case ObjectKind::Set:
             if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
               size_t hash = 0x2f4f0f1f0e0d0c0bull;
               for (const auto& item : set->items) {
                 size_t item_hash = 0;
-                if (!value_hash_key(item, item_hash, error)) {
-                  return false;
-                }
-                hash ^= item_hash + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+              if (!value_hash_key(item, item_hash, error)) {
+                return false;
               }
+                size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
+                shuffled *= static_cast<size_t>(3644798167u);
+                hash ^= shuffled;
+              }
+              hash ^= set->items.size() * static_cast<size_t>(1927868237u);
               out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
               return true;
             }
-            error = "object is not hashable";
+            error = "unhashable type: 'set'";
             return false;
           case ObjectKind::DictKeysView:
           case ObjectKind::DictValuesView:

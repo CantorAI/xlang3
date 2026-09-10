@@ -56,18 +56,25 @@ constexpr UnicodeRecord kUnicodeRecords[] = {
     {0x0037, "DIGIT SEVEN", "Nd", "EN", 0, "Na", 0, 7, 7, 7.0},
     {0x0038, "DIGIT EIGHT", "Nd", "EN", 0, "Na", 0, 8, 8, 8.0},
     {0x0039, "DIGIT NINE", "Nd", "EN", 0, "Na", 0, 9, 9, 9.0},
+    {0x003c, "LESS-THAN SIGN", "Sm", "ON", 0, "Na", 1, kNoNumber, kNoNumber, kNoNumeric},
+    {0x003e, "GREATER-THAN SIGN", "Sm", "ON", 0, "Na", 1, kNoNumber, kNoNumber, kNoNumeric},
     {0x0041, "LATIN CAPITAL LETTER A", "Lu", "L", 0, "Na", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x0061, "LATIN SMALL LETTER A", "Ll", "L", 0, "Na", 0, kNoNumber, kNoNumber, kNoNumeric},
+    {0x00a0, "NO-BREAK SPACE", "Zs", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x00b2, "SUPERSCRIPT TWO", "No", "EN", 0, "A", 0, kNoNumber, 2, 2.0},
     {0x00be, "VULGAR FRACTION THREE QUARTERS", "No", "ON", 0, "A", 0, kNoNumber, kNoNumber, 0.75},
+    {0x00c4, "LATIN CAPITAL LETTER A WITH DIAERESIS", "Lu", "L", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x00c5, "LATIN CAPITAL LETTER A WITH RING ABOVE", "Lu", "L", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x00e9, "LATIN SMALL LETTER E WITH ACUTE", "Ll", "L", 0, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x0301, "COMBINING ACUTE ACCENT", "Mn", "NSM", 230, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x030a, "COMBINING RING ABOVE", "Mn", "NSM", 230, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
+    {0x202f, "NARROW NO-BREAK SPACE", "Zs", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x2044, "FRACTION SLASH", "Sm", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x212b, "ANGSTROM SIGN", "Lu", "L", 0, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x2163, "ROMAN NUMERAL FOUR", "Nl", "L", 0, "A", 0, kNoNumber, kNoNumber, 4.0},
     {0x4e2d, "CJK UNIFIED IDEOGRAPH-4E2D", "Lo", "L", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
+    {0xfbf9, "ARABIC LIGATURE UIGHUR KIRGHIZ YEH WITH HAMZA ABOVE WITH ALEF MAKSURA ISOLATED FORM", "Lo", "AL", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
+    {0x1f40d, "SNAKE", "So", "ON", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
     {0x1f642, "SLIGHTLY SMILING FACE", "So", "ON", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
 };
 
@@ -126,18 +133,8 @@ const UnicodeRecord* find_record(uint32_t codepoint) {
 }
 
 const UnicodeRecord* find_record_by_name(std::string name) {
-  std::transform(name.begin(), name.end(), name.begin(), [](unsigned char ch) {
-    return static_cast<char>(std::toupper(ch));
-  });
-  if (name == "LINE FEED" || name == "LF") {
-    return find_record(0x000a);
-  }
-  for (const auto& record : kUnicodeRecords) {
-    if (record.name != nullptr && name == record.name) {
-      return &record;
-    }
-  }
-  return nullptr;
+  uint32_t codepoint = 0;
+  return unicodedata_lookup_codepoint(name, codepoint) ? find_record(codepoint) : nullptr;
 }
 
 std::string decomposition_mapping(uint32_t codepoint) {

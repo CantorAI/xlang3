@@ -114,6 +114,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
   if (!xlang_vm_class_attrs_have(attrs, "__qualname__")) {
     attrs.push_back({"__qualname__", Value::string(class_name)});
   }
+  if (xlang_vm_class_attrs_have(attrs, "__eq__") &&
+      !xlang_vm_class_attrs_have(attrs, "__hash__")) {
+    attrs.push_back({"__hash__", Value::none()});
+    attr_order.push_back("__hash__");
+  }
   std::vector<std::pair<std::string, Value>> set_name_descriptors;
   xlang_vm_collect_set_name_descriptors(attrs, set_name_descriptors);
   Value base = Value::invalid();
@@ -129,7 +134,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
       std::move(attrs),
       std::move(base),
       fn.class_instance_slots[in.c],
-      std::move(metaclass));
+      std::move(metaclass),
+      globals_module);
   std::string set_name_error;
   if (!xlang_vm_call_set_name_descriptors(runtime, regs[in.dst], set_name_descriptors, set_name_error)) {
     result.errors.push_back(set_name_error);
@@ -144,6 +150,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_class(
 XLANG3_HOT_INLINE XlangVMOpFlow make_function(
     const ir::Instr& in,
     const ir::Function& fn,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     const std::shared_ptr<const ir::Module>& module_owner,
@@ -177,6 +184,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_function(
     }
   }
   regs[in.dst] = Value::function(in.a, std::move(closure), globals_module, module_owner, std::move(defaults));
+  Value builtins;
+  std::string ignored;
+  if (mapping_get_item(
+          runtime.module_registry_dict(), Value::string("builtins"), builtins, ignored)) {
+    object_set_attr(regs[in.dst], "__builtins__", builtins, ignored);
+  }
   return XlangVMOpFlow::Next;
 }
 

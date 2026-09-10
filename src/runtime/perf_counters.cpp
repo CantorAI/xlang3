@@ -60,6 +60,7 @@ const char* xlang_perf_object_kind_name(ObjectKind kind) {
   switch (kind) {
     case ObjectKind::String: return "String";
     case ObjectKind::BigInt: return "BigInt";
+    case ObjectKind::Complex: return "Complex";
     case ObjectKind::Bytes: return "Bytes";
     case ObjectKind::ByteArray: return "ByteArray";
     case ObjectKind::MemoryView: return "MemoryView";

@@ -72,7 +72,9 @@ Value time_native_function(
     NativeKeywordFunctionCallback keyword_callback = nullptr,
     const std::string& qualname_override = "",
     const std::string& text_signature = "") {
-  Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
+  Value function = runtime.make_native_function(
+      qualified_name, callback, user_data, nullptr, nullptr, false,
+      keyword_callback, false);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string("time")},
@@ -2890,6 +2892,7 @@ void register_time_module(Runtime& runtime) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__name__"), Value::string("__getnewargs__")},
         {Value::string("__qualname__"), Value::string("tuple.__getnewargs__")},
+        {Value::string("__module__"), Value::none()},
         {Value::string("__doc__"), Value::none()},
     }));
   }
@@ -2898,6 +2901,7 @@ void register_time_module(Runtime& runtime) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__name__"), Value::string("__reduce__")},
         {Value::string("__qualname__"), Value::string("struct_time.__reduce__")},
+        {Value::string("__module__"), Value::none()},
         {Value::string("__doc__"), Value::none()},
     }));
   }
@@ -2906,6 +2910,7 @@ void register_time_module(Runtime& runtime) {
     native->attrs_dict = new Value(Value::dict({
         {Value::string("__name__"), Value::string("__reduce_ex__")},
         {Value::string("__qualname__"), Value::string("object.__reduce_ex__")},
+        {Value::string("__module__"), Value::none()},
         {Value::string("__doc__"), Value::string("Helper for pickle.")},
     }));
   }

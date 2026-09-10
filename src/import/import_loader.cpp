@@ -320,6 +320,20 @@ void trace_import_timing(const std::string& name, const char* phase, std::chrono
 
 } // namespace
 
+bool find_python_module_location(Runtime& runtime, const std::string& name, PythonModuleLocation& out) {
+  ModuleFile module_file;
+  if (!find_module_file(runtime, name, module_file)) {
+    return false;
+  }
+  out.path = std::move(module_file.path);
+  out.package_dir = std::move(module_file.package_dir);
+  out.namespace_dirs = std::move(module_file.namespace_dirs);
+  out.is_package = module_file.is_package;
+  out.is_namespace_package = module_file.is_namespace_package;
+  out.is_zip_source = module_file.is_zip_source;
+  return true;
+}
+
 bool import_python_module(Runtime& runtime, const std::string& name, Value& out, std::string& error) {
   const auto import_start = std::chrono::steady_clock::now();
   trace_import_timing(name, "begin", import_start);
@@ -391,12 +405,19 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   if (!module_file.is_zip_source && !read_file(runtime, module_file.path, source, error)) {
     return false;
   }
+  std::string decoded_source;
+  if (!runtime.decode_python_source(source, decoded_source, error)) {
+    error = "cannot decode module '" + name + "': " + error;
+    return false;
+  }
+  source = std::move(decoded_source);
   trace_import_timing(name, "read", import_start);
 
   auto module_value = Value::module(name);
   std::string attr_error;
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
   module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);
+  module_set_attr(module_value, "__cached__", Value::string(module_file.path), attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
   module_set_attr(module_value, "__annotations__", Value::dict({}), attr_error);
   if (module_file.is_zip_source && zip_loader.tag != ValueTag::Invalid) {

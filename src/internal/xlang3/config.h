@@ -41,6 +41,8 @@ struct RunConfig {
   std::vector<std::string> argv;
   DebugConfig debug;
   bool perf_counters = false;
+  bool no_debug_ranges = false;
+  bool warn_default_encoding = false;
 };
 
 } // namespace xlang3

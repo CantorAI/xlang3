@@ -34,6 +34,7 @@ struct ClassInfo {
   std::vector<std::string> slot_names;
   std::unordered_map<std::string, uint32_t> slots;
   std::vector<std::string> match_args;
+  bool slot_layout_known = false;
 };
 
 enum class KnownValueType : uint8_t {
@@ -223,6 +224,7 @@ std::string annotation_expr_to_string(const ast::Expr& expr) {
         return "...";
       case ast::LiteralExpr::Kind::Int:
       case ast::LiteralExpr::Kind::Double:
+      case ast::LiteralExpr::Kind::Complex:
         return literal->text;
     }
   }
@@ -244,6 +246,28 @@ std::string annotation_expr_to_string(const ast::Expr& expr) {
       parts.push_back(annotation_expr_to_string(*item));
     }
     return "[" + join_annotation_parts(parts, ", ") + "]";
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(dict->entries.size());
+    for (const auto& entry : dict->entries) {
+      if (entry.first == nullptr) {
+        parts.push_back("**" + annotation_expr_to_string(*entry.second));
+      } else {
+        parts.push_back(
+            annotation_expr_to_string(*entry.first) + ": " +
+            annotation_expr_to_string(*entry.second));
+      }
+    }
+    return "{" + join_annotation_parts(parts, ", ") + "}";
+  }
+  if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(set->items.size());
+    for (const auto& item : set->items) {
+      parts.push_back(annotation_expr_to_string(*item));
+    }
+    return "{" + join_annotation_parts(parts, ", ") + "}";
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
     std::vector<std::string> parts;
@@ -318,6 +342,63 @@ bool collect_literal_string_sequence(const ast::Expr& expr, std::vector<std::str
   return false;
 }
 
+std::string dedent_docstring(std::string_view text) {
+  std::vector<std::string_view> lines;
+  size_t start = 0;
+  while (start <= text.size()) {
+    const size_t end = text.find('\n', start);
+    lines.push_back(text.substr(
+        start, end == std::string_view::npos ? text.size() - start : end - start));
+    if (end == std::string_view::npos) {
+      break;
+    }
+    start = end + 1;
+  }
+
+  size_t margin = std::string_view::npos;
+  std::string_view prefix;
+  for (const auto line : lines) {
+    size_t indent = 0;
+    while (indent < line.size() && (line[indent] == ' ' || line[indent] == '\t')) {
+      ++indent;
+    }
+    if (indent == line.size()) {
+      continue;
+    }
+    if (margin == std::string_view::npos) {
+      prefix = line.substr(0, indent);
+      margin = prefix.size();
+      continue;
+    }
+    size_t common = 0;
+    const size_t limit = std::min(margin, indent);
+    while (common < limit && prefix[common] == line[common]) {
+      ++common;
+    }
+    margin = common;
+    prefix = prefix.substr(0, margin);
+  }
+  if (margin == std::string_view::npos) {
+    margin = 0;
+  }
+
+  std::string result;
+  result.reserve(text.size());
+  for (size_t i = 0; i < lines.size(); ++i) {
+    const auto line = lines[i];
+    const bool blank = std::all_of(line.begin(), line.end(), [](char ch) {
+      return ch == ' ' || ch == '\t';
+    });
+    if (!blank) {
+      result.append(line.substr(std::min(margin, line.size())));
+    }
+    if (i + 1 < lines.size()) {
+      result.push_back('\n');
+    }
+  }
+  return result;
+}
+
 std::string docstring_from_body(const std::vector<ast::StmtPtr>& body) {
   if (body.empty()) {
     return {};
@@ -330,7 +411,7 @@ std::string docstring_from_body(const std::vector<ast::StmtPtr>& body) {
   if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
     return {};
   }
-  return literal->text;
+  return dedent_docstring(literal->text);
 }
 
 ir::ParamKind lower_param_kind(ast::FunctionDef::Param::Kind kind) {
@@ -372,7 +453,7 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     return out;
   }
   if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
-    return std::make_unique<ast::FStringExpr>(fstring->parts);
+    return std::make_unique<ast::FStringExpr>(fstring->parts, fstring->is_template);
   }
   if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
     return std::make_unique<ast::NameExpr>(name->name);
@@ -405,10 +486,39 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
   if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
     return std::make_unique<ast::NamedExpr>(named->name, clone_expr(*named->value));
   }
+  if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    std::vector<ast::LambdaExpr::Param> signature;
+    signature.reserve(lambda->signature.size());
+    for (const auto& source_param : lambda->signature) {
+      ast::LambdaExpr::Param param;
+      param.name = source_param.name;
+      param.kind = source_param.kind;
+      if (source_param.default_value != nullptr) {
+        param.default_value = clone_expr(*source_param.default_value);
+      }
+      signature.push_back(std::move(param));
+    }
+    auto out = std::make_unique<ast::LambdaExpr>(
+        lambda->params,
+        std::move(signature),
+        clone_expr(*lambda->body));
+    out->line = lambda->line;
+    out->column = lambda->column;
+    out->end_line = lambda->end_line;
+    out->end_column = lambda->end_column;
+    return out;
+  }
   if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
     return std::make_unique<ast::StarredExpr>(clone_expr(*starred->expr));
   }
   if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    const auto copy_location = [&](ast::ExprPtr out) {
+      out->line = call->line;
+      out->column = call->column;
+      out->end_line = call->end_line;
+      out->end_column = call->end_column;
+      return out;
+    };
     if (!call->call_args.empty()) {
       std::vector<ast::CallExpr::Arg> args;
       for (const auto& arg : call->call_args) {
@@ -419,13 +529,15 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
         cloned.value = clone_expr(*arg.value);
         args.push_back(std::move(cloned));
       }
-      return std::make_unique<ast::CallExpr>(clone_expr(*call->callee), std::move(args));
+      return copy_location(
+          std::make_unique<ast::CallExpr>(clone_expr(*call->callee), std::move(args)));
     }
     std::vector<ast::ExprPtr> args;
     for (const auto& arg : call->args) {
       args.push_back(clone_expr(*arg));
     }
-    return std::make_unique<ast::CallExpr>(clone_expr(*call->callee), std::move(args));
+    return copy_location(
+        std::make_unique<ast::CallExpr>(clone_expr(*call->callee), std::move(args)));
   }
   if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
     return std::make_unique<ast::SubscriptExpr>(clone_expr(*subscript->object), clone_expr(*subscript->index));
@@ -469,12 +581,14 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
         clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
       cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
       out->extra_clauses.push_back(std::move(cloned));
     }
     return out;
@@ -487,12 +601,14 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
         clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
       cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
       out->extra_clauses.push_back(std::move(cloned));
     }
     return out;
@@ -504,12 +620,14 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
         clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
       cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
       out->extra_clauses.push_back(std::move(cloned));
     }
     return out;
@@ -521,14 +639,20 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
         clone_expr(*comp->target_expr),
         clone_expr(*comp->iterable),
         comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
     for (const auto& clause : comp->extra_clauses) {
       ast::CompClause cloned;
       cloned.target = clause.target;
       cloned.target_expr = clone_expr(*clause.target_expr);
       cloned.iterable = clone_expr(*clause.iterable);
       cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
       out->extra_clauses.push_back(std::move(cloned));
     }
+    out->line = comp->line;
+    out->column = comp->column;
+    out->end_line = comp->end_line;
+    out->end_column = comp->end_column;
     return out;
   }
   return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
@@ -1164,6 +1288,21 @@ private:
     return tuple;
   }
 
+  uint32_t lower_annotation_deferred(const ast::Expr& annotation) {
+    const auto result = new_reg();
+    const auto setup = emit_jump(ir::Op::SetupExcept);
+    const auto value = lower_expr(annotation);
+    emit(ir::Op::Move, result, value);
+    emit(ir::Op::PopExcept);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    emit(ir::Op::ClearException);
+    emit(ir::Op::LoadConst, result,
+         add_const(Value::string(annotation_expr_to_string(annotation))));
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    return result;
+  }
+
   uint32_t lower_annotation(const ast::Expr& annotation) {
     if (!future_annotations_) {
       if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&annotation);
@@ -1178,7 +1317,7 @@ private:
         emit(ir::Op::LoadConst, reg, add_const(Value::string(literal->text)));
         return reg;
       }
-      return lower_annotation_stringized(annotation);
+      return lower_annotation_deferred(annotation);
     }
     const auto reg = new_reg();
     emit(ir::Op::LoadConst, reg, add_const(Value::string(annotation_expr_to_string(annotation))));
@@ -1306,6 +1445,7 @@ private:
       }
     } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
       prepare_captured_locals_from_expr(*assign->target);
+      prepare_captured_locals_from_expr(*assign->annotation);
       if (assign->value != nullptr) {
         prepare_captured_locals_from_expr(*assign->value);
       }
@@ -1347,6 +1487,32 @@ private:
         }
         prepare_captured_locals(match_case.body);
       }
+    } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+      for (const auto& param : fn->signature) {
+        if (param.default_value != nullptr) {
+          prepare_captured_locals_from_expr(*param.default_value);
+        }
+        if (param.annotation != nullptr) {
+          prepare_captured_locals_from_expr(*param.annotation);
+        }
+      }
+      if (fn->return_annotation != nullptr) {
+        prepare_captured_locals_from_expr(*fn->return_annotation);
+      }
+      for (const auto& decorator : fn->decorators) {
+        prepare_captured_locals_from_expr(*decorator);
+      }
+    } else if (auto* klass = dynamic_cast<const ast::ClassDef*>(&stmt)) {
+      for (const auto& base : klass->bases) {
+        prepare_captured_locals_from_expr(*base);
+      }
+      for (const auto& keyword : klass->keywords) {
+        prepare_captured_locals_from_expr(*keyword.second);
+      }
+      for (const auto& decorator : klass->decorators) {
+        prepare_captured_locals_from_expr(*decorator);
+      }
+      prepare_captured_locals(klass->body);
     }
   }
 
@@ -1395,6 +1561,24 @@ private:
     if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
       if (yield->expr != nullptr) {
         collect_expression_captures(*yield->expr, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+      for (const auto& part : fstring->parts) {
+        if (part.is_expr) {
+          auto parsed = parse_source("__x = " + part.text);
+          if (parsed.errors.empty() && !parsed.module.body.empty()) {
+            if (auto* assign = dynamic_cast<const ast::AssignStmt*>(parsed.module.body[0].get());
+                assign != nullptr && assign->value != nullptr) {
+              collect_expression_captures(*assign->value, local_targets, names, seen);
+            }
+          }
+        }
+        if (part.format_spec.find('{') != std::string::npos) {
+          ast::FStringExpr format_spec(parse_fstring_parts(part.format_spec));
+          collect_expression_captures(format_spec, local_targets, names, seen);
+        }
       }
       return;
     }
@@ -1695,6 +1879,7 @@ private:
       exit_result = emit_await_value(exit_result);
     }
     emit(ir::Op::Pop, 0, exit_result);
+    emit(ir::Op::LoadConst, manager, none_const);
   }
 
   void lower_active_finalizers_from(size_t base_count) {
@@ -1769,6 +1954,31 @@ private:
       emit(ir::Op::StoreCell, cell_indices_[resolved], invalid);
     } else {
       emit(ir::Op::DeleteLocal, ensure_local(resolved));
+    }
+  }
+
+  void lower_delete_target(const ast::Expr& target) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+      delete_named_value(name->name);
+      return;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&target)) {
+      const auto object = lower_expr(*attr->object);
+      emit(ir::Op::DeleteAttr, object, add_name(mangle_private_identifier(attr->name)));
+      return;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&target)) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      emit(ir::Op::DeleteItem, object, index);
+      return;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+      for (const auto& item : tuple->items) lower_delete_target(*item);
+      return;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+      for (const auto& item : list->items) lower_delete_target(*item);
     }
   }
 
@@ -1963,12 +2173,56 @@ private:
         emit(ir::Op::MatchException, matched, type_reg);
         next_handler = emit_jump(ir::Op::JumpIfFalse, matched);
       }
+      if (handler.is_star) {
+        const auto original = new_reg();
+        emit(ir::Op::LoadException, original);
+        const auto group_base = new_reg();
+        emit(ir::Op::LoadGlobal, group_base, add_name(resolve_name("BaseExceptionGroup")));
+        const auto isinstance_fn = new_reg();
+        emit(ir::Op::LoadGlobal, isinstance_fn, add_name(resolve_name("isinstance")));
+        const auto already_group = new_reg();
+        emit(ir::Op::Call, already_group, isinstance_fn, add_call_args({original, group_base}));
+        const auto wrap_group = emit_jump(ir::Op::JumpIfFalse, already_group);
+        const auto group_ready = emit_jump(ir::Op::Jump);
+        patch_jump(wrap_group, static_cast<uint32_t>(fn_.code.size()));
+        const auto group_class = new_reg();
+        emit(ir::Op::LoadGlobal, group_class, add_name(resolve_name("ExceptionGroup")));
+        const auto message = new_reg();
+        emit(ir::Op::LoadConst, message, add_const(Value::string("")));
+        const auto members = new_reg();
+        emit(ir::Op::MakeList, members, add_list_items({original}));
+        const auto wrapped = new_reg();
+        emit(ir::Op::Call, wrapped, group_class, add_call_args({message, members}));
+        emit(ir::Op::SetException, 0, wrapped);
+        patch_jump(group_ready, static_cast<uint32_t>(fn_.code.size()));
+      }
       if (!handler.name.empty()) {
         const auto exc_reg = new_reg();
         emit(ir::Op::LoadException, exc_reg);
         store_named_value(handler.name, exc_reg);
       }
+      const size_t handler_body_start = fn_.code.size();
       lower_body(handler.body);
+      if (handler.is_star && handler.line != 0) {
+        for (size_t instruction = handler_body_start; instruction < fn_.code.size(); ++instruction) {
+          if (fn_.code[instruction].op != ir::Op::Reraise ||
+              instruction >= fn_.source_positions.size()) {
+            continue;
+          }
+          auto& position = fn_.source_positions[instruction];
+          fn_.source_lines[instruction] = handler.line;
+          position.line = handler.line;
+          position.column = handler.column;
+          if (position.end_line == 0) position.end_line = handler.line;
+          if (position.end_column == 0) position.end_column = handler.column;
+        }
+      }
+      // Python clears an exception handler's target at the end of the
+      // handler so the exception and traceback do not form a reference
+      // cycle through the frame locals.
+      if (!handler.name.empty()) {
+        delete_named_value(handler.name);
+      }
       emit(ir::Op::ClearException);
       handler_done_jumps.push_back(emit_jump(ir::Op::Jump));
       if (handler.type != nullptr) {
@@ -2015,6 +2269,7 @@ private:
 
   uint32_t emit_await_value(uint32_t value) {
     const auto dst = new_reg();
+    emit(ir::Op::LoadConst, dst, add_const(Value::invalid()));
     emit(ir::Op::Await, dst, value);
     return dst;
   }
@@ -2074,7 +2329,9 @@ private:
     if (stmt.is_async) {
       entered = emit_await_value(entered);
     }
-    if (!stmt.target.empty()) {
+    if (stmt.target_expr != nullptr) {
+      lower_unpack_assign(*stmt.target_expr, entered);
+    } else if (!stmt.target.empty()) {
       store_named_value(stmt.target, entered);
     } else {
       emit(ir::Op::Pop, 0, entered);
@@ -2101,9 +2358,13 @@ private:
     }
     const auto rereraise = emit_jump(ir::Op::JumpIfFalse, handled);
     emit(ir::Op::ClearException);
+    emit(ir::Op::LoadConst, manager, none_const);
     const auto suppressed = emit_jump(ir::Op::Jump);
     patch_jump(rereraise, static_cast<uint32_t>(fn_.code.size()));
-    emit(ir::Op::Reraise);
+    // __exit__ may catch and clear the active exception while deciding not to
+    // suppress it. Raise the saved value rather than relying on ambient state.
+    emit(ir::Op::LoadConst, manager, none_const);
+    emit(ir::Op::Raise, 0, exc_value);
     patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
     patch_jump(suppressed, static_cast<uint32_t>(fn_.code.size()));
   }
@@ -2237,7 +2498,13 @@ private:
 
     auto match_positional = [&](const ast::Expr& item, size_t index) {
       uint32_t attr = 0;
-      if (class_info != nullptr && index < class_info->match_args.size()) {
+      static const std::unordered_set<std::string> self_match_builtin_names = {
+          "bool", "bytearray", "bytes", "dict", "float", "frozenset",
+          "int", "list", "set", "str", "tuple"};
+      if (class_name != nullptr && index == 0 &&
+          self_match_builtin_names.find(resolve_name(class_name->name)) != self_match_builtin_names.end()) {
+        attr = subject;
+      } else if (class_info != nullptr && index < class_info->match_args.size()) {
         attr = new_reg();
         emit(ir::Op::LoadAttr, attr, subject, add_name(class_info->match_args[index]));
       } else {
@@ -2457,17 +2724,49 @@ private:
       const ast::FunctionDef& fn,
       std::string instance_slot_self = {},
       std::unordered_map<std::string, uint32_t> instance_slots = {},
-      std::string qualname_parent = {}) {
-    const auto free_vars = closure_names_for_child(fn);
-    for (const auto& name : free_vars) {
-      if (sema::contains(local_name_set_, name)) {
-        ensure_cell_for_local(name);
+      std::string qualname_parent = {},
+      const std::unordered_map<std::string, std::string>* child_name_aliases = nullptr) {
+    auto free_vars = closure_names_for_child(fn);
+    auto closure_sources = free_vars;
+    if (child_name_aliases != nullptr) {
+      free_vars.clear();
+      closure_sources.clear();
+      std::unordered_set<std::string> seen;
+      bool references_super = false;
+      for (const auto& candidate : sema::free_candidates_for(fn)) {
+        const auto mangled = mangle_private_identifier(candidate);
+        references_super = references_super || mangled == "super";
+        auto alias = child_name_aliases->find(mangled);
+        const auto& resolved = alias == child_name_aliases->end() ? mangled : alias->second;
+        if ((locals_.find(resolved) != locals_.end() || free_indices_.find(resolved) != free_indices_.end()) &&
+            seen.insert(mangled).second) {
+          free_vars.push_back(mangled);
+          closure_sources.push_back(resolved);
+        }
+      }
+      auto class_alias = child_name_aliases->find("__class__");
+      if (references_super && class_alias != child_name_aliases->end() && seen.insert("__class__").second) {
+        free_vars.push_back("__class__");
+        closure_sources.push_back(class_alias->second);
+      }
+    }
+    for (const auto& source : closure_sources) {
+      if (locals_.find(source) != locals_.end()) {
+        ensure_cell_for_local(source);
       }
     }
     auto signature = lower_signature_metadata(fn);
+    std::vector<std::string> function_params = fn.params;
+    for (auto& name : function_params) {
+      name = mangle_private_identifier(name);
+    }
+    for (auto& param : signature) {
+      param.name = mangle_private_identifier(param.name);
+    }
     std::vector<uint32_t> default_regs;
     std::vector<std::pair<std::string, uint32_t>> kwdefault_regs;
     std::vector<std::pair<std::string, uint32_t>> annotation_regs;
+    std::vector<std::pair<std::string, std::string>> annotation_sources;
     if (!fn.signature.empty()) {
       for (size_t i = 0; i < fn.signature.size(); ++i) {
         if (fn.signature[i].default_value != nullptr) {
@@ -2475,20 +2774,34 @@ private:
           const auto default_reg = lower_expr(*fn.signature[i].default_value);
           default_regs.push_back(default_reg);
           if (fn.signature[i].kind == ast::FunctionDef::Param::Kind::KeywordOnly) {
-            kwdefault_regs.push_back(std::make_pair(fn.signature[i].name, default_reg));
+            kwdefault_regs.push_back(std::make_pair(
+                mangle_private_identifier(fn.signature[i].name), default_reg));
           }
         }
         if (fn.signature[i].annotation != nullptr) {
-          annotation_regs.push_back(std::make_pair(fn.signature[i].name, lower_annotation(*fn.signature[i].annotation)));
+          const auto parameter_name = mangle_private_identifier(fn.signature[i].name);
+          if (future_annotations_) {
+            annotation_regs.push_back(std::make_pair(
+                parameter_name, lower_annotation(*fn.signature[i].annotation)));
+          } else {
+            annotation_sources.push_back(std::make_pair(
+                parameter_name,
+                annotation_expr_to_string(*fn.signature[i].annotation)));
+          }
         }
       }
     }
     if (fn.return_annotation != nullptr) {
-      annotation_regs.push_back(std::make_pair("return", lower_annotation(*fn.return_annotation)));
+      if (future_annotations_) {
+        annotation_regs.push_back(std::make_pair("return", lower_annotation(*fn.return_annotation)));
+      } else {
+        annotation_sources.push_back(std::make_pair(
+            "return", annotation_expr_to_string(*fn.return_annotation)));
+      }
     }
     const bool has_yield = body_contains_yield(fn.body);
     FunctionLowerer child_lowerer(
-        module_, fn.name, fn.params, std::move(signature), free_vars, fn.body, has_yield || fn.is_async, fn.is_async,
+        module_, fn.name, std::move(function_params), std::move(signature), free_vars, fn.body, has_yield || fn.is_async, fn.is_async,
         fn.is_async && !has_yield, fn.line, false,
         std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
         imported_module_slots_,
@@ -2502,7 +2815,7 @@ private:
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
 
     std::vector<uint32_t> closure_regs;
-    for (const auto& name : free_vars) {
+    for (const auto& name : closure_sources) {
       const auto reg = new_reg();
       auto cell = cell_indices_.find(name);
       if (cell != cell_indices_.end()) {
@@ -2518,6 +2831,53 @@ private:
          default_regs.empty() ? UINT32_MAX : add_function_defaults(std::move(default_regs)));
     if (!annotation_regs.empty()) {
       emit(ir::Op::SetFunctionAnnotations, reg, add_function_annotations(std::move(annotation_regs)));
+    }
+    if (!annotation_sources.empty()) {
+      ast::FunctionDef annotate;
+      annotate.name = "__annotate__";
+      annotate.line = fn.line;
+      annotate.params.push_back("format");
+      ast::FunctionDef::Param format_param;
+      format_param.name = "format";
+      format_param.kind = ast::FunctionDef::Param::Kind::PosOnly;
+      annotate.signature.push_back(std::move(format_param));
+
+      auto unsupported = std::make_unique<ast::IfStmt>();
+      unsupported->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "1"));
+      auto unsupported_fake_globals = std::make_unique<ast::IfStmt>();
+      unsupported_fake_globals->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "2"));
+      std::vector<ast::ExprPtr> error_args;
+      error_args.push_back(std::make_unique<ast::NameExpr>("format"));
+      unsupported_fake_globals->then_body.push_back(std::make_unique<ast::RaiseStmt>(
+          std::make_unique<ast::CallExpr>(
+              std::make_unique<ast::NameExpr>("NotImplementedError"),
+              std::move(error_args))));
+      unsupported->then_body.push_back(std::move(unsupported_fake_globals));
+      annotate.body.push_back(std::move(unsupported));
+
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> annotation_entries;
+      annotation_entries.reserve(annotation_sources.size());
+      for (const auto& item : annotation_sources) {
+        auto parsed = parse_expression_source(item.second);
+        ast::ExprPtr value = std::move(parsed.expression);
+        if (value == nullptr || !parsed.errors.empty()) {
+          value = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.second);
+        }
+        annotation_entries.push_back(std::make_pair(
+            std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.first),
+            std::move(value)));
+      }
+      annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
+          std::make_unique<ast::DictExpr>(std::move(annotation_entries))));
+
+      const auto annotate_reg = lower_function_value(annotate);
+      emit(ir::Op::StoreAttr, reg, add_name("__annotate__"), annotate_reg);
     }
     if (!kwdefault_regs.empty()) {
       emit(ir::Op::SetFunctionKwDefaults, reg, add_function_kwdefaults(std::move(kwdefault_regs)));
@@ -2580,7 +2940,18 @@ private:
         class_keywords.push_back(ir::CallKeywordArg{keyword.first, value});
       }
     }
-    const std::string& parent_qualname = qualname_parent.empty() ? qualname_prefix_ : qualname_parent;
+    std::string parent_qualname;
+    if (store_name && !is_module_ && sema::contains(global_names_, klass.name)) {
+      parent_qualname.clear();
+    } else if (!qualname_parent.empty()) {
+      parent_qualname = std::move(qualname_parent);
+    } else if (is_module_) {
+      parent_qualname = qualname_prefix_;
+    } else if (!fn_.qualname.empty()) {
+      parent_qualname = fn_.qualname + ".<locals>";
+    } else {
+      parent_qualname = qualname_prefix_;
+    }
     const std::string class_qualname = parent_qualname.empty() ? klass.name : parent_qualname + "." + klass.name;
     std::vector<std::string> own_instance_slots;
     std::unordered_set<std::string> seen_own_instance_slots;
@@ -2602,27 +2973,29 @@ private:
       emit(ir::Op::LoadConst, qualname_reg, add_const(Value::string(class_qualname)));
       attrs.push_back(std::make_pair("__qualname__", qualname_reg));
 
-      const auto first_line_reg = new_reg();
-      emit(ir::Op::LoadConst, first_line_reg, add_const(Value::int64(klass.line == 0 ? 1 : klass.line)));
-      attrs.push_back(std::make_pair("__firstlineno__", first_line_reg));
-
-      const auto static_attrs_reg = new_reg();
-      emit(ir::Op::LoadConst, static_attrs_reg, add_const(Value::tuple({})));
-      attrs.push_back(std::make_pair("__static_attributes__", static_attrs_reg));
+      const auto class_nonlocals = sema::nonlocal_names_for(klass.body);
+      if (!sema::contains(class_nonlocals, "__firstlineno__")) {
+        const auto first_line_reg = new_reg();
+        emit(ir::Op::LoadConst, first_line_reg, add_const(Value::int64(klass.line == 0 ? 1 : klass.line)));
+        attrs.push_back(std::make_pair("__firstlineno__", first_line_reg));
+      }
 
       const auto doc_reg = new_reg();
       if (class_doc.empty()) {
         emit(ir::Op::LoadConst, doc_reg, add_const(Value::none()));
       } else {
         emit(ir::Op::LoadConst, doc_reg, add_const(Value::string(class_doc)));
-      }
         attrs.push_back(std::make_pair("__doc__", doc_reg));
+      }
     }
     bool has_explicit_slots = false;
+    bool has_known_explicit_slots = false;
     for (const auto& stmt : klass.body) {
       auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get());
       if (assign != nullptr && assign->name == "__slots__" && assign->value != nullptr) {
-        has_explicit_slots = collect_literal_slots_from_expr(*assign->value, own_instance_slots, seen_own_instance_slots);
+        has_explicit_slots = true;
+        has_known_explicit_slots =
+            collect_literal_slots_from_expr(*assign->value, own_instance_slots, seen_own_instance_slots);
       }
       if (assign != nullptr && assign->name == "__match_args__" && assign->value != nullptr) {
         std::vector<std::string> parsed_match_args;
@@ -2631,18 +3004,41 @@ private:
         }
       }
     }
+    std::vector<std::string> static_attribute_names;
+    std::unordered_set<std::string> seen_static_attribute_names;
+    for (const auto& stmt : klass.body) {
+      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get()); fn != nullptr && !fn->params.empty()) {
+        for (const auto& child : fn->body) {
+          collect_self_attr_slots_stmt(
+              *child,
+              fn->params[0],
+              static_attribute_names,
+              seen_static_attribute_names);
+        }
+      }
+    }
     if (!has_explicit_slots && klass.bases.empty()) {
       for (const auto& stmt : klass.body) {
         if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
           if (!fn->params.empty() && !disables_instance_slot_lowering(*fn)) {
-            for (const auto& child : fn->body) {
-              collect_self_attr_slots_stmt(*child, fn->params[0], own_instance_slots, seen_own_instance_slots);
+            for (const auto& name : static_attribute_names) {
+              if (seen_own_instance_slots.insert(name).second) {
+                own_instance_slots.push_back(name);
+              }
             }
+            break;
           }
         }
       }
     }
 
+    std::vector<Value> static_attribute_values;
+    static_attribute_values.reserve(static_attribute_names.size());
+    for (const auto& name : static_attribute_names) {
+      static_attribute_values.push_back(Value::string(name));
+    }
+    const auto static_attrs_reg = new_reg();
+    emit(ir::Op::LoadConst, static_attrs_reg, add_const(Value::tuple(std::move(static_attribute_values))));
     std::vector<std::string> lowered_instance_slots;
     std::unordered_set<std::string> seen_lowered_instance_slots;
     auto append_lowered_slot = [&](const std::string& name) {
@@ -2659,7 +3055,7 @@ private:
         break;
       }
       auto base_info = class_infos_.find(base_name->name);
-      if (base_info == class_infos_.end()) {
+      if (base_info == class_infos_.end() || !base_info->second.slot_layout_known) {
         known_base_layout = false;
         break;
       }
@@ -2667,15 +3063,18 @@ private:
         append_lowered_slot(slot_name);
       }
     }
-    if (known_base_layout) {
+    if (known_base_layout && (!has_explicit_slots || has_known_explicit_slots)) {
       for (const auto& slot_name : own_instance_slots) {
         append_lowered_slot(slot_name);
       }
+    } else if (has_explicit_slots && !has_known_explicit_slots) {
+      known_base_layout = false;
     }
 
     ClassInfo class_info;
     class_info.match_args = match_args;
     if (known_base_layout && !use_dynamic_namespace) {
+      class_info.slot_layout_known = true;
       class_info.slot_names = lowered_instance_slots;
       for (size_t i = 0; i < lowered_instance_slots.size(); ++i) {
         class_info.slots[lowered_instance_slots[i]] = static_cast<uint32_t>(i);
@@ -2684,14 +3083,21 @@ private:
     class_infos_[klass.name] = class_info;
 
     std::vector<uint32_t> base_regs;
-    base_regs.reserve(klass.bases.size());
-    for (const auto& base_expr : klass.bases) {
-      base_regs.push_back(lower_expr(*base_expr));
-    }
     uint32_t bases_reg = UINT32_MAX;
-    if (metaclass_reg == UINT32_MAX && !base_regs.empty()) {
-      bases_reg = new_reg();
-      emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+    const bool has_starred_bases = has_starred_item(klass.bases);
+    if (has_starred_bases) {
+      bases_reg = lower_tuple_with_unpack(klass.bases);
+    } else {
+      base_regs.reserve(klass.bases.size());
+      for (const auto& base_expr : klass.bases) {
+        base_regs.push_back(lower_expr(*base_expr));
+      }
+    }
+    if (metaclass_reg == UINT32_MAX && (bases_reg != UINT32_MAX || !base_regs.empty())) {
+      if (bases_reg == UINT32_MAX) {
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      }
       const auto select_metaclass_reg = new_reg();
       emit(ir::Op::LoadGlobal, select_metaclass_reg, add_name("__xlang3_select_metaclass__"));
       metaclass_reg = new_reg();
@@ -2752,6 +3158,7 @@ private:
         }
       }
       hidden_locals_.insert(hidden_name);
+      ensure_cell_for_local(hidden_name);
       name_aliases_[alias_name] = hidden_name;
       store_named_value(name, reg);
       add_to_prepared_namespace(name, reg);
@@ -2774,7 +3181,9 @@ private:
       add_to_prepared_namespace(attr.first, attr.second);
     }
 
-    std::vector<std::pair<uint32_t, uint32_t>> class_annotations;
+    std::vector<std::pair<std::string, std::string>> class_annotations;
+    std::string class_cell_name;
+    std::unordered_map<std::string, std::string> class_method_aliases;
 
     if (!klass.type_params.empty()) {
       const auto attr_reg = emit_type_params_tuple(klass.type_params);
@@ -2785,13 +3194,38 @@ private:
     auto lower_class_body_stmt = [&](auto&& self, const ast::Stmt& stmt) -> void {
       if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
         const bool use_instance_slots = !use_dynamic_namespace && !disables_instance_slot_lowering(*fn);
-        const auto attr_reg = apply_decorators(
-            lower_function_value(
-                *fn,
-                (use_instance_slots && !fn->params.empty()) ? fn->params[0] : std::string{},
-                use_instance_slots ? class_info.slots : std::unordered_map<std::string, uint32_t>{},
-                class_qualname),
-            fn->decorators);
+        const auto free_candidates = sema::free_candidates_for(*fn);
+        const bool needs_class_cell =
+            std::find(free_candidates.begin(), free_candidates.end(), "__class__") != free_candidates.end() ||
+            std::find(free_candidates.begin(), free_candidates.end(), "super") != free_candidates.end();
+        if (needs_class_cell && class_cell_name.empty()) {
+          class_cell_name = "#classcell." + std::to_string(next_hidden_local_++);
+          hidden_locals_.insert(class_cell_name);
+          ensure_cell_for_local(class_cell_name);
+          class_method_aliases["__class__"] = class_cell_name;
+        }
+        auto function_reg = lower_function_value(
+            *fn,
+            (use_instance_slots && !fn->params.empty()) ? fn->params[0] : std::string{},
+            use_instance_slots ? class_info.slots : std::unordered_map<std::string, uint32_t>{},
+            class_qualname,
+            needs_class_cell ? &class_method_aliases : nullptr);
+        bool explicit_method_wrapper = false;
+        for (const auto& decorator : fn->decorators) {
+          if (decorator != nullptr &&
+              (decorator_name_is(*decorator, "classmethod") ||
+               decorator_name_is(*decorator, "staticmethod"))) {
+            explicit_method_wrapper = true;
+            break;
+          }
+        }
+        if (!explicit_method_wrapper &&
+            (fn->name == "__init_subclass__" || fn->name == "__class_getitem__")) {
+          const auto classmethod_reg = new_reg();
+          emit(ir::Op::LoadGlobal, classmethod_reg, add_name("classmethod"));
+          function_reg = emit_call_value(classmethod_reg, {function_reg});
+        }
+        const auto attr_reg = apply_decorators(function_reg, fn->decorators);
         attrs.push_back(std::make_pair(mangle_private_identifier(fn->name), attr_reg));
         bind_class_attr_alias(fn->name, attr_reg);
       } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
@@ -2828,9 +3262,9 @@ private:
         }
       } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
         if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
-          const auto key_reg = new_reg();
-          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(mangle_private_identifier(name->name))));
-          class_annotations.push_back(std::make_pair(key_reg, lower_annotation(*assign->annotation)));
+          class_annotations.push_back(std::make_pair(
+              mangle_private_identifier(name->name),
+              annotation_expr_to_string(*assign->annotation)));
         }
         if (assign->value != nullptr) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
@@ -2838,6 +3272,44 @@ private:
             attrs.push_back(std::make_pair(mangle_private_identifier(name->name), attr_reg));
             bind_class_attr_alias(name->name, attr_reg);
           }
+        }
+      } else if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
+        uint32_t attr_reg = new_reg();
+        emit(ir::Op::ImportModule, attr_reg, add_name(import->name));
+        const auto root_dot = import->name.find('.');
+        const auto root_name = root_dot == std::string::npos
+                                   ? import->name
+                                   : import->name.substr(0, root_dot);
+        if (root_dot != std::string::npos && import->bind_name == root_name) {
+          attr_reg = new_reg();
+          emit(ir::Op::ImportModule, attr_reg, add_name(import->bind_name));
+        }
+        attrs.push_back(std::make_pair(mangle_private_identifier(import->bind_name), attr_reg));
+        bind_class_attr_alias(import->bind_name, attr_reg);
+      } else if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(&stmt)) {
+        for (const auto& binding : import->names) {
+          auto attr_reg = new_reg();
+          emit(ir::Op::ImportModule, attr_reg, add_name(binding.name));
+          const auto root_dot = binding.name.find('.');
+          const auto root_name = root_dot == std::string::npos
+                                     ? binding.name
+                                     : binding.name.substr(0, root_dot);
+          if (root_dot != std::string::npos && binding.as_name == root_name) {
+            attr_reg = new_reg();
+            emit(ir::Op::ImportModule, attr_reg, add_name(binding.as_name));
+          }
+          attrs.push_back(std::make_pair(mangle_private_identifier(binding.as_name), attr_reg));
+          bind_class_attr_alias(binding.as_name, attr_reg);
+        }
+      } else if (auto* import = dynamic_cast<const ast::FromImportStmt*>(&stmt)) {
+        if (import->names.size() == 1 && import->names[0].name == "*") {
+          return;
+        }
+        for (const auto& binding : import->names) {
+          const auto attr_reg = new_reg();
+          emit(ir::Op::ImportFrom, attr_reg, add_name(import->module), add_name(binding.name));
+          attrs.push_back(std::make_pair(mangle_private_identifier(binding.as_name), attr_reg));
+          bind_class_attr_alias(binding.as_name, attr_reg);
         }
       } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(&stmt)) {
         const auto attr_reg = lower_class_def(*nested, false, class_qualname);
@@ -2864,15 +3336,79 @@ private:
       }
     };
 
+    const uint32_t class_body_start = static_cast<uint32_t>(fn_.code.size());
     for (const auto& stmt : klass.body) {
       lower_class_body_stmt(lower_class_body_stmt, *stmt);
     }
+    const uint32_t class_body_end = static_cast<uint32_t>(fn_.code.size());
+    if (class_body_end > class_body_start) {
+      ir::Function class_body_code;
+      class_body_code.name = klass.name;
+      class_body_code.qualname = class_qualname;
+      class_body_code.first_line = klass.line == 0 ? 1 : klass.line;
+      module_.functions.push_back(std::move(class_body_code));
+      fn_.logical_frame_ranges.push_back(ir::Function::LogicalFrameRange{
+          class_body_start,
+          class_body_end,
+          static_cast<uint32_t>(module_.functions.size() - 1),
+      });
+    }
+
+    attrs.push_back(std::make_pair("__static_attributes__", static_attrs_reg));
+    add_to_prepared_namespace("__static_attributes__", static_attrs_reg);
 
     if (!class_annotations.empty()) {
-      const auto annotations_reg = new_reg();
-      emit(ir::Op::MakeDict, annotations_reg, add_dict_items(std::move(class_annotations)));
-      attrs.push_back(std::make_pair("__annotations__", annotations_reg));
-      bind_class_attr_alias("__annotations__", annotations_reg);
+      ast::FunctionDef annotate;
+      annotate.name = "__annotate__";
+      annotate.line = klass.line;
+      annotate.params.push_back("format");
+      ast::FunctionDef::Param format_param;
+      format_param.name = "format";
+      format_param.kind = ast::FunctionDef::Param::Kind::PosOnly;
+      annotate.signature.push_back(std::move(format_param));
+
+      auto unsupported = std::make_unique<ast::IfStmt>();
+      unsupported->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "1"));
+      auto unsupported_fake_globals = std::make_unique<ast::IfStmt>();
+      unsupported_fake_globals->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "2"));
+      std::vector<ast::ExprPtr> error_args;
+      error_args.push_back(std::make_unique<ast::NameExpr>("format"));
+      unsupported_fake_globals->then_body.push_back(std::make_unique<ast::RaiseStmt>(
+          std::make_unique<ast::CallExpr>(
+              std::make_unique<ast::NameExpr>("NotImplementedError"),
+              std::move(error_args))));
+      unsupported->then_body.push_back(std::move(unsupported_fake_globals));
+      annotate.body.push_back(std::move(unsupported));
+
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> annotation_entries;
+      annotation_entries.reserve(class_annotations.size());
+      for (const auto& item : class_annotations) {
+        ast::ExprPtr value;
+        if (future_annotations_) {
+          value = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.second);
+        } else {
+          auto parsed = parse_expression_source(item.second);
+          value = std::move(parsed.expression);
+          if (value == nullptr || !parsed.errors.empty()) {
+            value = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.second);
+          }
+        }
+        annotation_entries.push_back(std::make_pair(
+            std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.first),
+            std::move(value)));
+      }
+      annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
+          std::make_unique<ast::DictExpr>(std::move(annotation_entries))));
+
+      const auto annotate_reg = lower_function_value(annotate, {}, {}, class_qualname, &name_aliases_);
+      attrs.push_back(std::make_pair("__annotate__", annotate_reg));
+      bind_class_attr_alias("__annotate__", annotate_reg);
     }
 
     for (const auto& name : erased_aliases) {
@@ -2917,6 +3453,9 @@ private:
         class_spec.keywords = std::move(class_keywords);
         emit(ir::Op::CallEx, reg, build_class_reg, add_call_spec(std::move(class_spec)));
       }
+    }
+    if (!class_cell_name.empty()) {
+      store_named_value(class_cell_name, reg);
     }
     const auto decorated_reg = apply_decorators(reg, klass.decorators);
     if (store_name) {
@@ -3027,9 +3566,22 @@ private:
     const auto rhs = lower_expr(*assign.value);
     const auto result = new_reg();
     const auto op = binary_op_for_aug_assign(assign.op);
+    const auto lower_operation = [&](uint32_t current) {
+      if (assign.op == "|") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_or__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else if (assign.op == "+") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_add__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else {
+        emit(op, result, current, rhs);
+      }
+    };
     if (auto* name = dynamic_cast<const ast::NameExpr*>(assign.target.get())) {
       const auto current = lower_expr(*assign.target);
-      emit(op, result, current, rhs);
+      lower_operation(current);
       store_named_value(name->name, result);
       return;
     }
@@ -3038,11 +3590,11 @@ private:
       const auto current = new_reg();
       if (is_instance_slot_target(*attr->object, attr->name)) {
         emit(ir::Op::LoadInstanceSlot, current, object, instance_slots_[attr->name]);
-        emit(op, result, current, rhs);
+        lower_operation(current);
         emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], result);
       } else {
         emit(ir::Op::LoadAttr, current, object, add_name(mangle_private_identifier(attr->name)));
-        emit(op, result, current, rhs);
+        lower_operation(current);
         emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), result);
       }
       return;
@@ -3052,7 +3604,7 @@ private:
       const auto index = lower_expr(*subscript->index);
       const auto current = new_reg();
       emit(ir::Op::GetItem, current, object, index);
-      emit(op, result, current, rhs);
+      lower_operation(current);
       emit(ir::Op::SetItem, object, index, result);
     }
   }
@@ -3104,21 +3656,7 @@ private:
       return;
     }
     if (auto* del = dynamic_cast<const ast::DelStmt*>(&stmt)) {
-      if (auto* name = dynamic_cast<const ast::NameExpr*>(del->target.get())) {
-        delete_named_value(name->name);
-        return;
-      }
-      if (auto* attr = dynamic_cast<const ast::AttrExpr*>(del->target.get())) {
-        const auto object = lower_expr(*attr->object);
-        emit(ir::Op::DeleteAttr, object, add_name(mangle_private_identifier(attr->name)));
-        return;
-      }
-      if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(del->target.get())) {
-        const auto object = lower_expr(*subscript->object);
-        const auto index = lower_expr(*subscript->index);
-        emit(ir::Op::DeleteItem, object, index);
-        return;
-      }
+      lower_delete_target(*del->target);
       return;
     }
     if (auto* assert_stmt = dynamic_cast<const ast::AssertStmt*>(&stmt)) {
@@ -3219,6 +3757,12 @@ private:
         const auto reg = new_reg();
         emit(ir::Op::ImportFrom, reg, add_name(import->module), add_name(binding.name));
         store_named_value(binding.as_name, reg);
+        uint32_t import_slot = 0;
+        if (module_global_slot(binding.as_name, import_slot)) {
+          // A from-import can bind any object, so it is not safe to use the
+          // direct module-method call path for later attribute access.
+          imported_module_slots_.erase(import_slot);
+        }
       }
       return;
     }
@@ -3233,6 +3777,20 @@ private:
     }
     if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
       const auto reg = lower_expr(*ret->value);
+      if (!active_finalizers_.empty()) {
+        // A finally block can delete or rebind a local used by the return
+        // expression.  Preserve the evaluated value in a distinct local so
+        // finalizer cleanup cannot invalidate the pending return register.
+        const auto hidden_name = "#return." + std::to_string(next_hidden_local_++);
+        hidden_locals_.insert(hidden_name);
+        const auto hidden_slot = ensure_local(hidden_name);
+        emit(ir::Op::StoreLocal, hidden_slot, reg);
+        lower_active_finalizers();
+        const auto preserved = new_reg();
+        emit(ir::Op::LoadLocal, preserved, hidden_slot);
+        emit(ir::Op::Return, 0, preserved);
+        return;
+      }
       lower_active_finalizers();
       emit(ir::Op::Return, 0, reg);
       return;
@@ -3348,6 +3906,45 @@ private:
   }
 
   uint32_t lower_fstring(const ast::FStringExpr& fstring) {
+    if (fstring.is_template) {
+      std::vector<Value> strings{Value::string("")};
+      std::vector<uint32_t> interpolations;
+      for (const auto& part : fstring.parts) {
+        if (!part.is_expr) {
+          auto* current = value_as_string(strings.back());
+          const std::string combined =
+              (current == nullptr ? std::string() : string_object_to_string(*current)) + part.text;
+          strings.back() = Value::string(combined);
+          continue;
+        }
+        auto expr = parse_embedded_expression(part.text);
+        const uint32_t value = lower_expr(*expr);
+        const uint32_t expression = new_reg();
+        const uint32_t conversion = new_reg();
+        const uint32_t format_spec = new_reg();
+        emit(ir::Op::LoadConst, expression, add_const(Value::string(part.text)));
+        emit(ir::Op::LoadConst, conversion,
+             add_const(part.conversion == '\0'
+                           ? Value::none()
+                           : Value::string(std::string(1, part.conversion))));
+        emit(ir::Op::LoadConst, format_spec, add_const(Value::string(part.format_spec)));
+        const uint32_t callee = lower_expr(ast::NameExpr("__xlang3_template_interpolation__"));
+        const uint32_t interpolation = new_reg();
+        emit(ir::Op::Call, interpolation, callee,
+             add_call_args({value, expression, conversion, format_spec}));
+        interpolations.push_back(interpolation);
+        strings.push_back(Value::string(""));
+      }
+
+      const uint32_t strings_reg = new_reg();
+      emit(ir::Op::LoadConst, strings_reg, add_const(Value::tuple(std::move(strings))));
+      const uint32_t interpolations_reg = new_reg();
+      emit(ir::Op::MakeTuple, interpolations_reg, add_tuple_items(std::move(interpolations)));
+      const uint32_t callee = lower_expr(ast::NameExpr("__xlang3_template_literal__"));
+      const uint32_t result = new_reg();
+      emit(ir::Op::Call, result, callee, add_call_args({strings_reg, interpolations_reg}));
+      return result;
+    }
     uint32_t result = UINT32_MAX;
     bool has_part = false;
     for (const auto& part : fstring.parts) {
@@ -3356,7 +3953,8 @@ private:
         auto expr = parse_embedded_expression(part.text);
         value = lower_expr(*expr);
         if (part.conversion == 's' || part.conversion == 'r' || part.conversion == 'a') {
-          const auto callee = lower_expr(ast::NameExpr(part.conversion == 's' ? PythonNames::builtin_str : "repr"));
+          const auto callee = lower_expr(ast::NameExpr(
+              part.conversion == 's' ? "__xlang3_fstring_str__" : "__xlang3_fstring_repr__"));
           const auto converted = new_reg();
           emit(ir::Op::Call, converted, callee, add_call_args({value}));
           value = converted;
@@ -3370,12 +3968,12 @@ private:
           } else {
             emit(ir::Op::LoadConst, spec, add_const(Value::string(part.format_spec)));
           }
-          const auto callee = lower_expr(ast::NameExpr("format"));
+          const auto callee = lower_expr(ast::NameExpr("__xlang3_fstring_format__"));
           const auto formatted = new_reg();
           emit(ir::Op::Call, formatted, callee, add_call_args({value, spec}));
           value = formatted;
         } else if (part.conversion == '\0') {
-          const auto callee = lower_expr(ast::NameExpr(PythonNames::builtin_str));
+          const auto callee = lower_expr(ast::NameExpr("__xlang3_fstring_str__"));
           const auto converted = new_reg();
           emit(ir::Op::Call, converted, callee, add_call_args({value}));
           value = converted;
@@ -3454,6 +4052,7 @@ private:
       const ast::Expr& target_expr,
       const ast::Expr& iterable,
       const ast::Expr* filter,
+      bool is_async,
       uint32_t dst,
       Body body) {
     struct SavedAlias {
@@ -3480,6 +4079,49 @@ private:
     const bool has_single_name_target = target_name != nullptr;
     if (has_single_name_target) {
       single_hidden_slot = ensure_local(name_aliases_[target_name->name]);
+    }
+
+    if (is_async) {
+      const auto iterable_reg = lower_expr(iterable);
+      const auto iterator_reg = emit_call_method(iterable_reg, "__aiter__", {});
+      const auto start = static_cast<uint32_t>(fn_.code.size());
+      const auto setup_next = emit_jump(ir::Op::SetupExcept);
+      const auto next_awaitable = emit_call_method(iterator_reg, "__anext__", {});
+      const auto item_reg = emit_await_value(next_awaitable);
+      emit(ir::Op::PopExcept);
+      lower_unpack_assign(target_expr, item_reg);
+      size_t skip_body = 0;
+      const bool has_filter = filter != nullptr;
+      if (has_filter) {
+        const auto filter_reg = lower_expr(*filter);
+        skip_body = emit_jump(ir::Op::JumpIfFalse, filter_reg);
+      }
+      body();
+      if (has_filter) {
+        patch_jump(skip_body, static_cast<uint32_t>(fn_.code.size()));
+      }
+      emit(ir::Op::Jump, start);
+
+      patch_jump(setup_next, static_cast<uint32_t>(fn_.code.size()));
+      const auto stop_type = new_reg();
+      emit(ir::Op::LoadGlobal, stop_type, add_name(resolve_name("StopAsyncIteration")));
+      const auto matched = new_reg();
+      emit(ir::Op::MatchException, matched, stop_type);
+      const auto not_stop_async = emit_jump(ir::Op::JumpIfFalse, matched);
+      emit(ir::Op::ClearException);
+      const auto done = emit_jump(ir::Op::Jump);
+      patch_jump(not_stop_async, static_cast<uint32_t>(fn_.code.size()));
+      emit(ir::Op::Reraise);
+      patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+
+      for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+        if (it->had_alias) {
+          name_aliases_[it->name] = it->value;
+        } else {
+          name_aliases_.erase(it->name);
+        }
+      }
+      return dst;
     }
 
     int64_t range_start = 0;
@@ -3542,6 +4184,7 @@ private:
     const ast::Expr* target_expr = nullptr;
     const ast::Expr* iterable = nullptr;
     const ast::Expr* filter = nullptr;
+    bool is_async = false;
   };
 
   template <typename Body>
@@ -3559,42 +4202,43 @@ private:
         *clause.target_expr,
         *clause.iterable,
         clause.filter,
+        clause.is_async,
         dst,
         [&]() { lower_comprehension_clauses(clauses, index + 1, dst, body); });
   }
 
   std::vector<LowerCompClause> list_comp_clauses(const ast::ListCompExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
     }
     return clauses;
   }
 
   std::vector<LowerCompClause> dict_comp_clauses(const ast::DictCompExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
     }
     return clauses;
   }
 
   std::vector<LowerCompClause> set_comp_clauses(const ast::SetCompExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
     }
     return clauses;
   }
 
   std::vector<LowerCompClause> generator_comp_clauses(const ast::GeneratorExpr& comp) {
     std::vector<LowerCompClause> clauses;
-    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get()});
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
     for (const auto& clause : comp.extra_clauses) {
-      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get()});
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
     }
     return clauses;
   }
@@ -3608,8 +4252,11 @@ private:
         ensure_cell_for_local(name);
       }
     }
+    const bool is_async = comp.is_async || std::any_of(
+        comp.extra_clauses.begin(), comp.extra_clauses.end(),
+        [](const ast::CompClause& clause) { return clause.is_async; });
     FunctionLowerer child_lowerer(
-        module_, "#genexpr", {eager_iterable_name}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, false, false, 0, false,
+        module_, "#genexpr", {eager_iterable_name}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, is_async, false, comp.line, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
     ast::NameExpr eager_iterable_expr(eager_iterable_name);
     auto clauses = child_lowerer.generator_comp_clauses(comp);
@@ -3642,6 +4289,27 @@ private:
   }
 
   uint32_t lower_expr(const ast::Expr& expr) {
+    struct ExprSourceScope {
+      uint32_t& current_line;
+      ir::SourcePosition& current_position;
+      uint32_t saved_line;
+      ir::SourcePosition saved_position;
+
+      ~ExprSourceScope() {
+        current_line = saved_line;
+        current_position = saved_position;
+      }
+    } source_scope{current_source_line_, current_source_position_,
+                   current_source_line_, current_source_position_};
+    if (expr.line != 0) {
+      current_source_line_ = expr.line;
+      current_source_position_ = ir::SourcePosition{
+          expr.line,
+          expr.end_line == 0 ? expr.line : expr.end_line,
+          expr.column,
+          expr.end_column,
+      };
+    }
     if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
       const auto reg = new_reg();
       switch (lit->kind) {
@@ -3657,6 +4325,11 @@ private:
         case ast::LiteralExpr::Kind::Double:
           emit(ir::Op::LoadConst, reg, add_const(Value::number(std::strtod(lit->text.c_str(), nullptr))));
           break;
+        case ast::LiteralExpr::Kind::Complex: {
+          const std::string imag_text = lit->text.substr(0, lit->text.size() - 1);
+          emit(ir::Op::LoadConst, reg, add_const(Value::complex(0.0, std::strtod(imag_text.c_str(), nullptr))));
+          break;
+        }
         case ast::LiteralExpr::Kind::String:
           emit(ir::Op::LoadConst, reg, add_const(Value::string(lit->text)));
           break;
@@ -3772,7 +4445,11 @@ private:
       else if (bin->op == "%") emit(ir::Op::Mod, reg, lhs, rhs);
       else if (bin->op == "**") emit(ir::Op::Pow, reg, lhs, rhs);
       else if (bin->op == "&") emit(ir::Op::BitAnd, reg, lhs, rhs);
-      else if (bin->op == "|") emit(ir::Op::BitOr, reg, lhs, rhs);
+      else if (bin->op == "|") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_binary_or__"));
+        emit(ir::Op::Call, reg, callee, add_call_args({lhs, rhs}));
+      }
       else if (bin->op == "^") emit(ir::Op::BitXor, reg, lhs, rhs);
       else if (bin->op == "<<") emit(ir::Op::Shl, reg, lhs, rhs);
       else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
@@ -3805,6 +4482,7 @@ private:
       if (!call->call_args.empty()) {
         const auto callee = lower_expr(*call->callee);
         ir::CallSpec spec;
+        bool saw_starred_positional = false;
         for (const auto& arg : call->call_args) {
           const auto value = lower_expr(*arg.value);
           if (arg.kw_star) {
@@ -3813,12 +4491,17 @@ private:
             }
             spec.kw_star_args.push_back(value);
           } else if (arg.star) {
+            saw_starred_positional = true;
             if (spec.star_arg == UINT32_MAX) {
               spec.star_arg = value;
             }
             spec.star_args.push_back(value);
           } else if (!arg.name.empty()) {
             spec.keywords.push_back(ir::CallKeywordArg{arg.name, value});
+          } else if (saw_starred_positional) {
+            const auto singleton = new_reg();
+            emit(ir::Op::MakeTuple, singleton, add_tuple_items({value}));
+            spec.star_args.push_back(singleton);
           } else {
             spec.positional.push_back(value);
           }
@@ -3840,7 +4523,9 @@ private:
         auto* module_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
         if (!is_module_ && module_name != nullptr) {
           const auto resolved = resolve_name(module_name->name);
-          if (imported_module_slot(resolved, imported_slot)) {
+          if (locals_.find(resolved) == locals_.end() &&
+              free_indices_.find(resolved) == free_indices_.end() &&
+              imported_module_slot(resolved, imported_slot)) {
             std::vector<uint32_t> arg_regs;
             for (const auto& arg : call->args) {
               arg_regs.push_back(lower_expr(*arg));
@@ -3975,6 +4660,8 @@ private:
     if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
       ast::FunctionDef fn;
       fn.name = "<lambda>";
+      fn.line = lambda->line;
+      fn.column = lambda->column;
       fn.params = lambda->params;
       if (!lambda->signature.empty()) {
         fn.signature.reserve(lambda->signature.size());
@@ -4029,6 +4716,10 @@ private:
         return Value::int64(parse_integer_literal(lit.text));
       case ast::LiteralExpr::Kind::Double:
         return Value::number(std::strtod(lit.text.c_str(), nullptr));
+      case ast::LiteralExpr::Kind::Complex: {
+        const std::string imag_text = lit.text.substr(0, lit.text.size() - 1);
+        return Value::complex(0.0, std::strtod(imag_text.c_str(), nullptr));
+      }
       case ast::LiteralExpr::Kind::String:
         return Value::string(lit.text);
       case ast::LiteralExpr::Kind::Bytes:

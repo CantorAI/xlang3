@@ -170,7 +170,9 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
       collect_assigned_names(try_except->else_body, names, seen);
       collect_assigned_names(try_except->finally_body, names, seen);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
-      if (!with->target.empty()) {
+      if (with->target_expr != nullptr) {
+        collect_assigned_target(*with->target_expr, names, seen);
+      } else if (!with->target.empty()) {
         add_unique(names, seen, with->target);
       }
       collect_assigned_names(with->body, names, seen);
@@ -586,6 +588,10 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
       for (const auto& decorator : klass->decorators) {
         collect_reads_expr(*decorator, names, seen);
       }
+      // Methods in a nested class skip the class namespace when resolving
+      // free variables. Forward their reads through the enclosing function
+      // so deeper method closures can capture that function's cells.
+      collect_reads_body(klass->body, names, seen);
     } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(stmt.get())) {
       collect_reads_expr(*match->subject, names, seen);
       for (const auto& match_case : match->cases) {
@@ -602,6 +608,12 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
 }
 
 } // namespace
+
+NameSet nonlocal_names_for(const std::vector<ast::StmtPtr>& body) {
+  NameSet names;
+  collect_nonlocal_names(body, names);
+  return names;
+}
 
 std::vector<std::string> local_names_for(const std::vector<std::string>& params, const std::vector<ast::StmtPtr>& body) {
   std::vector<std::string> names;

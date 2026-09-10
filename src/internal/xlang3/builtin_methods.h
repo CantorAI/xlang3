@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "xlang3/compiler.h"
+#include "xlang3/mapping.h"
 #include "xlang3/value.h"
 
 #include <cstddef>
@@ -64,7 +65,27 @@ struct BuiltinMethodSpec {
   NativeFastCallCallback fast_callback = nullptr;
   bool fast_releases_vm_lock = false;
   NativeKeywordFunctionCallback keyword_callback = nullptr;
+  const char* text_signature = nullptr;
 };
+
+XLANG3_HOT_INLINE void builtin_method_set_text_signature(Value& function, const char* text_signature) {
+  if (text_signature == nullptr) {
+    return;
+  }
+  auto* native = value_as_native_function(function);
+  if (native == nullptr) {
+    return;
+  }
+  if (native->attrs_dict == nullptr) {
+    native->attrs_dict = new Value(Value::dict({}));
+  }
+  std::string ignored;
+  mapping_set_item(
+      *native->attrs_dict,
+      Value::string("__text_signature__"),
+      Value::string(text_signature),
+      ignored);
+}
 
 XLANG3_HOT_INLINE bool bind_builtin_method(
     const Value& object,
@@ -72,18 +93,19 @@ XLANG3_HOT_INLINE bool bind_builtin_method(
     NativeFunctionCallback callback,
     NativeFastCallCallback fast_callback,
     bool fast_releases_vm_lock,
+    const char* text_signature,
     Value& out) {
-  out = Value::bound_method(
-      object,
-      Value::native_function(
-          0,
-          std::move(full_name),
-          callback,
-          nullptr,
-          nullptr,
-          fast_callback,
-          fast_releases_vm_lock,
-          nullptr));
+  Value function = Value::native_function(
+      0,
+      std::move(full_name),
+      callback,
+      nullptr,
+      nullptr,
+      fast_callback,
+      fast_releases_vm_lock,
+      nullptr);
+  builtin_method_set_text_signature(function, text_signature);
+  out = Value::bound_method(object, std::move(function));
   return true;
 }
 
@@ -94,18 +116,19 @@ XLANG3_HOT_INLINE bool bind_builtin_method(
     NativeFastCallCallback fast_callback,
     bool fast_releases_vm_lock,
     NativeKeywordFunctionCallback keyword_callback,
+    const char* text_signature,
     Value& out) {
-  out = Value::bound_method(
-      object,
-      Value::native_function(
-          0,
-          std::move(full_name),
-          callback,
-          nullptr,
-          nullptr,
-          fast_callback,
-          fast_releases_vm_lock,
-          keyword_callback));
+  Value function = Value::native_function(
+      0,
+      std::move(full_name),
+      callback,
+      nullptr,
+      nullptr,
+      fast_callback,
+      fast_releases_vm_lock,
+      keyword_callback);
+  builtin_method_set_text_signature(function, text_signature);
+  out = Value::bound_method(object, std::move(function));
   return true;
 }
 
@@ -124,6 +147,7 @@ XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
           methods[i].fast_callback,
           methods[i].fast_releases_vm_lock,
           methods[i].keyword_callback,
+          methods[i].text_signature,
           out);
     }
   }
@@ -131,8 +155,10 @@ XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
 }
 
 bool list_get_method(const Value& object, const std::string& name, Value& out);
+bool list_install_class_methods(Runtime& runtime, ClassObject& list_class);
 const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::string& name);
 bool tuple_get_method(const Value& object, const std::string& name, Value& out);
+bool tuple_install_class_methods(Runtime& runtime, ClassObject& tuple_class);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
 bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class);
 bool file_get_method(const Value& object, const std::string& name, Value& out);

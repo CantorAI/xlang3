@@ -28,9 +28,17 @@ bool runtime_call_builtin_constructor(Runtime& runtime, const ClassObject& klass
     const std::vector<std::pair<std::string, Value>>& kwargs,
     bool& handled, Value& out, std::string& error) {
   handled = false;
-  if (!xlang_vm_class_is_builtin_module_class(klass) ||
-      xlang_vm_find_builtin_constructor(klass.name) == XlangVMBuiltinConstructor::Unknown)
+  auto constructor = xlang_vm_find_builtin_constructor(klass.name);
+  if (constructor != XlangVMBuiltinConstructor::Unknown &&
+      !xlang_vm_class_is_builtin_module_class(klass)) {
+    constructor = XlangVMBuiltinConstructor::Unknown;
+  }
+  if (constructor == XlangVMBuiltinConstructor::Unknown) {
+    constructor = xlang_vm_find_inherited_builtin_constructor(klass);
+  }
+  if (constructor == XlangVMBuiltinConstructor::Unknown) {
     return true;
+  }
   handled = true;
   CallArgsView view;
   view.leading = args;
@@ -59,6 +67,8 @@ bool runtime_call_builtin_constructor(Runtime& runtime, const ClassObject& klass
 
 RuntimeResult Interpreter::run(const ir::Module& module) {
   auto globals_module = Value::module("__main__");
+  std::string ignored;
+  module_set_attr(globals_module, "__spec__", Value::none(), ignored);
   return run_module(module, std::move(globals_module), nullptr);
 }
 
@@ -70,6 +80,8 @@ RuntimeResult Interpreter::run(std::shared_ptr<const ir::Module> module) {
   }
   auto module_owner = std::move(module);
   auto globals_module = Value::module("__main__");
+  std::string ignored;
+  module_set_attr(globals_module, "__spec__", Value::none(), ignored);
   return run_module(*module_owner, std::move(globals_module), module_owner);
 }
 
@@ -110,7 +122,10 @@ RuntimeResult Interpreter::run_module(
       result.errors.push_back(error);
       return result;
     }
-    if (!module.source_file.empty() &&
+    const bool synthetic_source_file =
+        module.source_file.size() >= 2 && module.source_file.front() == '<' &&
+        module.source_file.back() == '>';
+    if (!module.source_file.empty() && !synthetic_source_file &&
         (!module_get_attr(globals_module, "__file__", existing, error) || existing.tag == ValueTag::Invalid)) {
       error.clear();
       if (!module_set_attr(globals_module, "__file__", Value::string(module.source_file), error)) {
@@ -130,6 +145,19 @@ RuntimeResult Interpreter::run_module(
       if (!module_set_attr(globals_module, "__annotations__", Value::dict({}), error)) {
         result.errors.push_back(error);
         return result;
+      }
+    }
+    if (!module_get_attr(globals_module, "__builtins__", existing, error) || existing.tag == ValueTag::Invalid) {
+      error.clear();
+      Value builtins;
+      if (mapping_get_item(
+              runtime_.module_registry_dict(), Value::string("builtins"), builtins, error)) {
+        if (!module_set_attr(globals_module, "__builtins__", builtins, error)) {
+          result.errors.push_back(error);
+          return result;
+        }
+      } else {
+        error.clear();
       }
     }
     if (register_in_runtime) {

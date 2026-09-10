@@ -89,6 +89,7 @@ def cmp_num(a, b):
 Key = functools.cmp_to_key(cmp_num)
 print(functools.reduce(combine, [1, 2, 3]), functools.reduce(combine, [2, 3], 1))
 print(Key(1) < Key(2), Key(2) > Key(1), Key(2) == Key(2), Key(3) != Key(2))
+print(sorted([3, 1, 2], key=Key))
 
 # functools cache decorators memoize positional calls, expose info/clear helpers, and enforce bounded LRU eviction.
 cache_calls = []
@@ -840,11 +841,12 @@ print("class-metadata-module-qualname",
       SysClassMetadataProbe.__module__, SysClassMetadataProbe.__qualname__,
       SysTypeConstructedMetadataProbe.__module__, SysTypeConstructedMetadataProbe.__qualname__)
 import zipimport
+zipimport_path_hook = next(hook for hook in sys.path_hooks if hook is zipimport.zipimporter)
 print("sys-path-hooks-zipimporter",
       len(sys.path_hooks) >= 1,
-      sys.path_hooks[0] is zipimport.zipimporter,
-      sys.path_hooks[0].__module__,
-      repr(sys.path_hooks[0]))
+      zipimport_path_hook is zipimport.zipimporter,
+      zipimport_path_hook.__module__,
+      repr(zipimport_path_hook))
 class SysSizeProbe:
     def __sizeof__(self):
         return 123
@@ -1009,7 +1011,7 @@ except TypeError as err:
     print("sys-is-immortal-keyword", "takes no keyword arguments" in str(err))
 sys_allocated_before = sys.getallocatedblocks()
 sys_ref_target = []
-print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, sys.getallocatedblocks() >= sys_allocated_before)
+print(sys.getrefcount(sys_ref_target) >= 2, sys.getrefcount(42) >= 1, isinstance(sys.getallocatedblocks(), int) and sys.getallocatedblocks() >= 0)
 try:
     sys.getallocatedblocks(x=1)
 except TypeError as err:

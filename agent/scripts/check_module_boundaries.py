@@ -78,10 +78,12 @@ FORBIDDEN_PUBLIC_CPP_MODULES = {
 # Public modules here are native/builtin/frozen in CPython or XLang3 product
 # modules. Private underscore modules are dependency primitives and are allowed.
 ALLOWED_PUBLIC_CPP_MODULES = {
+    "array",
     "atexit",
     "binascii",
     "builtins",
     "errno",
+    "gc",
     "importlib._bootstrap",
     "importlib._bootstrap_external",
     "itertools",

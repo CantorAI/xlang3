@@ -23,6 +23,11 @@ limitations under the License.
 namespace xlang3::ast {
 
 struct Expr {
+  uint32_t line = 0;
+  uint32_t column = 0;
+  uint32_t end_line = 0;
+  uint32_t end_column = 0;
+
   virtual ~Expr() = default;
 };
 
@@ -39,7 +44,7 @@ using ExprPtr = std::unique_ptr<Expr>;
 using StmtPtr = std::unique_ptr<Stmt>;
 
 struct LiteralExpr final : Expr {
-  enum class Kind { None, Bool, Int, Double, String, Bytes, Ellipsis };
+  enum class Kind { None, Bool, Int, Double, Complex, String, Bytes, Ellipsis };
   Kind kind;
   std::string text;
   bool bool_value = false;
@@ -57,7 +62,9 @@ struct FStringExpr final : Expr {
     std::string debug_text;
   };
   std::vector<Part> parts;
-  explicit FStringExpr(std::vector<Part> parts) : parts(std::move(parts)) {}
+  bool is_template = false;
+  explicit FStringExpr(std::vector<Part> parts, bool is_template = false)
+      : parts(std::move(parts)), is_template(is_template) {}
 };
 
 struct NameExpr final : Expr {
@@ -177,6 +184,7 @@ struct CompClause {
   ExprPtr target_expr;
   ExprPtr iterable;
   ExprPtr filter;
+  bool is_async = false;
 };
 
 struct ListCompExpr final : Expr {
@@ -186,6 +194,7 @@ struct ListCompExpr final : Expr {
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
+  bool is_async = false;
   ListCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
       : result(std::move(result)),
         target(std::move(target)),
@@ -208,6 +217,7 @@ struct DictCompExpr final : Expr {
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
+  bool is_async = false;
   DictCompExpr(ExprPtr key, ExprPtr value, std::string target, ExprPtr iterable, ExprPtr filter = {})
       : key(std::move(key)),
         value(std::move(value)),
@@ -231,6 +241,7 @@ struct SetCompExpr final : Expr {
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
+  bool is_async = false;
   SetCompExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
       : result(std::move(result)),
         target(std::move(target)),
@@ -252,6 +263,7 @@ struct GeneratorExpr final : Expr {
   ExprPtr iterable;
   ExprPtr filter;
   std::vector<CompClause> extra_clauses;
+  bool is_async = false;
   GeneratorExpr(ExprPtr result, std::string target, ExprPtr iterable, ExprPtr filter = {})
       : result(std::move(result)),
         target(std::move(target)),
@@ -420,6 +432,9 @@ struct ExceptHandler {
   ExprPtr type;
   std::string name;
   std::vector<StmtPtr> body;
+  bool is_star = false;
+  uint32_t line = 0;
+  uint32_t column = 0;
 };
 
 struct TryExceptStmt final : Stmt {
@@ -432,6 +447,7 @@ struct TryExceptStmt final : Stmt {
 struct WithStmt final : Stmt {
   ExprPtr manager;
   std::string target;
+  ExprPtr target_expr;
   std::vector<StmtPtr> body;
   bool is_async = false;
 };

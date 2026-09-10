@@ -31,5 +31,8 @@ bool decode_python_source_bytes_as(
     PythonSourceText& out,
     std::string& error);
 std::string canonical_python_source_encoding(std::string name);
+bool decode_mbcs_bytes(std::string_view bytes, std::string& text, std::string& error);
+bool decode_gbk_bytes(std::string_view bytes, std::string& text, std::string& error);
+bool encode_gbk_text(std::string_view text, std::string& bytes, std::string& error);
 
 } // namespace xlang3

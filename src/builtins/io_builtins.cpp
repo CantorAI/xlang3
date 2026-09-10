@@ -15,16 +15,94 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
+#include "source_encoding.h"
 
 #include <cctype>
+#include <cerrno>
 #include <climits>
+#include <cstring>
+#include <fcntl.h>
+#include <filesystem>
 #include <string>
+
+#if defined(_WIN32)
+#include <io.h>
+#include <sys/stat.h>
+#include <windows.h>
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 namespace xlang3 {
 
 namespace {
+
+#if defined(_WIN32)
+void ignore_open_invalid_parameter(
+    const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {}
+
+bool descriptor_is_valid(int fd) {
+  struct _stat64 stat_buffer {};
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_open_invalid_parameter);
+  const bool valid = _fstat64(fd, &stat_buffer) == 0;
+  _set_thread_local_invalid_parameter_handler(previous);
+  return valid;
+}
+#else
+bool descriptor_is_valid(int fd) {
+  struct stat stat_buffer {};
+  return ::fstat(fd, &stat_buffer) == 0;
+}
+#endif
+
+bool raise_bad_file_descriptor(Runtime& runtime, std::string& error) {
+  error = "Bad file descriptor";
+  Value exception = runtime.make_exception("OSError", error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(9), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
+bool warn_bool_file_descriptor(Runtime& runtime, std::string& error) {
+  Value warnings;
+  Value warn;
+  const Value* warning_class = runtime.find_builtin("RuntimeWarning");
+  if (warning_class == nullptr ||
+      !runtime.import_module("warnings", warnings, error) ||
+      !module_get_attr(warnings, "warn", warn, error)) {
+    return false;
+  }
+  Value warning_args[] = {
+      Value::string("bool is used as a file descriptor"),
+      *warning_class,
+  };
+  Value ignored;
+  return runtime_call_callable(runtime, warn, warning_args, 2, ignored, error);
+}
+
+bool warn_binary_line_buffering(Runtime& runtime, std::string& error) {
+  Value warnings;
+  Value warn;
+  const Value* warning_class = runtime.find_builtin("RuntimeWarning");
+  if (warning_class == nullptr ||
+      !runtime.import_module("warnings", warnings, error) ||
+      !module_get_attr(warnings, "warn", warn, error)) {
+    return false;
+  }
+  Value warning_args[] = {
+      Value::string("line buffering isn't supported in binary mode"),
+      *warning_class,
+  };
+  Value ignored;
+  return runtime_call_callable(runtime, warn, warning_args, 2, ignored, error);
+}
 
 bool raise_file_not_found(Runtime& runtime, const std::string& path, std::string& error) {
   error = "file not found: " + path;
@@ -32,6 +110,34 @@ bool raise_file_not_found(Runtime& runtime, const std::string& path, std::string
   std::string ignored;
   object_set_attr(exception, "errno", Value::int64(2), ignored);
   object_set_attr(exception, "strerror", Value::string("No such file or directory"), ignored);
+  object_set_attr(exception, "filename", Value::string(path), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
+bool raise_open_os_error(
+    Runtime& runtime,
+    const std::string& path,
+    int error_number,
+    std::string& error) {
+  const char* exception_name = "OSError";
+  if (error_number == ENOENT) {
+    exception_name = "FileNotFoundError";
+  } else if (error_number == EACCES) {
+    exception_name = "PermissionError";
+  } else if (error_number == EEXIST) {
+    exception_name = "FileExistsError";
+#if defined(EISDIR)
+  } else if (error_number == EISDIR) {
+    exception_name = "IsADirectoryError";
+#endif
+  }
+  const char* description = std::strerror(error_number);
+  error = description != nullptr ? description : "cannot open file";
+  Value exception = runtime.make_exception(exception_name, error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
   object_set_attr(exception, "filename", Value::string(path), ignored);
   runtime.set_pending_exception(std::move(exception));
   return false;
@@ -53,8 +159,12 @@ struct OpenOptions {
   std::string errors = "strict";
   std::string newline;
   bool newline_is_none = true;
+  bool encoding_non_none = false;
+  bool errors_non_none = false;
+  bool newline_non_none = false;
   int64_t buffering = -1;
   bool closefd = true;
+  Value opener = Value::none();
 };
 
 std::string normalize_name(std::string text) {
@@ -100,7 +210,7 @@ bool append_utf8(uint32_t codepoint, std::string& out) {
 }
 
 std::string normalize_newlines_for_read(std::string text, const OpenOptions& options) {
-  if (!options.newline_is_none && options.newline.empty()) {
+  if (!options.newline_is_none) {
     return text;
   }
   std::string out;
@@ -130,7 +240,46 @@ bool decode_file_text(const std::string& bytes, const OpenOptions& options, std:
         static_cast<unsigned char>(bytes[2]) == 0xbf) {
       start = 3;
     }
-    decoded.assign(bytes.data() + start, bytes.size() - start);
+    for (size_t i = start; i < bytes.size();) {
+      const unsigned char lead = static_cast<unsigned char>(bytes[i]);
+      if (lead < 0x80u) {
+        decoded.push_back(static_cast<char>(lead));
+        ++i;
+        continue;
+      }
+      const size_t width = utf8_codepoint_width(lead);
+      bool valid = width >= 2 && i + width <= bytes.size();
+      if (valid) {
+        for (size_t j = 1; j < width; ++j) {
+          if ((static_cast<unsigned char>(bytes[i + j]) & 0xc0u) != 0x80u) {
+            valid = false;
+            break;
+          }
+        }
+      }
+      if (valid) {
+        uint32_t codepoint = lead & (0x7fu >> width);
+        for (size_t j = 1; j < width; ++j) {
+          codepoint = (codepoint << 6) |
+              (static_cast<unsigned char>(bytes[i + j]) & 0x3fu);
+        }
+        const uint32_t minimum = width == 2 ? 0x80u : width == 3 ? 0x800u : 0x10000u;
+        valid = codepoint >= minimum && codepoint <= 0x10ffffu &&
+            !(codepoint >= 0xd800u && codepoint <= 0xdfffu);
+      }
+      if (valid) {
+        decoded.append(bytes, i, width);
+        i += width;
+      } else if (errors == "ignore") {
+        ++i;
+      } else if (errors == "replace") {
+        decoded += "\xef\xbf\xbd";
+        ++i;
+      } else {
+        error = "utf-8 codec can't decode byte";
+        return false;
+      }
+    }
   } else if (encoding == "latin_1") {
     for (unsigned char ch : bytes) {
       append_utf8(ch, decoded);
@@ -147,6 +296,10 @@ bool decode_file_text(const std::string& bytes, const OpenOptions& options, std:
         error = "ascii codec can't decode byte";
         return false;
       }
+    }
+  } else if (encoding == "gbk" || encoding == "cp936") {
+    if (!decode_gbk_bytes(bytes, decoded, error)) {
+      return false;
     }
   } else {
     error = "unsupported file encoding: " + options.encoding;
@@ -169,9 +322,14 @@ bool get_path_arg(Runtime& runtime, const Value& value, const char* name, std::s
   if (get_string_arg(value, name, out, error)) {
     return true;
   }
+  if (auto* bytes = value_as_bytes(value)) {
+    out = bytes_object_to_string(*bytes);
+    return true;
+  }
   std::string ignored;
   Value path_value;
-  if (object_get_attr(value, "__fspath__", path_value, ignored)) {
+  if (object_get_attr(value, "__fspath__", path_value, ignored) &&
+      path_value.tag != ValueTag::None) {
     Value result;
     std::string call_error;
     if (!runtime_call_callable(runtime, path_value, nullptr, 0, result, call_error)) {
@@ -181,7 +339,13 @@ bool get_path_arg(Runtime& runtime, const Value& value, const char* name, std::s
     if (get_string_arg(result, name, out, error)) {
       return true;
     }
-    error = std::string(name) + " __fspath__ returned non-string";
+    if (auto* bytes = value_as_bytes(result)) {
+      out = bytes_object_to_string(*bytes);
+      return true;
+    }
+    error = "expected " + std::string(value_binary_type_name(value)) +
+        ".__fspath__() to return str or bytes, not " +
+        value_binary_type_name(result);
     return false;
   }
   if (object_get_attr(value, "__xlang3_string_value__", path_value, ignored) && value_as_string(path_value) != nullptr) {
@@ -194,7 +358,8 @@ bool get_path_arg(Runtime& runtime, const Value& value, const char* name, std::s
     error.clear();
     return true;
   }
-  error = std::string(name) + " must be str or path-like";
+  error = "expected str, bytes or os.PathLike object, not " +
+      std::string(value_binary_type_name(value));
   return false;
 }
 
@@ -284,6 +449,21 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
   return true;
 }
 
+void initialize_fd_append_position(FileObject& file, bool append) {
+  file.append = append;
+  if (!append || !file.fd_backed) {
+    return;
+  }
+#if defined(_WIN32)
+  const __int64 position = _lseeki64(file.fd, 0, SEEK_END);
+#else
+  const off_t position = lseek(file.fd, 0, SEEK_END);
+#endif
+  if (position >= 0) {
+    file.cursor = static_cast<size_t>(position);
+  }
+}
+
 bool apply_open_option(const std::string& key, const Value& value, OpenOptions& options, std::string& error) {
   if (key == "buffering") {
     if (value.tag != ValueTag::Int64) {
@@ -296,6 +476,7 @@ bool apply_open_option(const std::string& key, const Value& value, OpenOptions& 
   if (key == "encoding") {
     if (value.tag == ValueTag::None) {
       options.encoding = "utf-8";
+      options.encoding_non_none = false;
       return true;
     }
     if (value_as_string(value) == nullptr) {
@@ -303,11 +484,13 @@ bool apply_open_option(const std::string& key, const Value& value, OpenOptions& 
       return false;
     }
     options.encoding = string_object_to_string(*value_as_string(value));
+    options.encoding_non_none = true;
     return true;
   }
   if (key == "errors") {
     if (value.tag == ValueTag::None) {
       options.errors = "strict";
+      options.errors_non_none = false;
       return true;
     }
     if (value_as_string(value) == nullptr) {
@@ -315,12 +498,14 @@ bool apply_open_option(const std::string& key, const Value& value, OpenOptions& 
       return false;
     }
     options.errors = string_object_to_string(*value_as_string(value));
+    options.errors_non_none = true;
     return true;
   }
   if (key == "newline") {
     if (value.tag == ValueTag::None) {
       options.newline_is_none = true;
       options.newline.clear();
+      options.newline_non_none = false;
       return true;
     }
     if (value_as_string(value) == nullptr) {
@@ -329,6 +514,7 @@ bool apply_open_option(const std::string& key, const Value& value, OpenOptions& 
     }
     options.newline_is_none = false;
     options.newline = string_object_to_string(*value_as_string(value));
+    options.newline_non_none = true;
     if (!(options.newline.empty() || options.newline == "\n" || options.newline == "\r" || options.newline == "\r\n")) {
       error = "illegal newline value";
       return false;
@@ -344,10 +530,7 @@ bool apply_open_option(const std::string& key, const Value& value, OpenOptions& 
     return true;
   }
   if (key == "opener") {
-    if (value.tag != ValueTag::None) {
-      error = "open opener is not supported yet";
-      return false;
-    }
+    value_assign_fast(options.opener, value);
     return true;
   }
   error = "open got unsupported keyword argument '" + key + "'";
@@ -527,12 +710,77 @@ bool builtin_open(
   if (!parse_open_mode(mode, parsed, error)) {
     return false;
   }
+  if (parsed.binary && options.encoding_non_none) {
+    error = "binary mode doesn't take an encoding argument";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (parsed.binary && options.errors_non_none) {
+    error = "binary mode doesn't take an errors argument";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (parsed.binary && options.newline_non_none) {
+    error = "binary mode doesn't take a newline argument";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (parsed.binary && options.buffering == 1 && !warn_binary_line_buffering(runtime, error)) {
+    return false;
+  }
 
-  if (args[0].tag == ValueTag::Int64) {
-    const int64_t fd_value = args[0].as.i64;
-    if (fd_value < 0 || fd_value > static_cast<int64_t>(INT_MAX)) {
-      error = "open file descriptor out of range";
+  if (options.opener.tag != ValueTag::None) {
+    if (args[0].tag == ValueTag::Int64) {
+      error = "opener can only be used with a file path";
+      runtime.raise_class_error("ValueError", error);
       return false;
+    }
+    int flags = parsed.update ? O_RDWR : parsed.writable ? O_WRONLY : O_RDONLY;
+    if (parsed.append) flags |= O_APPEND;
+    if (parsed.create) flags |= O_CREAT;
+    if (parsed.truncate) flags |= O_TRUNC;
+    if (parsed.exclusive) flags |= O_EXCL;
+#if defined(_WIN32)
+    flags |= parsed.binary ? _O_BINARY : _O_TEXT;
+#endif
+    Value opener_args[] = {args[0], Value::int64(flags)};
+    Value descriptor;
+    if (!runtime_call_callable(runtime, options.opener, opener_args, 2, descriptor, error)) {
+      return false;
+    }
+    int64_t fd_value = 0;
+    if (!value_int_like_to_i64(descriptor, fd_value) || fd_value < 0 ||
+        fd_value > static_cast<int64_t>(INT_MAX)) {
+      error = "opener returned an invalid file descriptor";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    out = Value::fd_file(
+        static_cast<int>(fd_value), std::to_string(fd_value), mode,
+        parsed.readable, parsed.writable, parsed.binary, options.closefd);
+    auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+    file->runtime = &runtime;
+    initialize_fd_append_position(*file, parsed.append);
+    file->encoding = options.encoding;
+    file->errors = options.errors;
+    file->newline = options.newline;
+    file->newline_is_none = options.newline_is_none;
+    file->buffering = options.buffering;
+    return true;
+  }
+
+  if (args[0].tag == ValueTag::Int64 || args[0].tag == ValueTag::Bool) {
+    if (args[0].tag == ValueTag::Bool && !warn_bool_file_descriptor(runtime, error)) {
+      return false;
+    }
+    const int64_t fd_value = args[0].tag == ValueTag::Bool
+        ? (args[0].as.b ? 1 : 0)
+        : args[0].as.i64;
+    if (fd_value < 0 || fd_value > static_cast<int64_t>(INT_MAX)) {
+      return raise_bad_file_descriptor(runtime, error);
+    }
+    if (!descriptor_is_valid(static_cast<int>(fd_value))) {
+      return raise_bad_file_descriptor(runtime, error);
     }
     out = Value::fd_file(
         static_cast<int>(fd_value),
@@ -543,30 +791,47 @@ bool builtin_open(
         parsed.binary,
         options.closefd);
     auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+    file->runtime = &runtime;
+    initialize_fd_append_position(*file, parsed.append);
     file->encoding = options.encoding;
     file->errors = options.errors;
     file->newline = options.newline;
     file->newline_is_none = options.newline_is_none;
+    file->buffering = options.buffering;
     return true;
   }
 
   std::string path;
   if (!get_path_arg(runtime, args[0], "open path", path, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
 
   if (is_devnull_path(path)) {
-    out = Value::file(nullptr, path, mode, {}, parsed.writable);
+    int flags = parsed.update ? O_RDWR : parsed.writable ? O_WRONLY : O_RDONLY;
+    if (parsed.append) flags |= O_APPEND;
+#if defined(_WIN32)
+    flags |= _O_BINARY | _O_NOINHERIT;
+    const int fd = _wopen(L"NUL", flags);
+#else
+    const int fd = ::open("/dev/null", flags);
+#endif
+    if (fd < 0) {
+      return raise_open_os_error(runtime, path, errno, error);
+    }
+    out = Value::fd_file(fd, path, mode, parsed.readable, parsed.writable,
+                         parsed.binary, options.closefd);
     auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+    file->runtime = &runtime;
     file->readable = parsed.readable;
     file->writable = parsed.writable;
     file->append = parsed.append;
     file->binary = parsed.binary;
-    file->devnull = true;
     file->encoding = options.encoding;
     file->errors = options.errors;
     file->newline = options.newline;
     file->newline_is_none = options.newline_is_none;
+    file->buffering = options.buffering;
     return true;
   }
 
@@ -575,10 +840,62 @@ bool builtin_open(
     return false;
   }
 
+  std::string native_path;
+  if (resolved.fs->native_path(resolved.path, native_path)) {
+    int flags = parsed.update ? O_RDWR : parsed.writable ? O_WRONLY : O_RDONLY;
+    if (parsed.append) flags |= O_APPEND;
+    if (parsed.create) flags |= O_CREAT;
+    if (parsed.truncate) flags |= O_TRUNC;
+    if (parsed.exclusive) flags |= O_EXCL;
+#if defined(_WIN32)
+    // FileObject performs text decoding and newline translation itself.
+    flags |= _O_BINARY | _O_NOINHERIT;
+    const int fd = _wopen(
+        std::filesystem::u8path(native_path).c_str(),
+        flags,
+        _S_IREAD | _S_IWRITE);
+#else
+    const int fd = ::open(native_path.c_str(), flags, 0666);
+#endif
+    if (fd < 0) {
+      return raise_open_os_error(runtime, path, errno, error);
+    }
+#if defined(_WIN32)
+    if (_stricmp(native_path.c_str(), "conout$") == 0) {
+      CONSOLE_SCREEN_BUFFER_INFO console_info{};
+      const intptr_t handle = _get_osfhandle(fd);
+      if (handle == -1 ||
+          !GetConsoleScreenBufferInfo(reinterpret_cast<HANDLE>(handle), &console_info)) {
+        _close(fd);
+        error = "cannot open console output";
+        runtime.raise_class_error("OSError", error);
+        return false;
+      }
+    }
+#endif
+    out = Value::fd_file(
+        fd, path, mode, parsed.readable, parsed.writable, parsed.binary,
+        options.closefd);
+    auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+    file->runtime = &runtime;
+    initialize_fd_append_position(*file, parsed.append);
+    file->encoding = options.encoding;
+    file->errors = options.errors;
+    file->newline = options.newline;
+    file->newline_is_none = options.newline_is_none;
+    file->buffering = options.buffering;
+    return true;
+  }
+
   std::string buffer;
   VfsStat stat;
   std::string stat_error;
   const bool stat_ok = resolved.fs->stat(resolved.path, stat, stat_error);
+  if (stat_ok && stat.kind == VfsNodeKind::Directory) {
+    error = "is a directory: " + path;
+    runtime.raise_class_error("IsADirectoryError", error);
+    return false;
+  }
   const bool exists = stat_ok && stat.kind == VfsNodeKind::File;
   if (parsed.exclusive && exists) {
     error = "file exists: " + path;
@@ -588,6 +905,7 @@ bool builtin_open(
     std::vector<uint8_t> bytes;
     if (exists && !parsed.truncate) {
       if (!resolved.fs->read_file(resolved.path, bytes, error)) {
+        runtime.raise_class_error("OSError", error);
         return false;
       }
       buffer.assign(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -596,6 +914,13 @@ bool builtin_open(
       }
     } else if (!parsed.writable) {
       return raise_file_not_found(runtime, path, error);
+    }
+  }
+
+  if ((parsed.create && !exists) || parsed.truncate) {
+    if (!resolved.fs->write_file(resolved.path, nullptr, 0, error)) {
+      runtime.raise_class_error("OSError", error);
+      return false;
     }
   }
 
@@ -609,6 +934,7 @@ bool builtin_open(
   file->errors = options.errors;
   file->newline = options.newline;
   file->newline_is_none = options.newline_is_none;
+  file->buffering = options.buffering;
   file->cursor = parsed.append ? file->buffer.size() : 0;
   return true;
 }

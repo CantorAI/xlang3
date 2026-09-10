@@ -144,7 +144,8 @@ $sectionCases = @(
     "strings_and_unicode",
     "imports_and_modules",
     "builtins",
-    "standard_modules"
+    "standard_modules",
+    "system_stdlib"
 )
 
 foreach ($case in $sectionCases) {
@@ -176,7 +177,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($uncaughtExitCode -ne 1) {
     throw "uncaught_exception expected exit code 1, got $uncaughtExitCode"
 }
-if ($uncaughtOutput -notlike "*runtime: uncaught exception*" -or $uncaughtOutput -notlike "*top*") {
+if ($uncaughtOutput -notlike "*Traceback (most recent call last):*" -or $uncaughtOutput -notlike "*RuntimeError: top*") {
     throw "uncaught_exception output mismatch. Got '$uncaughtOutput'"
 }
 Write-Host "fixture uncaught_exception ok"
@@ -190,7 +191,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($uncaughtRuntimeExitCode -ne 1) {
     throw "uncaught_runtime_error expected exit code 1, got $uncaughtRuntimeExitCode"
 }
-if ($uncaughtRuntimeOutput -notlike "*runtime: uncaught exception*" -or $uncaughtRuntimeOutput -notlike "*division by zero*") {
+if ($uncaughtRuntimeOutput -notlike "*Traceback (most recent call last):*" -or $uncaughtRuntimeOutput -notlike "*ZeroDivisionError: division by zero*") {
     throw "uncaught_runtime_error output mismatch. Got '$uncaughtRuntimeOutput'"
 }
 Write-Host "fixture uncaught_runtime_error ok"
@@ -204,7 +205,7 @@ $ErrorActionPreference = $oldErrorActionPreference
 if ($unsetAttrExitCode -ne 1) {
     throw "unset_instance_attr expected exit code 1, got $unsetAttrExitCode"
 }
-if ($unsetAttrOutput -notlike "*runtime: uncaught exception*" -or $unsetAttrOutput -notlike "*object has no attribute*") {
+if ($unsetAttrOutput -notlike "*Traceback (most recent call last):*" -or $unsetAttrOutput -notlike "*AttributeError: object has no attribute 'x'*") {
     throw "unset_instance_attr output mismatch. Got '$unsetAttrOutput'"
 }
 Write-Host "fixture unset_instance_attr ok"

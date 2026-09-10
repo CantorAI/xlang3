@@ -32,9 +32,11 @@ enum class TokenKind {
   Identifier,
   Integer,
   Double,
+  Complex,
   String,
   Bytes,
   FString,
+  TemplateString,
   KwDef,
   KwClass,
   KwReturn,
@@ -214,7 +216,7 @@ private:
   ast::ExprPtr parse_primary();
   ast::ExprPtr parse_comprehension_target(std::string& first_name);
   std::vector<ast::CompClause> parse_extra_comp_clauses();
-  ast::ExprPtr finish_generator_expression(ast::ExprPtr first);
+  ast::ExprPtr finish_generator_expression(ast::ExprPtr first, bool is_async = false);
   bool parse_function_signature(
       std::vector<std::string>& params,
       std::vector<ast::FunctionDef::Param>& signature,

@@ -230,7 +230,7 @@ bool op_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     }
   }
   bool result = false;
-  if (!value_contains(args[0], args[1], result, error)) {
+  if (!runtime_value_contains(runtime, args[0], args[1], result, error)) {
     return false;
   }
   out = Value::boolean(result);
@@ -369,6 +369,65 @@ bool op_length_hint(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool op_compare_digest(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "_compare_digest", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::string_view left;
+  std::string_view right;
+  const bool left_is_text = value_as_string(args[0]) != nullptr;
+  const bool right_is_text = value_as_string(args[1]) != nullptr;
+  if (left_is_text || right_is_text) {
+    if (!left_is_text || !right_is_text) {
+      error = "a bytes-like object is required, not 'str'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    left = string_object_view(*value_as_string(args[0]));
+    right = string_object_view(*value_as_string(args[1]));
+    const auto is_non_ascii = [](std::string_view value) {
+      for (unsigned char ch : value) {
+        if (ch >= 0x80) return true;
+      }
+      return false;
+    };
+    if (is_non_ascii(left) || is_non_ascii(right)) {
+      error = "comparing strings with non-ASCII characters is not supported";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  } else {
+    const auto bytes_view = [](const Value& value, std::string_view& view) {
+      if (auto* bytes = value_as_bytes(value)) {
+        view = bytes_object_view(*bytes);
+        return true;
+      }
+      if (auto* bytearray = value_as_bytearray(value)) {
+        view = std::string_view(bytearray->value.data(), bytearray->value.size());
+        return true;
+      }
+      return false;
+    };
+    if (!bytes_view(args[0], left) || !bytes_view(args[1], right)) {
+      error = "unsupported operand types for compare_digest";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+
+  const size_t width = left.size() > right.size() ? left.size() : right.size();
+  unsigned char different = static_cast<unsigned char>(left.size() != right.size());
+  for (size_t i = 0; i < width; ++i) {
+    const unsigned char lhs = i < left.size() ? static_cast<unsigned char>(left[i]) : 0;
+    const unsigned char rhs = i < right.size() ? static_cast<unsigned char>(right[i]) : 0;
+    different |= static_cast<unsigned char>(lhs ^ rhs);
+  }
+  out = Value::boolean(different == 0);
+  return true;
+}
+
 void add_alias(NativeModuleBuilder& builder, Runtime& runtime, const char* name, NativeFunctionCallback callback) {
   builder.value(name, runtime.make_native_function(name, callback));
 }
@@ -414,7 +473,8 @@ void register_operator_module(Runtime& runtime) {
       .function("invert", op_invert)
       .function("index", op_index)
       .function("call", op_call)
-      .function("length_hint", op_length_hint);
+      .function("length_hint", op_length_hint)
+      .function("_compare_digest", op_compare_digest);
 
   add_alias(builder, runtime, "iadd", op_add);
   add_alias(builder, runtime, "isub", op_sub);

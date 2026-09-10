@@ -62,6 +62,67 @@ limitations under the License.
 
 namespace xlang3 {
 
+bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
+  if (generator.vm_state == nullptr) {
+    return false;
+  }
+  const auto* state = static_cast<const GeneratorVMState*>(generator.vm_state);
+  if (state->frame_count == 0 || state->frame_count > state->frames.size()) {
+    return false;
+  }
+  const auto& frame = state->frames[state->frame_count - 1];
+  if (frame.fn == nullptr || frame.module_owner == nullptr) {
+    return false;
+  }
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(frame.fn->locals.size() + frame.fn->free_vars.size());
+  for (size_t local_index = 0; local_index < frame.fn->locals.size() && local_index < frame.locals.size(); ++local_index) {
+    const auto& name = frame.fn->locals[local_index];
+    if (name.empty() || name[0] == '#') {
+      continue;
+    }
+    const Value* local_value = &frame.locals[local_index];
+    for (size_t cell_index = 0; cell_index < frame.fn->cell_slots.size() && cell_index < frame.cells.size(); ++cell_index) {
+      if (frame.fn->cell_slots[cell_index] == local_index) {
+        if (auto* cell = value_as_cell(frame.cells[cell_index])) {
+          local_value = &cell->value;
+        }
+        break;
+      }
+    }
+    if (local_value->tag != ValueTag::Invalid) {
+      entries.push_back({Value::string(name), *local_value});
+    }
+  }
+  if (frame.closure != nullptr) {
+    for (size_t free_index = 0;
+         free_index < frame.fn->free_vars.size() && free_index < frame.closure->size();
+         ++free_index) {
+      const auto& name = frame.fn->free_vars[free_index];
+      if (name.empty() || name[0] == '#') {
+        continue;
+      }
+      const Value* free_value = &(*frame.closure)[free_index];
+      if (auto* cell = value_as_cell(*free_value)) {
+        free_value = &cell->value;
+      }
+      if (free_value->tag != ValueTag::Invalid) {
+        entries.push_back({Value::string(name), *free_value});
+      }
+    }
+  }
+  out = Value::frame(
+      frame.module_owner,
+      frame.function_id,
+      frame.globals_module,
+      static_cast<uint32_t>(frame.ip),
+      Value::dict(std::move(entries)),
+      Value::none(),
+      Value::none(),
+      frame.activation_id);
+  return true;
+}
+
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
     uint32_t function_id,
@@ -110,9 +171,50 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto has_dynamic_positional_defaults = [](const ir::Function& target_fn,
+                                             const std::vector<Value>& defaults) -> bool {
+    return defaults.size() == target_fn.signature.size() + 1 &&
+           !defaults.empty() && defaults.back().tag == ValueTag::Invalid;
+  };
+
   std::function<bool(const std::string&)> bind_error = [&](const std::string& message) -> bool {
+    runtime_.set_pending_exception(runtime_.make_exception("TypeError", message));
     result.errors.push_back(message);
     return false;
+  };
+
+  auto callable_display_name = [](const ir::Function& target_fn, CallArgsView values) {
+    if (values.size() != 0 && target_fn.name.size() >= 4 &&
+        target_fn.name[0] == '_' && target_fn.name[1] == '_') {
+      if (auto* instance = value_as_instance(values.get(0))) {
+        if (auto* klass = value_as_class(instance->klass)) {
+          return klass->name + "." + target_fn.name;
+        }
+      }
+    }
+    return target_fn.name;
+  };
+
+  auto bind_count_error = [&](const ir::Function& target_fn, CallArgsView values) -> bool {
+    const size_t expected = target_fn.params.size();
+    const size_t provided = values.size();
+    const std::string display_name = callable_display_name(target_fn, values);
+    if (provided < expected) {
+      const size_t missing = expected - provided;
+      std::string message = display_name + "() missing " + std::to_string(missing) +
+                            " required positional argument" + (missing == 1 ? ": " : "s: ");
+      for (size_t i = provided; i < expected; ++i) {
+        if (i != provided) {
+          message += i + 1 == expected ? " and " : ", ";
+        }
+        message += "'" + target_fn.params[i] + "'";
+      }
+      return bind_error(message);
+    }
+    return bind_error(
+        display_name + "() takes " + std::to_string(expected) + " positional argument" +
+        (expected == 1 ? "" : "s") + " but " + std::to_string(provided) +
+        (provided == 1 ? " was given" : " were given"));
   };
 
   auto bind_args = [&](const ir::Function& target_fn,
@@ -129,10 +231,11 @@ RuntimeResult Interpreter::run_function(
       signature_ptr = &synthetic_signature;
     }
     const auto& signature = *signature_ptr;
-    if (target_fn.signature.empty() && !values.has_keywords() && !values.has_expansion()) {
+    const bool dynamic_positional_defaults = has_dynamic_positional_defaults(target_fn, defaults);
+    if (target_fn.signature.empty() && !dynamic_positional_defaults &&
+        !values.has_keywords() && !values.has_expansion()) {
       if (values.size() != target_fn.params.size()) {
-        return bind_error("function '" + target_fn.name + "' expected " + std::to_string(target_fn.params.size()) +
-                          " arguments, got " + std::to_string(values.size()));
+        return bind_count_error(target_fn, values);
       }
       return true;
     }
@@ -185,6 +288,8 @@ RuntimeResult Interpreter::run_function(
     int32_t kwargs_index = -1;
     size_t next_positional_param = 0;
     size_t positional_index = 0;
+    bool too_many_positional = false;
+    size_t keyword_only_given = 0;
     std::vector<Value> extra_positional;
     std::vector<std::pair<Value, Value>> extra_keywords;
     for (size_t i = 0; i < signature.size(); ++i) {
@@ -207,7 +312,8 @@ RuntimeResult Interpreter::run_function(
       } else if (varargs_index >= 0) {
         extra_positional.push_back(positional[positional_index++]);
       } else {
-        return bind_error("function '" + target_fn.name + "' got too many positional arguments");
+        too_many_positional = true;
+        break;
       }
     }
     if (varargs_index >= 0) {
@@ -215,22 +321,36 @@ RuntimeResult Interpreter::run_function(
     }
 
     auto bind_keyword = [&](const std::string& name, const Value& value) -> bool {
+      bool matched_positional_only = false;
       for (size_t i = 0; i < signature.size(); ++i) {
         if (signature[i].name != name) continue;
         if (signature[i].kind == ir::ParamKind::PosOnly) {
-          return bind_error("function '" + target_fn.name + "' got positional-only argument as keyword");
+          matched_positional_only = true;
+          continue;
+        }
+        if (signature[i].kind == ir::ParamKind::VarArgs ||
+            signature[i].kind == ir::ParamKind::KwArgs) {
+          continue;
         }
         if (bound[i].tag != ValueTag::Invalid) {
-          return bind_error("function '" + target_fn.name + "' got multiple values for argument '" + name + "'");
+          return bind_error(
+              callable_display_name(target_fn, values) + "() got multiple values for argument '" + name + "'");
         }
         value_assign_fast(bound[i], value);
+        if (signature[i].kind == ir::ParamKind::KeywordOnly) {
+          ++keyword_only_given;
+        }
         return true;
       }
       if (kwargs_index >= 0) {
         extra_keywords.push_back(std::make_pair(Value::string(name), value));
         return true;
       }
-      return bind_error("function '" + target_fn.name + "' got unexpected keyword argument '" + name + "'");
+      if (matched_positional_only) {
+        return bind_error(callable_display_name(target_fn, values) + "() got positional-only argument as keyword");
+      }
+      return bind_error(
+          callable_display_name(target_fn, values) + "() got an unexpected keyword argument '" + name + "'");
     };
     if (values.keyword_args != nullptr) {
       for (const auto& keyword : *values.keyword_args) {
@@ -240,11 +360,42 @@ RuntimeResult Interpreter::run_function(
       }
     }
     auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
-      auto* dict = value_as_dict(values.registers[kw_star_reg]);
-      if (dict == nullptr) {
-        return bind_error("function '" + target_fn.name + "' ** argument must be dict");
+      const Value& mapping = values.registers[kw_star_reg];
+      std::vector<std::pair<Value, Value>> entries;
+      if (auto* dict = value_as_dict(mapping)) {
+        entries = dict->entries;
+      } else {
+        Value keys_method;
+        Value getitem_method;
+        std::string mapping_error;
+        if (!object_get_attr(mapping, "keys", keys_method, mapping_error) ||
+            !object_get_attr(mapping, "__getitem__", getitem_method, mapping_error)) {
+          return bind_error("function '" + target_fn.name + "' ** argument must be a mapping");
+        }
+        Value keys_result;
+        if (!runtime_call_callable(runtime_, keys_method, nullptr, 0, keys_result, mapping_error)) {
+          return bind_error(mapping_error.empty()
+              ? "function '" + target_fn.name + "' failed to read ** argument keys"
+              : mapping_error);
+        }
+        std::vector<Value> keys;
+        if (!runtime_collect_iterable(runtime_, keys_result, keys, mapping_error)) {
+          return bind_error(mapping_error.empty()
+              ? "function '" + target_fn.name + "' ** argument keys must be iterable"
+              : mapping_error);
+        }
+        entries.reserve(keys.size());
+        for (const auto& key : keys) {
+          Value item;
+          if (!runtime_call_callable(runtime_, getitem_method, &key, 1, item, mapping_error)) {
+            return bind_error(mapping_error.empty()
+                ? "function '" + target_fn.name + "' failed to read ** argument"
+                : mapping_error);
+          }
+          entries.emplace_back(key, std::move(item));
+        }
       }
-      for (const auto& entry : dict->entries) {
+      for (const auto& entry : entries) {
         auto* key = value_as_string(entry.first);
         if (key == nullptr) {
           return bind_error("function '" + target_fn.name + "' ** argument keys must be strings");
@@ -269,11 +420,54 @@ RuntimeResult Interpreter::run_function(
     if (kwargs_index >= 0) {
       bound[static_cast<size_t>(kwargs_index)] = Value::dict(std::move(extra_keywords));
     }
+    if (too_many_positional) {
+      size_t positional_capacity = 0;
+      size_t required_positional = 0;
+      for (size_t i = 0; i < signature.size(); ++i) {
+        const auto& param = signature[i];
+        if (param.kind != ir::ParamKind::PosOnly && param.kind != ir::ParamKind::PosOrKeyword) {
+          continue;
+        }
+        ++positional_capacity;
+        const bool has_default = dynamic_positional_defaults
+            ? i < defaults.size() && defaults[i].tag != ValueTag::Invalid
+            : param.default_reg != UINT32_MAX && param.default_reg < defaults.size() &&
+                  defaults[param.default_reg].tag != ValueTag::Invalid;
+        if (!has_default) {
+          ++required_positional;
+        }
+      }
+      const std::string display_name = callable_display_name(target_fn, values);
+      std::string expected;
+      if (required_positional != positional_capacity) {
+        expected = "from " + std::to_string(required_positional) + " to " +
+                   std::to_string(positional_capacity) + " positional arguments";
+      } else {
+        expected = std::to_string(positional_capacity) + " positional argument" +
+                   (positional_capacity == 1 ? "" : "s");
+      }
+      std::string provided = std::to_string(positional.size());
+      if (keyword_only_given != 0) {
+        provided += " positional argument" + std::string(positional.size() == 1 ? "" : "s") +
+                    " (and " + std::to_string(keyword_only_given) + " keyword-only argument" +
+                    (keyword_only_given == 1 ? "" : "s") + ")";
+      }
+      return bind_error(
+          display_name + "() takes " + expected + " but " + provided +
+          (positional.size() == 1 && keyword_only_given == 0 ? " was given" : " were given"));
+    }
+    std::vector<std::string> missing_positional;
+    std::vector<std::string> missing_keyword_only;
     for (size_t i = 0; i < signature.size(); ++i) {
       if (bound[i].tag != ValueTag::Invalid) {
         continue;
       }
-      if (signature[i].default_reg != UINT32_MAX &&
+      if (dynamic_positional_defaults && i < defaults.size() &&
+          defaults[i].tag != ValueTag::Invalid) {
+        value_assign_fast(bound[i], defaults[i]);
+        continue;
+      }
+      if (!dynamic_positional_defaults && signature[i].default_reg != UINT32_MAX &&
           signature[i].default_reg < defaults.size() &&
           defaults[signature[i].default_reg].tag != ValueTag::Invalid) {
         value_assign_fast(bound[i], defaults[signature[i].default_reg]);
@@ -287,7 +481,33 @@ RuntimeResult Interpreter::run_function(
         bound[i] = Value::dict({});
         continue;
       }
-      return bind_error("function '" + target_fn.name + "' missing required argument '" + signature[i].name + "'");
+      if (signature[i].kind == ir::ParamKind::KeywordOnly) {
+        missing_keyword_only.push_back(signature[i].name);
+      } else {
+        missing_positional.push_back(signature[i].name);
+      }
+    }
+    auto format_missing_names = [](const std::vector<std::string>& names) {
+      std::string text;
+      for (size_t i = 0; i < names.size(); ++i) {
+        if (i != 0) {
+          text += i + 1 == names.size() ? (names.size() == 2 ? " and " : ", and ") : ", ";
+        }
+        text += "'" + names[i] + "'";
+      }
+      return text;
+    };
+    auto report_missing = [&](const std::vector<std::string>& names, const std::string& kind) {
+      const std::string display_name = callable_display_name(target_fn, values);
+      return bind_error(
+          display_name + "() missing " + std::to_string(names.size()) + " required " + kind +
+          " argument" + (names.size() == 1 ? ": " : "s: ") + format_missing_names(names));
+    };
+    if (!missing_positional.empty()) {
+      return report_missing(missing_positional, "positional");
+    }
+    if (!missing_keyword_only.empty()) {
+      return report_missing(missing_keyword_only, "keyword-only");
     }
     return true;
   };
@@ -298,7 +518,8 @@ RuntimeResult Interpreter::run_function(
     entry_args = {};
   } else if (generator != nullptr && generator->args_bound) {
     entry_args = args;
-  } else if (!simple_signature(fn) || args.has_keywords() || args.has_expansion()) {
+  } else if (!simple_signature(fn) || has_dynamic_positional_defaults(fn, fn_obj_defaults) ||
+             args.has_keywords() || args.has_expansion()) {
     if (!bind_args(fn, args, fn_obj_defaults, entry_bound_args)) {
       return result;
     }
@@ -310,8 +531,7 @@ RuntimeResult Interpreter::run_function(
     entry_args.star_arg = UINT32_MAX;
     entry_args.kw_star_arg = UINT32_MAX;
   } else if (args.size() != fn.params.size()) {
-    bind_error("function '" + fn.name + "' expected " + std::to_string(fn.params.size()) +
-               " arguments, got " + std::to_string(args.size()));
+    bind_count_error(fn, args);
     return result;
   }
 
@@ -351,6 +571,7 @@ RuntimeResult Interpreter::run_function(
     frames.reserve(64);
     frames.emplace_back(
         module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+    frames.back().activation_id = runtime_.allocate_frame_activation_id();
     frame_count = 1;
   }
 
@@ -373,14 +594,14 @@ RuntimeResult Interpreter::run_function(
     }
 
     std::vector<Value> args_for_generator;
-    if (!simple_signature(call_fn) || call_args.has_keywords() || call_args.has_expansion()) {
+    if (!simple_signature(call_fn) || has_dynamic_positional_defaults(call_fn, fn_obj->defaults) ||
+        call_args.has_keywords() || call_args.has_expansion()) {
       if (!bind_args(call_fn, call_args, fn_obj->defaults, args_for_generator)) {
         return false;
       }
     } else {
       if (call_args.size() != call_fn.params.size()) {
-        return bind_error("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
-                          " arguments, got " + std::to_string(call_args.size()));
+        return bind_count_error(call_fn, call_args);
       }
       args_for_generator.reserve(call_args.size());
       for (size_t i = 0; i < call_args.size(); ++i) {
@@ -394,6 +615,13 @@ RuntimeResult Interpreter::run_function(
         fn_obj->globals_module,
         fn_obj->module != nullptr ? fn_obj->module : module_owner,
         fn_obj->defaults);
+    if (auto* generated_function = value_as_function(function_value)) {
+      value_assign_fast(generated_function->attrs_dict, fn_obj->attrs_dict);
+      value_assign_fast(generated_function->globals_dict, fn_obj->globals_dict);
+      generated_function->positional_defaults = fn_obj->positional_defaults;
+      generated_function->kwdefaults = fn_obj->kwdefaults;
+      generated_function->qualname = fn_obj->qualname;
+    }
     out = Value::generator(
         &runtime_,
         std::move(function_value),
@@ -405,6 +633,7 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  Value deferred_frame_exception;
   auto push_frame = [&](const ir::Module& call_module,
                         uint32_t call_function_id,
                         CallArgsView call_args,
@@ -415,6 +644,19 @@ RuntimeResult Interpreter::run_function(
                         uint32_t return_dst,
                         FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
                         Value continuation_value = Value::invalid()) -> bool {
+    // Some source-backed operations still use recursive native helper paths
+    // while Python frames are active.  Keep a conservative host-stack ceiling
+    // in addition to the user-visible recursion limit so recursive logging and
+    // traceback inspection raise Python's RecursionError before Windows can
+    // raise an access violation.
+    constexpr size_t kSafeHostFrameLimit = 1024;
+    const size_t effective_recursion_limit = std::min(
+        static_cast<size_t>(runtime_.recursion_limit()), kSafeHostFrameLimit);
+    if (frame_count >= effective_recursion_limit) {
+      deferred_frame_exception = runtime_.make_exception(
+          "RecursionError", "maximum recursion depth exceeded");
+      return false;
+    }
     if (call_function_id >= call_module.functions.size()) {
       result.errors.push_back("invalid function id");
       return false;
@@ -422,7 +664,8 @@ RuntimeResult Interpreter::run_function(
     const auto& call_fn = call_module.functions[call_function_id];
     std::vector<Value> bound_args;
     CallArgsView frame_args = call_args;
-    if (!simple_signature(call_fn) || call_args.has_keywords() || call_args.has_expansion()) {
+    if (!simple_signature(call_fn) || has_dynamic_positional_defaults(call_fn, defaults) ||
+        call_args.has_keywords() || call_args.has_expansion()) {
       if (!bind_args(call_fn, call_args, defaults, bound_args)) {
         return false;
       }
@@ -436,8 +679,7 @@ RuntimeResult Interpreter::run_function(
       frame_args.star_args = nullptr;
       frame_args.kw_star_args = nullptr;
     } else if (call_args.size() != call_fn.params.size()) {
-      return bind_error("function '" + call_fn.name + "' expected " + std::to_string(call_fn.params.size()) +
-                        " arguments, got " + std::to_string(call_args.size()));
+      return bind_count_error(call_fn, call_args);
     }
     if (frame_count < frames.size()) {
       frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
@@ -449,6 +691,7 @@ RuntimeResult Interpreter::run_function(
                           std::move(continuation_value));
     }
     auto& pushed = frames[frame_count];
+    pushed.activation_id = runtime_.allocate_frame_activation_id();
     ++frame_count;
     for (size_t i = 0; i < pushed.fn->cell_slots.size(); ++i) {
       if (pushed.fn->cell_slots[i] >= pushed.locals.size()) {
@@ -481,6 +724,11 @@ RuntimeResult Interpreter::run_function(
           &view_frame.ip,
           view_frame.locals.size(),
           view_frame.function_id,
+          view_frame.activation_id,
+          view_frame.regs.value_data(),
+          &view_frame.register_last_use,
+          view_frame.regs.size(),
+          &view_frame.native_call_args,
       });
     }
     runtime_.set_current_frame_stack(runtime_frame_views.data(), runtime_frame_views.size());
@@ -611,10 +859,9 @@ RuntimeResult Interpreter::run_function(
         monitoring_frame.locals.value_data(),
         monitoring_frame.locals.size());
 
-    Value code = Value::none();
-    Value frame = runtime_.current_frame_snapshot();
-    std::string attr_error;
-    (void)object_get_attr(frame, "f_code", code, attr_error);
+    Value code = monitoring_frame.module_owner != nullptr
+        ? Value::code(monitoring_frame.module_owner, monitoring_frame.function_id)
+        : Value::none();
 
     std::string monitoring_error;
     if (!sys_monitoring_dispatch_event(
@@ -700,53 +947,134 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto finish_frame = [&](const Value& return_value) -> bool {
+    runtime_.refresh_live_frame_snapshots();
+    Value owned_return_value;
+    value_assign_fast(owned_return_value, return_value);
     VMFrame& finished = frames[frame_count - 1];
-    if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &return_value)) {
+    if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &owned_return_value)) {
       return false;
     }
-    if (!emit_trace_event(finished, "return", return_value)) {
+    if (!emit_trace_event(finished, "return", owned_return_value)) {
       return false;
     }
-    if (!emit_profile_event(finished, "return", return_value)) {
+    if (!emit_profile_event(finished, "return", owned_return_value)) {
       return false;
     }
     const uint32_t return_dst = finished.return_dst;
     const bool has_caller = finished.has_caller;
     const FrameReturnMode return_mode = finished.return_mode;
+    Value continuation_value;
+    if (return_mode == FrameReturnMode::StoreConstructedInstance) {
+      value_assign_fast(continuation_value, finished.continuation_value);
+    }
     while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
       restore_active_exception_context();
     }
     if (!has_caller) {
-      value_assign_fast(result.value, return_value);
+      value_assign_fast(result.value, owned_return_value);
+      finished.clear_for_pop();
       --frame_count;
       return false;
     }
+    finished.clear_for_pop();
     --frame_count;
     Value& target = frames[frame_count - 1].regs[return_dst];
     if (return_mode == FrameReturnMode::StoreConstructedInstance) {
-      value_assign_fast(target, finished.continuation_value);
+      value_assign_fast(target, continuation_value);
     } else if (return_mode == FrameReturnMode::StoreBoolean ||
                return_mode == FrameReturnMode::StoreNegatedBoolean) {
-      value_set_bool(target, value_truthy(return_value) != (return_mode == FrameReturnMode::StoreNegatedBoolean));
+      value_set_bool(target, value_truthy(owned_return_value) != (return_mode == FrameReturnMode::StoreNegatedBoolean));
     } else {
-      value_assign_fast(target, return_value);
+      value_assign_fast(target, owned_return_value);
     }
     return true;
   };
 
-  auto make_traceback_from_frames = [&]() -> Value {
+  auto make_traceback_from_frames = [&](bool track_live_frames = false) -> Value {
+    Value builtins = Value::dict({});
+    Value builtins_module;
+    std::string builtins_error;
+    if (runtime_.import_module("builtins", builtins_module, builtins_error)) {
+      if (auto* module_object = value_as_module(builtins_module)) {
+        std::vector<std::pair<Value, Value>> entries;
+        entries.reserve(module_object->name_to_slot.size());
+        for (const auto& attr : module_object->name_to_slot) {
+          if (attr.second < module_object->slots.size() &&
+              module_object->slots[attr.second].tag != ValueTag::Invalid) {
+            entries.push_back({Value::string(attr.first), module_object->slots[attr.second]});
+          }
+        }
+        builtins = Value::dict(std::move(entries));
+      }
+    }
     Value next = Value::none();
     for (size_t index = frame_count; index > 0; --index) {
       const auto& captured = frames[index - 1];
+      // A caller is suspended after its call instruction, while the active
+      // frame still points at the instruction that raised.  Tracebacks report
+      // the call site for suspended callers.
+      const uint32_t traceback_ip = index < frame_count && captured.ip > 0
+          ? captured.ip - 1
+          : captured.ip;
+      std::vector<std::pair<Value, Value>> local_entries;
+      if (captured.fn != nullptr) {
+        local_entries.reserve(captured.fn->locals.size() + captured.fn->free_vars.size());
+        for (size_t local_index = 0;
+             local_index < captured.fn->locals.size() && local_index < captured.locals.size();
+             ++local_index) {
+          const auto& name = captured.fn->locals[local_index];
+          if (name.empty() || name[0] == '#') {
+            continue;
+          }
+          const Value* local_value = &captured.locals[local_index];
+          for (size_t cell_index = 0;
+               cell_index < captured.fn->cell_slots.size() && cell_index < captured.cells.size();
+               ++cell_index) {
+            if (captured.fn->cell_slots[cell_index] == local_index) {
+              if (auto* cell = value_as_cell(captured.cells[cell_index])) {
+                local_value = &cell->value;
+              }
+              break;
+            }
+          }
+          if (local_value->tag != ValueTag::Invalid) {
+            local_entries.push_back({Value::string(name), *local_value});
+          }
+        }
+        if (captured.closure != nullptr) {
+          for (size_t free_index = 0;
+               free_index < captured.fn->free_vars.size() && free_index < captured.closure->size();
+               ++free_index) {
+            const auto& name = captured.fn->free_vars[free_index];
+            if (name.empty() || name[0] == '#') {
+              continue;
+            }
+            const Value* free_value = &(*captured.closure)[free_index];
+            if (auto* cell = value_as_cell(*free_value)) {
+              free_value = &cell->value;
+            }
+            if (free_value->tag != ValueTag::Invalid) {
+              local_entries.push_back({Value::string(name), *free_value});
+            }
+          }
+        }
+      }
       Value frame_object = Value::frame(
           captured.module_owner,
           captured.function_id,
           captured.globals_module,
-          captured.ip);
-      int64_t source_line = static_cast<int64_t>(captured.ip);
-      if (captured.fn != nullptr && captured.ip < captured.fn->source_lines.size() &&
-          captured.fn->source_lines[captured.ip] != 0) {
-        source_line = static_cast<int64_t>(captured.fn->source_lines[captured.ip]);
+          traceback_ip,
+          Value::dict(std::move(local_entries)),
+          Value::invalid(),
+          builtins,
+          captured.activation_id);
+      if (track_live_frames) {
+        runtime_.track_live_frame_snapshot(frame_object);
+      }
+      int64_t source_line = static_cast<int64_t>(traceback_ip);
+      if (captured.fn != nullptr && traceback_ip < captured.fn->source_lines.size() &&
+          captured.fn->source_lines[traceback_ip] != 0) {
+        source_line = static_cast<int64_t>(captured.fn->source_lines[traceback_ip]);
       }
       next = Value::traceback(std::move(frame_object), std::move(next), source_line);
     }
@@ -764,12 +1092,57 @@ RuntimeResult Interpreter::run_function(
     return runtime_.make_exception("RuntimeError", value_to_string(value));
   };
 
-  auto dispatch_exception = [&](Value exception) -> bool {
+  auto dispatch_exception = [&](Value exception,
+                                bool preserve_reraised_traceback = false,
+                                bool deduplicate_bare_reraise_frame = false) -> bool {
+    runtime_.refresh_live_frame_snapshots();
     Value previous_exception;
     value_assign_fast(previous_exception, current_exception);
     if (value_as_instance(exception) != nullptr) {
       std::string ignored;
-      Value traceback = make_traceback_from_frames();
+      if (current_exception.tag != ValueTag::Invalid &&
+          !value_is(exception, current_exception)) {
+        Value existing_context;
+        if (!object_get_attr(exception, "__context__", existing_context, ignored) ||
+            existing_context.tag == ValueTag::None ||
+            existing_context.tag == ValueTag::Invalid) {
+          object_set_attr(exception, "__context__", current_exception, ignored);
+        }
+      }
+      Value traceback = make_traceback_from_frames(true);
+      if (preserve_reraised_traceback) {
+        Value existing_traceback;
+        if (object_get_attr(exception, "__traceback__", existing_traceback, ignored) &&
+            value_as_traceback(existing_traceback) != nullptr) {
+          auto* cursor = value_as_traceback(traceback);
+          TracebackObject* parent = nullptr;
+          while (cursor != nullptr && value_as_traceback(cursor->next) != nullptr) {
+            parent = cursor;
+            cursor = value_as_traceback(cursor->next);
+          }
+          if (cursor == nullptr) {
+            value_assign_fast(traceback, existing_traceback);
+          } else {
+            bool same_frame = false;
+            if (deduplicate_bare_reraise_frame) {
+              auto* current_frame = value_as_frame(cursor->frame);
+              auto* existing = value_as_traceback(existing_traceback);
+              auto* existing_frame = existing == nullptr ? nullptr : value_as_frame(existing->frame);
+              same_frame = current_frame != nullptr && existing_frame != nullptr &&
+                           current_frame->activation_id == existing_frame->activation_id;
+            }
+            if (same_frame) {
+              if (parent == nullptr) {
+                value_assign_fast(traceback, existing_traceback);
+              } else {
+                value_assign_fast(parent->next, existing_traceback);
+              }
+            } else {
+              value_assign_fast(cursor->next, existing_traceback);
+            }
+          }
+        }
+      }
       object_set_attr(exception, "__traceback__", traceback, ignored);
     }
     if (frame_count != 0) {
@@ -804,6 +1177,7 @@ RuntimeResult Interpreter::run_function(
       if (!handlers.empty()) {
         const size_t handler_depth_before_pop = handlers.size();
         while (!active_exception_handler_depths.empty() &&
+               active_exception_handler_frames.back() == frame_count &&
                handler_depth_before_pop <= active_exception_handler_depths.back()) {
           value_assign_fast(previous_exception, previous_exceptions.back());
           previous_exceptions.pop_back();
@@ -821,6 +1195,20 @@ RuntimeResult Interpreter::run_function(
         previous_exceptions.push_back(previous_exception);
         active_exception_handler_depths.push_back(handlers.size());
         active_exception_handler_frames.push_back(frame_count);
+        if (value_as_instance(current_exception) != nullptr) {
+          Value traceback;
+          std::string ignored;
+          if (object_get_attr(current_exception, "__traceback__", traceback, ignored)) {
+            for (size_t outer_index = 1; outer_index < frame_count; ++outer_index) {
+              auto* traceback_object = value_as_traceback(traceback);
+              if (traceback_object == nullptr) {
+                break;
+              }
+              value_assign_fast(traceback, traceback_object->next);
+            }
+            object_set_attr(current_exception, "__traceback__", traceback, ignored);
+          }
+        }
         frames[frame_count - 1].ip = handler.ip;
         return true;
       }
@@ -833,6 +1221,7 @@ RuntimeResult Interpreter::run_function(
         active_exception_handler_depths.pop_back();
         active_exception_handler_frames.pop_back();
       }
+      frames[frame_count - 1].clear_for_pop();
       --frame_count;
     }
     const std::string exception_text = value_to_string(current_exception);
@@ -923,7 +1312,22 @@ RuntimeResult Interpreter::run_function(
 
     auto raise_exception_value = [&](Value exception) -> bool {
       const size_t source_frame = frame_count;
-      if (!dispatch_exception(std::move(exception))) {
+      // Exceptions propagated through a native/runtime call may already carry
+      // traceback frames from a nested interpreter (for example exec(code)).
+      // Raising an existing exception also retains its prior traceback in
+      // CPython, with the current frame prepended.
+      if (!dispatch_exception(std::move(exception), true)) {
+        return false;
+      }
+      if (frame_count != source_frame) {
+        throw VMUnwind{};
+      }
+      return true;
+    };
+
+    auto reraise_exception_value = [&](Value exception) -> bool {
+      const size_t source_frame = frame_count;
+      if (!dispatch_exception(std::move(exception), true, true)) {
         return false;
       }
       if (frame_count != source_frame) {
@@ -937,11 +1341,42 @@ RuntimeResult Interpreter::run_function(
     };
 
     auto raise_name_error = [&](const std::string& message) -> bool {
-      return raise_exception_value(runtime_.make_exception("NameError", message));
+      Value exception = runtime_.make_exception("NameError", message);
+      const size_t name_start = message.find('\'');
+      const size_t name_end = name_start == std::string::npos
+          ? std::string::npos
+          : message.find('\'', name_start + 1);
+      if (name_start != std::string::npos && name_end != std::string::npos) {
+        std::string ignored;
+        object_set_attr(
+            exception,
+            "name",
+            Value::string(message.substr(name_start + 1, name_end - name_start - 1)),
+            ignored);
+      }
+      return raise_exception_value(std::move(exception));
     };
 
-    auto raise_import_error = [&](const std::string& message, bool module_not_found = false) -> bool {
-      return raise_exception_value(runtime_.make_exception(module_not_found ? "ModuleNotFoundError" : "ImportError", message));
+    auto raise_unbound_local_error = [&](const std::string& message) -> bool {
+      return raise_exception_value(runtime_.make_exception("UnboundLocalError", message));
+    };
+
+    auto raise_import_error = [&](
+        const std::string& message,
+        bool module_not_found = false,
+        const std::string& name = std::string(),
+        const std::string& name_from = std::string()) -> bool {
+      Value exception = runtime_.make_exception(
+          module_not_found ? "ModuleNotFoundError" : "ImportError", message);
+      std::string ignored;
+      if (!name.empty()) {
+        object_set_attr(exception, "name", Value::string(name), ignored);
+      }
+      if (!name_from.empty()) {
+        ignored.clear();
+        object_set_attr(exception, "name_from", Value::string(name_from), ignored);
+      }
+      return raise_exception_value(std::move(exception));
     };
 
     XlangRuntimeExecutionGuard execution_lock;
@@ -949,6 +1384,14 @@ RuntimeResult Interpreter::run_function(
 
     try {
     for (;;) {
+      if (deferred_frame_exception.tag != ValueTag::Invalid) {
+        Value exception = std::move(deferred_frame_exception);
+        value_set_invalid(deferred_frame_exception);
+        if (!dispatch_exception(std::move(exception))) {
+          return result;
+        }
+        goto switch_frame;
+      }
       if (ip >= fn.code.size()) {
         Value none = Value::none();
         if (!finish_frame(none)) {

@@ -45,8 +45,9 @@ Set-Content -LiteralPath $scriptPath -Value "import sys`nprint(sys.argv)" -NoNew
 Assert-Output "script argv" "['$scriptPathRepr', 'one', 'two']" { & $XLang3 $scriptPath one two }
 
 $modulePath = Join-Path $WorkDir "cli_module_probe.py"
+$modulePathRepr = $modulePath -replace "\\", "/"
 Set-Content -LiteralPath $modulePath -Value "import sys`nprint(sys.argv)" -NoNewline
-Assert-Output "module argv" "['cli_module_probe', 'red', 'blue']" {
+Assert-Output "module argv" "['$modulePathRepr', 'red', 'blue']" {
     Push-Location $WorkDir
     try {
         & $XLang3 -m cli_module_probe red blue

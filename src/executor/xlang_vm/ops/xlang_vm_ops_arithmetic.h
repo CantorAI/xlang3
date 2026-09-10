@@ -154,12 +154,83 @@ XLANG3_HOT_INLINE XlangVMOpFlow div(
     if (divide_by_zero) {
       return raise_zero_division(runtime, "division by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
+    auto call_division_method = [&](const Value& receiver, const Value& argument, const char* name) -> int {
+      if (receiver.tag != ValueTag::Object || receiver.as.obj == nullptr) {
+        return 0;
+      }
+      Value method;
+      std::string attr_error;
+      if (!attribute_get(receiver, name, method, attr_error)) {
+        return 0;
+      }
+      Value method_result;
+      std::string call_error;
+      if (!runtime_call_callable(runtime, method, &argument, 1, method_result, call_error)) {
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? -1 : -2;
+        }
+        return raise_runtime_error(call_error) ? -1 : -2;
+      }
+      const Value* not_implemented = runtime.find_builtin("NotImplemented");
+      if (not_implemented != nullptr && value_is(method_result, *not_implemented)) {
+        return 0;
+      }
+      value_move_assign_fast(regs[in.dst], method_result);
+      return 1;
+    };
+    const int forward = call_division_method(lhs, rhs, "__truediv__");
+    if (forward == 1) return XlangVMOpFlow::Next;
+    if (forward < 0) return forward == -1 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    const int reflected = call_division_method(rhs, lhs, "__rtruediv__");
+    if (reflected == 1) return XlangVMOpFlow::Next;
+    if (reflected < 0) return reflected == -1 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    std::string error;
+    if (!value_div(lhs, rhs, regs[in.dst], error)) {
+      if (error == "division by zero") {
+        return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
+      if (error == "unsupported operands for /") {
+        error = std::string("unsupported operand type(s) for /: '") + value_binary_type_name(lhs) +
+            "' and '" + value_binary_type_name(rhs) + "'";
+        return raise_exception_value(runtime.make_exception("TypeError", error))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow floor_div(
+    const ir::Instr& in,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
+    RuntimeResult& result,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  const auto& lhs = regs[in.a];
+  const auto& rhs = regs[in.b];
+  bool divide_by_zero = false;
+  if (!fast_floor_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
+    if (divide_by_zero) {
+      return raise_zero_division(runtime, "division by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
+    }
     if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
       const auto flow = call_binary_special_method(
           runtime,
           lhs,
           rhs,
-          "__truediv__",
+          "__floordiv__",
           module,
           module_owner,
           in.dst,
@@ -175,31 +246,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow div(
       if (flow != XlangVMOpFlow::Next) {
         return flow;
       }
-    }
-    std::string error;
-    if (!value_div(lhs, rhs, regs[in.dst], error)) {
-      if (error == "division by zero") {
-        return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
-      }
-      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-    }
-  }
-  return XlangVMOpFlow::Next;
-}
-
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
-XLANG3_HOT_INLINE XlangVMOpFlow floor_div(
-    const ir::Instr& in,
-    Runtime& runtime,
-    XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error,
-    RaiseExceptionValue&& raise_exception_value) {
-  const auto& lhs = regs[in.a];
-  const auto& rhs = regs[in.b];
-  bool divide_by_zero = false;
-  if (!fast_floor_div(lhs, rhs, regs[in.dst], divide_by_zero)) {
-    if (divide_by_zero) {
-      return raise_zero_division(runtime, "division by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     std::string error;
     if (!value_floor_div(lhs, rhs, regs[in.dst], error)) {
@@ -227,9 +273,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod(
       return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     std::string error;
-    if (!value_mod(lhs, rhs, regs[in.dst], error)) {
+    if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
+      if (error.rfind("format mapping key '", 0) == 0) {
+        return raise_exception_value(runtime.make_exception("KeyError", error))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
       }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
@@ -265,7 +316,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
       return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
     }
     std::string error;
-    if (!value_mod(lhs, rhs, regs[in.dst], error)) {
+    if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
       }
@@ -340,7 +391,60 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
   if (slow_op(lhs, rhs, regs[in.dst], error)) {
     return XlangVMOpFlow::Next;
   }
-  return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  return raise_exception_value(runtime.make_exception("TypeError", error))
+      ? XlangVMOpFlow::ContinueLoop
+      : XlangVMOpFlow::ReturnResult;
+}
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow add(
+    const ir::Instr& in, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in, module, module_owner, runtime, regs, native_call_args, ip, result,
+      execution_lock, fast_add, value_add, "__add__",
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow sub(
+    const ir::Instr& in, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in, module, module_owner, runtime, regs, native_call_args, ip, result,
+      execution_lock, fast_sub, value_sub, "__sub__",
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow mul(
+    const ir::Instr& in, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  return binary_arithmetic_with_special_method(
+      in, module, module_owner, runtime, regs, native_call_args, ip, result,
+      execution_lock, fast_mul, value_mul, "__mul__",
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
 }
 
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
@@ -578,21 +682,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow compare(
   const auto& lhs = regs[in.a];
   const auto& rhs = regs[in.b];
   const auto op = static_cast<ir::CompareOp>(in.c);
-  if (op == ir::CompareOp::Eq || op == ir::CompareOp::Ne ||
-      op == ir::CompareOp::Lt || op == ir::CompareOp::Le ||
-      op == ir::CompareOp::Gt || op == ir::CompareOp::Ge) {
-    if (value_int_like_compare(compare_name(op), lhs, rhs, regs[in.dst])) {
-      return XlangVMOpFlow::Next;
-    }
-  }
-  XlangVMOpFlow rich_flow = XlangVMOpFlow::Next;
-  if (value_as_instance(lhs) != nullptr &&
-      try_rich_compare(runtime, op, lhs, rhs, regs[in.dst], rich_flow, raise_exception_value)) {
-    return rich_flow;
-  }
   if (!fast_compare(op, lhs, rhs, regs[in.dst])) {
     std::string error;
-    if (!value_compare(compare_name(op), lhs, rhs, regs[in.dst], error)) {
+    if (!runtime_value_compare(runtime, compare_name(op), lhs, rhs, regs[in.dst], error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
+      }
+      if (error == "unsupported comparison") {
+        error = std::string("'") + compare_name(op) + "' not supported between instances of '" +
+                value_binary_type_name(lhs) + "' and '" + value_binary_type_name(rhs) + "'";
+        Value exception = runtime.make_exception("TypeError", error);
+        return raise_exception_value(std::move(exception))
+            ? XlangVMOpFlow::ContinueLoop
+            : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
@@ -646,6 +752,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow neg(
     }
   } else if (regs[in.a].tag == ValueTag::Double) {
     value_set_number(regs[in.dst], -regs[in.a].as.f64);
+  } else if (auto* complex = value_as_complex(regs[in.a])) {
+    Value negated = Value::complex(-complex->real, -complex->imag);
+    value_move_assign_fast(regs[in.dst], negated);
   } else {
     if (regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
       Value method;

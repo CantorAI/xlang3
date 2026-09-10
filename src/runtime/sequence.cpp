@@ -17,10 +17,12 @@ limitations under the License.
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
+#include "xlang3/attribute.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
+#include "xlang3/runtime.h"
 #include "xlang3/set_object.h"
 
 #include <algorithm>
@@ -103,6 +105,18 @@ bool normalize_index(int64_t raw_index, uint64_t size, uint64_t& out) {
   }
   out = static_cast<uint64_t>(index);
   return true;
+}
+
+bool sequence_integer_index(const Value& value, int64_t& out) {
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  return false;
 }
 
 int64_t range_length(int64_t start, int64_t stop, int64_t step) {
@@ -618,6 +632,32 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
       error = "file.__next__ on closed file";
       return false;
     }
+    if (file->fd_backed) {
+      if (file->runtime == nullptr) {
+        error = "file iterator has no runtime";
+        return false;
+      }
+      Value next_method;
+      if (!attribute_get(iterator, "__next__", next_method, error)) {
+        return false;
+      }
+      if (!runtime_call_callable(
+              *file->runtime, next_method, nullptr, 0, out, error)) {
+        Value pending;
+        if (file->runtime->take_pending_exception(pending)) {
+          auto* klass = value_as_class(file->runtime->exception_type(pending));
+          if (klass != nullptr && klass->name == "StopIteration") {
+            done = true;
+            value_set_none(out);
+            return true;
+          }
+          file->runtime->set_pending_exception(std::move(pending));
+        }
+        return false;
+      }
+      done = false;
+      return true;
+    }
     const size_t start = std::min(file->cursor, file->buffer.size());
     if (start >= file->buffer.size()) {
       done = true;
@@ -655,6 +695,20 @@ bool sequence_list_append(Value& list, const Value& item, std::string& error) {
 }
 
 bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error) {
+  if (auto* alias = value_as_generic_alias(object)) {
+    if (alias->is_union) {
+      error = "union type is not subscriptable";
+      return false;
+    }
+    Value args;
+    if (value_as_tuple(index) != nullptr) {
+      value_assign_fast(args, index);
+    } else {
+      args = Value::tuple({index});
+    }
+    out = Value::generic_alias(alias->origin, std::move(args));
+    return true;
+  }
   if (value_as_class(object) != nullptr) {
     Value args;
     if (value_as_tuple(index) != nullptr) {
@@ -681,12 +735,13 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       out = Value::range(new_start, new_stop, new_step);
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(length), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(length), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -714,12 +769,13 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       out = Value::list(std::move(items));
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(list->items.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(list->items.size()), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -734,11 +790,11 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     if (struct_sequence_storage(object, struct_tuple)) {
       return sequence_get_item(struct_tuple, index, out, error);
     }
-    if (value_as_dict(instance->mapping_storage) != nullptr) {
-      return mapping_get_item(instance->mapping_storage, index, out, error);
-    }
     if (value_as_list(instance->sequence_storage) != nullptr) {
       return sequence_get_item(instance->sequence_storage, index, out, error);
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_get_item(instance->mapping_storage, index, out, error);
     }
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Tuple) {
@@ -763,12 +819,13 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       out = Value::tuple(std::move(items));
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(tuple->items.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(tuple->items.size()), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -789,12 +846,13 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       out = Value::string(utf8_slice_text(view, start, stop, step));
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(codepoint_count), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(codepoint_count), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -815,12 +873,13 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       out = Value::bytes(binary_slice_text(view, start, stop, step));
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(view.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(view.size()), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -865,7 +924,8 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
         actual_index = &tuple->items[0];
       }
     }
-    if (actual_index->tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(*actual_index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
@@ -882,7 +942,7 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       logical_size = storage.size / itemsize;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(logical_size), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(logical_size), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -969,27 +1029,29 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       }
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(list->items.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(list->items.size()), resolved)) {
       error = "index out of range";
       return false;
     }
     list->items[static_cast<size_t>(resolved)] = item;
     return true;
   }
-  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
+  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr ||
+      value_as_mapping_proxy(object) != nullptr) {
     return mapping_set_item(object, index, item, error);
   }
   if (auto* instance = value_as_instance(object)) {
-    if (value_as_dict(instance->mapping_storage) != nullptr) {
-      return mapping_set_item(instance->mapping_storage, index, item, error);
-    }
     if (value_as_list(instance->sequence_storage) != nullptr) {
       return sequence_set_item(instance->sequence_storage, index, item, error);
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_set_item(instance->mapping_storage, index, item, error);
     }
   }
   if (auto* bytearray = value_as_bytearray(object)) {
@@ -1043,12 +1105,13 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       }
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -1111,12 +1174,13 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       }
       actual_index = &tuple->items[0];
     }
-    if (actual_index->tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(*actual_index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(actual_index->as.i64, static_cast<uint64_t>(view->size), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(view->size), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -1164,12 +1228,13 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
       }
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(list->items.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(list->items.size()), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -1180,6 +1245,10 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
     return mapping_delete_item(object, index, error);
   }
   if (auto* instance = value_as_instance(object)) {
+    if (value_as_list(instance->sequence_storage) != nullptr ||
+        value_as_bytearray(instance->sequence_storage) != nullptr) {
+      return sequence_delete_item(instance->sequence_storage, index, error);
+    }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_delete_item(instance->mapping_storage, index, error);
     }
@@ -1224,12 +1293,13 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
       }
       return true;
     }
-    if (index.tag != ValueTag::Int64) {
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
     uint64_t resolved = 0;
-    if (!normalize_index(index.as.i64, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
       error = "index out of range";
       return false;
     }
@@ -1300,11 +1370,14 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
         return true;
       }
     }
+    // A collection subclass may also have a Python attribute dictionary.
+    // Its collection payload determines len(); the attribute dictionary is
+    // only the mapping payload for actual dict subclasses.
+    if (instance->sequence_storage.tag != ValueTag::Invalid) {
+      return sequence_len(instance->sequence_storage, out, error);
+    }
     if (value_as_dict(instance->mapping_storage) != nullptr) {
       return mapping_len(instance->mapping_storage, out, error);
-    }
-    if (value_as_list(instance->sequence_storage) != nullptr) {
-      return sequence_len(instance->sequence_storage, out, error);
     }
   }
   if (value_as_set(value) != nullptr) {

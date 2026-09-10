@@ -151,6 +151,7 @@ enum class Op : uint16_t {
   Pop,
   Return,
   CaptureExpressions,
+  SetException,
 };
 
 enum class CompareOp : uint16_t {
@@ -178,6 +179,12 @@ struct SourcePosition {
 };
 
 struct Function {
+  struct LogicalFrameRange {
+    uint32_t start_instruction = 0;
+    uint32_t end_instruction = 0;
+    uint32_t function_id = 0;
+  };
+
   std::string name;
   std::string qualname;
   std::string doc;
@@ -194,6 +201,7 @@ struct Function {
   uint32_t register_count = 0;
   std::vector<Value> constants;
   std::vector<std::string> names;
+  std::vector<LogicalFrameRange> logical_frame_ranges;
   struct RawBlock {
     std::string language;
     std::string provider;

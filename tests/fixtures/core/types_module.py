@@ -24,6 +24,7 @@ ns.extra = 9
 print(ns.a)
 print(ns.name)
 print(ns.extra)
+print(repr(ns))
 
 def add(self, value):
     return self.base + value

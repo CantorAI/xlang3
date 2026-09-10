@@ -356,6 +356,19 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_compare(ir::CompareOp op, const Value& lhs,
   if (!xlang_vm_value_is_number(lhs) || !xlang_vm_value_is_number(rhs)) {
     return false;
   }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    bool compare_result = false;
+    switch (op) {
+      case ir::CompareOp::Eq: compare_result = lhs.as.i64 == rhs.as.i64; break;
+      case ir::CompareOp::Ne: compare_result = lhs.as.i64 != rhs.as.i64; break;
+      case ir::CompareOp::Lt: compare_result = lhs.as.i64 < rhs.as.i64; break;
+      case ir::CompareOp::Le: compare_result = lhs.as.i64 <= rhs.as.i64; break;
+      case ir::CompareOp::Gt: compare_result = lhs.as.i64 > rhs.as.i64; break;
+      case ir::CompareOp::Ge: compare_result = lhs.as.i64 >= rhs.as.i64; break;
+    }
+    value_set_bool(out, compare_result);
+    return true;
+  }
   const double a = xlang_vm_value_to_double_fast(lhs);
   const double b = xlang_vm_value_to_double_fast(rhs);
   bool compare_result = false;

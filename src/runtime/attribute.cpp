@@ -36,6 +36,7 @@ const char* diagnostic_value_kind(const Value& value) {
     switch (value.as.obj->kind) {
       case ObjectKind::String: return "str";
       case ObjectKind::BigInt: return "int";
+      case ObjectKind::Complex: return "complex";
       case ObjectKind::Bytes: return "bytes";
       case ObjectKind::ByteArray: return "bytearray";
       case ObjectKind::MemoryView: return "memoryview";
@@ -119,6 +120,85 @@ bool none_new_method(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+bool slice_indices_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  auto* slice = argc >= 1 ? value_as_slice(args[0]) : nullptr;
+  int64_t length = 0;
+  if (argc != 2 || slice == nullptr || !value_int_like_to_i64(args[1], length)) {
+    error = "slice.indices() argument must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (length < 0) {
+    error = "length should not be negative";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  auto slice_part = [&](const Value& value, int64_t& result, bool& is_none) {
+    is_none = value.tag == ValueTag::None;
+    if (is_none) {
+      result = 0;
+      return true;
+    }
+    if (!value_int_like_to_i64(value, result)) {
+      error = "slice indices must be integers or None";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    return true;
+  };
+  int64_t start = 0;
+  int64_t stop = 0;
+  int64_t step = 0;
+  bool start_none = false;
+  bool stop_none = false;
+  bool step_none = false;
+  if (!slice_part(slice->step, step, step_none) ||
+      !slice_part(slice->start, start, start_none) ||
+      !slice_part(slice->stop, stop, stop_none)) {
+    return false;
+  }
+  if (step_none) {
+    step = 1;
+  }
+  if (step == 0) {
+    error = "slice step cannot be zero";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (start_none) {
+    start = step < 0 ? length - 1 : 0;
+  } else {
+    if (start < 0) start += length;
+    if (step < 0) {
+      if (start < 0) start = -1;
+      if (start >= length) start = length - 1;
+    } else {
+      if (start < 0) start = 0;
+      if (start > length) start = length;
+    }
+  }
+  if (stop_none) {
+    stop = step < 0 ? -1 : length;
+  } else {
+    if (stop < 0) stop += length;
+    if (step < 0) {
+      if (stop < 0) stop = -1;
+      if (stop >= length) stop = length - 1;
+    } else {
+      if (stop < 0) stop = 0;
+      if (stop > length) stop = length;
+    }
+  }
+  out = Value::tuple({Value::int64(start), Value::int64(stop), Value::int64(step)});
+  return true;
+}
+
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag == ValueTag::None && name == "__new__") {
     static Value none_new = Value::native_function(0, "NoneType.__new__", none_new_method);
@@ -143,6 +223,25 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
 } // namespace
 
 bool attribute_get(const Value& object, const std::string& name, Value& out, std::string& error) {
+  if (auto* slice = value_as_slice(object)) {
+    if (name == "start") {
+      value_assign_fast(out, slice->start);
+      return true;
+    }
+    if (name == "stop") {
+      value_assign_fast(out, slice->stop);
+      return true;
+    }
+    if (name == "step") {
+      value_assign_fast(out, slice->step);
+      return true;
+    }
+    if (name == "indices") {
+      return bind_builtin_method(
+          object, "slice.indices", slice_indices_method, nullptr, false,
+          "($self, len, /)", out);
+    }
+  }
   if (value_as_module(object) != nullptr) {
     if (module_get_attr(object, name, out, error)) {
       return true;
@@ -154,13 +253,6 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
     return false;
   }
   if (auto* function = value_as_function(object)) {
-    if (name == "__annotations__") {
-      if (function->annotations.tag == ValueTag::Invalid) {
-        value_assign_fast(function->annotations, Value::dict({}));
-      }
-      value_assign_fast(out, function->annotations);
-      return true;
-    }
     const bool ok = object_get_attr(object, name, out, error);
     if (!ok) {
       emit_missing_attr_diagnostic(object, name);

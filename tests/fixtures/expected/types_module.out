@@ -4,4 +4,5 @@ doc
 1
 xlang
 9
+namespace(a=1, name='xlang', extra=9)
 17

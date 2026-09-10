@@ -82,11 +82,13 @@ Value functional_enumerate_iterator(Value iterator, int64_t start) {
   return value;
 }
 
-Value functional_zip_iterator(std::vector<Value> iterators) {
+Value functional_zip_iterator(Runtime* runtime, std::vector<Value> iterators, bool strict) {
   Value value;
   value.tag = ValueTag::Object;
   auto* obj = allocate_functional_iterator<ZipIteratorObject>(ObjectKind::ZipIterator);
+  obj->runtime = runtime;
   obj->iterators = std::move(iterators);
+  obj->strict = strict;
   value.as.obj = &obj->header;
   return value;
 }
@@ -239,6 +241,15 @@ bool runtime_call_callable(
     uint32_t argc,
     Value& out,
     std::string& error) {
+  if (auto* method = value_as_static_method(callable)) {
+    return runtime_call_callable(runtime, method->function, args, argc, out, error);
+  }
+  if (auto* alias = value_as_generic_alias(callable)) {
+    if (alias->is_union) {
+      return raise_type_error(runtime, "cannot instantiate a union type", error);
+    }
+    return runtime_call_callable(runtime, alias->origin, args, argc, out, error);
+  }
   if (auto* native = value_as_native_function(callable)) {
     if (native->callback == nullptr) {
       return raise_type_error(runtime, "native callable does not support this call path", error);
@@ -392,6 +403,9 @@ bool runtime_call_callable_kw(
     const std::vector<std::pair<std::string, Value>>& kwargs,
     Value& out,
     std::string& error) {
+  if (auto* alias = value_as_generic_alias(callable)) {
+    return runtime_call_callable_kw(runtime, alias->origin, args, argc, kwargs, out, error);
+  }
   if (kwargs.empty()) {
     return runtime_call_callable(runtime, callable, args, argc, out, error);
   }
@@ -649,6 +663,31 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
         return false;
       }
       if (done) {
+        if (obj->strict) {
+          if (!row.empty()) {
+            error = "zip() argument " + std::to_string(row.size() + 1) +
+                    " is shorter than argument 1";
+            if (obj->runtime != nullptr) {
+              obj->runtime->raise_class_error("ValueError", error);
+            }
+            return false;
+          }
+          for (size_t remaining = 1; remaining < obj->iterators.size(); ++remaining) {
+            Value extra;
+            bool extra_done = false;
+            if (!sequence_iter_next(obj->iterators[remaining], extra_done, extra, error)) {
+              return false;
+            }
+            if (!extra_done) {
+              error = "zip() argument " + std::to_string(remaining + 1) +
+                      " is longer than argument 1";
+              if (obj->runtime != nullptr) {
+                obj->runtime->raise_class_error("ValueError", error);
+              }
+              return false;
+            }
+          }
+        }
         value_set_none(out);
         return true;
       }

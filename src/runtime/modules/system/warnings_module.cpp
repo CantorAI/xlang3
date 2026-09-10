@@ -43,69 +43,31 @@ bool warnings_warn_impl(
     const NativeKeywordArg* kwargs,
     uint32_t kwargc,
     Value& out,
-    std::string& error) {
-  if (argc < 1) {
-    error = "warnings.warn() expected message";
-    runtime.raise_class_error("TypeError", error);
+    std::string& error,
+    const char* fallback_name) {
+  Value fallback_module;
+  if (!runtime.import_module("_py_warnings", fallback_module, error)) {
     return false;
   }
-
-  Value category;
-  if (argc >= 2 && args[1].tag != ValueTag::None) {
-    value_assign_fast(category, args[1]);
-  } else if (const Value* user_warning = find_builtin_or_error(runtime, "UserWarning", error)) {
-    value_assign_fast(category, *user_warning);
-  } else {
+  Value fallback;
+  if (!module_get_attr(fallback_module, fallback_name, fallback, error)) {
     return false;
   }
-
-  Value source = Value::none();
+  std::vector<std::pair<std::string, Value>> keyword_values;
+  keyword_values.reserve(kwargc);
   for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string key(kwargs[i].name);
-    if (kwargs[i].value == nullptr) {
-      continue;
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = std::string(fallback_name) + "() received invalid keyword argument";
+      return false;
     }
-    if (key == "category" && kwargs[i].value->tag != ValueTag::None) {
-      value_assign_fast(category, *kwargs[i].value);
-    } else if (key == "source") {
-      value_assign_fast(source, *kwargs[i].value);
-    }
+    keyword_values.emplace_back(kwargs[i].name, *kwargs[i].value);
   }
-
-  Value warnings_module;
-  if (!runtime.import_module("warnings", warnings_module, error)) {
-    return false;
-  }
-
-  Value warning_message_class;
-  if (!module_get_attr(warnings_module, "WarningMessage", warning_message_class, error)) {
-    return false;
-  }
-
-  Value showwarnmsg;
-  if (!module_get_attr(warnings_module, "_showwarnmsg", showwarnmsg, error)) {
-    return false;
-  }
-
-  Value filename = Value::string("<string>");
-  Value lineno = Value::int64(1);
-  Value file = Value::none();
-  Value line = Value::none();
-  Value message_args[] = {args[0], category, filename, lineno, file, line, source};
-  Value warning_message;
-  if (!runtime_call_callable(runtime, warning_message_class, message_args, 7, warning_message, error)) {
-    return false;
-  }
-
-  if (!runtime_call_callable(runtime, showwarnmsg, &warning_message, 1, out, error)) {
-    return false;
-  }
-  value_set_none(out);
-  return true;
+  return runtime_call_callable_kw(runtime, fallback, args, argc, keyword_values, out, error);
 }
 
-bool warnings_warn(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return warnings_warn_impl(runtime, args, argc, nullptr, 0, out, error);
+bool warnings_warn(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return warnings_warn_impl(runtime, args, argc, nullptr, 0, out, error,
+                            user_data == nullptr ? "warn" : "warn_explicit");
 }
 
 bool warnings_warn_keywords(
@@ -116,14 +78,15 @@ bool warnings_warn_keywords(
     uint32_t kwargc,
     Value& out,
     std::string& error,
-    void*) {
-  return warnings_warn_impl(runtime, args, argc, kwargs, kwargc, out, error);
+    void* user_data) {
+  return warnings_warn_impl(runtime, args, argc, kwargs, kwargc, out, error,
+                            user_data == nullptr ? "warn" : "warn_explicit");
 }
 
 Value make_warnings_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_warnings");
   builder.value("warn", runtime.make_native_function("_warnings.warn", warnings_warn, nullptr, nullptr, nullptr, false, warnings_warn_keywords))
-      .value("warn_explicit", runtime.make_native_function("_warnings.warn_explicit", warnings_warn, nullptr, nullptr, nullptr, false, warnings_warn_keywords))
+      .value("warn_explicit", runtime.make_native_function("_warnings.warn_explicit", warnings_warn, reinterpret_cast<void*>(1), nullptr, nullptr, false, warnings_warn_keywords))
       .function("_acquire_lock", none_entry)
       .function("_release_lock", none_entry)
       .function("_filters_mutated_lock_held", none_entry)

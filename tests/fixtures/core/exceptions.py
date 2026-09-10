@@ -34,3 +34,8 @@ try:
     print("normal")
 except:
     print("not reached")
+
+import_error = ImportError("missing", name="demo.module", path="demo.py")
+assert import_error.args == ("missing",)
+assert import_error.name == "demo.module"
+assert import_error.path == "demo.py"

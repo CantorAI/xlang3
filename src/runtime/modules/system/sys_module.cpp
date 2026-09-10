@@ -52,7 +52,6 @@ namespace xlang3 {
 
 namespace {
 
-int g_recursion_limit = 1000;
 constexpr int64_t kDefaultIntMaxStrDigits = 4300;
 constexpr int64_t kIntStrDigitsCheckThreshold = 640;
 int64_t g_int_max_str_digits = kDefaultIntMaxStrDigits;
@@ -207,7 +206,8 @@ Value sys_metadata_native_function(
     const std::string& doc,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
     const char* text_signature = nullptr) {
-  Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
+  Value function = runtime.make_native_function(
+      qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback, false);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
@@ -232,7 +232,8 @@ Value sys_metadata_native_function_no_doc(
     void* user_data = nullptr,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
     const char* text_signature = nullptr) {
-  Value function = runtime.make_native_function(qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback);
+  Value function = runtime.make_native_function(
+      qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback, false);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
@@ -1582,14 +1583,38 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const int64_t written = static_cast<int64_t>(utf8_codepoint_count(data));
+#if defined(_WIN32)
+  std::string translated;
+  translated.reserve(data.size());
+  for (char ch : data) {
+    if (ch == '\n') translated.push_back('\r');
+    translated.push_back(ch);
+  }
+  data = std::move(translated);
+#endif
   const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
   if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
   } else {
     std::cout.write(data.data(), static_cast<std::streamsize>(data.size()));
   }
-  out = Value::int64(static_cast<int64_t>(data.size()));
+  out = Value::int64(written);
   return true;
+}
+
+std::string normalize_stdio_input_newlines(std::string data) {
+  std::string normalized;
+  normalized.reserve(data.size());
+  for (size_t index = 0; index < data.size(); ++index) {
+    if (data[index] == '\r') {
+      if (index + 1 < data.size() && data[index + 1] == '\n') ++index;
+      normalized.push_back('\n');
+    } else {
+      normalized.push_back(data[index]);
+    }
+  }
+  return normalized;
 }
 
 bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1612,13 +1637,13 @@ bool sys_stdio_read(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   if (size < 0) {
     std::ostringstream buffer;
     buffer << std::cin.rdbuf();
-    out = Value::string(buffer.str());
+    out = Value::string(normalize_stdio_input_newlines(buffer.str()));
     return true;
   }
   std::string data(static_cast<size_t>(size), '\0');
   std::cin.read(data.data(), static_cast<std::streamsize>(size));
   data.resize(static_cast<size_t>(std::cin.gcount()));
-  out = Value::string(std::move(data));
+  out = Value::string(normalize_stdio_input_newlines(std::move(data)));
   return true;
 }
 
@@ -1650,7 +1675,7 @@ bool sys_stdio_readline(Runtime& runtime, const Value* args, uint32_t argc, Valu
       break;
     }
   }
-  out = Value::string(std::move(data));
+  out = Value::string(normalize_stdio_input_newlines(std::move(data)));
   return true;
 }
 
@@ -2264,6 +2289,15 @@ bool sys_clear_type_descriptors(Runtime& runtime, const Value* args, uint32_t ar
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  for (auto& attr : klass->attrs) {
+    if (auto* descriptor = value_as_slot_descriptor(attr.second)) {
+      if (value_is(descriptor->owner_class, args[0])) {
+        value_set_invalid(descriptor->owner_class);
+      }
+    }
+  }
+  klass->mro_cache.clear();
+  klass->mro_cache_version = 0;
   value_set_none(out);
   return true;
 }
@@ -2473,7 +2507,7 @@ bool sys_getrecursionlimit(Runtime& runtime, const Value*, uint32_t argc, Value&
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.getrecursionlimit", argc);
   }
-  value_set_int64(out, g_recursion_limit);
+  value_set_int64(out, runtime.recursion_limit());
   return true;
 }
 
@@ -2497,7 +2531,7 @@ bool sys_setrecursionlimit(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("RecursionError", error);
     return false;
   }
-  g_recursion_limit = static_cast<int>(limit);
+  runtime.set_recursion_limit(static_cast<int>(limit));
   value_set_none(out);
   return true;
 }
@@ -2862,6 +2896,10 @@ bool sys_getrefcount(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  // IR registers can still own values after their final Python-level use.
+  // Drop those dead temporaries so getrefcount reports observable references
+  // rather than compiler bookkeeping from earlier expressions.
+  runtime.release_dead_frame_registers();
   if (args[0].tag == ValueTag::Object && args[0].as.obj != nullptr) {
     const uint32_t refcount = args[0].as.obj->refcnt.load(std::memory_order_relaxed);
     value_set_int64(out, static_cast<int64_t>(refcount) + 1);
@@ -3060,14 +3098,15 @@ bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const std::string type_name = sys_exception_type_name(args[0]);
-  const std::string value_text = value_to_string(args[1]);
-  const std::string line = value_text.empty() ? type_name + "\n" : type_name + ": " + value_text + "\n";
-  if (!sys_write_stream(runtime, "stderr", line, error)) {
+  Value traceback;
+  if (!runtime.import_module("traceback", traceback, error)) {
     return false;
   }
-  value_set_none(out);
-  return true;
+  Value print_exception;
+  if (!module_get_attr(traceback, "print_exception", print_exception, error)) {
+    return false;
+  }
+  return runtime_call_callable(runtime, print_exception, args, argc, out, error);
 }
 
 bool sys_unraisablehook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3837,12 +3876,47 @@ bool simple_namespace_init(
   return simple_namespace_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
+bool simple_namespace_repr(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "types.SimpleNamespace.__repr__ expected self";
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "descriptor '__repr__' requires a 'types.SimpleNamespace' object";
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> attrs;
+  for (const auto& attr : instance->attrs) {
+    if (attr.first.empty() || attr.first[0] != '#') {
+      attrs.push_back(attr);
+    }
+  }
+  std::string text = "namespace(";
+  for (size_t i = 0; i < attrs.size(); ++i) {
+    if (i != 0) text += ", ";
+    text += attrs[i].first;
+    text += '=';
+    text += value_to_repr(attrs[i].second);
+  }
+  text += ')';
+  out = Value::string(std::move(text));
+  return true;
+}
+
 Value make_simple_namespace_class(Runtime& runtime) {
   return Value::class_object(
       "SimpleNamespace",
       {{"__module__", Value::string("types")},
        {"__qualname__", Value::string("SimpleNamespace")},
        {"__doc__", Value::string("A simple attribute-based namespace.")},
+       {"__repr__", runtime.make_native_function("types.SimpleNamespace.__repr__", simple_namespace_repr)},
        {"__init__",
         runtime.make_native_function(
             "types.SimpleNamespace.__init__",

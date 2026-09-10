@@ -48,6 +48,12 @@ struct TokenizerState {
   bool extra_tokens = false;
   bool built = false;
   size_t index = 0;
+  int delimiter_depth = 0;
+  bool in_triple_string = false;
+  char triple_delimiter = '\0';
+  size_t triple_start_line = 0;
+  size_t triple_start_column = 0;
+  std::string triple_text;
   std::vector<int> indent_stack{0};
   std::vector<Value> tokens;
 };
@@ -165,6 +171,49 @@ bool starts_with(std::string_view text, size_t pos, std::string_view needle) {
   return pos + needle.size() <= text.size() && text.substr(pos, needle.size()) == needle;
 }
 
+bool triple_string_start(std::string_view line, size_t pos, size_t& quote, char& delimiter) {
+  quote = pos;
+  while (quote < line.size()) {
+    const unsigned char ch = static_cast<unsigned char>(line[quote]);
+    if (ch == '\'' || ch == '"') {
+      break;
+    }
+    if (ch != 'r' && ch != 'R' && ch != 'b' && ch != 'B' && ch != 'f' && ch != 'F' && ch != 't' && ch != 'T' &&
+        ch != 'u' && ch != 'U') {
+      return false;
+    }
+    ++quote;
+  }
+  if (quote + 2 >= line.size()) {
+    return false;
+  }
+  delimiter = line[quote];
+  return (delimiter == '\'' || delimiter == '"') &&
+         line[quote + 1] == delimiter && line[quote + 2] == delimiter;
+}
+
+size_t find_triple_string_end(std::string_view line, size_t cursor, char delimiter) {
+  bool escaped = false;
+  while (cursor < line.size()) {
+    if (escaped) {
+      escaped = false;
+      ++cursor;
+      continue;
+    }
+    if (line[cursor] == '\\') {
+      escaped = true;
+      ++cursor;
+      continue;
+    }
+    if (cursor + 2 < line.size() &&
+        line[cursor] == delimiter && line[cursor + 1] == delimiter && line[cursor + 2] == delimiter) {
+      return cursor + 3;
+    }
+    ++cursor;
+  }
+  return std::string_view::npos;
+}
+
 size_t scan_string_literal(std::string_view line, size_t pos) {
   size_t quote = pos;
   while (quote < line.size()) {
@@ -253,24 +302,54 @@ void tokenize_line(TokenizerState& state, const std::string& line, size_t line_n
     --logical_end;
   }
 
+  size_t resumed_string_pos = 0;
+  bool resumed_string = false;
+  if (state.in_triple_string) {
+    const size_t literal_end = find_triple_string_end(line, 0, state.triple_delimiter);
+    if (literal_end == std::string_view::npos) {
+      state.triple_text += line;
+      return;
+    }
+    state.triple_text += line.substr(0, literal_end);
+    push_token(
+        state,
+        kTokenString,
+        std::move(state.triple_text),
+        state.triple_start_line,
+        state.triple_start_column,
+        line_no,
+        literal_end,
+        line);
+    state.in_triple_string = false;
+    state.triple_delimiter = '\0';
+    state.triple_start_line = 0;
+    state.triple_start_column = 0;
+    state.triple_text.clear();
+    resumed_string_pos = literal_end;
+    resumed_string = true;
+  }
+
+  const bool continuation_line = state.delimiter_depth > 0 || resumed_string;
+
   size_t indent = 0;
   while (indent < logical_end && (line[indent] == ' ' || line[indent] == '\t')) {
     indent += line[indent] == '\t' ? 8 : 1;
   }
 
-  if (indent >= logical_end) {
+  if (!resumed_string && indent >= logical_end) {
     if (line_size > logical_end) {
       push_token(state, kTokenNl, line.substr(logical_end), line_no, logical_end, line_no, line_size, line);
     }
     return;
   }
 
-  if (line[indent] != '#') {
+  if (!resumed_string && line[indent] != '#' && !continuation_line) {
     emit_indent_tokens(state, line_no, indent, line);
   }
 
-  size_t pos = indent;
-  bool emitted_statement_token = false;
+  size_t pos = resumed_string ? resumed_string_pos : indent;
+  bool emitted_statement_token = resumed_string;
+  bool explicit_continuation = false;
   while (pos < logical_end) {
     const unsigned char ch = static_cast<unsigned char>(line[pos]);
     if (ch == ' ' || ch == '\t' || ch == '\f') {
@@ -282,6 +361,17 @@ void tokenize_line(TokenizerState& state, const std::string& line, size_t line_n
         push_token(state, kTokenComment, line.substr(pos, logical_end - pos), line_no, pos, line_no, logical_end, line);
       }
       break;
+    }
+    if (ch == '\\') {
+      size_t tail = pos + 1;
+      while (tail < logical_end &&
+             (line[tail] == ' ' || line[tail] == '\t' || line[tail] == '\f')) {
+        ++tail;
+      }
+      if (tail == logical_end) {
+        explicit_continuation = true;
+        break;
+      }
     }
     if (is_identifier_start(ch)) {
       const size_t start = pos++;
@@ -302,6 +392,19 @@ void tokenize_line(TokenizerState& state, const std::string& line, size_t line_n
       emitted_statement_token = true;
       continue;
     }
+    size_t triple_quote = 0;
+    char triple_delimiter = '\0';
+    if (triple_string_start(line, pos, triple_quote, triple_delimiter)) {
+      const size_t triple_end = find_triple_string_end(line, triple_quote + 3, triple_delimiter);
+      if (triple_end == std::string_view::npos) {
+        state.in_triple_string = true;
+        state.triple_delimiter = triple_delimiter;
+        state.triple_start_line = line_no;
+        state.triple_start_column = pos;
+        state.triple_text = line.substr(pos);
+        return;
+      }
+    }
     const size_t literal_end = scan_string_literal(line, pos);
     if (literal_end > pos) {
       push_token(state, kTokenString, line.substr(pos, literal_end - pos), line_no, pos, line_no, literal_end, line);
@@ -311,13 +414,27 @@ void tokenize_line(TokenizerState& state, const std::string& line, size_t line_n
     }
     size_t width = 0;
     std::string op = scan_operator(line, pos, width);
+    if (op == "(" || op == "[" || op == "{") {
+      ++state.delimiter_depth;
+    } else if ((op == ")" || op == "]" || op == "}") && state.delimiter_depth > 0) {
+      --state.delimiter_depth;
+    }
     push_token(state, kTokenOp, std::move(op), line_no, pos, line_no, pos + width, line);
     pos += width;
     emitted_statement_token = true;
   }
 
   if (line_size > logical_end) {
-    push_token(state, emitted_statement_token ? kTokenNewline : kTokenNl, line.substr(logical_end), line_no, logical_end, line_no, line_size, line);
+    const bool logical_continues = state.delimiter_depth > 0 || explicit_continuation;
+    push_token(
+        state,
+        emitted_statement_token && !logical_continues ? kTokenNewline : kTokenNl,
+        line.substr(logical_end),
+        line_no,
+        logical_end,
+        line_no,
+        line_size,
+        line);
   }
 }
 
@@ -353,7 +470,7 @@ bool build_tokens(Runtime& runtime, TokenizerState& state, std::string& error) {
       break;
     }
     tokenize_line(state, line, line_no);
-    if (line.back() != '\n' && line.back() != '\r') {
+    if (line.back() != '\n' && line.back() != '\r' && state.delimiter_depth == 0) {
       break;
     }
   }

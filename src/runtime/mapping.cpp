@@ -250,7 +250,7 @@ bool module_slot_visible(const ModuleObject& module, const std::string& name, ui
 
 std::vector<std::pair<Value, Value>> module_entries(const ModuleObject& module) {
   std::vector<std::pair<Value, Value>> entries;
-  entries.reserve(module.name_to_slot.size() + 1);
+  entries.reserve(module.name_to_slot.size() + module.extra_globals.size() + 1);
   entries.push_back({Value::string("__name__"), Value::string(module.name)});
   std::vector<std::pair<std::string, uint32_t>> names;
   names.reserve(module.name_to_slot.size());
@@ -266,6 +266,7 @@ std::vector<std::pair<Value, Value>> module_entries(const ModuleObject& module) 
   for (const auto& item : names) {
     entries.push_back({Value::string(item.first), module.slots[item.second]});
   }
+  entries.insert(entries.end(), module.extra_globals.begin(), module.extra_globals.end());
   return entries;
 }
 
@@ -293,11 +294,17 @@ bool module_entry_at(const ModuleObject& module, uint64_t index, std::pair<Value
     }
     ++visible;
   }
+  const uint64_t extra_index = index - visible;
+  if (index >= visible && extra_index < module.extra_globals.size()) {
+    out = module.extra_globals[static_cast<size_t>(extra_index)];
+    return true;
+  }
   return false;
 }
 
 bool class_visible_name(const std::string& name) {
-  return !name.empty() && name[0] != '#';
+  return !name.empty() && name[0] != '#' && name != "__qualname__" &&
+      name.rfind("__xlang3_abc_", 0) != 0;
 }
 
 std::vector<std::pair<Value, Value>> class_entries(const ClassObject& klass) {
@@ -550,12 +557,22 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
       error = "key not found";
       return false;
     }
-    error = "module globals keys must be strings";
+    for (const auto& entry : module->extra_globals) {
+      if (value_key_equal(entry.first, key)) {
+        value_assign_fast(out, entry.second);
+        return true;
+      }
+    }
+    error = "key not found";
     return false;
   }
   if (auto* klass = value_as_class(object)) {
     if (auto* string = value_as_string(key)) {
       const auto name = string_object_to_string(*string);
+      if (!class_visible_name(name)) {
+        error = "key not found";
+        return false;
+      }
       auto it = klass->attrs.find(name);
       if (it != klass->attrs.end()) {
         value_assign_fast(out, it->second);
@@ -595,10 +612,23 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     return true;
   }
   if (value_as_module(object) != nullptr) {
+    auto* module = value_as_module(object);
     auto* string = value_as_string(key);
     if (string == nullptr) {
-      error = "module globals keys must be strings";
-      return false;
+      for (auto& entry : module->extra_globals) {
+        if (value_key_equal(entry.first, key)) {
+          value_assign_fast(entry.second, item);
+          ++module->version;
+          return true;
+        }
+      }
+      Value owned_key;
+      Value owned_item;
+      value_assign_fast(owned_key, key);
+      value_assign_fast(owned_item, item);
+      module->extra_globals.push_back({std::move(owned_key), std::move(owned_item)});
+      ++module->version;
+      return true;
     }
     return module_set_attr(object, string_object_to_string(*string), item, error);
   }
@@ -630,7 +660,14 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
   if (auto* module = value_as_module(object)) {
     auto* string = value_as_string(key);
     if (string == nullptr) {
-      error = "module globals keys must be strings";
+      for (auto it = module->extra_globals.begin(); it != module->extra_globals.end(); ++it) {
+        if (value_key_equal(it->first, key)) {
+          module->extra_globals.erase(it);
+          ++module->version;
+          return true;
+        }
+      }
+      error = "key not found";
       return false;
     }
     const auto name = string_object_to_string(*string);
@@ -837,7 +874,7 @@ bool mapping_clear(Value& value, std::string& error) {
     error = "'mappingproxy' object does not support clear";
     return false;
   }
-  if (auto* dict = value_as_dict(value)) {
+  if (auto* dict = dict_storage_from_value(value)) {
     dict->entries.clear();
     return true;
   }
@@ -853,6 +890,7 @@ bool mapping_clear(Value& value, std::string& error) {
       value_set_invalid(slot);
     }
     module->name_to_slot.clear();
+    module->extra_globals.clear();
     module->name.clear();
     ++module->version;
     return true;

@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 
 #include <string_view>
 
@@ -29,6 +31,66 @@ bool exception_is_os_error_family(const Value& self) {
   }
   auto* klass = value_as_class(instance->klass);
   return klass != nullptr && (klass->name == "OSError" || class_has_builtin_base_name(klass, "OSError"));
+}
+
+bool exception_is_syntax_error_family(const Value& self) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr && (klass->name == "SyntaxError" || class_has_builtin_base_name(klass, "SyntaxError"));
+}
+
+bool exception_is_import_error_family(const Value& self) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr &&
+      (klass->name == "ImportError" || class_has_builtin_base_name(klass, "ImportError"));
+}
+
+bool exception_is_group_family(const Value& self, bool& exception_only) {
+  auto* instance = value_as_instance(self);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr) return false;
+  exception_only = klass->name == "ExceptionGroup" || class_has_builtin_base_name(klass, "ExceptionGroup");
+  return exception_only || klass->name == "BaseExceptionGroup" ||
+      class_has_builtin_base_name(klass, "BaseExceptionGroup");
+}
+
+void initialize_syntax_error_attrs(Value& self, const Value* args, uint32_t argc) {
+  Value filename = Value::none();
+  Value lineno = Value::none();
+  Value offset = Value::none();
+  Value text = Value::none();
+  Value end_lineno = Value::none();
+  Value end_offset = Value::none();
+  if (argc >= 3) {
+    if (const auto* details = value_as_tuple(args[2])) {
+      if (details->items.size() >= 4) {
+        value_assign_fast(filename, details->items[0]);
+        value_assign_fast(lineno, details->items[1]);
+        value_assign_fast(offset, details->items[2]);
+        value_assign_fast(text, details->items[3]);
+      }
+      if (details->items.size() >= 6) {
+        value_assign_fast(end_lineno, details->items[4]);
+        value_assign_fast(end_offset, details->items[5]);
+      }
+    }
+  }
+  std::string ignored;
+  object_set_attr(self, "msg", argc >= 2 ? args[1] : Value::none(), ignored);
+  object_set_attr(self, "filename", filename, ignored);
+  object_set_attr(self, "lineno", lineno, ignored);
+  object_set_attr(self, "offset", offset, ignored);
+  object_set_attr(self, "text", text, ignored);
+  object_set_attr(self, "end_lineno", end_lineno, ignored);
+  object_set_attr(self, "end_offset", end_offset, ignored);
+  object_set_attr(self, "print_file_and_line", Value::none(), ignored);
 }
 
 void initialize_os_error_attrs(Value& self, const Value* args, uint32_t argc) {
@@ -84,13 +146,48 @@ bool exception_init(
   std::vector<Value> exception_args;
   exception_args.reserve(argc - 1);
   const bool is_os_error = exception_is_os_error_family(args[0]);
+  const bool is_syntax_error = exception_is_syntax_error_family(args[0]);
+  bool exception_group_requires_exception = false;
+  const bool is_exception_group = exception_is_group_family(args[0], exception_group_requires_exception);
+  std::vector<Value> group_exceptions;
+  if (is_exception_group) {
+    if (argc != 3 || value_as_string(args[1]) == nullptr) {
+      error = "BaseExceptionGroup.__new__() requires a string message and a sequence of exceptions";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!runtime_collect_iterable(runtime, args[2], group_exceptions, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (group_exceptions.empty()) {
+      error = "second argument (exceptions) must be a non-empty sequence";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    for (const auto& exception : group_exceptions) {
+      auto* exception_instance = value_as_instance(exception);
+      auto* exception_class = exception_instance == nullptr ? nullptr : value_as_class(exception_instance->klass);
+      const bool is_base_exception = exception_class != nullptr &&
+          (exception_class->name == "BaseException" || class_has_builtin_base_name(exception_class, "BaseException"));
+      const bool is_exception = exception_class != nullptr &&
+          (exception_class->name == "Exception" || class_has_builtin_base_name(exception_class, "Exception"));
+      if (!is_base_exception || (exception_group_requires_exception && !is_exception)) {
+        error = "Item 0 of second argument (exceptions) is not an exception";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    }
+  }
   const uint32_t stored_argc = is_os_error && argc >= 4 ? 3 : argc;
   for (uint32_t i = 1; i < stored_argc; ++i) {
     exception_args.push_back(args[i]);
   }
   Value args_tuple = Value::tuple(exception_args);
   Value message = Value::string("");
-  if (argc == 2) {
+  if (is_exception_group) {
+    value_assign_fast(message, args[1]);
+  } else if (argc == 2) {
     value_assign_fast(message, args[1]);
   } else if (argc > 2) {
     value_assign_fast(message, args_tuple);
@@ -101,6 +198,11 @@ bool exception_init(
     return false;
   }
   object_set_attr(const_cast<Value&>(args[0]), "args", std::move(args_tuple), ignored);
+  if (is_exception_group) {
+    object_set_attr(const_cast<Value&>(args[0]), "message", args[1], ignored);
+    object_set_attr(
+        const_cast<Value&>(args[0]), "exceptions", Value::tuple(std::move(group_exceptions)), ignored);
+  }
   if (auto* instance = value_as_instance(args[0])) {
     if (auto* klass = value_as_class(instance->klass)) {
       if (klass->name == "StopIteration" || class_has_builtin_base_name(klass, "StopIteration")) {
@@ -124,6 +226,9 @@ bool exception_init(
   if (is_os_error) {
     remap_exact_os_error(runtime, const_cast<Value&>(args[0]), args, argc);
     initialize_os_error_attrs(const_cast<Value&>(args[0]), args, argc);
+  }
+  if (is_syntax_error) {
+    initialize_syntax_error_attrs(const_cast<Value&>(args[0]), args, argc);
   }
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
@@ -153,15 +258,232 @@ bool exception_with_traceback(
   return true;
 }
 
+bool exception_add_note(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "BaseException.add_note() takes exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_string(args[1]) == nullptr) {
+    std::string type_name = "object";
+    Value type;
+    if (runtime_type_of_value(runtime, args[1], type)) {
+      if (auto* klass = value_as_class(type)) type_name = klass->name;
+    }
+    error = "note must be a str, not '" + type_name + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value notes;
+  std::string ignored;
+  if (!object_get_attr(args[0], "__notes__", notes, ignored)) {
+    notes = Value::list({});
+    if (!object_set_attr(const_cast<Value&>(args[0]), "__notes__", notes, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  auto* list = value_as_list(notes);
+  if (list == nullptr) {
+    error = "Cannot add note: __notes__ is not a list";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  list->items.push_back(args[1]);
+  value_set_none(out);
+  return true;
+}
+
+bool exception_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1) {
+    error = "Exception.__init__() self is missing";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!exception_is_import_error_family(args[0]) && kwargc != 0) {
+    error = "Exception.__init__() takes no keyword arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value name = Value::none();
+  Value path = Value::none();
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view keyword(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (keyword == "name") {
+      value_assign_fast(name, *kwargs[i].value);
+    } else if (keyword == "path") {
+      value_assign_fast(path, *kwargs[i].value);
+    } else {
+      error = "ImportError() got an unexpected keyword argument '" +
+          std::string(keyword) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (!exception_init(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  if (exception_is_import_error_family(args[0])) {
+    std::string ignored;
+    object_set_attr(const_cast<Value&>(args[0]), "name", name, ignored);
+    object_set_attr(const_cast<Value&>(args[0]), "path", path, ignored);
+  }
+  return true;
+}
+
+bool exception_repr(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  auto* instance = argc == 1 ? value_as_instance(args[0]) : nullptr;
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr) {
+    error = "BaseException.__repr__() expected an exception instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value stored_args;
+  std::string ignored;
+  if (!object_get_attr(args[0], "args", stored_args, ignored)) {
+    stored_args = Value::tuple({});
+  }
+  auto* tuple = value_as_tuple(stored_args);
+  if (tuple == nullptr) {
+    error = "exception args must be a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string text = klass->name + "(";
+  const Value* repr_function = runtime.find_builtin("repr");
+  for (size_t i = 0; i < tuple->items.size(); ++i) {
+    if (i != 0) text += ", ";
+    Value item_repr;
+    if (repr_function == nullptr ||
+        !runtime_call_callable(runtime, *repr_function, &tuple->items[i], 1, item_repr, error)) {
+      return false;
+    }
+    auto* item_text = value_as_string(item_repr);
+    if (item_text == nullptr) {
+      error = "repr() returned non-string";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    text += string_object_to_string(*item_text);
+  }
+  text += ")";
+  out = Value::string(std::move(text));
+  return true;
+}
+
+bool exception_str(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  auto* instance = argc == 1 ? value_as_instance(args[0]) : nullptr;
+  if (instance == nullptr) {
+    error = "BaseException.__str__() expected an exception instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  bool exception_only = false;
+  if (exception_is_group_family(args[0], exception_only)) {
+    Value message;
+    Value exceptions;
+    std::string ignored;
+    object_get_attr(args[0], "message", message, ignored);
+    object_get_attr(args[0], "exceptions", exceptions, ignored);
+    const auto* text = value_as_string(message);
+    const auto* items = value_as_tuple(exceptions);
+    const size_t count = items == nullptr ? 0 : items->items.size();
+    out = Value::string(
+        (text == nullptr ? value_to_string(message) : string_object_to_string(*text)) +
+        " (" + std::to_string(count) + " sub-exception" + (count == 1 ? "" : "s") + ")");
+    return true;
+  }
+  if (exception_is_syntax_error_family(args[0])) {
+    Value message;
+    std::string ignored;
+    if (object_get_attr(args[0], "msg", message, ignored)) {
+      out = Value::string(value_to_string(message));
+      return true;
+    }
+  }
+  Value stored_args;
+  std::string ignored;
+  if (!object_get_attr(args[0], "args", stored_args, ignored)) {
+    stored_args = Value::tuple({});
+  }
+  auto* tuple = value_as_tuple(stored_args);
+  if (tuple == nullptr) {
+    error = "exception args must be a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (tuple->items.empty()) {
+    out = Value::string("");
+    return true;
+  }
+  const char* builtin_name = tuple->items.size() == 1 ? "str" : "repr";
+  const Value* formatter = runtime.find_builtin(builtin_name);
+  const Value& value = tuple->items.size() == 1 ? tuple->items[0] : stored_args;
+  if (formatter == nullptr || !runtime_call_callable(runtime, *formatter, &value, 1, out, error)) {
+    return false;
+  }
+  if (value_as_string(out) == nullptr) {
+    error = std::string(builtin_name) + "() returned non-string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("builtins"));
   attrs.emplace_back("__qualname__", Value::string(name));
-  attrs.emplace_back("__init__", runtime.make_native_function(std::string(name) + ".__init__", exception_init));
+  attrs.emplace_back(
+      "__init__",
+      runtime.make_native_function(
+          std::string(name) + ".__init__",
+          exception_init,
+          nullptr,
+          nullptr,
+          nullptr,
+          false,
+          exception_init_kw));
   if (std::string_view(name) == "BaseException") {
+    attrs.emplace_back(
+        "__repr__",
+        runtime.make_native_function("BaseException.__repr__", exception_repr));
+    attrs.emplace_back(
+        "__str__",
+        runtime.make_native_function("BaseException.__str__", exception_str));
     attrs.emplace_back(
         "with_traceback",
         runtime.make_native_function("BaseException.with_traceback", exception_with_traceback));
+    attrs.emplace_back(
+        "add_note",
+        runtime.make_native_function("BaseException.add_note", exception_add_note));
   }
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }

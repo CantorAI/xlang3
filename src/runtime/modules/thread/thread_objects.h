@@ -61,6 +61,7 @@ bool xlang_thread_start_detached(Runtime& runtime, Value target, std::vector<Val
 void xlang_thread_join_state(XlangThreadState& state);
 void xlang_thread_join_state_for(XlangThreadState& state, double timeout_seconds, bool has_timeout);
 void xlang_thread_join_runtime_threads(Runtime* runtime);
+void xlang_thread_detach_runtime_daemon_threads(Runtime* runtime);
 bool xlang_thread_is_alive_state(XlangThreadState& state);
 bool xlang_lock_acquire_value(const Value& lock, bool blocking, std::string& error);
 bool xlang_lock_release_value(const Value& lock, std::string& error);

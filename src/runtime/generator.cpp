@@ -25,6 +25,8 @@ limitations under the License.
 #include "task_objects.h"
 #endif
 
+#include <algorithm>
+
 namespace xlang3 {
 
 namespace {
@@ -189,6 +191,9 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     obj->done = true;
   }
   if (!result.errors.empty()) {
+    if (result.exception.tag != ValueTag::Invalid) {
+      value_assign_fast(out, result.exception);
+    }
     error = result.errors.front();
     return false;
   }
@@ -262,6 +267,10 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     value_assign_fast(exception, args[0]);
   }
   if (obj->done || obj->vm_state == nullptr) {
+    if (!obj->done && !obj->started) {
+      obj->started = true;
+      obj->done = true;
+    }
     obj->runtime->set_active_exception(exception);
     value_assign_fast(out, exception);
     error = value_to_string(exception);
@@ -282,7 +291,23 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     obj->done = true;
   }
   if (!result.errors.empty()) {
+    if (result.exception.tag != ValueTag::Invalid) {
+      value_assign_fast(out, result.exception);
+    }
     error = result.errors.front();
+    return false;
+  }
+  if (done) {
+    Value return_value;
+    value_assign_fast(return_value, out);
+    Value stop = obj->runtime->make_exception("StopIteration", "");
+    std::string ignored;
+    object_set_attr(stop, "value", return_value, ignored);
+    object_set_attr(stop, "args", return_value.tag == ValueTag::None
+        ? Value::tuple({}) : Value::tuple({return_value}), ignored);
+    value_assign_fast(out, stop);
+    obj->runtime->set_pending_exception(std::move(stop));
+    error = "generator raised StopIteration";
     return false;
   }
   return true;
@@ -337,6 +362,10 @@ bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value
   }
 
   if (done) {
+    if (state->kind == AsyncGenAwaitableKind::ANext && !state->args.empty()) {
+      value_assign_fast(out, state->args[0]);
+      return true;
+    }
     error = "async generator exhausted";
     runtime.raise_class_error("StopAsyncIteration", error);
     return false;
@@ -626,13 +655,39 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
       value_set_none(out);
       return true;
     }
+    if (generator_vm_frame_snapshot(*generator, out)) {
+      return true;
+    }
     if (auto* function = value_as_function(generator->function)) {
+      std::vector<std::pair<Value, Value>> entries;
+      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
+        const auto& fn = function->module->functions[function->function_id];
+        const size_t count = std::min(fn.locals.size(), generator->args.size());
+        entries.reserve(count + fn.free_vars.size());
+        for (size_t i = 0; i < count; ++i) {
+          if (!fn.locals[i].empty() && fn.locals[i][0] != '#' && generator->args[i].tag != ValueTag::Invalid) {
+            entries.push_back({Value::string(fn.locals[i]), generator->args[i]});
+          }
+        }
+        for (size_t i = 0; i < fn.free_vars.size() && i < function->closure.size(); ++i) {
+          if (fn.free_vars[i].empty() || fn.free_vars[i][0] == '#') {
+            continue;
+          }
+          const Value* free_value = &function->closure[i];
+          if (auto* cell = value_as_cell(*free_value)) {
+            free_value = &cell->value;
+          }
+          if (free_value->tag != ValueTag::Invalid) {
+            entries.push_back({Value::string(fn.free_vars[i]), *free_value});
+          }
+        }
+      }
       out = Value::frame(
           function->module,
           function->function_id,
           function->globals_module,
           0,
-          Value::dict({}),
+          Value::dict(std::move(entries)),
           Value::none(),
           Value::none());
       return true;
@@ -642,8 +697,10 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
   }
   if (name == "gi_code" || name == "ag_code" || name == "cr_code") {
     if (auto* function = value_as_function(generator->function)) {
-      out = Value::code(function->module, function->function_id);
-      return true;
+      std::string ignored;
+      if (object_get_attr(generator->function, "__code__", out, ignored)) {
+        return true;
+      }
     }
     value_set_none(out);
     return true;

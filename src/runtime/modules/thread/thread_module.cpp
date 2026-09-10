@@ -14,7 +14,9 @@ limitations under the License.
 */
 #include "thread_objects.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -175,6 +177,21 @@ bool thread_get_main_thread_ident(
   return thread_get_ident(runtime, args, argc, out, error, user_data);
 }
 
+bool thread_count(
+    Runtime&,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 0) {
+    error = "_thread._count() expected no arguments";
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(xlang_thread_active_count() - 1));
+  return true;
+}
+
 bool thread_get_native_id(
     Runtime& runtime,
     const Value* args,
@@ -295,7 +312,6 @@ bool thread_exit(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)args;
   (void)user_data;
   (void)out;
@@ -303,7 +319,8 @@ bool thread_exit(
     error = "_thread.exit() expected no arguments";
     return false;
   }
-  error = "_thread.exit() is not implemented yet";
+  error.clear();
+  runtime.raise_class_error("SystemExit", "");
   return false;
 }
 
@@ -355,9 +372,97 @@ bool thread_excepthook(
     Value& out,
     std::string& error,
     void*) {
-  (void)runtime;
   if (argc != 1) {
     error = "_thread._excepthook() expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  Value exc_type;
+  Value exc_value;
+  Value exc_traceback;
+  Value thread;
+  if (!object_get_attr(args[0], "exc_type", exc_type, error) ||
+      !object_get_attr(args[0], "exc_value", exc_value, error) ||
+      !object_get_attr(args[0], "exc_traceback", exc_traceback, error) ||
+      !object_get_attr(args[0], "thread", thread, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  auto* exc_class = value_as_class(exc_type);
+  if (exc_class != nullptr &&
+      (exc_class->name == "SystemExit" || class_has_builtin_base_name(exc_class, "SystemExit"))) {
+    value_set_none(out);
+    return true;
+  }
+
+  Value sys;
+  if (!runtime.import_module("sys", sys, error)) {
+    return false;
+  }
+  Value stream;
+  std::string attr_error;
+  const bool has_stderr = module_get_attr(sys, "stderr", stream, attr_error) &&
+      stream.tag != ValueTag::None && stream.tag != ValueTag::Invalid;
+  if (!has_stderr && thread.tag != ValueTag::None) {
+    attr_error.clear();
+    if (!attribute_get(thread, "_stderr", stream, attr_error) ||
+        stream.tag == ValueTag::None || stream.tag == ValueTag::Invalid) {
+      value_set_none(out);
+      return true;
+    }
+  } else if (!has_stderr) {
+    value_set_none(out);
+    return true;
+  }
+
+  std::string thread_name;
+  if (thread.tag != ValueTag::None) {
+    Value name;
+    attr_error.clear();
+    if (attribute_get(thread, "_name", name, attr_error)) {
+      thread_name = value_to_string(name);
+    }
+  }
+  if (thread_name.empty()) {
+    thread_name = std::to_string(xlang_thread_current_ident());
+  }
+
+  Value write;
+  if (!object_get_attr(stream, "write", write, error)) {
+    return false;
+  }
+  Value header = Value::string("Exception in thread " + thread_name + ":\n");
+  Value ignored;
+  if (!runtime_call_callable(runtime, write, &header, 1, ignored, error)) {
+    return false;
+  }
+
+  Value traceback_module;
+  Value print_exception;
+  if (!runtime.import_module("traceback", traceback_module, error) ||
+      !module_get_attr(traceback_module, "print_exception", print_exception, error)) {
+    return false;
+  }
+  Value traceback_args[] = {exc_type, exc_value, exc_traceback};
+  std::vector<std::pair<std::string, Value>> traceback_kwargs;
+  traceback_kwargs.push_back({"file", stream});
+  if (!runtime_call_callable_kw(
+          runtime,
+          print_exception,
+          traceback_args,
+          3,
+          traceback_kwargs,
+          ignored,
+          error)) {
+    return false;
+  }
+
+  Value flush;
+  attr_error.clear();
+  if (object_get_attr(stream, "flush", flush, attr_error) &&
+      !runtime_call_callable(runtime, flush, nullptr, 0, ignored, error)) {
     return false;
   }
   value_set_none(out);
@@ -375,6 +480,7 @@ Value register_low_level_thread_module(Runtime& runtime) {
       .function("get_ident", thread_get_ident)
       .function("get_native_id", thread_get_native_id)
       .function("_get_main_thread_ident", thread_get_main_thread_ident)
+      .function("_count", thread_count)
       .function("daemon_threads_allowed", thread_daemon_threads_allowed)
       .function("_is_main_interpreter", thread_is_main_interpreter)
       .function("_shutdown", thread_shutdown)

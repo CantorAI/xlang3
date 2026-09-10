@@ -14,8 +14,10 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -27,6 +29,7 @@ limitations under the License.
 #include <cstdint>
 #include <algorithm>
 #include <exception>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -57,7 +60,7 @@ bool call_set_name_descriptors(
   for (const auto& attr : attrs) {
     Value set_name;
     std::string attr_error;
-    if (!object_get_attr(attr.second, "__set_name__", set_name, attr_error)) {
+    if (!attribute_get(attr.second, "__set_name__", set_name, attr_error)) {
       continue;
     }
     Value name_arg = Value::string(attr.first);
@@ -83,7 +86,7 @@ bool call_init_subclass(
     return true;
   }
   Value hook;
-  if (!object_lookup_class_attr(bases->items[0], "__init_subclass__", hook, error)) {
+  if (!object_lookup_inherited_class_attr(cls, "__init_subclass__", hook, error)) {
     error.clear();
     return true;
   }
@@ -266,6 +269,29 @@ bool builtin_dict_init(Runtime& runtime, const Value* args, uint32_t argc, Value
   return builtin_dict_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
+bool builtin_list_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "list expected at most 1 argument, got " + std::to_string(argc > 0 ? argc - 1 : 0);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* target = value_as_mutable_list_storage(args[0]);
+  if (target == nullptr) {
+    error = "descriptor '__init__' requires a 'list' object but received a '" +
+            builtin_value_type_name(runtime, args[0]) + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> items;
+  if (argc == 2 && !runtime_collect_iterable(runtime, args[1], items, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  target->items = std::move(items);
+  value_set_none(out);
+  return true;
+}
+
 bool collect_type_new_slots(const Value& value, std::vector<std::string>& slots) {
   if (auto* string = value_as_string(value)) {
     const auto name = string_object_to_string(*string);
@@ -294,6 +320,14 @@ bool collect_type_new_slots(const Value& value, std::vector<std::string>& slots)
   if (auto* set = value_as_set(value)) {
     for (const auto& item : set->items) {
       if (!collect_type_new_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* dict = value_as_dict(value)) {
+    for (const auto& entry : dict->entries) {
+      if (!collect_type_new_slots(entry.first, slots)) {
         return false;
       }
     }
@@ -402,6 +436,8 @@ const char* builtin_type_name_for_kind(ObjectKind kind) {
       return "str";
     case ObjectKind::BigInt:
       return "int";
+    case ObjectKind::Complex:
+      return "complex";
     case ObjectKind::Bytes:
       return "bytes";
     case ObjectKind::ByteArray:
@@ -595,6 +631,24 @@ bool class_tuple_matches(
     return false;
   }
 
+  if (!subclass_check && expected->name == "Iterator" &&
+      value_is_functional_iterator(check_subject)) {
+    out = true;
+    return true;
+  }
+  if (!subclass_check && check_subject.tag == ValueTag::Object &&
+      check_subject.as.obj != nullptr && check_subject.as.obj->kind == ObjectKind::File) {
+    const auto* file = reinterpret_cast<const FileObject*>(check_subject.as.obj);
+    const std::string& name = expected->name;
+    if (name == "IOBase" || name == "_IOBase" ||
+        ((name == "TextIOBase" || name == "_TextIOBase") && !file->binary) ||
+        ((name == "RawIOBase" || name == "_RawIOBase") && file->binary && file->buffering == 0) ||
+        ((name == "BufferedIOBase" || name == "_BufferedIOBase") && file->binary && file->buffering != 0)) {
+      out = true;
+      return true;
+    }
+  }
+
   const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
   const Value& hook_arg = subclass_check ? actual_type : check_subject;
   bool hook_applied = false;
@@ -603,6 +657,38 @@ bool class_tuple_matches(
   }
   if (hook_applied) {
     return true;
+  }
+  out = class_is_subclass(actual, expected);
+  return true;
+}
+
+bool class_tuple_matches_reported_type(
+    Runtime& runtime,
+    const Value& actual_type,
+    const Value& classinfo,
+    bool& out,
+    std::string& error) {
+  if (auto* tuple = value_as_tuple(classinfo)) {
+    for (const auto& item : tuple->items) {
+      bool item_match = false;
+      if (!class_tuple_matches_reported_type(runtime, actual_type, item, item_match, error)) {
+        return false;
+      }
+      if (item_match) {
+        out = true;
+        return true;
+      }
+    }
+    out = false;
+    return true;
+  }
+
+  auto* expected = value_as_class(classinfo);
+  auto* actual = value_as_class(actual_type);
+  if (expected == nullptr || actual == nullptr) {
+    error = "isinstance() arg 2 must be a class or tuple of classes";
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   out = class_is_subclass(actual, expected);
   return true;
@@ -663,6 +749,36 @@ bool builtin_isinstance(
   bool result = false;
   if (!class_tuple_matches(runtime, args[0], actual_type, args[1], false, result, error)) {
     return false;
+  }
+  if (!result) {
+    if (auto* instance = value_as_instance(args[0])) {
+      if (auto* klass = value_as_class(instance->klass)) {
+        Value class_descriptor;
+        std::string descriptor_error;
+        if (object_get_class_attr_for_instance(args[0], "__class__", class_descriptor, descriptor_error)) {
+          if (auto* property = value_as_property(class_descriptor);
+              property != nullptr && property->fget.tag != ValueTag::None && property->fget.tag != ValueTag::Invalid) {
+            Value reported_type;
+            if (!runtime_call_callable(runtime, property->fget, &args[0], 1, reported_type, error)) {
+              return false;
+            }
+            if (value_as_class(reported_type) != nullptr &&
+                !class_tuple_matches_reported_type(runtime, reported_type, args[1], result, error)) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+  }
+  if (!result) {
+    Value reported_type;
+    std::string reported_error;
+    if (object_get_attr(args[0], "_spec_class", reported_type, reported_error) &&
+        value_as_class(reported_type) != nullptr &&
+        !class_tuple_matches_reported_type(runtime, reported_type, args[1], result, error)) {
+      return false;
+    }
   }
   out = Value::boolean(result);
   return true;
@@ -818,8 +934,7 @@ bool builtin_object_format(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::string(object_model_to_string(args[0]));
-  return true;
+  return builtin_str_from_value(runtime, args[0], out, error);
 }
 
 bool builtin_object_reduce(
@@ -840,7 +955,79 @@ bool builtin_object_reduce(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::tuple({object_type, Value::tuple({})});
+  Value copyreg;
+  if (!runtime.import_module("copyreg", copyreg, error)) {
+    return false;
+  }
+  Value newobj;
+  if (!module_get_attr(copyreg, "__newobj__", newobj, error)) {
+    return false;
+  }
+
+  Value state = Value::none();
+  Value getstate;
+  std::string attr_error;
+  if (object_get_attr(args[0], "__getstate__", getstate, attr_error)) {
+    if (!runtime_call_callable(runtime, getstate, nullptr, 0, state, error)) {
+      return false;
+    }
+  } else if (auto* instance = value_as_instance(args[0])) {
+    Value dict_state = Value::none();
+    std::string dict_error;
+    const bool has_dict_state = object_get_attr(args[0], "__dict__", dict_state, dict_error);
+    std::vector<std::pair<Value, Value>> slot_entries;
+    if (auto* klass = value_as_class(instance->klass)) {
+      for (size_t i = 0; i < klass->instance_slot_names.size() && i < instance_slot_count(instance); ++i) {
+        const auto& slot_name = klass->instance_slot_names[i];
+        const auto& slot_value = instance_slot_at(instance, static_cast<uint32_t>(i));
+        if (slot_name != "__dict__" && slot_name != "__weakref__" && slot_value.tag != ValueTag::Invalid) {
+          slot_entries.emplace_back(Value::string(slot_name), slot_value);
+        }
+      }
+    }
+    if (!slot_entries.empty()) {
+      state = Value::tuple({has_dict_state ? dict_state : Value::none(), Value::dict(std::move(slot_entries))});
+    } else if (has_dict_state) {
+      value_assign_fast(state, dict_state);
+    }
+  }
+
+  out = Value::tuple({newobj, Value::tuple({object_type}), std::move(state)});
+  return true;
+}
+
+bool builtin_traceback_new(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 5 || value_as_class(args[0]) == nullptr ||
+      (args[1].tag != ValueTag::None && value_as_traceback(args[1]) == nullptr) ||
+      value_as_frame(args[2]) == nullptr || args[3].tag != ValueTag::Int64 ||
+      args[4].tag != ValueTag::Int64) {
+    error = "traceback() expected (tb_next, frame, lasti, lineno)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::traceback(args[2], args[1], args[4].as.i64, args[3].as.i64);
+  return true;
+}
+
+bool builtin_traceback_init(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 5 || value_as_traceback(args[0]) == nullptr) {
+    error = "traceback.__init__ expected (tb_next, frame, lasti, lineno)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_none(out);
   return true;
 }
 
@@ -856,7 +1043,40 @@ bool builtin_object_reduce_ex(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (auto* instance = value_as_instance(args[0])) {
+    Value reduce_attr;
+    std::string lookup_error;
+    const bool has_reduce = object_lookup_class_attr(
+        instance->klass, "__reduce__", reduce_attr, lookup_error);
+    const auto* native_reduce = value_as_native_function(reduce_attr);
+    if (has_reduce && (native_reduce == nullptr || native_reduce->name != "object.__reduce__")) {
+      Value reduce_method;
+      if (!object_get_attr(args[0], "__reduce__", reduce_method, error)) {
+        return false;
+      }
+      return runtime_call_callable(runtime, reduce_method, nullptr, 0, out, error);
+    }
+  }
   return builtin_object_reduce(runtime, args, 1, out, error, nullptr);
+}
+
+bool builtin_object_subclasses(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "__subclasses__() takes no arguments (" + std::to_string(argc > 0 ? argc - 1 : 0) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!class_get_subclasses(args[0], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool builtin_str_new(
@@ -1153,6 +1373,7 @@ bool builtin_type_new_impl(
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.reserve(namespace_dict->entries.size());
   std::vector<std::string> explicit_slots;
+  std::vector<std::string> static_attributes;
   bool has_explicit_slots = false;
   for (const auto& entry : namespace_dict->entries) {
     auto* key = value_as_string(entry.first);
@@ -1169,6 +1390,9 @@ bool builtin_type_new_impl(
         runtime.raise_class_error("TypeError", error);
         return false;
       }
+    }
+    if (key_name == "__static_attributes__") {
+      (void)collect_type_new_slots(entry.second, static_attributes);
     }
     attrs.push_back({key_name, entry.second});
   }
@@ -1206,7 +1430,9 @@ bool builtin_type_new_impl(
   }
 
   auto descriptor_attrs = attrs;
-  out = Value::class_object(class_name, std::move(attrs), base, {}, args[0]);
+  const std::vector<std::string> inferred_slots =
+      !has_explicit_slots && resolved_bases.empty() ? static_attributes : std::vector<std::string>{};
+  out = Value::class_object(class_name, std::move(attrs), base, inferred_slots, args[0]);
   for (size_t i = 1; i < resolved_bases.size(); ++i) {
     if (!class_set_base(out, resolved_bases[i], error)) {
       runtime.raise_class_error("TypeError", error);
@@ -1267,8 +1493,36 @@ bool builtin_build_class_from_namespace_kw(
     class_keywords.push_back({kwargs[i].name, *kwargs[i].value});
   }
 
+  auto* original_bases = value_as_tuple(args[2]);
+  std::vector<Value> resolved_bases;
+  if (!resolve_class_bases(runtime, original_bases, resolved_bases, error)) {
+    return false;
+  }
+  bool bases_changed = original_bases->items.size() != resolved_bases.size();
+  if (!bases_changed) {
+    for (size_t i = 0; i < resolved_bases.size(); ++i) {
+      if (!value_is(original_bases->items[i], resolved_bases[i])) {
+        bases_changed = true;
+        break;
+      }
+    }
+  }
+  Value effective_bases = bases_changed ? Value::tuple(resolved_bases) : args[2];
+  Value namespace_value = args[3];
+  if (bases_changed) {
+    auto* namespace_dict = type_new_namespace_dict(namespace_value);
+    if (namespace_dict != nullptr) {
+      std::string set_error;
+      if (!mapping_set_item(namespace_value, Value::string("__orig_bases__"), args[2], set_error)) {
+        error = std::move(set_error);
+        return false;
+      }
+    }
+  }
+  Value build_args[] = {args[0], args[1], effective_bases, namespace_value};
+
   if (value_as_class(args[0]) == nullptr) {
-    Value call_args[] = {args[1], args[2], args[3]};
+    Value call_args[] = {args[1], effective_bases, namespace_value};
     if (!runtime_call_callable_kw(runtime, args[0], call_args, 3, class_keywords, out, error)) {
       if (error.empty()) {
         error = "__build_class__ metaclass is not callable";
@@ -1288,11 +1542,11 @@ bool builtin_build_class_from_namespace_kw(
       !has_new ||
       (native_new != nullptr && (native_new->name == "type.__new__" || native_new->name == "object.__new__"));
   if (use_default_type_new) {
-    if (!builtin_type_new_impl(runtime, args, argc, class_keywords, constructed, error, user_data)) {
+    if (!builtin_type_new_impl(runtime, build_args, argc, class_keywords, constructed, error, user_data)) {
       return false;
     }
   } else {
-    Value new_args[] = {args[0], args[1], args[2], args[3]};
+    Value new_args[] = {args[0], args[1], effective_bases, namespace_value};
     if (!runtime_call_callable_kw(runtime, new_value, new_args, 4, class_keywords, constructed, error)) {
       if (error.empty()) {
         error = "__new__ failed";
@@ -1315,7 +1569,7 @@ bool builtin_build_class_from_namespace_kw(
         return true;
       }
     }
-    Value init_args[] = {constructed, args[1], args[2], args[3]};
+    Value init_args[] = {constructed, args[1], effective_bases, namespace_value};
     Value ignored;
     if (!runtime_call_callable_kw(runtime, init_value, init_args, 4, class_keywords, ignored, error)) {
       if (error.empty()) {
@@ -1346,6 +1600,7 @@ bool resolve_class_bases(Runtime& runtime, TupleObject* bases, std::vector<Value
   }
   resolved_bases.clear();
   resolved_bases.reserve(bases->items.size());
+  Value original_bases = Value::tuple(bases->items);
   for (const auto& base : bases->items) {
     if (auto* alias = value_as_generic_alias(base)) {
       if (value_as_class(alias->origin) == nullptr) {
@@ -1357,9 +1612,31 @@ bool resolve_class_bases(Runtime& runtime, TupleObject* bases, std::vector<Value
     } else if (value_as_class(base) != nullptr) {
       resolved_bases.push_back(base);
     } else {
-      error = "bases must be classes";
-      runtime.raise_class_error("TypeError", error);
-      return false;
+      Value mro_entries;
+      std::string attr_error;
+      if (!attribute_get(base, "__mro_entries__", mro_entries, attr_error)) {
+        error = "bases must be classes";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      Value replacement;
+      if (!runtime_call_callable(runtime, mro_entries, &original_bases, 1, replacement, error)) {
+        return false;
+      }
+      auto* replacement_tuple = value_as_tuple(replacement);
+      if (replacement_tuple == nullptr) {
+        error = "__mro_entries__ must return a tuple";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      for (const auto& replacement_base : replacement_tuple->items) {
+        if (value_as_class(replacement_base) == nullptr) {
+          error = "__mro_entries__ returned a non-class base";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
+        resolved_bases.push_back(replacement_base);
+      }
     }
   }
   return true;
@@ -1502,6 +1779,66 @@ bool builtin_type_subclasscheck(
   return true;
 }
 
+bool builtin_bool_new(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2 || value_as_class(args[0]) == nullptr) {
+    error = "bool.__new__ expected class and optional value";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  bool truth = false;
+  if (argc == 2 && !runtime_truthy(runtime, args[1], truth, error)) return false;
+  value_set_bool(out, truth);
+  return true;
+}
+
+bool builtin_bool_and(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "bool.__and__ expected one argument";
+    return false;
+  }
+  return value_bit_and(args[0], args[1], out, error);
+}
+
+bool builtin_type_or(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "type.__or__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!value_bit_or(args[0], args[1], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool builtin_type_call(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || value_as_class(args[0]) == nullptr) {
+    error = "type.__call__ expected a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, args[0], args + 1, argc - 1, out, error);
+}
+
 bool builtin_type_annotations_get(
     Runtime& runtime,
     const Value* args,
@@ -1529,16 +1866,7 @@ bool builtin_type_annotations_get(
       }
     }
   }
-  auto it = klass->attrs.find("__annotations__");
-  if (it != klass->attrs.end() && value_as_property(it->second) == nullptr) {
-    value_assign_fast(out, it->second);
-    return true;
-  }
-  Value annotations = Value::dict({});
-  value_assign_fast(out, annotations);
-  klass->attrs["__annotations__"] = std::move(annotations);
-  ++klass->version;
-  return true;
+  return object_get_class_annotations(runtime, args[0], out, error);
 }
 
 bool builtin_type_mro_get(
@@ -1752,7 +2080,7 @@ bool builtin_object_str(
   }
   Value repr_method;
   std::string attr_error;
-  if (object_get_attr(args[0], "__repr__", repr_method, attr_error)) {
+  if (attribute_get(args[0], "__repr__", repr_method, attr_error)) {
     Value result;
     if (!runtime_call_callable(runtime, repr_method, nullptr, 0, result, error)) {
       return false;
@@ -1906,7 +2234,17 @@ bool builtin_object_eq(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_bool(out, value_is(args[0], args[1]));
+  if (value_is(args[0], args[1])) {
+    value_set_bool(out, true);
+    return true;
+  }
+  const Value* not_implemented = runtime.find_builtin("NotImplemented");
+  if (not_implemented == nullptr) {
+    error = "NotImplemented is unavailable";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  value_assign_fast(out, *not_implemented);
   return true;
 }
 
@@ -1922,7 +2260,39 @@ bool builtin_object_ne(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  value_set_bool(out, !value_is(args[0], args[1]));
+  if (value_is(args[0], args[1])) {
+    value_set_bool(out, false);
+    return true;
+  }
+  const Value* not_implemented = runtime.find_builtin("NotImplemented");
+  if (not_implemented == nullptr) {
+    error = "NotImplemented is unavailable";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  value_assign_fast(out, *not_implemented);
+  return true;
+}
+
+bool builtin_object_order(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "object comparison expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value* not_implemented = runtime.find_builtin("NotImplemented");
+  if (not_implemented == nullptr) {
+    error = "NotImplemented is unavailable";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  value_assign_fast(out, *not_implemented);
   return true;
 }
 
@@ -1947,6 +2317,73 @@ bool builtin_object_hash(
   return true;
 }
 
+bool builtin_object_dir(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "__dir__ expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::set<std::string> names{"__class__"};
+  const auto add_class_names = [&](const ClassObject* root) {
+    std::vector<const ClassObject*> pending{root};
+    std::set<const ClassObject*> visited;
+    while (!pending.empty()) {
+      const ClassObject* current = pending.back();
+      pending.pop_back();
+      if (current == nullptr || !visited.insert(current).second) {
+        continue;
+      }
+      for (const auto& attr : current->attrs) {
+        names.insert(attr.first);
+      }
+      for (const auto& slot : current->instance_slot_names) {
+        names.insert(slot);
+      }
+      for (const auto& base : current->bases) {
+        if (auto* base_class = value_as_class(base)) {
+          pending.push_back(base_class);
+        }
+      }
+    }
+  };
+
+  if (auto* instance = value_as_instance(args[0])) {
+    for (const auto& attr : instance->attrs) {
+      names.insert(attr.first);
+    }
+    add_class_names(value_as_class(instance->klass));
+  } else if (auto* klass = value_as_class(args[0])) {
+    add_class_names(klass);
+  } else if (auto* module = value_as_module(args[0])) {
+    for (const auto& attr : module->name_to_slot) {
+      if (attr.second < module->slots.size() && module->slots[attr.second].tag != ValueTag::Invalid) {
+        names.insert(attr.first);
+      }
+    }
+    names.insert("__name__");
+  } else {
+    Value type;
+    if (runtime_type_of_value(runtime, args[0], type)) {
+      add_class_names(value_as_class(type));
+    }
+  }
+
+  std::vector<Value> result;
+  result.reserve(names.size());
+  for (const auto& name : names) {
+    result.push_back(Value::string(name));
+  }
+  out = Value::list(std::move(result));
+  return true;
+}
+
 bool builtin_object_getattribute(
     Runtime& runtime,
     const Value* args,
@@ -1965,7 +2402,7 @@ bool builtin_object_getattribute(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!object_get_attr(args[0], string_object_to_string(*name), out, error)) {
+  if (!attribute_get(args[0], string_object_to_string(*name), out, error)) {
     runtime.raise_class_error("AttributeError", error);
     return false;
   }
@@ -1991,6 +2428,21 @@ bool builtin_object_setattr(
     return false;
   }
   Value target = args[0];
+  Value descriptor;
+  std::string descriptor_error;
+  const bool descriptor_found = object_get_class_attr_for_instance(
+      target, string_object_to_string(*name), descriptor, descriptor_error);
+  if (descriptor_found) {
+    Value setter;
+    if (attribute_get(descriptor, "__set__", setter, descriptor_error)) {
+      Value setter_args[2] = {target, args[2]};
+      if (!runtime_call_callable(runtime, setter, setter_args, 2, out, error)) {
+        return false;
+      }
+      value_set_none(out);
+      return true;
+    }
+  }
   if (!object_set_attr(target, string_object_to_string(*name), args[2], error)) {
     error = "object.__setattr__ target " + value_to_string(args[0]) + ": " + error;
     runtime.raise_class_error("AttributeError", error);
@@ -2019,6 +2471,18 @@ bool builtin_object_delattr(
     return false;
   }
   Value target = args[0];
+  Value descriptor;
+  std::string descriptor_error;
+  if (object_get_class_attr_for_instance(target, string_object_to_string(*name), descriptor, descriptor_error)) {
+    Value deleter;
+    if (attribute_get(descriptor, "__delete__", deleter, descriptor_error)) {
+      if (!runtime_call_callable(runtime, deleter, &target, 1, out, error)) {
+        return false;
+      }
+      value_set_none(out);
+      return true;
+    }
+  }
   if (!object_delete_attr(target, string_object_to_string(*name), error)) {
     runtime.raise_class_error("AttributeError", error);
     return false;
@@ -2067,6 +2531,12 @@ bool builtin_generic_alias_new(
     alias_args = Value::tuple({args[2]});
   }
   out = Value::generic_alias(args[1], std::move(alias_args));
+  if (auto* alias = value_as_generic_alias(out)) {
+    if (auto* requested_class = value_as_class(args[0]);
+        requested_class != nullptr && requested_class->name != "GenericAlias") {
+      value_assign_fast(alias->klass, args[0]);
+    }
+  }
   return true;
 }
 
@@ -2106,6 +2576,11 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
         value_assign_fast(out, instance->klass);
         return true;
       }
+      if (auto* alias = value_as_generic_alias(value);
+          alias != nullptr && value_as_class(alias->klass) != nullptr) {
+        value_assign_fast(out, alias->klass);
+        return true;
+      }
       if (auto* klass = value_as_class(value)) {
         if (klass->metaclass.tag != ValueTag::Invalid) {
           value_assign_fast(out, klass->metaclass);
@@ -2113,10 +2588,45 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
         }
       }
       const char* type_name = builtin_type_name_for_kind(value.as.obj->kind);
-      if (auto* bound = value_as_bound_method(value)) {
-        if (value_as_native_function(bound->function) != nullptr) {
+      if (auto* native = value_as_native_function(value)) {
+        if (native->bind_as_descriptor) {
+          const auto dot = native->name.rfind('.');
+          const std::string_view method_name = dot == std::string::npos
+              ? std::string_view(native->name)
+              : std::string_view(native->name).substr(dot + 1);
+          const bool wrapper_descriptor =
+              method_name.size() >= 4 && method_name.substr(0, 2) == "__" &&
+              method_name.substr(method_name.size() - 2) == "__" &&
+              method_name != "__instancecheck__" && method_name != "__subclasscheck__";
+          type_name = wrapper_descriptor
+              ? "wrapper_descriptor"
+              : "method_descriptor";
+        } else {
           type_name = "builtin_function_or_method";
         }
+      }
+      if (auto* method = value_as_class_method(value)) {
+        if (value_as_native_function(method->function) != nullptr) {
+          type_name = "classmethod_descriptor";
+        }
+      }
+      if (auto* bound = value_as_bound_method(value)) {
+        if (auto* native = value_as_native_function(bound->function)) {
+          const auto dot = native->name.rfind('.');
+          const std::string_view method_name = dot == std::string::npos
+              ? std::string_view(native->name)
+              : std::string_view(native->name).substr(dot + 1);
+          const bool method_wrapper =
+              method_name.size() >= 4 && method_name.substr(0, 2) == "__" &&
+              method_name.substr(method_name.size() - 2) == "__" &&
+              method_name != "__instancecheck__" && method_name != "__subclasscheck__";
+          type_name = method_wrapper
+              ? "method-wrapper"
+              : "builtin_function_or_method";
+        }
+      }
+      if (auto* generator = value_as_generator(value)) {
+        type_name = generator->is_coroutine ? "coroutine" : (generator->is_async ? "async_generator" : "generator");
       }
       if (value.as.obj->kind == ObjectKind::Set) {
         if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
@@ -2124,8 +2634,10 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
         }
       }
       if (const auto* type = find_builtin_type(runtime, type_name)) {
-        value_assign_fast(out, *type);
-        return true;
+        if (value_as_class(*type) != nullptr) {
+          value_assign_fast(out, *type);
+          return true;
+        }
       }
       break;
     }
@@ -2139,13 +2651,99 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
   return false;
 }
 
+bool builtin_function_descriptor_get(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 3 || value_as_function(args[0]) == nullptr) {
+    error = "descriptor '__get__' requires a function object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag == ValueTag::None) {
+    value_assign_fast(out, args[0]);
+  } else {
+    out = Value::bound_method(args[1], args[0]);
+  }
+  return true;
+}
+
+bool builtin_native_descriptor_get(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 3 || value_as_native_function(args[0]) == nullptr) {
+    error = "descriptor '__get__' requires a native function";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag == ValueTag::None) {
+    value_assign_fast(out, args[0]);
+  } else {
+    out = Value::bound_method(args[1], args[0]);
+  }
+  return true;
+}
+
+bool builtin_descriptor_method_proxy(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || user_data == nullptr) {
+    error = "descriptor method requires a descriptor";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value method;
+  if (!object_get_attr(args[0], static_cast<const char*>(user_data), method, error)) {
+    return false;
+  }
+  return runtime_call_callable(runtime, method, args + 1, argc - 1, out, error);
+}
+
+bool builtin_float_getformat(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "float.__getformat__() argument 1 must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const std::string kind = string_object_to_string(*value_as_string(args[0]));
+  if (kind != "double" && kind != "float") {
+    error = "__getformat__() argument 1 must be 'double' or 'float'";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = Value::string("IEEE, little-endian");
+  return true;
+}
+
 void register_object_type_builtins(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> object_attrs;
   object_attrs.push_back({"__module__", Value::string("builtins")});
   object_attrs.push_back({"__qualname__", Value::string("object")});
+  object_attrs.push_back({"__type_params__", Value::tuple({})});
   object_attrs.push_back({"__text_signature__", Value::string("()")});
-  object_attrs.push_back({"__new__", Value::native_function(0, "object.__new__", builtin_object_new)});
-  object_attrs.push_back({"__init__", Value::native_function(0, "object.__init__", builtin_object_init)});
+  Value object_new = Value::native_function(0, "object.__new__", builtin_object_new);
+  builtin_method_set_text_signature(object_new, "(*args, **kwargs)");
+  object_attrs.push_back({"__new__", std::move(object_new)});
+  Value object_init = Value::native_function(0, "object.__init__", builtin_object_init);
+  builtin_method_set_text_signature(object_init, "($self, /, *args, **kwargs)");
+  object_attrs.push_back({"__init__", std::move(object_init)});
   object_attrs.push_back({"__init_subclass__", Value::class_method(runtime.make_native_function(
                                                 "object.__init_subclass__",
                                                 builtin_object_init_subclass,
@@ -2156,12 +2754,20 @@ void register_object_type_builtins(Runtime& runtime) {
                                                 builtin_object_init_subclass_kw))});
   object_attrs.push_back({"__eq__", Value::native_function(0, "object.__eq__", builtin_object_eq)});
   object_attrs.push_back({"__ne__", Value::native_function(0, "object.__ne__", builtin_object_ne)});
+  object_attrs.push_back({"__lt__", Value::native_function(0, "object.__lt__", builtin_object_order)});
+  object_attrs.push_back({"__le__", Value::native_function(0, "object.__le__", builtin_object_order)});
+  object_attrs.push_back({"__gt__", Value::native_function(0, "object.__gt__", builtin_object_order)});
+  object_attrs.push_back({"__ge__", Value::native_function(0, "object.__ge__", builtin_object_order)});
   object_attrs.push_back({"__hash__", Value::native_function(0, "object.__hash__", builtin_object_hash)});
   object_attrs.push_back({"__repr__", Value::native_function(0, "object.__repr__", builtin_object_repr)});
   object_attrs.push_back({"__str__", Value::native_function(0, "object.__str__", builtin_object_str)});
   object_attrs.push_back({"__format__", Value::native_function(0, "object.__format__", builtin_object_format)});
+  object_attrs.push_back({"__dir__", Value::native_function(0, "object.__dir__", builtin_object_dir)});
   object_attrs.push_back({"__reduce__", Value::native_function(0, "object.__reduce__", builtin_object_reduce)});
   object_attrs.push_back({"__reduce_ex__", Value::native_function(0, "object.__reduce_ex__", builtin_object_reduce_ex)});
+  object_attrs.push_back({
+      "__subclasses__",
+      Value::class_method(Value::native_function(0, "object.__subclasses__", builtin_object_subclasses))});
   object_attrs.push_back({"__getattribute__", Value::native_function(0, "object.__getattribute__", builtin_object_getattribute)});
   object_attrs.push_back({"__setattr__", Value::native_function(0, "object.__setattr__", builtin_object_setattr)});
   object_attrs.push_back({"__delattr__", Value::native_function(0, "object.__delattr__", builtin_object_delattr)});
@@ -2188,6 +2794,7 @@ void register_object_type_builtins(Runtime& runtime) {
                               builtin_type_init_kw)},
           {"__instancecheck__", Value::native_function(0, "type.__instancecheck__", builtin_type_instancecheck)},
           {"__subclasscheck__", Value::native_function(0, "type.__subclasscheck__", builtin_type_subclasscheck)},
+          {"__dir__", Value::native_function(0, "type.__dir__", builtin_object_dir)},
           {"mro", Value::native_function(0, "type.mro", builtin_type_mro)},
           {"__prepare__", Value::native_function(
                               0,
@@ -2208,6 +2815,13 @@ void register_object_type_builtins(Runtime& runtime) {
   }
   if (auto* type_class = value_as_class(type_type)) {
     value_assign_fast(type_class->metaclass, type_type);
+    Value type_or = Value::native_function(0, "type.__or__", builtin_type_or);
+    builtin_method_set_text_signature(type_or, "($self, value, /)");
+    type_class->attrs["__or__"] = std::move(type_or);
+    Value type_call = Value::native_function(0, "type.__call__", builtin_type_call);
+    builtin_method_set_text_signature(type_call, "($self, /, *args, **kwargs)");
+    type_class->attrs["__call__"] = std::move(type_call);
+    builtin_method_set_text_signature(type_class->attrs["__subclasscheck__"], "($self, subclass, /)");
     slot_descriptor_set_owner_class(type_class->attrs["__mro__"], type_type);
     slot_descriptor_set_owner_class(type_class->attrs["__dict__"], type_type);
     slot_descriptor_set_owner_class(type_class->attrs["__annotations__"], type_type);
@@ -2231,14 +2845,30 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "int", object_type);
   if (const auto* int_value = runtime.find_builtin("int")) {
     if (auto* int_class = value_as_class(*int_value)) {
-      int_class->attrs["__new__"] = Value::native_function(0, "int.__new__", builtin_int_new);
+      int_class->attrs["__new__"] = Value::static_method(
+          Value::native_function(0, "int.__new__", builtin_int_new));
       int_install_class_methods(runtime, *int_class);
       ++int_class->version;
     }
   }
   const Value* int_type = runtime.find_builtin("int");
   register_builtin_type(runtime, "bool", int_type != nullptr ? *int_type : object_type);
+  if (const auto* bool_value = runtime.find_builtin("bool")) {
+    if (auto* bool_class = value_as_class(*bool_value)) {
+      Value bool_new = Value::native_function(0, "bool.__new__", builtin_bool_new);
+      builtin_method_set_text_signature(bool_new, "($type, object=False, /)");
+      bool_class->attrs["__new__"] = Value::static_method(std::move(bool_new));
+      bool_class->attrs["__and__"] = Value::native_function(0, "bool.__and__", builtin_bool_and);
+      ++bool_class->version;
+    }
+  }
   register_builtin_type(runtime, "float", object_type);
+  if (const auto* float_value = runtime.find_builtin("float")) {
+    if (auto* float_class = value_as_class(*float_value)) {
+      float_class->attrs["__getformat__"] = Value::native_function(0, "float.__getformat__", builtin_float_getformat);
+      ++float_class->version;
+    }
+  }
   register_builtin_type(runtime, "complex", object_type);
   register_builtin_type(runtime, "str", object_type);
   if (const auto* str_value = runtime.find_builtin("str")) {
@@ -2264,14 +2894,28 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "tuple", object_type);
   if (auto* tuple_class = value_as_class(*runtime.find_builtin("tuple"))) {
     tuple_class->attrs["__new__"] = Value::native_function(0, "tuple.__new__", builtin_tuple_new);
+    tuple_install_class_methods(runtime, *tuple_class);
   }
   register_builtin_type(runtime, "list", object_type);
+  if (const auto* list_value = runtime.find_builtin("list")) {
+    if (auto* list_class = value_as_class(*list_value)) {
+      list_class->attrs["__init__"] = runtime.make_native_function("list.__init__", builtin_list_init);
+      list_install_class_methods(runtime, *list_class);
+    }
+  }
+  if (const auto* list_value = runtime.find_builtin("list")) {
+    if (auto* list_class = value_as_class(*list_value)) {
+      list_class->attrs["__hash__"] = Value::none();
+      ++list_class->version;
+    }
+  }
   register_builtin_type(runtime, "dict", object_type);
   if (const auto* dict_value = runtime.find_builtin("dict")) {
     if (auto* dict_class = value_as_class(*dict_value)) {
       dict_class->attrs["__init__"] =
           runtime.make_native_function("dict.__init__", builtin_dict_init, nullptr, nullptr, nullptr, false, builtin_dict_init_kw);
       dict_class->attrs["fromkeys"] = make_dict_fromkeys_classmethod();
+      dict_class->attrs["__hash__"] = Value::none();
       dict_install_class_methods(runtime, *dict_class);
       ++dict_class->version;
     }
@@ -2287,7 +2931,26 @@ void register_object_type_builtins(Runtime& runtime) {
     }
   }
   register_builtin_type(runtime, "set", object_type);
+  if (const auto* set_value = runtime.find_builtin("set")) {
+    if (auto* set_class = value_as_class(*set_value)) {
+      set_class->attrs["__hash__"] = Value::none();
+      ++set_class->version;
+    }
+  }
   register_builtin_type(runtime, "frozenset", object_type);
+  const auto install_concrete_repr = [&](const char* type_name) {
+    const Value* type_value = runtime.find_builtin(type_name);
+    auto* type_class = type_value == nullptr ? nullptr : value_as_class(*type_value);
+    if (type_class == nullptr) return;
+    type_class->attrs["__repr__"] = Value::native_function(
+        0, std::string(type_name) + ".__repr__", builtin_object_repr);
+    ++type_class->version;
+  };
+  for (const char* type_name : {
+           "str", "bytes", "bytearray", "tuple", "list", "dict",
+           "mappingproxy", "set", "frozenset"}) {
+    install_concrete_repr(type_name);
+  }
   register_builtin_type(runtime, "range", object_type);
   register_builtin_type(runtime, "iterator", object_type);
   register_builtin_type(runtime, "enumerate", object_type);
@@ -2318,11 +2981,42 @@ void register_object_type_builtins(Runtime& runtime) {
     if (auto* function_class = value_as_class(*function_value)) {
       function_class->attrs["__code__"] = slot_descriptor("function", "__code__", 0);
       function_class->attrs["__globals__"] = slot_descriptor("function", "__globals__", 1);
+      function_class->attrs["__get__"] = Value::native_function(
+          0, "function.__get__", builtin_function_descriptor_get,
+          nullptr, nullptr, nullptr, false, nullptr, false);
       function_class->has_descriptors = true;
       ++function_class->version;
     }
   }
   register_builtin_type(runtime, "builtin_function_or_method", object_type);
+  register_builtin_type(runtime, "wrapper_descriptor", object_type);
+  if (const auto* descriptor_value = runtime.find_builtin("wrapper_descriptor")) {
+    if (auto* descriptor_class = value_as_class(*descriptor_value)) {
+      descriptor_class->attrs["__get__"] = Value::native_function(
+          0, "wrapper_descriptor.__get__", builtin_native_descriptor_get);
+      descriptor_class->has_descriptors = true;
+      ++descriptor_class->version;
+    }
+  }
+  register_builtin_type(runtime, "method_descriptor", object_type);
+  if (const auto* descriptor_value = runtime.find_builtin("method_descriptor")) {
+    if (auto* descriptor_class = value_as_class(*descriptor_value)) {
+      descriptor_class->attrs["__get__"] = Value::native_function(
+          0, "method_descriptor.__get__", builtin_native_descriptor_get);
+      descriptor_class->has_descriptors = true;
+      ++descriptor_class->version;
+    }
+  }
+  register_builtin_type(runtime, "classmethod_descriptor", object_type);
+  if (const auto* descriptor_value = runtime.find_builtin("classmethod_descriptor")) {
+    if (auto* descriptor_class = value_as_class(*descriptor_value)) {
+      descriptor_class->attrs["__get__"] = runtime.make_native_function(
+          "classmethod_descriptor.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
+      descriptor_class->has_descriptors = true;
+      ++descriptor_class->version;
+    }
+  }
+  register_builtin_type(runtime, "method-wrapper", object_type);
   register_builtin_type(runtime, "method", object_type);
   if (const auto* method_value = runtime.find_builtin("method")) {
     if (auto* method_class = value_as_class(*method_value)) {
@@ -2331,6 +3025,18 @@ void register_object_type_builtins(Runtime& runtime) {
     }
   }
   register_builtin_type(runtime, "member_descriptor", object_type);
+  if (const auto* descriptor_value = runtime.find_builtin("member_descriptor")) {
+    if (auto* descriptor_class = value_as_class(*descriptor_value)) {
+      descriptor_class->attrs["__get__"] = runtime.make_native_function(
+          "member_descriptor.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
+      descriptor_class->attrs["__set__"] = runtime.make_native_function(
+          "member_descriptor.__set__", builtin_descriptor_method_proxy, const_cast<char*>("__set__"));
+      descriptor_class->attrs["__delete__"] = runtime.make_native_function(
+          "member_descriptor.__delete__", builtin_descriptor_method_proxy, const_cast<char*>("__delete__"));
+      descriptor_class->has_descriptors = true;
+      ++descriptor_class->version;
+    }
+  }
   register_builtin_type(runtime, "property", object_type);
   if (const auto* property_value = runtime.find_builtin("property")) {
     if (auto* property_class = value_as_class(*property_value)) {
@@ -2341,23 +3047,79 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "staticmethod", object_type);
   if (const auto* classmethod_value = runtime.find_builtin("classmethod")) {
     if (auto* classmethod_class = value_as_class(*classmethod_value)) {
+      classmethod_class->attrs["__text_signature__"] = Value::string("(function, /)");
       classmethod_class->attrs["__init__"] = runtime.make_native_function(
           "classmethod.__init__", builtin_classmethod_init, nullptr, nullptr, nullptr, false, builtin_classmethod_init_kw);
+      classmethod_class->attrs["__get__"] = runtime.make_native_function(
+          "classmethod.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
       ++classmethod_class->version;
     }
   }
   if (const auto* staticmethod_value = runtime.find_builtin("staticmethod")) {
     if (auto* staticmethod_class = value_as_class(*staticmethod_value)) {
+      staticmethod_class->attrs["__text_signature__"] = Value::string("(function, /)");
       staticmethod_class->attrs["__init__"] = runtime.make_native_function(
           "staticmethod.__init__", builtin_staticmethod_init, nullptr, nullptr, nullptr, false, builtin_staticmethod_init_kw);
+      staticmethod_class->attrs["__get__"] = runtime.make_native_function(
+          "staticmethod.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
       ++staticmethod_class->version;
     }
   }
   register_builtin_type(runtime, "code", object_type);
+  if (const auto* code_value = runtime.find_builtin("code")) {
+    if (auto* code_class = value_as_class(*code_value)) {
+      static constexpr const char* code_members[] = {
+          "co_argcount", "co_posonlyargcount", "co_kwonlyargcount", "co_nlocals",
+          "co_stacksize", "co_flags", "co_code", "co_consts", "co_names",
+          "co_varnames", "co_filename", "co_name", "co_qualname", "co_firstlineno",
+          "co_linetable", "co_exceptiontable", "co_freevars", "co_cellvars"};
+      for (uint32_t i = 0; i < std::size(code_members); ++i) {
+        code_class->attrs[code_members[i]] = slot_descriptor("code", code_members[i], i);
+      }
+      code_class->has_descriptors = true;
+      ++code_class->version;
+    }
+  }
   register_builtin_type(runtime, "frame", object_type);
+  if (const auto* frame_value = runtime.find_builtin("frame")) {
+    if (auto* frame_class = value_as_class(*frame_value)) {
+      frame_class->attrs["f_locals"] = slot_descriptor("frame", "f_locals", 0);
+      frame_class->attrs["f_globals"] = slot_descriptor("frame", "f_globals", 1);
+      frame_class->attrs["f_code"] = slot_descriptor("frame", "f_code", 2);
+      frame_class->attrs["f_back"] = slot_descriptor("frame", "f_back", 3);
+      frame_class->has_descriptors = true;
+      ++frame_class->version;
+    }
+  }
+  register_builtin_type(runtime, "coroutine", object_type);
+  register_builtin_type(runtime, "async_generator", object_type);
   register_builtin_type(runtime, "traceback", object_type);
+  if (const auto* traceback_value = runtime.find_builtin("traceback")) {
+    if (auto* traceback_class = value_as_class(*traceback_value)) {
+      traceback_class->attrs["__new__"] =
+          Value::native_function(0, "traceback.__new__", builtin_traceback_new);
+      traceback_class->attrs["__init__"] =
+          Value::native_function(0, "traceback.__init__", builtin_traceback_init);
+      ++traceback_class->version;
+    }
+  }
   register_builtin_type(runtime, "cell", object_type);
   register_builtin_type(runtime, "file", object_type);
+  if (const auto* file_value = runtime.find_builtin("file")) {
+    if (auto* file_class = value_as_class(*file_value)) {
+      file_class->attrs["name"] = slot_descriptor("file", "name", 0);
+      file_class->attrs["mode"] = slot_descriptor("file", "mode", 1);
+      file_class->attrs["closed"] = slot_descriptor("file", "closed", 2);
+      file_class->attrs["encoding"] = slot_descriptor("file", "encoding", 3);
+      file_class->attrs["errors"] = slot_descriptor("file", "errors", 4);
+      file_class->attrs["newlines"] = slot_descriptor("file", "newlines", 5);
+      for (auto& attr : file_class->attrs) {
+        slot_descriptor_set_owner_class(attr.second, *file_value);
+      }
+      file_class->has_descriptors = true;
+      ++file_class->version;
+    }
+  }
   register_builtin_type(runtime, "GenericAlias", object_type);
   if (const auto* generic_alias_value = runtime.find_builtin("GenericAlias")) {
     if (auto* generic_alias_class = value_as_class(*generic_alias_value)) {

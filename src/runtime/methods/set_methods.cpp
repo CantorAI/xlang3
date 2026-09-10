@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
@@ -56,13 +57,32 @@ bool add_iterable_items(Runtime& runtime, Value& set, const Value& iterable, std
   }
 }
 
-bool set_contains_value(const SetObject& set, const Value& value) {
+bool set_contains_value(
+    Runtime& runtime,
+    const SetObject& set,
+    const Value& value,
+    bool& out,
+    std::string& error) {
   for (const auto& item : set.items) {
-    if (value_key_equal(item, value)) {
+    if (value_is(item, value)) {
+      out = true;
+      return true;
+    }
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", item, value, equal, error)) {
+      return false;
+    }
+    bool is_equal = false;
+    if (!runtime_truthy(runtime, equal, is_equal, error)) {
+      return false;
+    }
+    if (is_equal) {
+      out = true;
       return true;
     }
   }
-  return false;
+  out = false;
+  return true;
 }
 
 bool iterable_all_in_set(Runtime& runtime, const Value& iterable, const SetObject& set, bool& out, std::string& error) {
@@ -80,14 +100,23 @@ bool iterable_all_in_set(Runtime& runtime, const Value& iterable, const SetObjec
     if (done) {
       return true;
     }
-    if (!set_contains_value(set, item)) {
+    bool contains = false;
+    if (!set_contains_value(runtime, set, item, contains, error)) {
+      return false;
+    }
+    if (!contains) {
       out = false;
       return true;
     }
   }
 }
 
-bool remove_set_item(Value& set_value, const Value& item, bool require_present, std::string& error) {
+bool remove_set_item(
+    Runtime& runtime,
+    Value& set_value,
+    const Value& item,
+    bool require_present,
+    std::string& error) {
   auto* set = value_as_set(set_value);
   if (set == nullptr) {
     error = "set method target is not a set";
@@ -98,7 +127,15 @@ bool remove_set_item(Value& set_value, const Value& item, bool require_present, 
     return false;
   }
   for (auto it = set->items.begin(); it != set->items.end(); ++it) {
-    if (value_key_equal(*it, item)) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", *it, item, equal, error)) {
+      return false;
+    }
+    bool is_equal = false;
+    if (!runtime_truthy(runtime, equal, is_equal, error)) {
+      return false;
+    }
+    if (is_equal) {
       set->items.erase(it);
       return true;
     }
@@ -124,7 +161,7 @@ bool set_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool set_contains_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.__contains__", error)) {
     return false;
   }
@@ -133,7 +170,11 @@ bool set_contains_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     error = "set.__contains__ target is not a set";
     return false;
   }
-  value_set_bool(out, set_contains_value(*set, args[1]));
+  bool contains = false;
+  if (!set_contains_value(runtime, *set, args[1], contains, error)) {
+    return false;
+  }
+  value_set_bool(out, contains);
   return true;
 }
 
@@ -150,12 +191,12 @@ bool set_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
-bool set_discard_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_discard_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.discard", error)) {
     return false;
   }
   Value set = args[0];
-  if (!remove_set_item(set, args[1], false, error)) {
+  if (!remove_set_item(runtime, set, args[1], false, error)) {
     return false;
   }
   value_set_none(out);
@@ -183,12 +224,12 @@ bool set_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool set_remove_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool set_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.remove", error)) {
     return false;
   }
   Value set = args[0];
-  if (!remove_set_item(set, args[1], true, error)) {
+  if (!remove_set_item(runtime, set, args[1], true, error)) {
     return false;
   }
   value_set_none(out);
@@ -252,7 +293,11 @@ bool set_intersection_method(Runtime& runtime, const Value* args, uint32_t argc,
       if (done) {
         break;
       }
-      if (set_contains_value(*result, item)) {
+      bool contains = false;
+      if (!set_contains_value(runtime, *result, item, contains, error)) {
+        return false;
+      }
+      if (contains) {
         keep.push_back(item);
       }
     }
@@ -289,7 +334,15 @@ bool set_difference_method(Runtime& runtime, const Value* args, uint32_t argc, V
         break;
       }
       for (auto it = result->items.begin(); it != result->items.end(); ++it) {
-        if (value_key_equal(*it, item)) {
+        Value equal;
+        if (!runtime_value_compare(runtime, "==", *it, item, equal, error)) {
+          return false;
+        }
+        bool is_equal = false;
+        if (!runtime_truthy(runtime, equal, is_equal, error)) {
+          return false;
+        }
+        if (is_equal) {
           result->items.erase(it);
           break;
         }
@@ -325,7 +378,15 @@ bool set_symmetric_difference_method(Runtime& runtime, const Value* args, uint32
     }
     bool removed = false;
     for (auto it = result->items.begin(); it != result->items.end(); ++it) {
-      if (value_key_equal(*it, item)) {
+      Value equal;
+      if (!runtime_value_compare(runtime, "==", *it, item, equal, error)) {
+        return false;
+      }
+      bool is_equal = false;
+      if (!runtime_truthy(runtime, equal, is_equal, error)) {
+        return false;
+      }
+      if (is_equal) {
         result->items.erase(it);
         removed = true;
         break;
@@ -408,7 +469,11 @@ bool set_isdisjoint_method(Runtime& runtime, const Value* args, uint32_t argc, V
       value_set_bool(out, true);
       return true;
     }
-    if (set_contains_value(*set, item)) {
+    bool contains = false;
+    if (!set_contains_value(runtime, *set, item, contains, error)) {
+      return false;
+    }
+    if (contains) {
       value_set_bool(out, false);
       return true;
     }

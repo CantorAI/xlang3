@@ -17,7 +17,7 @@ cm True MetadataProbe
 staticmethod classmethod
 sm True sm sm doc static-tag
 cm True cm class-tag
-len len None True True
+len len builtins True True
 33 33 True False
 41
 1

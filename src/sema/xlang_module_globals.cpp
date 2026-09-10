@@ -89,7 +89,9 @@ void collect_module_stmt(const ast::Stmt& stmt, ModuleGlobalSlots& slots) {
     return;
   }
   if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
-    if (!with->target.empty()) {
+    if (with->target_expr != nullptr) {
+      collect_module_target(*with->target_expr, slots);
+    } else if (!with->target.empty()) {
       add_module_slot(slots, with->target);
     }
     collect_module_body(with->body, slots);

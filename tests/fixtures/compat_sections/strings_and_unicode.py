@@ -51,6 +51,13 @@ print("éx".encode("ascii", "ignore"), "éx".encode("ascii", "replace"), len(dec
 raw_path = r"C:\temp\next"
 triple_after_expr = ("prefix:" + """line1
 line2""")
+triple_tuple_items = [
+    ("before", 1),
+    ("""multi
+line""", 2),
+    ("after", 3),
+]
+assert triple_tuple_items == [("before", 1), ("multi\nline", 2), ("after", 3)]
 quote_heavy = "he said \"'''\" and left"  # triple marker inside normal string
 adjacent = "left" "right" r"\raw"
 byte_escapes = b"A\n\x42"

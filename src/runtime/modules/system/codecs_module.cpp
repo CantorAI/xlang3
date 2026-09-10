@@ -18,9 +18,15 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "source_encoding.h"
 
 #include <cctype>
 #include <unordered_map>
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#endif
 #include <string_view>
 
 namespace xlang3 {
@@ -48,6 +54,9 @@ std::string canonical_encoding(std::string name) {
   }
   if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
     return "latin_1";
+  }
+  if (name == "gbk" || name == "cp936" || name == "ms936") {
+    return "gbk";
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
@@ -337,6 +346,20 @@ bool encode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return true;
   }
+  if (encoding == "gbk") {
+    std::string text;
+    if (!value_text(value, text)) {
+      error = "codecs.encode expected str";
+      return false;
+    }
+    std::string encoded;
+    if (!encode_gbk_text(text, encoded, error)) {
+      runtime.raise_class_error("UnicodeEncodeError", error);
+      return false;
+    }
+    out = Value::bytes(std::move(encoded));
+    return true;
+  }
   error = "unknown encoding: " + encoding;
   return false;
 }
@@ -385,6 +408,20 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
     }
     return true;
   }
+  if (encoding == "gbk") {
+    std::string data;
+    if (!value_bytes_text(value, data)) {
+      error = "codecs.decode expected bytes-like";
+      return false;
+    }
+    std::string decoded;
+    if (!decode_gbk_bytes(data, decoded, error)) {
+      runtime.raise_class_error("UnicodeDecodeError", error);
+      return false;
+    }
+    out = Value::string(std::move(decoded));
+    return true;
+  }
   error = "unknown encoding: " + encoding;
   return false;
 }
@@ -418,6 +455,117 @@ bool codecs_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   return decode_with_codec(runtime, args[0], encoding, normalized_errors(args, argc, 2), out, error);
 }
+
+#if defined(_WIN32)
+bool utf8_to_wide(std::string_view text, std::wstring& out, std::string& error) {
+  if (text.empty()) {
+    out.clear();
+    return true;
+  }
+  const int required = MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()),
+      nullptr, 0);
+  if (required <= 0) {
+    error = "invalid UTF-8 text";
+    return false;
+  }
+  out.resize(static_cast<size_t>(required));
+  return MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()),
+      out.data(), required) == required;
+}
+
+bool codecs_code_page_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3 || args[0].tag != ValueTag::Int64 || value_as_string(args[1]) == nullptr) {
+    error = "code_page_encode() expected code page, str, and optional errors";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const UINT code_page = static_cast<UINT>(args[0].as.i64);
+  const std::string errors = normalized_errors(args, argc, 2);
+  const std::string text = string_object_to_string(*value_as_string(args[1]));
+  std::wstring wide;
+  if (!utf8_to_wide(text, wide, error)) {
+    runtime.raise_class_error("UnicodeEncodeError", error);
+    return false;
+  }
+  std::string encoded;
+  for (size_t i = 0; i < wide.size();) {
+    const size_t units = i + 1 < wide.size() && wide[i] >= 0xd800 && wide[i] <= 0xdbff &&
+        wide[i + 1] >= 0xdc00 && wide[i + 1] <= 0xdfff ? 2 : 1;
+    BOOL used_default = FALSE;
+    char buffer[16];
+    const int count = WideCharToMultiByte(
+        code_page, WC_NO_BEST_FIT_CHARS, wide.data() + i, static_cast<int>(units),
+        buffer, static_cast<int>(sizeof(buffer)), nullptr, &used_default);
+    if (count <= 0 || used_default) {
+      if (errors == "ignore") {
+        i += units;
+        continue;
+      }
+      if (errors != "replace") {
+        error = "character maps to <undefined>";
+        runtime.raise_class_error("UnicodeEncodeError", error);
+        return false;
+      }
+      encoded.push_back('?');
+    } else {
+      encoded.append(buffer, static_cast<size_t>(count));
+    }
+    i += units;
+  }
+  out = Value::tuple({
+      Value::bytes(std::move(encoded)),
+      Value::int64(static_cast<int64_t>(utf8_codepoint_count(text)))});
+  return true;
+}
+
+bool codecs_code_page_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4 || args[0].tag != ValueTag::Int64) {
+    error = "code_page_decode() expected code page, bytes-like object, and optional errors/final";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string bytes;
+  if (!value_bytes_text(args[1], bytes)) {
+    error = "code_page_decode() argument 2 must be bytes-like";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (bytes.empty()) {
+    out = Value::tuple({Value::string(""), Value::int64(0)});
+    return true;
+  }
+  const UINT code_page = static_cast<UINT>(args[0].as.i64);
+  const int wide_size = MultiByteToWideChar(
+      code_page, 0, bytes.data(), static_cast<int>(bytes.size()), nullptr, 0);
+  if (wide_size <= 0) {
+    error = "invalid character sequence";
+    runtime.raise_class_error("UnicodeDecodeError", error);
+    return false;
+  }
+  std::wstring wide(static_cast<size_t>(wide_size), L'\0');
+  if (MultiByteToWideChar(
+          code_page, 0, bytes.data(), static_cast<int>(bytes.size()),
+          wide.data(), wide_size) != wide_size) {
+    error = "invalid character sequence";
+    runtime.raise_class_error("UnicodeDecodeError", error);
+    return false;
+  }
+  const int utf8_size = WideCharToMultiByte(
+      CP_UTF8, 0, wide.data(), wide_size, nullptr, 0, nullptr, nullptr);
+  std::string decoded(static_cast<size_t>(utf8_size), '\0');
+  if (utf8_size > 0) {
+    WideCharToMultiByte(
+        CP_UTF8, 0, wide.data(), wide_size, decoded.data(), utf8_size,
+        nullptr, nullptr);
+  }
+  out = Value::tuple({
+      Value::string(std::move(decoded)),
+      Value::int64(static_cast<int64_t>(bytes.size()))});
+  return true;
+}
+#endif
 
 std::vector<Value>& codec_search_registry() {
   static std::vector<Value> registry;
@@ -477,7 +625,8 @@ bool codecs_lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   const std::string name = canonical_encoding(string_object_to_string(*value_as_string(args[0])));
-  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" && name != "cp437" && name != "idna" && name != "hex") {
+  if (name != "utf_8" && name != "utf_8_sig" && name != "ascii" && name != "latin_1" &&
+      name != "cp437" && name != "idna" && name != "hex" && name != "gbk") {
     if (codec_lookup_via_registry(runtime, name, out, error)) {
       return true;
     }
@@ -612,6 +761,10 @@ void register_codecs_module(Runtime& runtime) {
       .function("getdecoder", codecs_getdecoder)
       .function("lookup_error", codecs_lookup_error)
       .function("register_error", codecs_register_error)
+#if defined(_WIN32)
+      .function("code_page_encode", codecs_code_page_encode)
+      .function("code_page_decode", codecs_code_page_decode)
+#endif
       .value("BOM_UTF8", Value::bytes(std::string("\xEF\xBB\xBF", 3)))
       .value("BOM", Value::bytes({}));
   runtime.register_module("_codecs", builder.finish());

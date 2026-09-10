@@ -23,6 +23,7 @@ limitations under the License.
 #include <chrono>
 #include <cerrno>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -33,6 +34,8 @@ limitations under the License.
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
+#include <mstcpip.h>
 #else
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -62,6 +65,8 @@ constexpr NativeSocket kInvalidSocket = -1;
 #endif
 
 Value g_default_socket_timeout;
+std::mutex g_socket_resource_warning_mutex;
+std::vector<std::string> g_socket_resource_warnings;
 
 struct SocketState {
   int64_t family = kAfInet;
@@ -338,6 +343,15 @@ void update_socket_address_from_fd(SocketState& state) {
 void socket_cleanup(void* data) {
   auto* state = static_cast<SocketState*>(data);
   if (state != nullptr) {
+    if (!state->closed && state->fd != kInvalidSocket) {
+      std::lock_guard<std::mutex> lock(g_socket_resource_warning_mutex);
+      g_socket_resource_warnings.push_back(
+          "unclosed <socket.socket fd=" + std::to_string(static_cast<int64_t>(state->fd)) +
+          ", family=" + std::to_string(state->family) +
+          ", type=" + std::to_string(state->type) +
+          ", proto=" + std::to_string(state->proto) +
+          ", laddr=('" + state->host + "', " + std::to_string(state->port) + ")>");
+    }
     close_native_socket(state->fd);
   }
   delete state;
@@ -457,6 +471,119 @@ bool socket_int_arg(const Value& value, int64_t& out) {
   return false;
 }
 
+bool contains_utf8_surrogate(std::string_view text) {
+  for (size_t index = 0; index + 2 < text.size(); ++index) {
+    const auto first = static_cast<unsigned char>(text[index]);
+    const auto second = static_cast<unsigned char>(text[index + 1]);
+    const auto third = static_cast<unsigned char>(text[index + 2]);
+    if (first == 0xedu && second >= 0xa0u && second <= 0xbfu &&
+        third >= 0x80u && third <= 0xbfu) {
+      return true;
+    }
+    if (first == 0xefu && second == 0xbfu && third == 0xbdu) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool raise_socket_code_error(Runtime& runtime, const char* operation, int code, std::string& error) {
+#ifdef _WIN32
+  error = std::string(operation) + " failed with WSA error " + std::to_string(code);
+#else
+  error = std::string(operation) + " failed: " + std::strerror(code);
+#endif
+  Value exception = runtime.make_exception("OSError", error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(code), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+#ifdef _WIN32
+  object_set_attr(exception, "winerror", Value::int64(code), ignored);
+#endif
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
+bool raise_socket_os_error(Runtime& runtime, const char* operation, std::string& error) {
+#ifdef _WIN32
+  return raise_socket_code_error(runtime, operation, WSAGetLastError(), error);
+#else
+  return raise_socket_code_error(runtime, operation, errno, error);
+#endif
+}
+
+bool socket_dup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "dup() expected a file descriptor";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t raw_fd = -1;
+  if (!socket_int_arg(args[0], raw_fd)) {
+    error = "file descriptor must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#ifdef _WIN32
+  if (!ensure_socket_runtime(error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  WSAPROTOCOL_INFOW protocol_info{};
+  const NativeSocket source = static_cast<NativeSocket>(raw_fd);
+  if (WSADuplicateSocketW(source, GetCurrentProcessId(), &protocol_info) == SOCKET_ERROR) {
+    error = socket_last_error_text("dup");
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const NativeSocket duplicate = WSASocketW(
+      protocol_info.iAddressFamily,
+      protocol_info.iSocketType,
+      protocol_info.iProtocol,
+      &protocol_info,
+      0,
+      WSA_FLAG_OVERLAPPED);
+  if (duplicate == kInvalidSocket) {
+    error = socket_last_error_text("dup");
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  SetHandleInformation(reinterpret_cast<HANDLE>(duplicate), HANDLE_FLAG_INHERIT, 0);
+#else
+  const NativeSocket duplicate = ::dup(static_cast<NativeSocket>(raw_fd));
+  if (duplicate == kInvalidSocket) {
+    error = socket_last_error_text("dup");
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+#endif
+  value_set_int64(out, static_cast<int64_t>(duplicate));
+  return true;
+}
+
+bool socket_close_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "close() expected a file descriptor";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t raw_fd = -1;
+  if (!socket_int_arg(args[0], raw_fd)) {
+    error = "file descriptor must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#ifdef _WIN32
+  if (closesocket(static_cast<NativeSocket>(raw_fd)) == SOCKET_ERROR) {
+#else
+  if (::close(static_cast<NativeSocket>(raw_fd)) != 0) {
+#endif
+    return raise_socket_os_error(runtime, "close", error);
+  }
+  value_set_none(out);
+  return true;
+}
+
 void socket_set_instance_attr(const Value& self, const std::string& name, const Value& value) {
   auto* instance = value_as_instance(self);
   if (instance == nullptr) {
@@ -471,25 +598,75 @@ void socket_set_instance_attr(const Value& self, const std::string& name, const 
   instance->attrs.push_back({name, value});
 }
 
-bool socket_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 5) {
     error = "socket.__init__() expected optional family, type, proto, fileno";
     return false;
   }
+  if (!ensure_socket_runtime(error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
   auto* state = new SocketState();
   int64_t int_value = 0;
-  if (argc >= 2 && socket_int_arg(args[1], int_value)) {
+  if (argc >= 2) {
+    if (!socket_int_arg(args[1], int_value)) {
+      delete state;
+      error = "socket family must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     state->family = int_value;
   }
-  if (argc >= 3 && socket_int_arg(args[2], int_value)) {
+  if (argc >= 3) {
+    if (!socket_int_arg(args[2], int_value)) {
+      delete state;
+      error = "socket type must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     state->type = int_value;
   }
-  if (argc >= 4 && socket_int_arg(args[3], int_value)) {
+  if (argc >= 4) {
+    if (!socket_int_arg(args[3], int_value)) {
+      delete state;
+      error = "socket protocol must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     state->proto = int_value;
   }
-  if (argc >= 5 && args[4].tag != ValueTag::None && socket_int_arg(args[4], int_value)) {
+  if (argc >= 5 && args[4].tag != ValueTag::None) {
+    if (!socket_int_arg(args[4], int_value)) {
+      delete state;
+      error = "socket fileno must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     state->fd = static_cast<NativeSocket>(int_value);
-    state->closed = state->fd == kInvalidSocket;
+    if (state->fd == kInvalidSocket) {
+      delete state;
+      error = "negative file descriptor";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    int socket_type = 0;
+#ifdef _WIN32
+    int option_length = sizeof(socket_type);
+#else
+    socklen_t option_length = sizeof(socket_type);
+#endif
+    if (::getsockopt(state->fd, SOL_SOCKET, SO_TYPE, reinterpret_cast<char*>(&socket_type), &option_length) != 0) {
+      delete state;
+      return raise_socket_os_error(runtime, "socket", error);
+    }
+    if (state->family < 0) state->family = kAfInet;
+    if (state->type < 0) state->type = socket_type == SOCK_DGRAM ? kSockDgram : kSockStream;
+    if (state->proto < 0) state->proto = 0;
+  } else if (make_native_socket(*state, error) == kInvalidSocket) {
+    delete state;
+    runtime.raise_class_error("OSError", error);
+    return false;
   }
   value_assign_fast(state->timeout, g_default_socket_timeout);
   if (!instance_set_native_data(args[0], "_socket.socket", state, socket_cleanup, error)) {
@@ -504,7 +681,7 @@ bool socket_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool socket_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.close() expected no arguments";
     return false;
@@ -513,7 +690,19 @@ bool socket_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   if (state == nullptr) {
     return false;
   }
-  close_native_socket(state->fd);
+  if (state->closed || state->fd == kInvalidSocket) {
+    value_set_none(out);
+    return true;
+  }
+#ifdef _WIN32
+  if (closesocket(state->fd) == SOCKET_ERROR) {
+    return raise_socket_os_error(runtime, "close", error);
+  }
+#else
+  if (::close(state->fd) != 0) {
+    return raise_socket_os_error(runtime, "close", error);
+  }
+#endif
   state->fd = kInvalidSocket;
   state->closed = true;
   value_set_none(out);
@@ -530,6 +719,39 @@ bool socket_fileno(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     return false;
   }
   value_set_int64(out, state->fd == kInvalidSocket ? -1 : static_cast<int64_t>(state->fd));
+  return true;
+}
+
+bool socket_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.__repr__() expected no arguments";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  out = Value::string(
+      "<socket object, fd=" +
+      std::to_string(state->fd == kInvalidSocket ? -1 : static_cast<int64_t>(state->fd)) +
+      ", family=" + std::to_string(state->family) +
+      ", type=" + std::to_string(state->type) +
+      ", proto=" + std::to_string(state->proto) + ">");
+  return true;
+}
+
+bool socket_detach(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.detach() expected no arguments";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  value_set_int64(out, state->fd == kInvalidSocket ? -1 : static_cast<int64_t>(state->fd));
+  state->fd = kInvalidSocket;
+  state->closed = true;
   return true;
 }
 
@@ -587,13 +809,20 @@ bool socket_getdefaulttimeout(Runtime&, const Value*, uint32_t argc, Value& out,
   return true;
 }
 
-bool socket_setdefaulttimeout(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_setdefaulttimeout(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "setdefaulttimeout() expected timeout";
     return false;
   }
   if (args[0].tag != ValueTag::None && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Double) {
     error = "setdefaulttimeout() timeout must be a number or None";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if ((args[0].tag == ValueTag::Int64 && args[0].as.i64 < 0) ||
+      (args[0].tag == ValueTag::Double && args[0].as.f64 < 0.0)) {
+    error = "Timeout value out of range";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_assign_fast(g_default_socket_timeout, args[0]);
@@ -676,12 +905,19 @@ bool prepare_socket_read(Runtime& runtime, SocketState& state, NativeSocket fd, 
     return false;
   }
   if (!state.blocking) {
+    // A true nonblocking socket (setblocking(False), represented by a zero
+    // timeout) must attempt recv immediately.  The recv call itself reports
+    // WSAEWOULDBLOCK/EAGAIN when no data is available.  Preemptively raising
+    // here also discarded data after select() had reported the socket ready.
+    if (timeout == 0.0) {
+      return true;
+    }
     return wait_socket_readable(runtime, fd, timeout, operation, error);
   }
   return true;
 }
 
-bool socket_bind(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_bind(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.bind() expected address";
     return false;
@@ -695,6 +931,11 @@ bool socket_bind(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   if (!value_to_host_port(args[1], host, port, error)) {
     return false;
   }
+  if (port < 0 || port > 65535) {
+    error = "bind(): port must be 0-65535";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
   NativeSocket fd = make_native_socket(*state, error);
   if (fd == kInvalidSocket) {
     return false;
@@ -704,15 +945,14 @@ bool socket_bind(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
     return false;
   }
   if (::bind(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
-    error = socket_last_error_text("bind");
-    return false;
+    return raise_socket_os_error(runtime, "bind", error);
   }
   update_socket_address_from_fd(*state);
   value_set_none(out);
   return true;
 }
 
-bool socket_listen(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_listen(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "socket.listen() expected optional backlog";
     return false;
@@ -727,8 +967,7 @@ bool socket_listen(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   }
   const int backlog = argc == 2 && args[1].tag == ValueTag::Int64 ? static_cast<int>(args[1].as.i64) : 128;
   if (::listen(fd, backlog) != 0) {
-    error = socket_last_error_text("listen");
-    return false;
+    return raise_socket_os_error(runtime, "listen", error);
   }
   update_socket_address_from_fd(*state);
   value_set_none(out);
@@ -749,7 +988,7 @@ bool socket_getsockname(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool socket_getpeername(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_getpeername(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.getpeername() expected no arguments";
     return false;
@@ -770,8 +1009,7 @@ bool socket_getpeername(Runtime&, const Value* args, uint32_t argc, Value& out, 
   socklen_t length = sizeof(address);
 #endif
   if (::getpeername(fd, reinterpret_cast<sockaddr*>(&address), &length) != 0) {
-    error = socket_last_error_text("getpeername");
-    return false;
+    return raise_socket_os_error(runtime, "getpeername", error);
   }
   char host[INET_ADDRSTRLEN] = {};
   std::string host_text = "127.0.0.1";
@@ -795,7 +1033,7 @@ bool socket_gettimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool socket_accept(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.accept() expected no arguments";
     return false;
@@ -816,9 +1054,16 @@ bool socket_accept(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   socklen_t peer_length = sizeof(peer);
 #endif
   NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  if (accepted == kInvalidSocket && socket_last_error_would_block()) {
+    double timeout = -1.0;
+    if (!socket_timeout_seconds(*state, timeout, error) ||
+        !wait_socket_readable(runtime, fd, timeout, "accept", error)) {
+      return false;
+    }
+    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  }
   if (accepted == kInvalidSocket) {
-    error = socket_last_error_text("accept");
-    return false;
+    return raise_socket_os_error(runtime, "accept", error);
   }
 
   auto* instance = value_as_instance(args[0]);
@@ -851,7 +1096,7 @@ bool socket_accept(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool socket_accept_fd(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_accept_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket._accept() expected no arguments";
     return false;
@@ -872,9 +1117,16 @@ bool socket_accept_fd(Runtime&, const Value* args, uint32_t argc, Value& out, st
   socklen_t peer_length = sizeof(peer);
 #endif
   NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  if (accepted == kInvalidSocket && socket_last_error_would_block()) {
+    double timeout = -1.0;
+    if (!socket_timeout_seconds(*state, timeout, error) ||
+        !wait_socket_readable(runtime, fd, timeout, "accept", error)) {
+      return false;
+    }
+    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  }
   if (accepted == kInvalidSocket) {
-    error = socket_last_error_text("accept");
-    return false;
+    return raise_socket_os_error(runtime, "accept", error);
   }
 
   char peer_host[INET_ADDRSTRLEN] = {};
@@ -919,8 +1171,7 @@ bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& o
         return false;
       }
     } else {
-      error = socket_last_error_text("connect");
-      return false;
+      return raise_socket_os_error(runtime, "connect", error);
     }
   }
   state->host = host.empty() ? "127.0.0.1" : host;
@@ -929,7 +1180,38 @@ bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool socket_send_impl(const Value* args, uint32_t argc, Value& out, std::string& error, bool send_all) {
+bool socket_connect_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "socket.connect_ex() expected address";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  std::string host;
+  int64_t port = 0;
+  if (state == nullptr || !value_to_host_port(args[1], host, port, error)) {
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  sockaddr_in address{};
+  if (fd == kInvalidSocket || !fill_ipv4_address(host, port, address, error)) {
+    return false;
+  }
+  if (::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0) {
+    state->host = host.empty() ? "127.0.0.1" : host;
+    state->port = port;
+    value_set_int64(out, 0);
+    return true;
+  }
+#ifdef _WIN32
+  value_set_int64(out, WSAGetLastError());
+#else
+  value_set_int64(out, errno);
+#endif
+  return true;
+}
+
+bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool send_all) {
   if (argc != 2) {
     error = send_all ? "socket.sendall() expected data" : "socket.send() expected data";
     return false;
@@ -946,15 +1228,14 @@ bool socket_send_impl(const Value* args, uint32_t argc, Value& out, std::string&
   std::string_view data;
   if (auto* bytes = value_as_bytes(args[1])) {
     data = bytes_object_view(*bytes);
-  } else if (auto* text = value_as_string(args[1])) {
-    data = string_object_view(*text);
   } else if (auto* array = value_as_bytearray(args[1])) {
     data = array->value;
   } else if (auto* view = value_as_memoryview(args[1])) {
     data = memoryview_object_view(*view);
     if (!data.data()) { error = "invalid or released memoryview"; return false; }
   } else {
-    error = send_all ? "socket.sendall() data must be bytes-like" : "socket.send() data must be bytes-like";
+    error = "a bytes-like object is required, not '" + std::string(value_binary_type_name(args[1])) + "'";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
 
@@ -964,6 +1245,7 @@ bool socket_send_impl(const Value* args, uint32_t argc, Value& out, std::string&
     const int sent = ::send(fd, data.data() + total, chunk, 0);
     if (sent <= 0) {
       error = socket_last_error_text(send_all ? "sendall" : "send");
+      runtime.raise_class_error("OSError", error);
       return false;
     }
     total += static_cast<size_t>(sent);
@@ -979,12 +1261,177 @@ bool socket_send_impl(const Value* args, uint32_t argc, Value& out, std::string&
   return true;
 }
 
-bool socket_send(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return socket_send_impl(args, argc, out, error, false);
+bool socket_send(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return socket_send_impl(runtime, args, argc, out, error, false);
 }
 
-bool socket_sendall(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return socket_send_impl(args, argc, out, error, true);
+bool socket_sendall(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return socket_send_impl(runtime, args, argc, out, error, true);
+}
+
+bool socket_sendto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3 && argc != 4) {
+    error = "sendto() takes 2 or 3 arguments (" + std::to_string(argc > 0 ? argc - 1 : 0) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::string_view data;
+  if (auto* bytes = value_as_bytes(args[1])) {
+    data = bytes_object_view(*bytes);
+  } else if (auto* array = value_as_bytearray(args[1])) {
+    data = array->value;
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    data = memoryview_object_view(*view);
+    if (!data.data()) {
+      error = "invalid or released memoryview";
+      return false;
+    }
+  } else {
+    error = "a bytes-like object is required, not '" + std::string(value_binary_type_name(args[1])) + "'";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const uint32_t address_index = argc == 3 ? 2 : 3;
+  int flags = 0;
+  if (argc == 4) {
+    if (args[2].tag != ValueTag::Int64) {
+      error = "socket.sendto() flags must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    flags = static_cast<int>(args[2].as.i64);
+  }
+  std::string host;
+  int64_t port = 0;
+  if (!value_to_host_port(args[address_index], host, port, error)) {
+    error = "AF_INET address must be tuple, not " + std::string(value_binary_type_name(args[address_index]));
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  sockaddr_in address;
+  if (!fill_ipv4_address(host, port, address, error)) {
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) {
+    return false;
+  }
+  const int sent = ::sendto(
+      fd,
+      data.data(),
+      static_cast<int>(data.size()),
+      flags,
+      reinterpret_cast<sockaddr*>(&address),
+      sizeof(address));
+  if (sent < 0) {
+    error = socket_last_error_text("sendto");
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, sent);
+  return true;
+}
+
+bool socket_getsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if ((argc != 3 && argc != 4) || args[1].tag != ValueTag::Int64 ||
+      args[2].tag != ValueTag::Int64 || (argc == 4 && args[3].tag != ValueTag::Int64)) {
+    error = "socket.getsockopt() expected level, optname, and optional buffer length";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) {
+    return false;
+  }
+  const int level = static_cast<int>(args[1].as.i64);
+  const int option = static_cast<int>(args[2].as.i64);
+  if (argc == 3 || args[3].as.i64 == 0) {
+    int value = 0;
+#ifdef _WIN32
+    int length = sizeof(value);
+#else
+    socklen_t length = sizeof(value);
+#endif
+    if (::getsockopt(fd, level, option, reinterpret_cast<char*>(&value), &length) != 0) {
+      return raise_socket_os_error(runtime, "getsockopt", error);
+    }
+    value_set_int64(out, value);
+    return true;
+  }
+  if (args[3].as.i64 < 0 || args[3].as.i64 > 1024) {
+    error = "getsockopt buflen out of range";
+    return false;
+  }
+  std::string buffer(static_cast<size_t>(args[3].as.i64), '\0');
+#ifdef _WIN32
+  int length = static_cast<int>(buffer.size());
+#else
+  socklen_t length = static_cast<socklen_t>(buffer.size());
+#endif
+  if (::getsockopt(fd, level, option, buffer.data(), &length) != 0) {
+    return raise_socket_os_error(runtime, "getsockopt", error);
+  }
+  buffer.resize(static_cast<size_t>(length));
+  out = Value::bytes(std::move(buffer));
+  return true;
+}
+
+bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if ((argc != 2 && argc != 3) || args[1].tag != ValueTag::Int64 ||
+      (argc == 3 && args[2].tag != ValueTag::Int64)) {
+    error = "socket.recvfrom() expected size and optional flags";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket || !prepare_socket_read(runtime, *state, fd, "recvfrom", error)) {
+    return false;
+  }
+  const int size = static_cast<int>(std::max<int64_t>(0, args[1].as.i64));
+  const int flags = argc == 3 ? static_cast<int>(args[2].as.i64) : 0;
+  std::string data(static_cast<size_t>(size), '\0');
+  sockaddr_in peer;
+  std::memset(&peer, 0, sizeof(peer));
+#ifdef _WIN32
+  int peer_length = sizeof(peer);
+#else
+  socklen_t peer_length = sizeof(peer);
+#endif
+  const int received = ::recvfrom(
+      fd,
+      data.data(),
+      size,
+      flags,
+      reinterpret_cast<sockaddr*>(&peer),
+      &peer_length);
+  if (received < 0) {
+    if (socket_last_error_would_block()) {
+      runtime.raise_class_error("BlockingIOError", socket_last_error_text("recvfrom"));
+      return false;
+    }
+    return raise_socket_os_error(runtime, "recvfrom", error);
+  }
+  data.resize(static_cast<size_t>(received));
+  char peer_host[INET_ADDRSTRLEN] = {};
+  std::string peer_host_text = "127.0.0.1";
+  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) != nullptr) {
+    peer_host_text = peer_host;
+  }
+  out = Value::tuple({
+      Value::bytes(std::move(data)),
+      Value::tuple({Value::string(peer_host_text), Value::int64(ntohs(peer.sin_port))}),
+  });
+  return true;
 }
 
 bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1011,8 +1458,7 @@ bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv"));
       return false;
     }
-    error = socket_last_error_text("recv");
-    return false;
+    return raise_socket_os_error(runtime, "recv", error);
   }
   data.resize(static_cast<size_t>(received));
   out = Value::bytes(std::move(data));
@@ -1081,10 +1527,81 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv_into"));
       return false;
     }
-    error = socket_last_error_text("recv_into");
-    return false;
+    return raise_socket_os_error(runtime, "recv_into", error);
   }
   value_set_int64(out, received);
+  return true;
+}
+
+bool socket_recvfrom_into(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "socket.recvfrom_into() expected buffer, optional nbytes, and optional flags";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) return false;
+  char* data = nullptr;
+  size_t capacity = 0;
+  if (auto* array = value_as_bytearray(args[1])) {
+    data = array->value.data();
+    capacity = array->value.size();
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    data = memoryview_object_writable_data(*view);
+    capacity = view->size;
+  }
+  if (data == nullptr && capacity != 0) {
+    error = "recvfrom_into() argument must be a writable bytes-like object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int flags = 0;
+  if (argc >= 3) {
+    int64_t requested = 0;
+    if (!socket_int_arg(args[2], requested) || requested < 0) {
+      error = "recvfrom_into() nbytes must be a non-negative integer";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (requested != 0) capacity = std::min(capacity, static_cast<size_t>(requested));
+  }
+  if (argc == 4) {
+    int64_t requested_flags = 0;
+    if (!socket_int_arg(args[3], requested_flags)) {
+      error = "recvfrom_into() flags must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    flags = static_cast<int>(requested_flags);
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket || !prepare_socket_read(runtime, *state, fd, "recvfrom_into", error)) return false;
+  sockaddr_in peer{};
+#ifdef _WIN32
+  int peer_length = sizeof(peer);
+#else
+  socklen_t peer_length = sizeof(peer);
+#endif
+  const int received = ::recvfrom(
+      fd,
+      data,
+      static_cast<int>(std::min<size_t>(capacity, 65536)),
+      flags,
+      reinterpret_cast<sockaddr*>(&peer),
+      &peer_length);
+  if (received < 0) {
+    error = socket_last_error_text("recvfrom_into");
+    runtime.raise_class_error(socket_last_error_would_block() ? "BlockingIOError" : "OSError", error);
+    return false;
+  }
+  char peer_host[INET_ADDRSTRLEN] = {};
+  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) == nullptr) {
+    std::strcpy(peer_host, "127.0.0.1");
+  }
+  out = Value::tuple({
+      Value::int64(received),
+      Value::tuple({Value::string(peer_host), Value::int64(ntohs(peer.sin_port))}),
+  });
   return true;
 }
 
@@ -1104,6 +1621,95 @@ bool socket_shutdown(Runtime&, const Value* args, uint32_t argc, Value& out, std
   return true;
 }
 
+bool socket_ioctl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "socket.ioctl() expected control code and option";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  int64_t command = 0;
+  if (state == nullptr || !socket_int_arg(args[1], command)) {
+    error = "socket.ioctl() control code must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#ifdef _WIN32
+  if (command == -1) {
+    error = "invalid ioctl command";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  DWORD bytes_returned = 0;
+  if (command == static_cast<int64_t>(SIO_KEEPALIVE_VALS)) {
+    auto* values = value_as_tuple(args[2]);
+    if (values == nullptr || values->items.size() != 3) {
+      error = "SIO_KEEPALIVE_VALS option must be a 3-tuple";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    int64_t onoff = 0;
+    int64_t keepalive_time = 0;
+    int64_t keepalive_interval = 0;
+    if (!socket_int_arg(values->items[0], onoff) ||
+        !socket_int_arg(values->items[1], keepalive_time) ||
+        !socket_int_arg(values->items[2], keepalive_interval)) {
+      error = "SIO_KEEPALIVE_VALS option values must be integers";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    tcp_keepalive option{
+        static_cast<ULONG>(onoff),
+        static_cast<ULONG>(keepalive_time),
+        static_cast<ULONG>(keepalive_interval)};
+    if (WSAIoctl(
+            fd,
+            static_cast<DWORD>(command),
+            &option,
+            sizeof(option),
+            nullptr,
+            0,
+            &bytes_returned,
+            nullptr,
+            nullptr) == SOCKET_ERROR) {
+      return raise_socket_os_error(runtime, "ioctl", error);
+    }
+    value_set_none(out);
+    return true;
+  }
+  int64_t input_value = 0;
+  if (!socket_int_arg(args[2], input_value)) {
+    error = "socket.ioctl() option must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  DWORD input = static_cast<DWORD>(input_value);
+  if (WSAIoctl(
+          fd,
+          static_cast<DWORD>(command),
+          &input,
+          sizeof(input),
+          nullptr,
+          0,
+          &bytes_returned,
+          nullptr,
+          nullptr) == SOCKET_ERROR) {
+    return raise_socket_os_error(runtime, "ioctl", error);
+  }
+  value_set_none(out);
+  return true;
+#else
+  error = "socket.ioctl() is only available on Windows";
+  runtime.raise_class_error("OSError", error);
+  return false;
+#endif
+}
+
 bool socket_unsupported(Runtime&, const Value*, uint32_t, Value&, std::string& error, void*) {
   error = "socket operation is not supported";
   return false;
@@ -1118,7 +1724,7 @@ bool socket_gethostname(Runtime&, const Value*, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool socket_gethostbyname(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_gethostbyname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.gethostbyname() expected host";
     return false;
@@ -1140,12 +1746,7 @@ bool socket_gethostbyname(Runtime&, const Value* args, uint32_t argc, Value& out
   addrinfo* results = nullptr;
   const int rc = ::getaddrinfo(host.c_str(), nullptr, &hints, &results);
   if (rc != 0 || results == nullptr) {
-#ifdef _WIN32
-    error = "gethostbyname failed with WSA error " + std::to_string(rc);
-#else
-    error = std::string("gethostbyname failed: ") + gai_strerror(rc);
-#endif
-    return false;
+    return raise_socket_code_error(runtime, "gethostbyname", rc, error);
   }
   char numeric_host[INET_ADDRSTRLEN] = {};
   bool found = false;
@@ -1167,7 +1768,306 @@ bool socket_gethostbyname(Runtime&, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
-bool socket_inet_pton(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_gethostbyaddr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.gethostbyaddr() expected host";
+    return false;
+  }
+  auto* host_string = value_as_string(args[0]);
+  if (host_string == nullptr) {
+    error = "gethostbyaddr() argument must be str";
+    return false;
+  }
+  std::string startup_error;
+  if (!ensure_socket_runtime(startup_error)) {
+    error = startup_error;
+    return false;
+  }
+
+  const std::string host = string_object_to_string(*host_string);
+  addrinfo hints{};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  addrinfo* results = nullptr;
+  const int rc = ::getaddrinfo(host.c_str(), nullptr, &hints, &results);
+  if (rc != 0 || results == nullptr) {
+    return raise_socket_code_error(runtime, "gethostbyaddr", rc, error);
+  }
+
+  std::string canonical_name;
+  std::vector<Value> addresses;
+  for (addrinfo* item = results; item != nullptr; item = item->ai_next) {
+    if (item->ai_family != AF_INET || item->ai_addr == nullptr) continue;
+    auto* address = reinterpret_cast<sockaddr_in*>(item->ai_addr);
+    char numeric_host[INET_ADDRSTRLEN] = {};
+    if (inet_ntop(AF_INET, &address->sin_addr, numeric_host, sizeof(numeric_host)) != nullptr) {
+      bool seen = false;
+      for (const Value& existing : addresses) {
+        auto* text = value_as_string(existing);
+        if (text != nullptr && string_object_view(*text) == numeric_host) {
+          seen = true;
+          break;
+        }
+      }
+      if (!seen) addresses.push_back(Value::string(numeric_host));
+    }
+    if (canonical_name.empty()) {
+      char resolved[NI_MAXHOST] = {};
+      if (::getnameinfo(
+              item->ai_addr,
+              static_cast<socklen_t>(item->ai_addrlen),
+              resolved,
+              sizeof(resolved),
+              nullptr,
+              0,
+              0) == 0) {
+        canonical_name = resolved;
+      }
+    }
+  }
+  freeaddrinfo(results);
+  if (addresses.empty()) {
+    error = "gethostbyaddr failed";
+    return false;
+  }
+  if (canonical_name.empty()) canonical_name = host;
+  out = Value::tuple({
+      Value::string(std::move(canonical_name)),
+      Value::list({}),
+      Value::list(std::move(addresses)),
+  });
+  return true;
+}
+
+bool socket_byte_order(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1) {
+    error = "byte-order function expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t value = 0;
+  if (!socket_int_arg(args[0], value)) {
+    if (value_as_bigint(args[0]) != nullptr) {
+      bool negative = false;
+      const uint32_t* limbs = nullptr;
+      uint32_t count = 0;
+      value_bigint_limb_view(args[0], negative, limbs, count);
+      error = negative
+          ? "can't convert negative Python int to unsigned"
+          : "int larger than the platform field";
+      runtime.raise_class_error(negative ? "ValueError" : "OverflowError", error);
+      return false;
+    }
+    error = "an integer is required";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const intptr_t operation = reinterpret_cast<intptr_t>(user_data);
+  const uint64_t maximum = operation < 2 ? UINT32_MAX : UINT16_MAX;
+  if (value < 0) {
+    error = "can't convert negative Python int to unsigned";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (static_cast<uint64_t>(value) > maximum) {
+    error = "int larger than the platform field";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  switch (operation) {
+    case 0: value_set_int64(out, static_cast<int64_t>(htonl(static_cast<u_long>(value)))); break;
+    case 1: value_set_int64(out, static_cast<int64_t>(ntohl(static_cast<u_long>(value)))); break;
+    case 2: value_set_int64(out, static_cast<int64_t>(htons(static_cast<u_short>(value)))); break;
+    default: value_set_int64(out, static_cast<int64_t>(ntohs(static_cast<u_short>(value)))); break;
+  }
+  return true;
+}
+
+bool socket_inet_aton(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "inet_aton() argument must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const std::string text = string_object_to_string(*value_as_string(args[0]));
+  in_addr address{};
+  if (inet_pton(AF_INET, text.c_str(), &address) != 1) {
+    error = "illegal IP address string passed to inet_aton";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(&address), sizeof(address)));
+  return true;
+}
+
+bool socket_inet_ntoa(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "inet_ntoa() expected packed IP";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view packed;
+  if (auto* bytes = value_as_bytes(args[0])) {
+    packed = bytes_object_view(*bytes);
+  } else if (auto* array = value_as_bytearray(args[0])) {
+    packed = array->value;
+  } else if (auto* view = value_as_memoryview(args[0])) {
+    packed = memoryview_object_view(*view);
+  } else {
+    error = "inet_ntoa() argument must be a 4-byte buffer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (packed.size() != sizeof(in_addr)) {
+    error = "packed IP wrong length for inet_ntoa";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  char text[INET_ADDRSTRLEN] = {};
+  if (inet_ntop(AF_INET, packed.data(), text, sizeof(text)) == nullptr) {
+    error = socket_last_error_text("inet_ntoa");
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  out = Value::string(text);
+  return true;
+}
+
+bool socket_getservbyname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2 || value_as_string(args[0]) == nullptr ||
+      (argc == 2 && args[1].tag != ValueTag::None && value_as_string(args[1]) == nullptr)) {
+    error = "getservbyname() expected service and optional protocol strings";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!ensure_socket_runtime(error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const std::string service = string_object_to_string(*value_as_string(args[0]));
+  std::string protocol;
+  const char* protocol_ptr = nullptr;
+  if (argc == 2 && args[1].tag != ValueTag::None) {
+    protocol = string_object_to_string(*value_as_string(args[1]));
+    protocol_ptr = protocol.c_str();
+  }
+  servent* entry = ::getservbyname(service.c_str(), protocol_ptr);
+  if (entry == nullptr) {
+    error = "service/proto not found";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(ntohs(static_cast<u_short>(entry->s_port))));
+  return true;
+}
+
+bool socket_getservbyport(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "getservbyport() expected port and optional protocol";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t port = 0;
+  if (!socket_int_arg(args[0], port)) {
+    error = "getservbyport() port must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (port < 0 || port > 65535) {
+    error = "getservbyport(): port must be 0-65535";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  std::string protocol;
+  const char* protocol_ptr = nullptr;
+  if (argc == 2 && args[1].tag != ValueTag::None) {
+    auto* text = value_as_string(args[1]);
+    if (text == nullptr) {
+      error = "getservbyport() protocol must be a string";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    protocol = string_object_to_string(*text);
+    protocol_ptr = protocol.c_str();
+  }
+  if (!ensure_socket_runtime(error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  servent* entry = ::getservbyport(htons(static_cast<u_short>(port)), protocol_ptr);
+  if (entry == nullptr) {
+    error = "port/proto not found";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  out = Value::string(entry->s_name == nullptr ? "" : entry->s_name);
+  return true;
+}
+
+bool socket_getnameinfo(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "getnameinfo() expected sockaddr and flags";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* address = value_as_tuple(args[0]);
+  int64_t flags = 0;
+  if (address == nullptr || value_as_string(address->items[0]) == nullptr || !socket_int_arg(args[1], flags)) {
+    error = "getnameinfo(): sockaddr must be a (host, port) tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (address->items.size() != 2) {
+    error = "getnameinfo failed for the supplied address family";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  int64_t port = 0;
+  if (!socket_int_arg(address->items[1], port)) {
+    error = "getnameinfo(): port must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (port < 0 || port > 65535) {
+    error = "getnameinfo(): port out of range";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  const std::string host = string_object_to_string(*value_as_string(address->items[0]));
+  sockaddr_in native{};
+  native.sin_family = AF_INET;
+  native.sin_port = htons(static_cast<u_short>(port));
+  if (inet_pton(AF_INET, host.c_str(), &native.sin_addr) != 1) {
+    error = "getnameinfo only accepts numeric IP addresses";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  char result_host[NI_MAXHOST] = {};
+  char result_service[NI_MAXSERV] = {};
+  const int result = ::getnameinfo(
+      reinterpret_cast<sockaddr*>(&native),
+      sizeof(native),
+      result_host,
+      sizeof(result_host),
+      result_service,
+      sizeof(result_service),
+      static_cast<int>(flags));
+  if (result != 0) {
+    error = "getnameinfo failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  out = Value::tuple({Value::string(result_host), Value::string(result_service)});
+  return true;
+}
+
+bool socket_inet_pton(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.inet_pton() expected address family and IP string";
     return false;
@@ -1186,13 +2086,14 @@ bool socket_inet_pton(Runtime&, const Value* args, uint32_t argc, Value& out, st
   const std::string text = string_object_to_string(*address_string);
   if (inet_pton(AF_INET, text.c_str(), &address) != 1) {
     error = "illegal IP address string passed to inet_pton";
+    runtime.raise_class_error("OSError", error);
     return false;
   }
   out = Value::bytes(std::string(reinterpret_cast<const char*>(&address), sizeof(address)));
   return true;
 }
 
-bool socket_inet_ntop(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_inet_ntop(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.inet_ntop() expected address family and packed IP";
     return false;
@@ -1202,14 +2103,21 @@ bool socket_inet_ntop(Runtime&, const Value* args, uint32_t argc, Value& out, st
     error = "inet_ntop() supports AF_INET";
     return false;
   }
-  auto* packed = value_as_bytes(args[1]);
-  if (packed == nullptr) {
+  std::string_view view;
+  if (auto* packed = value_as_bytes(args[1])) {
+    view = bytes_object_view(*packed);
+  } else if (auto* packed = value_as_bytearray(args[1])) {
+    view = packed->value;
+  } else if (auto* packed = value_as_memoryview(args[1])) {
+    view = memoryview_object_view(*packed);
+  } else {
     error = "inet_ntop() argument 2 must be bytes-like";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const auto view = bytes_object_view(*packed);
   if (view.size() != sizeof(in_addr)) {
     error = "invalid length of packed IP address string";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   char numeric_host[INET_ADDRSTRLEN] = {};
@@ -1221,7 +2129,7 @@ bool socket_inet_ntop(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "socket.getaddrinfo() expected host and port";
     return false;
@@ -1236,6 +2144,11 @@ bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, 
       return false;
     }
     host_storage = string_object_to_string(*host_string);
+    if (contains_utf8_surrogate(host_storage)) {
+      error = "host name contains a surrogate character";
+      runtime.raise_class_error("UnicodeEncodeError", error);
+      return false;
+    }
     host = host_storage.c_str();
   }
 
@@ -1246,6 +2159,11 @@ bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, 
       service_storage = std::to_string(args[1].as.i64);
     } else if (auto* service_string = value_as_string(args[1])) {
       service_storage = string_object_to_string(*service_string);
+      if (contains_utf8_surrogate(service_storage)) {
+        error = "service name contains a surrogate character";
+        runtime.raise_class_error("UnicodeEncodeError", error);
+        return false;
+      }
     } else {
       error = "getaddrinfo() port must be integer, string, or None";
       return false;
@@ -1282,19 +2200,16 @@ bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, 
 
   addrinfo hints{};
   hints.ai_family = family == kAfUnspec ? AF_UNSPEC : to_native_family(family);
-  hints.ai_socktype = type == 0 ? 0 : to_native_type(type);
+  hints.ai_socktype = type == 0
+      ? (proto == IPPROTO_TCP ? SOCK_STREAM : (proto == IPPROTO_UDP ? SOCK_DGRAM : 0))
+      : to_native_type(type);
   hints.ai_protocol = static_cast<int>(proto);
   hints.ai_flags = static_cast<int>(flags);
 
   addrinfo* results = nullptr;
   const int rc = ::getaddrinfo(host, service, &hints, &results);
   if (rc != 0) {
-#ifdef _WIN32
-    error = "getaddrinfo failed with WSA error " + std::to_string(rc);
-#else
-    error = std::string("getaddrinfo failed: ") + gai_strerror(rc);
-#endif
-    return false;
+    return raise_socket_code_error(runtime, "getaddrinfo", rc, error);
   }
 
   std::vector<Value> rows;
@@ -1328,13 +2243,17 @@ bool socket_getaddrinfo(Runtime&, const Value* args, uint32_t argc, Value& out, 
 
 Value make_socket_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_socket")});
   attrs.push_back({"__init__", runtime.make_native_function("_socket.socket.__init__", socket_init)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_socket.socket.__repr__", socket_repr)});
   attrs.push_back({"close", runtime.make_native_function("_socket.socket.close", socket_close)});
   attrs.push_back({"fileno", runtime.make_native_function("_socket.socket.fileno", socket_fileno)});
+  attrs.push_back({"detach", runtime.make_native_function("_socket.socket.detach", socket_detach)});
   attrs.push_back({"settimeout", runtime.make_native_function("_socket.socket.settimeout", socket_settimeout)});
   attrs.push_back({"setblocking", runtime.make_native_function("_socket.socket.setblocking", socket_setblocking)});
   attrs.push_back({"gettimeout", runtime.make_native_function("_socket.socket.gettimeout", socket_gettimeout)});
   attrs.push_back({"setsockopt", runtime.make_native_function("_socket.socket.setsockopt", socket_setsockopt)});
+  attrs.push_back({"getsockopt", runtime.make_native_function("_socket.socket.getsockopt", socket_getsockopt)});
   attrs.push_back({"bind", runtime.make_native_function("_socket.socket.bind", socket_bind)});
   attrs.push_back({"listen", runtime.make_native_function("_socket.socket.listen", socket_listen)});
   attrs.push_back({"getsockname", runtime.make_native_function("_socket.socket.getsockname", socket_getsockname)});
@@ -1342,11 +2261,16 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"_accept", runtime.make_native_function("_socket.socket._accept", socket_accept_fd)});
   attrs.push_back({"accept", runtime.make_native_function("_socket.socket.accept", socket_accept)});
   attrs.push_back({"connect", runtime.make_native_function("_socket.socket.connect", socket_connect)});
+  attrs.push_back({"connect_ex", runtime.make_native_function("_socket.socket.connect_ex", socket_connect_ex)});
   attrs.push_back({"send", runtime.make_native_function("_socket.socket.send", socket_send)});
   attrs.push_back({"sendall", runtime.make_native_function("_socket.socket.sendall", socket_sendall)});
+  attrs.push_back({"sendto", runtime.make_native_function("_socket.socket.sendto", socket_sendto)});
   attrs.push_back({"recv", runtime.make_native_function("_socket.socket.recv", socket_recv)});
+  attrs.push_back({"recvfrom", runtime.make_native_function("_socket.socket.recvfrom", socket_recvfrom)});
   attrs.push_back({"recv_into", runtime.make_native_function("_socket.socket.recv_into", socket_recv_into)});
+  attrs.push_back({"recvfrom_into", runtime.make_native_function("_socket.socket.recvfrom_into", socket_recvfrom_into)});
   attrs.push_back({"shutdown", runtime.make_native_function("_socket.socket.shutdown", socket_shutdown)});
+  attrs.push_back({"ioctl", runtime.make_native_function("_socket.socket.ioctl", socket_ioctl)});
   return Value::class_object("socket", std::move(attrs));
 }
 
@@ -1355,12 +2279,31 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
   if (auto* os_error = runtime.find_builtin("OSError")) {
     value_assign_fast(socket_error, *os_error);
   }
+  Value socket_timeout = socket_error;
+  if (auto* timeout_error = runtime.find_builtin("TimeoutError")) {
+    value_assign_fast(socket_timeout, *timeout_error);
+  }
   builder.value("AF_UNSPEC", Value::int64(kAfUnspec))
       .value("AF_INET", Value::int64(kAfInet))
       .value("AF_INET6", Value::int64(kAfInet6))
+      .value("has_ipv6", Value::boolean(false))
       .value("SOCK_STREAM", Value::int64(kSockStream))
       .value("SOCK_DGRAM", Value::int64(kSockDgram))
+      .value("SOCK_RAW", Value::int64(SOCK_RAW))
+      .value("SOCK_RDM", Value::int64(SOCK_RDM))
+      .value("SOCK_SEQPACKET", Value::int64(SOCK_SEQPACKET))
       .value("IPPROTO_TCP", Value::int64(IPPROTO_TCP))
+      .value("IPPROTO_UDP", Value::int64(IPPROTO_UDP))
+      .value("IPPROTO_IPV6", Value::int64(IPPROTO_IPV6))
+      .value("IPPROTO_ICLFXBM", Value::int64(78))
+      .value("IPPROTO_ST", Value::int64(5))
+      .value("IPPROTO_CBT", Value::int64(7))
+      .value("IPPROTO_IGP", Value::int64(9))
+      .value("IPPROTO_RDP", Value::int64(27))
+      .value("IPPROTO_PGM", Value::int64(113))
+      .value("IPPROTO_L2TP", Value::int64(115))
+      .value("IPPROTO_SCTP", Value::int64(132))
+      .value("SOL_TCP", Value::int64(IPPROTO_TCP))
 #ifdef TCP_NODELAY
       .value("TCP_NODELAY", Value::int64(TCP_NODELAY))
 #else
@@ -1384,11 +2327,24 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("SO_KEEPALIVE", Value::int64(SO_KEEPALIVE))
       .value("SOL_SOCKET", Value::int64(SOL_SOCKET))
       .value("SO_REUSEADDR", Value::int64(SO_REUSEADDR))
+      .value("SO_ERROR", Value::int64(SO_ERROR))
+      .value("SO_TYPE", Value::int64(SO_TYPE))
       .value("SO_EXCLUSIVEADDRUSE", Value::int64(-5))
       .value("SOMAXCONN", Value::int64(128))
       .value("SHUT_RD", Value::int64(0))
       .value("SHUT_WR", Value::int64(1))
       .value("SHUT_RDWR", Value::int64(2))
+      .value("NI_NUMERICHOST", Value::int64(NI_NUMERICHOST))
+      .value("NI_NUMERICSERV", Value::int64(NI_NUMERICSERV))
+      .value("NI_NOFQDN", Value::int64(NI_NOFQDN))
+      .value("NI_NAMEREQD", Value::int64(NI_NAMEREQD))
+      .value("NI_DGRAM", Value::int64(NI_DGRAM))
+#ifdef _WIN32
+      .value("SIO_RCVALL", Value::int64(static_cast<int64_t>(SIO_RCVALL)))
+      .value("RCVALL_ON", Value::int64(static_cast<int64_t>(RCVALL_ON)))
+      .value("RCVALL_OFF", Value::int64(static_cast<int64_t>(RCVALL_OFF)))
+      .value("SIO_KEEPALIVE_VALS", Value::int64(static_cast<int64_t>(SIO_KEEPALIVE_VALS)))
+#endif
 #ifdef AI_PASSIVE
       .value("AI_PASSIVE", Value::int64(AI_PASSIVE))
 #else
@@ -1424,14 +2380,28 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
 #else
       .value("AI_V4MAPPED", Value::int64(2048))
 #endif
-      .value("timeout", Value::string("socket.timeout"))
+      .value("timeout", socket_timeout)
       .value("error", socket_error)
+      .value("herror", socket_error)
+      .value("gaierror", socket_error)
       .value("socket", socket_class)
       .value("SocketType", socket_class)
       .function("getdefaulttimeout", socket_getdefaulttimeout)
       .function("setdefaulttimeout", socket_setdefaulttimeout)
+      .function("dup", socket_dup_fd)
+      .function("close", socket_close_fd)
       .function("gethostname", socket_gethostname)
       .function("gethostbyname", socket_gethostbyname)
+      .function("gethostbyaddr", socket_gethostbyaddr)
+      .function("getservbyname", socket_getservbyname)
+      .function("getservbyport", socket_getservbyport)
+      .function("getnameinfo", socket_getnameinfo)
+      .value("htonl", runtime.make_native_function("_socket.htonl", socket_byte_order, reinterpret_cast<void*>(0)))
+      .value("ntohl", runtime.make_native_function("_socket.ntohl", socket_byte_order, reinterpret_cast<void*>(1)))
+      .value("htons", runtime.make_native_function("_socket.htons", socket_byte_order, reinterpret_cast<void*>(2)))
+      .value("ntohs", runtime.make_native_function("_socket.ntohs", socket_byte_order, reinterpret_cast<void*>(3)))
+      .function("inet_aton", socket_inet_aton)
+      .function("inet_ntoa", socket_inet_ntoa)
       .function("inet_pton", socket_inet_pton)
       .function("inet_ntop", socket_inet_ntop)
       .function("getaddrinfo", socket_getaddrinfo);
@@ -1500,6 +2470,29 @@ bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 }
 
 } // namespace
+
+void emit_pending_socket_resource_warnings(Runtime& runtime) {
+  std::vector<std::string> pending;
+  {
+    std::lock_guard<std::mutex> lock(g_socket_resource_warning_mutex);
+    pending.swap(g_socket_resource_warnings);
+  }
+  if (pending.empty()) return;
+  std::string ignored;
+  Value warnings;
+  Value warn;
+  const Value* warning_class = runtime.find_builtin("ResourceWarning");
+  if (warning_class == nullptr ||
+      !runtime.import_module("warnings", warnings, ignored) ||
+      !module_get_attr(warnings, "warn", warn, ignored)) {
+    return;
+  }
+  for (auto message = pending.rbegin(); message != pending.rend(); ++message) {
+    Value warning_args[] = {Value::string(*message), *warning_class};
+    Value warning_result;
+    (void)runtime_call_callable(runtime, warn, warning_args, 2, warning_result, ignored);
+  }
+}
 
 void register_socket_modules(Runtime& runtime) {
   value_set_none(g_default_socket_timeout);

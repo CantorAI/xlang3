@@ -22,6 +22,7 @@ limitations under the License.
 #include "runtime_lock.h"
 
 #include "xlang3/compiler.h"
+#include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -208,7 +209,6 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
       case ir::Op::Sub:
       case ir::Op::Mul:
       case ir::Op::Div:
-      case ir::Op::Mod:
         if (op.a >= temp_regs.size() || op.b >= temp_regs.size()) {
           supported = false;
           return false;
@@ -217,6 +217,11 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           return false;
         }
         break;
+      case ir::Op::Mod:
+        // Percent formatting may invoke Python __str__ and __repr__. Execute
+        // it in the normal VM path, which has the Runtime needed for dispatch.
+        supported = false;
+        return false;
       case ir::Op::Return:
         if (op.a >= temp_regs.size()) {
           supported = false;
@@ -465,6 +470,9 @@ enum class XlangVMBuiltinConstructor : uint8_t {
   Super,
   Module,
   Method,
+  Function,
+  Cell,
+  Traceback,
 };
 
 struct XlangVMBuiltinConstructorSpec {
@@ -510,6 +518,14 @@ inline bool xlang_vm_collect_type_slots(const Value& value, std::vector<std::str
   if (auto* set = value_as_set(value)) {
     for (const auto& item : set->items) {
       if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* dict = value_as_dict(value)) {
+    for (const auto& entry : dict->entries) {
+      if (!xlang_vm_collect_type_slots(entry.first, slots)) {
         return false;
       }
     }
@@ -593,7 +609,7 @@ XLANG3_HOT_INLINE void xlang_vm_collect_set_name_descriptors(
   for (const auto& attr : attrs) {
     Value set_name;
     std::string ignored;
-    if (object_get_attr(attr.second, "__set_name__", set_name, ignored)) {
+    if (attribute_get(attr.second, "__set_name__", set_name, ignored)) {
       descriptors.push_back({attr.first, std::move(set_name)});
     }
   }
@@ -628,7 +644,7 @@ XLANG3_HOT_INLINE bool xlang_vm_call_init_subclass_for_new_class(
     return true;
   }
   Value hook;
-  if (!object_lookup_class_attr(bases->items[0], "__init_subclass__", hook, error)) {
+  if (!object_lookup_inherited_class_attr(cls, "__init_subclass__", hook, error)) {
     error.clear();
     return true;
   }
@@ -771,6 +787,9 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(co
       {XlangVMNames::builtin_super, XlangVMBuiltinConstructor::Super},
       {XlangVMNames::builtin_module, XlangVMBuiltinConstructor::Module},
       {XlangVMNames::builtin_method, XlangVMBuiltinConstructor::Method},
+      {"function", XlangVMBuiltinConstructor::Function},
+      {"cell", XlangVMBuiltinConstructor::Cell},
+      {"traceback", XlangVMBuiltinConstructor::Traceback},
   };
   for (const auto& spec : specs) {
     if (name == spec.name) {
@@ -1174,6 +1193,129 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     return true;
   };
 
+  if (constructor == XlangVMBuiltinConstructor::Function) {
+    if (!reject_constructor_keywords_except({"name", "argdefs", "closure", "kwdefaults"})) {
+      return false;
+    }
+    if (constructor_args.size() < 2 || constructor_args.size() > 5) {
+      error = "function() expected at least 2 and at most 5 arguments";
+      return false;
+    }
+    auto* code = value_as_code(constructor_args.get(0));
+    if (code == nullptr || code->module == nullptr || code->function_id >= code->module->functions.size()) {
+      error = "function() argument 'code' must be a code object";
+      return false;
+    }
+    const Value& globals_value = constructor_args.get(1);
+    if (!mapping_is_mapping(globals_value)) {
+      error = "function() argument 'globals' must be a dict";
+      return false;
+    }
+
+    const Value* name_value = constructor_args.size() >= 3 ? &constructor_args.get(2) : find_constructor_keyword("name");
+    const Value* defaults_value = constructor_args.size() >= 4 ? &constructor_args.get(3) : find_constructor_keyword("argdefs");
+    const Value* closure_value = constructor_args.size() >= 5 ? &constructor_args.get(4) : find_constructor_keyword("closure");
+    const Value* kwdefaults_value = find_constructor_keyword("kwdefaults");
+
+    std::string function_name;
+    if (name_value != nullptr && name_value->tag != ValueTag::None) {
+      auto* name = value_as_string(*name_value);
+      if (name == nullptr) {
+        error = "function() argument 'name' must be a string";
+        return false;
+      }
+      function_name = string_object_to_string(*name);
+    }
+
+    std::vector<Value> defaults;
+    if (defaults_value != nullptr && defaults_value->tag != ValueTag::None) {
+      auto* tuple = value_as_tuple(*defaults_value);
+      if (tuple == nullptr) {
+        error = "function() argument 'argdefs' must be a tuple";
+        return false;
+      }
+      defaults = tuple->items;
+    }
+
+    std::vector<Value> closure;
+    if (closure_value != nullptr && closure_value->tag != ValueTag::None) {
+      auto* tuple = value_as_tuple(*closure_value);
+      if (tuple == nullptr) {
+        error = "function() argument 'closure' must be a tuple";
+        return false;
+      }
+      closure = tuple->items;
+      for (const auto& cell : closure) {
+        if (value_as_cell(cell) == nullptr) {
+          error = "function() argument 'closure' must contain cell objects";
+          return false;
+        }
+      }
+    }
+
+    std::vector<std::pair<std::string, Value>> kwdefaults;
+    if (kwdefaults_value != nullptr && kwdefaults_value->tag != ValueTag::None) {
+      auto* dict = value_as_dict(*kwdefaults_value);
+      if (dict == nullptr) {
+        error = "function() argument 'kwdefaults' must be a dict";
+        return false;
+      }
+      for (const auto& entry : dict->entries) {
+        auto* key = value_as_string(entry.first);
+        if (key == nullptr) {
+          error = "function() keyword-default names must be strings";
+          return false;
+        }
+        kwdefaults.push_back({string_object_to_string(*key), entry.second});
+      }
+    }
+
+    out = Value::function(
+        code->function_id,
+        std::move(closure),
+        globals_value,
+        code->module,
+        std::move(defaults),
+        std::move(kwdefaults));
+    std::string ignored;
+    if (!function_name.empty()) {
+      object_set_attr(out, "__name__", Value::string(function_name), ignored);
+    }
+    Value builtins;
+    if (mapping_get_item(
+            runtime.module_registry_dict(), Value::string("builtins"), builtins, ignored)) {
+      object_set_attr(out, "__builtins__", builtins, ignored);
+    }
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Cell) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
+      error = "cell() expected at most 1 argument";
+      return false;
+    }
+    out = Value::cell(constructor_args.size() == 0 ? Value::invalid() : constructor_args.get(0));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Traceback) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 4 ||
+        (constructor_args.get(0).tag != ValueTag::None &&
+         value_as_traceback(constructor_args.get(0)) == nullptr) ||
+        value_as_frame(constructor_args.get(1)) == nullptr ||
+        constructor_args.get(2).tag != ValueTag::Int64 ||
+        constructor_args.get(3).tag != ValueTag::Int64) {
+      error = "traceback() expected (tb_next, frame, lasti, lineno)";
+      return false;
+    }
+    out = Value::traceback(
+        constructor_args.get(1), constructor_args.get(0),
+        constructor_args.get(3).as.i64, constructor_args.get(2).as.i64);
+    return true;
+  }
+
   if (constructor == XlangVMBuiltinConstructor::Type) {
     if (constructor_args.size() == 1) {
       if (!reject_constructor_keywords()) return false;
@@ -1242,6 +1384,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (!xlang_vm_inline_class_attrs_have(attrs, "__qualname__")) {
       attrs.push_back({"__qualname__", Value::string(class_name)});
+    }
+    if (xlang_vm_inline_class_attrs_have(attrs, "__eq__") &&
+        !xlang_vm_inline_class_attrs_have(attrs, "__hash__")) {
+      attrs.push_back({"__hash__", Value::none()});
     }
     std::vector<std::pair<std::string, Value>> set_name_descriptors;
     xlang_vm_collect_set_name_descriptors(attrs, set_name_descriptors);
@@ -1313,27 +1459,62 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     const Value& source = constructor_args.get(0);
     if (encoding != nullptr && encoding->tag != ValueTag::None) {
+      std::string encoding_name = string_object_to_string(*value_as_string(*encoding));
+      std::transform(encoding_name.begin(), encoding_name.end(), encoding_name.begin(), [](unsigned char ch) {
+        return ch == '-' ? '_' : static_cast<char>(std::tolower(ch));
+      });
+      if (encoding_name == "latin1" || encoding_name == "iso8859_1" ||
+          encoding_name == "iso_8859_1" || encoding_name == "8859") encoding_name = "latin_1";
+      if (encoding_name == "utf8" || encoding_name == "u8" || encoding_name == "cp65001") encoding_name = "utf_8";
+      if (encoding_name == "us_ascii" || encoding_name == "646") encoding_name = "ascii";
+      std::string source_bytes;
       if (auto* bytes = value_as_bytes(source)) {
-        out = Value::string(bytes_object_to_string(*bytes));
-        return true;
-      }
-      if (auto* bytearray = value_as_bytearray(source)) {
-        out = Value::string(bytearray->value);
-        return true;
-      }
-      if (auto* view = value_as_memoryview(source)) {
-        std::string text;
+        source_bytes = bytes_object_to_string(*bytes);
+      } else if (auto* bytearray = value_as_bytearray(source)) {
+        source_bytes = bytearray->value;
+      } else if (auto* view = value_as_memoryview(source)) {
         for (size_t i = 0; i < view->size; ++i) {
           Value item;
           if (!sequence_get_item(source, Value::int64(static_cast<int64_t>(i)), item, error)) {
             return false;
           }
-          text.push_back(static_cast<char>(item.as.i64));
+          source_bytes.push_back(static_cast<char>(item.as.i64));
         }
-        out = Value::string(std::move(text));
+      } else {
+        error = "decoding to str requires a bytes-like object";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (encoding_name == "latin_1") {
+        std::string decoded;
+        decoded.reserve(source_bytes.size() * 2);
+        for (unsigned char ch : source_bytes) {
+          if (ch <= 0x7fu) decoded.push_back(static_cast<char>(ch));
+          else {
+            decoded.push_back(static_cast<char>(0xc0u | (ch >> 6u)));
+            decoded.push_back(static_cast<char>(0x80u | (ch & 0x3fu)));
+          }
+        }
+        out = Value::string(std::move(decoded));
         return true;
       }
-      error = "decoding str is not supported";
+      if (encoding_name == "ascii") {
+        for (unsigned char ch : source_bytes) {
+          if (ch > 0x7fu) {
+            error = "ascii codec can't decode byte";
+            runtime.raise_class_error("UnicodeDecodeError", error);
+            return false;
+          }
+        }
+        out = Value::string(std::move(source_bytes));
+        return true;
+      }
+      if (encoding_name == "utf_8") {
+        out = Value::string(std::move(source_bytes));
+        return true;
+      }
+      error = "unknown encoding: " + encoding_name;
+      runtime.raise_class_error("LookupError", error);
       return false;
     }
     return builtin_str_from_value(runtime, source, out, error);
@@ -1714,7 +1895,16 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     if (constructor == XlangVMBuiltinConstructor::List) {
-      out = Value::list(std::move(items));
+      if (exact_builtin_constructor) {
+        out = Value::list(std::move(items));
+      } else {
+        Value klass_value;
+        klass_value.tag = ValueTag::Object;
+        klass_value.as.obj = const_cast<Object*>(&klass.header);
+        retain(klass_value);
+        out = Value::instance(std::move(klass_value));
+        value_as_instance(out)->sequence_storage = Value::list(std::move(items));
+      }
     } else if (constructor == XlangVMBuiltinConstructor::Tuple) {
       Value tuple_storage = Value::tuple(std::move(items));
       if (exact_builtin_constructor) {
@@ -1732,9 +1922,27 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
       }
     } else if (constructor == XlangVMBuiltinConstructor::FrozenSet) {
-      out = Value::frozenset(std::move(items));
+      if (exact_builtin_constructor) {
+        out = Value::frozenset(std::move(items));
+      } else {
+        Value klass_value;
+        klass_value.tag = ValueTag::Object;
+        klass_value.as.obj = const_cast<Object*>(&klass.header);
+        retain(klass_value);
+        out = Value::instance(std::move(klass_value));
+        value_as_instance(out)->sequence_storage = Value::frozenset(std::move(items));
+      }
     } else {
-      out = Value::set(std::move(items));
+      if (exact_builtin_constructor) {
+        out = Value::set(std::move(items));
+      } else {
+        Value klass_value;
+        klass_value.tag = ValueTag::Object;
+        klass_value.as.obj = const_cast<Object*>(&klass.header);
+        retain(klass_value);
+        out = Value::instance(std::move(klass_value));
+        value_as_instance(out)->sequence_storage = Value::set(std::move(items));
+      }
     }
     return true;
   }
@@ -1770,6 +1978,21 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       local_error = "string argument without an encoding";
       return false;
     }
+    Value bytes_method;
+    std::string attr_error;
+    if (attribute_get(arg, "__bytes__", bytes_method, attr_error)) {
+      Value converted;
+      if (!runtime_call_callable(runtime, bytes_method, nullptr, 0, converted, local_error)) {
+        return false;
+      }
+      auto* converted_bytes = value_as_bytes(converted);
+      if (converted_bytes == nullptr) {
+        local_error = "__bytes__ returned non-bytes";
+        return false;
+      }
+      bytes = bytes_object_to_string(*converted_bytes);
+      return true;
+    }
     Value iterator;
     if (!runtime_get_iter(runtime, arg, iterator, local_error)) {
       return false;
@@ -1795,10 +2018,22 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "dict() expected at most 1 argument";
       return false;
     }
-    out = Value::dict({});
+    if (exact_builtin_constructor) {
+      out = Value::dict({});
+    } else {
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+    }
+    Value dict_target = out;
+    if (auto* instance = value_as_instance(out)) {
+      dict_target = instance->mapping_storage;
+    }
     auto add_constructor_keywords_to_dict = [&]() -> bool {
       for (const auto& keyword : constructor_keywords) {
-        if (!mapping_set_item(out, Value::string(keyword.first), keyword.second, error)) {
+        if (!mapping_set_item(dict_target, Value::string(keyword.first), keyword.second, error)) {
           return false;
         }
       }
@@ -1810,7 +2045,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     const Value& source = constructor_args.get(0);
     if (auto* dict = value_as_dict(source)) {
       for (const auto& entry : dict->entries) {
-        if (!mapping_set_item(out, entry.first, entry.second, error)) {
+        if (!mapping_set_item(dict_target, entry.first, entry.second, error)) {
           return false;
         }
       }
@@ -1819,7 +2054,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     if (auto* instance = value_as_instance(source)) {
       if (auto* storage = value_as_dict(instance->mapping_storage)) {
         for (const auto& entry : storage->entries) {
-          if (!mapping_set_item(out, entry.first, entry.second, error)) {
+          if (!mapping_set_item(dict_target, entry.first, entry.second, error)) {
             return false;
           }
         }
@@ -1842,7 +2077,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         Value value;
         if (!mapping_get_item(source, key, value, error) ||
-            !mapping_set_item(out, key, value, error)) {
+            !mapping_set_item(dict_target, key, value, error)) {
           return false;
         }
       }
@@ -1867,7 +2102,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       for (const auto& key : keys) {
         Value value;
         if (!runtime_call_callable(runtime, getitem_method, &key, 1, value, error) ||
-            !mapping_set_item(out, key, value, error)) {
+            !mapping_set_item(dict_target, key, value, error)) {
           return false;
         }
       }
@@ -1900,7 +2135,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         error = "dictionary update sequence element has length other than 2";
         return false;
       }
-      if (!mapping_set_item(out, *key, *value, error)) {
+      if (!mapping_set_item(dict_target, *key, *value, error)) {
         return false;
       }
     }
@@ -1964,7 +2199,63 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         error = "string argument without an encoding";
         return false;
       }
-      bytes = string_object_to_string(*string);
+      std::string encoding_name = string_object_to_string(*value_as_string(*encoding));
+      std::transform(encoding_name.begin(), encoding_name.end(), encoding_name.begin(), [](unsigned char ch) {
+        return ch == '-' ? '_' : static_cast<char>(std::tolower(ch));
+      });
+      if (encoding_name == "utf8" || encoding_name == "u8" || encoding_name == "cp65001") encoding_name = "utf_8";
+      if (encoding_name == "latin1" || encoding_name == "iso8859_1" ||
+          encoding_name == "iso_8859_1" || encoding_name == "8859") encoding_name = "latin_1";
+      if (encoding_name == "us_ascii" || encoding_name == "646") encoding_name = "ascii";
+      std::string errors_name = "strict";
+      if (errors_value != nullptr && errors_value->tag != ValueTag::None) {
+        errors_name = string_object_to_string(*value_as_string(*errors_value));
+      }
+      const std::string source = string_object_to_string(*string);
+      if (encoding_name == "utf_8") {
+        bytes = source;
+      } else if (encoding_name == "ascii" || encoding_name == "latin_1") {
+        for (size_t cursor = 0; cursor < source.size();) {
+          const unsigned char lead = static_cast<unsigned char>(source[cursor]);
+          size_t width = 1;
+          uint32_t codepoint = lead;
+          if ((lead & 0xe0u) == 0xc0u && cursor + 1 < source.size()) {
+            width = 2;
+            codepoint = ((lead & 0x1fu) << 6u) |
+                        (static_cast<unsigned char>(source[cursor + 1]) & 0x3fu);
+          } else if ((lead & 0xf0u) == 0xe0u && cursor + 2 < source.size()) {
+            width = 3;
+            codepoint = ((lead & 0x0fu) << 12u) |
+                        ((static_cast<unsigned char>(source[cursor + 1]) & 0x3fu) << 6u) |
+                        (static_cast<unsigned char>(source[cursor + 2]) & 0x3fu);
+          } else if ((lead & 0xf8u) == 0xf0u && cursor + 3 < source.size()) {
+            width = 4;
+            codepoint = ((lead & 0x07u) << 18u) |
+                        ((static_cast<unsigned char>(source[cursor + 1]) & 0x3fu) << 12u) |
+                        ((static_cast<unsigned char>(source[cursor + 2]) & 0x3fu) << 6u) |
+                        (static_cast<unsigned char>(source[cursor + 3]) & 0x3fu);
+          }
+          const uint32_t limit = encoding_name == "ascii" ? 0x7fu : 0xffu;
+          if (codepoint <= limit) {
+            bytes.push_back(static_cast<char>(codepoint));
+          } else if (errors_name == "ignore") {
+            // Omit characters that the selected codec cannot represent.
+          } else if (errors_name == "replace") {
+            bytes.push_back('?');
+          } else {
+            error = encoding_name == "ascii"
+                ? "ascii codec can't encode character"
+                : "latin-1 codec can't encode character";
+            runtime.raise_class_error("UnicodeEncodeError", error);
+            return false;
+          }
+          cursor += width;
+        }
+      } else {
+        error = "unknown encoding: " + encoding_name;
+        runtime.raise_class_error("LookupError", error);
+        return false;
+      }
     } else if (!make_bytes_from_arg(constructor_args.get(0), bytes, error)) {
       return false;
     }
@@ -2041,6 +2332,24 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     if (auto* view = value_as_memoryview(source)) {
       out = Value::memoryview(source, 0, view->size, view->readonly);
       return true;
+    }
+    if (value_as_instance(source) != nullptr) {
+      Value payload;
+      std::string ignored;
+      if (object_get_attr(source, "__xlang3_bytes_value__", payload, ignored)) {
+        if (auto* bytes = value_as_bytes(payload)) {
+          out = Value::memoryview(payload, 0, bytes->size, true);
+          Value format;
+          if (object_get_attr(source, "typecode", format, ignored)) {
+            if (auto* text = value_as_string(format)) {
+              if (auto* result = value_as_memoryview(out)) {
+                result->format = string_object_to_string(*text);
+              }
+            }
+          }
+          return true;
+        }
+      }
     }
     error = "memoryview() requires a bytes-like object";
     return false;

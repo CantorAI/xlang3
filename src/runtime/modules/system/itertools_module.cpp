@@ -497,6 +497,51 @@ bool itertools_product(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
+bool itertools_product_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc == 0) {
+    return itertools_product(runtime, args, argc, out, error, user_data);
+  }
+  if (kwargc != 1 || kwargs[0].name == nullptr ||
+      std::string(kwargs[0].name) != "repeat" || kwargs[0].value == nullptr) {
+    error = "product() got an unexpected keyword argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t repeat = 0;
+  if (!int_arg(*kwargs[0].value, repeat)) {
+    error = "repeat argument cannot be interpreted as an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (repeat < 0) {
+    error = "repeat argument cannot be negative";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (repeat != 0 && static_cast<uint64_t>(argc) >
+          (std::numeric_limits<size_t>::max)() / static_cast<uint64_t>(repeat)) {
+    error = "product() argument count is too large";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  std::vector<Value> repeated;
+  repeated.reserve(static_cast<size_t>(argc) * static_cast<size_t>(repeat));
+  for (int64_t i = 0; i < repeat; ++i) {
+    repeated.insert(repeated.end(), args, args + argc);
+  }
+  return itertools_product(
+      runtime, repeated.data(), static_cast<uint32_t>(repeated.size()),
+      out, error, user_data);
+}
+
 void combinations_visit(
     const std::vector<Value>& pool,
     size_t start,
@@ -700,7 +745,13 @@ bool itertools_starmap(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
-bool itertools_zip_longest(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_zip_longest_impl(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const Value& fillvalue,
+    Value& out,
+    std::string& error) {
   if (argc == 0) {
     out = Value::list({});
     return true;
@@ -721,12 +772,49 @@ bool itertools_zip_longest(Runtime& runtime, const Value* args, uint32_t argc, V
     std::vector<Value> row;
     row.reserve(pools.size());
     for (const auto& pool : pools) {
-      row.push_back(row_index < pool.size() ? pool[row_index] : Value::none());
+      row.push_back(row_index < pool.size() ? pool[row_index] : fillvalue);
     }
     values.push_back(Value::tuple(std::move(row)));
   }
   out = Value::list(std::move(values));
   return true;
+}
+
+bool itertools_zip_longest(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  return itertools_zip_longest_impl(runtime, args, argc, Value::none(), out, error);
+}
+
+bool itertools_zip_longest_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  Value fillvalue = Value::none();
+  bool has_fillvalue = false;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (std::string(kwargs[i].name) != "fillvalue") {
+      error = std::string("itertools.zip_longest() got an unexpected keyword argument '") +
+              kwargs[i].name + "'";
+      return false;
+    }
+    if (has_fillvalue) {
+      error = "itertools.zip_longest() got multiple values for argument 'fillvalue'";
+      return false;
+    }
+    value_assign_fast(fillvalue, *kwargs[i].value);
+    has_fillvalue = true;
+  }
+  return itertools_zip_longest_impl(runtime, args, argc, fillvalue, out, error);
 }
 
 bool itertools_pairwise(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -796,13 +884,17 @@ void register_itertools_module(Runtime& runtime) {
       .function("repeat", itertools_repeat)
       .value("chain", std::move(chain))
       .function("batched", itertools_batched)
-      .function("product", itertools_product)
+      .value("product", runtime.make_native_function(
+          "itertools.product", itertools_product, nullptr, nullptr, nullptr,
+          false, itertools_product_kw))
       .function("combinations", itertools_combinations)
       .function("combinations_with_replacement", itertools_combinations_with_replacement)
       .function("permutations", itertools_permutations)
       .function("accumulate", itertools_accumulate)
       .function("starmap", itertools_starmap)
-      .function("zip_longest", itertools_zip_longest)
+      .value("zip_longest", runtime.make_native_function(
+          "itertools.zip_longest", itertools_zip_longest, nullptr, nullptr, nullptr,
+          false, itertools_zip_longest_kw))
       .function("pairwise", itertools_pairwise)
       .function("tee", itertools_tee);
   runtime.register_module("itertools", builder.finish());

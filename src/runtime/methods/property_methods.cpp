@@ -255,7 +255,13 @@ bool property_descriptor_set_method(Runtime& runtime, const Value* args, uint32_
     return property_method_receiver_error(runtime, args[0], "__set__", error);
   }
   if (fset.tag == ValueTag::None || fset.tag == ValueTag::Invalid) {
-    error = "can't set attribute";
+    auto* property = value_as_property(args[0]);
+    auto* instance = value_as_instance(args[1]);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    auto* property_name = property != nullptr && property->has_name ? value_as_string(property->name) : nullptr;
+    error = property_name != nullptr && klass != nullptr
+                ? "property '" + string_object_to_string(*property_name) + "' of '" + klass->name + "' object has no setter"
+                : "property object has no setter";
     runtime.raise_class_error("AttributeError", error);
     return false;
   }
@@ -273,11 +279,51 @@ bool property_descriptor_delete_method(Runtime& runtime, const Value* args, uint
     return property_method_receiver_error(runtime, args[0], "__delete__", error);
   }
   if (fdel.tag == ValueTag::None || fdel.tag == ValueTag::Invalid) {
-    error = "can't delete attribute";
+    auto* property = value_as_property(args[0]);
+    auto* instance = value_as_instance(args[1]);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    auto* property_name = property != nullptr && property->has_name ? value_as_string(property->name) : nullptr;
+    error = property_name != nullptr && klass != nullptr
+                ? "property '" + string_object_to_string(*property_name) + "' of '" + klass->name + "' object has no deleter"
+                : "property object has no deleter";
     runtime.raise_class_error("AttributeError", error);
     return false;
   }
   return runtime_call_callable(runtime, fdel, &args[1], 1, out, error);
+}
+
+bool property_set_name_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) {
+    error = "property.__set_name__ expected owner and name";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* name = value_as_string(args[2]);
+  if (name == nullptr) {
+    error = "property.__set_name__ name must be a string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (auto* property = value_as_property(args[0])) {
+    value_assign_fast(property->name, args[2]);
+    property->has_name = true;
+    property->name_from_getter = false;
+  } else {
+    auto* instance = value_as_instance(args[0]);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || !class_has_builtin_base_name(klass, "property")) {
+      return property_method_receiver_error(runtime, args[0], "__set_name__", error);
+    }
+    Value self;
+    value_assign_fast(self, args[0]);
+    if (!object_set_attr(self, "__name__", args[2], error) ||
+        !object_set_attr(self, "__xlang3_name_from_getter__", Value::boolean(false), error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool property_init_common(
@@ -414,6 +460,7 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
       {"__get__", "property.__get__", property_descriptor_get_method},
       {"__set__", "property.__set__", property_descriptor_set_method},
       {"__delete__", "property.__delete__", property_descriptor_delete_method},
+      {"__set_name__", "property.__set_name__", property_set_name_method},
       {"getter", "property.getter", property_getter_method, nullptr, false, property_getter_kw},
       {"setter", "property.setter", property_setter_method, nullptr, false, property_setter_kw},
       {"deleter", "property.deleter", property_deleter_method, nullptr, false, property_deleter_kw},
@@ -427,6 +474,7 @@ bool property_install_class_methods(Runtime& runtime, ClassObject& property_clas
   property_class.attrs["__get__"] = Value::native_function(0, "property.__get__", property_descriptor_get_method);
   property_class.attrs["__set__"] = Value::native_function(0, "property.__set__", property_descriptor_set_method);
   property_class.attrs["__delete__"] = Value::native_function(0, "property.__delete__", property_descriptor_delete_method);
+  property_class.attrs["__set_name__"] = Value::native_function(0, "property.__set_name__", property_set_name_method);
   property_class.attrs["getter"] =
       runtime.make_native_function("property.getter", property_getter_method, nullptr, nullptr, nullptr, false, property_getter_kw);
   property_class.attrs["setter"] =

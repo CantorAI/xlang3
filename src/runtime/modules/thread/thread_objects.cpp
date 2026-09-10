@@ -17,12 +17,15 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "runtime_lock.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <memory>
+#include <sstream>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -40,6 +43,8 @@ std::vector<std::shared_ptr<XlangThreadState>> g_thread_registry;
 
 struct XlangThreadHandleState {
   std::shared_ptr<XlangThreadState> thread;
+  std::mutex mutex;
+  std::condition_variable done_cv;
   int64_t ident = 0;
   bool done = false;
 };
@@ -49,6 +54,7 @@ struct XlangThreadLocalState {
   Runtime* runtime = nullptr;
   Value owner_class;
   std::vector<Value> init_args;
+  std::vector<std::pair<std::string, Value>> init_kwargs;
   std::unordered_map<int64_t, std::shared_ptr<Value>> attrs_by_thread;
   std::unordered_set<int64_t> initialized_threads;
   std::unordered_set<int64_t> initializing_threads;
@@ -95,32 +101,81 @@ void report_thread_error(const std::string& error) {
 }
 
 bool parse_lock_acquire_args(
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     const NativeKeywordArg* kwargs,
     uint32_t kwargc,
     bool& blocking,
+    bool& has_timeout,
+    double& timeout,
     std::string& error) {
   blocking = true;
+  has_timeout = false;
+  timeout = -1.0;
   if (argc < 1 || argc > 3) {
     error = "lock.acquire() expected optional blocking/timeout";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   parse_blocking_arg(args, argc, blocking);
+  const Value* timeout_value = argc >= 3 ? &args[2] : nullptr;
+  has_timeout = timeout_value != nullptr;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string name(kwargs[i].name == nullptr ? "" : kwargs[i].name);
     if (kwargs[i].value == nullptr) {
       error = "lock.acquire() received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
     if (name == "blocking") {
+      if (argc >= 2) {
+        error = "lock.acquire() got multiple values for argument 'blocking'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
       blocking = value_truthy(*kwargs[i].value);
     } else if (name == "timeout") {
-      // Accepted for CPython shape. Timed waits are wired later; blocking=False
-      // already takes the non-blocking fast path used by debug adapters.
+      if (timeout_value != nullptr) {
+        error = "lock.acquire() got multiple values for argument 'timeout'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      timeout_value = kwargs[i].value;
+      has_timeout = true;
     } else {
       error = "lock.acquire() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
       return false;
+    }
+  }
+  if (timeout_value != nullptr) {
+    if (timeout_value->tag == ValueTag::Int64) {
+      timeout = static_cast<double>(timeout_value->as.i64);
+    } else if (timeout_value->tag == ValueTag::Double) {
+      timeout = timeout_value->as.f64;
+    } else {
+      error = "timeout value must be a number";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!std::isfinite(timeout) || timeout > 4294967.0) {
+      error = "timestamp out of range for platform time_t";
+      runtime.raise_class_error("OverflowError", error);
+      return false;
+    }
+    if (timeout < 0.0 && timeout != -1.0) {
+      error = "timeout value must be positive";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (!blocking && timeout != -1.0) {
+      error = "can't specify a timeout for a non-blocking call";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (timeout == -1.0) {
+      has_timeout = false;
     }
   }
   return true;
@@ -154,7 +209,35 @@ bool lock_release(
     uint32_t argc,
     Value& out,
     std::string& error,
-    void* user_data);
+  void* user_data);
+
+bool lock_repr(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "LockType.__repr__ expected no arguments";
+    return false;
+  }
+  auto* state = lock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  bool locked = false;
+  {
+    std::lock_guard<std::mutex> guard(state->mutex);
+    locked = state->locked;
+  }
+  std::ostringstream stream;
+  stream << '<' << (locked ? "locked" : "unlocked")
+         << " _thread.lock object at 0x" << std::hex
+         << reinterpret_cast<uintptr_t>(state) << '>';
+  out = Value::string(stream.str());
+  return true;
+}
 
 bool lock_acquire(
     Runtime& runtime,
@@ -166,7 +249,9 @@ bool lock_acquire(
   (void)runtime;
   (void)user_data;
   bool blocking = true;
-  if (!parse_lock_acquire_args(args, argc, nullptr, 0, blocking, error)) {
+  bool has_timeout = false;
+  double timeout = -1.0;
+  if (!parse_lock_acquire_args(runtime, args, argc, nullptr, 0, blocking, has_timeout, timeout, error)) {
     return false;
   }
   auto* state = lock_state_from_self(args[0], error);
@@ -179,7 +264,16 @@ bool lock_acquire(
       value_set_bool(out, false);
       return true;
     }
-    state->cv.wait(lock, [state]() { return !state->locked; });
+    if (has_timeout && !state->cv.wait_for(
+                           lock,
+                           std::chrono::duration<double>(timeout),
+                           [state]() { return !state->locked; })) {
+      value_set_bool(out, false);
+      return true;
+    }
+    if (!has_timeout) {
+      state->cv.wait(lock, [state]() { return !state->locked; });
+    }
     state->locked = true;
   }
   value_set_bool(out, true);
@@ -198,7 +292,9 @@ bool lock_acquire_kw(
   (void)runtime;
   (void)user_data;
   bool blocking = true;
-  if (!parse_lock_acquire_args(args, argc, kwargs, kwargc, blocking, error)) {
+  bool has_timeout = false;
+  double timeout = -1.0;
+  if (!parse_lock_acquire_args(runtime, args, argc, kwargs, kwargc, blocking, has_timeout, timeout, error)) {
     return false;
   }
   auto* state = lock_state_from_self(args[0], error);
@@ -211,7 +307,16 @@ bool lock_acquire_kw(
       value_set_bool(out, false);
       return true;
     }
-    state->cv.wait(lock, [state]() { return !state->locked; });
+    if (has_timeout && !state->cv.wait_for(
+                           lock,
+                           std::chrono::duration<double>(timeout),
+                           [state]() { return !state->locked; })) {
+      value_set_bool(out, false);
+      return true;
+    }
+    if (!has_timeout) {
+      state->cv.wait(lock, [state]() { return !state->locked; });
+    }
     state->locked = true;
   }
   value_set_bool(out, true);
@@ -312,11 +417,28 @@ bool rlock_init(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
-  if (argc != 1) {
-    error = "RLock.__init__ expected no arguments";
+  if (argc < 1) {
+    error = "RLock.__init__ expected self";
+    runtime.raise_class_error("TypeError", error);
     return false;
+  }
+  if (argc > 1) {
+    Value warnings;
+    Value warn;
+    if (!runtime.import_module("warnings", warnings, error) ||
+        !module_get_attr(warnings, "warn", warn, error)) {
+      return false;
+    }
+    const Value* category = runtime.find_builtin("DeprecationWarning");
+    Value warning_args[] = {
+        Value::string("Passing arguments to RLock() is deprecated"),
+        category == nullptr ? Value::none() : *category,
+    };
+    Value ignored;
+    if (!runtime_call_callable(runtime, warn, warning_args, 2, ignored, error)) {
+      return false;
+    }
   }
   auto* state = new XlangRLockState();
   if (!instance_set_native_data(args[0], kRLockNativeType, state, xlang_rlock_state_cleanup, error)) {
@@ -337,7 +459,9 @@ bool rlock_acquire(
   (void)runtime;
   (void)user_data;
   bool blocking = true;
-  if (!parse_lock_acquire_args(args, argc, nullptr, 0, blocking, error)) {
+  bool has_timeout = false;
+  double timeout = -1.0;
+  if (!parse_lock_acquire_args(runtime, args, argc, nullptr, 0, blocking, has_timeout, timeout, error)) {
     return false;
   }
   auto* state = rlock_state_from_self(args[0], error);
@@ -356,7 +480,16 @@ bool rlock_acquire(
       value_set_bool(out, false);
       return true;
     }
-    state->cv.wait(lock, [state]() { return state->depth == 0; });
+    if (has_timeout && !state->cv.wait_for(
+                           lock,
+                           std::chrono::duration<double>(timeout),
+                           [state]() { return state->depth == 0; })) {
+      value_set_bool(out, false);
+      return true;
+    }
+    if (!has_timeout) {
+      state->cv.wait(lock, [state]() { return state->depth == 0; });
+    }
     state->owner = current;
     state->owner_ident = xlang_thread_current_ident();
     state->depth = 1;
@@ -377,7 +510,9 @@ bool rlock_acquire_kw(
   (void)runtime;
   (void)user_data;
   bool blocking = true;
-  if (!parse_lock_acquire_args(args, argc, kwargs, kwargc, blocking, error)) {
+  bool has_timeout = false;
+  double timeout = -1.0;
+  if (!parse_lock_acquire_args(runtime, args, argc, kwargs, kwargc, blocking, has_timeout, timeout, error)) {
     return false;
   }
   auto* state = rlock_state_from_self(args[0], error);
@@ -396,7 +531,16 @@ bool rlock_acquire_kw(
       value_set_bool(out, false);
       return true;
     }
-    state->cv.wait(lock, [state]() { return state->depth == 0; });
+    if (has_timeout && !state->cv.wait_for(
+                           lock,
+                           std::chrono::duration<double>(timeout),
+                           [state]() { return state->depth == 0; })) {
+      value_set_bool(out, false);
+      return true;
+    }
+    if (!has_timeout) {
+      state->cv.wait(lock, [state]() { return state->depth == 0; });
+    }
     state->owner = current;
     state->owner_ident = xlang_thread_current_ident();
     state->depth = 1;
@@ -857,6 +1001,7 @@ bool xlang_thread_start_detached(
     std::string& error) {
   auto state = std::make_shared<XlangThreadState>();
   state->runtime = &runtime;
+  state->daemon = true;
   value_assign_fast(state->target, target);
   state->args = std::move(args);
 
@@ -974,18 +1119,25 @@ bool xlang_thread_is_alive_state(XlangThreadState& state) {
 }
 
 void xlang_thread_join_runtime_threads(Runtime* runtime) {
-  std::vector<std::shared_ptr<XlangThreadState>> threads;
-  {
-    std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
-    for (const auto& state : g_thread_registry) {
-      if (state && state->runtime == runtime) {
-        threads.push_back(state);
+  // A running thread may start another non-daemon thread while it is being
+  // joined.  Repeat the snapshot until no non-daemon runtime thread remains.
+  for (;;) {
+    std::vector<std::shared_ptr<XlangThreadState>> threads;
+    {
+      std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
+      for (const auto& state : g_thread_registry) {
+        if (state && state->runtime == runtime && !state->daemon &&
+            xlang_thread_is_alive_state(*state)) {
+          threads.push_back(state);
+        }
       }
     }
-  }
-
-  for (auto& state : threads) {
-    xlang_thread_join_state(*state);
+    if (threads.empty()) {
+      break;
+    }
+    for (auto& state : threads) {
+      xlang_thread_join_state(*state);
+    }
   }
 
   {
@@ -999,6 +1151,25 @@ void xlang_thread_join_runtime_threads(Runtime* runtime) {
         ++it;
       }
     }
+  }
+}
+
+void xlang_thread_detach_runtime_daemon_threads(Runtime* runtime) {
+  std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
+  auto it = g_thread_registry.begin();
+  while (it != g_thread_registry.end()) {
+    auto state = *it;
+    if (!state || state->runtime != runtime || !state->daemon) {
+      ++it;
+      continue;
+    }
+    {
+      std::lock_guard<std::mutex> state_lock(state->mutex);
+      if (state->worker.joinable()) {
+        state->worker.detach();
+      }
+    }
+    it = g_thread_registry.erase(it);
   }
 }
 
@@ -1090,7 +1261,11 @@ bool thread_handle_is_done(
   if (state == nullptr) {
     return false;
   }
-  bool done = state->done;
+  bool done = false;
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    done = state->done;
+  }
   if (state->thread) {
     std::lock_guard<std::mutex> lock(state->thread->mutex);
     done = state->thread->done;
@@ -1131,6 +1306,17 @@ bool thread_handle_join(
   }
   if (state->thread) {
     xlang_thread_join_state_for(*state->thread, timeout_seconds, has_timeout);
+  } else {
+    std::unique_lock<std::mutex> lock(state->mutex);
+    if (has_timeout) {
+      if (timeout_seconds > 0.0) {
+        state->done_cv.wait_for(
+            lock, std::chrono::duration<double>(timeout_seconds),
+            [&state]() { return state->done; });
+      }
+    } else {
+      state->done_cv.wait(lock, [&state]() { return state->done; });
+    }
   }
   value_set_none(out);
   return true;
@@ -1160,7 +1346,11 @@ bool thread_handle_set_done(
     }
     state->thread->done_cv.notify_all();
   }
-  state->done = true;
+  {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->done = true;
+  }
+  state->done_cv.notify_all();
   value_set_none(out);
   return true;
 }
@@ -1229,7 +1419,14 @@ bool thread_local_ensure_current_thread_initialized(const Value& self, XlangThre
         args.push_back(arg);
       }
       Value ignored;
-      if (!runtime_call_callable(*state.runtime, init, args.data(), static_cast<uint32_t>(args.size()), ignored, error)) {
+      if (!runtime_call_callable_kw(
+              *state.runtime,
+              init,
+              args.data(),
+              static_cast<uint32_t>(args.size()),
+              state.init_kwargs,
+              ignored,
+              error)) {
         thread_local_finish_init_for_current_thread(state, false);
         return false;
       }
@@ -1347,6 +1544,128 @@ bool thread_local_new(
   return state != nullptr;
 }
 
+bool thread_local_new_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!thread_local_new(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  auto* state = thread_local_state_from_self(out, error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(state->mutex);
+  state->init_kwargs.clear();
+  state->init_kwargs.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "_local.__new__ received an invalid keyword argument";
+      return false;
+    }
+    state->init_kwargs.emplace_back(kwargs[i].name, *kwargs[i].value);
+  }
+  return true;
+}
+
+bool rlock_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1) {
+    error = "RLock.__init__ expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value self_only[] = {args[0]};
+  if (!rlock_init(runtime, self_only, 1, out, error, user_data)) {
+    return false;
+  }
+  if (argc > 1 || kwargc > 0) {
+    Value warnings;
+    Value warn;
+    if (!runtime.import_module("warnings", warnings, error) ||
+        !module_get_attr(warnings, "warn", warn, error)) {
+      return false;
+    }
+    const Value* category = runtime.find_builtin("DeprecationWarning");
+    Value warning_args[] = {
+        Value::string("Passing arguments to RLock() is deprecated"),
+        category == nullptr ? Value::none() : *category,
+    };
+    Value ignored;
+    if (!runtime_call_callable(runtime, warn, warning_args, 2, ignored, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool rlock_repr(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "RLock.__repr__ expected no arguments";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  size_t depth = 0;
+  int64_t owner = 0;
+  {
+    std::lock_guard<std::mutex> guard(state->mutex);
+    depth = state->depth;
+    owner = state->owner_ident;
+  }
+  std::ostringstream stream;
+  stream << '<' << (depth == 0 ? "unlocked" : "locked")
+         << " _thread.RLock object owner=" << owner
+         << " count=" << depth << " at 0x" << std::hex
+         << reinterpret_cast<uintptr_t>(state) << '>';
+  out = Value::string(stream.str());
+  return true;
+}
+
+bool rlock_recursion_count(
+    Runtime&,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "RLock._recursion_count() expected no arguments";
+    return false;
+  }
+  auto* state = rlock_state_from_self(args[0], error);
+  if (state == nullptr) {
+    return false;
+  }
+  std::lock_guard<std::mutex> guard(state->mutex);
+  value_set_int64(
+      out,
+      state->depth != 0 && state->owner == std::this_thread::get_id()
+          ? static_cast<int64_t>(state->depth)
+          : 0);
+  return true;
+}
+
 bool thread_local_init(
     Runtime& runtime,
     const Value* args,
@@ -1368,7 +1687,10 @@ bool thread_local_init(
 
 Value xlang_thread_make_lock_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_thread")});
+  attrs.push_back({"__qualname__", Value::string("LockType")});
   attrs.push_back({"__init__", runtime.make_native_function("_thread.LockType.__init__", lock_init)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_thread.LockType.__repr__", lock_repr)});
   attrs.push_back({"acquire", runtime.make_native_function("_thread.LockType.acquire", lock_acquire, nullptr, nullptr, nullptr, false, lock_acquire_kw)});
   attrs.push_back({"release", runtime.make_native_function("_thread.LockType.release", lock_release)});
   attrs.push_back({"locked", runtime.make_native_function("_thread.LockType.locked", lock_locked)});
@@ -1379,13 +1701,17 @@ Value xlang_thread_make_lock_class(Runtime& runtime) {
 
 Value xlang_thread_make_rlock_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__init__", runtime.make_native_function("_thread.RLock.__init__", rlock_init)});
+  attrs.push_back({"__module__", Value::string("_thread")});
+  attrs.push_back({"__qualname__", Value::string("RLock")});
+  attrs.push_back({"__init__", runtime.make_native_function("_thread.RLock.__init__", rlock_init, nullptr, nullptr, nullptr, false, rlock_init_kw)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_thread.RLock.__repr__", rlock_repr)});
   attrs.push_back({"acquire", runtime.make_native_function("_thread.RLock.acquire", rlock_acquire, nullptr, nullptr, nullptr, false, rlock_acquire_kw)});
   attrs.push_back({"release", runtime.make_native_function("_thread.RLock.release", rlock_release)});
   attrs.push_back({"locked", runtime.make_native_function("_thread.RLock.locked", rlock_locked)});
   attrs.push_back({"_is_owned", runtime.make_native_function("_thread.RLock._is_owned", rlock_is_owned)});
   attrs.push_back({"_release_save", runtime.make_native_function("_thread.RLock._release_save", rlock_release_save)});
   attrs.push_back({"_acquire_restore", runtime.make_native_function("_thread.RLock._acquire_restore", rlock_acquire_restore)});
+  attrs.push_back({"_recursion_count", runtime.make_native_function("_thread.RLock._recursion_count", rlock_recursion_count)});
   attrs.push_back({"_at_fork_reinit", runtime.make_native_function("_thread.RLock._at_fork_reinit", rlock_at_fork_reinit)});
   attrs.push_back({"__enter__", runtime.make_native_function("_thread.RLock.__enter__", rlock_enter)});
   attrs.push_back({"__exit__", runtime.make_native_function("_thread.RLock.__exit__", rlock_exit)});
@@ -1405,13 +1731,26 @@ Value xlang_thread_make_handle_class(Runtime& runtime) {
 
 Value xlang_thread_make_local_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__new__", runtime.make_native_function("_thread._local.__new__", thread_local_new)});
+  attrs.push_back({"__new__", runtime.make_native_function(
+      "_thread._local.__new__",
+      thread_local_new,
+      nullptr,
+      nullptr,
+      nullptr,
+      false,
+      thread_local_new_kw)});
   attrs.push_back({"__init__", runtime.make_native_function("_thread._local.__init__", thread_local_init)});
   return Value::class_object("_local", std::move(attrs));
 }
 
 Value xlang_thread_make_lock_instance(Runtime& runtime) {
-  Value lock_class = xlang_thread_make_lock_class(runtime);
+  Value lock_class;
+  Value thread_module;
+  std::string lookup_error;
+  if (!runtime.import_module("_thread", thread_module, lookup_error) ||
+      !module_get_attr(thread_module, "LockType", lock_class, lookup_error)) {
+    lock_class = xlang_thread_make_lock_class(runtime);
+  }
   Value instance = Value::instance(lock_class);
   std::string error;
   auto* state = new XlangLockState();
@@ -1423,7 +1762,13 @@ Value xlang_thread_make_lock_instance(Runtime& runtime) {
 }
 
 Value xlang_thread_make_rlock_instance(Runtime& runtime) {
-  Value lock_class = xlang_thread_make_rlock_class(runtime);
+  Value lock_class;
+  Value thread_module;
+  std::string lookup_error;
+  if (!runtime.import_module("_thread", thread_module, lookup_error) ||
+      !module_get_attr(thread_module, "RLock", lock_class, lookup_error)) {
+    lock_class = xlang_thread_make_rlock_class(runtime);
+  }
   Value instance = Value::instance(lock_class);
   std::string error;
   auto* state = new XlangRLockState();

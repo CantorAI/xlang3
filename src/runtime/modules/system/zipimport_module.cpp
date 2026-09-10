@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
 #include "xlang3/sema.h"
+#include "xlang3/sequence.h"
 #include "xlang3/vfs.h"
 
 #include "zip_archive.h"
@@ -333,6 +334,11 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
   if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
     return false;
   }
+  std::string decoded_source;
+  if (!runtime.decode_python_source(source, decoded_source, error)) {
+    return false;
+  }
+  source = std::move(decoded_source);
   const Value* compile_builtin = runtime.find_builtin("compile");
   if (compile_builtin == nullptr) {
     error = "compile builtin is not registered";
@@ -379,6 +385,11 @@ bool zipimporter_execute_module(
   if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
     return false;
   }
+  std::string decoded_source;
+  if (!runtime.decode_python_source(source, decoded_source, error)) {
+    return false;
+  }
+  source = std::move(decoded_source);
 
   auto parsed = parse_source(source);
   if (!parsed.errors.empty()) {
@@ -513,6 +524,11 @@ bool zipimporter_get_source(Runtime& runtime, const Value* args, uint32_t argc, 
   if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
     return false;
   }
+  std::string decoded_source;
+  if (!runtime.decode_python_source(source, decoded_source, error)) {
+    return false;
+  }
+  source = std::move(decoded_source);
   out = Value::string(std::move(source));
   return true;
 }
@@ -596,7 +612,16 @@ void register_zipimport_module(Runtime& runtime) {
   std::string error;
   if (runtime.import_module("sys", sys, error)) {
     std::string ignored;
-    module_set_attr(sys, "path_hooks", Value::list({zipimporter}), ignored);
+    Value path_hooks;
+    if (module_get_attr(sys, "path_hooks", path_hooks, ignored)) {
+      if (auto* hooks = value_as_list(path_hooks)) {
+        hooks->items.push_back(zipimporter);
+      } else {
+        module_set_attr(sys, "path_hooks", Value::list({zipimporter}), ignored);
+      }
+    } else {
+      module_set_attr(sys, "path_hooks", Value::list({zipimporter}), ignored);
+    }
   }
 }
 

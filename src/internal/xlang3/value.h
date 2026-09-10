@@ -53,6 +53,7 @@ enum class ValueTag : uint32_t {
 enum class ObjectKind : uint32_t {
   String = 1,
   BigInt,
+  Complex,
   Bytes,
   ByteArray,
   MemoryView,
@@ -172,6 +173,12 @@ struct BigIntObject {
   void* impl = nullptr;
 };
 
+struct ComplexObject {
+  Object header;
+  double real = 0.0;
+  double imag = 0.0;
+};
+
 struct BytesObject {
   Object header;
   uint32_t size = 0;
@@ -209,6 +216,7 @@ struct Value {
   static Value int64(int64_t value);
   static Value bigint_from_i64(int64_t value);
   static Value number(double value);
+  static Value complex(double real, double imag);
   static Value string(std::string value);
   static Value string_view(std::string_view value);
   static Value string_uninitialized(size_t size);
@@ -256,8 +264,9 @@ struct Value {
       uint32_t instruction_index = 0,
       Value locals = Value::invalid(),
       Value back = Value::invalid(),
-      Value builtins = Value::invalid());
-  static Value traceback(Value frame, Value next, int64_t line);
+      Value builtins = Value::invalid(),
+      uint64_t activation_id = 0);
+  static Value traceback(Value frame, Value next, int64_t line, int64_t lasti = -2);
   static Value native_function(
       uint32_t native_id,
       std::string name,
@@ -275,7 +284,8 @@ struct Value {
       std::vector<std::pair<std::string, Value>> attrs,
       Value base = Value::invalid(),
       std::vector<std::string> instance_slots = {},
-      Value metaclass = Value::invalid());
+      Value metaclass = Value::invalid(),
+      Value globals_module = Value::invalid());
   static Value instance(Value klass);
   static Value bound_method(Value self, Value function);
   static Value static_method(Value function);
@@ -284,6 +294,7 @@ struct Value {
   static Value property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract = false, bool doc_from_getter = false);
   static Value event(std::string name);
   static Value generic_alias(Value origin, Value args);
+  static Value union_type(std::vector<Value> args);
   static Value type_param(std::string name);
 };
 
@@ -343,6 +354,13 @@ XLANG3_HOT_INLINE BigIntObject* value_as_bigint(const Value& value) {
     return nullptr;
   }
   return reinterpret_cast<BigIntObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE ComplexObject* value_as_complex(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Complex) {
+    return nullptr;
+  }
+  return reinterpret_cast<ComplexObject*>(value.as.obj);
 }
 
 XLANG3_HOT_INLINE Value Value::bigint_from_i64(int64_t value) {
@@ -473,6 +491,7 @@ struct FunctionObject {
   Value annotations;
   Value doc;
   Value globals_module;
+  Value globals_dict;
   Value attrs_dict;
   std::shared_ptr<const ir::Module> module;
   std::string qualname;
@@ -489,6 +508,8 @@ struct GenericAliasObject {
   Object header;
   Value origin;
   Value args;
+  Value klass;
+  bool is_union = false;
 };
 
 struct CodeObject {
@@ -498,6 +519,7 @@ struct CodeObject {
   std::string mode;
   std::string filename_override;
   int64_t first_line_override = 0;
+  int64_t flags_override = -1;
 };
 
 struct FrameObject {
@@ -509,6 +531,9 @@ struct FrameObject {
   Value locals;
   Value back;
   Value builtins;
+  uint64_t activation_id = 0;
+  bool live = false;
+  bool refresh_instruction = true;
 };
 
 struct NativeBufferStorage {
@@ -598,6 +623,10 @@ struct TracebackObject {
   Value frame;
   Value next;
   int64_t line = 0;
+  // -2 means derive the instruction offset from the captured frame.  A
+  // traceback created through types.TracebackType preserves the caller's
+  // explicit tb_lasti value, including zero.
+  int64_t lasti = -2;
 };
 
 XLANG3_HOT_INLINE StringObject* value_as_string(const Value& value) {
@@ -742,6 +771,7 @@ XLANG3_HOT_INLINE GenericAliasObject* value_as_generic_alias(const Value& value)
 
 struct FileObject {
   Object header;
+  Runtime* runtime = nullptr;
   FileSystem* fs = nullptr;
   std::string path;
   std::string mode;
@@ -755,10 +785,12 @@ struct FileObject {
   bool writable = false;
   bool append = false;
   bool binary = false;
+  int64_t buffering = -1;
   bool closed = false;
   bool devnull = false;
   bool fd_backed = false;
   int fd = -1;
+  intptr_t fd_native_handle = -1;
   bool closefd = true;
 };
 
@@ -899,6 +931,7 @@ XLANG3_HOT_INLINE void value_set_number(Value& out, double value) {
 std::string value_to_string(const Value& value);
 std::string value_to_repr(const Value& value);
 bool value_truthy(const Value& value);
+const char* value_binary_type_name(const Value& value);
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error);
@@ -907,6 +940,7 @@ bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& e
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error);
+bool value_mod_runtime(Runtime& runtime, const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error);

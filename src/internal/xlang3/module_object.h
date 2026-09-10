@@ -31,6 +31,7 @@ struct ModuleObject {
   std::string name;
   std::unordered_map<std::string, uint32_t> name_to_slot;
   std::vector<Value> slots;
+  std::vector<std::pair<Value, Value>> extra_globals;
 };
 
 XLANG3_HOT_INLINE ModuleObject* value_as_module(const Value& value) {

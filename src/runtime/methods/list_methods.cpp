@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
@@ -78,6 +79,73 @@ bool normalize_bound(const Value& value, size_t size, size_t& out, std::string& 
     index = static_cast<int64_t>(size);
   }
   out = static_cast<size_t>(index);
+  return true;
+}
+
+bool list_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "list.__getitem__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_get_item(args[0], args[1], out, error)) {
+    const bool index_error = error.find("range") != std::string::npos;
+    runtime.raise_class_error(index_error ? "IndexError" : "TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool list_setitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 3, "list.__setitem__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  if (!sequence_set_item(target, args[1], args[2], error)) {
+    const bool index_error = error.find("range") != std::string::npos;
+    runtime.raise_class_error(index_error ? "IndexError" : "TypeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool list_delitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "list.__delitem__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  if (!sequence_delete_item(target, args[1], error)) {
+    const bool index_error = error.find("range") != std::string::npos;
+    runtime.raise_class_error(index_error ? "IndexError" : "TypeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool list_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "list.__iter__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_get_iter(args[0], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool list_len_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "list.__len__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!sequence_len(args[0], out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   return true;
 }
 
@@ -320,7 +388,7 @@ bool sort_entries_by_key(Runtime& runtime, std::vector<SortEntry>& entries, bool
     Value result;
     const Value& left = reverse ? rhs.key : lhs.key;
     const Value& right = reverse ? lhs.key : rhs.key;
-    if (!value_compare("<", left, right, result, compare_error) || result.tag != ValueTag::Bool) {
+    if (!runtime_value_compare(runtime, "<", left, right, result, compare_error) || result.tag != ValueTag::Bool) {
       compare_failed = true;
       return false;
     }
@@ -415,6 +483,11 @@ bool list_sort_method_kw(
 }
 
 static constexpr BuiltinMethodSpec kListMethods[] = {
+      {"__delitem__", "list.__delitem__", list_delitem_method},
+      {"__getitem__", "list.__getitem__", list_getitem_method},
+      {"__iter__", "list.__iter__", list_iter_method},
+      {"__len__", "list.__len__", list_len_method},
+      {"__setitem__", "list.__setitem__", list_setitem_method},
       {"append", "list.append", list_append_method, list_append_fast_method},
       {"clear", "list.clear", list_clear_method},
       {"copy", "list.copy", list_copy_method},
@@ -447,6 +520,21 @@ bool list_get_method(const Value& object, const std::string& name, Value& out) {
     return false;
   }
   return bind_builtin_method_from_table(object, name, kListMethods, std::size(kListMethods), out);
+}
+
+bool list_install_class_methods(Runtime& runtime, ClassObject& list_class) {
+  for (const auto& method : kListMethods) {
+    list_class.attrs[method.name] = runtime.make_native_function(
+        method.full_name,
+        method.callback,
+        nullptr,
+        nullptr,
+        method.fast_callback,
+        method.fast_releases_vm_lock,
+        method.keyword_callback);
+  }
+  ++list_class.version;
+  return true;
 }
 
 } // namespace xlang3
