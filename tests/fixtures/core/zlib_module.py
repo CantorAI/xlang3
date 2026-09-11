@@ -57,3 +57,11 @@ print(dictionary_copy.decompress(dict_encoded) == dictionary,
 gzip_stream = zlib.compressobj(wbits=16 + zlib.MAX_WBITS)
 gzip_data = gzip_stream.compress(b"gzip") + gzip_stream.flush()
 print(zlib.decompress(gzip_data, 32 + zlib.MAX_WBITS))
+
+finished = zlib.compressobj()
+finished.flush()
+for operation in (lambda: finished.flush(), lambda: finished.compress(b"x")):
+    try:
+        operation()
+    except Exception as exc:
+        print(type(exc).__name__)

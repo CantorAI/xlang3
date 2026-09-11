@@ -113,6 +113,8 @@ fixture suite, after the native dependency updates documented below.
   and accumulated `unused_data` after a stream ends; compressor and decompressor
   objects can be copied while their streams are active, including configured
   preset dictionaries; gzip-wrapped streaming is covered through `wbits`.
+  Terminal compressor state now reports `zlib.error` for repeat flushes and
+  writes after `Z_FINISH`, matching CPython stream-finalization behavior.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.

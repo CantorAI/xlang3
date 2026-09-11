@@ -322,7 +322,7 @@ bool decompress_object_state(const Value& self, ZlibDecompressState*& state, std
   return true;
 }
 
-bool zlib_compress_object_compress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_compress_object_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "Compress.compress() expected data";
     return false;
@@ -332,8 +332,7 @@ bool zlib_compress_object_compress(Runtime&, const Value* args, uint32_t argc, V
     return false;
   }
   if (state->finished) {
-    error = "compressor object already flushed";
-    return false;
+    return zlib_fail(runtime, "Error -2 while compressing data: inconsistent stream state", error);
   }
   std::string input;
   if (!zlib_bytes_arg(args[1], "Compress.compress data", input, error)) {
@@ -347,7 +346,7 @@ bool zlib_compress_object_compress(Runtime&, const Value* args, uint32_t argc, V
   return true;
 }
 
-bool zlib_compress_object_flush(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_compress_object_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "Compress.flush() expected optional mode";
     return false;
@@ -362,8 +361,7 @@ bool zlib_compress_object_flush(Runtime&, const Value* args, uint32_t argc, Valu
     return false;
   }
   if (state->finished) {
-    out = Value::bytes("");
-    return true;
+    return zlib_fail(runtime, "Error -2 while flushing: inconsistent stream state", error);
   }
   std::string compressed;
   if (!zlib_stream_run(state->stream, "", mode, compressed, deflate, error)) {
