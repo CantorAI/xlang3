@@ -56,6 +56,14 @@ class FalseBox:
 false_box = FalseBox()
 print(bool(weakref.proxy(false_box)))
 
+class ComparableBox:
+    def __eq__(self, value):
+        return value == "match"
+
+comparable_box = ComparableBox()
+comparable_proxy = weakref.proxy(comparable_box)
+print(comparable_proxy == "match", comparable_proxy != "miss")
+
 expired = weakref.ref(Box())
 import gc
 gc.collect()

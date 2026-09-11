@@ -393,6 +393,8 @@ Value weakref_proxy_type(Runtime& runtime) {
          {"__delattr__", runtime.make_native_function(
              "weakref.ProxyType.__delattr__", weakref_proxy_delattr)},
          {"__bool__", runtime.make_native_function("weakref.ProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
+         {"__eq__", runtime.make_native_function("weakref.ProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
+         {"__ne__", runtime.make_native_function("weakref.ProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
          {"__len__", runtime.make_native_function("weakref.ProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.ProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
          {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
@@ -416,6 +418,8 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__call__", runtime.make_native_function(
              "weakref.CallableProxyType.__call__", weakref_callable_proxy_call)},
          {"__bool__", runtime.make_native_function("weakref.CallableProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
+         {"__eq__", runtime.make_native_function("weakref.CallableProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
+         {"__ne__", runtime.make_native_function("weakref.CallableProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
          {"__len__", runtime.make_native_function("weakref.CallableProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.CallableProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
          {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},

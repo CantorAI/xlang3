@@ -105,7 +105,7 @@ passed 47/47 tests, including the aggregate fixture suite.
   CPython weak-reference hash caching and dead-reference hash errors,
   callback-free reference reuse for the same live referent,
   delegated proxy attribute mutation plus `len`, iteration, indexing, and
-  membership and truth-value forwarding, and callback delivery through `gc.collect()` for both
+  membership, truth-value, and equality forwarding, and callback delivery through `gc.collect()` for both
   references and proxies, including last-created-first callback order and
   callable-proxy invocation;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
