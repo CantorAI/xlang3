@@ -1,8 +1,8 @@
 # Native Dependency Tasks
 
-Validation baseline: the full fixture runner passed all core and compatibility
-sections, and Release CTest passed 47/47 tests, including the aggregate fixture
-suite, after the native dependency updates documented below.
+Validation baseline: after the native dependency updates documented below, the
+full fixture runner passed all core and compatibility sections and Release CTest
+passed 47/47 tests, including the aggregate fixture suite.
 
 - [x] errno
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
@@ -78,7 +78,9 @@ suite, after the native dependency updates documented below.
   `asyncio.run()` startup/shutdown over the Windows proactor path.
   Numeric IPv6 `getnameinfo()` now accepts the CPython four-element sockaddr
   form alongside IPv4 socket addresses.
-  Native `AF_INET6` socket construction now creates an IPv6 descriptor.
+  Native IPv6 sockets now carry `sockaddr_in6` through loopback UDP/TCP
+  bind, connect, send/receive, accept, and local/peer names, using CPython's
+  four-element IPv6 sockaddr tuples; `has_ipv6` now reflects the native stack.
   Native `gethostbyname_ex()` returns canonical-name, aliases, and IPv4 address
   tuples through Winsock resolution.
   `getprotobyname()` resolves Winsock protocol names for source-backed

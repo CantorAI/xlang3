@@ -302,45 +302,78 @@ bool value_to_host_port(const Value& value, std::string& host, int64_t& port, st
   return true;
 }
 
-bool fill_ipv4_address(const std::string& host, int64_t port, sockaddr_in& address, std::string& error) {
-  std::memset(&address, 0, sizeof(address));
-  address.sin_family = AF_INET;
-  address.sin_port = htons(static_cast<uint16_t>(port));
+struct SocketAddress {
+  sockaddr_storage storage{};
+  socklen_t length = 0;
+};
+
+bool fill_socket_address(int64_t family, const std::string& host, int64_t port,
+                         SocketAddress& address, std::string& error) {
+  if (port < 0 || port > 65535) {
+    error = "port must be 0-65535";
+    return false;
+  }
+  std::memset(&address.storage, 0, sizeof(address.storage));
+  if (family == kAfInet6) {
+    auto* ipv6 = reinterpret_cast<sockaddr_in6*>(&address.storage);
+    ipv6->sin6_family = AF_INET6;
+    ipv6->sin6_port = htons(static_cast<uint16_t>(port));
+    const std::string bind_host = host.empty() ? "::1" : host;
+    if (bind_host == "localhost") {
+      ipv6->sin6_addr = in6addr_loopback;
+    } else if (bind_host == "::") {
+      ipv6->sin6_addr = in6addr_any;
+    } else if (inet_pton(AF_INET6, bind_host.c_str(), &ipv6->sin6_addr) != 1) {
+      error = "invalid IPv6 socket address";
+      return false;
+    }
+    address.length = sizeof(sockaddr_in6);
+    return true;
+  }
+
+  auto* ipv4 = reinterpret_cast<sockaddr_in*>(&address.storage);
+  ipv4->sin_family = AF_INET;
+  ipv4->sin_port = htons(static_cast<uint16_t>(port));
   const std::string bind_host = host.empty() ? "127.0.0.1" : host;
   if (bind_host == "localhost") {
-    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    return true;
+    ipv4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  } else if (bind_host == "0.0.0.0") {
+    ipv4->sin_addr.s_addr = htonl(INADDR_ANY);
+  } else if (inet_pton(AF_INET, bind_host.c_str(), &ipv4->sin_addr) != 1) {
+    error = "invalid IPv4 socket address";
+    return false;
   }
-  if (bind_host == "0.0.0.0") {
-    address.sin_addr.s_addr = htonl(INADDR_ANY);
-    return true;
+  address.length = sizeof(sockaddr_in);
+  return true;
+}
+
+Value socket_address_value(const sockaddr* address, socklen_t length) {
+  if (address != nullptr && address->sa_family == AF_INET6 && length >= sizeof(sockaddr_in6)) {
+    const auto* ipv6 = reinterpret_cast<const sockaddr_in6*>(address);
+    char host[INET6_ADDRSTRLEN] = {};
+    if (inet_ntop(AF_INET6, &ipv6->sin6_addr, host, sizeof(host)) != nullptr) {
+      return Value::tuple({Value::string(host), Value::int64(ntohs(ipv6->sin6_port)),
+                           Value::int64(ipv6->sin6_flowinfo), Value::int64(ipv6->sin6_scope_id)});
+    }
   }
-  if (inet_pton(AF_INET, bind_host.c_str(), &address.sin_addr) == 1) {
-    return true;
-  }
-  error = "only IPv4 socket addresses are supported";
-  return false;
+  const auto* ipv4 = reinterpret_cast<const sockaddr_in*>(address);
+  char host[INET_ADDRSTRLEN] = {};
+  std::string host_text = "127.0.0.1";
+  if (ipv4 != nullptr && inet_ntop(AF_INET, &ipv4->sin_addr, host, sizeof(host)) != nullptr) host_text = host;
+  return Value::tuple({Value::string(host_text), Value::int64(ipv4 != nullptr ? ntohs(ipv4->sin_port) : 0)});
 }
 
 void update_socket_address_from_fd(SocketState& state) {
-  if (state.fd == kInvalidSocket) {
-    return;
-  }
-  sockaddr_in address;
-  std::memset(&address, 0, sizeof(address));
-#ifdef _WIN32
-  int length = sizeof(address);
-#else
-  socklen_t length = sizeof(address);
-#endif
-  if (getsockname(state.fd, reinterpret_cast<sockaddr*>(&address), &length) != 0) {
-    return;
-  }
-  char host[INET_ADDRSTRLEN] = {};
-  if (inet_ntop(AF_INET, &address.sin_addr, host, sizeof(host)) != nullptr) {
-    state.host = host;
-  }
-  state.port = ntohs(address.sin_port);
+  if (state.fd == kInvalidSocket) return;
+  SocketAddress address;
+  address.length = sizeof(address.storage);
+  if (getsockname(state.fd, reinterpret_cast<sockaddr*>(&address.storage), &address.length) != 0) return;
+  Value value = socket_address_value(reinterpret_cast<const sockaddr*>(&address.storage), address.length);
+  auto* tuple = value_as_tuple(value);
+  if (tuple == nullptr || tuple->items.size() < 2) return;
+  auto* host = value_as_string(tuple->items[0]);
+  if (host != nullptr) state.host = string_object_to_string(*host);
+  if (tuple->items[1].tag == ValueTag::Int64) state.port = tuple->items[1].as.i64;
 }
 
 void socket_cleanup(void* data) {
@@ -943,11 +976,9 @@ bool socket_bind(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (fd == kInvalidSocket) {
     return false;
   }
-  sockaddr_in address;
-  if (!fill_ipv4_address(host, port, address, error)) {
-    return false;
-  }
-  if (::bind(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
+  SocketAddress address;
+  if (!fill_socket_address(state->family, host, port, address, error)) return false;
+  if (::bind(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length) != 0) {
     return raise_socket_os_error(runtime, "bind", error);
   }
   update_socket_address_from_fd(*state);
@@ -977,49 +1008,32 @@ bool socket_listen(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
-bool socket_getsockname(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "socket.getsockname() expected no arguments";
-    return false;
-  }
+bool socket_getsockname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) { error = "socket.getsockname() expected no arguments"; return false; }
   auto* state = socket_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
+  if (state == nullptr) return false;
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) return false;
+  SocketAddress address;
+  address.length = sizeof(address.storage);
+  if (::getsockname(fd, reinterpret_cast<sockaddr*>(&address.storage), &address.length) != 0) return raise_socket_os_error(runtime, "getsockname", error);
+  out = socket_address_value(reinterpret_cast<const sockaddr*>(&address.storage), address.length);
   update_socket_address_from_fd(*state);
-  out = Value::tuple({Value::string(state->host), Value::int64(state->port)});
   return true;
 }
 
 bool socket_getpeername(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "socket.getpeername() expected no arguments";
-    return false;
-  }
+  if (argc != 1) { error = "socket.getpeername() expected no arguments"; return false; }
   auto* state = socket_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
+  if (state == nullptr) return false;
   NativeSocket fd = make_native_socket(*state, error);
-  if (fd == kInvalidSocket) {
-    return false;
-  }
-  sockaddr_in address;
-  std::memset(&address, 0, sizeof(address));
-#ifdef _WIN32
-  int length = sizeof(address);
-#else
-  socklen_t length = sizeof(address);
-#endif
-  if (::getpeername(fd, reinterpret_cast<sockaddr*>(&address), &length) != 0) {
+  if (fd == kInvalidSocket) return false;
+  SocketAddress address;
+  address.length = sizeof(address.storage);
+  if (::getpeername(fd, reinterpret_cast<sockaddr*>(&address.storage), &address.length) != 0) {
     return raise_socket_os_error(runtime, "getpeername", error);
   }
-  char host[INET_ADDRSTRLEN] = {};
-  std::string host_text = "127.0.0.1";
-  if (inet_ntop(AF_INET, &address.sin_addr, host, sizeof(host)) != nullptr) {
-    host_text = host;
-  }
-  out = Value::tuple({Value::string(host_text), Value::int64(ntohs(address.sin_port))});
+  out = socket_address_value(reinterpret_cast<const sockaddr*>(&address.storage), address.length);
   return true;
 }
 
@@ -1049,21 +1063,16 @@ bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (fd == kInvalidSocket) {
     return false;
   }
-  sockaddr_in peer;
-  std::memset(&peer, 0, sizeof(peer));
-#ifdef _WIN32
-  int peer_length = sizeof(peer);
-#else
-  socklen_t peer_length = sizeof(peer);
-#endif
-  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  SocketAddress peer;
+  peer.length = sizeof(peer.storage);
+  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
   if (accepted == kInvalidSocket && socket_last_error_would_block()) {
     double timeout = -1.0;
     if (!socket_timeout_seconds(*state, timeout, error) ||
         !wait_socket_readable(runtime, fd, timeout, "accept", error)) {
       return false;
     }
-    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
   }
   if (accepted == kInvalidSocket) {
     return raise_socket_os_error(runtime, "accept", error);
@@ -1089,12 +1098,7 @@ bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
 
-  char peer_host[INET_ADDRSTRLEN] = {};
-  std::string peer_host_text = "127.0.0.1";
-  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) != nullptr) {
-    peer_host_text = peer_host;
-  }
-  Value peer_address = Value::tuple({Value::string(peer_host_text), Value::int64(ntohs(peer.sin_port))});
+  Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({accepted_socket, peer_address});
   return true;
 }
@@ -1112,72 +1116,43 @@ bool socket_accept_fd(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (fd == kInvalidSocket) {
     return false;
   }
-  sockaddr_in peer;
-  std::memset(&peer, 0, sizeof(peer));
-#ifdef _WIN32
-  int peer_length = sizeof(peer);
-#else
-  socklen_t peer_length = sizeof(peer);
-#endif
-  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+  SocketAddress peer;
+  peer.length = sizeof(peer.storage);
+  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
   if (accepted == kInvalidSocket && socket_last_error_would_block()) {
     double timeout = -1.0;
     if (!socket_timeout_seconds(*state, timeout, error) ||
         !wait_socket_readable(runtime, fd, timeout, "accept", error)) {
       return false;
     }
-    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_length);
+    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
   }
   if (accepted == kInvalidSocket) {
     return raise_socket_os_error(runtime, "accept", error);
   }
 
-  char peer_host[INET_ADDRSTRLEN] = {};
-  std::string peer_host_text = "127.0.0.1";
-  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) != nullptr) {
-    peer_host_text = peer_host;
-  }
-  Value peer_address = Value::tuple({Value::string(peer_host_text), Value::int64(ntohs(peer.sin_port))});
+  Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({Value::int64(static_cast<int64_t>(accepted)), peer_address});
   return true;
 }
 
 bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "socket.connect() expected address";
-    return false;
-  }
+  if (argc != 2) { error = "socket.connect() expected address"; return false; }
   auto* state = socket_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
-  std::string host;
-  int64_t port = 0;
-  if (!value_to_host_port(args[1], host, port, error)) {
-    return false;
-  }
+  if (state == nullptr) return false;
+  std::string host; int64_t port = 0;
+  if (!value_to_host_port(args[1], host, port, error)) return false;
   NativeSocket fd = make_native_socket(*state, error);
-  if (fd == kInvalidSocket) {
-    return false;
-  }
-  sockaddr_in address;
-  if (!fill_ipv4_address(host, port, address, error)) {
-    return false;
-  }
-  if (::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
+  if (fd == kInvalidSocket) return false;
+  SocketAddress address;
+  if (!fill_socket_address(state->family, host, port, address, error)) return false;
+  if (::connect(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length) != 0) {
     if (!state->blocking && socket_last_error_would_block()) {
       double timeout = 0.0;
-      if (!socket_timeout_seconds(*state, timeout, error)) {
-        return false;
-      }
-      if (!wait_socket_connect(runtime, fd, timeout, error)) {
-        return false;
-      }
-    } else {
-      return raise_socket_os_error(runtime, "connect", error);
-    }
+      if (!socket_timeout_seconds(*state, timeout, error) || !wait_socket_connect(runtime, fd, timeout, error)) return false;
+    } else return raise_socket_os_error(runtime, "connect", error);
   }
-  state->host = host.empty() ? "127.0.0.1" : host;
+  state->host = host.empty() ? (state->family == kAfInet6 ? "::1" : "127.0.0.1") : host;
   state->port = port;
   value_set_none(out);
   return true;
@@ -1196,11 +1171,9 @@ bool socket_connect_ex(Runtime& runtime, const Value* args, uint32_t argc, Value
     return false;
   }
   NativeSocket fd = make_native_socket(*state, error);
-  sockaddr_in address{};
-  if (fd == kInvalidSocket || !fill_ipv4_address(host, port, address, error)) {
-    return false;
-  }
-  if (::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0) {
+  SocketAddress address;
+  if (fd == kInvalidSocket || !fill_socket_address(state->family, host, port, address, error)) return false;
+  if (::connect(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length) == 0) {
     state->host = host.empty() ? "127.0.0.1" : host;
     state->port = port;
     value_set_int64(out, 0);
@@ -1274,68 +1247,26 @@ bool socket_sendall(Runtime& runtime, const Value* args, uint32_t argc, Value& o
 }
 
 bool socket_sendto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3 && argc != 4) {
-    error = "sendto() takes 2 or 3 arguments (" + std::to_string(argc > 0 ? argc - 1 : 0) + " given)";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  if (argc != 3 && argc != 4) { error = "sendto() takes 2 or 3 arguments (" + std::to_string(argc > 0 ? argc - 1 : 0) + " given)"; runtime.raise_class_error("TypeError", error); return false; }
   auto* state = socket_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
+  if (state == nullptr) return false;
   std::string_view data;
-  if (auto* bytes = value_as_bytes(args[1])) {
-    data = bytes_object_view(*bytes);
-  } else if (auto* array = value_as_bytearray(args[1])) {
-    data = array->value;
-  } else if (auto* view = value_as_memoryview(args[1])) {
-    data = memoryview_object_view(*view);
-    if (!data.data()) {
-      error = "invalid or released memoryview";
-      return false;
-    }
-  } else {
-    error = "a bytes-like object is required, not '" + std::string(value_binary_type_name(args[1])) + "'";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  if (auto* bytes = value_as_bytes(args[1])) data = bytes_object_view(*bytes);
+  else if (auto* array = value_as_bytearray(args[1])) data = array->value;
+  else if (auto* view = value_as_memoryview(args[1])) { data = memoryview_object_view(*view); if (!data.data()) { error = "invalid or released memoryview"; return false; } }
+  else { error = "a bytes-like object is required, not '" + std::string(value_binary_type_name(args[1])) + "'"; runtime.raise_class_error("TypeError", error); return false; }
   const uint32_t address_index = argc == 3 ? 2 : 3;
   int flags = 0;
-  if (argc == 4) {
-    if (args[2].tag != ValueTag::Int64) {
-      error = "socket.sendto() flags must be int";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    flags = static_cast<int>(args[2].as.i64);
-  }
-  std::string host;
-  int64_t port = 0;
-  if (!value_to_host_port(args[address_index], host, port, error)) {
-    error = "AF_INET address must be tuple, not " + std::string(value_binary_type_name(args[address_index]));
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  sockaddr_in address;
-  if (!fill_ipv4_address(host, port, address, error)) {
-    return false;
-  }
+  if (argc == 4) { if (args[2].tag != ValueTag::Int64) { error = "socket.sendto() flags must be int"; runtime.raise_class_error("TypeError", error); return false; } flags = static_cast<int>(args[2].as.i64); }
+  std::string host; int64_t port = 0;
+  if (!value_to_host_port(args[address_index], host, port, error)) { runtime.raise_class_error("TypeError", error); return false; }
+  SocketAddress address;
+  if (!fill_socket_address(state->family, host, port, address, error)) return false;
   NativeSocket fd = make_native_socket(*state, error);
-  if (fd == kInvalidSocket) {
-    return false;
-  }
-  const int sent = ::sendto(
-      fd,
-      data.data(),
-      static_cast<int>(data.size()),
-      flags,
-      reinterpret_cast<sockaddr*>(&address),
-      sizeof(address));
-  if (sent < 0) {
-    error = socket_last_error_text("sendto");
-    runtime.raise_class_error("OSError", error);
-    return false;
-  }
+  if (fd == kInvalidSocket) return false;
+  const int sent = ::sendto(fd, data.data(), static_cast<int>(data.size()), flags,
+                            reinterpret_cast<sockaddr*>(&address.storage), address.length);
+  if (sent < 0) { error = socket_last_error_text("sendto"); runtime.raise_class_error("OSError", error); return false; }
   value_set_int64(out, sent);
   return true;
 }
@@ -1404,20 +1335,15 @@ bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   const int size = static_cast<int>(std::max<int64_t>(0, args[1].as.i64));
   const int flags = argc == 3 ? static_cast<int>(args[2].as.i64) : 0;
   std::string data(static_cast<size_t>(size), '\0');
-  sockaddr_in peer;
-  std::memset(&peer, 0, sizeof(peer));
-#ifdef _WIN32
-  int peer_length = sizeof(peer);
-#else
-  socklen_t peer_length = sizeof(peer);
-#endif
+  SocketAddress peer;
+  peer.length = sizeof(peer.storage);
   const int received = ::recvfrom(
       fd,
       data.data(),
       size,
       flags,
-      reinterpret_cast<sockaddr*>(&peer),
-      &peer_length);
+      reinterpret_cast<sockaddr*>(&peer.storage),
+      &peer.length);
   if (received < 0) {
     if (socket_last_error_would_block()) {
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recvfrom"));
@@ -1426,14 +1352,10 @@ bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return raise_socket_os_error(runtime, "recvfrom", error);
   }
   data.resize(static_cast<size_t>(received));
-  char peer_host[INET_ADDRSTRLEN] = {};
-  std::string peer_host_text = "127.0.0.1";
-  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) != nullptr) {
-    peer_host_text = peer_host;
-  }
+  Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({
       Value::bytes(std::move(data)),
-      Value::tuple({Value::string(peer_host_text), Value::int64(ntohs(peer.sin_port))}),
+      peer_address,
   });
   return true;
 }
@@ -1590,31 +1512,24 @@ bool socket_recvfrom_into(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   NativeSocket fd = make_native_socket(*state, error);
   if (fd == kInvalidSocket || !prepare_socket_read(runtime, *state, fd, "recvfrom_into", error)) return false;
-  sockaddr_in peer{};
-#ifdef _WIN32
-  int peer_length = sizeof(peer);
-#else
-  socklen_t peer_length = sizeof(peer);
-#endif
+  SocketAddress peer;
+  peer.length = sizeof(peer.storage);
   const int received = ::recvfrom(
       fd,
       data,
       static_cast<int>(std::min<size_t>(capacity, 65536)),
       flags,
-      reinterpret_cast<sockaddr*>(&peer),
-      &peer_length);
+      reinterpret_cast<sockaddr*>(&peer.storage),
+      &peer.length);
   if (received < 0) {
     error = socket_last_error_text("recvfrom_into");
     runtime.raise_class_error(socket_last_error_would_block() ? "BlockingIOError" : "OSError", error);
     return false;
   }
-  char peer_host[INET_ADDRSTRLEN] = {};
-  if (inet_ntop(AF_INET, &peer.sin_addr, peer_host, sizeof(peer_host)) == nullptr) {
-    std::strcpy(peer_host, "127.0.0.1");
-  }
+  Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({
       Value::int64(received),
-      Value::tuple({Value::string(peer_host), Value::int64(ntohs(peer.sin_port))}),
+      peer_address,
   });
   return true;
 }
@@ -2421,7 +2336,7 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
   builder.value("AF_UNSPEC", Value::int64(kAfUnspec))
       .value("AF_INET", Value::int64(kAfInet))
       .value("AF_INET6", Value::int64(kAfInet6))
-      .value("has_ipv6", Value::boolean(false))
+      .value("has_ipv6", Value::boolean(true))
       .value("SOCK_STREAM", Value::int64(kSockStream))
       .value("SOCK_DGRAM", Value::int64(kSockDgram))
       .value("SOCK_RAW", Value::int64(SOCK_RAW))
