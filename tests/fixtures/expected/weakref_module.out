@@ -11,5 +11,6 @@ True True
 True
 True
 TypeError
+['second', 'first']
 [True]
 ['ProxyType']

@@ -495,19 +495,19 @@ void weakref_invalidate_target(Object* target) {
     return;
   }
   auto& refs = weakref_registry();
-  for (auto& entry : refs) {
-    if (entry.target == target) {
+  for (auto entry = refs.rbegin(); entry != refs.rend(); ++entry) {
+    if (entry->target == target) {
       Value borrowed;
       borrowed.tag = ValueTag::Object;
       borrowed.flags = kXlangValueBorrowedRefFlag;
-      borrowed.as.obj = entry.ref;
+      borrowed.as.obj = entry->ref;
       Value callback;
       std::string ignored;
-      if (entry.ref != target && object_get_attr(borrowed, kWeakrefCallbackAttr, callback, ignored) &&
+      if (entry->ref != target && object_get_attr(borrowed, kWeakrefCallbackAttr, callback, ignored) &&
           callback.tag != ValueTag::None) {
         pending_weakref_callbacks().push_back(borrowed);
       }
-      entry.target = nullptr;
+      entry->target = nullptr;
     }
   }
   refs.erase(

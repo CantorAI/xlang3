@@ -49,6 +49,13 @@ try:
     hash(unhashed_ref)
 except Exception as exc:
     print(type(exc).__name__)
+callback_order = []
+callback_target = Box()
+first_callback = weakref.ref(callback_target, lambda ref: callback_order.append("first"))
+second_callback = weakref.ref(callback_target, lambda ref: callback_order.append("second"))
+del callback_target
+gc.collect()
+print(callback_order)
 events = []
 callback_ref = weakref.ref(Box(), lambda ref: events.append(ref() is None))
 gc.collect()
