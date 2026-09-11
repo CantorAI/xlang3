@@ -26,6 +26,10 @@ r2 = _weakref.ref(b)
 print(r2().name)
 print(weakref.ReferenceType(b)().name)
 print(weakref.ref(b) == weakref.ref(b), weakref.ref(b) != weakref.ref(Box()))
+try:
+    weakref.ref(b, callback=None)
+except TypeError as exc:
+    print(type(exc).__name__)
 
 callback_probe = Box()
 def callback_property(reference):

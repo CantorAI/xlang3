@@ -136,6 +136,20 @@ bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool weakref_reference_new_kw(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  // ReferenceType's object and callback parameters are positional-only.
+  error = "weakref.ReferenceType.__new__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
 bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "weakref object expected no arguments";
@@ -249,7 +263,9 @@ Value weakref_reference_type(Runtime& runtime) {
   attrs.push_back({"__module__", Value::string("weakref")});
   attrs.push_back({"__xlang3_compact_repr__", Value::boolean(true)});
   attrs.push_back({"__new__", Value::static_method(
-      runtime.make_native_function("weakref.ReferenceType.__new__", weakref_reference_new))});
+      runtime.make_native_function(
+          "weakref.ReferenceType.__new__", weakref_reference_new,
+          nullptr, nullptr, nullptr, false, weakref_reference_new_kw))});
   attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
   attrs.push_back({"__call__", runtime.make_native_function("weakref.ReferenceType.__call__", weakref_reference_call)});
   attrs.push_back({"__callback__", Value::property(
