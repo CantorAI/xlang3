@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 
 #include <limits>
+#include <array>
 #include <zlib.h>
 
 namespace xlang3 {
@@ -375,6 +376,44 @@ bool zlib_compress_object_flush(Runtime&, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool zlib_compressobj_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                         const NativeKeywordArg* kwargs, uint32_t kwargc,
+                         Value& out, std::string& error, void* user_data) {
+  if (argc > 6) return zlib_class_fail(runtime, "TypeError", "zlib.compressobj() takes at most 6 arguments", error);
+  std::array<Value, 6> values = {Value::int64(Z_DEFAULT_COMPRESSION), Value::int64(Z_DEFLATED),
+      Value::int64(MAX_WBITS), Value::int64(kDefaultMemLevel), Value::int64(Z_DEFAULT_STRATEGY), Value::none()};
+  std::array<bool, 6> set{};
+  for (uint32_t i = 0; i < argc; ++i) { values[i] = args[i]; set[i] = true; }
+  const std::array<std::string_view, 6> names = {"level", "method", "wbits", "memLevel", "strategy", "zdict"};
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) return zlib_class_fail(runtime, "TypeError", "invalid zlib.compressobj keyword", error);
+    size_t index = names.size();
+    for (size_t j = 0; j < names.size(); ++j) if (names[j] == kwargs[i].name) { index = j; break; }
+    if (index == names.size()) return zlib_class_fail(runtime, "TypeError", "zlib.compressobj() got an unexpected keyword argument", error);
+    if (set[index]) return zlib_class_fail(runtime, "TypeError", "zlib.compressobj() got multiple values for an argument", error);
+    values[index] = *kwargs[i].value; set[index] = true;
+  }
+  return zlib_compressobj(runtime, values.data(), 6, out, error, user_data);
+}
+
+bool zlib_decompressobj_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                           const NativeKeywordArg* kwargs, uint32_t kwargc,
+                           Value& out, std::string& error, void* user_data) {
+  if (argc > 2) return zlib_class_fail(runtime, "TypeError", "zlib.decompressobj() takes at most 2 arguments", error);
+  std::array<Value, 2> values = {Value::int64(MAX_WBITS), Value::none()};
+  std::array<bool, 2> set{};
+  for (uint32_t i = 0; i < argc; ++i) { values[i] = args[i]; set[i] = true; }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) return zlib_class_fail(runtime, "TypeError", "invalid zlib.decompressobj keyword", error);
+    const std::string_view name(kwargs[i].name);
+    const size_t index = name == "wbits" ? 0 : name == "zdict" ? 1 : 2;
+    if (index == 2) return zlib_class_fail(runtime, "TypeError", "zlib.decompressobj() got an unexpected keyword argument", error);
+    if (set[index]) return zlib_class_fail(runtime, "TypeError", "zlib.decompressobj() got multiple values for an argument", error);
+    values[index] = *kwargs[i].value; set[index] = true;
+  }
+  return zlib_decompressobj(runtime, values.data(), 2, out, error, user_data);
+}
+
 bool zlib_compress_object_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) return zlib_class_fail(runtime, "TypeError", "Compress.copy() expected no arguments", error);
   ZlibCompressState* state = nullptr;
@@ -603,14 +642,14 @@ void register_zlib_module(Runtime& runtime) {
               "zlib.compressobj",
               zlib_compressobj,
               compress_class_slot,
-              [](void* data) { delete static_cast<Value*>(data); }))
+              [](void* data) { delete static_cast<Value*>(data); }, nullptr, false, zlib_compressobj_kw))
       .value(
           "decompressobj",
           runtime.make_native_function(
               "zlib.decompressobj",
               zlib_decompressobj,
               decompress_class_slot,
-              [](void* data) { delete static_cast<Value*>(data); }))
+              [](void* data) { delete static_cast<Value*>(data); }, nullptr, false, zlib_decompressobj_kw))
       .function("crc32", zlib_crc32)
       .function("adler32", zlib_adler32)
       .value("Compress", compress_class)

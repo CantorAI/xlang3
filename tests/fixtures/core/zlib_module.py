@@ -37,6 +37,6 @@ d4 = d3.copy()
 print(first + d3.decompress(encoded[5:]), first + d4.decompress(encoded[5:]))
 
 dictionary = b"dictionary payload"
-with_dict = zlib.compressobj(-1, zlib.DEFLATED, zlib.MAX_WBITS, 8, zlib.Z_DEFAULT_STRATEGY, dictionary)
+with_dict = zlib.compressobj(zdict=dictionary)
 dict_encoded = with_dict.compress(dictionary) + with_dict.flush()
-print(zlib.decompressobj(zlib.MAX_WBITS, dictionary).decompress(dict_encoded) == dictionary)
+print(zlib.decompressobj(zdict=dictionary).decompress(dict_encoded) == dictionary)
