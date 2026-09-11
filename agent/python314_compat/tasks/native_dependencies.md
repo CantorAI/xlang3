@@ -145,7 +145,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   delegated proxy attribute mutation plus `len`, iteration, indexing,
   membership, truth-value, equality, string-conversion, and item-mutation forwarding, and CPython's unhashable
   proxy contract. Proxies also forward representation, byte conversion, integer
-  conversion, and addition. Callback delivery through `gc.collect()` for both references
+  conversion, addition, subtraction, and multiplication. Callback delivery through
+  `gc.collect()` for both references
   and proxies, including last-created-first callback order and
   callable-proxy invocation;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
