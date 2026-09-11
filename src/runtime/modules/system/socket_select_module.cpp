@@ -1162,6 +1162,52 @@ bool socket_getblocking(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool socket_dup(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.dup() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* source = socket_state(args[0], error);
+  auto* source_instance = value_as_instance(args[0]);
+  if (source == nullptr || source_instance == nullptr) {
+    return false;
+  }
+  if (source->closed || source->fd == kInvalidSocket) {
+    error = "Bad file descriptor";
+#ifdef _WIN32
+    return raise_socket_code_error(runtime, "dup", WSAENOTSOCK, error);
+#else
+    return raise_socket_code_error(runtime, "dup", EBADF, error);
+#endif
+  }
+  Value fd_argument = Value::int64(static_cast<int64_t>(source->fd));
+  Value duplicated_fd;
+  if (!socket_dup_fd(runtime, &fd_argument, 1, duplicated_fd, error, nullptr)) {
+    return false;
+  }
+  auto* state = new SocketState();
+  state->family = source->family;
+  state->type = source->type;
+  state->proto = source->proto;
+  state->host = source->host;
+  state->port = source->port;
+  value_assign_fast(state->timeout, source->timeout);
+  state->fd = static_cast<NativeSocket>(duplicated_fd.as.i64);
+  state->blocking = source->blocking;
+  out = Value::instance(source_instance->klass);
+  if (!instance_set_native_data(out, "_socket.socket", state, socket_cleanup, error)) {
+    close_native_socket(state->fd);
+    delete state;
+    return false;
+  }
+  socket_set_instance_attr(out, "family", Value::int64(state->family));
+  socket_set_instance_attr(out, "type", Value::int64(state->type));
+  socket_set_instance_attr(out, "proto", Value::int64(state->proto));
+  socket_set_instance_attr(out, "__xlang3_string_value__", Value::string("<socket.socket fd=-1>"));
+  return true;
+}
+
 bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.accept() expected no arguments";
@@ -2425,6 +2471,7 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"get_inheritable", runtime.make_native_function("_socket.socket.get_inheritable", socket_get_inheritable)});
   attrs.push_back({"set_inheritable", runtime.make_native_function("_socket.socket.set_inheritable", socket_set_inheritable)});
   attrs.push_back({"detach", runtime.make_native_function("_socket.socket.detach", socket_detach)});
+  attrs.push_back({"dup", runtime.make_native_function("_socket.socket.dup", socket_dup)});
   attrs.push_back({"settimeout", runtime.make_native_function("_socket.socket.settimeout", socket_settimeout)});
   attrs.push_back({"setblocking", runtime.make_native_function("_socket.socket.setblocking", socket_setblocking)});
   attrs.push_back({"gettimeout", runtime.make_native_function("_socket.socket.gettimeout", socket_gettimeout)});

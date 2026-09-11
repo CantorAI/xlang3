@@ -121,6 +121,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   `getblocking()` now reflects native blocking-mode transitions.
   Accepted native sockets, including `_accept()` descriptors, are made
   non-inheritable before exposure to Python.
+  Native socket instances now expose `dup()`, producing an independent
+  descriptor that preserves socket metadata and remains usable after the
+  source socket closes.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.
