@@ -102,6 +102,7 @@ CORE_CASES = [
     "traceback_module",
     "linecache_module",
     "runpy_module",
+    "pickle_module",
     "importlib_module",
     "marshal_module",
     "zlib_module",

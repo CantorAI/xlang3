@@ -12,3 +12,6 @@ True
 True
 persistent load unsupported
 True
+TypeError
+ValueError
+True

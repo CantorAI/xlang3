@@ -68,3 +68,13 @@ try:
 except _pickle.UnpicklingError:
     print("persistent load unsupported")
 print(_pickle.Unpickler(io.BytesIO()).find_class("builtins", "list") is list)
+
+
+memo_unpickler = _pickle.Unpickler(io.BytesIO())
+for invalid_memo in (object(), {-1: None}):
+    try:
+        memo_unpickler.memo = invalid_memo
+    except Exception as exc:
+        print(type(exc).__name__)
+memo_unpickler.memo = {1: None}
+print(memo_unpickler.memo[1] is None)

@@ -1427,6 +1427,46 @@ bool unpickler_memo_get(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return attribute_get(state->delegate, "memo", out, error);
 }
 
+bool unpickler_memo_set(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                        std::string& error, void*) {
+  if (argc != 2) {
+    error = "Unpickler.memo setter expected a value";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<UnpicklerState*>(instance_get_native_data(args[0], kUnpicklerNativeType));
+  if (state == nullptr) {
+    error = "invalid Unpickler object";
+    raise_pickle_module_error(runtime, "UnpicklingError", error);
+    return false;
+  }
+  auto* memo = value_as_dict(args[1]);
+  if (memo == nullptr) {
+    error = "memo must be a dictionary";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (const auto& item : memo->entries) {
+    if (item.first.tag != ValueTag::Int64) {
+      error = "memo keys must be integers";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (item.first.as.i64 < 0) {
+      error = "memo key must be positive";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+  }
+  if (!ensure_unpickler_delegate(runtime, *state, error)) return false;
+  Value delegate = state->delegate;
+  if (!object_set_attr(delegate, "memo", args[1], error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "Unpickler.load() expected no arguments";
@@ -1511,7 +1551,8 @@ Value make_unpickler_class(Runtime& runtime, const char* name) {
       })});
   attrs.push_back({"memo", Value::property(
       runtime.make_native_function(std::string(name) + ".Unpickler.memo", unpickler_memo_get),
-      Value::none(), Value::none(), Value::none())});
+      runtime.make_native_function(std::string(name) + ".Unpickler.memo", unpickler_memo_set),
+      Value::none(), Value::none())});
   const Value* object_class = runtime.find_builtin("object");
   return Value::class_object(
       "Unpickler",

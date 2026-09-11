@@ -275,7 +275,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   resets that memo for the next record, and `Pickler.memo` / `Unpickler.memo`
   expose their live source-backed memos before or after protocol execution.
   Native `Pickler.fast` defaults to zero and forwards configured values to its
-  source-backed delegate.
+  source-backed delegate. Native `Unpickler.memo` accepts validated
+  non-negative integer memo maps, matching CPython's writable memo contract.
   Default native persistent-ID hooks mirror CPython: `Pickler.persistent_id()`
   returns `None`, while `Unpickler.persistent_load()` raises `UnpicklingError`.
   Default native `Unpickler.find_class()` delegates CPython-compatible module
