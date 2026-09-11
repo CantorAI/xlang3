@@ -1780,6 +1780,50 @@ bool socket_gethostbyname(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
+bool socket_gethostbyname_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "gethostbyname_ex() argument must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string startup_error;
+  if (!ensure_socket_runtime(startup_error)) {
+    error = startup_error;
+    return false;
+  }
+  const std::string host = string_object_to_string(*value_as_string(args[0]));
+  addrinfo hints{};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_CANONNAME;
+  addrinfo* results = nullptr;
+  const int rc = ::getaddrinfo(host.c_str(), nullptr, &hints, &results);
+  if (rc != 0 || results == nullptr) return raise_socket_code_error(runtime, "gethostbyname_ex", rc, error);
+  std::string canonical_name;
+  std::vector<Value> addresses;
+  for (addrinfo* item = results; item != nullptr; item = item->ai_next) {
+    if (canonical_name.empty() && item->ai_canonname != nullptr) canonical_name = item->ai_canonname;
+    if (item->ai_family != AF_INET || item->ai_addr == nullptr) continue;
+    char numeric_host[INET_ADDRSTRLEN] = {};
+    auto* address = reinterpret_cast<sockaddr_in*>(item->ai_addr);
+    if (inet_ntop(AF_INET, &address->sin_addr, numeric_host, sizeof(numeric_host)) == nullptr) continue;
+    bool seen = false;
+    for (const Value& existing : addresses) {
+      const auto* text = value_as_string(existing);
+      if (text != nullptr && string_object_view(*text) == numeric_host) { seen = true; break; }
+    }
+    if (!seen) addresses.push_back(Value::string(numeric_host));
+  }
+  freeaddrinfo(results);
+  if (addresses.empty()) {
+    error = "gethostbyname_ex failed";
+    return false;
+  }
+  if (canonical_name.empty()) canonical_name = host;
+  out = Value::tuple({Value::string(std::move(canonical_name)), Value::list({}), Value::list(std::move(addresses))});
+  return true;
+}
+
 bool socket_gethostbyaddr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.gethostbyaddr() expected host";
@@ -2448,6 +2492,7 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .function("close", socket_close_fd)
       .function("gethostname", socket_gethostname)
       .function("gethostbyname", socket_gethostbyname)
+      .function("gethostbyname_ex", socket_gethostbyname_ex)
       .function("gethostbyaddr", socket_gethostbyaddr)
       .function("getservbyname", socket_getservbyname)
       .function("getservbyport", socket_getservbyport)
