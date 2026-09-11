@@ -12,6 +12,7 @@ TypeError
 True
 utf-8 replace True
 TypeError
+True
 131072
 <class 'io.TextIOBase'>
 TextIOWrapper TextIOWrapper True

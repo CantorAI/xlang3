@@ -32,6 +32,9 @@ try:
     configured.reconfigure(unknown=True)
 except Exception as exc:
     print(type(exc).__name__)
+buffered = _io.BytesIO()
+wrapper = _io.TextIOWrapper(buffered)
+print(wrapper.buffer is buffered)
 print(io.DEFAULT_BUFFER_SIZE)
 print(io.TextIOBase)
 print(io.TextIOWrapper.__name__, _io.TextIOWrapper.__name__, issubclass(io.TextIOWrapper, io.TextIOBase))

@@ -36,7 +36,7 @@
   `http.client` can use normal stdlib file-object paths. `TextIOWrapper.detach()`
   returns its wrapped binary buffer and invalidates the wrapper as CPython does;
   `TextIOWrapper.reconfigure()` updates encoding, error handling, newline mode,
-  and buffering flags.
+  and buffering flags, and `TextIOWrapper.buffer` exposes the wrapped binary stream.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
