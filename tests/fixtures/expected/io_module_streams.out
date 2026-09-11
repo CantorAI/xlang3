@@ -52,3 +52,5 @@ TypeError
 0 3 2 5
 b'abcXYf' 4
 b'abcX'
+True True True
+ValueError

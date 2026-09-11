@@ -142,3 +142,15 @@ position_raw.seek(0)
 print(position_raw.read(), position_writer.truncate(4))
 position_raw.seek(0)
 print(position_raw.read())
+raw_property = _io.BytesIO()
+raw_reader = _io.BufferedReader(raw_property)
+raw_writer = _io.BufferedWriter(raw_property)
+raw_random = _io.BufferedRandom(raw_property)
+print(raw_reader.raw is raw_property, raw_writer.raw is raw_property, raw_random.raw is raw_property)
+raw_reader.close()
+try:
+    raw_reader.raw
+except Exception as exc:
+    print(type(exc).__name__)
+raw_writer.close()
+raw_random.close()

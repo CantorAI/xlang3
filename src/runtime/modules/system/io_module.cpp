@@ -1522,6 +1522,23 @@ bool buffered_mode_get(Runtime& runtime, const Value* args, uint32_t argc, Value
   return buffered_wrapped_attr(runtime, args, argc, out, error, user_data, "mode");
 }
 
+bool buffered_raw_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                      std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "raw getter expected self";
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(
+      instance_get_native_data(args[0], static_cast<const char*>(user_data)));
+  if (state == nullptr || !state->wraps_buffer || state->closed) {
+    error = "I/O operation on closed file";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_assign_fast(out, state->wrapped_buffer);
+  return true;
+}
+
 bool buffered_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                    std::string& error, void* user_data) {
   if (argc != 1) {
@@ -1754,6 +1771,11 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   attrs.push_back({"__module__", Value::string("_io")});
   attrs.push_back({"__repr__", runtime.make_native_function(std::string("_io.") + name + ".__repr__", buffered_repr, const_cast<char*>(type))});
   attrs.push_back({"fileno", runtime.make_native_function(std::string("_io.") + name + ".fileno", stream_fileno, const_cast<char*>(type))});
+  if (std::string_view(name) != "BufferedRWPair") {
+    attrs.push_back({"raw", Value::property(
+        runtime.make_native_function(std::string("_io.") + name + ".raw", buffered_raw_get, const_cast<char*>(type)),
+        Value::none(), Value::none(), Value::none())});
+  }
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});
   attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
   attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});

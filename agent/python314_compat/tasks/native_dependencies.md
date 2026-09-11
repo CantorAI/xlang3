@@ -64,6 +64,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Buffered binary wrappers now forward writes and flushes to their wrapped raw
   streams, instead of taking the text-wrapper encoding path, and share their
   wrapped stream's seek, tell, and truncate state.
+  Buffered reader, writer, and random wrappers expose their wrapped `raw`
+  stream with closed-wrapper validation.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
