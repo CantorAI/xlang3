@@ -570,6 +570,18 @@ bool deque_len(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return true;
 }
 
+bool deque_sizeof(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "deque.__sizeof__() expected no arguments";
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) return false;
+  value_set_int64(out, static_cast<int64_t>(sizeof(DequeState) +
+      state->items.size() * sizeof(Value)));
+  return true;
+}
+
 bool deque_count(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "deque.count() expected one argument";
@@ -1127,6 +1139,7 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"index", runtime.make_native_function("_collections.deque.index", deque_index)});
   attrs.push_back({"insert", runtime.make_native_function("_collections.deque.insert", deque_insert)});
   attrs.push_back({"__len__", runtime.make_native_function("_collections.deque.__len__", deque_len)});
+  attrs.push_back({"__sizeof__", runtime.make_native_function("_collections.deque.__sizeof__", deque_sizeof)});
   attrs.push_back({"__iter__", runtime.make_native_function("_collections.deque.__iter__", deque_iter)});
   attrs.push_back({"__reversed__", runtime.make_native_function("_collections.deque.__reversed__", deque_reversed)});
   attrs.push_back({"__hash__", runtime.make_native_function("_collections.deque.__hash__", deque_hash)});

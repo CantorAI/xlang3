@@ -111,3 +111,6 @@ defaults |= {"z": 3}
 print(type(merged).__name__, merged.default_factory is list, merged["y"], defaults["z"])
 d.clear()
 print(d.__len__())
+size_small = _collections.deque()
+size_large = _collections.deque([1, 2, 3])
+print(size_small.__sizeof__() > 0, size_large.__sizeof__() > size_small.__sizeof__())

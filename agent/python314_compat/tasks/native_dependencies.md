@@ -153,6 +153,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Native deque integer-taking APIs accept the full `__index__` protocol for
   construction, positional access and mutation, search bounds, rotation,
   insertion, and repetition.
+  Native deque exposes an allocation-aware `__sizeof__()` result for container
+  introspection.
   Validation: focused CPython 3.14 `test_deque.TestBasic` cases pass for copy,
   pickle, comparisons, concatenation, and in-place operations.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
