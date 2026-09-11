@@ -1400,6 +1400,7 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
       {"read", "file.read", file_read_method},
       {"readall", "file.readall", file_readall_method},
       {"readinto", "file.readinto", file_readinto_method},
+      {"readinto1", "file.readinto1", file_readinto_method},
       {"readline", "file.readline", file_readline_method},
       {"readlines", "file.readlines", file_readlines_method},
       {"readable", "file.readable", file_readable_method},
