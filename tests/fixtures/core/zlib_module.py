@@ -101,3 +101,7 @@ print(zlib.decompress(keyword_compressed, wbits=zlib.MAX_WBITS, bufsize=zlib.DEF
 keyword_stream = zlib.compressobj()
 keyword_data = keyword_stream.compress(b"stream") + keyword_stream.flush()
 print(zlib.decompressobj().decompress(keyword_data, max_length=6))
+raw_compressed = zlib.compress(b"raw", wbits=-zlib.MAX_WBITS)
+print(zlib.decompress(raw_compressed, wbits=-zlib.MAX_WBITS))
+gzip_compressed = zlib.compress(b"gzip-keyword", wbits=16 + zlib.MAX_WBITS)
+print(zlib.decompress(gzip_compressed, wbits=32 + zlib.MAX_WBITS))

@@ -155,8 +155,8 @@ bool zlib_stream_run(
 }
 
 bool zlib_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    return zlib_class_fail(runtime, "TypeError", "zlib.compress() expected data and optional level", error);
+  if (argc < 1 || argc > 3) {
+    return zlib_class_fail(runtime, "TypeError", "zlib.compress() expected data and optional level and wbits", error);
   }
   std::string input;
   if (!zlib_bytes_arg(args[0], "zlib.compress data", input, error)) {
@@ -167,26 +167,23 @@ bool zlib_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
 
-  if (argc == 2 && args[1].tag != ValueTag::Int64) {
+  if (argc >= 2 && args[1].tag != ValueTag::Int64) {
     return zlib_class_fail(runtime, "TypeError", "zlib.compress() level must be int", error);
   }
   const int level = zlib_level_arg(args, argc, 1, Z_DEFAULT_COMPRESSION);
-  if (argc == 2 && (args[1].as.i64 < Z_DEFAULT_COMPRESSION || args[1].as.i64 > Z_BEST_COMPRESSION)) {
+  if (argc >= 2 && (args[1].as.i64 < Z_DEFAULT_COMPRESSION || args[1].as.i64 > Z_BEST_COMPRESSION)) {
     return zlib_fail(runtime, "Bad compression level", error);
   }
-  uLongf capacity = compressBound(static_cast<uLong>(input.size()));
-  std::string compressed;
-  compressed.resize(static_cast<size_t>(capacity));
-  const int rc = compress2(
-      reinterpret_cast<Bytef*>(compressed.data()),
-      &capacity,
-      reinterpret_cast<const Bytef*>(input.data()),
-      static_cast<uLong>(input.size()),
-      level);
-  if (rc != Z_OK) {
-    return zlib_fail(runtime, "zlib.compress failed: " + std::to_string(rc), error);
+  int wbits = MAX_WBITS;
+  if (!zlib_int_arg(args, argc, 2, MAX_WBITS, wbits)) return zlib_class_fail(runtime, "TypeError", "zlib.compress() wbits must be int", error);
+  z_stream stream{};
+  if (deflateInit2(&stream, level, Z_DEFLATED, wbits, kDefaultMemLevel, Z_DEFAULT_STRATEGY) != Z_OK) {
+    return zlib_fail(runtime, "Invalid initialization option", error);
   }
-  compressed.resize(static_cast<size_t>(capacity));
+  std::string compressed;
+  const bool ok = zlib_stream_run(stream, input, Z_FINISH, compressed, deflate, error);
+  deflateEnd(&stream);
+  if (!ok) return zlib_fail(runtime, error, error);
   out = Value::bytes(std::move(compressed));
   return true;
 }
@@ -194,17 +191,19 @@ bool zlib_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 bool zlib_compress_kw(Runtime& runtime, const Value* args, uint32_t argc,
                       const NativeKeywordArg* kwargs, uint32_t kwargc,
                       Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) return zlib_class_fail(runtime, "TypeError", "zlib.compress() expected data and optional level", error);
-  Value values[] = {args[0], argc == 2 ? args[1] : Value::int64(Z_DEFAULT_COMPRESSION)};
-  bool level_set = argc == 2;
+  if (argc < 1 || argc > 3) return zlib_class_fail(runtime, "TypeError", "zlib.compress() expected data and optional level and wbits", error);
+  Value values[] = {args[0], argc > 1 ? args[1] : Value::int64(Z_DEFAULT_COMPRESSION), argc > 2 ? args[2] : Value::int64(MAX_WBITS)};
+  bool set[] = {true, argc > 1, argc > 2};
   for (uint32_t i = 0; i < kwargc; ++i) {
-    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr || std::string_view(kwargs[i].name) != "level" || level_set) {
+    const std::string_view name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    const size_t index = name == "level" ? 1 : name == "wbits" ? 2 : 3;
+    if (kwargs[i].value == nullptr || index == 3 || set[index]) {
       return zlib_class_fail(runtime, "TypeError", "zlib.compress() got an invalid keyword argument", error);
     }
-    values[1] = *kwargs[i].value;
-    level_set = true;
+    values[index] = *kwargs[i].value;
+    set[index] = true;
   }
-  return zlib_compress(runtime, values, 2, out, error, nullptr);
+  return zlib_compress(runtime, values, 3, out, error, nullptr);
 }
 
 bool zlib_compressobj(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* compress_class_ptr) {
