@@ -29,6 +29,13 @@ print(count, bytes(target[:count]), address[0] == "127.0.0.1")
 sender.close()
 receiver.close()
 
+left, right = socket.socketpair()
+left.sendall(b"close-write")
+left.shutdown(socket.SHUT_WR)
+print(right.recv(32), right.recv(1))
+left.close()
+right.close()
+
 print(signal.SIGBREAK, 21 in signal.valid_signals())
 handler = lambda signum, frame: None
 old = signal.signal(signal.SIGBREAK, handler)

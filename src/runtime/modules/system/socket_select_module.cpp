@@ -1605,7 +1605,7 @@ bool socket_recvfrom_into(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
-bool socket_shutdown(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_shutdown(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2 || args[1].tag != ValueTag::Int64) {
     error = "socket.shutdown() expected how";
     return false;
@@ -1614,8 +1614,10 @@ bool socket_shutdown(Runtime&, const Value* args, uint32_t argc, Value& out, std
   if (state == nullptr) {
     return false;
   }
-  if (state->fd != kInvalidSocket) {
-    ::shutdown(state->fd, static_cast<int>(args[1].as.i64));
+  NativeSocket fd = make_native_socket(*state, error);
+  if (fd == kInvalidSocket) return false;
+  if (::shutdown(fd, static_cast<int>(args[1].as.i64)) != 0) {
+    return raise_socket_os_error(runtime, "shutdown", error);
   }
   value_set_none(out);
   return true;

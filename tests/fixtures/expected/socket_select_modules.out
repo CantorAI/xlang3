@@ -9,6 +9,7 @@ True
 3
 b'udp' True
 2 b'xy' True
+b'close-write' b''
 21 True
 True
 True
