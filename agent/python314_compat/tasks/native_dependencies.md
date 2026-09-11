@@ -257,6 +257,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   Streaming decompressor `decompress()` accepts its `max_length` keyword and
   stream methods reject unsupported keyword calls with `TypeError`.
   Negative streaming `max_length` values raise CPython-compatible `ValueError`.
+  Raw-DEFLATE decompression now initializes preset dictionaries before the
+  first inflate, and `decompress()` / `flush()` accept integer `__index__`
+  arguments for output sizing while draining all pending flush output.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.

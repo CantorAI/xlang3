@@ -293,6 +293,15 @@ bool zlib_decompressobj(Runtime& runtime, const Value* args, uint32_t argc, Valu
     zlib_decompress_cleanup(state);
     return zlib_class_fail(runtime, "TypeError", error, error);
   }
+  // Raw DEFLATE streams have no dictionary-identification header, so zlib
+  // cannot signal Z_NEED_DICT.  Supply the dictionary before the first inflate.
+  if (wbits < 0 && !state->dictionary.empty() &&
+      inflateSetDictionary(&state->stream,
+                           reinterpret_cast<const Bytef*>(state->dictionary.data()),
+                           static_cast<uInt>(state->dictionary.size())) != Z_OK) {
+    zlib_decompress_cleanup(state);
+    return zlib_class_fail(runtime, "ValueError", "zlib decompressor dictionary setup failed", error);
+  }
   auto* decompress_class = static_cast<Value*>(decompress_class_ptr);
   out = Value::instance(*decompress_class);
   if (!instance_set_native_data(out, kDecompressObjectNativeType, state, zlib_decompress_cleanup, error)) {
@@ -545,10 +554,9 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   if (!zlib_bytes_arg(args[1], "Decompress.decompress data", input, error)) {
     return false;
   }
-  int max_length = 0;
-  if (!zlib_int_arg(args, argc, 2, 0, max_length)) {
-    error = "Decompress.decompress() max_length must be int";
-    return false;
+  int64_t max_length = 0;
+  if (argc == 3 && !zlib_as_index(runtime, args[2], max_length, error)) {
+    return zlib_class_fail(runtime, "TypeError", "Decompress.decompress() max_length must be int", error);
   }
   if (max_length < 0) {
     return zlib_class_fail(runtime, "ValueError", "max_length must be non-negative", error);
@@ -573,7 +581,7 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   state->stream.avail_in = static_cast<uInt>(input.size());
   do {
     const size_t requested = max_length > 0
-        ? std::min<size_t>(kChunkSize, static_cast<size_t>(max_length) - decompressed.size())
+        ? std::min<size_t>(kChunkSize, static_cast<size_t>(max_length - static_cast<int64_t>(decompressed.size())))
         : kChunkSize;
     if (requested == 0) {
       break;
@@ -603,7 +611,7 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
       }
       break;
     }
-    if (rc == Z_BUF_ERROR || state->stream.avail_in == 0 || (max_length > 0 && decompressed.size() >= static_cast<size_t>(max_length))) {
+    if (rc == Z_BUF_ERROR || state->stream.avail_in == 0 || (max_length > 0 && static_cast<int64_t>(decompressed.size()) >= max_length)) {
       break;
     }
   } while (true);
@@ -631,8 +639,11 @@ bool zlib_decompress_object_flush(Runtime& runtime, const Value* args, uint32_t 
   if (!decompress_object_state(args[0], state, error)) return false;
   int length = 16384;
   if (argc == 2) {
-    if (args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0) return zlib_class_fail(runtime, "ValueError", "length must be greater than zero", error);
-    length = static_cast<int>(std::min<int64_t>(args[1].as.i64, 1 << 20));
+    int64_t requested_length = 0;
+    if (!zlib_as_index(runtime, args[1], requested_length, error) || requested_length <= 0) {
+      return zlib_class_fail(runtime, "ValueError", "length must be greater than zero", error);
+    }
+    length = static_cast<int>(std::min<int64_t>(requested_length, 1 << 20));
   }
   if (state->finished) {
     state->flushed = true;
@@ -651,7 +662,9 @@ bool zlib_decompress_object_flush(Runtime& runtime, const Value* args, uint32_t 
     }
     decoded.append(chunk.data(), chunk.size() - state->stream.avail_out);
     if (rc == Z_STREAM_END) { state->finished = true; break; }
-    if (rc == Z_BUF_ERROR || state->stream.avail_out != 0) break;
+    // A full output buffer can accompany Z_BUF_ERROR while zlib still has
+    // pending decoded data.  Keep draining until a call leaves spare space.
+    if (state->stream.avail_out != 0) break;
   } while (true);
 
   if (state->finished && state->stream.avail_in > 0) {

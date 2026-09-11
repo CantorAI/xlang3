@@ -34,3 +34,5 @@ negative max length
 terminal decompressor copy
 b'index-buffer'
 True
+True
+True

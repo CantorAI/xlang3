@@ -127,3 +127,16 @@ try:
     zlib.decompress(zlib.compress(b"truncated")[:-1])
 except zlib.error as exc:
     print("incomplete or truncated stream" in str(exc))
+
+raw_dictionary = b"raw-dictionary"
+raw_compressor = zlib.compressobj(wbits=-zlib.MAX_WBITS, zdict=raw_dictionary)
+raw_data = raw_compressor.compress(raw_dictionary) + raw_compressor.flush()
+print(zlib.decompressobj(wbits=-zlib.MAX_WBITS, zdict=raw_dictionary).decompress(raw_data) == raw_dictionary)
+
+class _ZlibLength:
+    def __index__(self):
+        return 1
+
+length_stream = zlib.decompressobj()
+length_stream.decompress(zlib.compress(b"length"), _ZlibLength())
+print(length_stream.flush(_ZlibLength()) == b"ength")
