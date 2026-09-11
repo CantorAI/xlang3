@@ -68,6 +68,13 @@ try:
 except Exception as exc:
     print(type(exc).__name__)
 
+class StringBox:
+    def __str__(self):
+        return "referent-string"
+
+string_box = StringBox()
+print(str(weakref.proxy(string_box)))
+
 expired = weakref.ref(Box())
 import gc
 gc.collect()
