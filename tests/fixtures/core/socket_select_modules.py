@@ -17,6 +17,7 @@ s.close()
 print(_socket.AF_INET)
 print(isinstance(_socket.gethostname(), str), bool(_socket.gethostname()))
 print(_socket.getprotobyname("tcp"))
+print(_socket.getservbyname("http", "tcp"), _socket.getservbyport(80, "tcp"))
 try:
     _socket.htonl(-1)
 except Exception as exc:

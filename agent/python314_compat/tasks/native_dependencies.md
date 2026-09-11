@@ -84,8 +84,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   four-element IPv6 sockaddr tuples; `has_ipv6` now reflects the native stack.
   Native `gethostbyname_ex()` and `gethostbyaddr()` return CPython-compatible
   hostname, aliases, and IPv4 address tuples through Winsock resolution.
-  `getprotobyname()` resolves Winsock protocol names for source-backed
-  `socket` callers.
+  `getprotobyname()` and service-name/port resolution use Winsock for
+  source-backed `socket` callers.
   Network byte-order helpers reject negative and oversized values with CPython
   overflow errors.
   Socket receive operations accept CPython flags, including non-consuming
