@@ -3269,6 +3269,7 @@ print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.filterfalse(is_even, [1, 2, 3, 4])))
 print(list(itertools.compress(["a", "b", "c"], [1, 0, 1])), list(itertools.repeat("x", 3)))
 print(list(itertools.islice(itertools.cycle("ab"), 5)), list(itertools.cycle([])))
+print(list(itertools.islice(itertools.count(5, 0), 3)))
 callable_iter_count = 0
 def callable_iter_source():
     global callable_iter_count

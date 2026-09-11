@@ -32,8 +32,40 @@ struct CycleState {
   size_t index = 0;
 };
 
+struct CountState {
+  int64_t current = 0;
+  int64_t step = 1;
+};
+
 void cycle_state_cleanup(void* data) {
   delete static_cast<CycleState*>(data);
+}
+
+void count_state_cleanup(void* data) {
+  delete static_cast<CountState*>(data);
+}
+
+bool count_next(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 0) {
+    error = "itertools.count iterator expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<CountState*>(user_data);
+  if (state == nullptr) {
+    error = "invalid itertools.count iterator";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  value_set_int64(out, state->current);
+  state->current += state->step;
+  return true;
 }
 
 bool cycle_next(
@@ -84,7 +116,7 @@ bool collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value
   }
 }
 
-bool itertools_count(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_count(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "itertools.count() expected at most 2 arguments";
     return false;
@@ -99,7 +131,10 @@ bool itertools_count(Runtime&, const Value* args, uint32_t argc, Value& out, std
     error = "itertools.count() step must be int";
     return false;
   }
-  out = Value::range_iterator(start, std::numeric_limits<int64_t>::max(), step == 0 ? 1 : step);
+  auto* state = new CountState{start, step};
+  Value next = runtime.make_native_function(
+      "itertools.count.__next__", count_next, state, count_state_cleanup);
+  out = functional_callable_iterator(&runtime, std::move(next), Value::invalid());
   return true;
 }
 
