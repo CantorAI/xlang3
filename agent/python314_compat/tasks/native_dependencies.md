@@ -62,7 +62,7 @@
 
 - [~] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py` covers reference and proxy
-  lookup, weak-reference enumeration, and collection-time reference expiration;
+  lookup, live-reference equality, weak-reference enumeration, and collection-time reference expiration;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
   rotation, reversal, positional lookup, insertion, bounded representation, and

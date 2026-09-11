@@ -140,6 +140,38 @@ bool weakref_reference_hash(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
+bool weakref_reference_compare(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    const char* op) {
+  if (argc != 2) {
+    error = "weakref comparison expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value left_target;
+  Value right_target;
+  const bool left_live = weakref_get_target(args[0], left_target);
+  const bool right_live = weakref_get_target(args[1], right_target);
+  if (!left_live || !right_live) {
+    const bool equal = value_is(args[0], args[1]);
+    value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
+    return true;
+  }
+  return runtime_value_compare(runtime, op, left_target, right_target, out, error);
+}
+
+bool weakref_reference_eq(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return weakref_reference_compare(runtime, args, argc, out, error, "==");
+}
+
+bool weakref_reference_ne(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return weakref_reference_compare(runtime, args, argc, out, error, "!=");
+}
+
 bool weakref_reference_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "weakref.ReferenceType() expected object and optional callback";
@@ -175,6 +207,8 @@ Value weakref_reference_type(Runtime& runtime) {
   attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
   attrs.push_back({"__call__", runtime.make_native_function("weakref.ReferenceType.__call__", weakref_reference_call)});
   attrs.push_back({"__hash__", runtime.make_native_function("weakref.ReferenceType.__hash__", weakref_reference_hash)});
+  attrs.push_back({"__eq__", runtime.make_native_function("weakref.ReferenceType.__eq__", weakref_reference_eq)});
+  attrs.push_back({"__ne__", runtime.make_native_function("weakref.ReferenceType.__ne__", weakref_reference_ne)});
   reference_type = Value::class_object("ReferenceType", std::move(attrs));
   return reference_type;
 }
