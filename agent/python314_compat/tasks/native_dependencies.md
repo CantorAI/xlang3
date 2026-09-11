@@ -51,6 +51,7 @@ fixture suite, after the native dependency updates documented below.
   observed by subsequent stream reads and `getvalue()` calls.
   Native `FileIO.readinto()` fills writable byte buffers through the same
   descriptor-backed file path as `read()`.
+  `BytesIO.readinto1()` now exposes the raw single-buffer read contract.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

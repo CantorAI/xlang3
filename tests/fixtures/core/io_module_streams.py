@@ -21,6 +21,9 @@ print(b.read(1))
 print(b.write(b"Z"))
 b.seek(0)
 print(b.read())
+readinto_source = _io.BytesIO(b"pq")
+readinto_target = bytearray(2)
+print(readinto_source.readinto1(readinto_target), bytes(readinto_target))
 for stream in (s, b):
     try:
         stream.detach()
