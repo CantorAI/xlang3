@@ -110,6 +110,23 @@ bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (argc == 2 && value_is(args[0], weakref_reference_type(runtime)) && args[1].tag == ValueTag::Object) {
+    for (const auto& entry : weakref_registry()) {
+      if (entry.target != args[1].as.obj || entry.ref == nullptr) continue;
+      Value candidate;
+      candidate.tag = ValueTag::Object;
+      candidate.flags = kXlangValueBorrowedRefFlag;
+      candidate.as.obj = entry.ref;
+      auto* instance = value_as_instance(candidate);
+      if (instance == nullptr || !value_is(instance->klass, args[0])) continue;
+      Value callback;
+      std::string ignored;
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+        value_assign_fast(out, candidate);
+        return true;
+      }
+    }
+  }
   out = Value::instance(args[0]);
   if (!object_set_attr(out, kWeakrefCallbackAttr, argc == 3 ? args[2] : Value::none(), error)) {
     return false;
@@ -238,6 +255,24 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     error = "cannot create weak reference to object";
     runtime.raise_class_error("TypeError", error);
     return false;
+  }
+  if (argc == 1 && args[0].tag == ValueTag::Object) {
+    const Value reference_type = weakref_reference_type(runtime);
+    for (const auto& entry : weakref_registry()) {
+      if (entry.target != args[0].as.obj || entry.ref == nullptr) continue;
+      Value candidate;
+      candidate.tag = ValueTag::Object;
+      candidate.flags = kXlangValueBorrowedRefFlag;
+      candidate.as.obj = entry.ref;
+      auto* instance = value_as_instance(candidate);
+      if (instance == nullptr || !value_is(instance->klass, reference_type)) continue;
+      Value callback;
+      std::string ignored;
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+        value_assign_fast(out, candidate);
+        return true;
+      }
+    }
   }
   out = make_weakref_ref(runtime, args[0]);
   if (argc == 2) {
