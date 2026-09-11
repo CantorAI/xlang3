@@ -467,6 +467,14 @@ bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, V
   }
   Value method;
   if (!object_get_attr(target, method_name, method, error)) {
+    if (argc == 2 && std::strcmp(method_name, "__add__") == 0) {
+      error.clear();
+      return value_add(target, args[1], out, error);
+    }
+    if (argc == 2 && std::strcmp(method_name, "__radd__") == 0) {
+      error.clear();
+      return value_add(args[1], target, out, error);
+    }
     if (std::strcmp(method_name, "__bool__") != 0) return false;
     Value length_method;
     std::string ignored;
@@ -592,6 +600,7 @@ Value weakref_proxy_type(Runtime& runtime) {
          {"__bytes__", runtime.make_native_function("weakref.ProxyType.__bytes__", weakref_proxy_forward, const_cast<char*>("__bytes__"))},
          {"__int__", runtime.make_native_function("weakref.ProxyType.__int__", weakref_proxy_forward, const_cast<char*>("__int__"))},
          {"__add__", runtime.make_native_function("weakref.ProxyType.__add__", weakref_proxy_forward, const_cast<char*>("__add__"))},
+         {"__radd__", runtime.make_native_function("weakref.ProxyType.__radd__", weakref_proxy_forward, const_cast<char*>("__radd__"))},
          {"__sub__", runtime.make_native_function("weakref.ProxyType.__sub__", weakref_proxy_forward, const_cast<char*>("__sub__"))},
          {"__mul__", runtime.make_native_function("weakref.ProxyType.__mul__", weakref_proxy_forward, const_cast<char*>("__mul__"))},
          {"__floordiv__", runtime.make_native_function("weakref.ProxyType.__floordiv__", weakref_proxy_forward, const_cast<char*>("__floordiv__"))},
@@ -638,6 +647,7 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__bytes__", runtime.make_native_function("weakref.CallableProxyType.__bytes__", weakref_proxy_forward, const_cast<char*>("__bytes__"))},
          {"__int__", runtime.make_native_function("weakref.CallableProxyType.__int__", weakref_proxy_forward, const_cast<char*>("__int__"))},
          {"__add__", runtime.make_native_function("weakref.CallableProxyType.__add__", weakref_proxy_forward, const_cast<char*>("__add__"))},
+         {"__radd__", runtime.make_native_function("weakref.CallableProxyType.__radd__", weakref_proxy_forward, const_cast<char*>("__radd__"))},
          {"__sub__", runtime.make_native_function("weakref.CallableProxyType.__sub__", weakref_proxy_forward, const_cast<char*>("__sub__"))},
          {"__mul__", runtime.make_native_function("weakref.CallableProxyType.__mul__", weakref_proxy_forward, const_cast<char*>("__mul__"))},
          {"__floordiv__", runtime.make_native_function("weakref.CallableProxyType.__floordiv__", weakref_proxy_forward, const_cast<char*>("__floordiv__"))},

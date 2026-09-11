@@ -2403,6 +2403,51 @@ const char* value_binary_type_name(const Value& value) {
 }
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const auto weak_proxy_target = [](const Value& value, Value& target) {
+    auto* instance = value_as_instance(value);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || (klass->name != "ProxyType" && klass->name != "CallableProxyType")) {
+      return false;
+    }
+    return weakref_get_target(value, target);
+  };
+  Value proxy_lhs;
+  Value proxy_rhs;
+  const bool lhs_is_proxy = weak_proxy_target(lhs, proxy_lhs);
+  const bool rhs_is_proxy = weak_proxy_target(rhs, proxy_rhs);
+  if (lhs_is_proxy || rhs_is_proxy) {
+    return value_add(lhs_is_proxy ? proxy_lhs : lhs, rhs_is_proxy ? proxy_rhs : rhs, out, error);
+  }
+  const auto numeric_subclass_value = [](const Value& value, Value& numeric) {
+    auto* instance = value_as_instance(value);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || (!class_has_builtin_base_name(klass, "int") &&
+                             !class_has_builtin_base_name(klass, "float"))) {
+      return false;
+    }
+    Value stored;
+    std::string ignored;
+    if ((object_get_attr(value, "__xlang3_int_value__", stored, ignored) ||
+         object_get_attr(value, "__xlang3_float_value__", stored, ignored) ||
+         object_get_attr(value, "_value_", stored, ignored)) &&
+        (stored.tag == ValueTag::Int64 || stored.tag == ValueTag::Double ||
+         value_as_bigint(stored) != nullptr)) {
+      numeric = std::move(stored);
+      return true;
+    }
+    return false;
+  };
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_add(
+        lhs_is_numeric_subclass ? numeric_lhs : lhs,
+        rhs_is_numeric_subclass ? numeric_rhs : rhs,
+        out,
+        error);
+  }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     int64_t result = 0;
     if (!checked_add_i64(lhs.as.i64, rhs.as.i64, result)) {

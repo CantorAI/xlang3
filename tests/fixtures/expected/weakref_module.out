@@ -37,6 +37,7 @@ TypeError
 numeric-box 7 4 b'numeric'
 2 6
 -4 8
+3.0 3.0
 42 1729 -163 10
 21
 561

@@ -210,6 +210,13 @@ print(repr(numeric_proxy), numeric_proxy + 3, int(numeric_proxy), bytes(numeric_
 print(numeric_proxy - 3, numeric_proxy * 3)
 print(-numeric_proxy, ~numeric_proxy)
 
+class FloatBox(float):
+    pass
+
+float_box = FloatBox(2.0)
+float_proxy = weakref.proxy(float_box)
+print(float_proxy + 1.0, 1.0 + float_proxy)
+
 class ProxyOperatorBox:
     def __floordiv__(self, value):
         return 42
