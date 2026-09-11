@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
+#include <deque>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -36,6 +37,22 @@ static constexpr const char* kWeakrefHashAttr = "__xlang3_weakref_hash__";
 struct WeakrefEntry {
   Object* ref = nullptr;
   Object* target = nullptr;
+};
+
+static constexpr const char* kDequeNativeType = "_collections.deque";
+static constexpr const char* kDequeIteratorNativeType = "_collections.deque_iterator";
+
+struct DequeState {
+  std::deque<Value> items;
+  int64_t maxlen;
+  uint64_t version;
+};
+
+struct DequeIteratorState {
+  Value deque;
+  uint64_t version;
+  size_t index;
+  bool reverse;
 };
 
 std::vector<WeakrefEntry>& weakref_registry() {
@@ -991,6 +1008,21 @@ uint64_t weakref_collect_cycles() {
         instance_candidates.push_back(value.as.obj);
       }
     };
+    const auto add_native_instance_refs = [&](InstanceObject* candidate) {
+      Value candidate_value;
+      candidate_value.tag = ValueTag::Object;
+      candidate_value.flags = kXlangValueBorrowedRefFlag;
+      candidate_value.as.obj = candidate;
+      if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
+        for (const auto& item : deque->items) {
+          add_instance(item);
+        }
+      }
+      if (auto* iterator = static_cast<DequeIteratorState*>(
+              instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
+        add_instance(iterator->deque);
+      }
+    };
     add_instance(instance->mapping_storage);
     add_instance(instance->sequence_storage);
     for (const auto& attr : instance->attrs) {
@@ -1011,6 +1043,7 @@ uint64_t weakref_collect_cycles() {
         }
       }
     }
+    add_native_instance_refs(instance);
     for (uint32_t slot = 0; slot < instance_slot_count(instance); ++slot) {
       add_instance(instance_slot_at(instance, slot));
     }
@@ -1026,6 +1059,21 @@ uint64_t weakref_collect_cycles() {
         ++internal_refs[value.as.obj];
       }
     };
+    const auto add_native_instance_ref = [&](InstanceObject* candidate) {
+      Value candidate_value;
+      candidate_value.tag = ValueTag::Object;
+      candidate_value.flags = kXlangValueBorrowedRefFlag;
+      candidate_value.as.obj = candidate;
+      if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
+        for (const auto& item : deque->items) {
+          count_candidate_ref(item);
+        }
+      }
+      if (auto* iterator = static_cast<DequeIteratorState*>(
+              instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
+        count_candidate_ref(iterator->deque);
+      }
+    };
     for (auto* candidate : instance_candidates) {
       auto* instance = reinterpret_cast<InstanceObject*>(candidate);
       count_candidate_ref(instance->klass);
@@ -1034,38 +1082,9 @@ uint64_t weakref_collect_cycles() {
       for (const auto& attr : instance->attrs) {
         count_candidate_ref(attr.second);
       }
+      add_native_instance_ref(instance);
       for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
         count_candidate_ref(instance_slot_at(instance, index));
-      }
-    }
-    bool has_internal_callback_edge = false;
-    for (const auto& entry : weakref_registry()) {
-      if (entry.ref == nullptr) continue;
-      bool reference_is_internal = false;
-      for (auto* candidate : instance_candidates) {
-        const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
-        for (const auto& attr : instance->attrs) {
-          if (attr.second.tag == ValueTag::Object && attr.second.as.obj == entry.ref) {
-            reference_is_internal = true;
-            break;
-          }
-        }
-        if (reference_is_internal) break;
-      }
-      if (!reference_is_internal) continue;
-      Value ref;
-      ref.tag = ValueTag::Object;
-      ref.flags = kXlangValueBorrowedRefFlag;
-      ref.as.obj = entry.ref;
-      Value callback;
-      std::string ignored;
-      if (object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored)) {
-        if (const auto* method = value_as_bound_method(callback);
-            method != nullptr && method->self.tag == ValueTag::Object &&
-            instance_candidate_set.find(method->self.as.obj) != instance_candidate_set.end()) {
-          ++internal_refs[method->self.as.obj];
-          has_internal_callback_edge = true;
-        }
       }
     }
     std::vector<Object*> collectible;
@@ -1075,7 +1094,7 @@ uint64_t weakref_collect_cycles() {
         collectible.push_back(candidate);
       }
     }
-    if (has_internal_callback_edge && !collectible.empty()) {
+    if (!collectible.empty()) {
       std::vector<Value> keep_alive;
       keep_alive.reserve(collectible.size());
       for (auto* candidate : collectible) {
@@ -1087,6 +1106,21 @@ uint64_t weakref_collect_cycles() {
       }
       for (auto* candidate : collectible) {
         auto* instance = reinterpret_cast<InstanceObject*>(candidate);
+        Value candidate_value;
+        candidate_value.tag = ValueTag::Object;
+        candidate_value.flags = kXlangValueBorrowedRefFlag;
+        candidate_value.as.obj = candidate;
+        if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
+          for (auto& item : deque->items) {
+            value_set_invalid(item);
+          }
+          deque->items.clear();
+        }
+        if (auto* iterator = static_cast<DequeIteratorState*>(
+                instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
+          value_set_invalid(iterator->deque);
+          iterator->deque = Value::invalid();
+        }
         value_set_invalid(instance->mapping_storage);
         value_set_invalid(instance->sequence_storage);
         for (auto& attr : instance->attrs) {
