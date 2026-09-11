@@ -119,3 +119,7 @@ print(newline_crlf.write("x\ny"), repr(newline_crlf.getvalue()), repr(newline_cr
 newline_empty = _io.StringIO(newline="")
 newline_empty.write("x\ry\nz\r\n")
 print(repr(newline_empty.newlines))
+universal_lines = _io.StringIO("one\rtwo\nthree\r\n", newline="")
+print([line for line in universal_lines])
+carriage_lines = _io.StringIO("one\ntwo\r", newline="\r")
+print([line for line in carriage_lines])

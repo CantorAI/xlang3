@@ -792,7 +792,21 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   size_t end = start;
   while (end < limit && end < state->buffer.size()) {
     ++end;
-    if (state->buffer[end - 1] == '\n') {
+    bool ends_line = state->buffer[end - 1] == '\n';
+    if (!state->binary && !state->newline_is_none) {
+      if (state->newline.empty()) {
+        ends_line = state->buffer[end - 1] == '\r' || state->buffer[end - 1] == '\n';
+        if (state->buffer[end - 1] == '\r' && end < limit && end < state->buffer.size() &&
+            state->buffer[end] == '\n') {
+          ++end;
+        }
+      } else {
+        const size_t newline_size = state->newline.size();
+        ends_line = end >= newline_size &&
+            state->buffer.compare(end - newline_size, newline_size, state->newline) == 0;
+      }
+    }
+    if (ends_line) {
       break;
     }
   }

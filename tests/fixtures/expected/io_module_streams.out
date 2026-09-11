@@ -43,3 +43,5 @@ b'a'
 'a\nb\nc\nd' ('\r', '\n', '\r\n')
 3 'x\r\ny' None
 ('\r', '\n', '\r\n')
+['one\r', 'two\n', 'three\r\n']
+['one\r', 'two\r']
