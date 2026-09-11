@@ -202,6 +202,15 @@ bool builtin_next(
   Value iterator = args[0];
   bool done = false;
   if (!sequence_iter_next(iterator, done, out, error)) {
+    // Sequence and functional iterators can report a real exception (for
+    // example a deque changed during iteration).  Preserve it instead of
+    // treating every failed fast-path attempt as an unsupported iterator and
+    // replacing the exception with TypeError below.
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+      return false;
+    }
     Value next_method;
     std::string attr_error;
     if (!attribute_get(iterator, "__next__", next_method, attr_error)) {

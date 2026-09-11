@@ -116,3 +116,20 @@ print(d.__len__())
 size_small = _collections.deque()
 size_large = _collections.deque([1, 2, 3])
 print(size_small.__sizeof__() > 0, size_large.__sizeof__() > size_small.__sizeof__())
+
+iterated = _collections.deque([1, 2])
+forward = iter(iterated)
+print(next(forward))
+iterated.append(3)
+try:
+    next(forward)
+except RuntimeError:
+    print("iterator mutation detected")
+backward_values = _collections.deque([1, 2])
+backward = reversed(backward_values)
+print(next(backward))
+backward_values.append(3)
+try:
+    next(backward)
+except RuntimeError:
+    print("reverse iterator mutation detected")

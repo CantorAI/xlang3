@@ -40,6 +40,13 @@ struct DequeState {
   uint64_t version = 0;
 };
 
+struct DequeIteratorState {
+  Value deque;
+  uint64_t version = 0;
+  size_t index = 0;
+  bool reverse = false;
+};
+
 void deque_mark_modified(DequeState& state) {
   ++state.version;
 }
@@ -303,6 +310,10 @@ DequeState* deque_state(const Value& self, std::string& error) {
 
 void deque_cleanup(void* data) {
   delete static_cast<DequeState*>(data);
+}
+
+void deque_iterator_cleanup(void* data) {
+  delete static_cast<DequeIteratorState*>(data);
 }
 
 bool deque_truthy(const void* data) {
@@ -667,17 +678,58 @@ bool deque_snapshot_list(const Value& self, Value& out, std::string& error) {
   return true;
 }
 
-bool deque_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_iterator_next(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 0) {
+    error = "deque iterator step expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* iterator = static_cast<DequeIteratorState*>(user_data);
+  if (iterator == nullptr) {
+    error = "invalid deque iterator";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  auto* deque = deque_state(iterator->deque, error);
+  if (deque == nullptr) {
+    return false;
+  }
+  if (deque->version != iterator->version) {
+    error = "deque mutated during iteration";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (iterator->index >= deque->items.size()) {
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
+  const size_t item_index = iterator->reverse
+      ? deque->items.size() - 1 - iterator->index
+      : iterator->index;
+  ++iterator->index;
+  value_assign_fast(out, deque->items[item_index]);
+  return true;
+}
+
+bool deque_iter_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool reverse) {
   if (argc != 1) {
     error = "deque.__iter__() expected no arguments";
     return false;
   }
-  Value snapshot;
-  if (!deque_snapshot_list(args[0], snapshot, error)) {
+  auto* deque = deque_state(args[0], error);
+  if (deque == nullptr) {
     return false;
   }
-  out = Value::sequence_iterator(std::move(snapshot), 0);
+  auto* state = new DequeIteratorState{args[0], deque->version, 0, reverse};
+  Value step = runtime.make_native_function(
+      "_collections.deque_iterator.__next__", deque_iterator_next,
+      state, deque_iterator_cleanup);
+  out = functional_callable_iterator(&runtime, std::move(step), Value::invalid());
   return true;
+}
+
+bool deque_iter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return deque_iter_impl(runtime, args, argc, out, error, false);
 }
 
 bool deque_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -774,15 +826,9 @@ bool deque_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool deque_reversed(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_reversed(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) { error = "deque.__reversed__() expected no arguments"; return false; }
-  auto* state = deque_state(args[0], error);
-  if (state == nullptr) return false;
-  std::vector<Value> values;
-  values.reserve(state->items.size());
-  for (auto it = state->items.rbegin(); it != state->items.rend(); ++it) values.push_back(*it);
-  out = Value::sequence_iterator(Value::list(std::move(values)), 0);
-  return true;
+  return deque_iter_impl(runtime, args, argc, out, error, true);
 }
 
 bool defaultdict_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

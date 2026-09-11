@@ -30,3 +30,7 @@ defaultdict True 2 3
 defaultdict True 1 2
 0
 True True
+1
+iterator mutation detected
+2
+reverse iterator mutation detected

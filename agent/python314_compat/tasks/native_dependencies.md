@@ -166,6 +166,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   insertion, and repetition.
   Native deque exposes an allocation-aware `__sizeof__()` result for container
   introspection.
+  Forward and reverse deque iterators retain their source container and reject
+  mutation with CPython's `RuntimeError` instead of iterating a stale snapshot.
   Validation: focused CPython 3.14 `test_deque.TestBasic` cases pass for copy,
   pickle, comparisons, concatenation, and in-place operations.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
