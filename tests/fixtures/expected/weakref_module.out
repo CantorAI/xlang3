@@ -17,6 +17,7 @@ TypeError
 TypeError
 True True
 5 CallableProxyType
+AttributeError
 7
 2 [3, 4] 4 True
 True False

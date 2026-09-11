@@ -67,6 +67,10 @@ class CallableBox:
 callable_box = CallableBox()
 callable_proxy = weakref.proxy(callable_box)
 print(callable_proxy(4), type(callable_proxy).__name__)
+try:
+    callable_proxy.__name__
+except AttributeError as exc:
+    print(type(exc).__name__)
 
 class KeywordCallableBox:
     def __call__(self, *, value):

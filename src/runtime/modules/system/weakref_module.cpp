@@ -379,11 +379,15 @@ bool weakref_proxy_getattr(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("ReferenceError", error);
     return false;
   }
-  return object_get_attr(
-      target,
-      string_object_to_string(*value_as_string(args[1])),
-      out,
-      error);
+  if (!object_get_attr(
+          target,
+          string_object_to_string(*value_as_string(args[1])),
+          out,
+          error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool weakref_proxy_setattr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
