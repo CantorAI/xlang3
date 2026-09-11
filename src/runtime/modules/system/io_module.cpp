@@ -496,7 +496,7 @@ bool buffered_rw_pair_init(Runtime& runtime, const Value* args, uint32_t argc, V
 bool decode_text_io_data(
     Runtime& runtime,
     const Value& data,
-    const MemoryStreamState& state,
+    MemoryStreamState& state,
     Value& out,
     std::string& error) {
   const auto normalize_newlines = [&](std::string text) {
@@ -516,7 +516,9 @@ bool decode_text_io_data(
     return normalized;
   };
   if (auto* string = value_as_string(data)) {
-    out = Value::string(normalize_newlines(string_object_to_string(*string)));
+    std::string text = string_object_to_string(*string);
+    note_stringio_newlines(state, text);
+    out = Value::string(normalize_newlines(std::move(text)));
     return true;
   }
   std::string bytes;
@@ -539,7 +541,9 @@ bool decode_text_io_data(
     error = "_io.TextIOWrapper decoder must return str";
     return false;
   }
-  out = Value::string(normalize_newlines(string_object_to_string(*string)));
+  std::string text = string_object_to_string(*string);
+  note_stringio_newlines(state, text);
+  out = Value::string(normalize_newlines(std::move(text)));
   return true;
 }
 
@@ -1678,6 +1682,9 @@ Value make_memory_stream_class(
         Value::none(), Value::none(), Value::none())});
     attrs.push_back({"name", Value::property(
         runtime.make_native_function("_io.TextIOWrapper.name", text_io_name_get),
+        Value::none(), Value::none(), Value::none())});
+    attrs.push_back({"newlines", Value::property(
+        runtime.make_native_function("_io.TextIOWrapper.newlines", string_io_newlines, const_cast<char*>(type)),
         Value::none(), Value::none(), Value::none())});
     attrs.push_back({"__new__", runtime.make_native_function("_io.TextIOWrapper.__new__", text_io_wrapper_new, nullptr, nullptr, nullptr, false, text_io_wrapper_new_kw)});
     attrs.push_back({"reconfigure", runtime.make_native_function(

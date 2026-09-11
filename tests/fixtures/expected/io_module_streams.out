@@ -45,3 +45,4 @@ b'a'
 ('\r', '\n', '\r\n')
 ['one\r', 'two\n', 'three\r\n']
 ['one\r', 'two\r']
+'one\ntwo\nthree\n' ('\r', '\n', '\r\n')

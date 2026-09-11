@@ -59,7 +59,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   `BytesIO.readinto1()` now exposes the raw single-buffer read contract.
   `StringIO` now honors its `newline` construction mode, including universal
   newline normalization, line iteration delimiters, and the CPython `newlines`
-  reporting property.
+  reporting property. `TextIOWrapper.newlines` likewise reports newline forms
+  observed through reads.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
