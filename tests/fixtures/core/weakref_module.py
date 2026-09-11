@@ -25,6 +25,14 @@ print(r2().name)
 print(weakref.ReferenceType(b)().name)
 print(weakref.ref(b) == weakref.ref(b), weakref.ref(b) != weakref.ref(Box()))
 
+class CallableBox:
+    def __call__(self, value):
+        return value + 1
+
+callable_box = CallableBox()
+callable_proxy = weakref.proxy(callable_box)
+print(callable_proxy(4), type(callable_proxy).__name__)
+
 expired = weakref.ref(Box())
 import gc
 gc.collect()

@@ -88,6 +88,7 @@ void register_weakref_instance(const Value& ref, const Value& target) {
 
 Value weakref_reference_type(Runtime& runtime);
 Value weakref_proxy_type(Runtime& runtime);
+Value weakref_callable_proxy_type(Runtime& runtime);
 
 bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
@@ -302,6 +303,21 @@ bool weakref_proxy_delattr(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool weakref_callable_proxy_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "weak callable proxy expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, target, args + 1, argc - 1, out, error);
+}
+
 Value weakref_proxy_type(Runtime& runtime) {
   static Value proxy_type = Value::invalid();
   if (proxy_type.tag == ValueTag::Invalid) {
@@ -318,6 +334,24 @@ Value weakref_proxy_type(Runtime& runtime) {
   return proxy_type;
 }
 
+Value weakref_callable_proxy_type(Runtime& runtime) {
+  static Value proxy_type = Value::invalid();
+  if (proxy_type.tag == ValueTag::Invalid) {
+    proxy_type = Value::class_object(
+        "CallableProxyType",
+        {{"__module__", Value::string("weakref")},
+         {"__getattr__", runtime.make_native_function(
+             "weakref.CallableProxyType.__getattr__", weakref_proxy_getattr)},
+         {"__setattr__", runtime.make_native_function(
+             "weakref.CallableProxyType.__setattr__", weakref_proxy_setattr)},
+         {"__delattr__", runtime.make_native_function(
+             "weakref.CallableProxyType.__delattr__", weakref_proxy_delattr)},
+         {"__call__", runtime.make_native_function(
+             "weakref.CallableProxyType.__call__", weakref_callable_proxy_call)}});
+  }
+  return proxy_type;
+}
+
 bool weakref_proxy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "weakref.proxy() expected object and optional callback";
@@ -327,7 +361,10 @@ bool weakref_proxy(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     error = "cannot create weak reference to object";
     return false;
   }
-  out = Value::instance(weakref_proxy_type(runtime));
+  Value call_method;
+  std::string callable_error;
+  const bool callable = object_get_attr(args[0], "__call__", call_method, callable_error);
+  out = Value::instance(callable ? weakref_callable_proxy_type(runtime) : weakref_proxy_type(runtime));
   if (!object_set_attr(
           out,
           kWeakrefCallbackAttr,
@@ -395,7 +432,7 @@ void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
   Value proxy_factory = runtime.make_native_function("weakref.proxy", weakref_proxy);
   Value reference_type = weakref_reference_type(runtime);
   Value proxy_type = weakref_proxy_type(runtime);
-  Value callable_proxy_type = Value::class_object("CallableProxyType", {{"__module__", Value::string("weakref")}});
+  Value callable_proxy_type = weakref_callable_proxy_type(runtime);
   builder.value("ref", reference_type)
       .value("ReferenceType", std::move(reference_type))
       .value("proxy", proxy_factory)
