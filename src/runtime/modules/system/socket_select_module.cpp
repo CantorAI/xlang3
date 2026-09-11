@@ -2031,7 +2031,7 @@ bool socket_byte_order(
   const uint64_t maximum = operation < 2 ? UINT32_MAX : UINT16_MAX;
   if (value < 0) {
     error = "can't convert negative Python int to unsigned";
-    runtime.raise_class_error("OverflowError", error);
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (static_cast<uint64_t>(value) > maximum) {

@@ -11,7 +11,7 @@ TypeError
 True True
 6
 80 http
-OverflowError
+ValueError
 True True True
 True True True
 ::1
@@ -46,3 +46,4 @@ True
 False
 b'dup'
 True
+negative byte order

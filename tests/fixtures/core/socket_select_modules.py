@@ -162,3 +162,8 @@ try:
 except TypeError as exc:
     print("not NoneType" in str(exc))
 sendto_error_socket.close()
+
+try:
+    socket.htons(-1)
+except ValueError:
+    print("negative byte order")

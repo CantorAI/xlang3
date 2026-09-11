@@ -148,8 +148,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   hostname, aliases, and IPv4 address tuples through Winsock resolution.
   `getprotobyname()` and service-name/port resolution use Winsock for
   source-backed `socket` callers.
-  Network byte-order helpers reject negative and oversized values with CPython
-  overflow errors.
+  Network byte-order helpers reject negative values with `ValueError` and
+  oversized values with CPython `OverflowError` behavior.
   Socket receive operations accept CPython flags, including non-consuming
   `MSG_PEEK` reads; `recv_into()` supports both nbytes and flags for writable
   byte buffers.
