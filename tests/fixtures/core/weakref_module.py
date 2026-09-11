@@ -95,6 +95,12 @@ class IterOnlyBox:
         return iter([8, 9])
 
 print(8 in weakref.proxy(IterOnlyBox()), 4 in weakref.proxy(IterOnlyBox()))
+class ReversibleBox:
+    def __reversed__(self):
+        return iter([9, 8])
+
+reversible_box = ReversibleBox()
+print(list(reversed(weakref.proxy(reversible_box))))
 
 class FalseBox:
     def __bool__(self):
