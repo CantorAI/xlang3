@@ -173,3 +173,9 @@ for _address in (("::1", 0, 0xffffffff),):
         socket.getnameinfo(_address, 0)
     except OverflowError:
         print("ipv6 flowinfo")
+
+fileno_ipv6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+fileno_ipv6.bind(("::1", 0, 0, 0))
+fileno_adopted = socket.socket(fileno=fileno_ipv6.detach())
+print(fileno_adopted.family == socket.AF_INET6, fileno_adopted.type == socket.SOCK_STREAM)
+fileno_adopted.close()
