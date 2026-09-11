@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cerrno>
 #include <cstring>
@@ -2084,8 +2085,8 @@ bool socket_inet_pton(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   int64_t family = 0;
-  if (!socket_int_arg(args[0], family) || family != kAfInet) {
-    error = "inet_pton() supports AF_INET";
+  if (!socket_int_arg(args[0], family) || (family != kAfInet && family != kAfInet6)) {
+    error = "inet_pton() supports AF_INET and AF_INET6";
     return false;
   }
   auto* address_string = value_as_string(args[1]);
@@ -2093,14 +2094,16 @@ bool socket_inet_pton(Runtime& runtime, const Value* args, uint32_t argc, Value&
     error = "inet_pton() argument 2 must be str";
     return false;
   }
-  in_addr address{};
+  const int native_family = family == kAfInet6 ? AF_INET6 : AF_INET;
+  std::array<unsigned char, sizeof(in6_addr)> address{};
   const std::string text = string_object_to_string(*address_string);
-  if (inet_pton(AF_INET, text.c_str(), &address) != 1) {
+  if (inet_pton(native_family, text.c_str(), address.data()) != 1) {
     error = "illegal IP address string passed to inet_pton";
     runtime.raise_class_error("OSError", error);
     return false;
   }
-  out = Value::bytes(std::string(reinterpret_cast<const char*>(&address), sizeof(address)));
+  const size_t size = family == kAfInet6 ? sizeof(in6_addr) : sizeof(in_addr);
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(address.data()), size));
   return true;
 }
 
@@ -2110,8 +2113,8 @@ bool socket_inet_ntop(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   int64_t family = 0;
-  if (!socket_int_arg(args[0], family) || family != kAfInet) {
-    error = "inet_ntop() supports AF_INET";
+  if (!socket_int_arg(args[0], family) || (family != kAfInet && family != kAfInet6)) {
+    error = "inet_ntop() supports AF_INET and AF_INET6";
     return false;
   }
   std::string_view view;
@@ -2126,13 +2129,15 @@ bool socket_inet_ntop(Runtime& runtime, const Value* args, uint32_t argc, Value&
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (view.size() != sizeof(in_addr)) {
+  const int native_family = family == kAfInet6 ? AF_INET6 : AF_INET;
+  const size_t expected_size = family == kAfInet6 ? sizeof(in6_addr) : sizeof(in_addr);
+  if (view.size() != expected_size) {
     error = "invalid length of packed IP address string";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  char numeric_host[INET_ADDRSTRLEN] = {};
-  if (inet_ntop(AF_INET, view.data(), numeric_host, sizeof(numeric_host)) == nullptr) {
+  char numeric_host[INET6_ADDRSTRLEN] = {};
+  if (inet_ntop(native_family, view.data(), numeric_host, sizeof(numeric_host)) == nullptr) {
     error = socket_last_error_text("inet_ntop");
     return false;
   }
