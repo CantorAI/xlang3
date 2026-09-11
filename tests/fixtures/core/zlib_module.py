@@ -9,6 +9,13 @@ print(zlib.adler32(payload) == zlib.adler32(payload, 1))
 print(zlib.ZLIB_VERSION, zlib.DEFLATED, zlib.MAX_WBITS)
 print(zlib.ZLIB_RUNTIME_VERSION == zlib.ZLIB_VERSION)
 
+rle = zlib.compressobj(strategy=zlib.Z_RLE)
+rle_data = rle.compress(b"aaaaabbbbb") + rle.flush()
+print(zlib.decompress(rle_data) == b"aaaaabbbbb",
+      all(isinstance(getattr(zlib, name), int) for name in (
+          "Z_PARTIAL_FLUSH", "Z_BLOCK", "Z_TREES", "Z_FILTERED",
+          "Z_HUFFMAN_ONLY", "Z_RLE", "Z_FIXED")))
+
 c = zlib.compressobj()
 streamed = c.compress(b"abc ") + c.compress(b"abc ") + c.flush()
 d = zlib.decompressobj()
