@@ -416,6 +416,39 @@ bool weakref_callable_proxy_call(Runtime& runtime, const Value* args, uint32_t a
   return runtime_call_callable(runtime, target, args + 1, argc - 1, out, error);
 }
 
+bool weakref_proxy_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "weak proxy __contains__ expected self and item";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  Value method;
+  std::string ignored;
+  if (object_get_attr(target, "__contains__", method, ignored)) {
+    return runtime_call_callable(runtime, method, args + 1, 1, out, error);
+  }
+  std::vector<Value> items;
+  if (!runtime_collect_iterable(runtime, target, items, error)) return false;
+  for (const auto& candidate : items) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", candidate, args[1], equal, error)) return false;
+    bool matches = false;
+    if (!runtime_truthy(runtime, equal, matches, error)) return false;
+    if (matches) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
 bool weakref_callable_proxy_call_kw(
     Runtime& runtime,
     const Value* args,
@@ -485,7 +518,7 @@ Value weakref_proxy_type(Runtime& runtime) {
          {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
          {"__setitem__", runtime.make_native_function("weakref.ProxyType.__setitem__", weakref_proxy_forward, const_cast<char*>("__setitem__"))},
          {"__delitem__", runtime.make_native_function("weakref.ProxyType.__delitem__", weakref_proxy_forward, const_cast<char*>("__delitem__"))},
-         {"__contains__", runtime.make_native_function("weakref.ProxyType.__contains__", weakref_proxy_forward, const_cast<char*>("__contains__"))}});
+         {"__contains__", runtime.make_native_function("weakref.ProxyType.__contains__", weakref_proxy_contains)}});
   }
   return proxy_type;
 }
@@ -529,7 +562,7 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
          {"__setitem__", runtime.make_native_function("weakref.CallableProxyType.__setitem__", weakref_proxy_forward, const_cast<char*>("__setitem__"))},
          {"__delitem__", runtime.make_native_function("weakref.CallableProxyType.__delitem__", weakref_proxy_forward, const_cast<char*>("__delitem__"))},
-         {"__contains__", runtime.make_native_function("weakref.CallableProxyType.__contains__", weakref_proxy_forward, const_cast<char*>("__contains__"))}});
+         {"__contains__", runtime.make_native_function("weakref.CallableProxyType.__contains__", weakref_proxy_contains)}});
   }
   return proxy_type;
 }

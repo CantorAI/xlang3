@@ -12,6 +12,7 @@ True True
 5 CallableProxyType
 7
 2 [3, 4] 4 True
+True False
 False
 False True
 True True

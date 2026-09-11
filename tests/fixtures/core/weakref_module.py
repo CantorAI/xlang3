@@ -64,6 +64,12 @@ class SequenceBox:
 sequence_proxy = weakref.proxy(SequenceBox())
 print(len(sequence_proxy), list(sequence_proxy), sequence_proxy[1], 3 in sequence_proxy)
 
+class IterOnlyBox:
+    def __iter__(self):
+        return iter([8, 9])
+
+print(8 in weakref.proxy(IterOnlyBox()), 4 in weakref.proxy(IterOnlyBox()))
+
 class FalseBox:
     def __bool__(self):
         return False

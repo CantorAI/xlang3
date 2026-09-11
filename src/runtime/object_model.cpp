@@ -2080,6 +2080,13 @@ bool runtime_value_contains(
   if (auto* list = value_as_list(container)) return contains_in(list->items);
   if (auto* tuple = value_as_tuple(container)) return contains_in(tuple->items);
   if (auto* set = value_as_set(container)) return contains_in(set->items);
+  Value contains_method;
+  std::string ignored;
+  if (object_get_attr(container, "__contains__", contains_method, ignored)) {
+    Value result;
+    if (!runtime_call_callable(runtime, contains_method, &item, 1, result, error)) return false;
+    return runtime_truthy(runtime, result, out, error);
+  }
   return value_contains(container, item, out, error);
 }
 
