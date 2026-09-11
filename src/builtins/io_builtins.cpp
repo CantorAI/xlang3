@@ -376,7 +376,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
     switch (ch) {
       case 'r':
         if (saw_action) {
-          error = "invalid mode: " + mode;
+          error = "must have exactly one of create/read/write/append mode";
           return false;
         }
         saw_action = true;
@@ -384,7 +384,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case 'w':
         if (saw_action) {
-          error = "invalid mode: " + mode;
+          error = "must have exactly one of create/read/write/append mode";
           return false;
         }
         saw_action = true;
@@ -394,7 +394,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case 'a':
         if (saw_action) {
-          error = "invalid mode: " + mode;
+          error = "must have exactly one of create/read/write/append mode";
           return false;
         }
         saw_action = true;
@@ -404,7 +404,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case 'x':
         if (saw_action) {
-          error = "invalid mode: " + mode;
+          error = "must have exactly one of create/read/write/append mode";
           return false;
         }
         saw_action = true;
@@ -829,7 +829,12 @@ bool builtin_open(
 
   std::string path;
   if (!get_path_arg(runtime, args[0], "open path", path, error)) {
-    runtime.raise_class_error("TypeError", error);
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
 

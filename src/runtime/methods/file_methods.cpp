@@ -1402,6 +1402,17 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     value_set_bool(out, file->closed);
     return true;
   }
+  // The runtime file object already owns the descriptor and buffering state.
+  // Expose the source-backed io wrapper traversal without manufacturing a
+  // second native file object around it.
+  if (name == "buffer" || name == "raw") {
+    value_assign_fast(out, object);
+    return true;
+  }
+  if (name == "closefd") {
+    value_set_bool(out, file->closefd);
+    return true;
+  }
   if (name == "encoding") {
     out = file->binary ? Value::none() : Value::string(file->encoding);
     return true;

@@ -92,6 +92,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   runtime's writable `array.array` buffer exporters for both reads and writes.
   Filename-based opens correctly reject `closefd=False`, preserving the
   descriptor-only `closefd` contract CPython exposes through `io.open()`.
+  Native file objects also expose the source-backed `buffer.raw.closefd`
+  traversal, preserve exceptions raised by `os.PathLike.__fspath__()`, and
+  report CPython-compatible multi-action open-mode validation diagnostics.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.
