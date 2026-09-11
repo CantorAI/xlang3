@@ -4,6 +4,7 @@ True
 ReferenceType weakref True
 box
 True True
+TypeError
 removed
 2
 ['ProxyType', 'ReferenceType']

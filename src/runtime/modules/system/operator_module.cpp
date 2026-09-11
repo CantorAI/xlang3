@@ -49,11 +49,11 @@ bool operator_binary(
   return op(args[0], args[1], out, error);
 }
 
-bool operator_compare(const char* op, const Value* args, uint32_t argc, Value& out, std::string& error) {
+bool operator_compare(Runtime& runtime, const char* op, const Value* args, uint32_t argc, Value& out, std::string& error) {
   if (!expect_argc(argc, 2, op, error)) {
     return false;
   }
-  return value_compare(op, args[0], args[1], out, error);
+  return runtime_value_compare(runtime, op, args[0], args[1], out, error);
 }
 
 bool operator_identity_equal(const Value& lhs, const Value& rhs) {
@@ -72,28 +72,28 @@ bool operator_identity_equal(const Value& lhs, const Value& rhs) {
   }
 }
 
-bool op_lt(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_compare("<", args, argc, out, error);
+bool op_lt(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(runtime, "<", args, argc, out, error);
 }
 
-bool op_le(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_compare("<=", args, argc, out, error);
+bool op_le(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(runtime, "<=", args, argc, out, error);
 }
 
-bool op_eq(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_compare("==", args, argc, out, error);
+bool op_eq(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(runtime, "==", args, argc, out, error);
 }
 
-bool op_ne(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_compare("!=", args, argc, out, error);
+bool op_ne(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(runtime, "!=", args, argc, out, error);
 }
 
-bool op_ge(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_compare(">=", args, argc, out, error);
+bool op_ge(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(runtime, ">=", args, argc, out, error);
 }
 
-bool op_gt(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_compare(">", args, argc, out, error);
+bool op_gt(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return operator_compare(runtime, ">", args, argc, out, error);
 }
 
 bool op_add(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

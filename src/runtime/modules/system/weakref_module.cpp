@@ -265,6 +265,11 @@ bool weakref_reference_compare(
   return runtime_value_compare(runtime, op, left_target, right_target, out, error);
 }
 
+bool weakref_reference_order(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "weakref objects are not orderable";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
 bool weakref_reference_eq(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return weakref_reference_compare(runtime, args, argc, out, error, "==");
 }
@@ -318,6 +323,10 @@ Value weakref_reference_type(Runtime& runtime) {
   attrs.push_back({"__str__", runtime.make_native_function("weakref.ReferenceType.__str__", weakref_reference_repr)});
   attrs.push_back({"__eq__", runtime.make_native_function("weakref.ReferenceType.__eq__", weakref_reference_eq)});
   attrs.push_back({"__ne__", runtime.make_native_function("weakref.ReferenceType.__ne__", weakref_reference_ne)});
+  attrs.push_back({"__lt__", runtime.make_native_function("weakref.ReferenceType.__lt__", weakref_reference_order)});
+  attrs.push_back({"__le__", runtime.make_native_function("weakref.ReferenceType.__le__", weakref_reference_order)});
+  attrs.push_back({"__gt__", runtime.make_native_function("weakref.ReferenceType.__gt__", weakref_reference_order)});
+  attrs.push_back({"__ge__", runtime.make_native_function("weakref.ReferenceType.__ge__", weakref_reference_order)});
   reference_type = Value::class_object("ReferenceType", std::move(attrs));
   return reference_type;
 }

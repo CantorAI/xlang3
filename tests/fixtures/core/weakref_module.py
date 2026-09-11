@@ -29,6 +29,10 @@ print(r2().name)
 print(weakref.ReferenceType(b)().name)
 print(weakref.ref(b) == weakref.ref(b), weakref.ref(b) != weakref.ref(Box()))
 try:
+    weakref.ref(b) < weakref.ref(Box())
+except TypeError as exc:
+    print(type(exc).__name__)
+try:
     weakref.ref(b, callback=None)
 except TypeError as exc:
     print(type(exc).__name__)
