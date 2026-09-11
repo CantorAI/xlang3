@@ -264,9 +264,11 @@ passed 47/47 tests, including the aggregate fixture suite.
   bytecode validation modes, and remaining import edge cases.
 
 - [~] _pickle and marshal
-  Coverage: `tests/fixtures/core/sys_structseq_pickle.py` and
-  `tests/fixtures/core/pickle_module.py`, including native `PickleBuffer.raw()`
-  and release lifetime semantics, protocol-5 out-of-band buffers, and native
+  Coverage: `tests/fixtures/core/sys_structseq_pickle.py`,
+  `tests/fixtures/core/pickle_module.py`, and `tests/fixtures/core/marshal_module.py`.
+  The marshal fixture covers versioned `dump()` file round-trips through the
+  native serializer. Native coverage includes `PickleBuffer.raw()` and release
+  lifetime semantics, protocol-5 out-of-band buffers, and native
   Pickler/Unpickler persistent-ID hooks through source-backed `pickle`. Native
   Pickler and Unpickler instances retain their source-backed delegates across
   repeated dump/load calls, preserving stream memo identity; `Pickler.clear_memo()`
