@@ -56,5 +56,8 @@ print(pickle.loads(pickle.dumps(pickled, 4)).to_list())
 defaults = _collections.defaultdict(list)
 defaults["x"].append(1)
 print(copy.copy(defaults)["x"], pickle.loads(pickle.dumps(defaults, 4))["x"])
+merged = defaults | {"y": 2}
+defaults |= {"z": 3}
+print(type(merged).__name__, merged.default_factory is list, merged["y"], defaults["z"])
 d.clear()
 print(d.__len__())
