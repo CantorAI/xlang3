@@ -13,3 +13,5 @@ TypeError
 <class 'io.TextIOBase'>
 TextIOWrapper TextIOWrapper True
 FileIO True True
+b'ok' True
+ValueError

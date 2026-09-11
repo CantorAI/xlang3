@@ -485,6 +485,9 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   const char* type = static_cast<const char*>(user_data);
   auto* state = memory_stream_state(args[0], type, error);
   if (state == nullptr) {
+    if (error == "I/O operation on closed file") {
+      runtime.raise_class_error("ValueError", error);
+    }
     return false;
   }
   if (state->wraps_buffer) {
@@ -950,6 +953,26 @@ bool stream_detach(Runtime& runtime, const Value*, uint32_t argc, Value&, std::s
   return false;
 }
 
+bool text_io_wrapper_detach(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "detach() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(
+      instance_get_native_data(args[0], "_io.TextIOWrapper"));
+  if (state == nullptr || !state->wraps_buffer || state->closed) {
+    error = "underlying buffer has been detached";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_assign_fast(out, state->wrapped_buffer);
+  value_set_invalid(state->wrapped_buffer);
+  state->wraps_buffer = false;
+  state->closed = true;
+  return true;
+}
+
 bool stream_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "memory stream tell() expected no arguments";
@@ -1238,7 +1261,9 @@ Value make_memory_stream_class(
     attrs.push_back({"readinto", runtime.make_native_function("_io.BytesIO.readinto", stream_readinto, const_cast<char*>(type))});
   }
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
-  attrs.push_back({"detach", runtime.make_native_function(std::string("_io.") + name + ".detach", stream_detach)});
+  attrs.push_back({"detach", runtime.make_native_function(
+      std::string("_io.") + name + ".detach",
+      std::string_view(name) == "TextIOWrapper" ? text_io_wrapper_detach : stream_detach)});
   attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
   attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});

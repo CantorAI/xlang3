@@ -33,7 +33,8 @@
   Coverage update: native `_io` now supports StringIO/BytesIO keyword construction,
   truncate, IOBase closed/readable/writable guards, and buffered wrapper delegation
   over raw `readinto` streams so CPython `socket.py`, `email.parser`, and
-  `http.client` can use normal stdlib file-object paths.
+  `http.client` can use normal stdlib file-object paths. `TextIOWrapper.detach()`
+  returns its wrapped binary buffer and invalidates the wrapper as CPython does.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, detach/reconfigure, and exact errors.
 
 - [~] _socket, select, and _signal
