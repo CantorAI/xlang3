@@ -63,6 +63,10 @@ class ComparableBox:
 comparable_box = ComparableBox()
 comparable_proxy = weakref.proxy(comparable_box)
 print(comparable_proxy == "match", comparable_proxy != "miss")
+try:
+    hash(comparable_proxy)
+except Exception as exc:
+    print(type(exc).__name__)
 
 expired = weakref.ref(Box())
 import gc

@@ -365,6 +365,12 @@ bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, V
   return runtime_call_callable(runtime, method, args + 1, argc - 1, out, error);
 }
 
+bool weakref_proxy_hash(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "unhashable type: 'weakref.ProxyType'";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool weakref_callable_proxy_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "weak callable proxy expected self";
@@ -395,6 +401,7 @@ Value weakref_proxy_type(Runtime& runtime) {
          {"__bool__", runtime.make_native_function("weakref.ProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
          {"__eq__", runtime.make_native_function("weakref.ProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
          {"__ne__", runtime.make_native_function("weakref.ProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
+         {"__hash__", runtime.make_native_function("weakref.ProxyType.__hash__", weakref_proxy_hash)},
          {"__len__", runtime.make_native_function("weakref.ProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.ProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
          {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
@@ -420,6 +427,7 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__bool__", runtime.make_native_function("weakref.CallableProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
          {"__eq__", runtime.make_native_function("weakref.CallableProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
          {"__ne__", runtime.make_native_function("weakref.CallableProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
+         {"__hash__", runtime.make_native_function("weakref.CallableProxyType.__hash__", weakref_proxy_hash)},
          {"__len__", runtime.make_native_function("weakref.CallableProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.CallableProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
          {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},

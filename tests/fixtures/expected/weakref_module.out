@@ -12,6 +12,7 @@ True True
 2 [3, 4] 4 True
 False
 True True
+TypeError
 True
 True
 TypeError
