@@ -53,6 +53,8 @@ suite, after the native dependency updates documented below.
   `getvalue()` calls.
   Native `FileIO.readinto()` fills writable byte buffers through the same
   descriptor-backed file path as `read()`.
+  Unbuffered binary `FileIO.readall()` is available on the descriptor-backed
+  native object.
   `BytesIO.readinto1()` now exposes the raw single-buffer read contract.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 

@@ -690,6 +690,13 @@ bool file_readinto_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
+bool file_readall_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "file.readall", error)) {
+    return false;
+  }
+  return file_read_method(runtime, args, argc, out, error, nullptr);
+}
+
 bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "file.write", error)) {
     return false;
@@ -1363,6 +1370,9 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     out = Value::none();
     return true;
   }
+  if (name == "readall" && (!file->binary || file->buffering != 0)) {
+    return false;
+  }
   static constexpr BuiltinMethodSpec methods[] = {
       {"__enter__", "file.__enter__", file_enter_method},
       {"__exit__", "file.__exit__", file_exit_method},
@@ -1373,6 +1383,7 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
       {"flush", "file.flush", file_flush_method},
       {"isatty", "file.isatty", file_isatty_method},
       {"read", "file.read", file_read_method},
+      {"readall", "file.readall", file_readall_method},
       {"readinto", "file.readinto", file_readinto_method},
       {"readline", "file.readline", file_readline_method},
       {"readlines", "file.readlines", file_readlines_method},
