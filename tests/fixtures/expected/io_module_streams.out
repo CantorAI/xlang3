@@ -3,11 +3,13 @@ a
 1
 aZ
 aZ
+False False
 b'x'
 1
 b'xZ'
 UnsupportedOperation
 UnsupportedOperation
+ValueError
 TypeError
 True
 utf-8 replace True

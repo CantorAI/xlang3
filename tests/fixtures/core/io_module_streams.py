@@ -13,6 +13,7 @@ print(s.getvalue())
 s.close()
 
 b = _io.BytesIO(b"xy")
+print(b.isatty(), _io.StringIO().isatty())
 print(b.read(1))
 print(b.write(b"Z"))
 b.seek(0)
@@ -22,6 +23,11 @@ for stream in (s, b):
         stream.detach()
     except Exception as exc:
         print(type(exc).__name__)
+b.close()
+try:
+    b.isatty()
+except Exception as exc:
+    print(type(exc).__name__)
 try:
     b.seek(0.0)
 except Exception as exc:

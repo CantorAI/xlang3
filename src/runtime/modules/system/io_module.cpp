@@ -1140,6 +1140,26 @@ bool stream_capability(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool stream_isatty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "memory stream isatty() expected no arguments";
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], type));
+  if (state == nullptr) {
+    error = "invalid memory stream object";
+    return false;
+  }
+  if (state->closed) {
+    error = "I/O operation on closed file";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
 bool stream_enter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "memory stream __enter__() expected no arguments";
@@ -1525,6 +1545,7 @@ Value make_memory_stream_class(
   attrs.push_back({"readable", runtime.make_native_function(std::string("_io.") + name + ".readable", stream_capability, const_cast<char*>(type))});
   attrs.push_back({"writable", runtime.make_native_function(std::string("_io.") + name + ".writable", stream_capability, const_cast<char*>(type))});
   attrs.push_back({"seekable", runtime.make_native_function(std::string("_io.") + name + ".seekable", stream_capability, const_cast<char*>(type))});
+  attrs.push_back({"isatty", runtime.make_native_function(std::string("_io.") + name + ".isatty", stream_isatty, const_cast<char*>(type))});
   return Value::class_object(name, std::move(attrs));
 }
 
@@ -1793,6 +1814,7 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {"readable", runtime.make_native_function("_io._IOBase.readable", io_base_false_method, const_cast<char*>("readable"))},
       {"writable", runtime.make_native_function("_io._IOBase.writable", io_base_false_method, const_cast<char*>("writable"))},
       {"seekable", runtime.make_native_function("_io._IOBase.seekable", io_base_false_method, const_cast<char*>("seekable"))},
+      {"isatty", runtime.make_native_function("_io._IOBase.isatty", io_base_false_method, const_cast<char*>("isatty"))},
       {"readline", runtime.make_native_function("_io._IOBase.readline", io_base_readline)},
       {"readlines", runtime.make_native_function("_io._IOBase.readlines", io_base_readlines)},
   };
