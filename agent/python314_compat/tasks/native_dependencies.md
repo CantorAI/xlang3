@@ -67,7 +67,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Buffered reader, writer, and random wrappers expose their wrapped `raw`
   stream with closed-wrapper validation.
   `BufferedRWPair` now preserves both endpoints, routes reads and writes to
-  the appropriate stream, and exposes `reader` / `writer` properties.
+  the appropriate stream, exposes `reader` / `writer` properties, and covers
+  `read1`, `readinto`, `readinto1`, and inherited `detach()` behavior.
   Buffered reader, writer, and random wrappers now support `detach()`,
   returning their raw stream while invalidating the wrapper.
   In-memory `BytesIO` and `StringIO` expose `fileno()` and raise the standard

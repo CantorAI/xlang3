@@ -1876,6 +1876,7 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
     attrs.push_back({"writer", Value::property(
         runtime.make_native_function("_io.BufferedRWPair.writer", buffered_rw_pair_endpoint, const_cast<char*>("writer")),
         Value::none(), Value::none(), Value::none())});
+    attrs.push_back({"detach", runtime.make_native_function("_io.BufferedRWPair.detach", stream_detach)});
   }
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});
   attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
@@ -1883,7 +1884,8 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   attrs.push_back({"__iter__", runtime.make_native_function(std::string("_io.") + name + ".__iter__", stream_iter, const_cast<char*>(type))});
   attrs.push_back({"__next__", runtime.make_native_function(std::string("_io.") + name + ".__next__", stream_next, const_cast<char*>(type))});
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
-  if (std::string_view(name) == "BufferedReader" || std::string_view(name) == "BufferedRandom") {
+  if (std::string_view(name) == "BufferedReader" || std::string_view(name) == "BufferedRandom" ||
+      std::string_view(name) == "BufferedRWPair") {
     attrs.push_back({"read1", runtime.make_native_function(
         std::string("_io.") + name + ".read1", stream_read, const_cast<char*>(type))});
     attrs.push_back({"readinto", runtime.make_native_function(

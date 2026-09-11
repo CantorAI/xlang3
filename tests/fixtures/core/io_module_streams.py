@@ -174,3 +174,10 @@ for memory_stream in (_io.BytesIO(), _io.StringIO()):
         memory_stream.fileno()
     except Exception as exc:
         print(type(exc).__name__)
+pair_ops = _io.BufferedRWPair(_io.BytesIO(b"x"), _io.BytesIO())
+pair_buffer = bytearray(1)
+print(pair_ops.read1(), pair_ops.readinto(pair_buffer), pair_ops.readinto1(pair_buffer))
+try:
+    pair_ops.detach()
+except Exception as exc:
+    print(type(exc).__name__)

@@ -61,3 +61,5 @@ True False
 ValueError
 UnsupportedOperation
 UnsupportedOperation
+b'x' 0 0
+UnsupportedOperation
