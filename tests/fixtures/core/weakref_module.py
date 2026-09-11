@@ -185,6 +185,7 @@ second_callback = weakref.ref(callback_target, lambda ref: callback_order.append
 del callback_target
 gc.collect()
 print(callback_order)
+print(first_callback.__callback__ is None)
 events = []
 callback_ref = weakref.ref(Box(), lambda ref: events.append(ref() is None))
 gc.collect()

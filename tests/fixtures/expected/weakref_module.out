@@ -33,6 +33,7 @@ True
 True
 TypeError
 ['second', 'first']
+True
 [True]
 ['ProxyType']
 numeric-box 7 4 b'numeric'

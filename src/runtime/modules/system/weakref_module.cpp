@@ -875,6 +875,8 @@ void weakref_dispatch_callbacks(Runtime& runtime) {
     Value callback;
     std::string ignored;
     if (!object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored) || callback.tag == ValueTag::None) continue;
+    Value mutable_ref = ref;
+    (void)object_set_attr(mutable_ref, kWeakrefCallbackAttr, Value::none(), ignored);
     Value result;
     if (!runtime_call_callable(runtime, callback, &ref, 1, result, ignored)) {
       Value pending;
