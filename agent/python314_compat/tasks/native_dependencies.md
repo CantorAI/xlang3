@@ -1,5 +1,8 @@
 # Native Dependency Tasks
 
+Validation baseline: Release CTest passed 47/47 tests, including the aggregate
+fixture suite, after the native dependency updates documented below.
+
 - [x] errno
   Coverage: `tests/fixtures/compat_sections/standard_modules.py`
   Remaining: none for the current dependency surface.
