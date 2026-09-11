@@ -156,7 +156,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   independent `copy()` results. CPython 3.14 focused `TestBasic` coverage also
   passes deque comparisons, concatenation, in-place concatenation, and in-place
   repetition. Native deque reducers support source-backed `copy.copy()` and
-  protocol-4 pickle round-trips; native defaultdict reducers preserve both
+  protocol-4 pickle round-trips and use CPython's constructor/state/item-
+  iterator reduce tuple; native defaultdict reducers preserve both
   mapping entries and default factories through copy and protocol-4 pickle,
   and `|` / `|=` preserve defaultdict type and factory. Reflected mapping
   unions (`dict | defaultdict`) likewise preserve the right-hand defaultdict

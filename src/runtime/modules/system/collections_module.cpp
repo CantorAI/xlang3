@@ -927,11 +927,14 @@ bool deque_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   }
   auto* state = deque_state(args[0], error);
   if (state == nullptr) return false;
-  std::vector<Value> values(state->items.begin(), state->items.end());
   Value klass;
   if (!runtime_type_of_value(runtime, args[0], klass)) return false;
-  const Value maxlen = state->maxlen < 0 ? Value::none() : Value::int64(state->maxlen);
-  out = Value::tuple({klass, Value::tuple({Value::list(std::move(values)), maxlen})});
+  Value constructor_args = state->maxlen < 0
+      ? Value::tuple({})
+      : Value::tuple({Value::tuple({}), Value::int64(state->maxlen)});
+  Value iterator;
+  if (!deque_iter(runtime, args, 1, iterator, error, nullptr)) return false;
+  out = Value::tuple({klass, std::move(constructor_args), Value::none(), std::move(iterator)});
   return true;
 }
 
