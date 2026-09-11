@@ -72,3 +72,13 @@ for operation in (lambda: finished.flush(), lambda: finished.compress(b"x"), lam
         operation()
     except Exception as exc:
         print(type(exc).__name__)
+
+for operation in (
+    lambda: zlib.decompress(compressed, "invalid"),
+    lambda: zlib.decompress(compressed, zlib.MAX_WBITS, "invalid"),
+    lambda: zlib.decompress(compressed, zlib.MAX_WBITS, -1),
+):
+    try:
+        operation()
+    except Exception as exc:
+        print(type(exc).__name__)

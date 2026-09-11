@@ -274,7 +274,16 @@ bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (!zlib_bytes_arg(args[0], "zlib.decompress data", input, error)) {
     return zlib_class_fail(runtime, "TypeError", error, error);
   }
-  const int wbits = argc >= 2 && args[1].tag == ValueTag::Int64 ? static_cast<int>(args[1].as.i64) : MAX_WBITS;
+  if (argc >= 2 && args[1].tag != ValueTag::Int64) {
+    return zlib_class_fail(runtime, "TypeError", "zlib.decompress() wbits must be int", error);
+  }
+  if (argc >= 3 && args[2].tag != ValueTag::Int64) {
+    return zlib_class_fail(runtime, "TypeError", "zlib.decompress() bufsize must be int", error);
+  }
+  if (argc >= 3 && args[2].as.i64 < 0) {
+    return zlib_class_fail(runtime, "ValueError", "bufsize must be non-negative", error);
+  }
+  const int wbits = argc >= 2 ? static_cast<int>(args[1].as.i64) : MAX_WBITS;
   size_t chunk_size = 16384;
   if (argc >= 3 && args[2].tag == ValueTag::Int64 && args[2].as.i64 > 0) {
     chunk_size = static_cast<size_t>(args[2].as.i64);

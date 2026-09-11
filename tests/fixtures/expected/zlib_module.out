@@ -20,3 +20,6 @@ b'gzip'
 error
 error
 error
+TypeError
+TypeError
+ValueError

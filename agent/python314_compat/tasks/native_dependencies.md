@@ -143,6 +143,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   stream-finalization behavior.
   Bounded decompression now retains pending compressed input safely so `flush()`
   drains the remaining decoded stream, including on a copied decompressor.
+  One-shot `decompress()` validates `wbits` and `bufsize` argument types and
+  rejects negative buffer sizes with CPython-compatible errors.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.
