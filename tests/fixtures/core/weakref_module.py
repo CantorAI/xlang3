@@ -75,6 +75,20 @@ class StringBox:
 string_box = StringBox()
 print(str(weakref.proxy(string_box)))
 
+class MutableBox:
+    def __init__(self):
+        self.values = [1, 2, 3]
+    def __setitem__(self, index, value):
+        self.values[index] = value
+    def __delitem__(self, index):
+        del self.values[index]
+
+mutable_values = MutableBox()
+mutable_proxy = weakref.proxy(mutable_values)
+mutable_proxy[1] = 9
+del mutable_proxy[0]
+print(mutable_values.values)
+
 expired = weakref.ref(Box())
 import gc
 gc.collect()
