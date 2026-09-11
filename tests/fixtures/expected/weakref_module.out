@@ -21,3 +21,4 @@ TypeError
 ['second', 'first']
 [True]
 ['ProxyType']
+numeric-box 7 4 b'numeric'

@@ -120,3 +120,16 @@ proxy_events = []
 callback_proxy = weakref.proxy(Box(), lambda ref: proxy_events.append(type(ref).__name__))
 gc.collect()
 print(proxy_events)
+class NumericBox:
+    def __repr__(self):
+        return "numeric-box"
+    def __add__(self, value):
+        return value + 4
+    def __int__(self):
+        return 4
+    def __bytes__(self):
+        return b"numeric"
+
+numeric_box = NumericBox()
+numeric_proxy = weakref.proxy(numeric_box)
+print(repr(numeric_proxy), numeric_proxy + 3, int(numeric_proxy), bytes(numeric_proxy))
