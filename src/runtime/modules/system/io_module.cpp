@@ -1567,6 +1567,29 @@ bool buffered_mode_get(Runtime& runtime, const Value* args, uint32_t argc, Value
   return buffered_wrapped_attr(runtime, args, argc, out, error, user_data, "mode");
 }
 
+bool memory_stream_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                          std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "fileno() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
+  if (state == nullptr) return false;
+  error = "fileno";
+  Value module;
+  Value unsupported;
+  std::string ignored;
+  if (runtime.import_module("_io", module, ignored) &&
+      module_get_attr(module, "UnsupportedOperation", unsupported, ignored) &&
+      value_as_class(unsupported) != nullptr) {
+    runtime.set_pending_exception(runtime.make_exception_from_class(std::move(unsupported), error));
+    return false;
+  }
+  runtime.raise_class_error("OSError", error);
+  return false;
+}
+
 bool buffered_raw_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                       std::string& error, void* user_data) {
   if (argc != 1) {
@@ -1769,6 +1792,10 @@ Value make_memory_stream_class(
     NativeKeywordFunctionCallback init_kw = nullptr) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init, nullptr, nullptr, nullptr, false, init_kw)});
+  if (std::string_view(name) == "StringIO" || std::string_view(name) == "BytesIO") {
+    attrs.push_back({"fileno", runtime.make_native_function(
+        std::string("_io.") + name + ".fileno", memory_stream_fileno, const_cast<char*>(type))});
+  }
   if (std::string_view(name) == "TextIOWrapper") {
     attrs.push_back({"fileno", runtime.make_native_function("_io.TextIOWrapper.fileno", stream_fileno, const_cast<char*>(type))});
     for (const char* option : {"encoding", "errors"}) {

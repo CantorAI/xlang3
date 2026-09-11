@@ -70,6 +70,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   the appropriate stream, and exposes `reader` / `writer` properties.
   Buffered reader, writer, and random wrappers now support `detach()`,
   returning their raw stream while invalidating the wrapper.
+  In-memory `BytesIO` and `StringIO` expose `fileno()` and raise the standard
+  `UnsupportedOperation` result.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

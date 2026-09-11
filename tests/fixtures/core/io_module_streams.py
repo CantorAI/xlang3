@@ -169,3 +169,8 @@ try:
     detach_reader.read()
 except Exception as exc:
     print(type(exc).__name__)
+for memory_stream in (_io.BytesIO(), _io.StringIO()):
+    try:
+        memory_stream.fileno()
+    except Exception as exc:
+        print(type(exc).__name__)
