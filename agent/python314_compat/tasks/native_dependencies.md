@@ -78,7 +78,8 @@
   Coverage: `tests/fixtures/core/zlib_module.py`, `tests/fixtures/core/zipfile_module.py`, `tests/fixtures/core/zipimport_module.py`, `tests/fixtures/core/sys_path_importer_cache.py`.
   Validation: CPython 3.14 `test_zipimport` focused checks pass for bad archives,
   source/bytecode selection, nested package prefixes, direct member data, and
-  cache invalidation.
+  cache invalidation. Native zlib streaming tracks `eof`, `unconsumed_tail`,
+  and accumulated `unused_data` after a stream ends.
   Remaining: full compression matrix, encrypted ZIP behavior deferred, hash-based
   bytecode validation modes, and remaining import edge cases.
 

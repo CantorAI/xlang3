@@ -384,6 +384,17 @@ bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t arg
     return false;
   }
 
+  if (state->finished) {
+    state->unused_data.append(input);
+    std::string ignored;
+    Value self = args[0];
+    object_set_attr(self, "unused_data", Value::bytes(state->unused_data), ignored);
+    object_set_attr(self, "unconsumed_tail", Value::bytes(""), ignored);
+    object_set_attr(self, "eof", Value::boolean(true), ignored);
+    out = Value::bytes("");
+    return true;
+  }
+
   constexpr size_t kChunkSize = 16384;
   char chunk[kChunkSize];
   std::string decompressed;
@@ -407,7 +418,7 @@ bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t arg
     if (rc == Z_STREAM_END) {
       state->finished = true;
       if (state->stream.avail_in > 0) {
-        state->unused_data.assign(
+        state->unused_data.append(
             reinterpret_cast<const char*>(state->stream.next_in),
             state->stream.avail_in);
       }

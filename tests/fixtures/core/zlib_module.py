@@ -20,3 +20,5 @@ trailing = zlib.compress(b"xyz") + b"tail"
 d2 = zlib.decompressobj()
 print(d2.decompress(trailing) == b"xyz")
 print(d2.eof, d2.unused_data == b"tail")
+d2.decompress(b"more")
+print(d2.unused_data == b"tailmore", d2.decompress(b"") == b"")
