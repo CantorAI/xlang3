@@ -48,5 +48,10 @@ print(list(reversed(d)))
 print(_collections.deque([1, 2]) == _collections.deque([1, 2]), _collections.deque([1]) < _collections.deque([2]))
 print((_collections.deque([1, 2]) + _collections.deque([3])).to_list())
 print((_collections.deque([1, 2], maxlen=3) * 2).to_list())
+import copy
+import pickle
+pickled = _collections.deque([1, 2], maxlen=3)
+print(copy.copy(pickled).to_list(), copy.copy(pickled).maxlen)
+print(pickle.loads(pickle.dumps(pickled, 4)).to_list())
 d.clear()
 print(d.__len__())

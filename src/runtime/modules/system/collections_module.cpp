@@ -706,6 +706,31 @@ bool deque_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   return deque_init(runtime, init_args, 3, ignored, error, nullptr);
 }
 
+bool deque_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "deque.__reduce__() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = deque_state(args[0], error);
+  if (state == nullptr) return false;
+  std::vector<Value> values(state->items.begin(), state->items.end());
+  Value klass;
+  if (!runtime_type_of_value(runtime, args[0], klass)) return false;
+  const Value maxlen = state->maxlen < 0 ? Value::none() : Value::int64(state->maxlen);
+  out = Value::tuple({klass, Value::tuple({Value::list(std::move(values)), maxlen})});
+  return true;
+}
+
+bool deque_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "deque.__reduce_ex__() expected a protocol integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return deque_reduce(runtime, args, 1, out, error, nullptr);
+}
+
 bool deque_compare(
     Runtime& runtime,
     const Value* args,
@@ -941,6 +966,8 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"count", runtime.make_native_function("_collections.deque.count", deque_count)});
   attrs.push_back({"remove", runtime.make_native_function("_collections.deque.remove", deque_remove)});
   attrs.push_back({"copy", runtime.make_native_function("_collections.deque.copy", deque_copy)});
+  attrs.push_back({"__reduce__", runtime.make_native_function("_collections.deque.__reduce__", deque_reduce)});
+  attrs.push_back({"__reduce_ex__", runtime.make_native_function("_collections.deque.__reduce_ex__", deque_reduce_ex)});
   attrs.push_back({"reverse", runtime.make_native_function("_collections.deque.reverse", deque_reverse)});
   attrs.push_back({"rotate", runtime.make_native_function("_collections.deque.rotate", deque_rotate)});
   attrs.push_back({"index", runtime.make_native_function("_collections.deque.index", deque_index)});
