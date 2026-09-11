@@ -1128,6 +1128,97 @@ bool io_open_code(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   return open_fn->callback(runtime, open_args, 2, out, error, open_fn->user_data);
 }
 
+bool file_io_new(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  // FileIO is the unbuffered binary view of the runtime's descriptor-backed
+  // FileObject.  Route construction through builtin open so path handling,
+  // descriptors, closefd, and custom openers remain identical.
+  if (argc < 2 || argc > 5) {
+    error = "FileIO() expected file and at most mode, closefd, and opener";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value file = args[1];
+  Value mode = argc >= 3 ? args[2] : Value::string("r");
+  Value closefd = argc >= 4 ? args[3] : Value::boolean(true);
+  Value opener = argc >= 5 ? args[4] : Value::none();
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "FileIO() received an invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const std::string key(kwargs[i].name);
+    if (key == "mode") {
+      if (argc >= 3) {
+        error = "FileIO() got multiple values for argument 'mode'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      mode = *kwargs[i].value;
+    } else if (key == "closefd") {
+      if (argc >= 4) {
+        error = "FileIO() got multiple values for argument 'closefd'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      closefd = *kwargs[i].value;
+    } else if (key == "opener") {
+      if (argc >= 5) {
+        error = "FileIO() got multiple values for argument 'opener'";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      opener = *kwargs[i].value;
+    } else {
+      error = "FileIO() got an unexpected keyword argument '" + key + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  std::string mode_text;
+  if (!string_value(mode, mode_text)) {
+    error = "FileIO() mode must be a string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (mode_text.find('t') != std::string::npos) {
+    error = "FileIO() does not support text mode";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (mode_text.find('b') == std::string::npos) {
+    mode_text.push_back('b');
+  }
+  const Value* open_value = runtime.find_builtin("open");
+  auto* open_fn = open_value == nullptr ? nullptr : value_as_native_function(*open_value);
+  if (open_fn == nullptr || open_fn->callback == nullptr) {
+    error = "builtin open is not available";
+    return false;
+  }
+  Value open_args[] = {
+      file, Value::string(std::move(mode_text)), Value::int64(0), Value::none(),
+      Value::none(), Value::none(), closefd, opener};
+  return open_fn->callback(runtime, open_args, 8, out, error, open_fn->user_data);
+}
+
+bool file_io_new_positional(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return file_io_new(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
 bool stream_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                    std::string& error, void* user_data) {
   if (argc != 1) {
@@ -1646,7 +1737,13 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
   Value raw_io_base = Value::class_object("_RawIOBase", base_attrs, io_base);
   Value text_io_base = Value::class_object("_TextIOBase", base_attrs);
   Value buffered_io_base = Value::class_object("_BufferedIOBase", base_attrs, io_base);
-  Value file_io = Value::class_object("FileIO", {}, raw_io_base);
+  Value file_io = Value::class_object(
+      "FileIO",
+      {{"__module__", Value::string("_io")},
+       {"__new__", runtime.make_native_function(
+                       "_io.FileIO.__new__", file_io_new_positional, nullptr, nullptr,
+                       nullptr, false, file_io_new)}},
+      raw_io_base);
   Value buffered_reader = make_buffered_stream_class(runtime, "BufferedReader", "_io.BufferedReader", buffered_reader_init);
   Value buffered_writer = make_buffered_stream_class(runtime, "BufferedWriter", "_io.BufferedWriter", buffered_writer_init);
   Value buffered_random = make_buffered_stream_class(runtime, "BufferedRandom", "_io.BufferedRandom", buffered_random_init);

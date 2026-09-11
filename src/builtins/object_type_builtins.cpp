@@ -642,7 +642,7 @@ bool class_tuple_matches(
     const std::string& name = expected->name;
     if (name == "IOBase" || name == "_IOBase" ||
         ((name == "TextIOBase" || name == "_TextIOBase") && !file->binary) ||
-        ((name == "RawIOBase" || name == "_RawIOBase") && file->binary && file->buffering == 0) ||
+        ((name == "RawIOBase" || name == "_RawIOBase" || name == "FileIO") && file->binary && file->buffering == 0) ||
         ((name == "BufferedIOBase" || name == "_BufferedIOBase") && file->binary && file->buffering != 0)) {
       out = true;
       return true;

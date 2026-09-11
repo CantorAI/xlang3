@@ -1,5 +1,6 @@
 import io
 import _io
+import os
 
 
 s = io.StringIO("ab")
@@ -52,3 +53,16 @@ try:
     text.read()
 except Exception as exc:
     print(type(exc).__name__)
+
+path = "xlang3_fileio_native.tmp"
+file = _io.FileIO(path, mode="w+")
+print(file.mode, file.writable(), file.readable(), isinstance(file, _io.FileIO))
+print(file.write(b"abc"))
+file.seek(0)
+print(file.read())
+file.close()
+print(file.closed)
+file = _io.FileIO(path, "r")
+print(file.mode, file.read())
+file.close()
+os.unlink(path)

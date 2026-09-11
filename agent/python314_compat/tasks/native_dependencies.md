@@ -37,7 +37,10 @@
   returns its wrapped binary buffer and invalidates the wrapper as CPython does;
   `TextIOWrapper.reconfigure()` updates encoding, error handling, newline mode,
   and buffering flags, and `TextIOWrapper.buffer` exposes the wrapped binary stream.
-  `TextIOWrapper.name` forwards a wrapped stream name.
+  `TextIOWrapper.name` forwards a wrapped stream name. `FileIO` now constructs
+  descriptor-backed unbuffered binary streams through the runtime open path,
+  with mode normalization, keyword arguments, `closefd`/opener forwarding, and
+  raw read/write/seek/close behavior.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

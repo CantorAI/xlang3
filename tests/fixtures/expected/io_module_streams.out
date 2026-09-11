@@ -20,3 +20,8 @@ TextIOWrapper TextIOWrapper True
 FileIO True True
 b'ok' True
 ValueError
+w+b True True True
+3
+b'abc'
+True
+rb b'abc'
