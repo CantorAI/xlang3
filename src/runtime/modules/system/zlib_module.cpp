@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
@@ -123,6 +124,27 @@ bool zlib_int_arg(const Value* args, uint32_t argc, uint32_t index, int default_
   }
   out = static_cast<int>(args[index].as.i64);
   return true;
+}
+
+bool zlib_as_index(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (value_int_like_to_i64(value, out) || value_bigint_to_i64(value, out)) {
+    return true;
+  }
+  Value index_method;
+  std::string lookup_error;
+  if (!object_get_attr(value, "__index__", index_method, lookup_error)) {
+    return false;
+  }
+  Value converted;
+  if (!runtime_call_callable(runtime, index_method, nullptr, 0, converted, error)) {
+    return false;
+  }
+  if (value_int_like_to_i64(converted, out) || value_bigint_to_i64(converted, out)) {
+    return true;
+  }
+  error = "__index__ returned non-int";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool zlib_stream_run(
@@ -292,19 +314,21 @@ bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (!zlib_bytes_arg(args[0], "zlib.decompress data", input, error)) {
     return zlib_class_fail(runtime, "TypeError", error, error);
   }
-  if (argc >= 2 && args[1].tag != ValueTag::Int64) {
+  int64_t wbits_value = MAX_WBITS;
+  int64_t bufsize_value = 16384;
+  if (argc >= 2 && !zlib_as_index(runtime, args[1], wbits_value, error)) {
     return zlib_class_fail(runtime, "TypeError", "zlib.decompress() wbits must be int", error);
   }
-  if (argc >= 3 && args[2].tag != ValueTag::Int64) {
+  if (argc >= 3 && !zlib_as_index(runtime, args[2], bufsize_value, error)) {
     return zlib_class_fail(runtime, "TypeError", "zlib.decompress() bufsize must be int", error);
   }
-  if (argc >= 3 && args[2].as.i64 < 0) {
+  if (bufsize_value < 0) {
     return zlib_class_fail(runtime, "ValueError", "bufsize must be non-negative", error);
   }
-  const int wbits = argc >= 2 ? static_cast<int>(args[1].as.i64) : MAX_WBITS;
+  const int wbits = static_cast<int>(wbits_value);
   size_t chunk_size = 16384;
-  if (argc >= 3 && args[2].tag == ValueTag::Int64 && args[2].as.i64 > 0) {
-    chunk_size = static_cast<size_t>(args[2].as.i64);
+  if (bufsize_value > 0) {
+    chunk_size = static_cast<size_t>(bufsize_value);
   }
 
   z_stream stream{};
@@ -325,6 +349,9 @@ bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     rc = inflate(&stream, Z_NO_FLUSH);
     if (rc != Z_OK && rc != Z_STREAM_END) {
       inflateEnd(&stream);
+      if (rc == Z_BUF_ERROR) {
+        return zlib_fail(runtime, "Error -5 while decompressing data: incomplete or truncated stream", error);
+      }
       return zlib_fail(runtime, stream.msg != nullptr ? stream.msg : "zlib.decompress failed: " + std::to_string(rc), error);
     }
     decompressed.append(chunk.data(), chunk.size() - stream.avail_out);

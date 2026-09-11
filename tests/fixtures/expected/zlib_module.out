@@ -32,3 +32,5 @@ b'raw'
 b'gzip-keyword'
 negative max length
 terminal decompressor copy
+b'index-buffer'
+True

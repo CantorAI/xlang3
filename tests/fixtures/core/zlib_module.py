@@ -117,3 +117,13 @@ try:
     terminal_decompressor.copy()
 except ValueError:
     print("terminal decompressor copy")
+
+class _ZlibIndex:
+    def __index__(self):
+        return 64
+
+print(zlib.decompress(zlib.compress(b"index-buffer"), bufsize=_ZlibIndex()))
+try:
+    zlib.decompress(zlib.compress(b"truncated")[:-1])
+except zlib.error as exc:
+    print("incomplete or truncated stream" in str(exc))
