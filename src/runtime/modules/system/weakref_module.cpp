@@ -995,6 +995,31 @@ uint64_t weakref_collect_cycles() {
   }
   std::vector<Object*> instance_candidates;
   std::unordered_set<Object*> instance_candidate_set;
+  const auto unwrap_protocol_iterator_instance = [](const Value& value) -> InstanceObject* {
+    const Value* current = &value;
+    for (int depth = 0; depth < 16; ++depth) {
+      if (current->tag != ValueTag::Object || current->as.obj == nullptr ||
+          current->as.obj->kind != ObjectKind::ProtocolIterator) {
+        break;
+      }
+      const auto* iterator = reinterpret_cast<const ProtocolIteratorObject*>(current->as.obj);
+      current = &iterator->iterator;
+    }
+    return value_as_instance(*current);
+  };
+  const auto add_instance = [&](const Value& value) {
+    if (auto* instance = value_as_instance(value)) {
+      if (instance_candidate_set.insert(reinterpret_cast<Object*>(instance)).second) {
+        instance_candidates.push_back(reinterpret_cast<Object*>(instance));
+      }
+      return;
+    }
+    if (auto* instance = unwrap_protocol_iterator_instance(value)) {
+      if (instance_candidate_set.insert(reinterpret_cast<Object*>(instance)).second) {
+        instance_candidates.push_back(reinterpret_cast<Object*>(instance));
+      }
+    }
+  };
   for (const auto& entry : weakref_registry()) {
     if (entry.target != nullptr && entry.target->kind == ObjectKind::Instance &&
         instance_candidate_set.insert(entry.target).second) {
@@ -1003,16 +1028,11 @@ uint64_t weakref_collect_cycles() {
   }
   for (size_t index = 0; index < instance_candidates.size(); ++index) {
     auto* instance = reinterpret_cast<InstanceObject*>(instance_candidates[index]);
-    const auto add_instance = [&](const Value& value) {
-      if (value_as_instance(value) != nullptr && instance_candidate_set.insert(value.as.obj).second) {
-        instance_candidates.push_back(value.as.obj);
-      }
-    };
     const auto add_native_instance_refs = [&](InstanceObject* candidate) {
       Value candidate_value;
       candidate_value.tag = ValueTag::Object;
       candidate_value.flags = kXlangValueBorrowedRefFlag;
-      candidate_value.as.obj = candidate;
+      candidate_value.as.obj = reinterpret_cast<Object*>(candidate);
       if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
         for (const auto& item : deque->items) {
           add_instance(item);
@@ -1054,16 +1074,23 @@ uint64_t weakref_collect_cycles() {
       internal_refs[candidate] = 0;
     }
     const auto count_candidate_ref = [&](const Value& value) {
-      if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
-          instance_candidate_set.find(value.as.obj) != instance_candidate_set.end()) {
-        ++internal_refs[value.as.obj];
+      if (auto* instance = value_as_instance(value)) {
+        if (instance_candidate_set.find(reinterpret_cast<Object*>(instance)) != instance_candidate_set.end()) {
+          ++internal_refs[reinterpret_cast<Object*>(instance)];
+        }
+        return;
+      }
+      if (auto* instance = unwrap_protocol_iterator_instance(value)) {
+        if (instance_candidate_set.find(reinterpret_cast<Object*>(instance)) != instance_candidate_set.end()) {
+          ++internal_refs[reinterpret_cast<Object*>(instance)];
+        }
       }
     };
     const auto add_native_instance_ref = [&](InstanceObject* candidate) {
       Value candidate_value;
       candidate_value.tag = ValueTag::Object;
       candidate_value.flags = kXlangValueBorrowedRefFlag;
-      candidate_value.as.obj = candidate;
+      candidate_value.as.obj = reinterpret_cast<Object*>(candidate);
       if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
         for (const auto& item : deque->items) {
           count_candidate_ref(item);
