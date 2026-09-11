@@ -82,8 +82,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Native IPv6 sockets now carry `sockaddr_in6` through loopback UDP/TCP
   bind, connect, send/receive, accept, and local/peer names, using CPython's
   four-element IPv6 sockaddr tuples; `has_ipv6` now reflects the native stack.
-  Native `gethostbyname_ex()` returns canonical-name, aliases, and IPv4 address
-  tuples through Winsock resolution.
+  Native `gethostbyname_ex()` and `gethostbyaddr()` return CPython-compatible
+  hostname, aliases, and IPv4 address tuples through Winsock resolution.
   `getprotobyname()` resolves Winsock protocol names for source-backed
   `socket` callers.
   Network byte-order helpers reject negative and oversized values with CPython

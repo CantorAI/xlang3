@@ -23,6 +23,8 @@ except Exception as exc:
     print(type(exc).__name__)
 host_info = _socket.gethostbyname_ex("localhost")
 print(isinstance(host_info, tuple), host_info[1] == [], "127.0.0.1" in host_info[2])
+reverse_info = _socket.gethostbyaddr("127.0.0.1")
+print(isinstance(reverse_info, tuple), len(reverse_info) == 3, "127.0.0.1" in reverse_info[2])
 print(_socket.inet_ntop(_socket.AF_INET6, _socket.inet_pton(_socket.AF_INET6, "::1")))
 print(_socket.inet_ntoa(_socket.inet_aton("127.0.0.1")))
 ipv6_rows = _socket.getaddrinfo("::1", 0, _socket.AF_INET6)
