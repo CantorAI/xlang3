@@ -43,6 +43,7 @@ void register_winreg_module(Runtime& runtime) {
       .value("HKEY_CURRENT_USER", Value::int64(0x80000001ll))
       .value("HKEY_LOCAL_MACHINE", Value::int64(0x80000002ll))
       .value("HKEY_USERS", Value::int64(0x80000003ll))
+      .value("HKEY_PERFORMANCE_DATA", Value::int64(0x80000004ll))
       .value("HKEY_CURRENT_CONFIG", Value::int64(0x80000005ll))
       .value("KEY_QUERY_VALUE", Value::int64(0x0001))
       .value("KEY_SET_VALUE", Value::int64(0x0002))
