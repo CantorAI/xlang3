@@ -115,6 +115,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   text-stream properties.
   In-memory `BytesIO` and `StringIO` now support `copy.copy()` and protocol-4
   pickle round-trips, preserving both their contents and current cursor.
+  Native `FileIO.__init__()` now reinitializes an existing descriptor-backed
+  file object through the normal open path and preserves `closefd=False`
+  ownership, matching CPython's direct reinitialization contract.
   Their `__getstate__()` and `__setstate__()` state tuples are also available
   for source-backed serialization, including the configured `StringIO` newline
   mode.

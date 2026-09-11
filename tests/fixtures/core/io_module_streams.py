@@ -236,3 +236,16 @@ class _FixtureRawBase(_io.RawIOBase):
         return count
 
 assert _FixtureRawBase().readall() == b"raw"
+
+fileio_reinit_path = "xlang3_fileio_reinit.tmp"
+with open(fileio_reinit_path, "wb") as fileio_reinit_seed:
+    fileio_reinit_seed.write(b"fixture")
+fileio_reinit_first = open(fileio_reinit_path, "rb")
+fileio_reinit_second = open(fileio_reinit_path, "rb")
+fileio_reinit = _io.FileIO(fileio_reinit_first.fileno(), closefd=False)
+fileio_reinit.__init__(fileio_reinit_second.fileno(), closefd=False)
+fileio_reinit.close()
+print(not fileio_reinit_first.closed, not fileio_reinit_second.closed)
+fileio_reinit_first.close()
+fileio_reinit_second.close()
+os.remove(fileio_reinit_path)

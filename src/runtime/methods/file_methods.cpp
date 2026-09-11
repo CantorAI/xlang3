@@ -1176,6 +1176,112 @@ bool file_close_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
+void file_adopt_state(FileObject& target, FileObject& source) {
+  target.runtime = source.runtime;
+  target.fs = source.fs;
+  target.path = std::move(source.path);
+  target.mode = std::move(source.mode);
+  target.buffer = std::move(source.buffer);
+  target.encoding = std::move(source.encoding);
+  target.errors = std::move(source.errors);
+  target.newline = std::move(source.newline);
+  target.newline_is_none = source.newline_is_none;
+  target.cursor = source.cursor;
+  target.readable = source.readable;
+  target.writable = source.writable;
+  target.append = source.append;
+  target.binary = source.binary;
+  target.buffering = source.buffering;
+  target.closed = source.closed;
+  target.devnull = source.devnull;
+  target.fd_backed = source.fd_backed;
+  target.fd = source.fd;
+  target.fd_native_handle = source.fd_native_handle;
+  target.closefd = source.closefd;
+  source.closed = true;
+  source.fd = -1;
+}
+
+bool file_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 5) {
+    error = "FileIO.__init__() expected file and at most mode, closefd, and opener";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* target = argc >= 1 && args[0].tag == ValueTag::Object && args[0].as.obj != nullptr &&
+          args[0].as.obj->kind == ObjectKind::File
+      ? reinterpret_cast<FileObject*>(args[0].as.obj)
+      : nullptr;
+  if (target == nullptr) {
+    error = "FileIO.__init__ target is not a file";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value mode = argc >= 3 ? args[2] : Value::string("r");
+  Value closefd = argc >= 4 ? args[3] : Value::boolean(true);
+  Value opener = argc >= 5 ? args[4] : Value::none();
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) continue;
+    const std::string key(kwargs[index].name);
+    if (key == "mode" && argc < 3) mode = *kwargs[index].value;
+    else if (key == "closefd" && argc < 4) closefd = *kwargs[index].value;
+    else if (key == "opener" && argc < 5) opener = *kwargs[index].value;
+    else {
+      error = "FileIO.__init__() got an unexpected or duplicate keyword argument '" + key + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  auto* mode_text = value_as_string(mode);
+  if (mode_text == nullptr) {
+    error = "FileIO.__init__() mode must be a string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string binary_mode = string_object_to_string(*mode_text);
+  if (binary_mode.find('t') != std::string::npos) {
+    error = "FileIO.__init__() does not support text mode";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (binary_mode.find('b') == std::string::npos) binary_mode.push_back('b');
+  const Value* open_value = runtime.find_builtin("open");
+  auto* open_fn = open_value == nullptr ? nullptr : value_as_native_function(*open_value);
+  if (open_fn == nullptr || open_fn->callback == nullptr) {
+    error = "builtin open is not available";
+    return false;
+  }
+  Value open_args[] = {args[1], Value::string(std::move(binary_mode)), Value::int64(0), Value::none(),
+                       Value::none(), Value::none(), closefd, opener};
+  Value opened;
+  if (!open_fn->callback(runtime, open_args, 8, opened, error, open_fn->user_data)) return false;
+  auto* replacement = opened.tag == ValueTag::Object && opened.as.obj != nullptr &&
+          opened.as.obj->kind == ObjectKind::File
+      ? reinterpret_cast<FileObject*>(opened.as.obj)
+      : nullptr;
+  if (replacement == nullptr) {
+    error = "FileIO.__init__ open did not return a file";
+    return false;
+  }
+  std::string close_error;
+  if (!target->closed && !fd_close(*target, close_error)) return false;
+  file_adopt_state(*target, *replacement);
+  value_set_none(out);
+  return true;
+}
+
+bool file_init_positional(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* data) {
+  return file_init_kw(runtime, args, argc, nullptr, 0, out, error, data);
+}
+
 bool file_closed_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.closed", error)) {
     return false;
@@ -1428,6 +1534,12 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
   }
   if (name == "readall" && (!file->binary || file->buffering != 0)) {
     return false;
+  }
+  if (name == "__init__") {
+    static Value init = Value::native_function(
+        0, "FileIO.__init__", file_init_positional, nullptr, nullptr, nullptr, false, file_init_kw);
+    out = Value::bound_method(object, init);
+    return true;
   }
   static constexpr BuiltinMethodSpec methods[] = {
       {"__enter__", "file.__enter__", file_enter_method},
