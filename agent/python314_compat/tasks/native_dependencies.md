@@ -190,8 +190,7 @@ passed 47/47 tests, including the aggregate fixture suite.
   comparisons, concatenation, and in-place operations.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
   iterator, comparison, copy/pickle, and representation parity; plus
-  defaultdict/OrderedDict parity. CPython 3.14 `test_deque.TestBasic` currently
-  has 24 errors and 8 failures across 48 tests.
+  defaultdict/OrderedDict parity. Focused CPython 3.14 	est_deque.TestBasic\n  mutation-search and recursive-representation checks now pass; full-class validation\n  remains pending because the stress cases require a dedicated long-running run.
 
 - [~] zlib and zipimport
   Coverage: `tests/fixtures/core/zlib_module.py`, `tests/fixtures/core/zipfile_module.py`, `tests/fixtures/core/zipimport_module.py`, `tests/fixtures/core/sys_path_importer_cache.py`.
