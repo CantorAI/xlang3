@@ -146,6 +146,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   four-element IPv6 sockaddr tuples; `has_ipv6` now reflects the native stack.
   Native `gethostbyname_ex()` and `gethostbyaddr()` return CPython-compatible
   hostname, aliases, and IPv4 address tuples through Winsock resolution.
+  Winsock hostname calls normalize Unicode host names with Windows IDNA before
+  resolution, and native sockets reject pickling with CPython's `TypeError`.
+  Socket finalization emits a CPython-compatible unclosed-socket warning even
+  after a socket has been bound.
   `getprotobyname()` and service-name/port resolution use Winsock for
   source-backed `socket` callers.
   Network byte-order helpers reject negative values with `ValueError` and
@@ -174,6 +178,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   `KeyboardInterrupt` exit behavior.
   `raise_signal()` now invokes registered handlers and rejects unsupported
   signal values with `ValueError`.
+  Validation: CPython 3.14 `test_socket.GeneralModuleTests` passes (78 tests,
+  25 expected skips), including IDNA lookup, bound-socket finalization warnings,
+  descriptor adoption, and pickling rejection.
   Remaining: broader address-family/service resolution, deeper selectors edge
   behavior, signal delivery, full
   `_overlapped` IOCP behavior, and platform constants.

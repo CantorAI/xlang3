@@ -37,6 +37,7 @@ limitations under the License.
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <mstcpip.h>
+#pragma comment(lib, "Normaliz.lib")
 #else
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -111,6 +112,37 @@ bool ensure_socket_runtime(std::string& error) {
   (void)error;
 #endif
   return true;
+}
+
+bool socket_idna_hostname(std::string_view host, std::string& ascii) {
+#ifdef _WIN32
+  if (std::all_of(host.begin(), host.end(), [](unsigned char ch) { return ch < 0x80; })) {
+    ascii.assign(host);
+    return true;
+  }
+  const int wide_size = MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, host.data(), static_cast<int>(host.size()), nullptr, 0);
+  if (wide_size <= 0) return false;
+  std::wstring wide(static_cast<size_t>(wide_size), L'\0');
+  if (MultiByteToWideChar(
+          CP_UTF8, MB_ERR_INVALID_CHARS, host.data(), static_cast<int>(host.size()),
+          wide.data(), wide_size) != wide_size) {
+    return false;
+  }
+  const int idna_size = IdnToAscii(0, wide.data(), wide_size, nullptr, 0);
+  if (idna_size <= 0) return false;
+  std::wstring idna(static_cast<size_t>(idna_size), L'\0');
+  if (IdnToAscii(0, wide.data(), wide_size, idna.data(), idna_size) != idna_size) return false;
+  const int utf8_size = WideCharToMultiByte(
+      CP_UTF8, 0, idna.data(), idna_size, nullptr, 0, nullptr, nullptr);
+  if (utf8_size <= 0) return false;
+  ascii.resize(static_cast<size_t>(utf8_size));
+  return WideCharToMultiByte(
+      CP_UTF8, 0, idna.data(), idna_size, ascii.data(), utf8_size, nullptr, nullptr) == utf8_size;
+#else
+  ascii.assign(host);
+  return true;
+#endif
 }
 
 int to_native_family(int64_t family) {
@@ -391,8 +423,7 @@ void socket_cleanup(void* data) {
           "unclosed <socket.socket fd=" + std::to_string(static_cast<int64_t>(state->fd)) +
           ", family=" + std::to_string(state->family) +
           ", type=" + std::to_string(state->type) +
-          ", proto=" + std::to_string(state->proto) +
-          ", laddr=('" + state->host + "', " + std::to_string(state->port) + ")>");
+          ", proto=" + std::to_string(state->proto) + ">");
     }
     close_native_socket(state->fd);
   }
@@ -1883,7 +1914,12 @@ bool socket_gethostbyname(Runtime& runtime, const Value* args, uint32_t argc, Va
     error = startup_error;
     return false;
   }
-  const std::string host = string_object_to_string(*host_string);
+  std::string host;
+  if (!socket_idna_hostname(string_object_to_string(*host_string), host)) {
+    error = "gethostbyname() host name is not valid IDNA";
+    runtime.raise_class_error("UnicodeError", error);
+    return false;
+  }
   addrinfo hints{};
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
@@ -1923,7 +1959,12 @@ bool socket_gethostbyname_ex(Runtime& runtime, const Value* args, uint32_t argc,
     error = startup_error;
     return false;
   }
-  const std::string host = string_object_to_string(*value_as_string(args[0]));
+  std::string host;
+  if (!socket_idna_hostname(string_object_to_string(*value_as_string(args[0])), host)) {
+    error = "gethostbyname_ex() host name is not valid IDNA";
+    runtime.raise_class_error("UnicodeError", error);
+    return false;
+  }
   addrinfo hints{};
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
@@ -2398,6 +2439,13 @@ bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
       runtime.raise_class_error("UnicodeEncodeError", error);
       return false;
     }
+    std::string idna_host;
+    if (!socket_idna_hostname(host_storage, idna_host)) {
+      error = "host name is not valid IDNA";
+      runtime.raise_class_error("UnicodeError", error);
+      return false;
+    }
+    host_storage = std::move(idna_host);
     host = host_storage.c_str();
   }
 

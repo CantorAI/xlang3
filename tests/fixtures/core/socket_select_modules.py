@@ -179,3 +179,11 @@ fileno_ipv6.bind(("::1", 0, 0, 0))
 fileno_adopted = socket.socket(fileno=fileno_ipv6.detach())
 print(fileno_adopted.family == socket.AF_INET6, fileno_adopted.type == socket.SOCK_STREAM)
 fileno_adopted.close()
+
+import pickle
+pickle_socket = socket.socket()
+try:
+    pickle.dumps(pickle_socket)
+except TypeError as exc:
+    print("cannot pickle 'socket' object" in str(exc))
+pickle_socket.close()
