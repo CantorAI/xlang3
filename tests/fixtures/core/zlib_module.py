@@ -29,6 +29,10 @@ c4 = c3.copy()
 left = zlib.decompress(head + c3.compress(b"-left") + c3.flush())
 right = zlib.decompress(head + c4.compress(b"-right") + c4.flush())
 print(left, right)
+import copy
+c5 = zlib.compressobj()
+c6 = copy.deepcopy(c5)
+print(zlib.decompress(c5.compress(b"a") + c5.flush()), zlib.decompress(c6.compress(b"b") + c6.flush()))
 
 encoded = zlib.compress(b"copy-me")
 d3 = zlib.decompressobj()

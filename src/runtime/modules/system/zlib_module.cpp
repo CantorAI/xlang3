@@ -435,6 +435,11 @@ bool zlib_compress_object_copy(Runtime& runtime, const Value* args, uint32_t arg
   return true;
 }
 
+bool zlib_compress_object_deepcopy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) return zlib_class_fail(runtime, "TypeError", "Compress.__deepcopy__() expected memo", error);
+  return zlib_compress_object_copy(runtime, args, 1, out, error, nullptr);
+}
+
 bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "Decompress.decompress() expected data and optional max_length";
@@ -569,6 +574,11 @@ bool zlib_decompress_object_copy(Runtime& runtime, const Value* args, uint32_t a
   return true;
 }
 
+bool zlib_decompress_object_deepcopy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) return zlib_class_fail(runtime, "TypeError", "Decompress.__deepcopy__() expected memo", error);
+  return zlib_decompress_object_copy(runtime, args, 1, out, error, nullptr);
+}
+
 bool zlib_crc32(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     return zlib_class_fail(runtime, "TypeError", "zlib.crc32() expected data and optional value", error);
@@ -607,6 +617,8 @@ Value make_compress_class(Runtime& runtime) {
   attrs.push_back({"compress", runtime.make_native_function("zlib.Compress.compress", zlib_compress_object_compress)});
   attrs.push_back({"flush", runtime.make_native_function("zlib.Compress.flush", zlib_compress_object_flush)});
   attrs.push_back({"copy", runtime.make_native_function("zlib.Compress.copy", zlib_compress_object_copy)});
+  attrs.push_back({"__copy__", runtime.make_native_function("zlib.Compress.__copy__", zlib_compress_object_copy)});
+  attrs.push_back({"__deepcopy__", runtime.make_native_function("zlib.Compress.__deepcopy__", zlib_compress_object_deepcopy)});
   return Value::class_object("Compress", std::move(attrs));
 }
 
@@ -616,6 +628,8 @@ Value make_decompress_class(Runtime& runtime) {
   attrs.push_back({"decompress", runtime.make_native_function("zlib.Decompress.decompress", zlib_decompress_object_decompress)});
   attrs.push_back({"flush", runtime.make_native_function("zlib.Decompress.flush", zlib_decompress_object_flush)});
   attrs.push_back({"copy", runtime.make_native_function("zlib.Decompress.copy", zlib_decompress_object_copy)});
+  attrs.push_back({"__copy__", runtime.make_native_function("zlib.Decompress.__copy__", zlib_decompress_object_copy)});
+  attrs.push_back({"__deepcopy__", runtime.make_native_function("zlib.Decompress.__deepcopy__", zlib_decompress_object_deepcopy)});
   return Value::class_object("Decompress", std::move(attrs));
 }
 
