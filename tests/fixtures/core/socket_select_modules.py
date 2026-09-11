@@ -107,6 +107,15 @@ for signum in (-1, 7):
         signal.signal(signum, handler)
     except ValueError:
         print(True)
+raised_signals = []
+signal.signal(signal.SIGBREAK, lambda signum, frame: raised_signals.append(signum))
+signal.raise_signal(signal.SIGBREAK)
+print(raised_signals)
+signal.signal(signal.SIGBREAK, signal.SIG_DFL)
+try:
+    signal.raise_signal(-1)
+except ValueError:
+    print(True)
 inheritable_socket = _socket.socket()
 print(inheritable_socket.get_inheritable())
 inheritable_socket.set_inheritable(True)

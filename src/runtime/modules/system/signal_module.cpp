@@ -114,6 +114,11 @@ bool raise_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   auto* state = signal_state(user_data);
+  if (!supported_signal(*state, signum)) {
+    error = "invalid signal number";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   auto it = state->handlers.find(signum);
   if (it == state->handlers.end() || (it->second.tag == ValueTag::Int64 && it->second.as.i64 >= 0 && it->second.as.i64 <= 1)) {
     value_set_none(out);

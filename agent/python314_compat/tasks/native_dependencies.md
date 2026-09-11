@@ -130,6 +130,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.
+  `raise_signal()` now invokes registered handlers and rejects unsupported
+  signal values with `ValueError`.
   Remaining: broader address-family/service resolution, deeper selectors edge
   behavior, signal delivery, full
   `_overlapped` IOCP behavior, and platform constants.
