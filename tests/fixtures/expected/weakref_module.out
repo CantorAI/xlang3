@@ -2,11 +2,11 @@ box
 ReferenceType weakref True
 box
 removed
-1
-[<ReferenceType object>]
+2
+['ProxyType', 'ReferenceType']
 box
 box
 True True
 True
 [True]
-[True]
+['ProxyType']

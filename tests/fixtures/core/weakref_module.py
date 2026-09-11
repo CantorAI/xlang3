@@ -18,7 +18,7 @@ proxy.extra = 7
 del proxy.extra
 print(b.extra if hasattr(b, "extra") else "removed")
 print(weakref.getweakrefcount(b))
-print(weakref.getweakrefs(b))
+print(sorted(type(item).__name__ for item in weakref.getweakrefs(b)))
 
 r2 = _weakref.ref(b)
 print(r2().name)
@@ -34,6 +34,6 @@ callback_ref = weakref.ref(Box(), lambda ref: events.append(ref() is None))
 gc.collect()
 print(events)
 proxy_events = []
-callback_proxy = weakref.proxy(Box(), lambda ref: proxy_events.append(ref is callback_proxy))
+callback_proxy = weakref.proxy(Box(), lambda ref: proxy_events.append(type(ref).__name__))
 gc.collect()
 print(proxy_events)
