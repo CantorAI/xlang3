@@ -27,6 +27,37 @@ namespace xlang3 {
 
 namespace {
 
+struct CycleState {
+  std::vector<Value> items;
+  size_t index = 0;
+};
+
+void cycle_state_cleanup(void* data) {
+  delete static_cast<CycleState*>(data);
+}
+
+bool cycle_next(
+    Runtime& runtime,
+    const Value*,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 0) {
+    error = "itertools.cycle iterator expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<CycleState*>(user_data);
+  if (state == nullptr || state->items.empty()) {
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
+  value_assign_fast(out, state->items[state->index]);
+  state->index = (state->index + 1) % state->items.size();
+  return true;
+}
+
 bool int_arg(const Value& value, int64_t& out) {
   if (value.tag == ValueTag::Int64) {
     out = value.as.i64;
@@ -215,6 +246,23 @@ bool itertools_filterfalse(Runtime& runtime, const Value* args, uint32_t argc, V
     return false;
   }
   out = functional_filter_iterator(&runtime, args[0], std::move(iterator), true);
+  return true;
+}
+
+bool itertools_cycle(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "itertools.cycle() expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = new CycleState();
+  if (!collect_iterable(runtime, args[0], state->items, error)) {
+    delete state;
+    return false;
+  }
+  Value step = runtime.make_native_function(
+      "itertools.cycle.__next__", cycle_next, state, cycle_state_cleanup);
+  out = functional_callable_iterator(&runtime, std::move(step), Value::invalid());
   return true;
 }
 
@@ -865,6 +913,7 @@ void register_itertools_module(Runtime& runtime) {
         error);
   }
   builder.function("count", itertools_count)
+      .function("cycle", itertools_cycle)
       .function("islice", itertools_islice)
       .function("takewhile", itertools_takewhile)
       .function("dropwhile", itertools_dropwhile)
