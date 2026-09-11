@@ -1279,6 +1279,27 @@ bool stream_closed(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool buffered_stream_detach(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                            std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "detach() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(
+      instance_get_native_data(args[0], static_cast<const char*>(user_data)));
+  if (state == nullptr || !state->wraps_buffer || state->closed) {
+    error = "raw stream has been detached";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_assign_fast(out, state->wrapped_buffer);
+  value_set_invalid(state->wrapped_buffer);
+  state->wraps_buffer = false;
+  state->closed = true;
+  return true;
+}
+
 bool string_io_newlines(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "StringIO.newlines expected no arguments";
@@ -1819,6 +1840,8 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
     attrs.push_back({"raw", Value::property(
         runtime.make_native_function(std::string("_io.") + name + ".raw", buffered_raw_get, const_cast<char*>(type)),
         Value::none(), Value::none(), Value::none())});
+    attrs.push_back({"detach", runtime.make_native_function(
+        std::string("_io.") + name + ".detach", buffered_stream_detach, const_cast<char*>(type))});
   } else {
     attrs.push_back({"reader", Value::property(
         runtime.make_native_function("_io.BufferedRWPair.reader", buffered_rw_pair_endpoint, const_cast<char*>("reader")),

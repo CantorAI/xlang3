@@ -162,3 +162,10 @@ pair_writer.seek(0)
 print(pair_writer.read())
 pair.close()
 print(pair_reader.closed, pair_writer.closed)
+detach_raw = _io.BytesIO(b"detached")
+detach_reader = _io.BufferedReader(detach_raw)
+print(detach_reader.detach() is detach_raw, detach_raw.closed)
+try:
+    detach_reader.read()
+except Exception as exc:
+    print(type(exc).__name__)

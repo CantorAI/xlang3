@@ -68,6 +68,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   stream with closed-wrapper validation.
   `BufferedRWPair` now preserves both endpoints, routes reads and writes to
   the appropriate stream, and exposes `reader` / `writer` properties.
+  Buffered reader, writer, and random wrappers now support `detach()`,
+  returning their raw stream while invalidating the wrapper.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
