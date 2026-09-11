@@ -82,7 +82,8 @@
   Validation: CPython 3.14 `test_zipimport` focused checks pass for bad archives,
   source/bytecode selection, nested package prefixes, direct member data, and
   cache invalidation. Native zlib streaming tracks `eof`, `unconsumed_tail`,
-  and accumulated `unused_data` after a stream ends.
+  and accumulated `unused_data` after a stream ends; compressor and decompressor
+  objects can be copied while their streams are active.
   Remaining: full compression matrix, encrypted ZIP behavior deferred, hash-based
   bytecode validation modes, and remaining import edge cases.
 
