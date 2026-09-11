@@ -189,6 +189,22 @@ bool zlib_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return true;
 }
 
+bool zlib_compress_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                      const NativeKeywordArg* kwargs, uint32_t kwargc,
+                      Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) return zlib_class_fail(runtime, "TypeError", "zlib.compress() expected data and optional level", error);
+  Value values[] = {args[0], argc == 2 ? args[1] : Value::int64(Z_DEFAULT_COMPRESSION)};
+  bool level_set = argc == 2;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr || std::string_view(kwargs[i].name) != "level" || level_set) {
+      return zlib_class_fail(runtime, "TypeError", "zlib.compress() got an invalid keyword argument", error);
+    }
+    values[1] = *kwargs[i].value;
+    level_set = true;
+  }
+  return zlib_compress(runtime, values, 2, out, error, nullptr);
+}
+
 bool zlib_compressobj(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* compress_class_ptr) {
   if (argc > 6) {
     error = "zlib.compressobj() expected optional level, method, wbits, memLevel, strategy, and zdict";
@@ -314,6 +330,22 @@ bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   inflateEnd(&stream);
   out = Value::bytes(std::move(decompressed));
   return true;
+}
+
+bool zlib_decompress_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                        const NativeKeywordArg* kwargs, uint32_t kwargc,
+                        Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) return zlib_class_fail(runtime, "TypeError", "zlib.decompress() expected data, optional wbits, and optional bufsize", error);
+  Value values[] = {args[0], argc > 1 ? args[1] : Value::int64(MAX_WBITS), argc > 2 ? args[2] : Value::int64(16384)};
+  bool set[] = {true, argc > 1, argc > 2};
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) return zlib_class_fail(runtime, "TypeError", "invalid zlib.decompress keyword", error);
+    const std::string_view name(kwargs[i].name);
+    const size_t index = name == "wbits" ? 1 : name == "bufsize" ? 2 : 3;
+    if (index == 3 || set[index]) return zlib_class_fail(runtime, "TypeError", "zlib.decompress() got an invalid keyword argument", error);
+    values[index] = *kwargs[i].value; set[index] = true;
+  }
+  return zlib_decompress(runtime, values, 3, out, error, nullptr);
 }
 
 bool compress_object_state(const Value& self, ZlibCompressState*& state, std::string& error) {
@@ -688,8 +720,8 @@ void register_zlib_module(Runtime& runtime) {
   auto* compress_class_slot = new Value(compress_class);
   auto* decompress_class_slot = new Value(decompress_class);
   NativeModuleBuilder builder(runtime, "zlib");
-  builder.function("compress", zlib_compress)
-      .function("decompress", zlib_decompress)
+  builder.value("compress", runtime.make_native_function("zlib.compress", zlib_compress, nullptr, nullptr, nullptr, false, zlib_compress_kw))
+      .value("decompress", runtime.make_native_function("zlib.decompress", zlib_decompress, nullptr, nullptr, nullptr, false, zlib_decompress_kw))
       .value(
           "compressobj",
           runtime.make_native_function(
@@ -726,6 +758,7 @@ void register_zlib_module(Runtime& runtime) {
       .value("Z_RLE", Value::int64(Z_RLE))
       .value("Z_FIXED", Value::int64(Z_FIXED))
       .value("DEF_MEM_LEVEL", Value::int64(kDefaultMemLevel))
+      .value("DEF_BUF_SIZE", Value::int64(16384))
       .value("MAX_WBITS", Value::int64(MAX_WBITS))
       .value("DEFLATED", Value::int64(Z_DEFLATED))
       .value("ZLIB_VERSION", Value::string(ZLIB_VERSION))

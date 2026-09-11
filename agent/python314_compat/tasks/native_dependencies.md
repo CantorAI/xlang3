@@ -211,6 +211,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   text instead of exposing only the native numeric error code.
   The native module exports CPython's standard compression strategy and flush
   constants, including `Z_RLE`, `Z_FIXED`, `Z_BLOCK`, and `Z_TREES`.
+  One-shot `compress()` accepts its `level` keyword, while `decompress()`
+  accepts `wbits` and `bufsize` keywords; `DEF_BUF_SIZE` is exported.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.

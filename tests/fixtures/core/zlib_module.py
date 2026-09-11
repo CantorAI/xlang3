@@ -96,3 +96,5 @@ try:
     zlib.decompress(zlib.compress(b"window"), 14)
 except zlib.error as exc:
     print("invalid window size" in str(exc))
+keyword_compressed = zlib.compress(b"keyword", level=1)
+print(zlib.decompress(keyword_compressed, wbits=zlib.MAX_WBITS, bufsize=zlib.DEF_BUF_SIZE))
