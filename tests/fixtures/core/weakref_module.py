@@ -42,6 +42,12 @@ def callback_property(reference):
 no_callback = weakref.ref(callback_probe)
 with_callback = weakref.ref(callback_probe, callback_property)
 print(no_callback.__callback__ is None, with_callback.__callback__ is callback_property)
+class ReprBox:
+    pass
+
+repr_box = ReprBox()
+repr_reference = weakref.ref(repr_box)
+print("ReprBox" in repr(repr_reference), "ReprBox" in str(repr_reference))
 
 class CallableBox:
     def __call__(self, value):
