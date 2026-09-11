@@ -42,6 +42,7 @@ struct PicklerState {
   int protocol = kPickleHighestProtocol;
   bool fix_imports = true;
   Value buffer_callback = Value::none();
+  Value delegate = Value::invalid();
 };
 
 struct UnpicklerState {
@@ -50,6 +51,7 @@ struct UnpicklerState {
   Value encoding = Value::string("ASCII");
   Value errors = Value::string("strict");
   Value buffers = Value::none();
+  Value delegate = Value::invalid();
 };
 
 void raise_pickle_module_error(Runtime& runtime, const char* class_name, const std::string& message) {
@@ -1275,25 +1277,45 @@ bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       {"fix_imports", Value::boolean(state->fix_imports)},
       {"buffer_callback", state->buffer_callback},
   };
-  Value delegate;
-  if (!runtime_call_callable_kw(
-          runtime, source_pickler_class, constructor_args, 2, constructor_kwargs, delegate, error)) {
+  if (state->delegate.tag == ValueTag::Invalid &&
+      !runtime_call_callable_kw(
+          runtime, source_pickler_class, constructor_args, 2, constructor_kwargs, state->delegate, error)) {
     return false;
   }
   for (const char* name : {"dispatch_table", "persistent_id", "reducer_override"}) {
     Value attr;
     std::string ignored;
     if (object_get_attr(args[0], name, attr, ignored)) {
-      (void)object_set_attr(delegate, name, attr, ignored);
+      (void)object_set_attr(state->delegate, name, attr, ignored);
     }
   }
   Value dump_method;
-  if (!attribute_get(delegate, "dump", dump_method, error) ||
+  if (!attribute_get(state->delegate, "dump", dump_method, error) ||
       !runtime_call_callable(runtime, dump_method, &args[1], 1, out, error)) {
     return false;
   }
   return true;
 
+}
+
+bool pickler_clear_memo(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "Pickler.clear_memo() expected no arguments";
+    return false;
+  }
+  auto* state = static_cast<PicklerState*>(instance_get_native_data(args[0], kPicklerNativeType));
+  if (state == nullptr) {
+    error = "invalid Pickler object";
+    raise_pickle_module_error(runtime, "PicklingError", error);
+    return false;
+  }
+  if (state->delegate.tag == ValueTag::Invalid) {
+    value_set_none(out);
+    return true;
+  }
+  Value clear_memo;
+  if (!attribute_get(state->delegate, "clear_memo", clear_memo, error)) return false;
+  return runtime_call_callable(runtime, clear_memo, nullptr, 0, out, error);
 }
 
 bool unpickler_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1365,20 +1387,20 @@ bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& o
       {"errors", state->errors},
       {"buffers", state->buffers},
   };
-  Value delegate;
-  if (!runtime_call_callable_kw(
-          runtime, source_unpickler_class, &state->file, 1, kwargs, delegate, error)) {
+  if (state->delegate.tag == ValueTag::Invalid &&
+      !runtime_call_callable_kw(
+          runtime, source_unpickler_class, &state->file, 1, kwargs, state->delegate, error)) {
     return false;
   }
   for (const char* name : {"persistent_load", "find_class"}) {
     Value attr;
     std::string ignored;
     if (object_get_attr(args[0], name, attr, ignored)) {
-      (void)object_set_attr(delegate, name, attr, ignored);
+      (void)object_set_attr(state->delegate, name, attr, ignored);
     }
   }
   Value load_method;
-  if (!attribute_get(delegate, "load", load_method, error)) return false;
+  if (!attribute_get(state->delegate, "load", load_method, error)) return false;
   return runtime_call_callable(runtime, load_method, nullptr, 0, out, error);
 }
 
@@ -1395,6 +1417,8 @@ Value make_pickler_class(Runtime& runtime, const char* name) {
   Value dump = runtime.make_native_function(std::string(name) + ".Pickler.dump", pickler_dump);
   builtin_method_set_text_signature(dump, "($self, obj, /)");
   attrs.push_back({"dump", std::move(dump)});
+  attrs.push_back({"clear_memo", runtime.make_native_function(
+      std::string(name) + ".Pickler.clear_memo", pickler_clear_memo)});
   const Value* object_class = runtime.find_builtin("object");
   return Value::class_object(
       "Pickler",
