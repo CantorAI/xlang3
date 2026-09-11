@@ -183,3 +183,5 @@ except Exception as exc:
     print(type(exc).__name__)
 read1_bytes = _io.BytesIO(b"abc")
 print(read1_bytes.read1(1), read1_bytes.read())
+print(isinstance(_io.BytesIO(), _io.BufferedIOBase), isinstance(_io.StringIO(), _io.TextIOBase))
+print(hasattr(_io.BytesIO(), "_checkReadable"), hasattr(_io.StringIO(), "_checkWritable"))

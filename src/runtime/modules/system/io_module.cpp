@@ -2169,6 +2169,8 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
   class_set_base(buffered_random, buffered_io_base, ignored);
   class_set_base(buffered_rw_pair, buffered_io_base, ignored);
   class_set_base(text_io_wrapper, text_io_base, ignored);
+  class_set_base(bytes_io, buffered_io_base, ignored);
+  class_set_base(string_io, text_io_base, ignored);
   Value incremental_newline_decoder = Value::class_object("IncrementalNewlineDecoder", {});
   builder.value("_IOBase", io_base)
       .value("_RawIOBase", raw_io_base)

@@ -74,6 +74,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   In-memory `BytesIO` and `StringIO` expose `fileno()` and raise the standard
   `UnsupportedOperation` result.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
+  Native in-memory streams now inherit their CPython `_BufferedIOBase` and
+  `_TextIOBase` relationships, including IOBase helper methods.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
