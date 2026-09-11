@@ -93,6 +93,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   `MSG_PEEK` reads; `recv_into()` supports both nbytes and flags for writable
   byte buffers.
   `send()` and `sendall()` forward optional socket flags to Winsock.
+  `setsockopt()` now routes integer, bytes-like, and explicit null-buffer
+  forms to Winsock and rejects invalid values instead of silently ignoring them.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.

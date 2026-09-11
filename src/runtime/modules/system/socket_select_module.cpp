@@ -866,7 +866,7 @@ bool socket_setdefaulttimeout(Runtime& runtime, const Value* args, uint32_t argc
   return true;
 }
 
-bool socket_setsockopt(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_setsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 4 || argc > 5) {
     error = "socket.setsockopt() expected level, optname, value";
     return false;
@@ -879,16 +879,59 @@ bool socket_setsockopt(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (fd == kInvalidSocket) {
     return false;
   }
-  if (args[1].tag == ValueTag::Int64 && args[2].tag == ValueTag::Int64 && args[3].tag == ValueTag::Int64) {
+  if (args[1].tag != ValueTag::Int64 || args[2].tag != ValueTag::Int64) {
+    error = "socket.setsockopt() level and optname must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const int level = static_cast<int>(args[1].as.i64);
+  const int option = static_cast<int>(args[2].as.i64);
+  if (args[3].tag == ValueTag::Int64) {
+    if (argc != 4) {
+      error = "socket.setsockopt() integer value does not take optlen";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     int value = static_cast<int>(args[3].as.i64);
     if (setsockopt(
         fd,
-        static_cast<int>(args[1].as.i64),
-        static_cast<int>(args[2].as.i64),
+        level,
+        option,
         reinterpret_cast<const char*>(&value),
         sizeof(value)) != 0) {
-      error = socket_last_error_text("setsockopt");
+      return raise_socket_os_error(runtime, "setsockopt", error);
+    }
+  } else if (args[3].tag == ValueTag::None) {
+    if (argc != 5 || args[4].tag != ValueTag::Int64 || args[4].as.i64 < 0) {
+      error = "socket.setsockopt() None value requires a non-negative integer optlen";
+      runtime.raise_class_error("TypeError", error);
       return false;
+    }
+    if (setsockopt(fd, level, option, nullptr, static_cast<int>(args[4].as.i64)) != 0) {
+      return raise_socket_os_error(runtime, "setsockopt", error);
+    }
+  } else {
+    if (argc != 4) {
+      error = "socket.setsockopt() bytes-like value does not take optlen";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    std::string_view value;
+    if (auto* bytes = value_as_bytes(args[3])) value = bytes_object_view(*bytes);
+    else if (auto* bytearray = value_as_bytearray(args[3])) value = bytearray->value;
+    else if (auto* view = value_as_memoryview(args[3])) value = memoryview_object_view(*view);
+    else {
+      error = "socket.setsockopt() value must be an integer or bytes-like object";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!value.data() && !value.empty()) {
+      error = "socket.setsockopt() value is a released memoryview";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (setsockopt(fd, level, option, value.data(), static_cast<int>(value.size())) != 0) {
+      return raise_socket_os_error(runtime, "setsockopt", error);
     }
   }
   value_set_none(out);
