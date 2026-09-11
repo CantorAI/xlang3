@@ -763,6 +763,12 @@ bool socket_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
+bool socket_reduce_ex(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "cannot pickle 'socket' object";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool socket_fileno(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.fileno() expected no arguments";
@@ -2501,6 +2507,7 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"__repr__", runtime.make_native_function("_socket.socket.__repr__", socket_repr)});
   attrs.push_back({"close", runtime.make_native_function("_socket.socket.close", socket_close)});
   attrs.push_back({"fileno", runtime.make_native_function("_socket.socket.fileno", socket_fileno)});
+  attrs.push_back({"__reduce_ex__", runtime.make_native_function("_socket.socket.__reduce_ex__", socket_reduce_ex)});
   attrs.push_back({"get_inheritable", runtime.make_native_function("_socket.socket.get_inheritable", socket_get_inheritable)});
   attrs.push_back({"set_inheritable", runtime.make_native_function("_socket.socket.set_inheritable", socket_set_inheritable)});
   attrs.push_back({"detach", runtime.make_native_function("_socket.socket.detach", socket_detach)});
