@@ -328,6 +328,13 @@ bool weakref_proxy(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   out = Value::instance(weakref_proxy_type(runtime));
+  if (!object_set_attr(
+          out,
+          kWeakrefCallbackAttr,
+          argc == 2 ? args[1] : Value::none(),
+          error)) {
+    return false;
+  }
   register_weakref_instance(out, args[0]);
   return true;
 }

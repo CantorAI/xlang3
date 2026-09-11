@@ -29,3 +29,7 @@ events = []
 callback_ref = weakref.ref(Box(), lambda ref: events.append(ref() is None))
 gc.collect()
 print(events)
+proxy_events = []
+callback_proxy = weakref.proxy(Box(), lambda ref: proxy_events.append(ref is callback_proxy))
+gc.collect()
+print(proxy_events)
