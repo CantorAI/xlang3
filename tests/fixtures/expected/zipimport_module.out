@@ -7,3 +7,4 @@ mod True True
 True True
 314 True
 True True
+VALUE = 'descriptor'

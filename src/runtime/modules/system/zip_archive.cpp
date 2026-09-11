@@ -240,10 +240,6 @@ bool zip_archive_extract_member(
       return false;
     }
   }
-  if ((entry.flags & 0x0008u) != 0) {
-    error = "zip data descriptors are not supported";
-    return false;
-  }
   const size_t local = entry.local_header_offset;
   if (local + 30 > archive.size() || zip_u32(archive, local) != 0x04034b50u) {
     error = "zip local header is invalid";

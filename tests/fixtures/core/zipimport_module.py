@@ -1,5 +1,6 @@
 import os
 import sys
+import io
 import zipfile
 import zipimport
 
@@ -29,3 +30,19 @@ loader.invalidate_caches()
 os.remove(archive)
 loader.invalidate_caches()
 print(loader._get_files() == [], zipimport._zip_directory_cache.get(loader.archive) is None)
+
+class NonSeekableArchive(io.BytesIO):
+    def seekable(self):
+        return False
+    def seek(self, *args):
+        raise OSError("not seekable")
+
+descriptor_data = NonSeekableArchive()
+with zipfile.ZipFile(descriptor_data, "w", zipfile.ZIP_DEFLATED) as zf:
+    zf.writestr("descriptor_mod.py", "VALUE = 'descriptor'\n")
+descriptor_archive = "xlang3_zipimport_descriptor.zip"
+with open(descriptor_archive, "wb") as file:
+    file.write(descriptor_data.getvalue())
+descriptor_loader = zipimport.zipimporter(descriptor_archive)
+print(descriptor_loader.get_source("descriptor_mod").strip())
+os.remove(descriptor_archive)
