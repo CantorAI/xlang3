@@ -1466,6 +1466,12 @@ Value make_pickler_class(Runtime& runtime, const char* name) {
   attrs.push_back({"dump", std::move(dump)});
   attrs.push_back({"clear_memo", runtime.make_native_function(
       std::string(name) + ".Pickler.clear_memo", pickler_clear_memo)});
+  attrs.push_back({"persistent_id", runtime.make_native_function(
+      std::string(name) + ".Pickler.persistent_id",
+      [](Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+        if (argc != 2) { error = "Pickler.persistent_id() expected one object"; return false; }
+        value_set_none(out); return true;
+      })});
   attrs.push_back({"memo", Value::property(
       runtime.make_native_function(std::string(name) + ".Pickler.memo", pickler_memo_get),
       Value::none(), Value::none(), Value::none())});
@@ -1484,6 +1490,14 @@ Value make_unpickler_class(Runtime& runtime, const char* name) {
       std::string(name) + ".Unpickler.__init__", unpickler_init,
       nullptr, nullptr, nullptr, false, unpickler_init_kw)});
   attrs.push_back({"load", runtime.make_native_function(std::string(name) + ".Unpickler.load", unpickler_load)});
+  attrs.push_back({"persistent_load", runtime.make_native_function(
+      std::string(name) + ".Unpickler.persistent_load",
+      [](Runtime& runtime, const Value*, uint32_t argc, Value&, std::string& error, void*) {
+        if (argc != 2) { error = "Unpickler.persistent_load() expected one id"; runtime.raise_class_error("TypeError", error); return false; }
+        error = "unsupported persistent id encountered";
+        raise_pickle_module_error(runtime, "UnpicklingError", error);
+        return false;
+      })});
   attrs.push_back({"memo", Value::property(
       runtime.make_native_function(std::string(name) + ".Unpickler.memo", unpickler_memo_get),
       Value::none(), Value::none(), Value::none())});

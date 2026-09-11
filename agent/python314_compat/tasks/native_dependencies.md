@@ -235,6 +235,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   expose their live source-backed memos before or after protocol execution.
   Native `Pickler.fast` defaults to zero and forwards configured values to its
   source-backed delegate.
+  Default native persistent-ID hooks mirror CPython: `Pickler.persistent_id()`
+  returns `None`, while `Unpickler.persistent_load()` raises `UnpicklingError`.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).

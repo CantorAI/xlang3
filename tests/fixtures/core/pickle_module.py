@@ -60,3 +60,10 @@ _pickle.Pickler(stream, protocol=4).dump(cycle)
 stream.seek(0)
 loaded_cycle = _pickle.Unpickler(stream).load()
 print(loaded_cycle is loaded_cycle[0])
+
+default_pickler = _pickle.Pickler(io.BytesIO())
+print(default_pickler.persistent_id("value") is None)
+try:
+    _pickle.Unpickler(io.BytesIO()).persistent_load("id")
+except _pickle.UnpicklingError:
+    print("persistent load unsupported")
