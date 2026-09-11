@@ -1833,6 +1833,7 @@ Value make_memory_stream_class(
   attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
   if (std::string_view(name) == "BytesIO") {
+    attrs.push_back({"read1", runtime.make_native_function("_io.BytesIO.read1", stream_read, const_cast<char*>(type))});
     attrs.push_back({"getbuffer", runtime.make_native_function("_io.BytesIO.getbuffer", stream_getbuffer, const_cast<char*>(type))});
     attrs.push_back({"readinto", runtime.make_native_function("_io.BytesIO.readinto", stream_readinto, const_cast<char*>(type))});
     attrs.push_back({"readinto1", runtime.make_native_function("_io.BytesIO.readinto1", stream_readinto, const_cast<char*>(type))});

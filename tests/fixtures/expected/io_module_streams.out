@@ -63,3 +63,4 @@ UnsupportedOperation
 UnsupportedOperation
 b'x' 0 0
 UnsupportedOperation
+b'a' b'bc'

@@ -181,3 +181,5 @@ try:
     pair_ops.detach()
 except Exception as exc:
     print(type(exc).__name__)
+read1_bytes = _io.BytesIO(b"abc")
+print(read1_bytes.read1(1), read1_bytes.read())
