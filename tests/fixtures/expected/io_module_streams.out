@@ -9,6 +9,9 @@ b'xZ'
 UnsupportedOperation
 UnsupportedOperation
 TypeError
+True
+utf-8 replace True
+TypeError
 131072
 <class 'io.TextIOBase'>
 TextIOWrapper TextIOWrapper True

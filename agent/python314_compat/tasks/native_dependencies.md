@@ -34,8 +34,10 @@
   truncate, IOBase closed/readable/writable guards, and buffered wrapper delegation
   over raw `readinto` streams so CPython `socket.py`, `email.parser`, and
   `http.client` can use normal stdlib file-object paths. `TextIOWrapper.detach()`
-  returns its wrapped binary buffer and invalidates the wrapper as CPython does.
-  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, detach/reconfigure, and exact errors.
+  returns its wrapped binary buffer and invalidates the wrapper as CPython does;
+  `TextIOWrapper.reconfigure()` updates encoding, error handling, newline mode,
+  and buffering flags.
+  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
   Coverage: `tests/fixtures/core/socket_select_modules.py`,

@@ -25,6 +25,13 @@ try:
     b.seek(0.0)
 except Exception as exc:
     print(type(exc).__name__)
+configured = _io.TextIOWrapper(_io.BytesIO(), encoding="ascii")
+print(configured.reconfigure(encoding="utf-8", errors="replace", line_buffering=True) is None)
+print(configured.encoding, configured.errors, configured.line_buffering)
+try:
+    configured.reconfigure(unknown=True)
+except Exception as exc:
+    print(type(exc).__name__)
 print(io.DEFAULT_BUFFER_SIZE)
 print(io.TextIOBase)
 print(io.TextIOWrapper.__name__, _io.TextIOWrapper.__name__, issubclass(io.TextIOWrapper, io.TextIOBase))

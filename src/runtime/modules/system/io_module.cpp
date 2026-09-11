@@ -1224,6 +1224,81 @@ bool text_io_flag_get(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool text_io_wrapper_reconfigure_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "TextIOWrapper.reconfigure() takes no positional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(
+      instance_get_native_data(args[0], "_io.TextIOWrapper"));
+  if (state == nullptr || state->closed || !state->wraps_buffer) {
+    error = "I/O operation on closed file";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
+      error = "invalid TextIOWrapper.reconfigure() keyword";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const std::string_view name(kwargs[index].name);
+    const Value& value = *kwargs[index].value;
+    if (name == "encoding" || name == "errors") {
+      auto* text = value_as_string(value);
+      if (text == nullptr) {
+        error = std::string(name) + " must be str";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (name == "encoding") state->encoding = string_object_to_string(*text);
+      else state->errors = string_object_to_string(*text);
+    } else if (name == "newline") {
+      if (value.tag == ValueTag::None) {
+        state->newline.clear();
+        state->newline_is_none = true;
+      } else if (auto* text = value_as_string(value)) {
+        state->newline = string_object_to_string(*text);
+        state->newline_is_none = false;
+      } else {
+        error = "newline must be str or None";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+    } else if (name == "line_buffering") {
+      state->line_buffering = value_truthy(value);
+    } else if (name == "write_through") {
+      state->write_through = value_truthy(value);
+    } else {
+      error = "TextIOWrapper.reconfigure() got an unexpected keyword argument '" + std::string(name) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  Value flush_method;
+  std::string ignored;
+  if (attribute_get(state->wrapped_buffer, "flush", flush_method, ignored)) {
+    Value flush_result;
+    if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool text_io_wrapper_reconfigure(Runtime& runtime, const Value* args, uint32_t argc,
+                                 Value& out, std::string& error, void* user_data) {
+  return text_io_wrapper_reconfigure_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
 Value make_memory_stream_class(
     Runtime& runtime,
     const char* name,
@@ -1245,6 +1320,9 @@ Value make_memory_stream_class(
       attrs.push_back({option, Value::property(std::move(getter), Value::none(), Value::none(), Value::none())});
     }
     attrs.push_back({"__new__", runtime.make_native_function("_io.TextIOWrapper.__new__", text_io_wrapper_new, nullptr, nullptr, nullptr, false, text_io_wrapper_new_kw)});
+    attrs.push_back({"reconfigure", runtime.make_native_function(
+        "_io.TextIOWrapper.reconfigure", text_io_wrapper_reconfigure,
+        nullptr, nullptr, nullptr, false, text_io_wrapper_reconfigure_kw)});
   }
   attrs.push_back({"__enter__", runtime.make_native_function(std::string("_io.") + name + ".__enter__", stream_enter, const_cast<char*>(type))});
   attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});
