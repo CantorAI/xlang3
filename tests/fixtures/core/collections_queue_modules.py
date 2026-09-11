@@ -39,6 +39,34 @@ print(d.to_list(), d.index(3))
 indexed = _collections.deque("ABCABC")
 print(indexed.index("B", 2), indexed.index("A", -3, -1))
 
+class DequeIndex:
+    def __index__(self):
+        return 1
+
+index_value = DequeIndex()
+indexed[index_value] = "Z"
+del indexed[index_value]
+index_driven = _collections.deque([1, 2, 3], maxlen=index_value)
+rotation = _collections.deque([1, 2, 3])
+rotation.rotate(index_value)
+rotation.insert(index_value, 9)
+print(indexed[0], index_driven.to_list(), rotation.to_list(),
+      (_collections.deque([7]) * index_value).to_list(),
+      _collections.deque("ABCABC").index("C", index_value))
+
+class BadDequeIndex:
+    def __index__(self):
+        return "not-an-int"
+
+for operation in (
+    lambda: _collections.deque().rotate(BadDequeIndex()),
+    lambda: _collections.deque([1], maxlen=1).insert(BadDequeIndex(), 2),
+):
+    try:
+        operation()
+    except Exception as exc:
+        print(type(exc).__name__)
+
 class Matcher:
     def __eq__(self, value):
         return value == "match"

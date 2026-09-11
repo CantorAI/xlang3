@@ -310,6 +310,37 @@ bool deque_truthy(const void* data) {
   return state != nullptr && !state->items.empty();
 }
 
+// deque follows the sequence protocol for every integer argument.  In
+// particular, values implementing __index__ are accepted; requiring an
+// already-materialized int breaks ordinary CPython callers such as enum-like
+// index objects.
+bool deque_as_index(
+    Runtime& runtime,
+    const Value& value,
+    int64_t& out,
+    std::string& error) {
+  if (value_int_like_to_i64(value, out) || value_bigint_to_i64(value, out)) {
+    return true;
+  }
+  Value index_method;
+  std::string lookup_error;
+  if (!object_get_attr(value, "__index__", index_method, lookup_error)) {
+    error = "an integer is required";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value converted;
+  if (!runtime_call_callable(runtime, index_method, nullptr, 0, converted, error)) {
+    return false;
+  }
+  if (value_int_like_to_i64(converted, out) || value_bigint_to_i64(converted, out)) {
+    return true;
+  }
+  error = "__index__ returned non-int";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool deque_extend_from_iterable(Runtime& runtime, DequeState& state, const Value& iterable, bool left, std::string& error) {
   Value iterator;
   if (!runtime_get_iter(runtime, iterable, iterator, error)) {
@@ -378,10 +409,8 @@ bool deque_init_kw(
   }
   auto* state = new DequeState();
   if (has_maxlen && maxlen_value.tag != ValueTag::None) {
-    if (!value_int_like_to_i64(maxlen_value, state->maxlen)) {
+    if (!deque_as_index(runtime, maxlen_value, state->maxlen, error)) {
       delete state;
-      error = "an integer is required";
-      runtime.raise_class_error("TypeError", error);
       return false;
     }
     if (state->maxlen < 0) {
@@ -640,7 +669,7 @@ bool deque_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
 }
 
 bool deque_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "deque.__getitem__() expected integer index";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -649,7 +678,8 @@ bool deque_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (state == nullptr) {
     return false;
   }
-  int64_t index = args[1].as.i64;
+  int64_t index = 0;
+  if (!deque_as_index(runtime, args[1], index, error)) return false;
   if (index < 0) {
     index += static_cast<int64_t>(state->items.size());
   }
@@ -663,14 +693,15 @@ bool deque_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 }
 
 bool deque_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3 || args[1].tag != ValueTag::Int64) {
+  if (argc != 3) {
     error = "deque.__setitem__() expected integer index and value";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* state = deque_state(args[0], error);
   if (state == nullptr) return false;
-  int64_t index = args[1].as.i64;
+  int64_t index = 0;
+  if (!deque_as_index(runtime, args[1], index, error)) return false;
   if (index < 0) index += static_cast<int64_t>(state->items.size());
   if (index < 0 || index >= static_cast<int64_t>(state->items.size())) {
     error = "deque index out of range";
@@ -684,14 +715,15 @@ bool deque_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 }
 
 bool deque_delitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "deque.__delitem__() expected integer index";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* state = deque_state(args[0], error);
   if (state == nullptr) return false;
-  int64_t index = args[1].as.i64;
+  int64_t index = 0;
+  if (!deque_as_index(runtime, args[1], index, error)) return false;
   if (index < 0) index += static_cast<int64_t>(state->items.size());
   if (index < 0 || index >= static_cast<int64_t>(state->items.size())) {
     error = "deque index out of range";
@@ -908,14 +940,16 @@ bool deque_iadd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
 }
 
 bool deque_mul_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool in_place) {
-  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "deque repetition count must be an integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* source = deque_state(args[0], error);
   if (source == nullptr) return false;
-  const int64_t count = std::max<int64_t>(0, args[1].as.i64);
+  int64_t count = 0;
+  if (!deque_as_index(runtime, args[1], count, error)) return false;
+  count = std::max<int64_t>(0, count);
   std::vector<Value> original(source->items.begin(), source->items.end());
   if (in_place) {
     source->items.clear();
@@ -957,14 +991,15 @@ bool deque_reverse(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool deque_rotate(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2 || (argc == 2 && args[1].tag != ValueTag::Int64)) {
+bool deque_rotate(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
     error = "deque.rotate() expected optional integer count";
     return false;
   }
+  int64_t amount = 1;
+  if (argc == 2 && !deque_as_index(runtime, args[1], amount, error)) return false;
   auto* state = deque_state(args[0], error);
   if (state == nullptr || state->items.empty()) { value_set_none(out); return state != nullptr; }
-  int64_t amount = argc == 2 ? args[1].as.i64 : 1;
   amount %= static_cast<int64_t>(state->items.size());
   if (amount < 0) amount += static_cast<int64_t>(state->items.size());
   std::rotate(state->items.rbegin(), state->items.rbegin() + amount, state->items.rend());
@@ -977,8 +1012,10 @@ bool deque_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (argc < 2 || argc > 4) { error = "deque.index() expected value and optional bounds"; return false; }
   auto* state = deque_state(args[0], error);
   if (state == nullptr) return false;
-  int64_t start = argc >= 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0;
-  int64_t stop = argc >= 4 && args[3].tag == ValueTag::Int64 ? args[3].as.i64 : static_cast<int64_t>(state->items.size());
+  int64_t start = 0;
+  int64_t stop = static_cast<int64_t>(state->items.size());
+  if (argc >= 3 && !deque_as_index(runtime, args[2], start, error)) return false;
+  if (argc >= 4 && !deque_as_index(runtime, args[3], stop, error)) return false;
   const int64_t size = static_cast<int64_t>(state->items.size());
   if (start < 0) start = std::max<int64_t>(0, start + size);
   if (stop < 0) stop = std::max<int64_t>(0, stop + size);
@@ -996,15 +1033,16 @@ bool deque_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
 }
 
 bool deque_insert(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3 || args[1].tag != ValueTag::Int64) { error = "deque.insert() expected integer index and value"; return false; }
+  if (argc != 3) { error = "deque.insert() expected integer index and value"; return false; }
   auto* state = deque_state(args[0], error);
   if (state == nullptr) return false;
+  int64_t index = 0;
+  if (!deque_as_index(runtime, args[1], index, error)) return false;
   if (state->maxlen >= 0 && state->items.size() >= static_cast<size_t>(state->maxlen)) {
     error = "deque already at its maximum size";
     runtime.raise_class_error("IndexError", error);
     return false;
   }
-  int64_t index = args[1].as.i64;
   if (index < 0) index = std::max<int64_t>(0, index + static_cast<int64_t>(state->items.size()));
   index = std::min<int64_t>(index, state->items.size());
   state->items.insert(state->items.begin() + index, args[2]);

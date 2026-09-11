@@ -119,6 +119,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   and `|` / `|=` preserve defaultdict type and factory.
   Deque search operations honor user-defined equality and reject mutation during
   comparison, matching the CPython container safety contract.
+  Native deque integer-taking APIs accept the full `__index__` protocol for
+  construction, positional access and mutation, search bounds, rotation,
+  insertion, and repetition.
   Validation: focused CPython 3.14 `test_deque.TestBasic` cases pass for copy,
   pickle, comparisons, concatenation, and in-place operations.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
