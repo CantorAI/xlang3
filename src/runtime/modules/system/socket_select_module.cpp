@@ -1717,12 +1717,21 @@ bool socket_unsupported(Runtime&, const Value*, uint32_t, Value&, std::string& e
   return false;
 }
 
-bool socket_gethostname(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_gethostname(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "socket.gethostname() expected no arguments";
     return false;
   }
-  out = Value::string("localhost");
+  if (!ensure_socket_runtime(error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  char name[NI_MAXHOST] = {};
+  if (::gethostname(name, static_cast<int>(sizeof(name))) != 0) {
+    return raise_socket_os_error(runtime, "gethostname", error);
+  }
+  name[sizeof(name) - 1] = '\0';
+  out = Value::string(name);
   return true;
 }
 

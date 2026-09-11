@@ -15,6 +15,7 @@ print(s.gettimeout())
 print(select.select([], [], [], 0))
 s.close()
 print(_socket.AF_INET)
+print(isinstance(_socket.gethostname(), str), bool(_socket.gethostname()))
 
 receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 receiver.bind(("127.0.0.1", 0))
