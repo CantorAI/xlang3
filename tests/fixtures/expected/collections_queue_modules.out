@@ -18,6 +18,7 @@ TypeError
 mutation detected
 [3, 99, 2, 1, 0, 5, 4]
 deque([1, 2], maxlen=2)
+deque([1, [...]], maxlen=2)
 [3, 99, 2, 1, 0, 5, 4, 42] [3, 99, 2, 1, 0, 5, 4]
 [4, 5, 0, 1, 2, 99, 3]
 True True

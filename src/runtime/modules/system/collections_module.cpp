@@ -57,6 +57,7 @@ bool deque_item_equals(
     const Value& item,
     const Value& target,
     uint64_t version,
+    size_t size,
     bool& equal,
     std::string& error) {
   Value comparison;
@@ -64,7 +65,7 @@ bool deque_item_equals(
       !runtime_truthy(runtime, comparison, equal, error)) {
     return false;
   }
-  if (state.version != version) {
+  if (state.version != version || state.items.size() != size) {
     error = "deque mutated during iteration";
     runtime.raise_class_error("RuntimeError", error);
     return false;
@@ -624,7 +625,7 @@ bool deque_count(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   for (size_t index = 0; index < size; ++index) {
     Value item = state->items[index];
     bool equal = false;
-    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, size, equal, error)) return false;
     if (equal) {
       ++count;
     }
@@ -647,7 +648,7 @@ bool deque_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   for (size_t index = 0; index < size; ++index) {
     Value item = state->items[index];
     bool equal = false;
-    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, size, equal, error)) return false;
     if (equal) {
       value_set_invalid(state->items[index]);
       state->items.erase(state->items.begin() + static_cast<std::ptrdiff_t>(index));
@@ -831,7 +832,7 @@ bool deque_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   for (size_t index = 0; index < size; ++index) {
     Value item = state->items[index];
     bool equal = false;
-    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, size, equal, error)) return false;
     if (equal) {
       value_set_bool(out, true);
       return true;
@@ -1116,7 +1117,7 @@ bool deque_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   for (int64_t index = start; index < stop; ++index) {
     Value item = state->items[static_cast<size_t>(index)];
     bool equal = false;
-    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, static_cast<size_t>(size), equal, error)) return false;
     if (equal) { value_set_int64(out, index); return true; }
   }
   error = "deque.index(x): x not in deque";
@@ -1173,7 +1174,9 @@ bool deque_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   std::string text = "deque([";
   for (size_t i = 0; i < state->items.size(); ++i) {
     if (i != 0) text += ", ";
-    text += value_to_repr(state->items[i]);
+    // A deque can contain itself.  Match CPython's recursion marker instead
+    // of sending the native deque object through the generic object repr.
+    text += value_is(state->items[i], args[0]) ? "[...]" : value_to_repr(state->items[i]);
   }
   text += "])";
   if (state->maxlen >= 0) text = text.substr(0, text.size() - 1) + ", maxlen=" + std::to_string(state->maxlen) + ")";
