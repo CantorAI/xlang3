@@ -86,6 +86,9 @@
   cache invalidation. Native zlib streaming tracks `eof`, `unconsumed_tail`,
   and accumulated `unused_data` after a stream ends; compressor and decompressor
   objects can be copied while their streams are active.
+  Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
+  pass for dictionary compression, compressor/decompressor copies, incremental
+  decompression, maximum output lengths, and flush modes.
   Remaining: full compression matrix, encrypted ZIP behavior deferred, hash-based
   bytecode validation modes, and remaining import edge cases.
 
