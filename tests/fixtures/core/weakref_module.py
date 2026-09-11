@@ -15,6 +15,7 @@ print(r().name)
 print(weakref.ref(b) is r)
 print(type(r).__name__, type(r).__module__, weakref.ReferenceType is type(r))
 print(weakref.proxy(b).name)
+print(weakref.proxy(b) is weakref.proxy(b), weakref.proxy(b, None) is weakref.proxy(b))
 proxy = weakref.proxy(b)
 proxy.extra = 7
 del proxy.extra

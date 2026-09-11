@@ -614,7 +614,24 @@ bool weakref_proxy(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   Value call_method;
   std::string callable_error;
   const bool callable = object_get_attr(args[0], "__call__", call_method, callable_error);
-  out = Value::instance(callable ? weakref_callable_proxy_type(runtime) : weakref_proxy_type(runtime));
+  const Value proxy_type = callable ? weakref_callable_proxy_type(runtime) : weakref_proxy_type(runtime);
+  if ((argc == 1 || args[1].tag == ValueTag::None) && args[0].tag == ValueTag::Object) {
+    for (const auto& entry : weakref_registry()) {
+      if (entry.target != args[0].as.obj || entry.ref == nullptr) continue;
+      Value candidate;
+      candidate.tag = ValueTag::Object;
+      candidate.flags = kXlangValueBorrowedRefFlag;
+      candidate.as.obj = entry.ref;
+      auto* instance = value_as_instance(candidate);
+      if (instance == nullptr || !value_is(instance->klass, proxy_type)) continue;
+      Value callback;
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, callable_error) && callback.tag == ValueTag::None) {
+        value_assign_fast(out, candidate);
+        return true;
+      }
+    }
+  }
+  out = Value::instance(proxy_type);
   if (!object_set_attr(
           out,
           kWeakrefCallbackAttr,
