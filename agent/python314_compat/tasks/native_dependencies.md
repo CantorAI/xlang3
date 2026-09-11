@@ -113,7 +113,10 @@
   Coverage: `tests/fixtures/core/sys_structseq_pickle.py` and
   `tests/fixtures/core/pickle_module.py`, including native `PickleBuffer.raw()`
   and release lifetime semantics, protocol-5 out-of-band buffers, and native
-  Pickler/Unpickler persistent-ID hooks through source-backed `pickle`.
+  Pickler/Unpickler persistent-ID hooks through source-backed `pickle`. Native
+  Pickler and Unpickler instances retain their source-backed delegates across
+  repeated dump/load calls, preserving stream memo identity; `Pickler.clear_memo()`
+  resets that memo for the next record.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).
