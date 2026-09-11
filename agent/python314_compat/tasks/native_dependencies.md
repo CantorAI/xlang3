@@ -78,6 +78,7 @@ suite, after the native dependency updates documented below.
   `asyncio.run()` startup/shutdown over the Windows proactor path.
   Numeric IPv6 `getnameinfo()` now accepts the CPython four-element sockaddr
   form alongside IPv4 socket addresses.
+  Native `AF_INET6` socket construction now creates an IPv6 descriptor.
   Native `gethostbyname_ex()` returns canonical-name, aliases, and IPv4 address
   tuples through Winsock resolution.
   `getprotobyname()` resolves Winsock protocol names for source-backed

@@ -26,6 +26,9 @@ print(isinstance(host_info, tuple), host_info[1] == [], "127.0.0.1" in host_info
 print(_socket.inet_ntop(_socket.AF_INET6, _socket.inet_pton(_socket.AF_INET6, "::1")))
 ipv6_rows = _socket.getaddrinfo("::1", 0, _socket.AF_INET6)
 print(bool(ipv6_rows), ipv6_rows[0][0] == _socket.AF_INET6, len(ipv6_rows[0][4]))
+ipv6_socket = socket.socket(_socket.AF_INET6, _socket.SOCK_DGRAM)
+print(ipv6_socket.family == _socket.AF_INET6, ipv6_socket.fileno() >= 0)
+ipv6_socket.close()
 print(_socket.getnameinfo(("::1", 0, 0, 0), _socket.NI_NUMERICHOST | _socket.NI_NUMERICSERV))
 
 receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

@@ -114,7 +114,9 @@ bool ensure_socket_runtime(std::string& error) {
 }
 
 int to_native_family(int64_t family) {
-  return family == kAfUnspec ? AF_UNSPEC : AF_INET;
+  if (family == kAfUnspec) return AF_UNSPEC;
+  if (family == kAfInet6) return AF_INET6;
+  return AF_INET;
 }
 
 int to_native_type(int64_t type) {
