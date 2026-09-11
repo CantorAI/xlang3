@@ -30,6 +30,7 @@ namespace {
 struct MemoryStreamState {
   std::string buffer;
   Value wrapped_buffer;
+  Value wrapped_writer;
   std::string encoding = "utf-8";
   std::string errors = "strict";
   std::string newline;
@@ -490,7 +491,17 @@ bool buffered_rw_pair_init(Runtime& runtime, const Value* args, uint32_t argc, V
     error = "_io.BufferedRWPair() expected reader, writer, and optional buffer size";
     return false;
   }
-  return buffered_stream_load_buffer(runtime, args[0], args[1], "_io.BufferedRWPair", out, error);
+  auto* state = new MemoryStreamState();
+  state->binary = true;
+  state->wraps_buffer = true;
+  state->wrapped_buffer = args[1];
+  state->wrapped_writer = args[2];
+  if (!instance_set_native_data(args[0], "_io.BufferedRWPair", state, memory_stream_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
 }
 
 bool decode_text_io_data(
@@ -968,7 +979,9 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   }
   if (state->wraps_buffer) {
     Value write_method;
-    if (!attribute_get(state->wrapped_buffer, "write", write_method, error)) {
+    const Value& write_target = std::string_view(type) == "_io.BufferedRWPair"
+        ? state->wrapped_writer : state->wrapped_buffer;
+    if (!attribute_get(write_target, "write", write_method, error)) {
       return false;
     }
     return runtime_call_callable(runtime, write_method, args + 1, 1, out, error);
@@ -1211,6 +1224,12 @@ bool stream_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out
         return false;
       }
     }
+    if (std::string_view(static_cast<const char*>(user_data)) == "_io.BufferedRWPair") {
+      if (attribute_get(state->wrapped_writer, "close", close_method, ignored)) {
+        Value close_result;
+        if (!runtime_call_callable(runtime, close_method, nullptr, 0, close_result, error)) return false;
+      }
+    }
   }
   state->closed = true;
   value_set_none(out);
@@ -1235,6 +1254,11 @@ bool stream_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) {
         return false;
       }
+    }
+    if (std::string_view(type) == "_io.BufferedRWPair" &&
+        attribute_get(state->wrapped_writer, "flush", flush_method, ignored)) {
+      Value flush_result;
+      if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) return false;
     }
   }
   value_set_none(out);
@@ -1539,6 +1563,26 @@ bool buffered_raw_get(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool buffered_rw_pair_endpoint(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                               std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "BufferedRWPair endpoint getter expected self";
+    return false;
+  }
+  auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], "_io.BufferedRWPair"));
+  if (state == nullptr || state->closed) {
+    error = "I/O operation on closed file";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (std::string_view(static_cast<const char*>(user_data)) == "writer") {
+    value_assign_fast(out, state->wrapped_writer);
+  } else {
+    value_assign_fast(out, state->wrapped_buffer);
+  }
+  return true;
+}
+
 bool buffered_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                    std::string& error, void* user_data) {
   if (argc != 1) {
@@ -1774,6 +1818,13 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   if (std::string_view(name) != "BufferedRWPair") {
     attrs.push_back({"raw", Value::property(
         runtime.make_native_function(std::string("_io.") + name + ".raw", buffered_raw_get, const_cast<char*>(type)),
+        Value::none(), Value::none(), Value::none())});
+  } else {
+    attrs.push_back({"reader", Value::property(
+        runtime.make_native_function("_io.BufferedRWPair.reader", buffered_rw_pair_endpoint, const_cast<char*>("reader")),
+        Value::none(), Value::none(), Value::none())});
+    attrs.push_back({"writer", Value::property(
+        runtime.make_native_function("_io.BufferedRWPair.writer", buffered_rw_pair_endpoint, const_cast<char*>("writer")),
         Value::none(), Value::none(), Value::none())});
   }
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init)});

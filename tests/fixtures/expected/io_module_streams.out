@@ -54,3 +54,6 @@ b'abcXYf' 4
 b'abcX'
 True True True
 ValueError
+True True b'pair-read' 10 None
+b'pair-write'
+True True

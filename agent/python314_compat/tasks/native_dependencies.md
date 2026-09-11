@@ -66,6 +66,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   wrapped stream's seek, tell, and truncate state.
   Buffered reader, writer, and random wrappers expose their wrapped `raw`
   stream with closed-wrapper validation.
+  `BufferedRWPair` now preserves both endpoints, routes reads and writes to
+  the appropriate stream, and exposes `reader` / `writer` properties.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
