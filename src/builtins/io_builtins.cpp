@@ -722,6 +722,7 @@ bool builtin_open(
   if (user_data != nullptr) {
     options = *static_cast<OpenOptions*>(user_data);
   } else if (!apply_open_positional_options(args, argc, options, error)) {
+    runtime.raise_class_error(error == "illegal newline value" ? "ValueError" : "TypeError", error);
     return false;
   }
 
@@ -746,6 +747,11 @@ bool builtin_open(
     return false;
   }
   if (parsed.binary && options.buffering == 1 && !warn_binary_line_buffering(runtime, error)) {
+    return false;
+  }
+  if (!parsed.binary && options.buffering == 0) {
+    error = "can't have unbuffered text I/O";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
 
@@ -775,11 +781,19 @@ bool builtin_open(
       return false;
     }
     int64_t fd_value = 0;
-    if (!value_int_like_to_i64(descriptor, fd_value) || fd_value < 0 ||
+    if (!value_int_like_to_i64(descriptor, fd_value) ||
         fd_value > static_cast<int64_t>(INT_MAX)) {
       error = "opener returned an invalid file descriptor";
       runtime.raise_class_error("TypeError", error);
       return false;
+    }
+    if (fd_value < 0) {
+      error = "opener returned " + std::to_string(fd_value);
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (!descriptor_is_valid(static_cast<int>(fd_value))) {
+      return raise_bad_file_descriptor(runtime, error);
     }
     out = Value::fd_file(
         static_cast<int>(fd_value), std::to_string(fd_value), mode,
@@ -996,6 +1010,7 @@ bool builtin_open_kw(
     positional.push_back(args[1]);
   }
   if (!apply_open_positional_options(args, argc, options, error)) {
+    runtime.raise_class_error(error == "illegal newline value" ? "ValueError" : "TypeError", error);
     return false;
   }
   for (uint32_t i = 0; i < kwargc; ++i) {
@@ -1032,6 +1047,7 @@ bool builtin_open_kw(
         return false;
       }
       if (!apply_open_option(key, *value, options, error)) {
+        runtime.raise_class_error(error == "illegal newline value" ? "ValueError" : "TypeError", error);
         return false;
       }
     } else {

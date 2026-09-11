@@ -97,6 +97,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   report CPython-compatible multi-action open-mode validation diagnostics.
   `io.open()` rejects embedded NUL characters in str and bytes paths with
   `ValueError` before native path resolution.
+  Custom openers reject invalid descriptors with `OSError(EBADF)` and retain
+  CPython's distinct `ValueError("opener returned -N")` contract for negative
+  returned values. Text mode rejects `buffering=0`, and invalid newline values
+  raise `ValueError` during option parsing.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.
