@@ -98,3 +98,6 @@ except zlib.error as exc:
     print("invalid window size" in str(exc))
 keyword_compressed = zlib.compress(b"keyword", level=1)
 print(zlib.decompress(keyword_compressed, wbits=zlib.MAX_WBITS, bufsize=zlib.DEF_BUF_SIZE))
+keyword_stream = zlib.compressobj()
+keyword_data = keyword_stream.compress(b"stream") + keyword_stream.flush()
+print(zlib.decompressobj().decompress(keyword_data, max_length=6))

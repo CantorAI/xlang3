@@ -213,6 +213,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   constants, including `Z_RLE`, `Z_FIXED`, `Z_BLOCK`, and `Z_TREES`.
   One-shot `compress()` accepts its `level` keyword, while `decompress()`
   accepts `wbits` and `bufsize` keywords; `DEF_BUF_SIZE` is exported.
+  Streaming decompressor `decompress()` accepts its `max_length` keyword and
+  stream methods reject unsupported keyword calls with `TypeError`.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.

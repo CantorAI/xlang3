@@ -30,6 +30,8 @@ constexpr const char* kDecompressObjectNativeType = "zlib.Decompress";
 constexpr int kDefaultMemLevel = 8;
 Value g_zlib_error_class;
 
+bool zlib_decompress_object_decompress(Runtime&, const Value*, uint32_t, Value&, std::string&, void*);
+
 bool zlib_fail(Runtime& runtime, std::string message, std::string& error) {
   error = std::move(message);
   runtime.set_pending_exception(runtime.make_exception_from_class(g_zlib_error_class, error));
@@ -390,6 +392,27 @@ bool zlib_compress_object_compress(Runtime& runtime, const Value* args, uint32_t
   return true;
 }
 
+bool zlib_reject_keywords(Runtime& runtime, const Value*, uint32_t,
+                          const NativeKeywordArg*, uint32_t,
+                          Value&, std::string& error, void*) {
+  return zlib_class_fail(runtime, "TypeError", "zlib stream methods do not accept keyword arguments", error);
+}
+
+bool zlib_decompress_object_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                               const NativeKeywordArg* kwargs, uint32_t kwargc,
+                               Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) return zlib_class_fail(runtime, "TypeError", "Decompress.decompress() expected data and optional max_length", error);
+  Value values[] = {args[0], args[1], argc == 3 ? args[2] : Value::int64(0)};
+  if (kwargc != 0) {
+    if (kwargc != 1 || kwargs[0].name == nullptr || kwargs[0].value == nullptr ||
+        std::string_view(kwargs[0].name) != "max_length" || argc == 3) {
+      return zlib_class_fail(runtime, "TypeError", "Decompress.decompress() got an invalid keyword argument", error);
+    }
+    values[2] = *kwargs[0].value;
+  }
+  return zlib_decompress_object_decompress(runtime, values, 3, out, error, nullptr);
+}
+
 bool zlib_compress_object_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "Compress.flush() expected optional mode";
@@ -686,7 +709,7 @@ bool zlib_adler32(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 Value make_compress_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("zlib")});
-  attrs.push_back({"compress", runtime.make_native_function("zlib.Compress.compress", zlib_compress_object_compress)});
+  attrs.push_back({"compress", runtime.make_native_function("zlib.Compress.compress", zlib_compress_object_compress, nullptr, nullptr, nullptr, false, zlib_reject_keywords)});
   attrs.push_back({"flush", runtime.make_native_function("zlib.Compress.flush", zlib_compress_object_flush)});
   attrs.push_back({"copy", runtime.make_native_function("zlib.Compress.copy", zlib_compress_object_copy)});
   attrs.push_back({"__copy__", runtime.make_native_function("zlib.Compress.__copy__", zlib_compress_object_copy)});
@@ -697,7 +720,7 @@ Value make_compress_class(Runtime& runtime) {
 Value make_decompress_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("zlib")});
-  attrs.push_back({"decompress", runtime.make_native_function("zlib.Decompress.decompress", zlib_decompress_object_decompress)});
+  attrs.push_back({"decompress", runtime.make_native_function("zlib.Decompress.decompress", zlib_decompress_object_decompress, nullptr, nullptr, nullptr, false, zlib_decompress_object_kw)});
   attrs.push_back({"flush", runtime.make_native_function("zlib.Decompress.flush", zlib_decompress_object_flush)});
   attrs.push_back({"copy", runtime.make_native_function("zlib.Decompress.copy", zlib_decompress_object_copy)});
   attrs.push_back({"__copy__", runtime.make_native_function("zlib.Decompress.__copy__", zlib_decompress_object_copy)});
