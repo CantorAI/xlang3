@@ -68,6 +68,8 @@
   `_overlapped` now keeps native overlapped address state and an IOCP completion
   queue/fallback for immediate and cancelled operations, enough for CPython
   `asyncio.run()` startup/shutdown over the Windows proactor path.
+  Numeric IPv6 `getnameinfo()` now accepts the CPython four-element sockaddr
+  form alongside IPv4 socket addresses.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.

@@ -2030,12 +2030,14 @@ bool socket_getnameinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   auto* address = value_as_tuple(args[0]);
   int64_t flags = 0;
-  if (address == nullptr || value_as_string(address->items[0]) == nullptr || !socket_int_arg(args[1], flags)) {
+  if (address == nullptr || address->items.size() < 2 || value_as_string(address->items[0]) == nullptr || !socket_int_arg(args[1], flags)) {
     error = "getnameinfo(): sockaddr must be a (host, port) tuple";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (address->items.size() != 2) {
+  const bool ipv4 = address->items.size() == 2;
+  const bool ipv6 = address->items.size() == 4;
+  if (!ipv4 && !ipv6) {
     error = "getnameinfo failed for the supplied address family";
     runtime.raise_class_error("OSError", error);
     return false;
@@ -2052,19 +2054,47 @@ bool socket_getnameinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return false;
   }
   const std::string host = string_object_to_string(*value_as_string(address->items[0]));
-  sockaddr_in native{};
-  native.sin_family = AF_INET;
-  native.sin_port = htons(static_cast<u_short>(port));
-  if (inet_pton(AF_INET, host.c_str(), &native.sin_addr) != 1) {
-    error = "getnameinfo only accepts numeric IP addresses";
-    runtime.raise_class_error("OSError", error);
-    return false;
+  sockaddr_storage storage{};
+  sockaddr* native = nullptr;
+  socklen_t native_size = 0;
+  if (ipv4) {
+    auto* address4 = reinterpret_cast<sockaddr_in*>(&storage);
+    address4->sin_family = AF_INET;
+    address4->sin_port = htons(static_cast<u_short>(port));
+    if (inet_pton(AF_INET, host.c_str(), &address4->sin_addr) != 1) {
+      error = "getnameinfo only accepts numeric IP addresses";
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
+    native = reinterpret_cast<sockaddr*>(address4);
+    native_size = sizeof(*address4);
+  } else {
+    int64_t flowinfo = 0;
+    int64_t scope_id = 0;
+    if (!socket_int_arg(address->items[2], flowinfo) || !socket_int_arg(address->items[3], scope_id) ||
+        flowinfo < 0 || scope_id < 0) {
+      error = "getnameinfo(): IPv6 flowinfo and scope_id must be non-negative integers";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    auto* address6 = reinterpret_cast<sockaddr_in6*>(&storage);
+    address6->sin6_family = AF_INET6;
+    address6->sin6_port = htons(static_cast<u_short>(port));
+    address6->sin6_flowinfo = static_cast<u_long>(flowinfo);
+    address6->sin6_scope_id = static_cast<u_long>(scope_id);
+    if (inet_pton(AF_INET6, host.c_str(), &address6->sin6_addr) != 1) {
+      error = "getnameinfo only accepts numeric IP addresses";
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
+    native = reinterpret_cast<sockaddr*>(address6);
+    native_size = sizeof(*address6);
   }
   char result_host[NI_MAXHOST] = {};
   char result_service[NI_MAXSERV] = {};
   const int result = ::getnameinfo(
-      reinterpret_cast<sockaddr*>(&native),
-      sizeof(native),
+      native,
+      native_size,
       result_host,
       sizeof(result_host),
       result_service,
