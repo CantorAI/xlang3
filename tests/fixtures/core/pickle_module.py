@@ -38,6 +38,9 @@ print(PersistentUnpickler(stream).load())
 
 stream = io.BytesIO()
 memo_pickler = _pickle.Pickler(stream, protocol=4)
+print(memo_pickler.fast)
+memo_pickler.fast = 1
+print(memo_pickler.fast)
 shared = ["memo"]
 memo_pickler.dump(shared)
 memo_pickler.dump(shared)

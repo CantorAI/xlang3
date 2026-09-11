@@ -1200,6 +1200,9 @@ bool pickler_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     delete state;
     return false;
   }
+  Value self;
+  value_assign_fast(self, args[0]);
+  if (!attribute_set(self, "fast", Value::int64(0), error)) return false;
   value_set_none(out);
   return true;
 }
@@ -1305,7 +1308,7 @@ bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   if (!ensure_pickler_delegate(runtime, *state, error)) return false;
-  for (const char* name : {"dispatch_table", "persistent_id", "reducer_override"}) {
+  for (const char* name : {"dispatch_table", "persistent_id", "reducer_override", "fast"}) {
     Value attr;
     std::string ignored;
     if (object_get_attr(args[0], name, attr, ignored)) {

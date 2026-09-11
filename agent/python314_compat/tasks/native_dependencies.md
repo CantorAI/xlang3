@@ -233,6 +233,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   repeated dump/load calls, preserving stream memo identity; `Pickler.clear_memo()`
   resets that memo for the next record, and `Pickler.memo` / `Unpickler.memo`
   expose their live source-backed memos before or after protocol execution.
+  Native `Pickler.fast` defaults to zero and forwards configured values to its
+  source-backed delegate.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).
