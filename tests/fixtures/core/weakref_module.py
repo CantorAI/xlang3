@@ -19,3 +19,8 @@ print(weakref.getweakrefs(b))
 r2 = _weakref.ref(b)
 print(r2().name)
 print(weakref.ReferenceType(b)().name)
+
+expired = weakref.ref(Box())
+import gc
+gc.collect()
+print(expired() is None)

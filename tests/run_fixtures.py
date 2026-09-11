@@ -19,7 +19,7 @@ binary_buffers starred_expressions dict_set_comprehensions nested_comprehensions
 walrus_operator unpacking annotated_assignment augmented_assignment lists_for sequences_index dict_set
 raw_blocks native_import json_module math_module time_module native_sys_time_audit os_process_windows atexit_module io_os_modules io_module_streams
 imp_stat_modules collections_queue_modules types_module traceback_module linecache_module runpy_module
-importlib_module zlib_module zipfile_module weakref_module inspect_module inspect_currentframe
+importlib_module zlib_module zipfile_module zipimport_module weakref_module inspect_module inspect_currentframe
 debug_frame_metadata debug_breakpoint_step logging_pathlib_modules socket_select_modules file_import
 global_from_import package_import import_system_model vfs_file_io file_context_open file_io_compat
 exceptions runtime_error_exceptions exception_unwind_with typed_exceptions exception_chaining_sys
@@ -47,6 +47,7 @@ def run_case(executable, source, expected_path, root):
     if result.returncode:
         raise RuntimeError(f"{source.stem} failed ({result.returncode}):\n{result.stdout}{result.stderr}")
     actual = normalize(result.stdout).replace(str(root), "tests")
+    actual = actual.replace("tests\\fixtures\\core\\", "tests/fixtures/core/")
     expected = normalize(expected_path.read_text(encoding="utf-8")).replace("tests\\fixtures\\core\\", "tests/fixtures/core/")
     if source.stem == "standard_modules":
         expected = "\n".join(line for line in expected.splitlines() if not NON_WINDOWS_STANDARD.match(line))

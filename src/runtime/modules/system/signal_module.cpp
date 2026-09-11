@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
+#include <algorithm>
 #include <unordered_map>
 #include <vector>
 #include <csignal>
@@ -28,12 +29,16 @@ namespace {
 
 struct SignalState {
   std::unordered_map<int64_t, Value> handlers;
-  std::vector<int64_t> signals = {2, 4, 6, 8, 11, 15};
+  std::vector<int64_t> signals = {2, 4, 6, 8, 11, 15, 21};
   int64_t wakeup_fd = -1;
 };
 
 SignalState* signal_state(void* user_data) {
   return static_cast<SignalState*>(user_data);
+}
+
+bool supported_signal(const SignalState& state, int64_t signum) {
+  return std::find(state.signals.begin(), state.signals.end(), signum) != state.signals.end();
 }
 
 bool signal_number(const Value& value, int64_t& out, std::string& error) {
@@ -49,7 +54,7 @@ Value default_handler_for(int64_t signum) {
   return Value::int64(0);
 }
 
-bool signal_signal(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
     error = "signal.signal() expected signal number and handler";
     return false;
@@ -59,13 +64,18 @@ bool signal_signal(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     return false;
   }
   auto* state = signal_state(user_data);
+  if (!supported_signal(*state, signum)) {
+    error = "invalid signal number";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   auto it = state->handlers.find(signum);
   out = it == state->handlers.end() ? default_handler_for(signum) : it->second;
   state->handlers[signum] = args[1];
   return true;
 }
 
-bool getsignal(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool getsignal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "signal.getsignal() expected signal number";
     return false;
@@ -75,6 +85,11 @@ bool getsignal(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
     return false;
   }
   auto* state = signal_state(user_data);
+  if (!supported_signal(*state, signum)) {
+    error = "invalid signal number";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   auto it = state->handlers.find(signum);
   out = it == state->handlers.end() ? default_handler_for(signum) : it->second;
   return true;
@@ -196,6 +211,7 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
       .value("SIGSEGV", Value::int64(11))
       .value("SIGTERM", Value::int64(15))
 #if defined(_WIN32)
+      .value("SIGBREAK", Value::int64(21))
       .value("NSIG", Value::int64(23))
       .value("CTRL_C_EVENT", Value::int64(0))
       .value("CTRL_BREAK_EVENT", Value::int64(1));

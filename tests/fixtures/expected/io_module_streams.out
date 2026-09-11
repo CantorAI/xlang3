@@ -6,6 +6,9 @@ aZ
 b'x'
 1
 b'xZ'
+UnsupportedOperation
+UnsupportedOperation
+TypeError
 131072
 <class 'io.TextIOBase'>
 TextIOWrapper TextIOWrapper True

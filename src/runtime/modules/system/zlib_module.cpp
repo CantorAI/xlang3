@@ -35,6 +35,12 @@ bool zlib_fail(Runtime& runtime, std::string message, std::string& error) {
   return false;
 }
 
+bool zlib_class_fail(Runtime& runtime, const char* class_name, std::string message, std::string& error) {
+  error = std::move(message);
+  runtime.raise_class_error(class_name, error);
+  return false;
+}
+
 struct ZlibCompressState {
   z_stream stream{};
   bool finished = false;
@@ -83,10 +89,6 @@ bool zlib_bytes_arg(const Value& value, const char* name, std::string& out, std:
       out.assign(bytes.data(), bytes.size());
       return true;
     }
-  }
-  if (auto* string = value_as_string(value)) {
-    out = string_object_to_string(*string);
-    return true;
   }
   error = std::string(name) + " must be bytes-like";
   return false;
@@ -145,21 +147,26 @@ bool zlib_stream_run(
   return true;
 }
 
-bool zlib_compress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
-    error = "zlib.compress() expected data and optional level";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "zlib.compress() expected data and optional level", error);
   }
   std::string input;
   if (!zlib_bytes_arg(args[0], "zlib.compress data", input, error)) {
-    return false;
+    return zlib_class_fail(runtime, "TypeError", error, error);
   }
   if (input.size() > std::numeric_limits<uLong>::max()) {
     error = "zlib input too large";
     return false;
   }
 
+  if (argc == 2 && args[1].tag != ValueTag::Int64) {
+    return zlib_class_fail(runtime, "TypeError", "zlib.compress() level must be int", error);
+  }
   const int level = zlib_level_arg(args, argc, 1, Z_DEFAULT_COMPRESSION);
+  if (argc == 2 && (args[1].as.i64 < Z_DEFAULT_COMPRESSION || args[1].as.i64 > Z_BEST_COMPRESSION)) {
+    return zlib_fail(runtime, "Bad compression level", error);
+  }
   uLongf capacity = compressBound(static_cast<uLong>(input.size()));
   std::string compressed;
   compressed.resize(static_cast<size_t>(capacity));
@@ -170,8 +177,7 @@ bool zlib_compress(Runtime&, const Value* args, uint32_t argc, Value& out, std::
       static_cast<uLong>(input.size()),
       level);
   if (rc != Z_OK) {
-    error = "zlib.compress failed: " + std::to_string(rc);
-    return false;
+    return zlib_fail(runtime, "zlib.compress failed: " + std::to_string(rc), error);
   }
   compressed.resize(static_cast<size_t>(capacity));
   out = Value::bytes(std::move(compressed));
@@ -193,19 +199,16 @@ bool zlib_compressobj(Runtime& runtime, const Value* args, uint32_t argc, Value&
       !zlib_int_arg(args, argc, 2, MAX_WBITS, wbits) ||
       !zlib_int_arg(args, argc, 3, kDefaultMemLevel, mem_level) ||
       !zlib_int_arg(args, argc, 4, Z_DEFAULT_STRATEGY, strategy)) {
-    error = "zlib.compressobj() arguments must be integers";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "zlib.compressobj() arguments must be integers", error);
   }
   if (method != Z_DEFLATED) {
-    error = "zlib.compressobj() only supports DEFLATED";
-    return false;
+    return zlib_class_fail(runtime, "ValueError", "zlib.compressobj() only supports DEFLATED", error);
   }
   auto* state = new ZlibCompressState();
   const int rc = deflateInit2(&state->stream, level, method, wbits, mem_level, strategy);
   if (rc != Z_OK) {
     delete state;
-    error = "zlib.compressobj init failed: " + std::to_string(rc);
-    return false;
+    return zlib_class_fail(runtime, "ValueError", "zlib.compressobj init failed: " + std::to_string(rc), error);
   }
   auto* compress_class = static_cast<Value*>(compress_class_ptr);
   out = Value::instance(*compress_class);
@@ -224,15 +227,13 @@ bool zlib_decompressobj(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   int wbits = MAX_WBITS;
   if (!zlib_int_arg(args, argc, 0, MAX_WBITS, wbits)) {
-    error = "zlib.decompressobj() wbits must be int";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "zlib.decompressobj() wbits must be int", error);
   }
   auto* state = new ZlibDecompressState();
   const int rc = inflateInit2(&state->stream, wbits);
   if (rc != Z_OK) {
     delete state;
-    error = "zlib.decompressobj init failed: " + std::to_string(rc);
-    return false;
+    return zlib_class_fail(runtime, "ValueError", "zlib.decompressobj init failed: " + std::to_string(rc), error);
   }
   auto* decompress_class = static_cast<Value*>(decompress_class_ptr);
   out = Value::instance(*decompress_class);
@@ -249,12 +250,11 @@ bool zlib_decompressobj(Runtime& runtime, const Value* args, uint32_t argc, Valu
 
 bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 3) {
-    error = "zlib.decompress() expected data, optional wbits, and optional bufsize";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "zlib.decompress() expected data, optional wbits, and optional bufsize", error);
   }
   std::string input;
   if (!zlib_bytes_arg(args[0], "zlib.decompress data", input, error)) {
-    return false;
+    return zlib_class_fail(runtime, "TypeError", error, error);
   }
   const int wbits = argc >= 2 && args[1].tag == ValueTag::Int64 ? static_cast<int>(args[1].as.i64) : MAX_WBITS;
   size_t chunk_size = 16384;
@@ -433,7 +433,7 @@ bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t arg
   return true;
 }
 
-bool zlib_decompress_object_flush(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_decompress_object_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc > 2) {
     error = "Decompress.flush() expected optional length";
     return false;
@@ -442,18 +442,20 @@ bool zlib_decompress_object_flush(Runtime&, const Value* args, uint32_t argc, Va
   if (!decompress_object_state(args[0], state, error)) {
     return false;
   }
+  if (argc == 2 && (args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0)) {
+    return zlib_class_fail(runtime, "ValueError", "length must be greater than zero", error);
+  }
   out = Value::bytes("");
   return true;
 }
 
-bool zlib_crc32(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_crc32(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
-    error = "zlib.crc32() expected data and optional value";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "zlib.crc32() expected data and optional value", error);
   }
   std::string input;
   if (!zlib_bytes_arg(args[0], "zlib.crc32 data", input, error)) {
-    return false;
+    return zlib_class_fail(runtime, "TypeError", error, error);
   }
   uLong seed = 0;
   if (argc == 2 && args[1].tag == ValueTag::Int64) {
@@ -463,14 +465,13 @@ bool zlib_crc32(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   return true;
 }
 
-bool zlib_adler32(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_adler32(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
-    error = "zlib.adler32() expected data and optional value";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "zlib.adler32() expected data and optional value", error);
   }
   std::string input;
   if (!zlib_bytes_arg(args[0], "zlib.adler32 data", input, error)) {
-    return false;
+    return zlib_class_fail(runtime, "TypeError", error, error);
   }
   uLong seed = 1;
   if (argc == 2 && args[1].tag == ValueTag::Int64) {
@@ -544,7 +545,10 @@ void register_zlib_module(Runtime& runtime) {
       .value("DEF_MEM_LEVEL", Value::int64(kDefaultMemLevel))
       .value("MAX_WBITS", Value::int64(MAX_WBITS))
       .value("DEFLATED", Value::int64(Z_DEFLATED))
-      .value("ZLIB_VERSION", Value::string(ZLIB_VERSION));
+      .value("ZLIB_VERSION", Value::string(ZLIB_VERSION))
+      // CPython exposes the version reported by the linked runtime separately
+      // from the build-time header version.
+      .value("ZLIB_RUNTIME_VERSION", Value::string(zlibVersion()));
   runtime.register_module("zlib", builder.finish());
 }
 

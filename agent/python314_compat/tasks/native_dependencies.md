@@ -9,18 +9,24 @@
   coverage remains in `async_threads.md`.
   Remaining: none for the current subset.
 
-- [~] _winapi
-  Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Additional coverage: XLang3 pseudo handles from native dependency shims can
-  be closed without calling the Windows kernel handle table.
-  Additional coverage: `CreateProcess` accepts explicit environment mappings,
-  including plain dicts and CPython `os.environ` mapping objects, and passes a
-  Unicode environment block to the child process.
-  Remaining: deeper process, handle, wait, pipe, and detailed Windows error surfaces.
+- [x] _winapi
+  Coverage: `tests/fixtures/compat_sections/standard_modules.py`; XLang3 pseudo
+  handles can be closed without calling the Windows kernel handle table; and
+  `CreateProcess` accepts plain-dict and CPython `os.environ` mappings through a
+  Unicode environment block.
+  Validation: all nine CPython 3.14 `Lib/test/test_winapi.py` cases pass under
+  XLang3, including waits over 3,969 events, invalid-handle errors, pathname
+  conversion, and named-pipe read/write/peek behavior.
+  Remaining: none for the supported Windows `_winapi` surface.
 
-- [~] _stat and os stat structures
-  Coverage: `tests/fixtures/compat_sections/standard_modules.py`
-  Remaining: complete mode constants and all stat result edge cases.
+- [x] _stat and os stat structures
+  Coverage: `tests/fixtures/core/imp_stat_modules.py` covers stat tuple
+  indexes, mode masks, permission aliases, special bits, and the Windows
+  stub file-type predicates; `standard_modules.py` exercises `os.stat_result`
+  through source-backed `os`, `pathlib`, and directory-entry paths.
+  Validation: CPython 3.14 `Lib/test/test_stat.py` passes under XLang3
+  (22 tests, with 14 platform-skipped cases).
+  Remaining: none for the supported Windows stat surface.
 
 - [~] _io
   Coverage: `tests/fixtures/core/io_module_streams.py`, `tests/fixtures/compat_sections/standard_modules.py`
@@ -46,18 +52,37 @@
   `_overlapped` now keeps native overlapped address state and an IOCP completion
   queue/fallback for immediate and cancelled operations, enough for CPython
   `asyncio.run()` startup/shutdown over the Windows proactor path.
+  Validation update: all three CPython 3.14 Windows signal tests pass, including
+  `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
+  `KeyboardInterrupt` exit behavior.
   Remaining: broader address-family/service resolution, deeper selectors edge
   behavior, signal delivery, full
   `_overlapped` IOCP behavior, and platform constants.
 
 - [~] _weakref and _collections
-  Coverage: `tests/fixtures/core/weakref_module.py`, `tests/fixtures/core/collections_queue_modules.py`
-  Remaining: lifecycle cleanup, proxy behavior, deque/defaultdict/OrderedDict parity.
+  Coverage: `tests/fixtures/core/weakref_module.py` covers reference and proxy
+  lookup, weak-reference enumeration, and collection-time reference expiration;
+  `tests/fixtures/core/collections_queue_modules.py` covers the native collection
+  dependency surface used by source-backed `collections`, including deque
+  rotation, reversal, positional lookup, insertion, bounded representation, and
+  independent `copy()` results.
+  Remaining: weakref callback lifecycle and proxy parity; deque operation,
+  iterator, comparison, copy/pickle, and representation parity; plus
+  defaultdict/OrderedDict parity. CPython 3.14 `test_deque.TestBasic` currently
+  has 24 errors and 8 failures across 48 tests.
 
 - [~] zlib and zipimport
-  Coverage: `tests/fixtures/core/zlib_module.py`, `tests/fixtures/core/zipfile_module.py`, `tests/fixtures/core/sys_path_importer_cache.py`
-  Remaining: full compression matrix, encrypted ZIP behavior deferred, and import edge cases.
+  Coverage: `tests/fixtures/core/zlib_module.py`, `tests/fixtures/core/zipfile_module.py`, `tests/fixtures/core/zipimport_module.py`, `tests/fixtures/core/sys_path_importer_cache.py`.
+  Validation: CPython 3.14 `test_zipimport` focused checks pass for bad archives,
+  source/bytecode selection, nested package prefixes, direct member data, and
+  cache invalidation.
+  Remaining: full compression matrix, encrypted ZIP behavior deferred, hash-based
+  bytecode validation modes, and remaining import edge cases.
 
 - [~] _pickle and marshal
-  Coverage: `tests/fixtures/core/sys_structseq_pickle.py`
-  Remaining: full protocol compatibility, recursive object graphs, persistent ids, extension codes, and marshal code-object parity.
+  Coverage: `tests/fixtures/core/sys_structseq_pickle.py`.
+  Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
+  containers, errors, byte buffers, code objects, compatibility, interning, and
+  slices (with two platform skips).
+  Remaining: full pickle protocol compatibility, recursive object graphs,
+  persistent ids, extension codes, and remaining marshal stress/C-API cases.

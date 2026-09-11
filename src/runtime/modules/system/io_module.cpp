@@ -900,9 +900,10 @@ bool stream_getbuffer(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool stream_seek(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool stream_seek(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64) {
     error = "memory stream seek() expected offset and optional whence";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const char* type = static_cast<const char*>(user_data);
@@ -927,6 +928,26 @@ bool stream_seek(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   state->cursor = static_cast<size_t>(next);
   value_set_int64(out, static_cast<int64_t>(state->cursor));
   return true;
+}
+
+bool stream_detach(Runtime& runtime, const Value*, uint32_t argc, Value&, std::string& error, void*) {
+  if (argc != 1) {
+    error = "detach() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  error = "detach";
+  Value module;
+  Value unsupported;
+  std::string ignored;
+  if (runtime.import_module("_io", module, ignored) &&
+      module_get_attr(module, "UnsupportedOperation", unsupported, ignored) &&
+      value_as_class(unsupported) != nullptr) {
+    runtime.set_pending_exception(runtime.make_exception_from_class(std::move(unsupported), error));
+    return false;
+  }
+  runtime.raise_class_error("OSError", error);
+  return false;
 }
 
 bool stream_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -1217,6 +1238,7 @@ Value make_memory_stream_class(
     attrs.push_back({"readinto", runtime.make_native_function("_io.BytesIO.readinto", stream_readinto, const_cast<char*>(type))});
   }
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
+  attrs.push_back({"detach", runtime.make_native_function(std::string("_io.") + name + ".detach", stream_detach)});
   attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
   attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});

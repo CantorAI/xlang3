@@ -23,6 +23,18 @@ info = os.stat(path)
 mode = info[_stat.ST_MODE]
 print(_stat.S_IFMT(mode) == _stat.S_IFREG, _stat.S_IMODE(mode) >= 0)
 print(info[_stat.ST_SIZE])
+print(
+    _stat.S_IREAD == _stat.S_IRUSR,
+    _stat.S_IWRITE == _stat.S_IWUSR,
+    _stat.S_IEXEC == _stat.S_IXUSR,
+    _stat.S_IRWXU == 0o700,
+    _stat.S_IRWXG == 0o70,
+    _stat.S_IRWXO == 0o7,
+    _stat.S_ISUID == 0o4000,
+    _stat.S_ISGID == _stat.S_ENFMT == 0o2000,
+    _stat.S_ISVTX == 0o1000,
+)
+print(_stat.S_ISDOOR(mode), _stat.S_ISPORT(mode), _stat.S_ISWHT(mode))
 print(_imp.is_builtin("sys"))
 print(_imp.is_builtin("definitely_missing"))
 print(_imp.is_frozen("sys"))

@@ -16,6 +16,15 @@ print(b.read(1))
 print(b.write(b"Z"))
 b.seek(0)
 print(b.read())
+for stream in (s, b):
+    try:
+        stream.detach()
+    except Exception as exc:
+        print(type(exc).__name__)
+try:
+    b.seek(0.0)
+except Exception as exc:
+    print(type(exc).__name__)
 print(io.DEFAULT_BUFFER_SIZE)
 print(io.TextIOBase)
 print(io.TextIOWrapper.__name__, _io.TextIOWrapper.__name__, issubclass(io.TextIOWrapper, io.TextIOBase))

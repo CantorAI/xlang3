@@ -121,7 +121,9 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
   }
   const auto archive_string = python_path_string(archive_name);
   auto virtual_path = [&](const std::string& member) {
-    return (std::filesystem::path(archive_string) / std::filesystem::path(member)).string();
+    auto result = std::filesystem::path(archive_string) / std::filesystem::path(member);
+    result.make_preferred();
+    return result.string();
   };
   std::vector<uint8_t> archive;
   if (!runtime.vfs().read_file(archive_string, archive, error)) {
@@ -131,6 +133,19 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
   if (!prefix.empty()) base = prefix + "/" + base;
   ZipArchiveEntry entry;
   std::string source;
+  if (zip_archive_find_entry(archive, base + ".pyc", entry, error) &&
+      zip_archive_extract_member(archive, entry, source, error) &&
+      source.size() >= 4 && source.compare(0, 4, "\x33\x58\x0d\x0a", 4) == 0) {
+    out.path = virtual_path(base + ".pyc");
+    out.source = std::move(source);
+    out.is_package = false;
+    out.is_namespace_package = false;
+    out.is_zip_source = true;
+    out.is_bytecode = true;
+    out.path_importer_cache_key = archive_string;
+    return true;
+  }
+  error.clear();
   if (zip_archive_find_entry(archive, base + ".py", entry, error) &&
       zip_archive_extract_member(archive, entry, source, error)) {
     out.path = virtual_path(base + ".py");
@@ -138,18 +153,6 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
     out.is_package = false;
     out.is_namespace_package = false;
     out.is_zip_source = true;
-    out.path_importer_cache_key = archive_string;
-    return true;
-  }
-  error.clear();
-  if (zip_archive_find_entry(archive, base + ".pyc", entry, error) &&
-      zip_archive_extract_member(archive, entry, source, error)) {
-    out.path = virtual_path(base + ".pyc");
-    out.source = std::move(source);
-    out.is_package = false;
-    out.is_namespace_package = false;
-    out.is_zip_source = true;
-    out.is_bytecode = true;
     out.path_importer_cache_key = archive_string;
     return true;
   }

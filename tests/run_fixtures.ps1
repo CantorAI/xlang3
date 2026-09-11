@@ -86,6 +86,7 @@ $cases = @(
     "importlib_module",
     "zlib_module",
     "zipfile_module",
+    "zipimport_module",
     "weakref_module",
     "inspect_module",
     "inspect_currentframe",
