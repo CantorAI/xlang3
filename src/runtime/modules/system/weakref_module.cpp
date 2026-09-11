@@ -380,7 +380,11 @@ bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, V
   if (std::strcmp(method_name, "__next__") == 0 && argc == 1) {
     Value iterator = target;
     bool done = false;
-    if (!sequence_iter_next(iterator, done, out, error)) return false;
+    if (!sequence_iter_next(iterator, done, out, error)) {
+      error = "Weakref proxy referenced a non-iterator";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     if (done) {
       error = "";
       runtime.raise_class_error("StopIteration", error);

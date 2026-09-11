@@ -33,3 +33,4 @@ numeric-box 7 4 b'numeric'
 561
 42 1729 -163 10
 12
+Weakref proxy referenced a non-iterator

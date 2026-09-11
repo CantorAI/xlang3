@@ -209,3 +209,7 @@ def proxy_generator():
 
 generator_proxy = weakref.proxy(proxy_generator())
 print(next(generator_proxy))
+try:
+    next(weakref.proxy(lambda: None))
+except TypeError as exc:
+    print(str(exc))
