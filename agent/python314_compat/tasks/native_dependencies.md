@@ -104,7 +104,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   The native `_BufferedIOBase` now supplies the CPython default `readinto()`
   and single-read `readinto1()` mixins for source-backed Python subclasses.
   `_RawIOBase` now provides its default bounded `read()` and EOF-accumulating
-  `readall()` behavior through subclass `readinto()` implementations.
+  `readall()` behavior through subclass `readinto()` implementations, including
+  CPython `ValueError` bounds diagnostics for invalid returned byte counts.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.

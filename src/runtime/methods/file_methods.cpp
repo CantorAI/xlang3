@@ -1138,6 +1138,7 @@ bool file_flush_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   auto* file = require_file(args[0], "file.flush", error);
   if (file == nullptr) {
+    runtime.raise_class_error(error.find("closed file") != std::string::npos ? "ValueError" : "TypeError", error);
     return false;
   }
   int write_error = 0;

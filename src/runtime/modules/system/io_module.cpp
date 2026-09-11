@@ -2322,8 +2322,10 @@ bool raw_io_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       break;
     }
     if (count.tag != ValueTag::Int64 || count.as.i64 < 0 || static_cast<size_t>(count.as.i64) > request) {
-      error = "readinto() returned invalid length";
-      runtime.raise_class_error("OSError", error);
+      const std::string count_text = count.tag == ValueTag::Int64
+          ? std::to_string(count.as.i64) : value_binary_type_name(count);
+      error = "readinto returned " + count_text + " outside buffer size " + std::to_string(request);
+      runtime.raise_class_error("ValueError", error);
       return false;
     }
     if (count.as.i64 == 0) break;
