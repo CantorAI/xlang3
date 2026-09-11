@@ -749,6 +749,12 @@ bool builtin_open(
     return false;
   }
 
+  if (!options.closefd && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Bool) {
+    error = "Cannot use closefd=False with file name";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+
   if (options.opener.tag != ValueTag::None) {
     if (args[0].tag == ValueTag::Int64) {
       error = "opener can only be used with a file path";
