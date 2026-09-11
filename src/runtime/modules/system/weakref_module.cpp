@@ -111,7 +111,7 @@ bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (argc == 2 && value_is(args[0], weakref_reference_type(runtime)) && args[1].tag == ValueTag::Object) {
+  if ((argc == 2 || args[2].tag == ValueTag::None) && value_is(args[0], weakref_reference_type(runtime)) && args[1].tag == ValueTag::Object) {
     for (const auto& entry : weakref_registry()) {
       if (entry.target != args[1].as.obj || entry.ref == nullptr) continue;
       Value candidate;
@@ -289,7 +289,7 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (argc == 1 && args[0].tag == ValueTag::Object) {
+  if ((argc == 1 || args[1].tag == ValueTag::None) && args[0].tag == ValueTag::Object) {
     const Value reference_type = weakref_reference_type(runtime);
     for (const auto& entry : weakref_registry()) {
       if (entry.target != args[0].as.obj || entry.ref == nullptr) continue;

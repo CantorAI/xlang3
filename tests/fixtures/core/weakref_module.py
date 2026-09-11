@@ -13,6 +13,7 @@ b.name = "box"
 r = weakref.ref(b)
 print(r().name)
 print(weakref.ref(b) is r)
+print(weakref.ref(b, None) is r)
 print(type(r).__name__, type(r).__module__, weakref.ReferenceType is type(r))
 print(weakref.proxy(b).name)
 print(weakref.proxy(b) is weakref.proxy(b), weakref.proxy(b, None) is weakref.proxy(b))
