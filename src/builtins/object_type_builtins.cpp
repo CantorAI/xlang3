@@ -2844,6 +2844,13 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
           return true;
         }
       }
+      if (value.as.obj->kind == ObjectKind::ProtocolIterator) {
+        auto* iterator = reinterpret_cast<ProtocolIteratorObject*>(value.as.obj);
+        if (auto* inner = value_as_instance(iterator->iterator)) {
+          value_assign_fast(out, inner->klass);
+          return true;
+        }
+      }
       const char* type_name = builtin_type_name_for_kind(value.as.obj->kind);
       if (auto* native = value_as_native_function(value)) {
         if (native->bind_as_descriptor) {

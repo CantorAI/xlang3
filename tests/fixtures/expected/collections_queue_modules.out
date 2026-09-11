@@ -43,3 +43,5 @@ reverse iterator mutation detected
 extend requires iterable
 extendleft requires iterable
 extend preserves iterator error
+True [2, 3]
+['d', 'c', 'b', 'a']

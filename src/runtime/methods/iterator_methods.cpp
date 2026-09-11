@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
@@ -116,12 +117,52 @@ bool iterator_reduce_method(Runtime& runtime, const Value* args, uint32_t argc, 
         Value::int64(static_cast<int64_t>(iterator->index))});
     return true;
   }
+  if (args[0].as.obj->kind == ObjectKind::ProtocolIterator) {
+    auto* iterator = reinterpret_cast<ProtocolIteratorObject*>(args[0].as.obj);
+    Value reduce;
+    if (!object_get_attr(iterator->iterator, "__reduce__", reduce, error)) {
+      runtime.raise_class_error("TypeError", "cannot pickle this iterator");
+      return false;
+    }
+    Value payload;
+    if (!runtime_call_callable(runtime, reduce, nullptr, 0, payload, error)) return false;
+    auto* tuple = value_as_tuple(payload);
+    if (tuple == nullptr || tuple->items.size() != 3) {
+      error = "cannot pickle this iterator";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    auto* constructor_args = value_as_tuple(tuple->items[1]);
+    if (constructor_args == nullptr || constructor_args->items.size() != 1) {
+      error = "cannot pickle this iterator";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const Value* constructor = runtime.find_builtin("iter");
+    if (constructor == nullptr) {
+      error = "iter constructor is not registered";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    out = Value::tuple({*constructor, Value::tuple({constructor_args->items[0]}), tuple->items[2]});
+    return true;
+  }
   error = "cannot pickle this iterator";
   runtime.raise_class_error("TypeError", error);
   return false;
 }
 
 bool iterator_setstate_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 2 && args[0].tag == ValueTag::Object && args[0].as.obj != nullptr &&
+      args[0].as.obj->kind == ObjectKind::ProtocolIterator) {
+    auto* iterator = reinterpret_cast<ProtocolIteratorObject*>(args[0].as.obj);
+    Value setstate;
+    if (!object_get_attr(iterator->iterator, "__setstate__", setstate, error)) return false;
+    Value state_args[] = {args[1]};
+    if (!runtime_call_callable(runtime, setstate, state_args, 1, out, error)) return false;
+    value_set_none(out);
+    return true;
+  }
   auto* iterator = argc >= 1 && args[0].tag == ValueTag::Object && args[0].as.obj != nullptr &&
           args[0].as.obj->kind == ObjectKind::SequenceIterator
       ? reinterpret_cast<SequenceIteratorObject*>(args[0].as.obj)

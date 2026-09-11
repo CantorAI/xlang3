@@ -228,6 +228,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   introspection.
   Forward and reverse deque iterators retain their source container and reject
   mutation with CPython's `RuntimeError` instead of iterating a stale snapshot.
+  Deque iterators now preserve their position through pickle round-trips, and
+  their concrete forward/reverse iterator types can be constructed from a deque
+  as CPython permits. Replacing a deque item does not invalidate an active
+  iterator, while structural mutation still does.
   Validation: focused CPython 3.14 `test_weakref.ReferencesTestCase` passes all
   51 tests with its 4 expected skips, including cyclic callback invalidation;
   focused CPython 3.14 `test_deque.TestBasic` cases pass for copy, pickle,

@@ -167,3 +167,11 @@ try:
     _collections.deque().extend(broken_iterable())
 except SyntaxError:
     print("extend preserves iterator error")
+
+iterator_pickle_source = _collections.deque([1, 2, 3])
+iterator_pickle = iter(iterator_pickle_source)
+next(iterator_pickle)
+restored_iterator = pickle.loads(pickle.dumps(iterator_pickle, 4))
+print(type(iterator_pickle) is type(restored_iterator), list(restored_iterator))
+reverse_iterator_class = type(reversed(_collections.deque()))
+print(list(reverse_iterator_class(_collections.deque("abcd"))))

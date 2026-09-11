@@ -29,6 +29,7 @@ namespace xlang3 {
 namespace {
 
 constexpr const char* kDequeNativeType = "_collections.deque";
+constexpr const char* kDequeIteratorNativeType = "_collections.deque_iterator";
 
 struct TupleGetterState {
   int64_t index = 0;
@@ -45,6 +46,11 @@ struct DequeIteratorState {
   uint64_t version = 0;
   size_t index = 0;
   bool reverse = false;
+};
+
+struct DequeIteratorClasses {
+  Value forward;
+  Value reverse;
 };
 
 void deque_mark_modified(DequeState& state) {
@@ -694,13 +700,46 @@ bool deque_snapshot_list(const Value& self, Value& out, std::string& error) {
   return true;
 }
 
-bool deque_iterator_next(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 0) {
+DequeIteratorState* deque_iterator_state(const Value& self, std::string& error) {
+  auto* state = static_cast<DequeIteratorState*>(instance_get_native_data(self, kDequeIteratorNativeType));
+  if (state == nullptr) error = "invalid deque iterator";
+  return state;
+}
+
+bool deque_iterator_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 2) {
+    error = "deque iterator expected a deque";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* deque = deque_state(args[1], error);
+  if (deque == nullptr) {
+    runtime.raise_class_error("TypeError", "deque iterator expected a deque");
+    return false;
+  }
+  const bool reverse = user_data != nullptr;
+  auto* state = new DequeIteratorState{args[1], deque->version, 0, reverse};
+  if (!instance_set_native_data(args[0], kDequeIteratorNativeType, state, deque_iterator_cleanup, error)) {
+    delete state;
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool deque_iterator_iter(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) { error = "deque iterator __iter__ expected no arguments"; return false; }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool deque_iterator_next(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
     error = "deque iterator step expected no arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* iterator = static_cast<DequeIteratorState*>(user_data);
+  auto* iterator = deque_iterator_state(args[0], error);
   if (iterator == nullptr) {
     error = "invalid deque iterator";
     runtime.raise_class_error("RuntimeError", error);
@@ -727,7 +766,34 @@ bool deque_iterator_next(Runtime& runtime, const Value*, uint32_t argc, Value& o
   return true;
 }
 
-bool deque_iter_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool reverse) {
+bool deque_iterator_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) { error = "deque iterator __reduce__ expected no arguments"; return false; }
+  auto* state = deque_iterator_state(args[0], error);
+  if (state == nullptr) return false;
+  Value klass;
+  if (!runtime_type_of_value(runtime, args[0], klass)) return false;
+  out = Value::tuple({klass, Value::tuple({state->deque}), Value::int64(static_cast<int64_t>(state->index))});
+  return true;
+}
+
+bool deque_iterator_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 2) { error = "deque iterator __reduce_ex__ expected a protocol"; return false; }
+  int64_t protocol = 0;
+  if (!deque_as_index(runtime, args[1], protocol, error)) return false;
+  return deque_iterator_reduce(runtime, args, 1, out, error, user_data);
+}
+
+bool deque_iterator_setstate(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) { error = "deque iterator __setstate__ expected an index"; return false; }
+  auto* state = deque_iterator_state(args[0], error);
+  int64_t index = 0;
+  if (state == nullptr || !deque_as_index(runtime, args[1], index, error)) return false;
+  state->index = static_cast<size_t>(std::max<int64_t>(0, index));
+  value_set_none(out);
+  return true;
+}
+
+bool deque_iter_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool reverse, void* user_data) {
   if (argc != 1) {
     error = "deque.__iter__() expected no arguments";
     return false;
@@ -736,16 +802,19 @@ bool deque_iter_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (deque == nullptr) {
     return false;
   }
+  auto* classes = static_cast<DequeIteratorClasses*>(user_data);
+  if (classes == nullptr) { error = "deque iterator classes are unavailable"; return false; }
+  out = Value::instance(reverse ? classes->reverse : classes->forward);
   auto* state = new DequeIteratorState{args[0], deque->version, 0, reverse};
-  Value step = runtime.make_native_function(
-      "_collections.deque_iterator.__next__", deque_iterator_next,
-      state, deque_iterator_cleanup);
-  out = functional_callable_iterator(&runtime, std::move(step), Value::invalid());
+  if (!instance_set_native_data(out, kDequeIteratorNativeType, state, deque_iterator_cleanup, error)) {
+    delete state;
+    return false;
+  }
   return true;
 }
 
-bool deque_iter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return deque_iter_impl(runtime, args, argc, out, error, false);
+bool deque_iter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return deque_iter_impl(runtime, args, argc, out, error, false, user_data);
 }
 
 bool deque_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -789,7 +858,6 @@ bool deque_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   value_assign_fast(state->items[static_cast<size_t>(index)], args[2]);
-  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -842,9 +910,9 @@ bool deque_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool deque_reversed(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_reversed(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) { error = "deque.__reversed__() expected no arguments"; return false; }
-  return deque_iter_impl(runtime, args, argc, out, error, true);
+  return deque_iter_impl(runtime, args, argc, out, error, true, user_data);
 }
 
 bool defaultdict_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -934,7 +1002,7 @@ bool deque_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   return deque_init(runtime, init_args, 3, ignored, error, nullptr);
 }
 
-bool deque_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "deque.__reduce__() expected no arguments";
     runtime.raise_class_error("TypeError", error);
@@ -948,12 +1016,12 @@ bool deque_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       ? Value::tuple({})
       : Value::tuple({Value::tuple({}), Value::int64(state->maxlen)});
   Value iterator;
-  if (!deque_iter(runtime, args, 1, iterator, error, nullptr)) return false;
+  if (!deque_iter(runtime, args, 1, iterator, error, user_data)) return false;
   out = Value::tuple({klass, std::move(constructor_args), Value::none(), std::move(iterator)});
   return true;
 }
 
-bool deque_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
     error = "deque.__reduce_ex__() expected a protocol integer";
     runtime.raise_class_error("TypeError", error);
@@ -961,7 +1029,7 @@ bool deque_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   int64_t protocol = 0;
   if (!deque_as_index(runtime, args[1], protocol, error)) return false;
-  return deque_reduce(runtime, args, 1, out, error, nullptr);
+  return deque_reduce(runtime, args, 1, out, error, user_data);
 }
 
 bool deque_compare(
@@ -1196,7 +1264,27 @@ bool deque_maxlen(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
-Value make_deque_class(Runtime& runtime) {
+Value make_deque_iterator_class(Runtime& runtime, bool reverse) {
+  const char* name = reverse ? "_deque_reverse_iterator" : "_deque_iterator";
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_collections")});
+  attrs.push_back({"__init__", runtime.make_native_function(
+      std::string("_collections.") + name + ".__init__", deque_iterator_init,
+      reverse ? reinterpret_cast<void*>(1) : nullptr)});
+  attrs.push_back({"__iter__", runtime.make_native_function(
+      std::string("_collections.") + name + ".__iter__", deque_iterator_iter)});
+  attrs.push_back({"__next__", runtime.make_native_function(
+      std::string("_collections.") + name + ".__next__", deque_iterator_next)});
+  attrs.push_back({"__reduce__", runtime.make_native_function(
+      std::string("_collections.") + name + ".__reduce__", deque_iterator_reduce)});
+  attrs.push_back({"__reduce_ex__", runtime.make_native_function(
+      std::string("_collections.") + name + ".__reduce_ex__", deque_iterator_reduce_ex)});
+  attrs.push_back({"__setstate__", runtime.make_native_function(
+      std::string("_collections.") + name + ".__setstate__", deque_iterator_setstate)});
+  return Value::class_object(name, std::move(attrs));
+}
+
+Value make_deque_class(Runtime& runtime, DequeIteratorClasses* iterator_classes) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("collections")});
   attrs.push_back({"__qualname__", Value::string("deque")});
@@ -1215,16 +1303,16 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"count", runtime.make_native_function("_collections.deque.count", deque_count)});
   attrs.push_back({"remove", runtime.make_native_function("_collections.deque.remove", deque_remove)});
   attrs.push_back({"copy", runtime.make_native_function("_collections.deque.copy", deque_copy)});
-  attrs.push_back({"__reduce__", runtime.make_native_function("_collections.deque.__reduce__", deque_reduce)});
-  attrs.push_back({"__reduce_ex__", runtime.make_native_function("_collections.deque.__reduce_ex__", deque_reduce_ex)});
+  attrs.push_back({"__reduce__", runtime.make_native_function("_collections.deque.__reduce__", deque_reduce, iterator_classes)});
+  attrs.push_back({"__reduce_ex__", runtime.make_native_function("_collections.deque.__reduce_ex__", deque_reduce_ex, iterator_classes)});
   attrs.push_back({"reverse", runtime.make_native_function("_collections.deque.reverse", deque_reverse)});
   attrs.push_back({"rotate", runtime.make_native_function("_collections.deque.rotate", deque_rotate)});
   attrs.push_back({"index", runtime.make_native_function("_collections.deque.index", deque_index)});
   attrs.push_back({"insert", runtime.make_native_function("_collections.deque.insert", deque_insert)});
   attrs.push_back({"__len__", runtime.make_native_function("_collections.deque.__len__", deque_len)});
   attrs.push_back({"__sizeof__", runtime.make_native_function("_collections.deque.__sizeof__", deque_sizeof)});
-  attrs.push_back({"__iter__", runtime.make_native_function("_collections.deque.__iter__", deque_iter)});
-  attrs.push_back({"__reversed__", runtime.make_native_function("_collections.deque.__reversed__", deque_reversed)});
+  attrs.push_back({"__iter__", runtime.make_native_function("_collections.deque.__iter__", deque_iter, iterator_classes)});
+  attrs.push_back({"__reversed__", runtime.make_native_function("_collections.deque.__reversed__", deque_reversed, iterator_classes)});
   attrs.push_back({"__hash__", runtime.make_native_function("_collections.deque.__hash__", deque_hash)});
   attrs.push_back({"__getitem__", runtime.make_native_function("_collections.deque.__getitem__", deque_getitem)});
   attrs.push_back({"__setitem__", runtime.make_native_function("_collections.deque.__setitem__", deque_setitem)});
@@ -1299,12 +1387,17 @@ Value make_defaultdict_class(Runtime& runtime) {
 } // namespace
 
 void register_collections_module(Runtime& runtime) {
-  Value deque_class = make_deque_class(runtime);
+  auto* iterator_classes = new DequeIteratorClasses();
+  iterator_classes->forward = make_deque_iterator_class(runtime, false);
+  iterator_classes->reverse = make_deque_iterator_class(runtime, true);
+  Value deque_class = make_deque_class(runtime, iterator_classes);
   Value defaultdict_class = make_defaultdict_class(runtime);
   runtime.register_builtin("defaultdict", defaultdict_class);
 
   NativeModuleBuilder builder(runtime, "_collections");
   builder.value("deque", deque_class);
+  builder.value("_deque_iterator", iterator_classes->forward);
+  builder.value("_deque_reverse_iterator", iterator_classes->reverse);
   builder.value("defaultdict", defaultdict_class);
   builder.function("_tuplegetter", collections_tuplegetter);
   runtime.register_module("_collections", builder.finish());
