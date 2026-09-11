@@ -47,6 +47,13 @@ print(peek_right.recv(1, _socket.MSG_PEEK), peek_right.recv(1))
 peek_left.close()
 peek_right.close()
 
+into_left, into_right = socket.socketpair()
+into_left.sendall(b"q")
+into_buffer = bytearray(1)
+print(into_right.recv_into(into_buffer, 1, _socket.MSG_PEEK), bytes(into_buffer), into_right.recv(1))
+into_left.close()
+into_right.close()
+
 left, right = socket.socketpair()
 left.sendall(b"close-write")
 left.shutdown(socket.SHUT_WR)

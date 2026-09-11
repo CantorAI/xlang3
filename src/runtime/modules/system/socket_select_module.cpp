@@ -1469,8 +1469,8 @@ bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
 }
 
 bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 3) {
-    error = "socket.recv_into() expected buffer and optional nbytes";
+  if (argc < 2 || argc > 4) {
+    error = "socket.recv_into() expected buffer, optional nbytes, and optional flags";
     return false;
   }
   auto* state = socket_state(args[0], error);
@@ -1510,7 +1510,7 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
 
-  if (argc == 3) {
+  if (argc >= 3) {
     if (args[2].tag != ValueTag::Int64) {
       error = "recv_into() nbytes must be int";
       return false;
@@ -1519,12 +1519,20 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
       capacity = std::min(capacity, static_cast<size_t>(args[2].as.i64));
     }
   }
+  int flags = 0;
+  if (argc == 4) {
+    if (args[3].tag != ValueTag::Int64) {
+      error = "recv_into() flags must be int";
+      return false;
+    }
+    flags = static_cast<int>(args[3].as.i64);
+  }
   if (capacity == 0) {
     value_set_int64(out, 0);
     return true;
   }
 
-  const int received = ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), 0);
+  const int received = ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), flags);
   if (received < 0) {
     if (socket_last_error_would_block()) {
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv_into"));

@@ -17,6 +17,7 @@ True True 4
 b'udp' True
 2 b'xy' True
 b'p' b'p'
+1 b'q' b'q'
 b'close-write' b''
 21 True
 True
