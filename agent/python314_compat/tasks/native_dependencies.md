@@ -78,6 +78,8 @@ fixture suite, after the native dependency updates documented below.
   tuples through Winsock resolution.
   `getprotobyname()` resolves Winsock protocol names for source-backed
   `socket` callers.
+  Network byte-order helpers reject negative and oversized values with CPython
+  overflow errors.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.
