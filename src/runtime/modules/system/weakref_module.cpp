@@ -253,16 +253,42 @@ bool weakref_reference_compare(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  Value left_target;
-  Value right_target;
-  const bool left_live = weakref_get_target(args[0], left_target);
-  const bool right_live = weakref_get_target(args[1], right_target);
-  if (!left_live || !right_live) {
+  if (value_is(args[0], args[1])) {
+    value_set_bool(out, std::string_view(op) == "==");
+    return true;
+  }  Value left_target;
+  if (!weakref_get_target(args[0], left_target)) {
     const bool equal = value_is(args[0], args[1]);
     value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
     return true;
   }
-  return runtime_value_compare(runtime, op, left_target, right_target, out, error);
+  Value right_value = args[1];
+  if (auto* instance = value_as_instance(args[1])) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr && klass->name == "ReferenceType") {
+      if (!weakref_get_target(args[1], right_value)) {
+        const bool equal = value_is(args[0], args[1]);
+        value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
+        return true;
+      }
+    }
+  }
+  if (value_is(left_target, right_value)) {
+    value_set_bool(out, std::string_view(op) != "==");
+    return true;
+  }  if (std::string_view(op) == "!=") {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", left_target, right_value, equal, error)) {
+      return false;
+    }
+    bool truth = false;
+    if (!runtime_truthy(runtime, equal, truth, error)) {
+      return false;
+    }
+    value_set_bool(out, !truth);
+    return true;
+  }
+  return runtime_value_compare(runtime, op, left_target, right_value, out, error);
 }
 
 bool weakref_reference_order(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {

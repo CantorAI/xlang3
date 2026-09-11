@@ -28,6 +28,13 @@ r2 = _weakref.ref(b)
 print(r2().name)
 print(weakref.ReferenceType(b)().name)
 print(weakref.ref(b) == weakref.ref(b), weakref.ref(b) != weakref.ref(Box()))
+
+class EqualBox:
+    def __eq__(self, other):
+        return other == "match"
+
+equal_box = EqualBox()
+print(weakref.ref(equal_box) == "match", weakref.ref(equal_box) != "miss")
 try:
     weakref.ref(b) < weakref.ref(Box())
 except TypeError as exc:
