@@ -3913,8 +3913,14 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       }
       return true;
     }
-    error = "file attribute '" + name + "' is read-only";
-    return false;
+    if (name == "name" || name == "mode" || name == "closed" || name == "closefd" ||
+        name == "buffer" || name == "raw" || name == "encoding" || name == "errors" ||
+        name == "newlines") {
+      error = "file attribute '" + name + "' is read-only";
+      return false;
+    }
+    value_assign_fast(file->attrs[name], value);
+    return true;
   }
   if (auto* cell = value_as_cell(object)) {
     if (name == "cell_contents") {

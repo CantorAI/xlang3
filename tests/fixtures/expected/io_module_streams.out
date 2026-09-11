@@ -74,3 +74,4 @@ StringIO abc 1 abc 1
 b'state' 2
 state 2
 True True
+native-file

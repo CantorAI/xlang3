@@ -797,6 +797,7 @@ struct FileObject {
   int fd = -1;
   intptr_t fd_native_handle = -1;
   bool closefd = true;
+  std::unordered_map<std::string, Value> attrs;
 };
 
 XLANG3_HOT_INLINE FunctionObject* value_as_function(const Value& value) {

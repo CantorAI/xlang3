@@ -249,3 +249,9 @@ print(not fileio_reinit_first.closed, not fileio_reinit_second.closed)
 fileio_reinit_first.close()
 fileio_reinit_second.close()
 os.remove(fileio_reinit_path)
+
+fileio_attributes = _io.FileIO("xlang3_fileio_attributes.tmp", "wb")
+fileio_attributes.marker = "native-file"
+print(fileio_attributes.marker)
+fileio_attributes.close()
+os.remove("xlang3_fileio_attributes.tmp")

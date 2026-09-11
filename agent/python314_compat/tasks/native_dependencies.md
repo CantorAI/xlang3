@@ -118,6 +118,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Native `FileIO.__init__()` now reinitializes an existing descriptor-backed
   file object through the normal open path and preserves `closefd=False`
   ownership, matching CPython's direct reinitialization contract.
+  Descriptor-backed `FileIO` objects also retain ordinary Python attributes,
+  allowing source-backed file subclasses and reference cycles to be represented.
   Their `__getstate__()` and `__setstate__()` state tuples are also available
   for source-backed serialization, including the configured `StringIO` newline
   mode.

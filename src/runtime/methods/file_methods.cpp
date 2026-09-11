@@ -1497,6 +1497,10 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     return false;
   }
   auto* file = reinterpret_cast<FileObject*>(object.as.obj);
+  if (const auto attr = file->attrs.find(name); attr != file->attrs.end()) {
+    value_assign_fast(out, attr->second);
+    return true;
+  }
   if (name == "name") {
     out = Value::string(file->path);
     return true;
