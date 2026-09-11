@@ -25,3 +25,7 @@ expired = weakref.ref(Box())
 import gc
 gc.collect()
 print(expired() is None)
+events = []
+callback_ref = weakref.ref(Box(), lambda ref: events.append(ref() is None))
+gc.collect()
+print(events)

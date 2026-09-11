@@ -96,6 +96,7 @@ Value make_weakref_ref(Runtime& runtime, const Value& target);
 bool weakref_get_target(const Value& ref, Value& out);
 bool weakref_find_ref(const Value& target, Value& out);
 void weakref_invalidate_target(Object* target);
+void weakref_dispatch_callbacks(Runtime& runtime);
 uint64_t weakref_collect_cycles();
 void register_marshal_module(Runtime& runtime);
 void register_msvcrt_module(Runtime& runtime);

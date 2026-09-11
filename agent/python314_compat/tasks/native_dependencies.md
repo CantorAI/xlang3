@@ -64,7 +64,8 @@
 
 - [~] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py` covers reference and proxy
-  lookup, live-reference equality, weak-reference enumeration, and collection-time reference expiration;
+  lookup, live-reference equality, weak-reference enumeration, collection-time reference expiration,
+  and callback delivery through `gc.collect()`;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
   rotation, reversal, positional lookup, insertion, bounded representation, and
@@ -72,7 +73,7 @@
   passes deque comparisons, concatenation, in-place concatenation, and in-place
   repetition. Native deque reducers support source-backed `copy.copy()` and
   protocol-4 pickle round-trips.
-  Remaining: weakref callback lifecycle and proxy parity; deque operation,
+  Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
   iterator, comparison, copy/pickle, and representation parity; plus
   defaultdict/OrderedDict parity. CPython 3.14 `test_deque.TestBasic` currently
   has 24 errors and 8 failures across 48 tests.

@@ -41,6 +41,11 @@ std::vector<WeakrefEntry>& weakref_registry() {
   return *refs;
 }
 
+std::vector<Value>& pending_weakref_callbacks() {
+  static auto* callbacks = new std::vector<Value>();
+  return *callbacks;
+}
+
 bool weakrefable_target(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return false;
@@ -438,6 +443,16 @@ void weakref_invalidate_target(Object* target) {
   auto& refs = weakref_registry();
   for (auto& entry : refs) {
     if (entry.target == target) {
+      Value borrowed;
+      borrowed.tag = ValueTag::Object;
+      borrowed.flags = kXlangValueBorrowedRefFlag;
+      borrowed.as.obj = entry.ref;
+      Value callback;
+      std::string ignored;
+      if (entry.ref != target && object_get_attr(borrowed, kWeakrefCallbackAttr, callback, ignored) &&
+          callback.tag != ValueTag::None) {
+        pending_weakref_callbacks().push_back(borrowed);
+      }
       entry.target = nullptr;
     }
   }
@@ -446,6 +461,21 @@ void weakref_invalidate_target(Object* target) {
           refs.begin(), refs.end(),
           [&](const WeakrefEntry& entry) { return entry.ref == target; }),
       refs.end());
+}
+
+void weakref_dispatch_callbacks(Runtime& runtime) {
+  auto callbacks = std::move(pending_weakref_callbacks());
+  pending_weakref_callbacks().clear();
+  for (const auto& ref : callbacks) {
+    Value callback;
+    std::string ignored;
+    if (!object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored) || callback.tag == ValueTag::None) continue;
+    Value result;
+    if (!runtime_call_callable(runtime, callback, &ref, 1, result, ignored)) {
+      Value pending;
+      (void)runtime.take_pending_exception(pending);
+    }
+  }
 }
 
 uint64_t weakref_collect_cycles() {
