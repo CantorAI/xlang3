@@ -2246,6 +2246,7 @@ bool io_base_readline(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   Value read_method;
   if (!object_get_attr(args[0], "read", read_method, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string bytes;
