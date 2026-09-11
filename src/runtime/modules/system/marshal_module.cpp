@@ -830,6 +830,11 @@ bool marshal_dumps(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     error = "marshal.dumps() expected value and optional version";
     return false;
   }
+  if (argc == 2 && args[1].tag != ValueTag::Int64) {
+    error = "marshal version must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   g_marshal_version = argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : 5;
   g_marshal_runtime = &runtime;
   std::unordered_map<const Object*, uint32_t> write_refs;

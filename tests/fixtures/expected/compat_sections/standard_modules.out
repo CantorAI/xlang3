@@ -926,6 +926,7 @@ True 9
 [1, 2] {
 x True True True
 stream 5
+TypeError
 two False 5
 p
 2

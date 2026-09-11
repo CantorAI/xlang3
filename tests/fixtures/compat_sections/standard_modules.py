@@ -3056,6 +3056,10 @@ marshal_stream = io.BytesIO()
 marshal.dump([4, "stream"], marshal_stream)
 marshal_stream.seek(0)
 print(marshal.load(marshal_stream)[1], marshal.version)
+try:
+    marshal.dumps(1, "bad")
+except Exception as exc:
+    print(type(exc).__name__)
 
 pickle_payload = {"items": [1, "two"], "flag": False}
 pickle_copy = pickle.loads(pickle.dumps(pickle_payload, 4))

@@ -134,5 +134,6 @@ fixture suite, after the native dependency updates documented below.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).
+  `marshal.dumps()` rejects non-integer version arguments with `TypeError`.
   Remaining: full pickle protocol compatibility, recursive object graphs,
   persistent ids, extension codes, and remaining marshal stress/C-API cases.
