@@ -1633,7 +1633,7 @@ bool file_io_new_positional(
   return file_io_new(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
-bool file_io_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_io_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
     error = "FileIO.readinto() expected one buffer";
     runtime.raise_class_error("TypeError", error);
@@ -1641,12 +1641,19 @@ bool file_io_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   char* destination = nullptr;
   size_t capacity = 0;
+  Value exported_buffer;
   if (auto* bytearray = value_as_bytearray(args[1])) {
     destination = bytearray->value.data();
     capacity = bytearray->value.size();
   } else if (auto* view = value_as_memoryview(args[1])) {
     destination = memoryview_object_writable_data(*view);
     capacity = view->size;
+  } else if (std::string ignored;
+             object_get_attr(args[1], "__xlang3_bytes_value__", exported_buffer, ignored)) {
+    if (auto* bytearray = value_as_bytearray(exported_buffer)) {
+      destination = bytearray->value.data();
+      capacity = bytearray->value.size();
+    }
   }
   if (destination == nullptr && capacity != 0) {
     error = "readinto() argument must be read-write bytes-like object";
@@ -1654,7 +1661,8 @@ bool file_io_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   Value read;
-  if (!attribute_get(args[0], "read", read, error)) return false;
+  const char* read_name = user_data == nullptr ? "read" : static_cast<const char*>(user_data);
+  if (!attribute_get(args[0], read_name, read, error)) return false;
   Value size = Value::int64(static_cast<int64_t>(capacity));
   Value data;
   if (!runtime_call_callable(runtime, read, &size, 1, data, error)) return false;
@@ -2307,7 +2315,12 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
   Value io_base = Value::class_object("_IOBase", base_attrs);
   Value raw_io_base = Value::class_object("_RawIOBase", base_attrs, io_base);
   Value text_io_base = Value::class_object("_TextIOBase", base_attrs);
-  Value buffered_io_base = Value::class_object("_BufferedIOBase", base_attrs, io_base);
+  auto buffered_base_attrs = base_attrs;
+  buffered_base_attrs.push_back({"readinto", runtime.make_native_function(
+      "_io._BufferedIOBase.readinto", file_io_readinto)});
+  buffered_base_attrs.push_back({"readinto1", runtime.make_native_function(
+      "_io._BufferedIOBase.readinto1", file_io_readinto, const_cast<char*>("read1"))});
+  Value buffered_io_base = Value::class_object("_BufferedIOBase", std::move(buffered_base_attrs), io_base);
   Value file_io = Value::class_object(
       "FileIO",
       {{"__module__", Value::string("_io")},

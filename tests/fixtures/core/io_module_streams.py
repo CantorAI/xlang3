@@ -210,3 +210,18 @@ array_stream.seek(0)
 array_target = array.array("i", [0, 0, 0])
 assert array_stream.readinto(array_target) == len(array_values.tobytes())
 assert array_target.tobytes() == array_values.tobytes()
+
+class _FixtureBufferedBase(_io.BufferedIOBase):
+    def __init__(self):
+        self.data = b"abcdef"
+    def read(self, size):
+        result, self.data = self.data[:size], self.data[size:]
+        return result
+    def read1(self, size):
+        return self.read(min(size, 2))
+
+fixture_buffer = bytearray(4)
+assert _FixtureBufferedBase().readinto(fixture_buffer) == 4
+assert bytes(fixture_buffer) == b"abcd"
+assert _FixtureBufferedBase().readinto1(fixture_buffer) == 2
+assert bytes(fixture_buffer[:2]) == b"ab"
