@@ -194,6 +194,7 @@ proxy_events = []
 callback_proxy = weakref.proxy(Box(), lambda ref: proxy_events.append(type(ref).__name__))
 gc.collect()
 print(proxy_events)
+
 class NumericBox:
     def __repr__(self):
         return "numeric-box"

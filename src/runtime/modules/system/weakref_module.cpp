@@ -946,6 +946,129 @@ uint64_t weakref_collect_cycles() {
     collected += 1 + instance_attr_refs.size();
     value_set_invalid(keep_alive);
   }
+  std::vector<Object*> instance_candidates;
+  std::unordered_set<Object*> instance_candidate_set;
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::Instance &&
+        instance_candidate_set.insert(entry.target).second) {
+      instance_candidates.push_back(entry.target);
+    }
+  }
+  for (size_t index = 0; index < instance_candidates.size(); ++index) {
+    auto* instance = reinterpret_cast<InstanceObject*>(instance_candidates[index]);
+    const auto add_instance = [&](const Value& value) {
+      if (value_as_instance(value) != nullptr && instance_candidate_set.insert(value.as.obj).second) {
+        instance_candidates.push_back(value.as.obj);
+      }
+    };
+    add_instance(instance->mapping_storage);
+    add_instance(instance->sequence_storage);
+    for (const auto& attr : instance->attrs) {
+      add_instance(attr.second);
+      if (attr.second.tag != ValueTag::Object || attr.second.as.obj == nullptr) continue;
+      for (const auto& entry : weakref_registry()) {
+        if (entry.ref != attr.second.as.obj) continue;
+        Value ref;
+        ref.tag = ValueTag::Object;
+        ref.flags = kXlangValueBorrowedRefFlag;
+        ref.as.obj = entry.ref;
+        Value callback;
+        std::string ignored;
+        if (object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored)) {
+          if (const auto* method = value_as_bound_method(callback)) {
+            add_instance(method->self);
+          }
+        }
+      }
+    }
+    for (uint32_t slot = 0; slot < instance_slot_count(instance); ++slot) {
+      add_instance(instance_slot_at(instance, slot));
+    }
+  }
+  if (!instance_candidates.empty()) {
+    std::unordered_map<Object*, uint32_t> internal_refs;
+    for (auto* candidate : instance_candidates) {
+      internal_refs[candidate] = 0;
+    }
+    const auto count_candidate_ref = [&](const Value& value) {
+      if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
+          instance_candidate_set.find(value.as.obj) != instance_candidate_set.end()) {
+        ++internal_refs[value.as.obj];
+      }
+    };
+    for (auto* candidate : instance_candidates) {
+      auto* instance = reinterpret_cast<InstanceObject*>(candidate);
+      count_candidate_ref(instance->klass);
+      count_candidate_ref(instance->mapping_storage);
+      count_candidate_ref(instance->sequence_storage);
+      for (const auto& attr : instance->attrs) {
+        count_candidate_ref(attr.second);
+      }
+      for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
+        count_candidate_ref(instance_slot_at(instance, index));
+      }
+    }
+    bool has_internal_callback_edge = false;
+    for (const auto& entry : weakref_registry()) {
+      if (entry.ref == nullptr) continue;
+      bool reference_is_internal = false;
+      for (auto* candidate : instance_candidates) {
+        const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
+        for (const auto& attr : instance->attrs) {
+          if (attr.second.tag == ValueTag::Object && attr.second.as.obj == entry.ref) {
+            reference_is_internal = true;
+            break;
+          }
+        }
+        if (reference_is_internal) break;
+      }
+      if (!reference_is_internal) continue;
+      Value ref;
+      ref.tag = ValueTag::Object;
+      ref.flags = kXlangValueBorrowedRefFlag;
+      ref.as.obj = entry.ref;
+      Value callback;
+      std::string ignored;
+      if (object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored)) {
+        if (const auto* method = value_as_bound_method(callback);
+            method != nullptr && method->self.tag == ValueTag::Object &&
+            instance_candidate_set.find(method->self.as.obj) != instance_candidate_set.end()) {
+          ++internal_refs[method->self.as.obj];
+          has_internal_callback_edge = true;
+        }
+      }
+    }
+    std::vector<Object*> collectible;
+    for (auto* candidate : instance_candidates) {
+      if (internal_refs[candidate] != 0 &&
+          candidate->refcnt.load(std::memory_order_relaxed) == internal_refs[candidate]) {
+        collectible.push_back(candidate);
+      }
+    }
+    if (has_internal_callback_edge && !collectible.empty()) {
+      std::vector<Value> keep_alive;
+      keep_alive.reserve(collectible.size());
+      for (auto* candidate : collectible) {
+        Value borrowed;
+        borrowed.tag = ValueTag::Object;
+        borrowed.flags = kXlangValueBorrowedRefFlag;
+        borrowed.as.obj = candidate;
+        keep_alive.push_back(borrowed);
+      }
+      for (auto* candidate : collectible) {
+        auto* instance = reinterpret_cast<InstanceObject*>(candidate);
+        value_set_invalid(instance->mapping_storage);
+        value_set_invalid(instance->sequence_storage);
+        for (auto& attr : instance->attrs) {
+          value_set_invalid(attr.second);
+        }
+        for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
+          value_set_invalid(instance_slot_at(instance, index));
+        }
+      }
+      collected += collectible.size();
+    }
+  }
   return collected;
 }
 

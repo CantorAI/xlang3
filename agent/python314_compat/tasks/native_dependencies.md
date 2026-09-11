@@ -156,8 +156,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   dispatch their CPython in-place hooks before normal or reflected fallbacks.
   Callback delivery through
   `gc.collect()` for both references
-  and proxies, including last-created-first callback order and
-  callable-proxy invocation;
+  and proxies, including last-created-first callback order, callback clearing
+  after dispatch, and callback-bearing instance-cycle collection;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
   rotation, reversal, positional lookup with bounded index searches, insertion, bounded representation, and
@@ -184,8 +184,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   introspection.
   Forward and reverse deque iterators retain their source container and reject
   mutation with CPython's `RuntimeError` instead of iterating a stale snapshot.
-  Validation: focused CPython 3.14 `test_deque.TestBasic` cases pass for copy,
-  pickle, comparisons, concatenation, and in-place operations.
+  Validation: focused CPython 3.14 `test_weakref.ReferencesTestCase` passes all
+  51 tests with its 4 expected skips, including cyclic callback invalidation;
+  focused CPython 3.14 `test_deque.TestBasic` cases pass for copy, pickle,
+  comparisons, concatenation, and in-place operations.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
   iterator, comparison, copy/pickle, and representation parity; plus
   defaultdict/OrderedDict parity. CPython 3.14 `test_deque.TestBasic` currently
