@@ -42,6 +42,13 @@ callable_box = CallableBox()
 callable_proxy = weakref.proxy(callable_box)
 print(callable_proxy(4), type(callable_proxy).__name__)
 
+class KeywordCallableBox:
+    def __call__(self, *, value):
+        return value + 2
+
+keyword_callable_box = KeywordCallableBox()
+print(weakref.proxy(keyword_callable_box)(value=5))
+
 class SequenceBox:
     def __init__(self):
         self.values = [3, 4]

@@ -401,6 +401,39 @@ bool weakref_callable_proxy_call(Runtime& runtime, const Value* args, uint32_t a
   return runtime_call_callable(runtime, target, args + 1, argc - 1, out, error);
 }
 
+bool weakref_callable_proxy_call_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1) {
+    error = "weak callable proxy expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> forwarded;
+  forwarded.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "weak callable proxy received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    forwarded.emplace_back(kwargs[i].name, *kwargs[i].value);
+  }
+  return runtime_call_callable_kw(runtime, target, args + 1, argc - 1, forwarded, out, error);
+}
+
 Value weakref_proxy_type(Runtime& runtime) {
   static Value proxy_type = Value::invalid();
   if (proxy_type.tag == ValueTag::Invalid) {
@@ -455,7 +488,8 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__delattr__", runtime.make_native_function(
              "weakref.CallableProxyType.__delattr__", weakref_proxy_delattr)},
          {"__call__", runtime.make_native_function(
-             "weakref.CallableProxyType.__call__", weakref_callable_proxy_call)},
+             "weakref.CallableProxyType.__call__", weakref_callable_proxy_call,
+             nullptr, nullptr, nullptr, false, weakref_callable_proxy_call_kw)},
          {"__bool__", runtime.make_native_function("weakref.CallableProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
          {"__eq__", runtime.make_native_function("weakref.CallableProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
          {"__ne__", runtime.make_native_function("weakref.CallableProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
