@@ -38,6 +38,26 @@ d.rotate(2)
 print(d.to_list(), d.index(3))
 indexed = _collections.deque("ABCABC")
 print(indexed.index("B", 2), indexed.index("A", -3, -1))
+
+class Matcher:
+    def __eq__(self, value):
+        return value == "match"
+
+class Mutator:
+    def __init__(self, target):
+        self.target = target
+    def __eq__(self, value):
+        self.target.clear()
+        return False
+
+comparison_deque = _collections.deque([Matcher(), "other"])
+print(comparison_deque.count("match"), "match" in comparison_deque, comparison_deque.index("match"))
+mutating_deque = _collections.deque()
+mutating_deque.append(Mutator(mutating_deque))
+try:
+    mutating_deque.count("x")
+except RuntimeError:
+    print("mutation detected")
 d.reverse()
 d.insert(1, 99)
 print(d.to_list())

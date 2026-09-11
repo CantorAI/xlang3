@@ -37,7 +37,33 @@ struct TupleGetterState {
 struct DequeState {
   std::deque<Value> items;
   int64_t maxlen = -1;
+  uint64_t version = 0;
 };
+
+void deque_mark_modified(DequeState& state) {
+  ++state.version;
+}
+
+bool deque_item_equals(
+    Runtime& runtime,
+    DequeState& state,
+    const Value& item,
+    const Value& target,
+    uint64_t version,
+    bool& equal,
+    std::string& error) {
+  Value comparison;
+  if (!runtime_value_compare(runtime, "==", item, target, comparison, error) ||
+      !runtime_truthy(runtime, comparison, equal, error)) {
+    return false;
+  }
+  if (state.version != version) {
+    error = "deque mutated during iteration";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  return true;
+}
 
 bool collections_value_is_callable(Runtime& runtime, const Value& value) {
   if (value_as_function(value) != nullptr ||
@@ -396,6 +422,7 @@ bool deque_append(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   }
   state->items.push_back(args[1]);
   deque_trim(*state, false);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -411,6 +438,7 @@ bool deque_appendleft(Runtime&, const Value* args, uint32_t argc, Value& out, st
   }
   state->items.push_front(args[1]);
   deque_trim(*state, true);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -431,6 +459,7 @@ bool deque_pop(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   }
   value_assign_fast(out, state->items.back());
   state->items.pop_back();
+  deque_mark_modified(*state);
   return true;
 }
 
@@ -450,6 +479,7 @@ bool deque_popleft(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   value_assign_fast(out, state->items.front());
   state->items.pop_front();
+  deque_mark_modified(*state);
   return true;
 }
 
@@ -463,6 +493,7 @@ bool deque_clear(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
     return false;
   }
   state->items.clear();
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -477,6 +508,7 @@ bool deque_extend(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   deque_trim(*state, false);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -491,6 +523,7 @@ bool deque_extendleft(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   deque_trim(*state, true);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -519,8 +552,13 @@ bool deque_count(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   int64_t count = 0;
-  for (const auto& item : state->items) {
-    if (value_key_equal(item, args[1])) {
+  const uint64_t version = state->version;
+  const size_t size = state->items.size();
+  for (size_t index = 0; index < size; ++index) {
+    Value item = state->items[index];
+    bool equal = false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (equal) {
       ++count;
     }
   }
@@ -537,10 +575,16 @@ bool deque_remove(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (state == nullptr) {
     return false;
   }
-  for (auto it = state->items.begin(); it != state->items.end(); ++it) {
-    if (value_key_equal(*it, args[1])) {
-      value_set_invalid(*it);
-      state->items.erase(it);
+  const uint64_t version = state->version;
+  const size_t size = state->items.size();
+  for (size_t index = 0; index < size; ++index) {
+    Value item = state->items[index];
+    bool equal = false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (equal) {
+      value_set_invalid(state->items[index]);
+      state->items.erase(state->items.begin() + static_cast<std::ptrdiff_t>(index));
+      deque_mark_modified(*state);
       value_set_none(out);
       return true;
     }
@@ -634,6 +678,7 @@ bool deque_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   value_assign_fast(state->items[static_cast<size_t>(index)], args[2]);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -656,11 +701,12 @@ bool deque_delitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   auto item = state->items.begin() + static_cast<std::ptrdiff_t>(index);
   value_set_invalid(*item);
   state->items.erase(item);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
 
-bool deque_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool deque_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "deque.__contains__() expected value";
     return false;
@@ -669,8 +715,13 @@ bool deque_contains(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   if (state == nullptr) {
     return false;
   }
-  for (const auto& item : state->items) {
-    if (value_key_equal(item, args[1])) {
+  const uint64_t version = state->version;
+  const size_t size = state->items.size();
+  for (size_t index = 0; index < size; ++index) {
+    Value item = state->items[index];
+    bool equal = false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (equal) {
       value_set_bool(out, true);
       return true;
     }
@@ -872,6 +923,7 @@ bool deque_mul_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& o
       for (const auto& item : original) source->items.push_back(item);
     }
     deque_trim(*source, false);
+    deque_mark_modified(*source);
     value_assign_fast(out, args[0]);
     return true;
   }
@@ -900,6 +952,7 @@ bool deque_reverse(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   auto* state = deque_state(args[0], error);
   if (state == nullptr) return false;
   std::reverse(state->items.begin(), state->items.end());
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -915,6 +968,7 @@ bool deque_rotate(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   amount %= static_cast<int64_t>(state->items.size());
   if (amount < 0) amount += static_cast<int64_t>(state->items.size());
   std::rotate(state->items.rbegin(), state->items.rbegin() + amount, state->items.rend());
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }
@@ -929,8 +983,12 @@ bool deque_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (start < 0) start = std::max<int64_t>(0, start + size);
   if (stop < 0) stop = std::max<int64_t>(0, stop + size);
   stop = std::min(stop, size);
+  const uint64_t version = state->version;
   for (int64_t index = start; index < stop; ++index) {
-    if (value_key_equal(state->items[static_cast<size_t>(index)], args[1])) { value_set_int64(out, index); return true; }
+    Value item = state->items[static_cast<size_t>(index)];
+    bool equal = false;
+    if (!deque_item_equals(runtime, *state, item, args[1], version, equal, error)) return false;
+    if (equal) { value_set_int64(out, index); return true; }
   }
   error = "deque.index(x): x not in deque";
   runtime.raise_class_error("ValueError", error);
@@ -950,6 +1008,7 @@ bool deque_insert(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (index < 0) index = std::max<int64_t>(0, index + static_cast<int64_t>(state->items.size()));
   index = std::min<int64_t>(index, state->items.size());
   state->items.insert(state->items.begin() + index, args[2]);
+  deque_mark_modified(*state);
   value_set_none(out);
   return true;
 }

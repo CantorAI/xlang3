@@ -84,6 +84,8 @@
   protocol-4 pickle round-trips; native defaultdict reducers preserve both
   mapping entries and default factories through copy and protocol-4 pickle,
   and `|` / `|=` preserve defaultdict type and factory.
+  Deque search operations honor user-defined equality and reject mutation during
+  comparison, matching the CPython container safety contract.
   Validation: focused CPython 3.14 `test_deque.TestBasic` cases pass for copy,
   pickle, comparisons, concatenation, and in-place operations.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
