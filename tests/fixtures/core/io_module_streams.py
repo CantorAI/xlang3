@@ -68,6 +68,7 @@ file.close()
 os.unlink(path)
 
 reader = _io.BufferedReader(_io.BytesIO(b"abc"))
+print(reader.peek(2))
 print(reader.read1(1))
 target = bytearray(2)
 print(reader.readinto(target), bytes(target))

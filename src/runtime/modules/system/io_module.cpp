@@ -610,6 +610,38 @@ bool stream_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+bool buffered_stream_peek(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc < 1 || argc > 2) {
+    error = "BufferedReader.peek() expected optional size";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
+  if (state == nullptr || !state->wraps_buffer) return false;
+  int64_t size = 8192;
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "BufferedReader.peek() size must be int";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (args[1].as.i64 > 0) size = args[1].as.i64;
+  }
+  Value tell;
+  Value seek;
+  if (!attribute_get(state->wrapped_buffer, "tell", tell, error) ||
+      !attribute_get(state->wrapped_buffer, "seek", seek, error)) return false;
+  Value position;
+  if (!runtime_call_callable(runtime, tell, nullptr, 0, position, error)) return false;
+  Value read;
+  if (!attribute_get(state->wrapped_buffer, "read", read, error)) return false;
+  Value count = Value::int64(size);
+  if (!runtime_call_callable(runtime, read, &count, 1, out, error)) return false;
+  Value restore[] = {position};
+  Value ignored;
+  return runtime_call_callable(runtime, seek, restore, 1, ignored, error);
+}
+
 bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 1 || argc > 2) {
     error = "memory stream readline() expected optional size";
@@ -1510,6 +1542,7 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   attrs.push_back({"read1", runtime.make_native_function(std::string("_io.") + name + ".read1", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readinto", runtime.make_native_function(std::string("_io.") + name + ".readinto", stream_readinto, const_cast<char*>(type))});
   attrs.push_back({"readinto1", runtime.make_native_function(std::string("_io.") + name + ".readinto1", stream_readinto, const_cast<char*>(type))});
+  attrs.push_back({"peek", runtime.make_native_function(std::string("_io.") + name + ".peek", buffered_stream_peek, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
