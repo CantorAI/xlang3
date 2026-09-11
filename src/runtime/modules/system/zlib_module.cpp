@@ -307,7 +307,7 @@ bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     rc = inflate(&stream, Z_NO_FLUSH);
     if (rc != Z_OK && rc != Z_STREAM_END) {
       inflateEnd(&stream);
-      return zlib_fail(runtime, "zlib.decompress failed: " + std::to_string(rc), error);
+      return zlib_fail(runtime, stream.msg != nullptr ? stream.msg : "zlib.decompress failed: " + std::to_string(rc), error);
     }
     decompressed.append(chunk.data(), chunk.size() - stream.avail_out);
   } while (rc != Z_STREAM_END);
@@ -510,7 +510,7 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
       rc = inflate(&state->stream, Z_NO_FLUSH);
     }
     if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR) {
-      return zlib_fail(runtime, "zlib decompressor failed: " + std::to_string(rc), error);
+      return zlib_fail(runtime, state->stream.msg != nullptr ? state->stream.msg : "zlib decompressor failed: " + std::to_string(rc), error);
     }
     decompressed.append(chunk, requested - state->stream.avail_out);
     if (rc == Z_STREAM_END) {

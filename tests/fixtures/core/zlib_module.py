@@ -91,3 +91,8 @@ for operation in (
         operation()
     except Exception as exc:
         print(type(exc).__name__)
+
+try:
+    zlib.decompress(zlib.compress(b"window"), 14)
+except zlib.error as exc:
+    print("invalid window size" in str(exc))

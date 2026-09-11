@@ -207,6 +207,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   and accumulated `unused_data` state.
   One-shot `decompress()` validates `wbits` and `bufsize` argument types and
   rejects negative buffer sizes with CPython-compatible errors.
+  Invalid compressed window sizes retain zlib's CPython-compatible diagnostic
+  text instead of exposing only the native numeric error code.
   The native module exports CPython's standard compression strategy and flush
   constants, including `Z_RLE`, `Z_FIXED`, `Z_BLOCK`, and `Z_TREES`.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
