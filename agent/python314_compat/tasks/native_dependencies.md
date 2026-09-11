@@ -73,7 +73,8 @@
 - [~] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py` covers reference and proxy
   lookup, live-reference equality, weak-reference enumeration, collection-time reference expiration,
-  and callback delivery through `gc.collect()` for both references and proxies;
+  delegated proxy attribute mutation, and callback delivery through `gc.collect()`
+  for both references and proxies;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
   rotation, reversal, positional lookup, insertion, bounded representation, and

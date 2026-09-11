@@ -13,6 +13,10 @@ r = weakref.ref(b)
 print(r().name)
 print(type(r).__name__, type(r).__module__, weakref.ReferenceType is type(r))
 print(weakref.proxy(b).name)
+proxy = weakref.proxy(b)
+proxy.extra = 7
+del proxy.extra
+print(b.extra if hasattr(b, "extra") else "removed")
 print(weakref.getweakrefcount(b))
 print(weakref.getweakrefs(b))
 
