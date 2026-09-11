@@ -939,11 +939,13 @@ bool deque_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 }
 
 bool deque_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "deque.__reduce_ex__() expected a protocol integer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int64_t protocol = 0;
+  if (!deque_as_index(runtime, args[1], protocol, error)) return false;
   return deque_reduce(runtime, args, 1, out, error, nullptr);
 }
 
