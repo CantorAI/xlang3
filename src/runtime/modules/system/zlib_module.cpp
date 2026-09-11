@@ -587,7 +587,6 @@ bool zlib_decompress_object_copy(Runtime& runtime, const Value* args, uint32_t a
   if (argc != 1) return zlib_class_fail(runtime, "TypeError", "Decompress.copy() expected no arguments", error);
   ZlibDecompressState* state = nullptr;
   if (!decompress_object_state(args[0], state, error)) return false;
-  if (state->finished) return zlib_class_fail(runtime, "ValueError", "inconsistent stream state", error);
   auto* instance = value_as_instance(args[0]);
   if (instance == nullptr) return zlib_class_fail(runtime, "TypeError", "invalid zlib Decompress object", error);
   auto* copied = new ZlibDecompressState();

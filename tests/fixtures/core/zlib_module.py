@@ -29,6 +29,8 @@ print(d2.decompress(trailing) == b"xyz")
 print(d2.eof, d2.unused_data == b"tail")
 d2.decompress(b"more")
 print(d2.unused_data == b"tailmore", d2.decompress(b"") == b"")
+completed_copy = d2.copy()
+print(completed_copy.eof, completed_copy.unused_data == b"tailmore")
 
 c3 = zlib.compressobj()
 head = c3.compress(b"head")
