@@ -28,6 +28,7 @@ True True
 4 ((), 3) True [1, 2]
 True
 [1] [1]
+True
 defaultdict True 2 3
 defaultdict True 1 2
 True

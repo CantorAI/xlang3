@@ -109,6 +109,7 @@ print(pickled.__reduce_ex__(index_value)[0] is _collections.deque)
 defaults = _collections.defaultdict(list)
 defaults["x"].append(1)
 print(copy.copy(defaults)["x"], pickle.loads(pickle.dumps(defaults, 4))["x"])
+print(defaults.__reduce_ex__(index_value)[0] is _collections.defaultdict)
 merged = defaults | {"y": 2}
 defaults |= {"z": 3}
 print(type(merged).__name__, merged.default_factory is list, merged["y"], defaults["z"])

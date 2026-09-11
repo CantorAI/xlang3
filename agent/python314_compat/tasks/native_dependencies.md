@@ -158,6 +158,7 @@ passed 47/47 tests, including the aggregate fixture suite.
   repetition. Native deque reducers support source-backed `copy.copy()` and
   protocol-4 pickle round-trips and use CPython's constructor/state/item-
   iterator reduce tuple; `deque.__reduce_ex__()` accepts index-like protocol
+  arguments; `defaultdict.__reduce_ex__()` likewise accepts index-like protocol
   arguments; native defaultdict reducers preserve both
   mapping entries and default factories through copy and protocol-4 pickle,
   and `|` / `|=` preserve defaultdict type and factory. Reflected mapping
