@@ -46,3 +46,6 @@ b'a'
 ['one\r', 'two\n', 'three\r\n']
 ['one\r', 'two\r']
 'one\ntwo\nthree\n' ('\r', '\n', '\r\n')
+6 None
+b'writer'
+TypeError

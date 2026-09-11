@@ -908,7 +908,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (state == nullptr) {
     return false;
   }
-  if (state->wraps_buffer) {
+  if (state->wraps_buffer && !state->binary) {
     std::string data;
     if (!string_value(args[1], data)) {
       error = "TextIOWrapper.write() argument must be str";
@@ -965,6 +965,13 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     }
     value_set_int64(out, written);
     return true;
+  }
+  if (state->wraps_buffer) {
+    Value write_method;
+    if (!attribute_get(state->wrapped_buffer, "write", write_method, error)) {
+      return false;
+    }
+    return runtime_call_callable(runtime, write_method, args + 1, 1, out, error);
   }
   std::string data;
   const bool ok = state->binary ? bytes_value(args[1], data) : string_value(args[1], data);

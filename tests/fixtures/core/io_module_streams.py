@@ -125,3 +125,12 @@ carriage_lines = _io.StringIO("one\ntwo\r", newline="\r")
 print([line for line in carriage_lines])
 text_newlines = _io.TextIOWrapper(_io.BytesIO(b"one\rtwo\nthree\r\n"), newline=None)
 print(repr(text_newlines.read()), repr(text_newlines.newlines))
+writer_raw = _io.BytesIO()
+writer = _io.BufferedWriter(writer_raw)
+print(writer.write(b"writer"), writer.flush())
+writer_raw.seek(0)
+print(writer_raw.read())
+try:
+    writer.write("text")
+except Exception as exc:
+    print(type(exc).__name__)

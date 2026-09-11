@@ -61,6 +61,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   newline normalization, line iteration delimiters, and the CPython `newlines`
   reporting property. `TextIOWrapper.newlines` likewise reports newline forms
   observed through reads.
+  Buffered binary wrappers now forward writes and flushes to their wrapped raw
+  streams, instead of taking the text-wrapper encoding path.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
