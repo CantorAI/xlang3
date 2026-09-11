@@ -837,6 +837,11 @@ bool builtin_open(
     }
     return false;
   }
+  if (path.find('\0') != std::string::npos) {
+    error = "embedded null byte";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
 
   if (is_devnull_path(path)) {
     int flags = parsed.update ? O_RDWR : parsed.writable ? O_WRONLY : O_RDONLY;
