@@ -55,7 +55,7 @@ into_left.close()
 into_right.close()
 
 left, right = socket.socketpair()
-left.sendall(b"close-write")
+left.sendall(b"close-write", 0)
 left.shutdown(socket.SHUT_WR)
 print(right.recv(32), right.recv(1))
 left.close()

@@ -1213,8 +1213,8 @@ bool socket_connect_ex(Runtime& runtime, const Value* args, uint32_t argc, Value
 }
 
 bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool send_all) {
-  if (argc != 2) {
-    error = send_all ? "socket.sendall() expected data" : "socket.send() expected data";
+  if ((argc != 2 && argc != 3) || (argc == 3 && args[2].tag != ValueTag::Int64)) {
+    error = send_all ? "socket.sendall() expected data and optional flags" : "socket.send() expected data and optional flags";
     return false;
   }
   auto* state = socket_state(args[0], error);
@@ -1239,11 +1239,12 @@ bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value&
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const int flags = argc == 3 ? static_cast<int>(args[2].as.i64) : 0;
 
   size_t total = 0;
   while (total < data.size()) {
     const int chunk = static_cast<int>(std::min<size_t>(data.size() - total, 65536));
-    const int sent = ::send(fd, data.data() + total, chunk, 0);
+    const int sent = ::send(fd, data.data() + total, chunk, flags);
     if (sent <= 0) {
       error = socket_last_error_text(send_all ? "sendall" : "send");
       runtime.raise_class_error("OSError", error);
