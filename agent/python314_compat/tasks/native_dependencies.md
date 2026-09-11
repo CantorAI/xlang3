@@ -113,6 +113,7 @@ passed 47/47 tests, including the aggregate fixture suite.
   forms to Winsock and rejects invalid values instead of silently ignoring them.
   Native sockets now start non-inheritable and support `get_inheritable()` /
   `set_inheritable()` through Windows handle flags.
+  `getblocking()` now reflects native blocking-mode transitions.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.

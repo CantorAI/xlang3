@@ -1151,6 +1151,17 @@ bool socket_gettimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
+bool socket_getblocking(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.getblocking() expected no arguments";
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) return false;
+  value_set_bool(out, state->blocking);
+  return true;
+}
+
 bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "socket.accept() expected no arguments";
@@ -2405,6 +2416,7 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"settimeout", runtime.make_native_function("_socket.socket.settimeout", socket_settimeout)});
   attrs.push_back({"setblocking", runtime.make_native_function("_socket.socket.setblocking", socket_setblocking)});
   attrs.push_back({"gettimeout", runtime.make_native_function("_socket.socket.gettimeout", socket_gettimeout)});
+  attrs.push_back({"getblocking", runtime.make_native_function("_socket.socket.getblocking", socket_getblocking)});
   attrs.push_back({"setsockopt", runtime.make_native_function("_socket.socket.setsockopt", socket_setsockopt)});
   attrs.push_back({"getsockopt", runtime.make_native_function("_socket.socket.getsockopt", socket_getsockopt)});
   attrs.push_back({"bind", runtime.make_native_function("_socket.socket.bind", socket_bind)});
