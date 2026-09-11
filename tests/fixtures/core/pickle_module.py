@@ -49,3 +49,11 @@ first = memo_unpickler.load()
 second = memo_unpickler.load()
 third = memo_unpickler.load()
 print(second is first, third is first)
+
+cycle = []
+cycle.append(cycle)
+stream = io.BytesIO()
+_pickle.Pickler(stream, protocol=4).dump(cycle)
+stream.seek(0)
+loaded_cycle = _pickle.Unpickler(stream).load()
+print(loaded_cycle is loaded_cycle[0])

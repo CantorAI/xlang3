@@ -157,5 +157,5 @@ passed 47/47 tests, including the aggregate fixture suite.
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).
   `marshal.dumps()` rejects non-integer version arguments with `TypeError`.
-  Remaining: full pickle protocol compatibility, recursive object graphs,
-  persistent ids, extension codes, and remaining marshal stress/C-API cases.
+  Remaining: full pickle protocol compatibility, extension codes, and
+  remaining marshal stress/C-API cases.
