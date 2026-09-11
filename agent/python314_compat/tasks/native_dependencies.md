@@ -237,6 +237,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   source-backed delegate.
   Default native persistent-ID hooks mirror CPython: `Pickler.persistent_id()`
   returns `None`, while `Unpickler.persistent_load()` raises `UnpicklingError`.
+  Default native `Unpickler.find_class()` delegates CPython-compatible module
+  and global lookup to the source-backed unpickler.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).

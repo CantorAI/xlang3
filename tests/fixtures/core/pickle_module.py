@@ -67,3 +67,4 @@ try:
     _pickle.Unpickler(io.BytesIO()).persistent_load("id")
 except _pickle.UnpicklingError:
     print("persistent load unsupported")
+print(_pickle.Unpickler(io.BytesIO()).find_class("builtins", "list") is list)

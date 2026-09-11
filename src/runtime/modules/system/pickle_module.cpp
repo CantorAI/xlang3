@@ -1451,6 +1451,16 @@ bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return runtime_call_callable(runtime, load_method, nullptr, 0, out, error);
 }
 
+bool unpickler_find_class(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3) { error = "Unpickler.find_class() expected module and name"; runtime.raise_class_error("TypeError", error); return false; }
+  auto* state = static_cast<UnpicklerState*>(instance_get_native_data(args[0], kUnpicklerNativeType));
+  if (state == nullptr) { error = "invalid Unpickler object"; raise_pickle_module_error(runtime, "UnpicklingError", error); return false; }
+  if (!ensure_unpickler_delegate(runtime, *state, error)) return false;
+  Value method;
+  if (!attribute_get(state->delegate, "find_class", method, error)) return false;
+  return runtime_call_callable(runtime, method, args + 1, 2, out, error);
+}
+
 Value make_pickler_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string(name)});
@@ -1490,6 +1500,7 @@ Value make_unpickler_class(Runtime& runtime, const char* name) {
       std::string(name) + ".Unpickler.__init__", unpickler_init,
       nullptr, nullptr, nullptr, false, unpickler_init_kw)});
   attrs.push_back({"load", runtime.make_native_function(std::string(name) + ".Unpickler.load", unpickler_load)});
+  attrs.push_back({"find_class", runtime.make_native_function(std::string(name) + ".Unpickler.find_class", unpickler_find_class)});
   attrs.push_back({"persistent_load", runtime.make_native_function(
       std::string(name) + ".Unpickler.persistent_load",
       [](Runtime& runtime, const Value*, uint32_t argc, Value&, std::string& error, void*) {
