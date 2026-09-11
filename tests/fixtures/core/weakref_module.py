@@ -203,3 +203,9 @@ class CallableProxyOperatorBox(ProxyOperatorBox):
 
 callable_operator_proxy = weakref.proxy(CallableProxyOperatorBox())
 print(callable_operator_proxy // 5, callable_operator_proxy @ 5, 5 @ callable_operator_proxy, operator.index(callable_operator_proxy))
+
+def proxy_generator():
+    yield 12
+
+generator_proxy = weakref.proxy(proxy_generator())
+print(next(generator_proxy))

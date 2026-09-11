@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
@@ -376,6 +377,17 @@ bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, V
     return false;
   }
   const char* method_name = static_cast<const char*>(data);
+  if (std::strcmp(method_name, "__next__") == 0 && argc == 1) {
+    Value iterator = target;
+    bool done = false;
+    if (!sequence_iter_next(iterator, done, out, error)) return false;
+    if (done) {
+      error = "";
+      runtime.raise_class_error("StopIteration", error);
+      return false;
+    }
+    return true;
+  }
   Value method;
   if (!object_get_attr(target, method_name, method, error)) {
     if (std::strcmp(method_name, "__bool__") != 0) return false;
@@ -515,6 +527,7 @@ Value weakref_proxy_type(Runtime& runtime) {
          {"__invert__", runtime.make_native_function("weakref.ProxyType.__invert__", weakref_proxy_forward, const_cast<char*>("__invert__"))},
          {"__len__", runtime.make_native_function("weakref.ProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.ProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
+         {"__next__", runtime.make_native_function("weakref.ProxyType.__next__", weakref_proxy_forward, const_cast<char*>("__next__"))},
          {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
          {"__setitem__", runtime.make_native_function("weakref.ProxyType.__setitem__", weakref_proxy_forward, const_cast<char*>("__setitem__"))},
          {"__delitem__", runtime.make_native_function("weakref.ProxyType.__delitem__", weakref_proxy_forward, const_cast<char*>("__delitem__"))},
@@ -559,6 +572,7 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__invert__", runtime.make_native_function("weakref.CallableProxyType.__invert__", weakref_proxy_forward, const_cast<char*>("__invert__"))},
          {"__len__", runtime.make_native_function("weakref.CallableProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.CallableProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
+         {"__next__", runtime.make_native_function("weakref.CallableProxyType.__next__", weakref_proxy_forward, const_cast<char*>("__next__"))},
          {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
          {"__setitem__", runtime.make_native_function("weakref.CallableProxyType.__setitem__", weakref_proxy_forward, const_cast<char*>("__setitem__"))},
          {"__delitem__", runtime.make_native_function("weakref.CallableProxyType.__delitem__", weakref_proxy_forward, const_cast<char*>("__delitem__"))},
