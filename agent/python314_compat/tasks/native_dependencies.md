@@ -78,6 +78,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   `_TextIOBase` relationships, including IOBase helper methods.
   `StringIO` exposes CPython's `encoding`, `errors`, and `line_buffering`
   text-stream properties.
+  In-memory `BytesIO` and `StringIO` now support `copy.copy()` and protocol-4
+  pickle round-trips, preserving both their contents and current cursor.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

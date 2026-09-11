@@ -1,6 +1,8 @@
 import io
 import _io
 import os
+import copy
+import pickle
 
 
 s = io.StringIO("ab")
@@ -187,3 +189,8 @@ print(isinstance(_io.BytesIO(), _io.BufferedIOBase), isinstance(_io.StringIO(), 
 print(hasattr(_io.BytesIO(), "_checkReadable"), hasattr(_io.StringIO(), "_checkWritable"))
 string_props = _io.StringIO()
 print(string_props.encoding, string_props.errors, string_props.line_buffering)
+for memory_stream in (_io.BytesIO(b"abc"), _io.StringIO("abc")):
+    memory_stream.seek(1)
+    copied = copy.copy(memory_stream)
+    restored = pickle.loads(pickle.dumps(memory_stream, 4))
+    print(type(memory_stream).__name__, copied.getvalue(), copied.tell(), restored.getvalue(), restored.tell())

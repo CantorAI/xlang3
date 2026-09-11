@@ -252,6 +252,76 @@ bool bytes_io_init_kw(
   return memory_stream_init("_io.BytesIO", true, args, argc, kwargs, kwargc, out, error);
 }
 
+bool memory_stream_reduce_ex(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 2) {
+    error = "memory stream __reduce_ex__() expected a protocol";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  if (state == nullptr) return false;
+  Value klass;
+  if (!runtime_type_of_value(runtime, args[0], klass)) return false;
+  Value stream_state = state->binary
+      ? Value::tuple({Value::int64(static_cast<int64_t>(state->cursor))})
+      : Value::tuple({state->newline_is_none ? Value::none() : Value::string(state->newline),
+                      Value::int64(static_cast<int64_t>(state->cursor))});
+  out = Value::tuple({klass, Value::tuple({memory_stream_result(*state, state->buffer)}), std::move(stream_state)});
+  return true;
+}
+
+bool memory_stream_setstate(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 2) {
+    error = "memory stream __setstate__() expected one state argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const char* type = static_cast<const char*>(user_data);
+  auto* state = memory_stream_state(args[0], type, error);
+  const auto* values = value_as_tuple(args[1]);
+  if (state == nullptr || values == nullptr ||
+      values->items.size() != (state->binary ? 1u : 2u)) {
+    error = "invalid memory stream state";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  size_t position_index = 0;
+  if (!state->binary) {
+    const Value& newline_value = values->items[0];
+    const auto* newline = value_as_string(newline_value);
+    if (newline_value.tag != ValueTag::None && newline == nullptr) {
+      error = "invalid StringIO state";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    state->newline_is_none = newline_value.tag == ValueTag::None;
+    state->newline = state->newline_is_none ? "" : string_object_to_string(*newline);
+    position_index = 1;
+  }
+  int64_t position = 0;
+  if (!value_int_like_to_i64(values->items[position_index], position) || position < 0) {
+    error = "invalid memory stream position";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  state->cursor = static_cast<size_t>(position);
+  value_set_none(out);
+  return true;
+}
+
 std::string text_io_option_from_args(
     const Value* args,
     uint32_t argc,
@@ -1807,6 +1877,10 @@ Value make_memory_stream_class(
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__init__", runtime.make_native_function(std::string("_io.") + name + ".__init__", init, nullptr, nullptr, nullptr, false, init_kw)});
   if (std::string_view(name) == "StringIO" || std::string_view(name) == "BytesIO") {
+    attrs.push_back({"__reduce_ex__", runtime.make_native_function(
+        std::string("_io.") + name + ".__reduce_ex__", memory_stream_reduce_ex, const_cast<char*>(type))});
+    attrs.push_back({"__setstate__", runtime.make_native_function(
+        std::string("_io.") + name + ".__setstate__", memory_stream_setstate, const_cast<char*>(type))});
     attrs.push_back({"fileno", runtime.make_native_function(
         std::string("_io.") + name + ".fileno", memory_stream_fileno, const_cast<char*>(type))});
   }
