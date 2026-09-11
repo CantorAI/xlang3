@@ -170,6 +170,10 @@ bool memory_stream_init(
   }
   auto* state = new MemoryStreamState();
   state->binary = binary;
+  if (!binary) {
+    state->newline = "\n";
+    state->newline_is_none = false;
+  }
   if (argc == 2) {
     bool ok = binary ? bytes_value(args[1], state->buffer) : string_value(args[1], state->buffer);
     if (!ok) {
@@ -270,10 +274,31 @@ bool memory_stream_reduce_ex(
   Value klass;
   if (!runtime_type_of_value(runtime, args[0], klass)) return false;
   Value stream_state = state->binary
-      ? Value::tuple({Value::int64(static_cast<int64_t>(state->cursor))})
-      : Value::tuple({state->newline_is_none ? Value::none() : Value::string(state->newline),
-                      Value::int64(static_cast<int64_t>(state->cursor))});
+      ? Value::tuple({Value::bytes(state->buffer), Value::int64(static_cast<int64_t>(state->cursor)), Value::none()})
+      : Value::tuple({Value::string(state->buffer), state->newline_is_none ? Value::none() : Value::string(state->newline),
+                      Value::int64(static_cast<int64_t>(state->cursor)), Value::none()});
   out = Value::tuple({klass, Value::tuple({memory_stream_result(*state, state->buffer)}), std::move(stream_state)});
+  return true;
+}
+
+bool memory_stream_getstate(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc != 1) {
+    error = "memory stream __getstate__() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
+  if (state == nullptr) return false;
+  out = state->binary
+      ? Value::tuple({Value::bytes(state->buffer), Value::int64(static_cast<int64_t>(state->cursor)), Value::none()})
+      : Value::tuple({Value::string(state->buffer), state->newline_is_none ? Value::none() : Value::string(state->newline),
+                      Value::int64(static_cast<int64_t>(state->cursor)), Value::none()});
   return true;
 }
 
@@ -293,14 +318,22 @@ bool memory_stream_setstate(
   auto* state = memory_stream_state(args[0], type, error);
   const auto* values = value_as_tuple(args[1]);
   if (state == nullptr || values == nullptr ||
-      values->items.size() != (state->binary ? 1u : 2u)) {
+      values->items.size() != (state->binary ? 3u : 4u) ||
+      values->items[values->items.size() - 1].tag != ValueTag::None) {
     error = "invalid memory stream state";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  size_t position_index = 0;
+  std::string buffer;
+  if (!(state->binary ? bytes_value(values->items[0], buffer) : string_value(values->items[0], buffer))) {
+    error = "invalid memory stream contents";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  state->buffer = std::move(buffer);
+  size_t position_index = 1;
   if (!state->binary) {
-    const Value& newline_value = values->items[0];
+    const Value& newline_value = values->items[1];
     const auto* newline = value_as_string(newline_value);
     if (newline_value.tag != ValueTag::None && newline == nullptr) {
       error = "invalid StringIO state";
@@ -309,7 +342,7 @@ bool memory_stream_setstate(
     }
     state->newline_is_none = newline_value.tag == ValueTag::None;
     state->newline = state->newline_is_none ? "" : string_object_to_string(*newline);
-    position_index = 1;
+    position_index = 2;
   }
   int64_t position = 0;
   if (!value_int_like_to_i64(values->items[position_index], position) || position < 0) {
@@ -1879,6 +1912,8 @@ Value make_memory_stream_class(
   if (std::string_view(name) == "StringIO" || std::string_view(name) == "BytesIO") {
     attrs.push_back({"__reduce_ex__", runtime.make_native_function(
         std::string("_io.") + name + ".__reduce_ex__", memory_stream_reduce_ex, const_cast<char*>(type))});
+    attrs.push_back({"__getstate__", runtime.make_native_function(
+        std::string("_io.") + name + ".__getstate__", memory_stream_getstate, const_cast<char*>(type))});
     attrs.push_back({"__setstate__", runtime.make_native_function(
         std::string("_io.") + name + ".__setstate__", memory_stream_setstate, const_cast<char*>(type))});
     attrs.push_back({"fileno", runtime.make_native_function(

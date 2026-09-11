@@ -194,3 +194,4 @@ for memory_stream in (_io.BytesIO(b"abc"), _io.StringIO("abc")):
     copied = copy.copy(memory_stream)
     restored = pickle.loads(pickle.dumps(memory_stream, 4))
     print(type(memory_stream).__name__, copied.getvalue(), copied.tell(), restored.getvalue(), restored.tell())
+    print(memory_stream.__getstate__())

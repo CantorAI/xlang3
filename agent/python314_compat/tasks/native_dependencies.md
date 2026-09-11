@@ -80,6 +80,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   text-stream properties.
   In-memory `BytesIO` and `StringIO` now support `copy.copy()` and protocol-4
   pickle round-trips, preserving both their contents and current cursor.
+  Their `__getstate__()` and `__setstate__()` state tuples are also available
+  for source-backed serialization, including the configured `StringIO` newline
+  mode.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
