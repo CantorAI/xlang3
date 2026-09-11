@@ -109,3 +109,11 @@ try:
     zlib.decompressobj().decompress(b"", -1)
 except ValueError:
     print("negative max length")
+
+terminal_decompressor = zlib.decompressobj()
+terminal_decompressor.decompress(zlib.compress(b"terminal-copy"))
+terminal_decompressor.flush()
+try:
+    terminal_decompressor.copy()
+except ValueError:
+    print("terminal decompressor copy")

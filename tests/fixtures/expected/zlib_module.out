@@ -31,3 +31,4 @@ b'stream'
 b'raw'
 b'gzip-keyword'
 negative max length
+terminal decompressor copy

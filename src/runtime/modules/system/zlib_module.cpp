@@ -52,6 +52,7 @@ struct ZlibCompressState {
 struct ZlibDecompressState {
   z_stream stream{};
   bool finished = false;
+  bool flushed = false;
   std::string unused_data;
   std::string unconsumed_tail;
   // zlib retains next_in when max_length stops output. Keep that memory alive
@@ -606,7 +607,11 @@ bool zlib_decompress_object_flush(Runtime& runtime, const Value* args, uint32_t 
     if (args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0) return zlib_class_fail(runtime, "ValueError", "length must be greater than zero", error);
     length = static_cast<int>(std::min<int64_t>(args[1].as.i64, 1 << 20));
   }
-  if (state->finished) { out = Value::bytes(""); return true; }
+  if (state->finished) {
+    state->flushed = true;
+    out = Value::bytes("");
+    return true;
+  }
 
   std::string decoded;
   std::vector<char> chunk(static_cast<size_t>(std::max(length, 16384)));
@@ -628,6 +633,7 @@ bool zlib_decompress_object_flush(Runtime& runtime, const Value* args, uint32_t 
   state->pending_input.clear();
   state->unconsumed_tail.clear();
   std::string ignored;
+  state->flushed = true;
   Value self = args[0];
   object_set_attr(self, "unused_data", Value::bytes(state->unused_data), ignored);
   object_set_attr(self, "unconsumed_tail", Value::bytes(""), ignored);
@@ -640,6 +646,9 @@ bool zlib_decompress_object_copy(Runtime& runtime, const Value* args, uint32_t a
   if (argc != 1) return zlib_class_fail(runtime, "TypeError", "Decompress.copy() expected no arguments", error);
   ZlibDecompressState* state = nullptr;
   if (!decompress_object_state(args[0], state, error)) return false;
+  if (state->flushed) {
+    return zlib_class_fail(runtime, "ValueError", "Inconsistent stream state", error);
+  }
   auto* instance = value_as_instance(args[0]);
   if (instance == nullptr) return zlib_class_fail(runtime, "TypeError", "invalid zlib Decompress object", error);
   auto* copied = new ZlibDecompressState();
@@ -648,6 +657,7 @@ bool zlib_decompress_object_copy(Runtime& runtime, const Value* args, uint32_t a
     return zlib_fail(runtime, "zlib decompressor copy failed", error);
   }
   copied->finished = state->finished;
+  copied->flushed = state->flushed;
   copied->unused_data = state->unused_data;
   copied->unconsumed_tail = state->unconsumed_tail;
   copied->pending_input = state->pending_input;
