@@ -150,7 +150,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   delegated proxy attribute mutation plus `len`, iteration, indexing,
   membership, truth-value, equality, string-conversion, and item-mutation forwarding, and CPython's unhashable
   proxy contract. Proxies also forward representation, byte conversion, integer
-  conversion, addition, subtraction, multiplication, negation, and inversion.
+  conversion, addition, subtraction, multiplication, floor division, matrix
+  multiplication (including reflected and in-place forms), index conversion,
+  negation, and inversion. Augmented floor division and matrix multiplication
+  dispatch their CPython in-place hooks before normal or reflected fallbacks.
   Callback delivery through
   `gc.collect()` for both references
   and proxies, including last-created-first callback order and

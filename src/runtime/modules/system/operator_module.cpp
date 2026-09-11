@@ -332,13 +332,27 @@ bool op_invert(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   return value_invert(args[0], out, error);
 }
 
-bool op_index(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool op_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!expect_argc(argc, 1, "index", error)) {
     return false;
   }
   if (args[0].tag == ValueTag::Int64 || args[0].tag == ValueTag::Bool || value_as_bigint(args[0]) != nullptr) {
     value_assign_fast(out, args[0]);
     return true;
+  }
+  Value method;
+  std::string lookup_error;
+  if (object_get_attr(args[0], "__index__", method, lookup_error)) {
+    Value converted;
+    if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error)) {
+      return false;
+    }
+    if (converted.tag == ValueTag::Int64 || converted.tag == ValueTag::Bool || value_as_bigint(converted) != nullptr) {
+      value_assign_fast(out, converted);
+      return true;
+    }
+    error = "__index__ returned non-int";
+    return false;
   }
   error = "'object' cannot be interpreted as an integer";
   return false;

@@ -892,7 +892,9 @@ bool marshal_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   std::string_view data;
   if (!get_data_bytes(args[0], data, error)) {
-    runtime.raise_class_error("TypeError", error);
+    runtime.raise_class_error(
+        error.find("released memoryview") != std::string::npos ? "ValueError" : "TypeError",
+        error);
     return false;
   }
   const bool custom = data.size() >= kMagic.size() && data.substr(0, kMagic.size()) == kMagic;

@@ -25,3 +25,9 @@ error
 TypeError
 TypeError
 ValueError
+True
+b'keyword'
+b'stream'
+b'raw'
+b'gzip-keyword'
+negative max length

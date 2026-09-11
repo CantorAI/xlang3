@@ -4,6 +4,11 @@ True
 1 b'buffer'
 b'buffer'
 ['loaded:persistent-marker']
-True True True
-True False True
+0
+1
+False True True
+False False False
+True
+True
+persistent load unsupported
 True

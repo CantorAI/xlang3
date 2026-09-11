@@ -3581,6 +3581,14 @@ private:
         const auto callee = new_reg();
         emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_add__"));
         emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else if (assign.op == "//") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_floor_div__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else if (assign.op == "@") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_matmul__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
       } else {
         emit(op, result, current, rhs);
       }

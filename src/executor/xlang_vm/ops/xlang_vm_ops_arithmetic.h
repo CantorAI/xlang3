@@ -455,14 +455,44 @@ XLANG3_HOT_INLINE XlangVMOpFlow matmul(
     size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
     MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
-  return binary_arithmetic_with_special_method(
-      in, module, module_owner, runtime, regs, native_call_args, ip, result,
-      execution_lock, [](const Value&, const Value&, Value&) { return false; },
-      value_matmul, "__matmul__",
-      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
-      std::forward<PushFrame>(push_frame),
-      std::forward<RaiseRuntimeError>(raise_runtime_error),
-      std::forward<RaiseExceptionValue>(raise_exception_value));
+  const auto& lhs = regs[in.a];
+  const auto& rhs = regs[in.b];
+  auto call_matmul_method = [&](const Value& receiver, const Value& argument, const char* name) -> int {
+    if (receiver.tag != ValueTag::Object || receiver.as.obj == nullptr) {
+      return 0;
+    }
+    Value method;
+    std::string attr_error;
+    if (!attribute_get(receiver, name, method, attr_error)) {
+      return 0;
+    }
+    Value method_result;
+    std::string call_error;
+    if (!runtime_call_callable(runtime, method, &argument, 1, method_result, call_error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? -1 : -2;
+      }
+      return raise_runtime_error(call_error) ? -1 : -2;
+    }
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    if (not_implemented != nullptr && value_is(method_result, *not_implemented)) {
+      return 0;
+    }
+    value_move_assign_fast(regs[in.dst], method_result);
+    return 1;
+  };
+  const int forward = call_matmul_method(lhs, rhs, "__matmul__");
+  if (forward == 1) return XlangVMOpFlow::Next;
+  if (forward < 0) return forward == -1 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  const int reflected = call_matmul_method(rhs, lhs, "__rmatmul__");
+  if (reflected == 1) return XlangVMOpFlow::Next;
+  if (reflected < 0) return reflected == -1 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  std::string error;
+  if (value_matmul(lhs, rhs, regs[in.dst], error)) return XlangVMOpFlow::Next;
+  return raise_exception_value(runtime.make_exception("TypeError", error))
+      ? XlangVMOpFlow::ContinueLoop
+      : XlangVMOpFlow::ReturnResult;
 }
 
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>

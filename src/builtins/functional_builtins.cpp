@@ -1832,6 +1832,66 @@ bool builtin_getattr(
   return false;
 }
 
+bool builtin_inplace_floor_div(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    return raise_type_error(runtime, "in-place // expects two operands", error);
+  }
+  bool implemented = false;
+  if (!call_binary_method_if_implemented(
+          runtime, args[0], args[1], "__ifloordiv__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, args[0], args[1], "__floordiv__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, args[1], args[0], "__rfloordiv__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (value_floor_div(args[0], args[1], out, error)) return true;
+  return raise_type_error(runtime, error, error);
+}
+
+bool builtin_inplace_matmul(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    return raise_type_error(runtime, "in-place @ expects two operands", error);
+  }
+  bool implemented = false;
+  if (!call_binary_method_if_implemented(
+          runtime, args[0], args[1], "__imatmul__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, args[0], args[1], "__matmul__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, args[1], args[0], "__rmatmul__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (value_matmul(args[0], args[1], out, error)) return true;
+  return raise_type_error(runtime, error, error);
+}
+
 bool builtin_setattr(
     Runtime& runtime,
     const Value* args,
@@ -3295,6 +3355,8 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("__xlang3_binary_or__", builtin_binary_or);
   runtime.register_native_builtin("__xlang3_inplace_or__", builtin_inplace_or);
   runtime.register_native_builtin("__xlang3_inplace_add__", builtin_inplace_add);
+  runtime.register_native_builtin("__xlang3_inplace_floor_div__", builtin_inplace_floor_div);
+  runtime.register_native_builtin("__xlang3_inplace_matmul__", builtin_inplace_matmul);
   runtime.register_native_builtin("_identity", builtin_identity);
   runtime.register_native_builtin("super", builtin_super);
   runtime.register_native_builtin("callable", builtin_callable);

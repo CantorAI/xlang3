@@ -67,3 +67,9 @@ b'a' b'bc'
 True True
 True True
 None None False
+BytesIO b'abc' 1 b'abc' 1
+(b'abc', 1, None)
+StringIO abc 1 abc 1
+('abc', '\n', 1, None)
+b'state' 2
+state 2

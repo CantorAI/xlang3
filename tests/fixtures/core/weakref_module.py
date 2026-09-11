@@ -1,5 +1,6 @@
 import weakref
 import _weakref
+import operator
 
 
 class Box:
@@ -150,3 +151,33 @@ numeric_proxy = weakref.proxy(numeric_box)
 print(repr(numeric_proxy), numeric_proxy + 3, int(numeric_proxy), bytes(numeric_proxy))
 print(numeric_proxy - 3, numeric_proxy * 3)
 print(-numeric_proxy, ~numeric_proxy)
+
+class ProxyOperatorBox:
+    def __floordiv__(self, value):
+        return 42
+    def __ifloordiv__(self, value):
+        return 21
+    def __matmul__(self, value):
+        return 1729
+    def __rmatmul__(self, value):
+        return -163
+    def __imatmul__(self, value):
+        return 561
+    def __index__(self):
+        return 10
+
+operator_box = ProxyOperatorBox()
+operator_proxy = weakref.proxy(operator_box)
+print(operator_proxy // 5, operator_proxy @ 5, 5 @ operator_proxy, operator.index(operator_proxy))
+operator_proxy //= 5
+print(operator_proxy)
+operator_proxy = weakref.proxy(operator_box)
+operator_proxy @= 5
+print(operator_proxy)
+
+class CallableProxyOperatorBox(ProxyOperatorBox):
+    def __call__(self):
+        return None
+
+callable_operator_proxy = weakref.proxy(CallableProxyOperatorBox())
+print(callable_operator_proxy // 5, callable_operator_proxy @ 5, 5 @ callable_operator_proxy, operator.index(callable_operator_proxy))
