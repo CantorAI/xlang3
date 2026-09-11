@@ -111,6 +111,11 @@ defaults |= {"z": 3}
 print(type(merged).__name__, merged.default_factory is list, merged["y"], defaults["z"])
 reflected = {"left": 1} | _collections.defaultdict(list, {"right": 2})
 print(type(reflected).__name__, reflected.default_factory is list, reflected["left"], reflected["right"])
+missing_defaults = _collections.defaultdict(None)
+try:
+    missing_defaults["missing"]
+except KeyError as exc:
+    print(exc.args == ("missing",))
 d.clear()
 print(d.__len__())
 size_small = _collections.deque()

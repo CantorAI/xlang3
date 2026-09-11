@@ -246,7 +246,10 @@ bool defaultdict_missing(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   if (factory.tag == ValueTag::None) {
     error = "key not found";
-    runtime.raise_class_error("KeyError", error);
+    Value exception = runtime.make_exception("KeyError", error);
+    std::string ignored;
+    object_set_attr(exception, "args", Value::tuple({args[1]}), ignored);
+    runtime.set_pending_exception(std::move(exception));
     return false;
   }
   if (!runtime_call_callable(runtime, factory, nullptr, 0, out, error)) {

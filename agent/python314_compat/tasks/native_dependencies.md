@@ -158,7 +158,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   mapping entries and default factories through copy and protocol-4 pickle,
   and `|` / `|=` preserve defaultdict type and factory. Reflected mapping
   unions (`dict | defaultdict`) likewise preserve the right-hand defaultdict
-  type and default factory.
+  type and default factory. Missing keys on a factory-less defaultdict retain
+  the original key in `KeyError.args`.
   Deque search operations honor user-defined equality and reject mutation during
   comparison, matching the CPython container safety contract.
   Native deque integer-taking APIs accept the full `__index__` protocol for
