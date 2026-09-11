@@ -48,3 +48,8 @@ try:
     zlib.decompressobj().decompress(dict_encoded)
 except Exception as exc:
     print(type(exc).__name__)
+
+dictionary_copy = zlib.decompressobj(zdict=dictionary)
+dictionary_copy_clone = dictionary_copy.copy()
+print(dictionary_copy.decompress(dict_encoded) == dictionary,
+      dictionary_copy_clone.decompress(dict_encoded) == dictionary)

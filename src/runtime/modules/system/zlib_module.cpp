@@ -562,6 +562,7 @@ bool zlib_decompress_object_copy(Runtime& runtime, const Value* args, uint32_t a
   copied->finished = state->finished;
   copied->unused_data = state->unused_data;
   copied->unconsumed_tail = state->unconsumed_tail;
+  copied->dictionary = state->dictionary;
   out = Value::instance(instance->klass);
   if (!instance_set_native_data(out, kDecompressObjectNativeType, copied, zlib_decompress_cleanup, error)) {
     zlib_decompress_cleanup(copied);

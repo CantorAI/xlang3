@@ -14,3 +14,4 @@ b'a' b'b'
 b'copy-me' b'copy-me'
 True
 error
+True True
