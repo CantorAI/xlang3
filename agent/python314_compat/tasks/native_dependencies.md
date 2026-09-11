@@ -46,6 +46,8 @@
   standard non-terminal `isatty()` result and retain closed-stream validation.
   `BytesIO.getbuffer()` now retains a writable live view whose changes are
   observed by subsequent stream reads and `getvalue()` calls.
+  Native `FileIO.readinto()` fills writable byte buffers through the same
+  descriptor-backed file path as `read()`.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

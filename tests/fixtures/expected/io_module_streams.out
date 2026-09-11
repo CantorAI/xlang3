@@ -28,6 +28,7 @@ w+b True True True
 b'abc'
 True
 rb b'abc'
+2 b'ab'
 b'ab'
 b'a'
 2 b'bc'

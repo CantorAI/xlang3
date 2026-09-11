@@ -1311,6 +1311,47 @@ bool file_io_new_positional(
   return file_io_new(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
+bool file_io_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "FileIO.readinto() expected one buffer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  char* destination = nullptr;
+  size_t capacity = 0;
+  if (auto* bytearray = value_as_bytearray(args[1])) {
+    destination = bytearray->value.data();
+    capacity = bytearray->value.size();
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    destination = memoryview_object_writable_data(*view);
+    capacity = view->size;
+  }
+  if (destination == nullptr && capacity != 0) {
+    error = "readinto() argument must be read-write bytes-like object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value read;
+  if (!attribute_get(args[0], "read", read, error)) return false;
+  Value size = Value::int64(static_cast<int64_t>(capacity));
+  Value data;
+  if (!runtime_call_callable(runtime, read, &size, 1, data, error)) return false;
+  std::string bytes;
+  if (!bytes_value(data, bytes)) {
+    error = "FileIO.read() returned non-bytes";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (bytes.size() > capacity) {
+    error = "FileIO.read() returned too many bytes";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (!bytes.empty()) std::memcpy(destination, bytes.data(), bytes.size());
+  value_set_int64(out, static_cast<int64_t>(bytes.size()));
+  return true;
+}
+
 bool stream_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                    std::string& error, void* user_data) {
   if (argc != 1) {
@@ -1846,7 +1887,8 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {{"__module__", Value::string("_io")},
        {"__new__", runtime.make_native_function(
                        "_io.FileIO.__new__", file_io_new_positional, nullptr, nullptr,
-                       nullptr, false, file_io_new)}},
+                       nullptr, false, file_io_new)},
+       {"readinto", runtime.make_native_function("_io.FileIO.readinto", file_io_readinto)}},
       raw_io_base);
   Value buffered_reader = make_buffered_stream_class(runtime, "BufferedReader", "_io.BufferedReader", buffered_reader_init);
   Value buffered_writer = make_buffered_stream_class(runtime, "BufferedWriter", "_io.BufferedWriter", buffered_writer_init);
