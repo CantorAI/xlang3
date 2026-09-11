@@ -1189,6 +1189,12 @@ bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (accepted == kInvalidSocket) {
     return raise_socket_os_error(runtime, "accept", error);
   }
+#ifdef _WIN32
+  SetHandleInformation(reinterpret_cast<HANDLE>(accepted), HANDLE_FLAG_INHERIT, 0);
+#else
+  const int accepted_flags = fcntl(accepted, F_GETFD);
+  if (accepted_flags >= 0) fcntl(accepted, F_SETFD, accepted_flags | FD_CLOEXEC);
+#endif
 
   auto* instance = value_as_instance(args[0]);
   if (instance == nullptr) {
@@ -1242,6 +1248,12 @@ bool socket_accept_fd(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (accepted == kInvalidSocket) {
     return raise_socket_os_error(runtime, "accept", error);
   }
+#ifdef _WIN32
+  SetHandleInformation(reinterpret_cast<HANDLE>(accepted), HANDLE_FLAG_INHERIT, 0);
+#else
+  const int accepted_flags = fcntl(accepted, F_GETFD);
+  if (accepted_flags >= 0) fcntl(accepted, F_SETFD, accepted_flags | FD_CLOEXEC);
+#endif
 
   Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({Value::int64(static_cast<int64_t>(accepted)), peer_address});

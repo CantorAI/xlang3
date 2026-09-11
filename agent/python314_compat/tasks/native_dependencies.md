@@ -114,6 +114,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Native sockets now start non-inheritable and support `get_inheritable()` /
   `set_inheritable()` through Windows handle flags.
   `getblocking()` now reflects native blocking-mode transitions.
+  Accepted native sockets, including `_accept()` descriptors, are made
+  non-inheritable before exposure to Python.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.
