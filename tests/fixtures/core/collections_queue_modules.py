@@ -53,5 +53,8 @@ import pickle
 pickled = _collections.deque([1, 2], maxlen=3)
 print(copy.copy(pickled).to_list(), copy.copy(pickled).maxlen)
 print(pickle.loads(pickle.dumps(pickled, 4)).to_list())
+defaults = _collections.defaultdict(list)
+defaults["x"].append(1)
+print(copy.copy(defaults)["x"], pickle.loads(pickle.dumps(defaults, 4))["x"])
 d.clear()
 print(d.__len__())

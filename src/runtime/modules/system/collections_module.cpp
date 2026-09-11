@@ -253,7 +253,12 @@ bool defaultdict_copy(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   Value copied = Value::instance(*defaultdict_class);
-  Value init_args[] = {copied, factory, mapping_copy(args[0])};
+  auto* source_instance = value_as_instance(args[0]);
+  if (source_instance == nullptr) {
+    error = "defaultdict.copy expected a defaultdict";
+    return false;
+  }
+  Value init_args[] = {copied, factory, mapping_copy(source_instance->mapping_storage)};
   Value ignored;
   if (!defaultdict_init(runtime, init_args, 3, ignored, error, nullptr)) {
     return false;
@@ -685,6 +690,34 @@ bool deque_reversed(Runtime&, const Value* args, uint32_t argc, Value& out, std:
   return true;
 }
 
+bool defaultdict_reduce(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "defaultdict.__reduce__() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value factory;
+  if (!object_get_attr(args[0], "default_factory", factory, error)) return false;
+  Value klass;
+  if (!runtime_type_of_value(runtime, args[0], klass)) return false;
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) {
+    error = "defaultdict.__reduce__ expected a defaultdict";
+    return false;
+  }
+  out = Value::tuple({klass, Value::tuple({factory, mapping_copy(instance->mapping_storage)})});
+  return true;
+}
+
+bool defaultdict_reduce_ex(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "defaultdict.__reduce_ex__() expected a protocol integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return defaultdict_reduce(runtime, args, 1, out, error, nullptr);
+}
+
 bool deque_hash(Runtime& runtime, const Value*, uint32_t argc, Value&, std::string& error, void*) {
   if (argc != 1) { error = "deque.__hash__() expected no arguments"; runtime.raise_class_error("TypeError", error); return false; }
   error = "unhashable type: 'deque'";
@@ -1012,6 +1045,8 @@ Value make_defaultdict_class(Runtime& runtime) {
   attrs.push_back({"__getitem__", runtime.make_native_function("_collections.defaultdict.__getitem__", defaultdict_getitem)});
   attrs.push_back({"__missing__", runtime.make_native_function("_collections.defaultdict.__missing__", defaultdict_missing)});
   attrs.push_back({"copy", runtime.make_native_function("_collections.defaultdict.copy", defaultdict_copy)});
+  attrs.push_back({"__reduce__", runtime.make_native_function("_collections.defaultdict.__reduce__", defaultdict_reduce)});
+  attrs.push_back({"__reduce_ex__", runtime.make_native_function("_collections.defaultdict.__reduce_ex__", defaultdict_reduce_ex)});
   attrs.push_back({"__repr__", runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr)});
   Value base = runtime.find_builtin("dict") != nullptr ? *runtime.find_builtin("dict") : Value::invalid();
   Value klass = Value::class_object("defaultdict", std::move(attrs), std::move(base));
@@ -1028,6 +1063,8 @@ Value make_defaultdict_class(Runtime& runtime) {
     class_object->attrs["__getitem__"] = runtime.make_native_function("_collections.defaultdict.__getitem__", defaultdict_getitem);
     class_object->attrs["__missing__"] = runtime.make_native_function("_collections.defaultdict.__missing__", defaultdict_missing);
     class_object->attrs["copy"] = runtime.make_native_function("_collections.defaultdict.copy", defaultdict_copy);
+    class_object->attrs["__reduce__"] = runtime.make_native_function("_collections.defaultdict.__reduce__", defaultdict_reduce);
+    class_object->attrs["__reduce_ex__"] = runtime.make_native_function("_collections.defaultdict.__reduce_ex__", defaultdict_reduce_ex);
     class_object->attrs["__repr__"] = runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr);
     class_object->attrs["default_factory"] = slot_descriptor("defaultdict", "default_factory", 0);
     slot_descriptor_set_owner_class(class_object->attrs["default_factory"], klass);

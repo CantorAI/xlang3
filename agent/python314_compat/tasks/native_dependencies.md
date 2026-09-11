@@ -72,7 +72,8 @@
   independent `copy()` results. CPython 3.14 focused `TestBasic` coverage also
   passes deque comparisons, concatenation, in-place concatenation, and in-place
   repetition. Native deque reducers support source-backed `copy.copy()` and
-  protocol-4 pickle round-trips.
+  protocol-4 pickle round-trips; native defaultdict reducers preserve both
+  mapping entries and default factories through copy and protocol-4 pickle.
   Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
   iterator, comparison, copy/pickle, and representation parity; plus
   defaultdict/OrderedDict parity. CPython 3.14 `test_deque.TestBasic` currently
