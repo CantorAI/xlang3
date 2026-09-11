@@ -2141,13 +2141,30 @@ bool io_base_init(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   return true;
 }
 
-bool io_base_close(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool io_base_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "_io._IOBase.close() expected no arguments";
     return false;
   }
+  Value flush;
+  Value flush_result;
+  Value pending;
+  bool flush_failed = false;
+  std::string flush_error;
+  if (attribute_get(args[0], "flush", flush, flush_error) &&
+      !runtime_call_callable(runtime, flush, nullptr, 0, flush_result, flush_error)) {
+    flush_failed = true;
+    (void)runtime.take_pending_exception(pending);
+  }
   Value self = args[0];
   if (!object_set_attr(self, "__xlang3_io_closed", Value::boolean(true), error)) {
+    return false;
+  }
+  if (flush_failed) {
+    error = flush_error;
+    if (pending.tag != ValueTag::Invalid) {
+      runtime.set_pending_exception(std::move(pending));
+    }
     return false;
   }
   value_set_none(out);
