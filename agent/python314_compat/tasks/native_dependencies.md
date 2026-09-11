@@ -77,7 +77,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   queue/fallback for immediate and cancelled operations, enough for CPython
   `asyncio.run()` startup/shutdown over the Windows proactor path.
   Numeric IPv6 `getnameinfo()` now accepts the CPython four-element sockaddr
-  form alongside IPv4 socket addresses.
+  form alongside IPv4 socket addresses; numeric IPv4 `inet_aton`/`inet_ntoa`
+  conversion is covered directly.
   Native IPv6 sockets now carry `sockaddr_in6` through loopback UDP/TCP
   bind, connect, send/receive, accept, and local/peer names, using CPython's
   four-element IPv6 sockaddr tuples; `has_ipv6` now reflects the native stack.

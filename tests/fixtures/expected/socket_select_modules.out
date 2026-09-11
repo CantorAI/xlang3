@@ -11,6 +11,7 @@ True True
 OverflowError
 True True True
 ::1
+127.0.0.1
 True True 4
 True True
 b'v6' 4 True
