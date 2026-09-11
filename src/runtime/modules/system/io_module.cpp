@@ -1321,6 +1321,20 @@ bool string_io_newlines(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool string_io_text_property(Runtime&, const Value* args, uint32_t argc, Value& out,
+                             std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "StringIO property getter expected self";
+    return false;
+  }
+  if (std::string_view(static_cast<const char*>(user_data)) == "line_buffering") {
+    value_set_bool(out, false);
+  } else {
+    value_set_none(out);
+  }
+  return true;
+}
+
 bool stream_capability(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "memory stream capability method expected no arguments";
@@ -1842,6 +1856,12 @@ Value make_memory_stream_class(
     attrs.push_back({"newlines", Value::property(
         runtime.make_native_function("_io.StringIO.newlines", string_io_newlines, const_cast<char*>(type)),
         Value::none(), Value::none(), Value::none())});
+    for (const char* property : {"encoding", "errors", "line_buffering"}) {
+      attrs.push_back({property, Value::property(
+          runtime.make_native_function(std::string("_io.StringIO.") + property,
+              string_io_text_property, const_cast<char*>(property)),
+          Value::none(), Value::none(), Value::none())});
+    }
   }
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
   attrs.push_back({"detach", runtime.make_native_function(

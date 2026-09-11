@@ -76,6 +76,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.
+  `StringIO` exposes CPython's `encoding`, `errors`, and `line_buffering`
+  text-stream properties.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

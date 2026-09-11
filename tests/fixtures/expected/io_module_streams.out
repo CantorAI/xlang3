@@ -66,3 +66,4 @@ UnsupportedOperation
 b'a' b'bc'
 True True
 True True
+None None False
