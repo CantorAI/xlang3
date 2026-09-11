@@ -53,3 +53,7 @@ dictionary_copy = zlib.decompressobj(zdict=dictionary)
 dictionary_copy_clone = dictionary_copy.copy()
 print(dictionary_copy.decompress(dict_encoded) == dictionary,
       dictionary_copy_clone.decompress(dict_encoded) == dictionary)
+
+gzip_stream = zlib.compressobj(wbits=16 + zlib.MAX_WBITS)
+gzip_data = gzip_stream.compress(b"gzip") + gzip_stream.flush()
+print(zlib.decompress(gzip_data, 32 + zlib.MAX_WBITS))

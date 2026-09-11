@@ -98,7 +98,7 @@
   `get_filename` directly. Native zlib streaming tracks `eof`, `unconsumed_tail`,
   and accumulated `unused_data` after a stream ends; compressor and decompressor
   objects can be copied while their streams are active, including configured
-  preset dictionaries.
+  preset dictionaries; gzip-wrapped streaming is covered through `wbits`.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.

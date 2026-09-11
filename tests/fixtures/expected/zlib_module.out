@@ -8,6 +8,7 @@ True
 True True True
 True
 True True
+b'gzip'
 True True
 b'head-left' b'head-right'
 b'a' b'b'
