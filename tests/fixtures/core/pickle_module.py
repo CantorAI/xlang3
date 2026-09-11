@@ -41,7 +41,7 @@ memo_pickler = _pickle.Pickler(stream, protocol=4)
 shared = ["memo"]
 memo_pickler.dump(shared)
 memo_pickler.dump(shared)
-print(memo_pickler.clear_memo() is None)
+print(len(memo_pickler.memo) > 0, memo_pickler.clear_memo() is None, len(memo_pickler.memo) == 0)
 memo_pickler.dump(shared)
 stream.seek(0)
 memo_unpickler = _pickle.Unpickler(stream)

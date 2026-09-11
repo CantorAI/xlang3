@@ -156,7 +156,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Pickler/Unpickler persistent-ID hooks through source-backed `pickle`. Native
   Pickler and Unpickler instances retain their source-backed delegates across
   repeated dump/load calls, preserving stream memo identity; `Pickler.clear_memo()`
-  resets that memo for the next record.
+  resets that memo for the next record, and `Pickler.memo` exposes the live
+  source-backed memo before or after writes.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).

@@ -1255,6 +1255,44 @@ bool pickler_init_kw(
   return true;
 }
 
+// The native Pickler keeps a source-backed pickle._Pickler for protocol
+// execution.  Construct it lazily so memo is observable before the first
+// dump without changing the configured keyword arguments.
+bool ensure_pickler_delegate(Runtime& runtime, PicklerState& state, std::string& error) {
+  if (state.delegate.tag != ValueTag::Invalid) return true;
+  Value pickle_module;
+  Value source_pickler_class;
+  if (!runtime.import_module("pickle", pickle_module, error) ||
+      !module_get_attr(pickle_module, "_Pickler", source_pickler_class, error)) {
+    return false;
+  }
+  Value constructor_args[] = {state.file, Value::int64(state.protocol)};
+  std::vector<std::pair<std::string, Value>> constructor_kwargs{
+      {"fix_imports", Value::boolean(state.fix_imports)},
+      {"buffer_callback", state.buffer_callback},
+  };
+  return runtime_call_callable_kw(
+      runtime, source_pickler_class, constructor_args, 2, constructor_kwargs,
+      state.delegate, error);
+}
+
+bool pickler_memo_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                      std::string& error, void*) {
+  if (argc != 1) {
+    error = "Pickler.memo getter expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<PicklerState*>(instance_get_native_data(args[0], kPicklerNativeType));
+  if (state == nullptr) {
+    error = "invalid Pickler object";
+    raise_pickle_module_error(runtime, "PicklingError", error);
+    return false;
+  }
+  if (!ensure_pickler_delegate(runtime, *state, error)) return false;
+  return attribute_get(state->delegate, "memo", out, error);
+}
+
 bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "Pickler.dump() expected object";
@@ -1266,22 +1304,7 @@ bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     raise_pickle_module_error(runtime, "PicklingError", error);
     return false;
   }
-  Value pickle_module;
-  Value source_pickler_class;
-  if (!runtime.import_module("pickle", pickle_module, error) ||
-      !module_get_attr(pickle_module, "_Pickler", source_pickler_class, error)) {
-    return false;
-  }
-  Value constructor_args[] = {state->file, Value::int64(state->protocol)};
-  std::vector<std::pair<std::string, Value>> constructor_kwargs{
-      {"fix_imports", Value::boolean(state->fix_imports)},
-      {"buffer_callback", state->buffer_callback},
-  };
-  if (state->delegate.tag == ValueTag::Invalid &&
-      !runtime_call_callable_kw(
-          runtime, source_pickler_class, constructor_args, 2, constructor_kwargs, state->delegate, error)) {
-    return false;
-  }
+  if (!ensure_pickler_delegate(runtime, *state, error)) return false;
   for (const char* name : {"dispatch_table", "persistent_id", "reducer_override"}) {
     Value attr;
     std::string ignored;
@@ -1419,6 +1442,9 @@ Value make_pickler_class(Runtime& runtime, const char* name) {
   attrs.push_back({"dump", std::move(dump)});
   attrs.push_back({"clear_memo", runtime.make_native_function(
       std::string(name) + ".Pickler.clear_memo", pickler_clear_memo)});
+  attrs.push_back({"memo", Value::property(
+      runtime.make_native_function(std::string(name) + ".Pickler.memo", pickler_memo_get),
+      Value::none(), Value::none(), Value::none())});
   const Value* object_class = runtime.find_builtin("object");
   return Value::class_object(
       "Pickler",
