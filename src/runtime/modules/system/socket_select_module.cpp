@@ -702,16 +702,20 @@ bool socket_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       delete state;
       return raise_socket_os_error(runtime, "socket", error);
     }
-    // An adopted descriptor owns its socket metadata.  The constructor's
-    // Python defaults do not describe a fileno-only socket() call.
-    SocketAddress native_address;
-    native_address.length = sizeof(native_address.storage);
-    if (::getsockname(state->fd, reinterpret_cast<sockaddr*>(&native_address.storage),
-                      &native_address.length) == 0) {
-      const auto family = reinterpret_cast<const sockaddr*>(&native_address.storage)->sa_family;
-      state->family = family == AF_INET6 ? kAfInet6 : kAfInet;
+    // A fileno-only call reaches this native constructor with CPython's
+    // default IPv4/stream/zero values.  Derive those defaults from the
+    // descriptor, but retain explicitly supplied non-default metadata.
+    if (state->family < 0 || state->type < 0 || state->proto < 0 ||
+        (state->family == kAfInet && state->type == kSockStream && state->proto == 0)) {
+      SocketAddress native_address;
+      native_address.length = sizeof(native_address.storage);
+      if (::getsockname(state->fd, reinterpret_cast<sockaddr*>(&native_address.storage),
+                        &native_address.length) == 0) {
+        const auto family = reinterpret_cast<const sockaddr*>(&native_address.storage)->sa_family;
+        state->family = family == AF_INET6 ? kAfInet6 : kAfInet;
+      }
+      state->type = socket_type == SOCK_DGRAM ? kSockDgram : kSockStream;
     }
-    state->type = socket_type == SOCK_DGRAM ? kSockDgram : kSockStream;
     if (state->proto < 0) state->proto = 0;
   } else if (make_native_socket(*state, error) == kInvalidSocket) {
     delete state;
