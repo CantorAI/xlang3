@@ -4,9 +4,10 @@ a
 aZ
 aZ
 False False
-b'x'
+b'Zy'
+b'Z'
 1
-b'xZ'
+b'ZZ'
 UnsupportedOperation
 UnsupportedOperation
 ValueError

@@ -40,6 +40,7 @@ struct MemoryStreamState {
   bool wraps_buffer = false;
   bool line_buffering = false;
   bool write_through = false;
+  Value exported_buffer = Value::invalid();
 };
 
 void memory_stream_cleanup(void* data) {
@@ -57,6 +58,18 @@ MemoryStreamState* memory_stream_state(const Value& self, const char* type, std:
     return nullptr;
   }
   return state;
+}
+
+void memory_stream_sync_exported_buffer(MemoryStreamState& state) {
+  if (auto* exported = value_as_bytearray(state.exported_buffer)) {
+    state.buffer = exported->value;
+  }
+}
+
+void memory_stream_update_exported_buffer(MemoryStreamState& state) {
+  if (auto* exported = value_as_bytearray(state.exported_buffer)) {
+    exported->value = state.buffer;
+  }
 }
 
 bool string_value(const Value& value, std::string& out) {
@@ -652,6 +665,7 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (state == nullptr) {
     return false;
   }
+  memory_stream_sync_exported_buffer(*state);
   if (state->wraps_buffer) {
     Value read_method;
     std::string readline_error;
@@ -894,6 +908,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   }
   std::copy(data.begin(), data.end(), state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
   state->cursor += data.size();
+  memory_stream_update_exported_buffer(*state);
   value_set_int64(out, static_cast<int64_t>(data.size()));
   return true;
 }
@@ -936,6 +951,7 @@ bool stream_getvalue(Runtime&, const Value* args, uint32_t argc, Value& out, std
   if (state == nullptr) {
     return false;
   }
+  memory_stream_sync_exported_buffer(*state);
   out = memory_stream_result(*state, state->buffer);
   return true;
 }
@@ -951,8 +967,11 @@ bool stream_getbuffer(Runtime&, const Value* args, uint32_t argc, Value& out, st
     if (error.empty()) error = "getbuffer() requires a binary memory stream";
     return false;
   }
-  Value owner = Value::bytearray(state->buffer);
-  out = Value::memoryview(owner, 0, state->buffer.size(), false);
+  memory_stream_sync_exported_buffer(*state);
+  if (state->exported_buffer.tag == ValueTag::Invalid) {
+    state->exported_buffer = Value::bytearray(state->buffer);
+  }
+  out = Value::memoryview(state->exported_buffer, 0, state->buffer.size(), false);
   return true;
 }
 

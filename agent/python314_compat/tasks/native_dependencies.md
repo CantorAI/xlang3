@@ -44,6 +44,8 @@
   `read1`, `readinto`, `readinto1`, and non-consuming `peek()` for seekable
   raw streams over the same native data path. In-memory streams expose the
   standard non-terminal `isatty()` result and retain closed-stream validation.
+  `BytesIO.getbuffer()` now retains a writable live view whose changes are
+  observed by subsequent stream reads and `getvalue()` calls.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal
