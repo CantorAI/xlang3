@@ -358,6 +358,12 @@ bool deque_as_index(
 bool deque_extend_from_iterable(Runtime& runtime, DequeState& state, const Value& iterable, bool left, std::string& error) {
   Value iterator;
   if (!runtime_get_iter(runtime, iterable, iterator, error)) {
+    Value pending;
+    if (!runtime.take_pending_exception(pending)) {
+      runtime.raise_class_error("TypeError", error);
+    } else {
+      runtime.set_pending_exception(std::move(pending));
+    }
     return false;
   }
   std::vector<Value> values;
@@ -365,6 +371,12 @@ bool deque_extend_from_iterable(Runtime& runtime, DequeState& state, const Value
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
+      Value pending;
+      if (!runtime.take_pending_exception(pending)) {
+        runtime.raise_class_error("TypeError", error);
+      } else {
+        runtime.set_pending_exception(std::move(pending));
+      }
       return false;
     }
     if (done) {

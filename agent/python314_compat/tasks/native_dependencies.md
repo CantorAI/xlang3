@@ -175,6 +175,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   Native deque integer-taking APIs accept the full `__index__` protocol for
   construction, positional access and mutation, search bounds, rotation,
   insertion, and repetition.
+  `deque.extend()` and `extendleft()` report CPython's `TypeError` for
+  non-iterable inputs while preserving exceptions raised by an input iterator.
   Native deque exposes an allocation-aware `__sizeof__()` result for container
   introspection.
   Forward and reverse deque iterators retain their source container and reject

@@ -142,3 +142,19 @@ try:
     next(backward)
 except RuntimeError:
     print("reverse iterator mutation detected")
+
+try:
+    _collections.deque().extend(1)
+except TypeError:
+    print("extend requires iterable")
+try:
+    _collections.deque().extendleft(1)
+except TypeError:
+    print("extendleft requires iterable")
+def broken_iterable():
+    raise SyntaxError
+    yield 1
+try:
+    _collections.deque().extend(broken_iterable())
+except SyntaxError:
+    print("extend preserves iterator error")
