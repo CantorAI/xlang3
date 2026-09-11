@@ -167,3 +167,9 @@ try:
     socket.htons(-1)
 except ValueError:
     print("negative byte order")
+
+for _address in (("::1", 0, 0xffffffff),):
+    try:
+        socket.getnameinfo(_address, 0)
+    except OverflowError:
+        print("ipv6 flowinfo")

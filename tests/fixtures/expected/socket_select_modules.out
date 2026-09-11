@@ -47,3 +47,4 @@ False
 b'dup'
 True
 negative byte order
+ipv6 flowinfo

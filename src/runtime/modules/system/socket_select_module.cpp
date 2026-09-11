@@ -1073,6 +1073,17 @@ bool socket_bind(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     runtime.raise_class_error("OverflowError", error);
     return false;
   }
+  if (state->family == kAfInet6) {
+    auto* address_tuple = value_as_tuple(args[1]);
+    if (address_tuple != nullptr && address_tuple->items.size() >= 3) {
+      int64_t flowinfo = 0;
+      if (!socket_int_arg(address_tuple->items[2], flowinfo) || flowinfo < 0 || flowinfo > 0xFFFFF) {
+        error = "bind(): IPv6 flowinfo out of range";
+        runtime.raise_class_error("OverflowError", error);
+        return false;
+      }
+    }
+  }
   NativeSocket fd = make_native_socket(*state, error);
   if (fd == kInvalidSocket) {
     return false;
@@ -2205,7 +2216,7 @@ bool socket_getnameinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return false;
   }
   const bool ipv4 = address->items.size() == 2;
-  const bool ipv6 = address->items.size() == 4;
+  const bool ipv6 = address->items.size() == 3 || address->items.size() == 4;
   if (!ipv4 && !ipv6) {
     error = "getnameinfo failed for the supplied address family";
     runtime.raise_class_error("OSError", error);
@@ -2240,10 +2251,15 @@ bool socket_getnameinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
   } else {
     int64_t flowinfo = 0;
     int64_t scope_id = 0;
-    if (!socket_int_arg(address->items[2], flowinfo) || !socket_int_arg(address->items[3], scope_id) ||
-        flowinfo < 0 || scope_id < 0) {
-      error = "getnameinfo(): IPv6 flowinfo and scope_id must be non-negative integers";
+    if (!socket_int_arg(address->items[2], flowinfo) ||
+        (address->items.size() == 4 && !socket_int_arg(address->items[3], scope_id))) {
+      error = "getnameinfo(): IPv6 flowinfo and scope_id must be integers";
       runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (flowinfo < 0 || flowinfo > 0xFFFFF || scope_id < 0) {
+      error = "getnameinfo(): IPv6 flowinfo or scope_id out of range";
+      runtime.raise_class_error("OverflowError", error);
       return false;
     }
     auto* address6 = reinterpret_cast<sockaddr_in6*>(&storage);
