@@ -147,7 +147,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   repetition. Native deque reducers support source-backed `copy.copy()` and
   protocol-4 pickle round-trips; native defaultdict reducers preserve both
   mapping entries and default factories through copy and protocol-4 pickle,
-  and `|` / `|=` preserve defaultdict type and factory.
+  and `|` / `|=` preserve defaultdict type and factory. Reflected mapping
+  unions (`dict | defaultdict`) likewise preserve the right-hand defaultdict
+  type and default factory.
   Deque search operations honor user-defined equality and reject mutation during
   comparison, matching the CPython container safety contract.
   Native deque integer-taking APIs accept the full `__index__` protocol for

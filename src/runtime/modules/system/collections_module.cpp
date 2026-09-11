@@ -825,6 +825,18 @@ bool defaultdict_or(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return collections_update_mapping_or_pairs(runtime, target, args[1], error);
 }
 
+bool defaultdict_ror(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "defaultdict.__ror__ expected one mapping";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value copy_args[] = {args[0]};
+  if (!defaultdict_copy(runtime, copy_args, 1, out, error, nullptr)) return false;
+  Value target = out;
+  return collections_update_mapping_or_pairs(runtime, target, args[1], error);
+}
+
 bool defaultdict_ior(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "defaultdict.__ior__ expected one mapping";
@@ -1182,6 +1194,7 @@ Value make_defaultdict_class(Runtime& runtime) {
   attrs.push_back({"__reduce__", runtime.make_native_function("_collections.defaultdict.__reduce__", defaultdict_reduce)});
   attrs.push_back({"__reduce_ex__", runtime.make_native_function("_collections.defaultdict.__reduce_ex__", defaultdict_reduce_ex)});
   attrs.push_back({"__or__", runtime.make_native_function("_collections.defaultdict.__or__", defaultdict_or)});
+  attrs.push_back({"__ror__", runtime.make_native_function("_collections.defaultdict.__ror__", defaultdict_ror)});
   attrs.push_back({"__ior__", runtime.make_native_function("_collections.defaultdict.__ior__", defaultdict_ior)});
   attrs.push_back({"__repr__", runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr)});
   Value base = runtime.find_builtin("dict") != nullptr ? *runtime.find_builtin("dict") : Value::invalid();
@@ -1202,6 +1215,7 @@ Value make_defaultdict_class(Runtime& runtime) {
     class_object->attrs["__reduce__"] = runtime.make_native_function("_collections.defaultdict.__reduce__", defaultdict_reduce);
     class_object->attrs["__reduce_ex__"] = runtime.make_native_function("_collections.defaultdict.__reduce_ex__", defaultdict_reduce_ex);
     class_object->attrs["__or__"] = runtime.make_native_function("_collections.defaultdict.__or__", defaultdict_or);
+    class_object->attrs["__ror__"] = runtime.make_native_function("_collections.defaultdict.__ror__", defaultdict_ror);
     class_object->attrs["__ior__"] = runtime.make_native_function("_collections.defaultdict.__ior__", defaultdict_ior);
     class_object->attrs["__repr__"] = runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr);
     class_object->attrs["default_factory"] = slot_descriptor("defaultdict", "default_factory", 0);
