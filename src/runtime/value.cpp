@@ -44,6 +44,7 @@ limitations under the License.
 #include <cstring>
 #include <iomanip>
 #include <limits>
+#include <mutex>
 #include <new>
 #include <stdexcept>
 #include <system_error>
@@ -60,6 +61,9 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+std::mutex g_file_resource_warning_mutex;
+std::vector<std::string> g_file_resource_warnings;
 
 #if defined(_WIN32)
 void ignore_value_close_invalid_parameter(
@@ -1441,6 +1445,10 @@ void release(const Value& value) {
       break;
     case ObjectKind::File:
       if (auto* file = as_file(value.as.obj); file != nullptr && file->fd_backed && file->closefd && file->fd >= 0 && !file->closed) {
+        {
+          std::lock_guard<std::mutex> lock(g_file_resource_warning_mutex);
+          g_file_resource_warnings.push_back("unclosed file " + file->path);
+        }
 #if defined(_WIN32)
         close_file_descriptor_without_abort(file->fd, file->fd_native_handle);
 #else
@@ -1459,6 +1467,30 @@ void release(const Value& value) {
     case ObjectKind::Expression:
       delete reinterpret_cast<ExpressionObject*>(value.as.obj);
       break;
+  }
+}
+
+void emit_pending_file_resource_warnings(Runtime& runtime) {
+  std::vector<std::string> pending;
+  {
+    std::lock_guard<std::mutex> lock(g_file_resource_warning_mutex);
+    pending.swap(g_file_resource_warnings);
+  }
+  if (pending.empty()) return;
+
+  std::string ignored;
+  Value warnings;
+  Value warn;
+  const Value* warning_class = runtime.find_builtin("ResourceWarning");
+  if (warning_class == nullptr ||
+      !runtime.import_module("warnings", warnings, ignored) ||
+      !module_get_attr(warnings, "warn", warn, ignored)) {
+    return;
+  }
+  for (auto message = pending.rbegin(); message != pending.rend(); ++message) {
+    Value warning_args[] = {Value::string(*message), *warning_class};
+    Value warning_result;
+    (void)runtime_call_callable(runtime, warn, warning_args, 2, warning_result, ignored);
   }
 }
 

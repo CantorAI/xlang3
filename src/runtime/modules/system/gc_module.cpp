@@ -21,6 +21,7 @@ limitations under the License.
 namespace xlang3 {
 
 void emit_pending_socket_resource_warnings(Runtime& runtime);
+void emit_pending_file_resource_warnings(Runtime& runtime);
 
 namespace {
 
@@ -67,6 +68,7 @@ bool gc_collect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   runtime.release_dead_frame_registers();
   emit_pending_socket_resource_warnings(runtime);
   const uint64_t collected = weakref_collect_cycles();
+  emit_pending_file_resource_warnings(runtime);
   weakref_dispatch_callbacks(runtime);
   value_set_int64(out, static_cast<int64_t>(collected));
   return true;

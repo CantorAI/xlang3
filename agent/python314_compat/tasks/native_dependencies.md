@@ -120,6 +120,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   ownership, matching CPython's direct reinitialization contract.
   Descriptor-backed `FileIO` objects also retain ordinary Python attributes,
   allowing source-backed file subclasses and reference cycles to be represented.
+  Weak-reference-tracked descriptor-backed `FileIO` self-cycles now collect
+  during `gc.collect()` and emit the expected `ResourceWarning` for an
+  unclosed file.
   Their `__getstate__()` and `__setstate__()` state tuples are also available
   for source-backed serialization, including the configured `StringIO` newline
   mode.

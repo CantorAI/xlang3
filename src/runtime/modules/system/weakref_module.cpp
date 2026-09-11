@@ -946,6 +946,36 @@ uint64_t weakref_collect_cycles() {
     collected += 1 + instance_attr_refs.size();
     value_set_invalid(keep_alive);
   }
+  std::vector<FileObject*> file_candidates;
+  std::unordered_set<FileObject*> file_candidate_set;
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::File &&
+        file_candidate_set.insert(reinterpret_cast<FileObject*>(entry.target)).second) {
+      file_candidates.push_back(reinterpret_cast<FileObject*>(entry.target));
+    }
+  }
+  for (auto* file : file_candidates) {
+    uint32_t internal_refs = 0;
+    for (const auto& attr : file->attrs) {
+      if (attr.second.tag == ValueTag::Object && attr.second.as.obj == &file->header) {
+        ++internal_refs;
+      }
+    }
+    if (internal_refs == 0 || file->header.refcnt.load(std::memory_order_relaxed) != internal_refs) {
+      continue;
+    }
+    Value borrowed;
+    borrowed.tag = ValueTag::Object;
+    borrowed.flags = kXlangValueBorrowedRefFlag;
+    borrowed.as.obj = &file->header;
+    Value keep_alive;
+    value_assign_fast(keep_alive, borrowed);
+    for (auto& attr : file->attrs) {
+      value_set_invalid(attr.second);
+    }
+    ++collected;
+    value_set_invalid(keep_alive);
+  }
   std::vector<Object*> instance_candidates;
   std::unordered_set<Object*> instance_candidate_set;
   for (const auto& entry : weakref_registry()) {

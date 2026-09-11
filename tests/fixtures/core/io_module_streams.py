@@ -4,6 +4,9 @@ import os
 import copy
 import pickle
 import array
+import gc
+import warnings
+import weakref
 
 
 s = io.StringIO("ab")
@@ -255,3 +258,15 @@ fileio_attributes.marker = "native-file"
 print(fileio_attributes.marker)
 fileio_attributes.close()
 os.remove("xlang3_fileio_attributes.tmp")
+
+fileio_warning_path = "xlang3_fileio_warning.tmp"
+with warnings.catch_warnings(record=True) as fileio_warnings:
+    warnings.simplefilter("always", ResourceWarning)
+    fileio_warning = _io.FileIO(fileio_warning_path, "wb")
+    fileio_warning.write(b"warning")
+    fileio_warning.loop = fileio_warning
+    fileio_warning_ref = weakref.ref(fileio_warning)
+    del fileio_warning
+    gc.collect()
+print(fileio_warning_ref() is None, any(issubclass(item.category, ResourceWarning) for item in fileio_warnings))
+os.remove(fileio_warning_path)
