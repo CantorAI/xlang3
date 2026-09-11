@@ -51,6 +51,7 @@ struct ZlibDecompressState {
   bool finished = false;
   std::string unused_data;
   std::string unconsumed_tail;
+  std::string dictionary;
 };
 
 void zlib_compress_cleanup(void* data) {
@@ -185,8 +186,8 @@ bool zlib_compress(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 }
 
 bool zlib_compressobj(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* compress_class_ptr) {
-  if (argc > 5) {
-    error = "zlib.compressobj() expected optional level, method, wbits, memLevel, and strategy";
+  if (argc > 6) {
+    error = "zlib.compressobj() expected optional level, method, wbits, memLevel, strategy, and zdict";
     return false;
   }
   int level = Z_DEFAULT_COMPRESSION;
@@ -209,6 +210,14 @@ bool zlib_compressobj(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (rc != Z_OK) {
     delete state;
     return zlib_class_fail(runtime, "ValueError", "zlib.compressobj init failed: " + std::to_string(rc), error);
+  }
+  if (argc == 6 && args[5].tag != ValueTag::None) {
+    std::string dictionary;
+    if (!zlib_bytes_arg(args[5], "zlib.compressobj zdict", dictionary, error) ||
+        deflateSetDictionary(&state->stream, reinterpret_cast<const Bytef*>(dictionary.data()), static_cast<uInt>(dictionary.size())) != Z_OK) {
+      zlib_compress_cleanup(state);
+      return zlib_class_fail(runtime, "ValueError", "zlib.compressobj dictionary setup failed", error);
+    }
   }
   auto* compress_class = static_cast<Value*>(compress_class_ptr);
   out = Value::instance(*compress_class);
@@ -234,6 +243,11 @@ bool zlib_decompressobj(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (rc != Z_OK) {
     delete state;
     return zlib_class_fail(runtime, "ValueError", "zlib.decompressobj init failed: " + std::to_string(rc), error);
+  }
+  if (argc == 2 && args[1].tag != ValueTag::None &&
+      !zlib_bytes_arg(args[1], "zlib.decompressobj zdict", state->dictionary, error)) {
+    zlib_decompress_cleanup(state);
+    return zlib_class_fail(runtime, "TypeError", error, error);
   }
   auto* decompress_class = static_cast<Value*>(decompress_class_ptr);
   out = Value::instance(*decompress_class);
@@ -430,7 +444,16 @@ bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t arg
     }
     state->stream.next_out = reinterpret_cast<Bytef*>(chunk);
     state->stream.avail_out = static_cast<uInt>(requested);
-    const int rc = inflate(&state->stream, Z_NO_FLUSH);
+    int rc = inflate(&state->stream, Z_NO_FLUSH);
+    if (rc == Z_NEED_DICT && !state->dictionary.empty()) {
+      if (inflateSetDictionary(&state->stream,
+                               reinterpret_cast<const Bytef*>(state->dictionary.data()),
+                               static_cast<uInt>(state->dictionary.size())) != Z_OK) {
+        error = "zlib decompressor dictionary setup failed";
+        return false;
+      }
+      rc = inflate(&state->stream, Z_NO_FLUSH);
+    }
     if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR) {
       error = "zlib decompressor failed: " + std::to_string(rc);
       return false;
