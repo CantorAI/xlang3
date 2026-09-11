@@ -143,6 +143,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
   src/runtime/modules/system/errno_module.cpp
+  src/runtime/modules/system/faulthandler_module.cpp
   src/runtime/modules/system/gc_module.cpp
   src/runtime/modules/system/array_module.cpp
   src/runtime/modules/system/imp_module.cpp

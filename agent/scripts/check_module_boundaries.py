@@ -83,6 +83,7 @@ ALLOWED_PUBLIC_CPP_MODULES = {
     "binascii",
     "builtins",
     "errno",
+    "faulthandler",
     "gc",
     "importlib._bootstrap",
     "importlib._bootstrap_external",

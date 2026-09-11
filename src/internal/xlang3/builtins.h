@@ -73,6 +73,7 @@ void register_imp_module(Runtime& runtime);
 void register_sysconfig_native_module(Runtime& runtime);
 void register_warnings_module(Runtime& runtime);
 void register_errno_module(Runtime& runtime);
+void register_faulthandler_module(Runtime& runtime);
 void register_gc_module(Runtime& runtime);
 void register_array_module(Runtime& runtime);
 void register_itertools_module(Runtime& runtime);

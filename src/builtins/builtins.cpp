@@ -51,6 +51,7 @@ void register_core_builtins(Runtime& runtime) {
   register_sysconfig_native_module(runtime);
   register_warnings_module(runtime);
   register_errno_module(runtime);
+  register_faulthandler_module(runtime);
   register_gc_module(runtime);
   register_array_module(runtime);
   register_itertools_module(runtime);
