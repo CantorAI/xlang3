@@ -76,6 +76,8 @@ fixture suite, after the native dependency updates documented below.
   form alongside IPv4 socket addresses.
   Native `gethostbyname_ex()` returns canonical-name, aliases, and IPv4 address
   tuples through Winsock resolution.
+  `getprotobyname()` resolves Winsock protocol names for source-backed
+  `socket` callers.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.

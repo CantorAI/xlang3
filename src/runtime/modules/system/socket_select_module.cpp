@@ -1995,6 +1995,28 @@ bool socket_inet_ntoa(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool socket_getprotobyname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = "getprotobyname() argument must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string startup_error;
+  if (!ensure_socket_runtime(startup_error)) {
+    error = startup_error;
+    return false;
+  }
+  const std::string protocol = string_object_to_string(*value_as_string(args[0]));
+  protoent* entry = ::getprotobyname(protocol.c_str());
+  if (entry == nullptr) {
+    error = "protocol not found";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_int64(out, static_cast<int64_t>(entry->p_proto));
+  return true;
+}
+
 bool socket_getservbyname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2 || value_as_string(args[0]) == nullptr ||
       (argc == 2 && args[1].tag != ValueTag::None && value_as_string(args[1]) == nullptr)) {
@@ -2494,6 +2516,7 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .function("gethostbyname", socket_gethostbyname)
       .function("gethostbyname_ex", socket_gethostbyname_ex)
       .function("gethostbyaddr", socket_gethostbyaddr)
+      .function("getprotobyname", socket_getprotobyname)
       .function("getservbyname", socket_getservbyname)
       .function("getservbyport", socket_getservbyport)
       .function("getnameinfo", socket_getnameinfo)
