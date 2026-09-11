@@ -439,6 +439,10 @@ bool get_data_bytes(const Value& value, std::string_view& out, std::string& erro
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
     out = memoryview_object_view(*view);
     return true;
   }

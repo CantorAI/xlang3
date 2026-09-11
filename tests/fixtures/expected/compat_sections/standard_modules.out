@@ -927,6 +927,7 @@ True 9
 x True True True
 stream 5
 TypeError
+ValueError
 two False 5
 p
 2

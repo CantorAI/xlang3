@@ -3060,6 +3060,12 @@ try:
     marshal.dumps(1, "bad")
 except Exception as exc:
     print(type(exc).__name__)
+released_marshaled = memoryview(marshal.dumps("released"))
+released_marshaled.release()
+try:
+    marshal.loads(released_marshaled)
+except Exception as exc:
+    print(type(exc).__name__)
 
 pickle_payload = {"items": [1, "two"], "flag": False}
 pickle_copy = pickle.loads(pickle.dumps(pickle_payload, 4))
