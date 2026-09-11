@@ -65,7 +65,9 @@
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
   rotation, reversal, positional lookup, insertion, bounded representation, and
-  independent `copy()` results.
+  independent `copy()` results. CPython 3.14 focused `TestBasic` coverage also
+  passes deque comparisons, concatenation, in-place concatenation, and in-place
+  repetition.
   Remaining: weakref callback lifecycle and proxy parity; deque operation,
   iterator, comparison, copy/pickle, and representation parity; plus
   defaultdict/OrderedDict parity. CPython 3.14 `test_deque.TestBasic` currently

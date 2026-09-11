@@ -706,6 +706,113 @@ bool deque_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   return deque_init(runtime, init_args, 3, ignored, error, nullptr);
 }
 
+bool deque_compare(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    const char* op) {
+  if (argc != 2) {
+    error = "deque comparison expected one argument";
+    return false;
+  }
+  const auto* left = deque_state(args[0], error);
+  const auto* right = deque_state(args[1], error);
+  if (left == nullptr || right == nullptr) {
+    if (const Value* not_implemented = runtime.find_builtin("NotImplemented")) {
+      value_assign_fast(out, *not_implemented);
+    } else {
+      value_set_bool(out, std::string_view(op) == "!=");
+    }
+    return true;
+  }
+  Value left_values;
+  Value right_values;
+  if (!deque_snapshot_list(args[0], left_values, error) ||
+      !deque_snapshot_list(args[1], right_values, error)) {
+    return false;
+  }
+  return runtime_value_compare(runtime, op, left_values, right_values, out, error);
+}
+
+#define XLANG3_DEQUE_COMPARE_METHOD(function_name, op_text) \
+  bool function_name(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) { \
+    return deque_compare(runtime, args, argc, out, error, op_text); \
+  }
+
+XLANG3_DEQUE_COMPARE_METHOD(deque_eq, "==")
+XLANG3_DEQUE_COMPARE_METHOD(deque_ne, "!=")
+XLANG3_DEQUE_COMPARE_METHOD(deque_lt, "<")
+XLANG3_DEQUE_COMPARE_METHOD(deque_le, "<=")
+XLANG3_DEQUE_COMPARE_METHOD(deque_gt, ">")
+XLANG3_DEQUE_COMPARE_METHOD(deque_ge, ">=")
+
+#undef XLANG3_DEQUE_COMPARE_METHOD
+
+bool deque_add(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || deque_state(args[1], error) == nullptr) {
+    error = "can only concatenate deque to deque";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value copy_args[] = {args[0]};
+  if (!deque_copy(runtime, copy_args, 1, out, error, nullptr)) return false;
+  Value extend_args[] = {out, args[1]};
+  Value ignored;
+  return deque_extend(runtime, extend_args, 2, ignored, error, nullptr);
+}
+
+bool deque_iadd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "deque.__iadd__ expected one argument";
+    return false;
+  }
+  Value ignored;
+  if (!deque_extend(runtime, args, argc, ignored, error, nullptr)) return false;
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool deque_mul_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool in_place) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "deque repetition count must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* source = deque_state(args[0], error);
+  if (source == nullptr) return false;
+  const int64_t count = std::max<int64_t>(0, args[1].as.i64);
+  std::vector<Value> original(source->items.begin(), source->items.end());
+  if (in_place) {
+    source->items.clear();
+    for (int64_t repeat = 0; repeat < count; ++repeat) {
+      for (const auto& item : original) source->items.push_back(item);
+    }
+    deque_trim(*source, false);
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  auto* instance = value_as_instance(args[0]);
+  if (instance == nullptr) return false;
+  out = Value::instance(instance->klass);
+  std::vector<Value> values;
+  for (int64_t repeat = 0; repeat < count; ++repeat) {
+    values.insert(values.end(), original.begin(), original.end());
+  }
+  Value init_args[] = {out, Value::list(std::move(values)), source->maxlen < 0 ? Value::none() : Value::int64(source->maxlen)};
+  Value ignored;
+  return deque_init(runtime, init_args, 3, ignored, error, nullptr);
+}
+
+bool deque_mul(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return deque_mul_impl(runtime, args, argc, out, error, false);
+}
+
+bool deque_imul(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return deque_mul_impl(runtime, args, argc, out, error, true);
+}
+
 bool deque_reverse(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) { error = "deque.reverse() expected no arguments"; return false; }
   auto* state = deque_state(args[0], error);
@@ -846,6 +953,17 @@ Value make_deque_class(Runtime& runtime) {
   attrs.push_back({"__setitem__", runtime.make_native_function("_collections.deque.__setitem__", deque_setitem)});
   attrs.push_back({"__delitem__", runtime.make_native_function("_collections.deque.__delitem__", deque_delitem)});
   attrs.push_back({"__contains__", runtime.make_native_function("_collections.deque.__contains__", deque_contains)});
+  attrs.push_back({"__eq__", runtime.make_native_function("_collections.deque.__eq__", deque_eq)});
+  attrs.push_back({"__ne__", runtime.make_native_function("_collections.deque.__ne__", deque_ne)});
+  attrs.push_back({"__lt__", runtime.make_native_function("_collections.deque.__lt__", deque_lt)});
+  attrs.push_back({"__le__", runtime.make_native_function("_collections.deque.__le__", deque_le)});
+  attrs.push_back({"__gt__", runtime.make_native_function("_collections.deque.__gt__", deque_gt)});
+  attrs.push_back({"__ge__", runtime.make_native_function("_collections.deque.__ge__", deque_ge)});
+  attrs.push_back({"__add__", runtime.make_native_function("_collections.deque.__add__", deque_add)});
+  attrs.push_back({"__iadd__", runtime.make_native_function("_collections.deque.__iadd__", deque_iadd)});
+  attrs.push_back({"__mul__", runtime.make_native_function("_collections.deque.__mul__", deque_mul)});
+  attrs.push_back({"__rmul__", runtime.make_native_function("_collections.deque.__rmul__", deque_mul)});
+  attrs.push_back({"__imul__", runtime.make_native_function("_collections.deque.__imul__", deque_imul)});
   attrs.push_back({"__repr__", runtime.make_native_function("_collections.deque.__repr__", deque_repr)});
   attrs.push_back({"to_list", runtime.make_native_function("_collections.deque.to_list", deque_to_list)});
   return Value::class_object("deque", std::move(attrs));
