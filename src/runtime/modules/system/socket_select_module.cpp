@@ -1426,6 +1426,11 @@ bool socket_sendto(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   else if (auto* view = value_as_memoryview(args[1])) { data = memoryview_object_view(*view); if (!data.data()) { error = "invalid or released memoryview"; return false; } }
   else { error = "a bytes-like object is required, not '" + std::string(value_binary_type_name(args[1])) + "'"; runtime.raise_class_error("TypeError", error); return false; }
   const uint32_t address_index = argc == 3 ? 2 : 3;
+  if (args[address_index].tag == ValueTag::None) {
+    error = "sendto(): AF_INET address must be tuple, not NoneType";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   int flags = 0;
   if (argc == 4) { if (args[2].tag != ValueTag::Int64) { error = "socket.sendto() flags must be int"; runtime.raise_class_error("TypeError", error); return false; } flags = static_cast<int>(args[2].as.i64); }
   std::string host; int64_t port = 0;

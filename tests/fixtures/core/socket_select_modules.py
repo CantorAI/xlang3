@@ -154,3 +154,11 @@ dup_copy.sendall(b"dup")
 print(dup_right.recv(3))
 dup_copy.close()
 dup_right.close()
+
+
+sendto_error_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+try:
+    sendto_error_socket.sendto(b"x", None)
+except TypeError as exc:
+    print("not NoneType" in str(exc))
+sendto_error_socket.close()

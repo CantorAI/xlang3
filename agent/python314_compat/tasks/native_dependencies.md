@@ -154,6 +154,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   `MSG_PEEK` reads; `recv_into()` supports both nbytes and flags for writable
   byte buffers.
   `send()` and `sendall()` forward optional socket flags to Winsock.
+  Datagram `sendto()` now preserves CPython's `NoneType` address diagnostics
+  instead of reducing them to a generic tuple error.
   `setsockopt()` now routes integer, bytes-like, and explicit null-buffer
   forms to Winsock and rejects invalid values instead of silently ignoring them.
   Native sockets now start non-inheritable and support `get_inheritable()` /
