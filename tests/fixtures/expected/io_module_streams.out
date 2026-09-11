@@ -7,8 +7,12 @@ False False
 b'Zy'
 b'Z'
 b'pQ'
+BufferError
 1
 b'ZZ'
+BufferError
+BufferError
+True
 2 b'pq'
 UnsupportedOperation
 UnsupportedOperation

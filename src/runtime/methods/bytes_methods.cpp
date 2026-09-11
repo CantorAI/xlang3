@@ -1723,6 +1723,12 @@ bool memoryview_release_method(Runtime&, const Value* args, uint32_t argc, Value
     error = "memoryview.release target is not memoryview";
     return false;
   }
+  if (view->owns_bytearray_export) {
+    if (auto* bytearray = value_as_bytearray(view->owner); bytearray != nullptr && bytearray->buffer_exports > 0) {
+      --bytearray->buffer_exports;
+    }
+    view->owns_bytearray_export = false;
+  }
   view->released = true;
   value_set_none(out);
   return true;

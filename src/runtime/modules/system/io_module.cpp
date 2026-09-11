@@ -72,6 +72,18 @@ void memory_stream_update_exported_buffer(MemoryStreamState& state) {
   }
 }
 
+bool memory_stream_has_active_export(const MemoryStreamState& state) {
+  const auto* exported = value_as_bytearray(state.exported_buffer);
+  return exported != nullptr && exported->buffer_exports > 0;
+}
+
+bool memory_stream_export_allowed(Runtime& runtime, const MemoryStreamState& state, std::string& error) {
+  if (!memory_stream_has_active_export(state)) return true;
+  error = "Existing exports of data: object cannot be re-sized";
+  runtime.raise_class_error("BufferError", error);
+  return false;
+}
+
 bool string_value(const Value& value, std::string& out) {
   if (auto* str = value_as_string(value)) {
     out = string_object_to_string(*str);
@@ -902,6 +914,9 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (state->binary && !memory_stream_export_allowed(runtime, *state, error)) {
+    return false;
+  }
   if (state->cursor > state->buffer.size()) {
     state->cursor = state->buffer.size();
   }
@@ -1062,7 +1077,7 @@ bool stream_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
-bool stream_truncate(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool stream_truncate(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 1 || argc > 2) {
     error = "memory stream truncate() expected optional size";
     return false;
@@ -1081,6 +1096,9 @@ bool stream_truncate(Runtime&, const Value* args, uint32_t argc, Value& out, std
     }
     size = static_cast<size_t>(args[1].as.i64);
   }
+  if (state->binary && !memory_stream_export_allowed(runtime, *state, error)) {
+    return false;
+  }
   state->buffer.resize(size, '\0');
   value_set_int64(out, static_cast<int64_t>(size));
   return true;
@@ -1094,6 +1112,9 @@ bool stream_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   auto* state = static_cast<MemoryStreamState*>(instance_get_native_data(args[0], static_cast<const char*>(user_data)));
   if (state == nullptr) {
     error = "invalid memory stream object";
+    return false;
+  }
+  if (state->binary && !memory_stream_export_allowed(runtime, *state, error)) {
     return false;
   }
   if (state->wraps_buffer && !state->closed) {

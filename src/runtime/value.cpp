@@ -999,6 +999,10 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
     Value root = source->owner;
     obj->owner = std::move(root);
   }
+  if (value_as_bytearray(obj->owner) != nullptr) {
+    ++value_as_bytearray(obj->owner)->buffer_exports;
+    obj->owns_bytearray_export = true;
+  }
   v.as.obj = &obj->header;
   return v;
 }
@@ -1353,6 +1357,12 @@ void release(const Value& value) {
       delete as_bytearray(value.as.obj);
       break;
     case ObjectKind::MemoryView:
+      if (auto* view = value_as_memoryview(value); view->owns_bytearray_export) {
+        if (auto* bytearray = value_as_bytearray(view->owner); bytearray != nullptr && bytearray->buffer_exports > 0) {
+          --bytearray->buffer_exports;
+        }
+        view->owns_bytearray_export = false;
+      }
       delete value_as_memoryview(value);
       break;
     case ObjectKind::Slice:

@@ -556,6 +556,7 @@ struct MemoryViewObject {
   bool readonly = true;
   bool contiguous = true;
   bool released = false;
+  bool owns_bytearray_export = false;
 };
 
 std::string_view memoryview_object_view(const MemoryViewObject& view);

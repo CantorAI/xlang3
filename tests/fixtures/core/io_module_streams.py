@@ -22,9 +22,25 @@ direct_view = _io.BytesIO(b"pq")
 direct_buffer = direct_view.getbuffer()
 direct_buffer[1] = ord("Q")
 print(direct_view.read())
+direct_buffer.release()
+try:
+    b.write(b"Z")
+except Exception as exc:
+    print(type(exc).__name__)
+view.release()
 print(b.write(b"Z"))
 b.seek(0)
 print(b.read())
+exported = _io.BytesIO(b"export")
+exported_view = exported.getbuffer()
+for operation in (lambda: exported.truncate(), lambda: exported.close()):
+    try:
+        operation()
+    except Exception as exc:
+        print(type(exc).__name__)
+exported_view.release()
+exported.close()
+print(exported.closed)
 readinto_source = _io.BytesIO(b"pq")
 readinto_target = bytearray(2)
 print(readinto_source.readinto1(readinto_target), bytes(readinto_target))
