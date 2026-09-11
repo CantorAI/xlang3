@@ -31,3 +31,6 @@ b'close-write' b''
 True
 True
 True
+False
+True
+False

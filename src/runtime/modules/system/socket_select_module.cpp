@@ -251,6 +251,12 @@ NativeSocket make_native_socket(SocketState& state, std::string& error) {
     return kInvalidSocket;
   }
   state.fd = fd;
+#ifdef _WIN32
+  SetHandleInformation(reinterpret_cast<HANDLE>(fd), HANDLE_FLAG_INHERIT, 0);
+#else
+  const int descriptor_flags = fcntl(fd, F_GETFD);
+  if (descriptor_flags >= 0) fcntl(fd, F_SETFD, descriptor_flags | FD_CLOEXEC);
+#endif
   state.closed = false;
   return fd;
 }
@@ -755,6 +761,58 @@ bool socket_fileno(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     return false;
   }
   value_set_int64(out, state->fd == kInvalidSocket ? -1 : static_cast<int64_t>(state->fd));
+  return true;
+}
+
+bool socket_get_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "socket.get_inheritable() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr || state->fd == kInvalidSocket) {
+    error = "Bad file descriptor";
+    return raise_socket_code_error(runtime, "get_inheritable", WSAENOTSOCK, error);
+  }
+#ifdef _WIN32
+  DWORD flags = 0;
+  if (!GetHandleInformation(reinterpret_cast<HANDLE>(state->fd), &flags)) {
+    return raise_socket_os_error(runtime, "get_inheritable", error);
+  }
+  value_set_bool(out, (flags & HANDLE_FLAG_INHERIT) != 0);
+#else
+  const int flags = fcntl(state->fd, F_GETFD);
+  if (flags < 0) return raise_socket_os_error(runtime, "get_inheritable", error);
+  value_set_bool(out, (flags & FD_CLOEXEC) == 0);
+#endif
+  return true;
+}
+
+bool socket_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "socket.set_inheritable() expected inheritable flag";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr || state->fd == kInvalidSocket) {
+    error = "Bad file descriptor";
+    return raise_socket_code_error(runtime, "set_inheritable", WSAENOTSOCK, error);
+  }
+  const bool inheritable = value_truthy(args[1]);
+#ifdef _WIN32
+  if (!SetHandleInformation(reinterpret_cast<HANDLE>(state->fd), HANDLE_FLAG_INHERIT,
+                            inheritable ? HANDLE_FLAG_INHERIT : 0)) {
+    return raise_socket_os_error(runtime, "set_inheritable", error);
+  }
+#else
+  int flags = fcntl(state->fd, F_GETFD);
+  if (flags < 0 || fcntl(state->fd, F_SETFD, inheritable ? flags & ~FD_CLOEXEC : flags | FD_CLOEXEC) < 0) {
+    return raise_socket_os_error(runtime, "set_inheritable", error);
+  }
+#endif
+  value_set_none(out);
   return true;
 }
 
@@ -2341,6 +2399,8 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"__repr__", runtime.make_native_function("_socket.socket.__repr__", socket_repr)});
   attrs.push_back({"close", runtime.make_native_function("_socket.socket.close", socket_close)});
   attrs.push_back({"fileno", runtime.make_native_function("_socket.socket.fileno", socket_fileno)});
+  attrs.push_back({"get_inheritable", runtime.make_native_function("_socket.socket.get_inheritable", socket_get_inheritable)});
+  attrs.push_back({"set_inheritable", runtime.make_native_function("_socket.socket.set_inheritable", socket_set_inheritable)});
   attrs.push_back({"detach", runtime.make_native_function("_socket.socket.detach", socket_detach)});
   attrs.push_back({"settimeout", runtime.make_native_function("_socket.socket.settimeout", socket_settimeout)});
   attrs.push_back({"setblocking", runtime.make_native_function("_socket.socket.setblocking", socket_setblocking)});

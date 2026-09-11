@@ -107,3 +107,10 @@ for signum in (-1, 7):
         signal.signal(signum, handler)
     except ValueError:
         print(True)
+inheritable_socket = _socket.socket()
+print(inheritable_socket.get_inheritable())
+inheritable_socket.set_inheritable(True)
+print(inheritable_socket.get_inheritable())
+inheritable_socket.set_inheritable(False)
+print(inheritable_socket.get_inheritable())
+inheritable_socket.close()
