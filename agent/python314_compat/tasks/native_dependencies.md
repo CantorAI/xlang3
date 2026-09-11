@@ -88,6 +88,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   `test_invalid_operations`, and `test_with_open` also pass, including
   `readinto1()`, `readline(None)`, writable array exporters, and the
   `UnsupportedOperation` contracts for unavailable read/write/seek actions.
+  Private native binary streams and descriptor-backed files now accept the
+  runtime's writable `array.array` buffer exporters for both reads and writes.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.

@@ -125,6 +125,17 @@ bool get_write_bytes_arg(const Value& value, bool binary, const char* name, std:
       return true;
     }
   }
+  if (auto* instance = value_as_instance(value)) {
+    for (const auto& attr : instance->attrs) {
+      if (attr.first == "__xlang3_bytes_value__") {
+        if (auto* bytearray = value_as_bytearray(attr.second)) {
+          out = bytearray->value;
+          return true;
+        }
+        break;
+      }
+    }
+  }
   error = std::string(name) + " must be bytes-like";
   return false;
 }
@@ -612,6 +623,7 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   auto* file = require_file(args[0], "file.read", error);
   if (file == nullptr) {
+    runtime.raise_class_error(error.find("closed file") != std::string::npos ? "ValueError" : "TypeError", error);
     return false;
   }
   if (!file->readable) {
@@ -663,6 +675,7 @@ bool file_readinto_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   auto* file = require_file(args[0], "file.readinto", error);
   if (file == nullptr) {
+    runtime.raise_class_error(error.find("closed file") != std::string::npos ? "ValueError" : "TypeError", error);
     return false;
   }
   if (!file->binary) {

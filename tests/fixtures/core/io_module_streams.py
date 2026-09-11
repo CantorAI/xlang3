@@ -3,6 +3,7 @@ import _io
 import os
 import copy
 import pickle
+import array
 
 
 s = io.StringIO("ab")
@@ -201,3 +202,11 @@ print(state_target.getvalue(), state_target.tell())
 text_state_target = _io.StringIO()
 text_state_target.__setstate__(("state", "\r\n", 2, None))
 print(text_state_target.getvalue(), text_state_target.tell())
+
+array_values = array.array("i", range(3))
+array_stream = _io.BytesIO()
+assert array_stream.write(array_values) == len(array_values.tobytes())
+array_stream.seek(0)
+array_target = array.array("i", [0, 0, 0])
+assert array_stream.readinto(array_target) == len(array_values.tobytes())
+assert array_target.tobytes() == array_values.tobytes()

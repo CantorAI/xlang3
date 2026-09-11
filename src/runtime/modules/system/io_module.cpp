@@ -148,6 +148,17 @@ bool bytes_value(const Value& value, std::string& out) {
       return true;
     }
   }
+  if (auto* instance = value_as_instance(value)) {
+    for (const auto& attr : instance->attrs) {
+      if (attr.first == "__xlang3_bytes_value__") {
+        if (auto* bytearray = value_as_bytearray(attr.second)) {
+          out = bytearray->value;
+          return true;
+        }
+        break;
+      }
+    }
+  }
   return false;
 }
 
@@ -755,12 +766,19 @@ bool stream_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   memory_stream_sync_exported_buffer(*state);
   char* destination = nullptr;
   size_t capacity = 0;
+  Value exported_buffer;
   if (auto* bytearray = value_as_bytearray(args[1])) {
     destination = bytearray->value.data();
     capacity = bytearray->value.size();
   } else if (auto* view = value_as_memoryview(args[1]); view != nullptr && !view->readonly) {
     destination = memoryview_object_writable_data(*view);
     capacity = view->size;
+  } else if (std::string ignored;
+             object_get_attr(args[1], "__xlang3_bytes_value__", exported_buffer, ignored)) {
+    if (auto* bytearray = value_as_bytearray(exported_buffer)) {
+      destination = bytearray->value.data();
+      capacity = bytearray->value.size();
+    }
   }
   if (destination == nullptr && capacity != 0) {
     error = "readinto() argument must be read-write bytes-like object";
@@ -1086,6 +1104,16 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
         ? state->wrapped_writer : state->wrapped_buffer;
     if (!attribute_get(write_target, "write", write_method, error)) {
       return false;
+    }
+    if (state->binary) {
+      std::string bytes;
+      if (!bytes_value(args[1], bytes)) {
+        error = "BufferedIOBase.write() argument must be bytes-like";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      Value bytes_arg = Value::bytes(std::move(bytes));
+      return runtime_call_callable(runtime, write_method, &bytes_arg, 1, out, error);
     }
     return runtime_call_callable(runtime, write_method, args + 1, 1, out, error);
   }
