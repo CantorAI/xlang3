@@ -556,6 +556,36 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool stream_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 2) {
+    error = "BytesIO.readinto() expected one buffer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
+  if (state == nullptr) return false;
+  char* destination = nullptr;
+  size_t capacity = 0;
+  if (auto* bytearray = value_as_bytearray(args[1])) {
+    destination = bytearray->value.data();
+    capacity = bytearray->value.size();
+  } else if (auto* view = value_as_memoryview(args[1]); view != nullptr && !view->readonly) {
+    destination = memoryview_object_writable_data(*view);
+    capacity = view->size;
+  }
+  if (destination == nullptr && capacity != 0) {
+    error = "readinto() argument must be read-write bytes-like object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const size_t available = state->cursor >= state->buffer.size() ? 0 : state->buffer.size() - state->cursor;
+  const size_t count = std::min(capacity, available);
+  if (count != 0) std::memcpy(destination, state->buffer.data() + state->cursor, count);
+  state->cursor += count;
+  out = Value::int64(static_cast<int64_t>(count));
+  return true;
+}
+
 bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc < 1 || argc > 2) {
     error = "memory stream readline() expected optional size";
@@ -1184,6 +1214,7 @@ Value make_memory_stream_class(
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
   if (std::string_view(name) == "BytesIO") {
     attrs.push_back({"getbuffer", runtime.make_native_function("_io.BytesIO.getbuffer", stream_getbuffer, const_cast<char*>(type))});
+    attrs.push_back({"readinto", runtime.make_native_function("_io.BytesIO.readinto", stream_readinto, const_cast<char*>(type))});
   }
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
   attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});

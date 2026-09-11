@@ -16,6 +16,9 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 
+#include <algorithm>
+#include <cctype>
+
 namespace xlang3 {
 
 namespace {
@@ -161,7 +164,12 @@ bool formatter_field_name_split(Runtime&, const Value* args, uint32_t argc, Valu
         error = "_string.formatter_field_name_split() malformed field";
         return false;
       }
-      lookups.push_back(Value::tuple({Value::boolean(false), Value::string(field.substr(i + 1, j - i - 1))}));
+      const std::string key = field.substr(i + 1, j - i - 1);
+      const bool numeric = !key.empty() && std::all_of(
+          key.begin(), key.end(), [](unsigned char ch) { return std::isdigit(ch) != 0; });
+      lookups.push_back(Value::tuple({
+          Value::boolean(false),
+          numeric ? Value::int64(std::stoll(key)) : Value::string(key)}));
       i = j + 1;
     } else {
       ++i;

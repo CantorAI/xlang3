@@ -43,6 +43,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/utime.h>
 #include <windows.h>
+#include <shellapi.h>
 #include <tlhelp32.h>
 #include <sddl.h>
 #else
@@ -587,6 +588,166 @@ std::wstring os_utf8_to_wide(const std::string& text) {
   return result;
 }
 
+std::string os_win32_message(DWORD code) {
+  char* buffer = nullptr;
+  const DWORD size = FormatMessageA(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+          FORMAT_MESSAGE_IGNORE_INSERTS,
+      nullptr, code, 0, reinterpret_cast<char*>(&buffer), 0, nullptr);
+  std::string message = size != 0 && buffer != nullptr
+      ? std::string(buffer, static_cast<size_t>(size))
+      : "Windows error " + std::to_string(code);
+  if (buffer != nullptr) LocalFree(buffer);
+  while (!message.empty() && (message.back() == '\r' || message.back() == '\n' || message.back() == ' ')) {
+    message.pop_back();
+  }
+  return message;
+}
+
+int os_errno_from_win32(DWORD code) {
+  switch (code) {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+    case ERROR_INVALID_DRIVE:
+      return 2;
+    case ERROR_ACCESS_DENIED:
+    case ERROR_SHARING_VIOLATION:
+      return 13;
+    case ERROR_NOT_ENOUGH_MEMORY:
+    case ERROR_OUTOFMEMORY:
+      return 12;
+    case ERROR_INVALID_PARAMETER:
+      return 22;
+    case ERROR_BROKEN_PIPE:
+      return 32;
+    default:
+      return 22;
+  }
+}
+
+bool raise_win32_os_error(
+    Runtime& runtime,
+    DWORD code,
+    const Value* filename,
+    std::string& error) {
+  error = os_win32_message(code);
+  const int error_number = os_errno_from_win32(code);
+  const char* class_name = error_number == 2
+      ? "FileNotFoundError"
+      : (error_number == 13 ? "PermissionError" : "OSError");
+  Value exception = runtime.make_exception(class_name, error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  object_set_attr(exception, "winerror", Value::int64(static_cast<int64_t>(code)), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+  if (filename != nullptr) object_set_attr(exception, "filename", *filename, ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
+bool os_system(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_string(args[0]) == nullptr) {
+    error = argc == 0 ? "system() missing required argument 'command' (pos 1)"
+                      : "system() argument 'command' must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const std::wstring command = os_utf8_to_wide(string_object_to_string(*value_as_string(args[0])));
+  const int status = _wsystem(command.c_str());
+  if (status == -1) {
+    return raise_os_error_with_errno(runtime, "OSError", errno, "system() failed");
+  }
+  out = Value::int64(status);
+  return true;
+}
+
+bool os_kill(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+    error = "kill() expected pid and signal integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const DWORD pid = static_cast<DWORD>(args[0].as.i64);
+  const DWORD signal = static_cast<DWORD>(args[1].as.i64);
+  if (signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT) {
+    if (!GenerateConsoleCtrlEvent(signal, pid)) {
+      return raise_win32_os_error(runtime, GetLastError(), nullptr, error);
+    }
+  } else {
+    HANDLE process = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+    if (process == nullptr) {
+      return raise_win32_os_error(runtime, GetLastError(), nullptr, error);
+    }
+    const BOOL terminated = TerminateProcess(process, signal);
+    const DWORD code = terminated ? ERROR_SUCCESS : GetLastError();
+    CloseHandle(process);
+    if (!terminated) return raise_win32_os_error(runtime, code, nullptr, error);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_startfile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 5) {
+    error = "startfile() expected filepath and up to four optional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "startfile filepath", path, error)) return false;
+  std::wstring operation, arguments, cwd;
+  const wchar_t* operation_ptr = nullptr;
+  const wchar_t* arguments_ptr = nullptr;
+  const wchar_t* cwd_ptr = nullptr;
+  for (uint32_t index = 1; index < std::min<uint32_t>(argc, 4); ++index) {
+    if (args[index].tag == ValueTag::None) continue;
+    auto* text = value_as_string(args[index]);
+    if (text == nullptr) {
+      error = "startfile() optional string argument must be str or None";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    std::wstring converted = os_utf8_to_wide(string_object_to_string(*text));
+    if (index == 1) { operation = std::move(converted); operation_ptr = operation.c_str(); }
+    if (index == 2) { arguments = std::move(converted); arguments_ptr = arguments.c_str(); }
+    if (index == 3) { cwd = std::move(converted); cwd_ptr = cwd.c_str(); }
+  }
+  int show = SW_SHOWNORMAL;
+  if (argc == 5) {
+    if (args[4].tag != ValueTag::Int64) {
+      error = "startfile() show_cmd must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    show = static_cast<int>(args[4].as.i64);
+  }
+  const std::wstring wide_path = os_utf8_to_wide(path.text);
+  if (wide_path.size() >= 2 && wide_path[1] == L':' &&
+      GetDriveTypeW(std::wstring{wide_path[0], L':', L'\\', L'\0'}.c_str()) == DRIVE_NO_ROOT_DIR) {
+    return raise_win32_os_error(runtime, ERROR_INVALID_DRIVE, &args[0], error);
+  }
+  if (path.text.find("://") == std::string::npos &&
+      GetFileAttributesW(wide_path.c_str()) == INVALID_FILE_ATTRIBUTES) {
+    const DWORD code = GetLastError();
+    if (code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND ||
+        code == ERROR_INVALID_DRIVE || code == ERROR_ACCESS_DENIED) {
+      return raise_win32_os_error(runtime, code, &args[0], error);
+    }
+  }
+  const intptr_t result = reinterpret_cast<intptr_t>(ShellExecuteW(
+      nullptr, operation_ptr, wide_path.c_str(), arguments_ptr, cwd_ptr, show));
+  if (result <= 32) {
+    DWORD code = static_cast<DWORD>(result);
+    if (code == 0 || code == SE_ERR_OOM) code = ERROR_NOT_ENOUGH_MEMORY;
+    else if (code == SE_ERR_FNF) code = ERROR_FILE_NOT_FOUND;
+    else if (code == SE_ERR_PNF) code = ERROR_PATH_NOT_FOUND;
+    else if (code == SE_ERR_ACCESSDENIED) code = ERROR_ACCESS_DENIED;
+    return raise_win32_os_error(runtime, code, &args[0], error);
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool os_spawn_env_text(
     Runtime& runtime,
     const Value& value,
@@ -682,6 +843,31 @@ bool os_collect_spawn_env(
   return true;
 }
 
+std::wstring os_quote_windows_argument(const std::wstring& argument) {
+  if (!argument.empty() && argument.find_first_of(L" \t\"") == std::wstring::npos) {
+    return argument;
+  }
+  std::wstring quoted(1, L'\"');
+  size_t backslashes = 0;
+  for (const wchar_t character : argument) {
+    if (character == L'\\') {
+      ++backslashes;
+      continue;
+    }
+    if (character == L'\"') {
+      quoted.append(backslashes * 2 + 1, L'\\');
+      quoted.push_back(L'\"');
+    } else {
+      quoted.append(backslashes, L'\\');
+      quoted.push_back(character);
+    }
+    backslashes = 0;
+  }
+  quoted.append(backslashes * 2, L'\\');
+  quoted.push_back(L'\"');
+  return quoted;
+}
+
 bool os_spawn_windows_process(
     Runtime& runtime,
     int64_t mode,
@@ -699,7 +885,7 @@ bool os_spawn_windows_process(
   std::wstring command_line;
   for (size_t index = 0; index < arguments.size(); ++index) {
     if (index != 0) command_line.push_back(L' ');
-    command_line += arguments[index];
+    command_line += os_quote_windows_argument(arguments[index]);
   }
 
   std::vector<wchar_t> environment_block;
@@ -3983,6 +4169,9 @@ void register_os_module(Runtime& runtime) {
       .function("strerror", os_strerror)
       .function("getppid", os_getppid)
 #if defined(_WIN32)
+      .function("system", os_system)
+      .function("kill", os_kill)
+      .function("startfile", os_startfile)
       .function("spawnv", os_spawnv)
       .function("spawnve", os_spawnve)
       .function("waitpid", os_waitpid)

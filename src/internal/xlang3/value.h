@@ -341,6 +341,8 @@ bool value_int_like_compare(const std::string& op, const Value& lhs, const Value
 bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out);
 bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out);
 bool value_int_like_mul(const Value& lhs, const Value& rhs, Value& out);
+bool value_int_like_divmod(const Value& lhs, const Value& rhs, Value& quotient, Value& remainder,
+                           std::string& error);
 bool value_int_like_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error);
 bool value_int_like_bit_and(const Value& lhs, const Value& rhs, Value& out);
 bool value_int_like_bit_or(const Value& lhs, const Value& rhs, Value& out);
@@ -552,6 +554,7 @@ struct MemoryViewObject {
   size_t size = 0;
   std::string format = "B";
   bool readonly = true;
+  bool contiguous = true;
   bool released = false;
 };
 
@@ -653,6 +656,7 @@ inline std::string string_object_to_string(const StringObject& value) {
 }
 
 Value intern_string_value(const Value& value);
+Value noninterned_string_value(std::string_view value);
 bool string_value_is_interned(const Value& value);
 bool string_value_is_immortal_interned(const Value& value);
 int64_t interned_string_count();

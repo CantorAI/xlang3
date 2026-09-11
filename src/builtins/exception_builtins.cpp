@@ -52,6 +52,37 @@ bool exception_is_import_error_family(const Value& self) {
       (klass->name == "ImportError" || class_has_builtin_base_name(klass, "ImportError"));
 }
 
+enum class UnicodeErrorKind { None, Decode, Encode, Translate };
+
+UnicodeErrorKind exception_unicode_error_kind(const Value& self) {
+  auto* instance = value_as_instance(self);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr) return UnicodeErrorKind::None;
+  if (klass->name == "UnicodeDecodeError" || class_has_builtin_base_name(klass, "UnicodeDecodeError")) {
+    return UnicodeErrorKind::Decode;
+  }
+  if (klass->name == "UnicodeEncodeError" || class_has_builtin_base_name(klass, "UnicodeEncodeError")) {
+    return UnicodeErrorKind::Encode;
+  }
+  if (klass->name == "UnicodeTranslateError" || class_has_builtin_base_name(klass, "UnicodeTranslateError")) {
+    return UnicodeErrorKind::Translate;
+  }
+  return UnicodeErrorKind::None;
+}
+
+void initialize_unicode_error_attrs(
+    Value& self, const Value* args, uint32_t argc, UnicodeErrorKind kind) {
+  const uint32_t shift = kind == UnicodeErrorKind::Translate ? 0 : 1;
+  std::string ignored;
+  if (kind != UnicodeErrorKind::Translate) {
+    object_set_attr(self, "encoding", argc >= 2 ? args[1] : Value::none(), ignored);
+  }
+  object_set_attr(self, "object", argc >= 2 + shift ? args[1 + shift] : Value::none(), ignored);
+  object_set_attr(self, "start", argc >= 3 + shift ? args[2 + shift] : Value::none(), ignored);
+  object_set_attr(self, "end", argc >= 4 + shift ? args[3 + shift] : Value::none(), ignored);
+  object_set_attr(self, "reason", argc >= 5 + shift ? args[4 + shift] : Value::none(), ignored);
+}
+
 bool exception_is_group_family(const Value& self, bool& exception_only) {
   auto* instance = value_as_instance(self);
   auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
@@ -147,6 +178,7 @@ bool exception_init(
   exception_args.reserve(argc - 1);
   const bool is_os_error = exception_is_os_error_family(args[0]);
   const bool is_syntax_error = exception_is_syntax_error_family(args[0]);
+  const UnicodeErrorKind unicode_error_kind = exception_unicode_error_kind(args[0]);
   bool exception_group_requires_exception = false;
   const bool is_exception_group = exception_is_group_family(args[0], exception_group_requires_exception);
   std::vector<Value> group_exceptions;
@@ -221,6 +253,10 @@ bool exception_init(
         }
         object_set_attr(const_cast<Value&>(args[0]), "code", code, ignored);
       }
+      if (exception_is_import_error_family(args[0])) {
+        object_set_attr(const_cast<Value&>(args[0]), "name", Value::none(), ignored);
+        object_set_attr(const_cast<Value&>(args[0]), "path", Value::none(), ignored);
+      }
     }
   }
   if (is_os_error) {
@@ -229,6 +265,10 @@ bool exception_init(
   }
   if (is_syntax_error) {
     initialize_syntax_error_attrs(const_cast<Value&>(args[0]), args, argc);
+  }
+  if (unicode_error_kind != UnicodeErrorKind::None) {
+    initialize_unicode_error_attrs(
+        const_cast<Value&>(args[0]), args, argc, unicode_error_kind);
   }
   object_set_attr(const_cast<Value&>(args[0]), "__traceback__", Value::none(), ignored);
   object_set_attr(const_cast<Value&>(args[0]), "__cause__", Value::none(), ignored);
@@ -457,6 +497,49 @@ bool exception_str(
   return true;
 }
 
+bool exception_reduce(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  auto* instance = argc == 1 ? value_as_instance(args[0]) : nullptr;
+  if (instance == nullptr) {
+    error = "BaseException.__reduce__() requires an exception instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value constructor_args = Value::tuple({});
+  std::string ignored;
+  Value stored_args;
+  if (object_get_attr(args[0], "args", stored_args, ignored) && value_as_tuple(stored_args) != nullptr) {
+    value_assign_fast(constructor_args, stored_args);
+  }
+  std::vector<std::pair<Value, Value>> state_items;
+  static constexpr std::string_view internal_names[] = {
+      "message", "args", "__traceback__", "__cause__", "__context__", "__suppress_context__",
+      "errno", "strerror", "filename", "filename2", "winerror", "name", "path", "msg",
+      "lineno", "offset", "end_lineno", "end_offset", "text", "print_file_and_line",
+      "encoding", "object", "start", "end", "reason", "value", "code", "exceptions"};
+  for (const auto& attr : instance->attrs) {
+    bool internal = false;
+    for (const auto name : internal_names) {
+      if (attr.first == name) {
+        internal = true;
+        break;
+      }
+    }
+    if (!internal) state_items.emplace_back(Value::string(attr.first), attr.second);
+  }
+  if (state_items.empty()) {
+    out = Value::tuple({instance->klass, std::move(constructor_args)});
+  } else {
+    out = Value::tuple({instance->klass, std::move(constructor_args), Value::dict(std::move(state_items))});
+  }
+  return true;
+}
+
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("builtins"));
@@ -484,6 +567,9 @@ void register_exception_class(Runtime& runtime, const char* name, Value base = V
     attrs.emplace_back(
         "add_note",
         runtime.make_native_function("BaseException.add_note", exception_add_note));
+    attrs.emplace_back(
+        "__reduce__",
+        runtime.make_native_function("BaseException.__reduce__", exception_reduce));
   }
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }

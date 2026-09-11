@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/value.h"
 
 #include <algorithm>
@@ -22,6 +23,11 @@ limitations under the License.
 #include <cstdint>
 #include <string>
 #include <string_view>
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 namespace xlang3 {
 
@@ -233,6 +239,45 @@ std::string compose_canonical(std::string_view text) {
 }
 
 std::string normalize_text(const std::string& form, std::string_view text) {
+#if defined(_WIN32)
+  if (!text.empty()) {
+    const int wide_size = MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0);
+    if (wide_size > 0) {
+      std::wstring wide(static_cast<size_t>(wide_size), L'\0');
+      if (MultiByteToWideChar(
+              CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()),
+              wide.data(), wide_size) == wide_size) {
+        const NORM_FORM norm = form == "NFC" ? NormalizationC :
+            form == "NFD" ? NormalizationD :
+            form == "NFKC" ? NormalizationKC : NormalizationKD;
+        const int normalized_size = NormalizeString(
+            norm, wide.data(), wide_size, nullptr, 0);
+        if (normalized_size > 0) {
+          std::wstring normalized(static_cast<size_t>(normalized_size), L'\0');
+          const int written = NormalizeString(
+              norm, wide.data(), wide_size, normalized.data(), normalized_size);
+          if (written > 0) {
+            normalized.resize(static_cast<size_t>(written));
+            const int utf8_size = WideCharToMultiByte(
+                CP_UTF8, WC_ERR_INVALID_CHARS, normalized.data(), written,
+                nullptr, 0, nullptr, nullptr);
+            if (utf8_size > 0) {
+              std::string utf8(static_cast<size_t>(utf8_size), '\0');
+              if (WideCharToMultiByte(
+                      CP_UTF8, WC_ERR_INVALID_CHARS, normalized.data(), written,
+                      utf8.data(), utf8_size, nullptr, nullptr) == utf8_size) {
+                return utf8;
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    return {};
+  }
+#endif
   if (form == "NFD") {
     return decompose_canonical(text);
   }
@@ -343,11 +388,67 @@ bool unicode_property_string(Runtime& runtime, const Value* args, uint32_t argc,
 }
 
 bool unicode_category(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_property_string(runtime, args, argc, out, error, "category", &UnicodeRecord::category, "Cn");
+  if (argc != 1) {
+    error = "unicodedata.category() expected character";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  uint32_t codepoint = 0;
+  if (!get_single_codepoint(runtime, args[0], "category", codepoint, error)) return false;
+  if (const UnicodeRecord* record = find_record(codepoint)) {
+    out = Value::string(record->category);
+  } else if (codepoint < 0x20 || (codepoint >= 0x7f && codepoint <= 0x9f)) {
+    out = Value::string("Cc");
+  } else if (codepoint == 0x1680 || (codepoint >= 0x2000 && codepoint <= 0x200a) ||
+             codepoint == 0x205f || codepoint == 0x3000) {
+    out = Value::string("Zs");
+  } else if ((codepoint >= 0xe000 && codepoint <= 0xf8ff) ||
+             (codepoint >= 0xf0000 && codepoint <= 0xffffd) ||
+             (codepoint >= 0x100000 && codepoint <= 0x10fffd)) {
+    out = Value::string("Co");
+  } else if (codepoint >= 0xd800 && codepoint <= 0xdfff) {
+    out = Value::string("Cs");
+  } else {
+    out = Value::string("Cn");
+  }
+  return true;
 }
 
 bool unicode_bidirectional(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_property_string(runtime, args, argc, out, error, "bidirectional", &UnicodeRecord::bidirectional, "");
+  if (argc != 1) {
+    error = "unicodedata.bidirectional() expected character";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  uint32_t codepoint = 0;
+  if (!get_single_codepoint(runtime, args[0], "bidirectional", codepoint, error)) return false;
+  if (const UnicodeRecord* record = find_record(codepoint)) {
+    out = Value::string(record->bidirectional);
+    return true;
+  }
+#if defined(_WIN32)
+  if (codepoint <= 0xffff) {
+    const wchar_t character = static_cast<wchar_t>(codepoint);
+    WORD direction = 0;
+    if (GetStringTypeW(CT_CTYPE2, &character, 1, &direction)) {
+      const char* value = direction == C2_RIGHTTOLEFT ? "R" :
+          direction == C2_LEFTTORIGHT ? "L" :
+          direction == C2_EUROPENUMBER ? "EN" :
+          direction == C2_ARABICNUMBER ? "AN" :
+          direction == C2_WHITESPACE ? "WS" : "";
+      if (direction == C2_RIGHTTOLEFT &&
+          ((codepoint >= 0x0600 && codepoint <= 0x08ff) ||
+           (codepoint >= 0xfb50 && codepoint <= 0xfdff) ||
+           (codepoint >= 0xfe70 && codepoint <= 0xfeff))) {
+        value = "AL";
+      }
+      out = Value::string(value);
+      return true;
+    }
+  }
+#endif
+  out = Value::string("");
+  return true;
 }
 
 bool unicode_east_asian_width(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -499,7 +600,20 @@ void register_unicodedata_module(Runtime& runtime) {
       .function("normalize", unicode_normalize)
       .function("is_normalized", unicode_is_normalized)
       .value("unidata_version", Value::string("17.0.0"));
-  runtime.register_module("unicodedata", builder.finish());
+  Value module = builder.finish();
+  std::string ignored;
+  std::vector<std::pair<std::string, Value>> ucd_attrs;
+  for (const char* name : {"lookup", "name", "category", "bidirectional", "combining",
+                           "east_asian_width", "mirrored", "decimal", "digit", "numeric",
+                           "decomposition", "normalize", "is_normalized"}) {
+    Value value;
+    if (module_get_attr(module, name, value, ignored)) ucd_attrs.push_back({name, std::move(value)});
+  }
+  ucd_attrs.push_back({"unidata_version", Value::string("3.2.0")});
+  Value ucd_3_2_0 = Value::instance(Value::class_object("UCD", std::move(ucd_attrs)));
+  module_ensure_attr_slots(module, {"ucd_3_2_0"}, ignored);
+  module_set_attr(module, "ucd_3_2_0", ucd_3_2_0, ignored);
+  runtime.register_module("unicodedata", std::move(module));
 }
 
 } // namespace xlang3

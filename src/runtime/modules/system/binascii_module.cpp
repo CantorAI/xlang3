@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
@@ -37,6 +38,10 @@ bool binascii_bytes_arg(const Value& value, const char* name, std::string_view& 
     out = std::string_view(bytearray->value.data(), bytearray->value.size());
     return true;
   }
+  if (auto* view = value_as_memoryview(value); view != nullptr && !view->released) {
+    out = memoryview_object_view(*view);
+    return true;
+  }
   if (auto* string = value_as_string(value)) {
     owned = string_object_to_string(*string);
     out = std::string_view(owned.data(), owned.size());
@@ -55,6 +60,21 @@ bool binascii_bool_arg(const Value& value, bool default_value) {
 
 bool binascii_raise(Runtime& runtime, const char* class_name, std::string message, std::string& error) {
   error = std::move(message);
+  if (std::string_view(class_name).rfind("binascii.", 0) == 0) {
+    Value module;
+    Value exception_class;
+    std::string ignored;
+    const std::string short_name = std::string(class_name).substr(9);
+    if (runtime.import_module("binascii", module, ignored) &&
+        module_get_attr(module, short_name, exception_class, ignored)) {
+      Value message_arg = Value::string(error);
+      Value exception;
+      if (runtime_call_callable(runtime, exception_class, &message_arg, 1, exception, ignored)) {
+        runtime.set_pending_exception(std::move(exception));
+        return false;
+      }
+    }
+  }
   runtime.raise_class_error(class_name, error);
   return false;
 }
@@ -330,6 +350,78 @@ bool binascii_a2b_base64_kw(
   return binascii_a2b_base64_impl(runtime, args, argc, strict_mode, out, error);
 }
 
+bool binascii_b2a_uu(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    return binascii_raise(runtime, "TypeError", "b2a_uu() expected data and optional backtick", error);
+  }
+  std::string_view input;
+  std::string owned;
+  if (!binascii_bytes_arg(args[0], "b2a_uu data", input, owned, error)) {
+    return binascii_raise(runtime, "TypeError", error, error);
+  }
+  if (input.size() > 45) {
+    return binascii_raise(runtime, "binascii.Error", "At most 45 bytes at once", error);
+  }
+  const bool backtick = argc == 2 && binascii_bool_arg(args[1], false);
+  const auto encode_digit = [backtick](unsigned int value) -> char {
+    value &= 0x3f;
+    return value == 0 && backtick ? '`' : static_cast<char>(value + 0x20);
+  };
+  std::string encoded;
+  encoded.reserve(2 + ((input.size() + 2) / 3) * 4);
+  encoded.push_back(encode_digit(static_cast<unsigned int>(input.size())));
+  for (size_t index = 0; index < input.size(); index += 3) {
+    const unsigned int a = static_cast<unsigned char>(input[index]);
+    const unsigned int b = index + 1 < input.size() ? static_cast<unsigned char>(input[index + 1]) : 0;
+    const unsigned int c = index + 2 < input.size() ? static_cast<unsigned char>(input[index + 2]) : 0;
+    encoded.push_back(encode_digit(a >> 2));
+    encoded.push_back(encode_digit(((a & 3) << 4) | (b >> 4)));
+    encoded.push_back(encode_digit(((b & 15) << 2) | (c >> 6)));
+    encoded.push_back(encode_digit(c));
+  }
+  encoded.push_back('\n');
+  out = Value::bytes(std::move(encoded));
+  return true;
+}
+
+bool binascii_a2b_uu(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    return binascii_raise(runtime, "TypeError", "a2b_uu() expected one argument", error);
+  }
+  std::string_view input;
+  std::string owned;
+  if (!binascii_bytes_arg(args[0], "a2b_uu data", input, owned, error)) {
+    return binascii_raise(runtime, "TypeError", error, error);
+  }
+  if (input.empty()) {
+    out = Value::bytes("");
+    return true;
+  }
+  const size_t expected = (static_cast<unsigned char>(input[0]) - 0x20u) & 0x3fu;
+  std::string decoded;
+  decoded.reserve(expected);
+  size_t index = 1;
+  auto digit = [](unsigned char ch) -> unsigned int {
+    return ch == '`' ? 0u : (ch - 0x20u) & 0x3fu;
+  };
+  while (decoded.size() < expected) {
+    unsigned int values[4] = {0, 0, 0, 0};
+    for (size_t part = 0; part < 4; ++part) {
+      while (index < input.size() && (input[index] == '\r' || input[index] == '\n')) ++index;
+      if (index < input.size()) values[part] = digit(static_cast<unsigned char>(input[index++]));
+    }
+    decoded.push_back(static_cast<char>((values[0] << 2) | (values[1] >> 4)));
+    if (decoded.size() < expected) decoded.push_back(static_cast<char>((values[1] << 4) | (values[2] >> 2)));
+    if (decoded.size() < expected) decoded.push_back(static_cast<char>((values[2] << 6) | values[3]));
+  }
+  out = Value::bytes(std::move(decoded));
+  return true;
+}
+
 Value make_binascii_exception(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("binascii"));
@@ -351,6 +443,8 @@ void register_binascii_module(Runtime& runtime) {
       .value("hexlify", runtime.make_native_function("binascii.hexlify", binascii_hexlify))
       .value("a2b_hex", runtime.make_native_function("binascii.a2b_hex", binascii_unhexlify))
       .value("unhexlify", runtime.make_native_function("binascii.unhexlify", binascii_unhexlify))
+      .function("b2a_uu", binascii_b2a_uu)
+      .function("a2b_uu", binascii_a2b_uu)
       .value("b2a_base64", runtime.make_native_function(
                                "binascii.b2a_base64",
                                binascii_b2a_base64,

@@ -21,6 +21,15 @@ limitations under the License.
 
 namespace xlang3 {
 
+namespace {
+thread_local uint32_t g_nested_interpreter_depth = 0;
+
+struct NestedInterpreterGuard {
+  NestedInterpreterGuard() { ++g_nested_interpreter_depth; }
+  ~NestedInterpreterGuard() { --g_nested_interpreter_depth; }
+};
+} // namespace
+
 Interpreter::Interpreter(Runtime& runtime) : runtime_(runtime) {}
 
 bool runtime_call_builtin_constructor(Runtime& runtime, const ClassObject& klass,
@@ -102,6 +111,19 @@ RuntimeResult Interpreter::run_module(
     std::shared_ptr<const ir::Module> module_owner,
     bool register_in_runtime) {
   RuntimeResult result;
+  // Calls made by native helpers re-enter the interpreter recursively and
+  // therefore consume the host C stack.  Keep that path below Windows' stack
+  // ceiling even when Python temporarily raises its visible recursion limit.
+  constexpr uint32_t kSafeNestedInterpreterLimit = 256;
+  const uint32_t effective_recursion_limit = std::min(
+      static_cast<uint32_t>(runtime_.recursion_limit()), kSafeNestedInterpreterLimit);
+  if (g_nested_interpreter_depth >= effective_recursion_limit) {
+    result.exception = runtime_.make_exception(
+        "RecursionError", "maximum recursion depth exceeded");
+    result.errors.push_back("maximum recursion depth exceeded");
+    return result;
+  }
+  NestedInterpreterGuard nested_guard;
   if (auto* globals = value_as_module(globals_module)) {
     std::string error;
     if (!module_ensure_attr_slots(globals_module, module.global_slots, error)) {

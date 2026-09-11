@@ -133,6 +133,94 @@ std::string latin1_decode(std::string_view bytes) {
   return text;
 }
 
+bool valid_utf8(std::string_view text) {
+  for (size_t i = 0; i < text.size();) {
+    const unsigned char lead = static_cast<unsigned char>(text[i]);
+    if (lead < 0x80) {
+      ++i;
+      continue;
+    }
+    size_t count = 0;
+    uint32_t codepoint = 0;
+    uint32_t minimum = 0;
+    if ((lead & 0xe0) == 0xc0) {
+      count = 2;
+      codepoint = lead & 0x1f;
+      minimum = 0x80;
+    } else if ((lead & 0xf0) == 0xe0) {
+      count = 3;
+      codepoint = lead & 0x0f;
+      minimum = 0x800;
+    } else if ((lead & 0xf8) == 0xf0) {
+      count = 4;
+      codepoint = lead & 0x07;
+      minimum = 0x10000;
+    } else {
+      return false;
+    }
+    if (i + count > text.size()) return false;
+    for (size_t j = 1; j < count; ++j) {
+      const unsigned char continuation = static_cast<unsigned char>(text[i + j]);
+      if ((continuation & 0xc0) != 0x80) return false;
+      codepoint = (codepoint << 6) | (continuation & 0x3f);
+    }
+    if (codepoint < minimum || codepoint > 0x10ffff ||
+        (codepoint >= 0xd800 && codepoint <= 0xdfff)) {
+      return false;
+    }
+    i += count;
+  }
+  return true;
+}
+
+bool utf16_decode(std::string_view bytes, std::string& text, std::string& error) {
+  bool little_endian = true;
+  size_t offset = 0;
+  if (bytes.size() >= 2) {
+    const auto first = static_cast<unsigned char>(bytes[0]);
+    const auto second = static_cast<unsigned char>(bytes[1]);
+    if (first == 0xff && second == 0xfe) {
+      offset = 2;
+    } else if (first == 0xfe && second == 0xff) {
+      little_endian = false;
+      offset = 2;
+    }
+  }
+  if (((bytes.size() - offset) & 1u) != 0) {
+    error = "utf-16 codec can't decode truncated data";
+    return false;
+  }
+  text.clear();
+  auto unit_at = [&](size_t pos) -> uint16_t {
+    const uint16_t a = static_cast<unsigned char>(bytes[pos]);
+    const uint16_t b = static_cast<unsigned char>(bytes[pos + 1]);
+    return little_endian ? static_cast<uint16_t>(a | (b << 8)) :
+                           static_cast<uint16_t>((a << 8) | b);
+  };
+  while (offset < bytes.size()) {
+    uint32_t codepoint = unit_at(offset);
+    offset += 2;
+    if (codepoint >= 0xd800 && codepoint <= 0xdbff) {
+      if (offset >= bytes.size()) {
+        error = "utf-16 codec can't decode truncated surrogate";
+        return false;
+      }
+      const uint32_t low = unit_at(offset);
+      if (low < 0xdc00 || low > 0xdfff) {
+        error = "utf-16 codec can't decode invalid surrogate";
+        return false;
+      }
+      offset += 2;
+      codepoint = 0x10000 + ((codepoint - 0xd800) << 10) + (low - 0xdc00);
+    } else if (codepoint >= 0xdc00 && codepoint <= 0xdfff) {
+      error = "utf-16 codec can't decode invalid surrogate";
+      return false;
+    }
+    append_utf8(codepoint, text);
+  }
+  return true;
+}
+
 bool ascii_decode(std::string_view bytes, std::string& text, std::string& error) {
   for (unsigned char ch : bytes) {
     if (ch > 0x7f) {
@@ -290,6 +378,9 @@ std::string canonical_python_source_encoding(std::string name) {
   if (name == "utf_8" || name == "utf_8_sig") {
     return name == "utf_8_sig" ? "utf-8-sig" : "utf-8";
   }
+  if (name == "utf16" || name == "utf_16") {
+    return "utf-16";
+  }
   if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
     return "iso-8859-1";
   }
@@ -315,12 +406,19 @@ bool decode_python_source_bytes(std::string_view bytes, PythonSourceText& out, s
   std::string_view payload = bom ? bytes.substr(3) : bytes;
   out.encoding = encoding == "utf-8-sig" ? "utf-8" : encoding;
   if (encoding == "utf-8" || encoding == "utf-8-sig") {
+    if (!valid_utf8(payload)) {
+      error = "utf-8 codec can't decode byte";
+      return false;
+    }
     out.text.assign(payload);
     return true;
   }
   if (encoding == "iso-8859-1") {
     out.text = latin1_decode(payload);
     return true;
+  }
+  if (encoding == "utf-16") {
+    return utf16_decode(payload, out.text, error);
   }
   if (encoding == "ascii") {
     return ascii_decode(payload, out.text, error);
@@ -346,12 +444,19 @@ bool decode_python_source_bytes_as(
   std::string_view payload = bom ? bytes.substr(3) : bytes;
   out.encoding = encoding == "utf-8-sig" ? "utf-8" : encoding;
   if (encoding == "utf-8" || encoding == "utf-8-sig") {
+    if (!valid_utf8(payload)) {
+      error = "utf-8 codec can't decode byte";
+      return false;
+    }
     out.text.assign(payload);
     return true;
   }
   if (encoding == "iso-8859-1") {
     out.text = latin1_decode(payload);
     return true;
+  }
+  if (encoding == "utf-16") {
+    return utf16_decode(bytes, out.text, error);
   }
   if (encoding == "ascii") {
     return ascii_decode(payload, out.text, error);

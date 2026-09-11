@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -375,7 +376,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
     switch (ch) {
       case 'r':
         if (saw_action) {
-          error = "invalid open mode: " + mode;
+          error = "invalid mode: " + mode;
           return false;
         }
         saw_action = true;
@@ -383,7 +384,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case 'w':
         if (saw_action) {
-          error = "invalid open mode: " + mode;
+          error = "invalid mode: " + mode;
           return false;
         }
         saw_action = true;
@@ -393,7 +394,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case 'a':
         if (saw_action) {
-          error = "invalid open mode: " + mode;
+          error = "invalid mode: " + mode;
           return false;
         }
         saw_action = true;
@@ -403,7 +404,7 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case 'x':
         if (saw_action) {
-          error = "invalid open mode: " + mode;
+          error = "invalid mode: " + mode;
           return false;
         }
         saw_action = true;
@@ -413,33 +414,41 @@ bool parse_open_mode(const std::string& mode, OpenMode& out, std::string& error)
         break;
       case '+':
         if (out.update) {
-          error = "invalid open mode: " + mode;
+          error = "invalid mode: " + mode;
           return false;
         }
         out.update = true;
         break;
       case 't':
-        if (saw_text || saw_binary) {
-          error = "invalid open mode: " + mode;
+        if (saw_binary) {
+          error = "can't have text and binary mode at once";
+          return false;
+        }
+        if (saw_text) {
+          error = "invalid mode: " + mode;
           return false;
         }
         saw_text = true;
         break;
       case 'b':
-        if (saw_text || saw_binary) {
-          error = "invalid open mode: " + mode;
+        if (saw_text) {
+          error = "can't have text and binary mode at once";
+          return false;
+        }
+        if (saw_binary) {
+          error = "invalid mode: " + mode;
           return false;
         }
         saw_binary = true;
         out.binary = true;
         break;
       default:
-        error = "invalid open mode: " + mode;
+        error = "invalid mode: " + mode;
         return false;
     }
   }
   if (!saw_action) {
-    error = "invalid open mode: " + mode;
+    error = "invalid mode: " + mode;
     return false;
   }
   if (out.update) {
@@ -571,11 +580,21 @@ bool print_value_text(Runtime& runtime, const Value& value, std::string& out, st
 
 bool print_write_text(Runtime& runtime, const Value& file, const std::string& text, std::string& error) {
   if (file.tag == ValueTag::None) {
-    runtime.write_output(text);
-    return true;
+    Value sys;
+    Value stdout_stream;
+    if (!runtime.import_module("sys", sys, error) ||
+        !module_get_attr(sys, "stdout", stdout_stream, error)) {
+      return false;
+    }
+    if (stdout_stream.tag == ValueTag::None) {
+      error = "lost sys.stdout";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    return print_write_text(runtime, stdout_stream, text, error);
   }
   Value write_method;
-  if (!object_get_attr(file, "write", write_method, error)) {
+  if (!attribute_get(file, "write", write_method, error)) {
     error = "print file must have a write method";
     return false;
   }
@@ -589,7 +608,7 @@ bool print_flush_file(Runtime& runtime, const Value& file, std::string& error) {
     return true;
   }
   Value flush_method;
-  if (!object_get_attr(file, "flush", flush_method, error)) {
+  if (!attribute_get(file, "flush", flush_method, error)) {
     error = "print file must have a flush method";
     return false;
   }
@@ -605,17 +624,17 @@ bool builtin_print(
     std::string& error,
     void* user_data) {
   (void)user_data;
+  std::string output;
   for (uint32_t i = 0; i < argc; ++i) {
-    if (i != 0) {
-      runtime.write_output(' ');
-    }
+    if (i != 0) output.push_back(' ');
     std::string text;
     if (!print_value_text(runtime, args[i], text, error)) {
       return false;
     }
-    runtime.write_output(text);
+    output += text;
   }
-  runtime.write_output('\n');
+  output.push_back('\n');
+  if (!print_write_text(runtime, Value::none(), output, error)) return false;
   value_set_none(out);
   return true;
 }
@@ -708,6 +727,7 @@ bool builtin_open(
 
   OpenMode parsed;
   if (!parse_open_mode(mode, parsed, error)) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (parsed.binary && options.encoding_non_none) {
@@ -1024,7 +1044,8 @@ void register_io_builtins(Runtime& runtime) {
           nullptr,
           nullptr,
           false,
-          builtin_open_kw));
+          builtin_open_kw,
+          false));
   runtime.register_builtin(
       "print",
       runtime.make_native_function(
@@ -1034,7 +1055,8 @@ void register_io_builtins(Runtime& runtime) {
           nullptr,
           nullptr,
           false,
-          builtin_print_kw));
+          builtin_print_kw,
+          false));
 }
 
 } // namespace xlang3

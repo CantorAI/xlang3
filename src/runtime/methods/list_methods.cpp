@@ -183,7 +183,7 @@ bool list_append_fast_method(
   return true;
 }
 
-bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool list_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 && argc != 2) {
     error = "list.pop expected 1 or 2 arguments, got " + std::to_string(argc);
     return false;
@@ -195,10 +195,12 @@ bool list_pop_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   }
   if (list->items.empty()) {
     error = "pop from empty list";
+    runtime.raise_class_error("IndexError", error);
     return false;
   }
   size_t index = list->items.size() - 1;
   if (argc == 2 && !normalize_existing_index(args[1], list->items.size(), index, error)) {
+    runtime.raise_class_error(error.find("index") != std::string::npos ? "IndexError" : "TypeError", error);
     return false;
   }
   value_assign_fast(out, list->items[index]);

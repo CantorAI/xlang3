@@ -205,7 +205,7 @@ sys-getsizeof-keyword keyword-duplicate-object True
 sys-getsizeof-keyword keyword-duplicate-default True
 sys-getsizeof-keyword keyword-unexpected True
 True True False
-True False False True
+True True True True
 True True True True True True True
 sys-stdlib-module-names True True True True True True True True
 sys-getunicodeinternedsize-only-immortal True True True True True
@@ -366,7 +366,7 @@ True ('sys_monitoring_reraise_target', True, 'ValueError', 'monitoring-reraise')
 True
 True
 2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_outer', True, 'ValueError', 'monitoring-unwind')
-0 0 False True
+0 0 0 True
 sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
 False 0 1 0
 18 21 1 0 0 18
@@ -910,7 +910,7 @@ abc abc True
 ['1', '22'] ['a', 'b', 'c'] a#b#
 re.ASCII re.ASCII re.NOFLAG re.VERBOSE re.VERBOSE RegexFlag
 b'abc'
-utf_8 codec b'hi'
+utf-8 codec b'hi'
 idna example.com
 a 1 True False
 b'abc' True True

@@ -406,6 +406,24 @@ bool dict_setdefault_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
+bool call_instance_hash_for_mapping(Runtime& runtime, const Value& key, std::string& error) {
+  if (value_as_instance(key) == nullptr) {
+    return true;
+  }
+  Value hash_method;
+  std::string attr_error;
+  if (!object_get_attr(key, "__hash__", hash_method, attr_error)) {
+    return true;
+  }
+  if (hash_method.tag == ValueTag::None) {
+    error = "unhashable type";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value ignored;
+  return runtime_call_callable(runtime, hash_method, nullptr, 0, ignored, error);
+}
+
 bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& source, std::string& error) {
   if (mapping_is_mapping(source)) {
     Value iterator;
@@ -422,7 +440,9 @@ bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& s
         return true;
       }
       Value value;
-      if (!mapping_get_item(source, key, value, error) || !mapping_set_item(target, key, value, error)) {
+      if (!mapping_get_item(source, key, value, error) ||
+          !call_instance_hash_for_mapping(runtime, key, error) ||
+          !mapping_set_item(target, key, value, error)) {
         return false;
       }
     }
@@ -447,6 +467,7 @@ bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& s
     for (const auto& key : keys) {
       Value value;
       if (!runtime_call_callable(runtime, getitem_method, &key, 1, value, error) ||
+          !call_instance_hash_for_mapping(runtime, key, error) ||
           !mapping_set_item(target, key, value, error)) {
         return false;
       }
@@ -487,7 +508,8 @@ bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& s
       error = "dictionary update sequence element is not a pair";
       return false;
     }
-    if (!mapping_set_item(target, key, value, error)) {
+    if (!call_instance_hash_for_mapping(runtime, key, error) ||
+        !mapping_set_item(target, key, value, error)) {
       return false;
     }
   }

@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "runtime/memory/object_cache_lifetime.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
 #include "xlang3/exceptions.h"
@@ -732,7 +733,7 @@ bool class_or_bases_have_descriptors(const ClassObject* klass) {
 bool object_model_value_has_abstract_marker(const Value& value) {
   Value marker;
   std::string ignored;
-  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+  return attribute_get(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
 }
 
 void object_model_add_abstract_name(std::vector<Value>& names, const std::string& name) {
@@ -1436,10 +1437,28 @@ bool code_replace_method_kw(
         return false;
       }
       replaced->flags_override = value.as.i64;
+    } else if (name == "co_consts") {
+      auto* constants = value_as_tuple(value);
+      if (constants == nullptr) {
+        error = "co_consts must be tuple";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (replaced->module == nullptr || replaced->function_id >= replaced->module->functions.size()) {
+        error = "invalid code object";
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
+      auto mutable_module = std::make_shared<ir::Module>(*replaced->module);
+      auto& destination = mutable_module->functions[replaced->function_id].constants;
+      destination.clear();
+      destination.reserve(constants->items.size());
+      for (const auto& constant : constants->items) destination.push_back(constant);
+      replaced->module = std::move(mutable_module);
     } else if (
         name == "co_argcount" || name == "co_posonlyargcount" || name == "co_kwonlyargcount" ||
         name == "co_nlocals" || name == "co_stacksize" ||
-        name == "co_code" || name == "co_consts" || name == "co_names" ||
+        name == "co_code" || name == "co_names" ||
         name == "co_varnames" || name == "co_freevars" || name == "co_cellvars" ||
         name == "co_name" || name == "co_qualname" || name == "co_linetable" ||
         name == "co_exceptiontable") {
@@ -1643,6 +1662,29 @@ bool runtime_value_compare(
   auto call_comparison_method = [&](const Value& target, const Value& argument,
                                     const char* method_name, bool& handled) -> bool {
     handled = false;
+    if (auto* target_class = value_as_class(target); target_class != nullptr && method_name != nullptr) {
+      auto* metaclass = value_as_class(target_class->metaclass);
+      if (metaclass == nullptr) return true;
+      bool invert_result = false;
+      if (op == "!=" && metaclass->attrs.find("__ne__") == metaclass->attrs.end() &&
+          metaclass->attrs.find("__eq__") != metaclass->attrs.end()) {
+        method_name = "__eq__";
+        invert_result = true;
+      }
+      Value method;
+      std::string ignored;
+      if (!object_get_attr(target_class->metaclass, method_name, method, ignored)) return true;
+      Value call_args[2] = {target, argument};
+      if (!runtime_call_callable(runtime, method, call_args, 2, out, error)) return false;
+      const Value* not_implemented = runtime.find_builtin("NotImplemented");
+      handled = not_implemented == nullptr || !value_is(out, *not_implemented);
+      if (handled && invert_result) {
+        bool truth = false;
+        if (!runtime_truthy(runtime, out, truth, error)) return false;
+        value_set_bool(out, !truth);
+      }
+      return true;
+    }
     auto* instance = value_as_instance(target);
     if (instance == nullptr || method_name == nullptr) return true;
     auto* klass = value_as_class(instance->klass);
@@ -1653,15 +1695,17 @@ bool runtime_value_compare(
       method_name = "__eq__";
       invert_result = true;
     }
-    const bool inherited_int_comparison =
-        klass != nullptr && class_has_builtin_base_name(klass, "int") &&
+    const bool inherited_numeric_comparison =
+        klass != nullptr &&
+        (class_has_builtin_base_name(klass, "int") ||
+         class_has_builtin_base_name(klass, "float")) &&
         klass->attrs.find(method_name) == klass->attrs.end();
     const bool inherited_container_comparison =
         klass != nullptr &&
         (class_has_builtin_base_name(klass, "list") ||
          class_has_builtin_base_name(klass, "dict")) &&
         klass->attrs.find(method_name) == klass->attrs.end();
-    if (inherited_int_comparison || inherited_container_comparison) return true;
+    if (inherited_numeric_comparison || inherited_container_comparison) return true;
     Value method;
     std::string ignored;
     if (!object_get_special_method(runtime, target, method_name, method, ignored)) return true;
@@ -1712,20 +1756,26 @@ bool runtime_value_compare(
         return true;
       };
 
-      bool left_in_right = false;
-      bool right_in_left = false;
-      if (!all_items_in(*left_set, *right_set, left_in_right) ||
-          !all_items_in(*right_set, *left_set, right_in_left)) {
-        return false;
-      }
       bool result = false;
-      if (op == "==") result = left_in_right && right_in_left;
-      else if (op == "!=") result = !left_in_right || !right_in_left;
-      else if (op == "<") result = left_in_right && !right_in_left;
-      else if (op == "<=") result = left_in_right;
-      else if (op == ">") result = right_in_left && !left_in_right;
-      else if (op == ">=") result = right_in_left;
-      else {
+      bool contains = false;
+      if (op == "==" || op == "!=") {
+        if (left_set->items.size() == right_set->items.size() &&
+            !all_items_in(*left_set, *right_set, contains)) return false;
+        const bool equal = left_set->items.size() == right_set->items.size() && contains;
+        result = op == "==" ? equal : !equal;
+      } else if (op == "<" || op == "<=") {
+        const bool size_allows = op == "<"
+            ? left_set->items.size() < right_set->items.size()
+            : left_set->items.size() <= right_set->items.size();
+        if (size_allows && !all_items_in(*left_set, *right_set, contains)) return false;
+        result = size_allows && contains;
+      } else if (op == ">" || op == ">=") {
+        const bool size_allows = op == ">"
+            ? right_set->items.size() < left_set->items.size()
+            : right_set->items.size() <= left_set->items.size();
+        if (size_allows && !all_items_in(*right_set, *left_set, contains)) return false;
+        result = size_allows && contains;
+      } else {
         error = "unknown comparison operator";
         return false;
       }
@@ -1736,6 +1786,86 @@ bool runtime_value_compare(
 
   if (op == "==" || op == "!=") {
     const bool equality = op == "==";
+    auto binary_payload = [](const Value& value, std::string& payload) -> bool {
+      if (auto* bytes = value_as_bytes(value)) {
+        payload = bytes_object_to_string(*bytes);
+        return true;
+      }
+      if (auto* bytes = value_as_bytearray(value)) {
+        payload = bytes->value;
+        return true;
+      }
+      if (value_as_instance(value) != nullptr) {
+        Value stored;
+        std::string ignored;
+        if (object_get_attr(value, "__xlang3_bytes_value__", stored, ignored)) {
+          if (auto* bytes = value_as_bytes(stored)) {
+            payload = bytes_object_to_string(*bytes);
+            return true;
+          }
+          if (auto* bytes = value_as_bytearray(stored)) {
+            payload = bytes->value;
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    std::string left_binary;
+    std::string right_binary;
+    if (binary_payload(lhs, left_binary) && binary_payload(rhs, right_binary)) {
+      const bool same = left_binary == right_binary;
+      value_set_bool(out, equality ? same : !same);
+      return true;
+    }
+    if (auto* left_range = value_as_range(lhs)) {
+      if (auto* right_range = value_as_range(rhs);
+          right_range != nullptr && left_range->int64_backed && right_range->int64_backed) {
+        const auto range_length = [](const RangeObject& range) -> uint64_t {
+          if (range.step > 0) {
+            if (range.start >= range.stop) return 0;
+            return static_cast<uint64_t>((range.stop - range.start - 1) / range.step) + 1;
+          }
+          if (range.start <= range.stop) return 0;
+          return static_cast<uint64_t>((range.start - range.stop - 1) / -range.step) + 1;
+        };
+        const uint64_t left_length = range_length(*left_range);
+        const uint64_t right_length = range_length(*right_range);
+        const bool ranges_equal = left_length == right_length &&
+            (left_length == 0 ||
+             (left_range->start == right_range->start &&
+              (left_length == 1 || left_range->step == right_range->step)));
+        value_set_bool(out, equality ? ranges_equal : !ranges_equal);
+        return true;
+      }
+    }
+    if (auto* left_slice = value_as_slice(lhs)) {
+      if (auto* right_slice = value_as_slice(rhs)) {
+        for (const auto& parts : {std::pair<const Value*, const Value*>(&left_slice->start, &right_slice->start),
+                                  {&left_slice->stop, &right_slice->stop},
+                                  {&left_slice->step, &right_slice->step}}) {
+          Value equal;
+          if (!runtime_value_compare(runtime, "==", *parts.first, *parts.second, equal, error)) return false;
+          if (equal.tag != ValueTag::Bool || !equal.as.b) { value_set_bool(out, !equality); return true; }
+        }
+        value_set_bool(out, equality);
+        return true;
+      }
+    }
+    if (value_as_code(lhs) != nullptr && value_as_code(rhs) != nullptr) {
+      static constexpr const char* attrs[] = {
+          "co_argcount", "co_posonlyargcount", "co_kwonlyargcount", "co_nlocals",
+          "co_flags", "co_firstlineno", "co_name", "co_qualname", "co_code",
+          "co_consts", "co_names", "co_varnames", "co_freevars", "co_cellvars"};
+      for (const char* name : attrs) {
+        Value left_attr, right_attr, equal;
+        if (!attribute_get(lhs, name, left_attr, error) || !attribute_get(rhs, name, right_attr, error) ||
+            !runtime_value_compare(runtime, "==", left_attr, right_attr, equal, error)) return false;
+        if (equal.tag != ValueTag::Bool || !equal.as.b) { value_set_bool(out, !equality); return true; }
+      }
+      value_set_bool(out, equality);
+      return true;
+    }
     if (auto* left_method = value_as_bound_method(lhs)) {
       if (auto* right_method = value_as_bound_method(rhs)) {
         Value selves_equal;
@@ -1812,6 +1942,31 @@ bool runtime_value_compare(
       if (auto* right_dict = mapping_storage(rhs)) {
         if (left_dict->entries.size() != right_dict->entries.size()) {
           value_set_bool(out, !equality);
+          return true;
+        }
+        bool same_order = true;
+        for (size_t i = 0; i < left_dict->entries.size(); ++i) {
+          const auto& left_entry = left_dict->entries[i];
+          const auto& right_entry = right_dict->entries[i];
+          Value keys_equal;
+          if (!runtime_value_compare(runtime, "==", left_entry.first, right_entry.first, keys_equal, error)) {
+            return false;
+          }
+          if (keys_equal.tag != ValueTag::Bool || !keys_equal.as.b) {
+            same_order = false;
+            break;
+          }
+          Value values_equal;
+          if (!runtime_value_compare(runtime, "==", left_entry.second, right_entry.second, values_equal, error)) {
+            return false;
+          }
+          if (values_equal.tag != ValueTag::Bool || !values_equal.as.b) {
+            value_set_bool(out, !equality);
+            return true;
+          }
+        }
+        if (same_order) {
+          value_set_bool(out, equality);
           return true;
         }
         for (const auto& left_entry : left_dict->entries) {
@@ -2280,6 +2435,73 @@ static bool native_function_descriptor_get_compat(
   return true;
 }
 
+static bool bound_method_reduce(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if ((argc != 1 && argc != 2) || value_as_bound_method(args[0]) == nullptr) {
+    error = "method.__reduce__ expected a bound method";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* bound = value_as_bound_method(args[0]);
+  const Value* getattr_function = runtime.find_builtin("getattr");
+  Value method_name;
+  if (getattr_function == nullptr || !callable_name_attr(bound->function, method_name)) {
+    error = "cannot reduce bound method";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::tuple({*getattr_function, Value::tuple({bound->self, std::move(method_name)})});
+  return true;
+}
+
+static bool native_function_reduce(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if ((argc != 1 && argc != 2) || value_as_native_function(args[0]) == nullptr) {
+    error = "builtin_function_or_method.__reduce__ expected a native function";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto* native = value_as_native_function(args[0]);
+  const size_t separator = native->name.rfind('.');
+  if (separator != std::string::npos) {
+    const std::string owner_name = native->name.substr(0, separator);
+    if (const Value* owner = runtime.find_builtin(owner_name);
+        owner != nullptr && value_as_class(*owner) != nullptr) {
+      const Value* getattr_function = runtime.find_builtin("getattr");
+      if (getattr_function != nullptr) {
+        out = Value::tuple({
+            *getattr_function,
+            Value::tuple({*owner, Value::string(native->name.substr(separator + 1))})});
+        return true;
+      }
+    }
+  }
+  out = Value::string(separator == std::string::npos ? native->name : native->name.substr(separator + 1));
+  return true;
+}
+
+static bool native_function_new(
+    Runtime& runtime,
+    const Value*,
+    uint32_t,
+    Value&,
+    std::string& error,
+    void*) {
+  error = "object.__new__(X): X is not a type object (builtin_function_or_method)";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (auto* slot = value_as_slot_descriptor(object)) {
     if (name == "__name__") {
@@ -2431,6 +2653,17 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     return false;
   }
 
+  if (auto* complex = value_as_complex(object)) {
+    if (name == "real") {
+      value_set_number(out, complex->real);
+      return true;
+    }
+    if (name == "imag") {
+      value_set_number(out, complex->imag);
+      return true;
+    }
+  }
+
   if (auto* view = value_as_memoryview(object)) {
     if (view->released) {
       error = "operation forbidden on released memoryview object";
@@ -2473,7 +2706,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "c_contiguous" || name == "f_contiguous" || name == "contiguous") {
-      value_set_bool(out, true);
+      value_set_bool(out, view->contiguous);
       return true;
     }
     error = "memoryview has no attribute '" + name + "'";
@@ -2484,6 +2717,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (function->attrs_dict.tag != ValueTag::Invalid) {
       std::string ignored;
       if (mapping_get_item(function->attrs_dict, Value::string(name), out, ignored)) {
+        if (out.tag == ValueTag::Invalid) {
+          error = "function has no attribute '" + name + "'";
+          return false;
+        }
         return true;
       }
     }
@@ -2783,7 +3020,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       for (const auto& constant : fn.constants) {
         // Invalid is an internal register/cell sentinel, not a Python
         // constant.  Exposing it makes iteration assign an unbound value.
-        if (constant.tag != ValueTag::Invalid) {
+        const bool public_constant = constant.tag != ValueTag::Object ||
+            value_as_string(constant) != nullptr || value_as_bytes(constant) != nullptr ||
+            value_as_bigint(constant) != nullptr || value_as_complex(constant) != nullptr ||
+            value_as_tuple(constant) != nullptr || value_as_set(constant) != nullptr ||
+            value_as_slice(constant) != nullptr || value_as_code(constant) != nullptr;
+        if (constant.tag != ValueTag::Invalid && public_constant) {
           values.push_back(constant);
         }
       }
@@ -2970,10 +3212,36 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(out, object);
       return true;
     }
+    if (name == "__reduce__" || name == "__reduce_ex__") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(0, "builtin_function_or_method." + name, native_function_reduce));
+      return true;
+    }
+    if (name == "__new__") {
+      out = Value::native_function(0, "builtin_function_or_method.__new__", native_function_new);
+      return true;
+    }
+    if (name == "__self__" && native->name.size() >= 8 &&
+        native->name.compare(native->name.size() - 8, 8, ".__new__") == 0) {
+      value_set_none(out);
+      return true;
+    }
     if (name == "__module__") {
       const size_t separator = native->name.find('.');
-      out = Value::string(
-          separator == std::string::npos ? "builtins" : native->name.substr(0, separator));
+      std::string module_name = separator == std::string::npos
+          ? "builtins" : native->name.substr(0, separator);
+      static constexpr std::string_view builtin_owners[] = {
+          "object", "type", "bool", "int", "float", "complex", "str", "bytes",
+          "bytearray", "memoryview", "tuple", "list", "dict", "set", "frozenset",
+          "range", "property", "classmethod", "staticmethod", "super"};
+      for (const auto owner : builtin_owners) {
+        if (module_name == owner) {
+          module_name = "builtins";
+          break;
+        }
+      }
+      out = Value::string(std::move(module_name));
       return true;
     }
     if (name == "__qualname__") {
@@ -3000,7 +3268,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(out, *native->attrs_dict);
       return true;
     }
-    error = "function has no attribute '" + name + "'";
+    error = "'builtin_function_or_method' object has no attribute '" + name + "'";
     return false;
   }
 
@@ -3015,6 +3283,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "__call__") {
       value_assign_fast(out, object);
+      return true;
+    }
+    if (name == "__reduce__" || name == "__reduce_ex__") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(0, "method." + name, bound_method_reduce));
       return true;
     }
     if (name == "__name__") {
@@ -3051,6 +3325,16 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "__wrapped__") {
       value_assign_fast(out, method->function);
+      return true;
+    }
+    if (name == "__isabstractmethod__") {
+      Value marker;
+      std::string ignored;
+      if (object_get_attr(method->function, name, marker, ignored)) {
+        value_assign_fast(out, marker);
+        return true;
+      }
+      out = Value::boolean(false);
       return true;
     }
     if (name == "__get__") {
@@ -3092,6 +3376,16 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "__wrapped__") {
       value_assign_fast(out, method->function);
+      return true;
+    }
+    if (name == "__isabstractmethod__") {
+      Value marker;
+      std::string ignored;
+      if (object_get_attr(method->function, name, marker, ignored)) {
+        value_assign_fast(out, marker);
+        return true;
+      }
+      out = Value::boolean(false);
       return true;
     }
     if (name == "__get__") {
@@ -3258,10 +3552,20 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__flags__") {
+      constexpr int64_t kTypeFlagHeapType = 1LL << 9;
       constexpr int64_t kTypeFlagIsAbstract = 1LL << 20;
+      int64_t flags = 0;
+      const auto module_attr = klass->attrs.find("__module__");
+      if (module_attr != klass->attrs.end()) {
+        if (auto* module_name = value_as_string(module_attr->second);
+            module_name != nullptr && string_object_view(*module_name) != "builtins") {
+          flags |= kTypeFlagHeapType;
+        }
+      }
       const auto abstracts = klass->attrs.find("__abstractmethods__");
       const auto* abstract_set = abstracts == klass->attrs.end() ? nullptr : value_as_set(abstracts->second);
-      out = Value::int64(abstract_set != nullptr && !abstract_set->items.empty() ? kTypeFlagIsAbstract : 0);
+      if (abstract_set != nullptr && !abstract_set->items.empty()) flags |= kTypeFlagIsAbstract;
+      out = Value::int64(flags);
       return true;
     }
     if (name == "__dictoffset__") {
@@ -3335,7 +3639,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
           return bind_metaclass_attr_for_class_access(object, std::move(meta_attr), out);
         }
       }
-      error = "class '" + klass->name + "' has no attribute '" + name + "'";
+      error = "type object '" + klass->name + "' has no attribute '" + name + "'";
       return false;
     }
     if (auto* method = value_as_static_method(out)) {
@@ -4033,6 +4337,12 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__module__") {
+      if (function->attrs_dict.tag == ValueTag::Invalid) {
+        function->attrs_dict = Value::dict({});
+      }
+      return mapping_set_item(function->attrs_dict, Value::string(name), Value::invalid(), error);
+    }
     if (function->attrs_dict.tag != ValueTag::Invalid &&
         mapping_delete_item(function->attrs_dict, Value::string(name), error)) {
       return true;
@@ -4117,7 +4427,7 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   if (auto* klass = value_as_class(object)) {
     auto it = klass->attrs.find(name);
     if (it == klass->attrs.end()) {
-      error = "class '" + klass->name + "' has no attribute '" + name + "'";
+      error = "type object '" + klass->name + "' has no attribute '" + name + "'";
       return false;
     }
     klass->attrs.erase(it);
@@ -4154,6 +4464,10 @@ bool class_set_base(Value klass, Value base, std::string& error) {
     return false;
   }
   auto* added_base_class = value_as_class(base);
+  if (added_base_class != nullptr && attr_truthy_marker(added_base_class, "__xlang3_final_type__")) {
+    error = "type '" + added_base_class->name + "' is not an acceptable base type";
+    return false;
+  }
   std::vector<std::string> own_slots;
   for (const auto& attr : klass_obj->attrs) {
     auto* descriptor = value_as_slot_descriptor(attr.second);
@@ -4534,6 +4848,32 @@ bool instance_native_truthy(const Value& instance, bool& out) {
 
 bool runtime_instance_truthy(Runtime& runtime, const Value& value, bool& out, std::string& error) {
   if (instance_native_truthy(value, out)) return true;
+  if (auto* instance = value_as_instance(value)) {
+    auto* klass = value_as_class(instance->klass);
+    auto* int_class = runtime.find_builtin("int");
+    auto* float_class = runtime.find_builtin("float");
+    const bool int_subclass = klass != nullptr && int_class != nullptr &&
+        value_as_class(*int_class) != nullptr && class_is_subclass(klass, value_as_class(*int_class));
+    const bool float_subclass = klass != nullptr && float_class != nullptr &&
+        value_as_class(*float_class) != nullptr && class_is_subclass(klass, value_as_class(*float_class));
+    if (int_subclass || float_subclass) {
+      Value stored;
+      std::string ignored;
+      if (object_get_attr(
+              value,
+              int_subclass ? "__xlang3_int_value__" : "__xlang3_float_value__",
+              stored,
+              ignored) ||
+          object_get_attr(value, "_value_", stored, ignored)) {
+        out = value_truthy(stored);
+      } else {
+        // A numeric subclass constructed without an explicit value inherits
+        // int()/float()'s zero default.
+        out = false;
+      }
+      return true;
+    }
+  }
   Value hook;
   std::string ignored;
   const bool has_bool = object_get_class_attr_for_instance(value, "__bool__", hook, ignored);

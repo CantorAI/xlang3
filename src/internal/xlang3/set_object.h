@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <string>
+#include <cstddef>
 #include <vector>
 
 namespace xlang3 {
@@ -25,6 +26,8 @@ namespace xlang3 {
 struct SetObject {
   Object header;
   bool frozen = false;
+  mutable bool hash_cached = false;
+  mutable size_t cached_hash = 0;
   std::vector<Value> items;
 };
 

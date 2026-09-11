@@ -27,6 +27,13 @@ namespace {
 constexpr const char* kCompressObjectNativeType = "zlib.Compress";
 constexpr const char* kDecompressObjectNativeType = "zlib.Decompress";
 constexpr int kDefaultMemLevel = 8;
+Value g_zlib_error_class;
+
+bool zlib_fail(Runtime& runtime, std::string message, std::string& error) {
+  error = std::move(message);
+  runtime.set_pending_exception(runtime.make_exception_from_class(g_zlib_error_class, error));
+  return false;
+}
 
 struct ZlibCompressState {
   z_stream stream{};
@@ -240,7 +247,7 @@ bool zlib_decompressobj(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
-bool zlib_decompress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 3) {
     error = "zlib.decompress() expected data, optional wbits, and optional bufsize";
     return false;
@@ -273,8 +280,7 @@ bool zlib_decompress(Runtime&, const Value* args, uint32_t argc, Value& out, std
     rc = inflate(&stream, Z_NO_FLUSH);
     if (rc != Z_OK && rc != Z_STREAM_END) {
       inflateEnd(&stream);
-      error = "zlib.decompress failed: " + std::to_string(rc);
-      return false;
+      return zlib_fail(runtime, "zlib.decompress failed: " + std::to_string(rc), error);
     }
     decompressed.append(chunk.data(), chunk.size() - stream.avail_out);
   } while (rc != Z_STREAM_END);
@@ -493,6 +499,13 @@ Value make_decompress_class(Runtime& runtime) {
 } // namespace
 
 void register_zlib_module(Runtime& runtime) {
+  g_zlib_error_class = Value::class_object(
+      "error",
+      {
+          {"__module__", Value::string("zlib")},
+          {"__qualname__", Value::string("error")},
+      },
+      runtime.find_builtin("Exception") != nullptr ? *runtime.find_builtin("Exception") : Value::invalid());
   Value compress_class = make_compress_class(runtime);
   Value decompress_class = make_decompress_class(runtime);
   auto* compress_class_slot = new Value(compress_class);
@@ -518,6 +531,7 @@ void register_zlib_module(Runtime& runtime) {
       .function("adler32", zlib_adler32)
       .value("Compress", compress_class)
       .value("Decompress", decompress_class)
+      .value("error", g_zlib_error_class)
       .value("Z_DEFAULT_COMPRESSION", Value::int64(Z_DEFAULT_COMPRESSION))
       .value("Z_BEST_SPEED", Value::int64(Z_BEST_SPEED))
       .value("Z_BEST_COMPRESSION", Value::int64(Z_BEST_COMPRESSION))

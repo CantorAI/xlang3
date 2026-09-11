@@ -290,6 +290,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
   std::string error;
   if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
     if (error.find("not hashable") != std::string::npos ||
+        error.find("unhashable type") != std::string::npos ||
         error.find("does not support item assignment") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
                  ? XlangVMOpFlow::ContinueLoop
@@ -802,9 +803,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
                  ? XlangVMOpFlow::ContinueLoop
                  : XlangVMOpFlow::ReturnResult;
     }
-    if (error == "index out of range") {
-      return raise_exception_value(runtime.make_exception("IndexError", error)) ? XlangVMOpFlow::ContinueLoop
-                                                                                : XlangVMOpFlow::ReturnResult;
+    if (error.find("index out of range") != std::string::npos) {
+      const std::string message = value_as_tuple(regs[in.a]) != nullptr
+          ? "tuple index out of range" : error;
+      return raise_exception_value(runtime.make_exception("IndexError", message)) ? XlangVMOpFlow::ContinueLoop
+                                                                                  : XlangVMOpFlow::ReturnResult;
     }
     if (error == "sequence index must be int") {
       return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
@@ -846,7 +849,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       return raise_exception_value(runtime.make_exception("IndexError", mapped_error)) ? XlangVMOpFlow::ContinueLoop
                                                                                        : XlangVMOpFlow::ReturnResult;
     }
-    if (mapped_error.find("does not support item assignment") != std::string::npos) {
+    if (mapped_error.find("does not support item assignment") != std::string::npos ||
+        mapped_error.find("not hashable") != std::string::npos ||
+        mapped_error.find("unhashable type") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("TypeError", mapped_error))
                  ? XlangVMOpFlow::ContinueLoop
                  : XlangVMOpFlow::ReturnResult;
@@ -877,6 +882,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
             return XlangVMOpFlow::Next;
           }
         }
+      }
+    }
+  }
+  if (value_as_dict(regs[in.dst]) != nullptr && value_as_instance(regs[in.a]) != nullptr) {
+    Value hash_method;
+    std::string hash_error;
+    if (object_get_attr(regs[in.a], "__hash__", hash_method, hash_error)) {
+      if (hash_method.tag == ValueTag::None) {
+        return raise_exception_value(runtime.make_exception("TypeError", "unhashable type"))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      Value hash_result;
+      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_result, hash_error)) {
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                           : XlangVMOpFlow::ReturnResult;
+        }
+        return raise_runtime_error(hash_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
     }
   }

@@ -26,7 +26,7 @@ bool unicodedata_lookup_codepoint(std::string_view name, uint32_t& codepoint) {
     std::string_view name;
     uint32_t codepoint;
   };
-  static constexpr std::array<UnicodeName, 31> names{{
+  static constexpr std::array<UnicodeName, 33> names{{
       {"SPACE", 0x0020},
       {"DIGIT ZERO", 0x0030},
       {"DIGIT ONE", 0x0031},
@@ -50,6 +50,8 @@ bool unicodedata_lookup_codepoint(std::string_view name, uint32_t& codepoint) {
       {"LATIN SMALL LETTER E WITH ACUTE", 0x00e9},
       {"COMBINING ACUTE ACCENT", 0x0301},
       {"COMBINING RING ABOVE", 0x030a},
+      {"GREEK CAPITAL LETTER OMEGA", 0x03a9},
+      {"GREEK SMALL LETTER ALPHA", 0x03b1},
       {"NARROW NO-BREAK SPACE", 0x202f},
       {"FRACTION SLASH", 0x2044},
       {"ANGSTROM SIGN", 0x212b},

@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/config.h"
+#include "xlang3/builtins.h"
 #include "xlang3/dap_session.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
@@ -22,6 +23,7 @@ limitations under the License.
 #include "xlang3/parser.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
 #include "xlang3/sema.h"
 
 #include <chrono>
@@ -45,6 +47,15 @@ namespace {
 
 bool g_had_system_exit = false;
 int g_system_exit_code = 0;
+bool g_had_keyboard_interrupt = false;
+
+int keyboard_interrupt_exit_code() {
+#if defined(_WIN32)
+  return static_cast<int>(0xC000013Au);
+#else
+  return 130;
+#endif
+}
 
 std::string path_to_utf8(const std::filesystem::path& path) {
 #if defined(_WIN32)
@@ -71,7 +82,7 @@ bool is_system_exit_exception(const xlang3::Value& exception) {
          (klass->name == "SystemExit" || xlang3::class_has_builtin_base_name(klass, "SystemExit"));
 }
 
-int system_exit_code_from_exception(const xlang3::Value& exception) {
+int system_exit_code_from_exception(xlang3::Runtime& runtime, const xlang3::Value& exception) {
   xlang3::Value code;
   std::string ignored;
   if (!xlang3::object_get_attr(exception, "code", code, ignored) || code.tag == xlang3::ValueTag::None) {
@@ -83,16 +94,63 @@ int system_exit_code_from_exception(const xlang3::Value& exception) {
   if (code.tag == xlang3::ValueTag::Int64) {
     return static_cast<int>(code.as.i64);
   }
+  if (xlang3::value_as_bigint(code) != nullptr) {
+    int64_t integer_code = 0;
+    if (xlang3::value_bigint_to_i64(code, integer_code)) {
+      return static_cast<int>(integer_code);
+    }
+    return -1;
+  }
+  xlang3::Value text;
+  if (xlang3::builtin_str_from_value(runtime, code, text, ignored)) {
+    if (auto* string = xlang3::value_as_string(text)) {
+      std::string encoding = "utf-8";
+      if (const char* configured = std::getenv("PYTHONIOENCODING")) {
+        encoding = configured;
+        if (const auto colon = encoding.find(':'); colon != std::string::npos) {
+          encoding.resize(colon);
+        }
+      }
+      xlang3::Value codecs;
+      xlang3::Value encode;
+      xlang3::Value encoded;
+      const xlang3::Value encode_args[] = {
+          text,
+          xlang3::Value::string(encoding),
+          xlang3::Value::string("backslashreplace"),
+      };
+      if (runtime.import_module("codecs", codecs, ignored) &&
+          xlang3::module_get_attr(codecs, "encode", encode, ignored) &&
+          xlang3::runtime_call_callable(runtime, encode, encode_args, 3, encoded, ignored)) {
+        if (auto* bytes = xlang3::value_as_bytes(encoded)) {
+          const auto output = xlang3::bytes_object_view(*bytes);
+          std::cerr.write(output.data(), static_cast<std::streamsize>(output.size()));
+          std::cerr << "\n";
+          return 1;
+        }
+      }
+      std::cerr << xlang3::string_object_to_string(*string) << "\n";
+      return 1;
+    }
+  }
   std::cerr << xlang3::object_model_to_string(code) << "\n";
   return 1;
 }
 
-bool consume_system_exit_result(const xlang3::RuntimeResult& result) {
+bool is_keyboard_interrupt_exception(const xlang3::Value& exception) {
+  auto* instance = xlang3::value_as_instance(exception);
+  auto* klass = instance == nullptr ? nullptr : xlang3::value_as_class(instance->klass);
+  return klass != nullptr &&
+         (klass->name == "KeyboardInterrupt" ||
+          xlang3::class_has_builtin_base_name(klass, "KeyboardInterrupt"));
+}
+
+bool consume_system_exit_result(xlang3::Runtime& runtime, const xlang3::RuntimeResult& result) {
   if (!is_system_exit_exception(result.exception)) {
     return false;
   }
   g_had_system_exit = true;
-  g_system_exit_code = system_exit_code_from_exception(result.exception);
+  g_system_exit_code = system_exit_code_from_exception(runtime, result.exception);
   return true;
 }
 
@@ -141,7 +199,37 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       }
       continue;
     }
-    if (arg == "-u" || arg == "-B" || arg == "-E" || arg == "-I" || arg == "-s" || arg == "-S") {
+    if (arg == "-B") {
+      config.dont_write_bytecode = true;
+      continue;
+    }
+    if (arg == "-E") {
+      config.ignore_environment = true;
+      continue;
+    }
+    if (arg == "-I") {
+      config.isolated = true;
+      config.ignore_environment = true;
+      config.no_user_site = true;
+      continue;
+    }
+    if (arg == "-s") {
+      config.no_user_site = true;
+      continue;
+    }
+    if (arg == "-S") {
+      config.no_site = true;
+      continue;
+    }
+    if (arg == "-u") {
+      continue;
+    }
+    if (arg == "-v") {
+      config.verbose = true;
+      continue;
+    }
+    if (arg == "-b" || arg == "-bb") {
+      config.bytes_warning = arg == "-bb" ? 2 : (config.bytes_warning < 1 ? 1 : config.bytes_warning);
       continue;
     }
     if (arg == "-i") {
@@ -154,6 +242,18 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
         if (std::string_view("uBEIsS").find(arg[option_index]) == std::string_view::npos) {
           combined_command_option = false;
           break;
+        }
+        switch (arg[option_index]) {
+        case 'B': config.dont_write_bytecode = true; break;
+        case 'E': config.ignore_environment = true; break;
+        case 'I':
+          config.isolated = true;
+          config.ignore_environment = true;
+          config.no_user_site = true;
+          break;
+        case 's': config.no_user_site = true; break;
+        case 'S': config.no_site = true; break;
+        default: break;
         }
       }
     }
@@ -203,6 +303,78 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       config.argv.push_back(argv[i]);
     }
     return true;
+  }
+  return true;
+}
+
+std::filesystem::path running_executable_path(int argc, char** argv) {
+  std::filesystem::path executable;
+#if defined(_WIN32)
+  std::vector<wchar_t> buffer(32768);
+  const DWORD size = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+  if (size != 0 && size < buffer.size()) {
+    executable = std::filesystem::path(buffer.data(), buffer.data() + size);
+  }
+#endif
+  if (executable.empty() && argc > 0 && argv != nullptr && argv[0] != nullptr) {
+    executable = std::filesystem::u8path(argv[0]);
+  }
+  std::error_code ec;
+  auto absolute = std::filesystem::absolute(executable, ec);
+  return ec ? executable : absolute;
+}
+
+bool load_pth_configuration(
+    int argc,
+    char** argv,
+    xlang3::RunConfig& config,
+    std::string& error) {
+  const auto executable = running_executable_path(argc, argv);
+  auto executable_pth = executable;
+  executable_pth.replace_extension("._pth");
+  auto runtime_pth = executable.parent_path() / "xlang3_runtime._pth";
+  std::filesystem::path pth_file;
+  std::error_code ec;
+  if (std::filesystem::is_regular_file(executable_pth, ec)) {
+    pth_file = std::move(executable_pth);
+  } else {
+    ec.clear();
+    if (std::filesystem::is_regular_file(runtime_pth, ec)) {
+      pth_file = std::move(runtime_pth);
+    }
+  }
+  if (pth_file.empty()) return true;
+
+  std::ifstream input(pth_file, std::ios::binary);
+  if (!input) {
+    error = "cannot read path configuration file: " + path_to_utf8(pth_file);
+    return false;
+  }
+  config.pth_mode = true;
+  config.isolated = true;
+  config.ignore_environment = true;
+  config.no_user_site = true;
+  config.no_site = true;
+  const auto base = executable.parent_path();
+  std::string line;
+  while (std::getline(input, line)) {
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    const auto first = line.find_first_not_of(" \t");
+    if (first == std::string::npos || line[first] == '#') continue;
+    const auto last = line.find_last_not_of(" \t");
+    const std::string entry = line.substr(first, last - first + 1);
+    if (entry == "import site") {
+      config.no_site = false;
+      continue;
+    }
+    if (entry.rfind("import ", 0) == 0) {
+      error = "unsupported command in path configuration file: " + entry;
+      return false;
+    }
+    std::filesystem::path path = std::filesystem::u8path(entry);
+    if (path.is_relative()) path = base / path;
+    config.pth_paths.push_back(std::filesystem::absolute(path, ec).lexically_normal());
+    ec.clear();
   }
   return true;
 }
@@ -264,9 +436,19 @@ bool publish_process_sys_attrs(
   if (!runtime.import_module("sys", sys, error)) {
     return false;
   }
-  std::filesystem::path executable = argc > 0 && argv != nullptr && argv[0] != nullptr
-      ? std::filesystem::u8path(argv[0])
-      : std::filesystem::path();
+  std::filesystem::path executable;
+#if defined(_WIN32)
+  std::vector<wchar_t> executable_buffer(32768);
+  const DWORD executable_size = GetModuleFileNameW(
+      nullptr, executable_buffer.data(), static_cast<DWORD>(executable_buffer.size()));
+  if (executable_size != 0 && executable_size < executable_buffer.size()) {
+    executable = std::filesystem::path(
+        executable_buffer.data(), executable_buffer.data() + executable_size);
+  }
+#endif
+  if (executable.empty() && argc > 0 && argv != nullptr && argv[0] != nullptr) {
+    executable = std::filesystem::u8path(argv[0]);
+  }
   std::error_code ec;
   auto absolute = std::filesystem::absolute(executable, ec);
   if (!ec) {
@@ -282,8 +464,7 @@ bool publish_process_sys_attrs(
   std::vector<xlang3::Value> original_argv;
   if (argc > 0 && argv != nullptr) {
     original_argv.reserve(static_cast<size_t>(argc));
-    original_argv.push_back(xlang3::Value::string(executable_utf8));
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 0; i < argc; ++i) {
       original_argv.push_back(xlang3::Value::string(argv[i] == nullptr ? "" : argv[i]));
     }
   }
@@ -314,6 +495,29 @@ bool publish_process_sys_attrs(
       return false;
     }
   }
+  xlang3::Value flags;
+  if (!xlang3::module_get_attr(sys, "flags", flags, error)) {
+    return false;
+  }
+  const std::pair<const char*, int64_t> flag_values[] = {
+      {"dont_write_bytecode", config.dont_write_bytecode ? 1 : 0},
+      {"no_user_site", config.no_user_site ? 1 : 0},
+      {"no_site", config.no_site ? 1 : 0},
+      {"ignore_environment", config.ignore_environment ? 1 : 0},
+      {"isolated", config.isolated ? 1 : 0},
+      {"safe_path", config.isolated ? 1 : 0},
+      {"verbose", config.verbose ? 1 : 0},
+      {"bytes_warning", config.bytes_warning},
+  };
+  for (const auto& [name, value] : flag_values) {
+    if (!xlang3::object_set_attr(flags, name, xlang3::Value::int64(value), error)) {
+      return false;
+    }
+  }
+  if (!xlang3::module_set_attr(
+          sys, "dont_write_bytecode", xlang3::Value::boolean(config.dont_write_bytecode), error)) {
+    return false;
+  }
   if (config.no_debug_ranges || config.warn_default_encoding) {
     std::vector<std::pair<xlang3::Value, xlang3::Value>> xoptions;
     if (config.no_debug_ranges) {
@@ -341,6 +545,9 @@ bool report_uncaught_exception(
     std::string& error) {
   if (result.exception.tag == xlang3::ValueTag::None) {
     return false;
+  }
+  if (is_keyboard_interrupt_exception(result.exception)) {
+    g_had_keyboard_interrupt = true;
   }
   xlang3::Value pending_exception;
   runtime.take_pending_exception(pending_exception);
@@ -376,9 +583,19 @@ bool publish_command_sys_path(xlang3::Runtime& runtime, const xlang3::RunConfig&
   }
   const auto& roots = runtime.import_roots();
   std::vector<xlang3::Value> values;
+  if (config.pth_mode) {
+    values.reserve(config.pth_paths.size());
+    for (const auto& path : config.pth_paths) {
+      values.push_back(xlang3::Value::string(path_to_utf8(path)));
+    }
+    return xlang3::module_set_attr(sys, "path", xlang3::Value::list(std::move(values)), error);
+  }
   values.reserve(roots.empty() ? 1 : roots.size());
-  values.push_back(xlang3::Value::string(""));
-  for (size_t i = 1; i < roots.size(); ++i) {
+  if (!config.isolated) {
+    values.push_back(xlang3::Value::string(""));
+  }
+  const size_t first_root = config.isolated && !roots.empty() ? 1 : 0;
+  for (size_t i = first_root; i < roots.size(); ++i) {
     values.push_back(xlang3::Value::string(path_to_utf8(roots[i])));
   }
   return xlang3::module_set_attr(sys, "path", xlang3::Value::list(std::move(values)), error);
@@ -453,7 +670,7 @@ bool run_source(
   auto result = interpreter.run(std::move(module));
   trace_frontend_timing("exec-end", run_start);
   if (!result.errors.empty()) {
-    if (consume_system_exit_result(result)) {
+    if (consume_system_exit_result(runtime, result)) {
       return false;
     }
     std::string hook_error;
@@ -523,7 +740,7 @@ bool run_source_in_module(
   auto result = interpreter.run_module(*module, std::move(globals_module), module);
   trace_frontend_timing("exec-end", run_start);
   if (!result.errors.empty()) {
-    if (consume_system_exit_result(result)) {
+    if (consume_system_exit_result(runtime, result)) {
       return false;
     }
     std::string hook_error;
@@ -575,7 +792,7 @@ bool run_module_name(
   }
   xlang3::RuntimeResult result;
   result.exception = exception;
-  if (consume_system_exit_result(result)) {
+  if (consume_system_exit_result(runtime, result)) {
     return false;
   }
   std::string hook_error;
@@ -653,7 +870,7 @@ bool run_repl_block(
   return run_source_in_module(join_repl_lines(lines), config, runtime, interpreter, globals_module, "<stdin>", false);
 }
 
-int run_repl() {
+int run_repl(int argc, char** argv) {
   std::cout << "XLang3 interactive shell\n";
   std::cout << "Type .exit to quit.\n";
 
@@ -661,8 +878,30 @@ int run_repl() {
   xlang3::Runtime runtime(std::cout);
   runtime.set_no_debug_ranges(config.no_debug_ranges);
   runtime.prepend_import_root(std::filesystem::current_path());
+  std::string startup_error;
+  if (!publish_process_sys_attrs(runtime, config, argc, argv, startup_error) ||
+      !publish_command_sys_path(runtime, config, startup_error) ||
+      !runtime.set_sys_argv({""}, startup_error)) {
+    std::cerr << "runtime: cannot initialize interactive sys state: " << startup_error << "\n";
+    return 1;
+  }
   xlang3::Interpreter interpreter(runtime);
   xlang3::Value globals_module = xlang3::Value::module("__main__");
+  xlang3::Value site_module;
+  std::string site_error;
+  if (!runtime.import_module("site", site_module, site_error)) {
+    std::cerr << "runtime: cannot initialize site: " << site_error << "\n";
+    return 1;
+  }
+  xlang3::Value builtins_module;
+  if (runtime.import_module("builtins", builtins_module, site_error)) {
+    for (const char* name : {"exit", "quit"}) {
+      xlang3::Value value;
+      if (xlang3::module_get_attr(builtins_module, name, value, site_error)) {
+        runtime.register_builtin(name, std::move(value));
+      }
+    }
+  }
 
   std::string line;
   std::vector<std::string> pending_block;
@@ -671,6 +910,8 @@ int run_repl() {
     if (!std::getline(std::cin, line)) {
       if (!pending_block.empty()) {
         run_repl_block(pending_block, config, runtime, interpreter, globals_module);
+        if (g_had_system_exit) return g_system_exit_code;
+        if (g_had_keyboard_interrupt) return keyboard_interrupt_exit_code();
       }
       std::cout << "\n";
       return 0;
@@ -681,6 +922,8 @@ int run_repl() {
     if (line.empty()) {
       if (!pending_block.empty()) {
         run_repl_block(pending_block, config, runtime, interpreter, globals_module);
+        if (g_had_system_exit) return g_system_exit_code;
+        if (g_had_keyboard_interrupt) return keyboard_interrupt_exit_code();
         pending_block.clear();
       }
       continue;
@@ -691,6 +934,8 @@ int run_repl() {
         continue;
       }
       run_repl_block(pending_block, config, runtime, interpreter, globals_module);
+      if (g_had_system_exit) return g_system_exit_code;
+      if (g_had_keyboard_interrupt) return keyboard_interrupt_exit_code();
       pending_block.clear();
     }
     if (line_opens_block(line)) {
@@ -698,6 +943,8 @@ int run_repl() {
       continue;
     }
     run_repl_line(line, config, runtime, interpreter, globals_module);
+    if (g_had_system_exit) return g_system_exit_code;
+    if (g_had_keyboard_interrupt) return keyboard_interrupt_exit_code();
   }
 }
 
@@ -764,14 +1011,27 @@ int xlang3_main(int argc, char** argv) {
     print_usage();
     return 2;
   }
+  std::string pth_error;
+  if (!load_pth_configuration(argc, argv, config, pth_error)) {
+    std::cerr << "runtime: " << pth_error << "\n";
+    return 1;
+  }
+  if (!config.ignore_environment) {
+    if (const char* no_user_site = std::getenv("PYTHONNOUSERSITE");
+        no_user_site != nullptr && *no_user_site != '\0') {
+      config.no_user_site = true;
+    }
+  }
 
   if (config.launch_mode == xlang3::RunConfig::LaunchMode::Repl) {
-    return run_repl();
+    return run_repl(argc, argv);
   }
 
   xlang3::Runtime runtime(std::cout);
   runtime.set_no_debug_ranges(config.no_debug_ranges);
-  if (!config.source_path.empty()) {
+  if (config.pth_mode) {
+    runtime.replace_import_roots(config.pth_paths);
+  } else if (!config.source_path.empty()) {
     if (std::filesystem::is_directory(config.source_path)) {
       runtime.prepend_import_root(config.source_path);
     } else {
@@ -779,6 +1039,24 @@ int xlang3_main(int argc, char** argv) {
     }
   } else {
     runtime.prepend_import_root(std::filesystem::current_path());
+  }
+  if (!config.pth_mode && !config.ignore_environment) {
+    if (const char* python_path = std::getenv("PYTHONPATH")) {
+      std::string paths(python_path);
+#if defined(_WIN32)
+      constexpr char path_separator = ';';
+#else
+      constexpr char path_separator = ':';
+#endif
+      size_t start = 0;
+      while (start <= paths.size()) {
+        const size_t end = paths.find(path_separator, start);
+        const std::string item = paths.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        if (!item.empty()) runtime.prepend_import_root(std::filesystem::u8path(item));
+        if (end == std::string::npos) break;
+        start = end + 1;
+      }
+    }
   }
   std::string argv_error;
   if (!publish_process_sys_attrs(runtime, config, argc, argv, argv_error)) {
@@ -793,6 +1071,28 @@ int xlang3_main(int argc, char** argv) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }
+  if (!config.no_site) {
+    xlang3::Value site;
+    if (!runtime.import_module("site", site, argv_error)) {
+      std::cerr << "runtime: cannot initialize site: " << argv_error << "\n";
+      return 1;
+    }
+  }
+  if (config.launch_mode == xlang3::RunConfig::LaunchMode::Command &&
+      !config.isolated && !config.pth_mode) {
+    xlang3::Value sys;
+    xlang3::Value path;
+    if (runtime.import_module("sys", sys, argv_error) &&
+        xlang3::module_get_attr(sys, "path", path, argv_error)) {
+      if (auto* entries = xlang3::value_as_list(path); entries != nullptr && !entries->items.empty()) {
+        entries->items[0] = xlang3::Value::string("");
+      }
+    }
+  }
+  // Native modules are registered as import providers during runtime startup.
+  // Keep optional providers out of sys.modules until Python actually imports
+  // them, matching CPython's observable startup state.
+  runtime.hide_cached_module("_sre");
   xlang3::Interpreter interpreter(runtime);
   if (config.perf_counters) {
     xlang3::xlang_perf_reset();
@@ -826,6 +1126,9 @@ int xlang3_main(int argc, char** argv) {
   }
   if (g_had_system_exit) {
     return g_system_exit_code;
+  }
+  if (g_had_keyboard_interrupt) {
+    return keyboard_interrupt_exit_code();
   }
   return ok ? 0 : 1;
 }

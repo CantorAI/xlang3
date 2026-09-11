@@ -58,3 +58,16 @@ try:
     time.strptime("Sep 06 2026", "%h %d %Y")
 except ValueError as err:
     print("strptime-percent-h-diagnostic", str(err) == "'h' is a bad directive in format '%h %d %Y'")
+
+print(
+    "time-wide-years",
+    time.strftime("%Y", (123456789,) + (0,) * 8) == "123456789",
+    time.strftime("%Y", (-1,) + (0,) * 8) == "00-1",
+    time.asctime((123456789,) + (0,) * 8).endswith("123456789"),
+)
+print(
+    "time-zero-and-nul",
+    time.strftime("%m %d %j", (2000,) + (0,) * 8) == "01 01 001",
+    time.strftime("\0%c\0", epoch).startswith("\0Thu Jan  1"),
+    time.strftime("\0%c\0", epoch).endswith("1970\0"),
+)

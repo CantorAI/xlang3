@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -129,10 +130,14 @@ bool clear_abc_list_attr(Value& abc_class, const char* attr, std::string& error)
   return object_set_attr(abc_class, attr, Value::list({}), error);
 }
 
-bool value_has_abstract_marker(const Value& value) {
+bool value_has_abstract_marker(Runtime& runtime, const Value& value, bool& out, std::string& error) {
   Value marker;
   std::string ignored;
-  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+  if (!attribute_get(value, "__isabstractmethod__", marker, ignored)) {
+    out = false;
+    return true;
+  }
+  return runtime_truthy(runtime, marker, out, error);
 }
 
 void add_abstract_name(std::vector<Value>& names, const std::string& name) {
@@ -174,7 +179,11 @@ void collect_abstract_names(const Value& value, std::vector<std::string>& names)
 bool inherited_concrete_attr(ClassObject& klass, const std::string& name) {
   auto concrete_in = [&](ClassObject* candidate) -> bool {
     auto it = candidate->attrs.find(name);
-    return it != candidate->attrs.end() && !value_has_abstract_marker(it->second);
+    if (it == candidate->attrs.end()) return false;
+    Value marker;
+    std::string ignored;
+    return !attribute_get(it->second, "__isabstractmethod__", marker, ignored) ||
+           !value_truthy(marker);
   };
   std::vector<ClassObject*> stack;
   for (const auto& base : klass.bases) {
@@ -197,7 +206,11 @@ bool inherited_concrete_attr(ClassObject& klass, const std::string& name) {
   return false;
 }
 
-Value abc_abstract_methods_for_class(ClassObject& klass) {
+bool abc_abstract_methods_for_class(
+    Runtime& runtime,
+    ClassObject& klass,
+    Value& out,
+    std::string& error) {
   std::vector<Value> abstracts;
   std::vector<std::string> inherited_names;
   for (const auto& base : klass.bases) {
@@ -213,16 +226,21 @@ Value abc_abstract_methods_for_class(ClassObject& klass) {
       if (!inherited_concrete_attr(klass, name)) {
         add_abstract_name(abstracts, name);
       }
-    } else if (value_has_abstract_marker(override_it->second)) {
-      add_abstract_name(abstracts, name);
+    } else {
+      bool is_abstract = false;
+      if (!value_has_abstract_marker(runtime, override_it->second, is_abstract, error)) return false;
+      if (is_abstract) add_abstract_name(abstracts, name);
     }
   }
   for (const auto& attr : klass.attrs) {
-    if (value_has_abstract_marker(attr.second)) {
+    bool is_abstract = false;
+    if (!value_has_abstract_marker(runtime, attr.second, is_abstract, error)) return false;
+    if (is_abstract) {
       add_abstract_name(abstracts, attr.first);
     }
   }
-  return Value::frozenset(std::move(abstracts));
+  out = Value::frozenset(std::move(abstracts));
+  return true;
 }
 
 int64_t abc_negative_cache_version(const Value& abc_class) {
@@ -246,26 +264,48 @@ bool clear_stale_negative_cache(Value& abc_class, std::string& error) {
          set_negative_cache_version(abc_class, g_cache_token, error);
 }
 
-bool registry_contains_registered_base(const Value& abc_class, const Value& subclass) {
+bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value& subclass, bool& out, std::string& error);
+
+bool registry_contains_registered_base(
+    Runtime& runtime,
+    const Value& abc_class,
+    const Value& subclass,
+    bool& out,
+    std::string& error) {
+  out = false;
   Value registry;
   std::string ignored;
   if (!object_get_attr(abc_class, kRegistryAttr, registry, ignored)) {
-    return false;
+    return true;
   }
   auto* list = value_as_list(registry);
   auto* subclass_class = value_as_class(subclass);
   if (list == nullptr || subclass_class == nullptr) {
-    return false;
+    return true;
   }
   for (const auto& item : list->items) {
     Value registered_value;
     const Value& registered_entry = weakref_get_target(item, registered_value) ? registered_value : item;
     auto* registered = value_as_class(registered_entry);
     if (registered != nullptr && class_is_subclass(subclass_class, registered)) {
+      out = true;
       return true;
     }
+    Value nested_registry;
+    std::string nested_error;
+    if (registered != nullptr &&
+        object_get_attr(registered_entry, kRegistryAttr, nested_registry, nested_error)) {
+      bool nested_match = false;
+      if (!abc_subclass_matches(runtime, registered_entry, subclass, nested_match, error)) {
+        return false;
+      }
+      if (nested_match) {
+        out = true;
+        return true;
+      }
+    }
   }
-  return false;
+  return true;
 }
 
 bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value& subclass, bool& out, std::string& error) {
@@ -332,9 +372,33 @@ bool abc_subclass_matches(Runtime& runtime, const Value& abc_class, const Value&
     }
   }
   const bool direct_subclass = class_is_subclass(sub, abc);
-  const bool registered_subclass = registry_contains_registered_base(abc_class, subclass);
+  bool registered_subclass = false;
+  if (!registry_contains_registered_base(
+          runtime, abc_class, subclass, registered_subclass, error)) {
+    return false;
+  }
   bool registered_through_subclass = false;
   if (!direct_subclass && !registered_subclass) {
+    auto custom_subclasses = abc->attrs.find("__subclasses__");
+    if (custom_subclasses != abc->attrs.end()) {
+      Value children;
+      if (!runtime_call_callable(runtime, custom_subclasses->second, nullptr, 0, children, error)) {
+        return false;
+      }
+      auto* child_list = value_as_list(children);
+      if (child_list == nullptr) {
+        error = "__subclasses__() must return a list";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      for (const auto& child : child_list->items) {
+        if (value_as_class(child) == nullptr) {
+          error = "__subclasses__() returned a non-class";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
+      }
+    }
     for (auto* child : abc->subclasses) {
       if (child == nullptr) continue;
       Value child_value;
@@ -404,8 +468,9 @@ bool abc_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   }
   Value abc_class = args[0];
   auto* klass = value_as_class(abc_class);
-  if (klass == nullptr ||
-      !object_set_attr(abc_class, "__abstractmethods__", abc_abstract_methods_for_class(*klass), error) ||
+  Value abstract_methods;
+  if (klass == nullptr || !abc_abstract_methods_for_class(runtime, *klass, abstract_methods, error) ||
+      !object_set_attr(abc_class, "__abstractmethods__", abstract_methods, error) ||
       !object_set_attr(abc_class, kRegistryAttr, Value::list({}), error) ||
       !object_set_attr(abc_class, kCacheAttr, Value::list({}), error) ||
       !object_set_attr(abc_class, kNegativeCacheAttr, Value::list({}), error) ||
@@ -431,8 +496,12 @@ bool abc_register(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (argc != 2) {
     return abc_type_error(runtime, error, abc_expected_two_args_message("_abc_register", argc));
   }
-  if (!ensure_class(runtime, args[0], "_abc._abc_register() class", error) ||
-      !ensure_class(runtime, args[1], "_abc._abc_register() subclass", error)) {
+  if (!ensure_class(runtime, args[0], "_abc._abc_register() class", error)) {
+    return false;
+  }
+  if (value_as_class(args[1]) == nullptr) {
+    error = "Can only register classes";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* abc = value_as_class(args[0]);

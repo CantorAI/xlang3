@@ -39,6 +39,7 @@ limitations under the License.
 #include <charconv>
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -52,9 +53,7 @@ limitations under the License.
 #else
 #include <unistd.h>
 #endif
-#if defined(XLANG3_EMBEDDED)
-#include <cstdio>
-#else
+#if !defined(XLANG3_EMBEDDED)
 #include <sstream>
 #endif
 
@@ -891,6 +890,10 @@ Value Value::string_view(std::string_view value) {
   return make_plain_string(value);
 }
 
+Value noninterned_string_value(std::string_view value) {
+  return make_plain_string(value);
+}
+
 Value Value::string_uninitialized(size_t size) {
   Value v;
   v.tag = ValueTag::Object;
@@ -904,7 +907,15 @@ Value intern_string_value(const Value& value) {
   if (string == nullptr) {
     return Value::invalid();
   }
-  return intern_string_view(string_object_view(*string), false);
+  const std::string_view text = string_object_view(*string);
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto& table = interned_string_table();
+  for (const auto& item : table) {
+    if (interned_string_equal(item, text)) return item;
+  }
+  string->immortal = false;
+  table.push_back(value);
+  return value;
 }
 
 bool string_value_is_interned(const Value& value) {
@@ -973,6 +984,7 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
   obj->size = size;
   obj->format = "B";
   obj->readonly = readonly;
+  obj->contiguous = true;
   obj->released = false;
   if (auto* source = value_as_memoryview(obj->owner)) {
     if (source->released || offset > source->size || size > source->size - offset) {
@@ -982,6 +994,7 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
     obj->external = source->external;
     obj->offset += source->offset;
     obj->readonly = readonly || source->readonly;
+    obj->contiguous = source->contiguous;
     // Retain the underlying owner before dropping the source view reference.
     Value root = source->owner;
     obj->owner = std::move(root);
@@ -1001,6 +1014,14 @@ std::string_view memoryview_object_view(const MemoryViewObject& view) {
     storage = std::string_view(bytes->value.data(), bytes->value.size());
   } else if (auto* parent = value_as_memoryview(view.owner)) {
     storage = memoryview_object_view(*parent);
+  } else if (value_as_instance(view.owner) != nullptr) {
+    Value payload;
+    std::string ignored;
+    if (!object_get_attr(view.owner, "__xlang3_bytes_value__", payload, ignored)) return {};
+    if (auto* bytes = value_as_bytes(payload)) storage = bytes_object_view(*bytes);
+    else if (auto* bytes = value_as_bytearray(payload)) storage = std::string_view(bytes->value.data(), bytes->value.size());
+    else if (auto* parent = value_as_memoryview(payload)) storage = memoryview_object_view(*parent);
+    else return {};
   } else return {};
   if (!storage.data() || view.offset > storage.size() || view.size > storage.size() - view.offset) return {};
   return storage.substr(view.offset, view.size);
@@ -1009,8 +1030,17 @@ std::string_view memoryview_object_view(const MemoryViewObject& view) {
 char* memoryview_object_writable_data(const MemoryViewObject& view) {
   if (view.readonly || view.released) return nullptr;
   if (!view.external && !value_as_bytearray(view.owner)) {
-    auto* parent = value_as_memoryview(view.owner);
-    if (!parent || !memoryview_object_writable_data(*parent)) return nullptr;
+    if (auto* parent = value_as_memoryview(view.owner)) {
+      if (!memoryview_object_writable_data(*parent)) return nullptr;
+    } else if (value_as_instance(view.owner) != nullptr) {
+      Value payload;
+      std::string ignored;
+      if (!object_get_attr(view.owner, "__xlang3_bytes_value__", payload, ignored)) return nullptr;
+      if (value_as_bytearray(payload) == nullptr) {
+        auto* payload_view = value_as_memoryview(payload);
+        if (payload_view == nullptr || !memoryview_object_writable_data(*payload_view)) return nullptr;
+      }
+    } else return nullptr;
   }
   return const_cast<char*>(memoryview_object_view(view).data());
 }
@@ -1680,6 +1710,45 @@ std::string format_percent_integer(int64_t value, uint32_t base, bool uppercase)
   return std::string(buffer + pos, sizeof(buffer) - pos);
 }
 
+const Value* percent_integer_operand(const Value& value, Value& storage) {
+  if (value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool || value_as_bigint(value) != nullptr) {
+    return &value;
+  }
+  std::string ignored;
+  if (value_as_instance(value) != nullptr &&
+      object_get_attr(value, "__xlang3_int_value__", storage, ignored) &&
+      (storage.tag == ValueTag::Int64 || value_as_bigint(storage) != nullptr)) {
+    return &storage;
+  }
+  return nullptr;
+}
+
+std::string format_percent_bigint(const Value& value, uint32_t base, bool uppercase) {
+  bool negative = false;
+  const uint32_t* limbs = nullptr;
+  uint32_t count = 0;
+  if (!value_bigint_limb_view(value, negative, limbs, count) || count == 0) return "0";
+  static constexpr char kLowerDigits[] = "0123456789abcdef";
+  static constexpr char kUpperDigits[] = "0123456789ABCDEF";
+  const char* digits = uppercase ? kUpperDigits : kLowerDigits;
+  const uint32_t group_bits = base == 8 ? 3u : 4u;
+  uint32_t high = limbs[count - 1];
+  uint32_t bit_length = (count - 1) * 32u;
+  while (high != 0) { ++bit_length; high >>= 1u; }
+  const uint32_t groups = (bit_length + group_bits - 1) / group_bits;
+  std::string result;
+  if (negative) result.push_back('-');
+  for (uint32_t group = groups; group > 0; --group) {
+    const uint32_t bit = (group - 1) * group_bits;
+    const uint32_t limb = bit / 32u;
+    const uint32_t shift = bit % 32u;
+    uint64_t window = limbs[limb];
+    if (shift + group_bits > 32u && limb + 1 < count) window |= static_cast<uint64_t>(limbs[limb + 1]) << 32u;
+    result.push_back(digits[(window >> shift) & (base - 1)]);
+  }
+  return result;
+}
+
 bool format_percent_character(const Value& value, std::string& out, std::string& error) {
   if (auto* string = value_as_string(value)) {
     const auto text = string_object_view(*string);
@@ -1805,11 +1874,20 @@ bool string_percent_format(
 
     bool left_align = false;
     char pad_char = ' ';
+    bool alternate_form = false;
+    bool force_sign = false;
+    bool space_sign = false;
     while (i < format.size() && std::strchr("#0- +", format[i]) != nullptr) {
       if (format[i] == '-') {
         left_align = true;
       } else if (format[i] == '0' && !left_align) {
         pad_char = '0';
+      } else if (format[i] == '#') {
+        alternate_form = true;
+      } else if (format[i] == '+') {
+        force_sign = true;
+      } else if (format[i] == ' ') {
+        space_sign = true;
       }
       ++i;
     }
@@ -1837,10 +1915,28 @@ bool string_percent_format(
       width = width * 10 + static_cast<int64_t>(format[i] - '0');
       ++i;
     }
+    bool has_precision = false;
+    int64_t precision = 0;
     if (i < format.size() && format[i] == '.') {
+      has_precision = true;
       ++i;
-      while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+      if (i < format.size() && format[i] == '*') {
+        Value precision_arg;
+        if (!string_percent_arg(rhs, tuple_index, std::string(), precision_arg, error)) {
+          return false;
+        }
+        if (precision_arg.tag != ValueTag::Int64) {
+          error = "* wants int";
+          return false;
+        }
+        precision = precision_arg.as.i64;
+        if (precision < 0) has_precision = false;
         ++i;
+      } else {
+        while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+          precision = precision * 10 + static_cast<int64_t>(format[i] - '0');
+          ++i;
+        }
       }
     }
     if (i < format.size() && (format[i] == 'h' || format[i] == 'l' || format[i] == 'L')) {
@@ -1879,14 +1975,21 @@ bool string_percent_format(
         } else {
           formatted = value_to_string(arg);
         }
+        if (has_precision && precision < static_cast<int64_t>(formatted.size())) {
+          formatted.resize(static_cast<size_t>(precision));
+        }
         break;
       case 'r':
       case 'a':
         if (runtime != nullptr && value_as_instance(arg) != nullptr) {
           Value repr_method;
           Value repr_result;
-          if (!attribute_get(arg, "__repr__", repr_method, error) ||
-              !runtime_call_callable(*runtime, repr_method, nullptr, 0, repr_result, error)) {
+          std::string attr_error;
+          if (!attribute_get(arg, "__repr__", repr_method, attr_error)) {
+            formatted = value_to_repr(arg);
+            break;
+          }
+          if (!runtime_call_callable(*runtime, repr_method, nullptr, 0, repr_result, error)) {
             return false;
           }
           auto* repr_string = value_as_string(repr_result);
@@ -1898,6 +2001,9 @@ bool string_percent_format(
           formatted = string_object_to_string(*repr_string);
         } else {
           formatted = value_to_repr(arg);
+        }
+        if (has_precision && precision < static_cast<int64_t>(formatted.size())) {
+          formatted.resize(static_cast<size_t>(precision));
         }
         break;
       case 'd':
@@ -1915,16 +2021,35 @@ bool string_percent_format(
           error = "%d format requires an integer";
           return false;
         }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) {
+          formatted.insert(formatted.begin(), '+');
+        } else if (!formatted.empty() && formatted[0] != '-' && space_sign) {
+          formatted.insert(formatted.begin(), ' ');
+        }
         break;
       case 'o':
       case 'x':
-      case 'X':
-        if (arg.tag != ValueTag::Int64) {
+      case 'X': {
+        Value integer_storage;
+        const Value* integer = percent_integer_operand(arg, integer_storage);
+        if (integer != nullptr && integer->tag == ValueTag::Int64) {
+          formatted = format_percent_integer(integer->as.i64, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
+        } else if (integer != nullptr && value_as_bigint(*integer) != nullptr) {
+          formatted = format_percent_bigint(*integer, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
+        } else {
           error = "integer format requires an integer";
           return false;
         }
-        formatted = format_percent_integer(arg.as.i64, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
+        if (alternate_form && formatted != "0") {
+          formatted.insert(0, format[i] == 'o' ? "0o" : (format[i] == 'X' ? "0X" : "0x"));
+        }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) {
+          formatted.insert(formatted.begin(), '+');
+        } else if (!formatted.empty() && formatted[0] != '-' && space_sign) {
+          formatted.insert(formatted.begin(), ' ');
+        }
         break;
+      }
       case 'f':
       case 'F':
       case 'g':
@@ -1935,11 +2060,22 @@ bool string_percent_format(
           error = "%f format requires a number";
           return false;
         }
-#if defined(XLANG3_EMBEDDED)
-        formatted = format_f64(as_double(arg));
-#else
-        formatted = std::to_string(as_double(arg));
-#endif
+        {
+          std::string spec = "%";
+          if (alternate_form) spec.push_back('#');
+          if (force_sign) spec.push_back('+');
+          else if (space_sign) spec.push_back(' ');
+          if (has_precision) spec += "." + std::to_string(precision);
+          spec.push_back(format[i]);
+          const double number = as_double(arg);
+          const int needed = std::snprintf(nullptr, 0, spec.c_str(), number);
+          if (needed < 0) {
+            error = "float formatting failed";
+            return false;
+          }
+          formatted.resize(static_cast<size_t>(needed));
+          std::snprintf(formatted.data(), formatted.size() + 1, spec.c_str(), number);
+        }
         break;
       default:
         error = "unsupported format character";
@@ -1950,6 +2086,11 @@ bool string_percent_format(
       if (left_align) {
         result += formatted;
         result.append(pad_count, ' ');
+      } else if (pad_char == '0' && !formatted.empty() &&
+                 (formatted[0] == '+' || formatted[0] == '-' || formatted[0] == ' ')) {
+        result.push_back(formatted[0]);
+        result.append(pad_count, '0');
+        result.append(formatted.substr(1));
       } else {
         result.append(pad_count, pad_char);
         result += formatted;
@@ -2053,14 +2194,17 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
         break;
       case 'o':
       case 'x':
-      case 'X':
-        if (argument.tag != ValueTag::Int64) {
+      case 'X': {
+        Value integer_storage;
+        const Value* integer = percent_integer_operand(argument, integer_storage);
+        if (integer == nullptr || integer->tag != ValueTag::Int64) {
           error = "integer format requires an integer";
           return false;
         }
         result += format_percent_integer(
-            argument.as.i64, format[index] == 'o' ? 8u : 16u, format[index] == 'X');
+            integer->as.i64, format[index] == 'o' ? 8u : 16u, format[index] == 'X');
         break;
+      }
       case 'r':
       case 'a':
         result += value_to_repr(argument);
@@ -2312,9 +2456,12 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
       lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
-      lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
+      lhs.as.obj->kind == ObjectKind::Bytes &&
+      (rhs.as.obj->kind == ObjectKind::Bytes || rhs.as.obj->kind == ObjectKind::ByteArray)) {
     const auto left = bytes_object_view(*as_bytes(lhs.as.obj));
-    const auto right = bytes_object_view(*as_bytes(rhs.as.obj));
+    const auto right = rhs.as.obj->kind == ObjectKind::Bytes
+        ? bytes_object_view(*as_bytes(rhs.as.obj))
+        : std::string_view(as_bytearray(rhs.as.obj)->value);
     std::string bytes;
     bytes.resize(left.size() + right.size());
     if (!left.empty()) {
@@ -2597,23 +2744,30 @@ bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& e
 }
 
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
-  if (!is_number(lhs) || !is_number(rhs)) {
+  const bool lhs_bigint = value_as_bigint(lhs) != nullptr;
+  const bool rhs_bigint = value_as_bigint(rhs) != nullptr;
+  if ((!is_number(lhs) && !lhs_bigint) || (!is_number(rhs) && !rhs_bigint)) {
 #ifndef XLANG3_EMBEDDED
     if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"div",out,error);
 #endif
     error = "unsupported operands for /";
     return false;
   }
-  const double divisor = as_double(rhs);
+  const double dividend = lhs_bigint ? std::stod(value_bigint_to_string(lhs)) : as_double(lhs);
+  const double divisor = rhs_bigint ? std::stod(value_bigint_to_string(rhs)) : as_double(rhs);
   if (divisor == 0.0) {
     error = "division by zero";
     return false;
   }
-  value_set_number(out, as_double(lhs) / divisor);
+  value_set_number(out, dividend / divisor);
   return true;
 }
 
 bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    Value remainder;
+    return value_int_like_divmod(lhs, rhs, out, remainder, error);
+  }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     if (rhs.as.i64 == 0) {
       error = "integer division by zero";
@@ -2646,6 +2800,10 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   }
   if (value_as_bytes(lhs) != nullptr) {
     return bytes_percent_format(lhs, rhs, out, error);
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    Value quotient;
+    return value_int_like_divmod(lhs, rhs, quotient, out, error);
   }
   if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
     if (rhs.as.i64 == 0) {
@@ -3009,6 +3167,34 @@ bool value_invert(const Value& value, Value& out, std::string& error) {
 
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
+  const auto numeric_subclass_value = [](const Value& value, Value& numeric) {
+    auto* instance = value_as_instance(value);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || (!class_has_builtin_base_name(klass, "int") &&
+                             !class_has_builtin_base_name(klass, "float"))) {
+      return false;
+    }
+    Value stored;
+    std::string ignored;
+    if ((object_get_attr(value, "__xlang3_int_value__", stored, ignored) ||
+         object_get_attr(value, "__xlang3_float_value__", stored, ignored) ||
+         object_get_attr(value, "_value_", stored, ignored)) &&
+        (stored.tag == ValueTag::Int64 || stored.tag == ValueTag::Double ||
+         value_as_bigint(stored) != nullptr)) {
+      numeric = std::move(stored);
+      return true;
+    }
+    return false;
+  };
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_compare(
+        op, lhs_is_numeric_subclass ? numeric_lhs : lhs,
+        rhs_is_numeric_subclass ? numeric_rhs : rhs, out, error);
+  }
   if (auto* left_proxy = value_as_mapping_proxy(lhs)) {
     if (auto* right_proxy = value_as_mapping_proxy(rhs)) {
       return value_compare(op, left_proxy->source, right_proxy->source, out, error);
@@ -3283,6 +3469,23 @@ bool value_is(const Value& lhs, const Value& rhs) {
     case ValueTag::Double:
       return lhs.as.f64 == rhs.as.f64;
     case ValueTag::Object:
+      if (auto* left_code = value_as_code(lhs)) {
+        auto* right_code = value_as_code(rhs);
+        return right_code != nullptr &&
+            left_code->module.get() == right_code->module.get() &&
+            left_code->function_id == right_code->function_id &&
+            left_code->mode == right_code->mode &&
+            left_code->filename_override == right_code->filename_override &&
+            left_code->first_line_override == right_code->first_line_override &&
+            left_code->flags_override == right_code->flags_override;
+      }
+      if (auto* left_frame = value_as_frame(lhs)) {
+        auto* right_frame = value_as_frame(rhs);
+        return right_frame != nullptr && left_frame->activation_id != 0 &&
+            left_frame->activation_id == right_frame->activation_id &&
+            left_frame->module.get() == right_frame->module.get() &&
+            left_frame->function_id == right_frame->function_id;
+      }
       return lhs.as.obj == rhs.as.obj;
   }
   return false;

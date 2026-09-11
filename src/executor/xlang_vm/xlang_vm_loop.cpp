@@ -1011,6 +1011,7 @@ RuntimeResult Interpreter::run_function(
       }
     }
     Value next = Value::none();
+    Value inner_frame = Value::none();
     for (size_t index = frame_count; index > 0; --index) {
       const auto& captured = frames[index - 1];
       // A caller is suspended after its call instruction, while the active
@@ -1071,6 +1072,10 @@ RuntimeResult Interpreter::run_function(
           Value::invalid(),
           builtins,
           captured.activation_id);
+      if (auto* inner = value_as_frame(inner_frame)) {
+        value_assign_fast(inner->back, frame_object);
+      }
+      value_assign_fast(inner_frame, frame_object);
       if (track_live_frames) {
         runtime_.track_live_frame_snapshot(frame_object);
       }
@@ -1079,7 +1084,9 @@ RuntimeResult Interpreter::run_function(
           captured.fn->source_lines[traceback_ip] != 0) {
         source_line = static_cast<int64_t>(captured.fn->source_lines[traceback_ip]);
       }
-      next = Value::traceback(std::move(frame_object), std::move(next), source_line);
+      next = Value::traceback(
+          std::move(frame_object), std::move(next), source_line,
+          static_cast<int64_t>((traceback_ip + 1) * 2));
     }
     return next;
   };
@@ -1369,6 +1376,10 @@ RuntimeResult Interpreter::run_function(
         bool module_not_found = false,
         const std::string& name = std::string(),
         const std::string& name_from = std::string()) -> bool {
+      Value pending;
+      if (runtime_.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending));
+      }
       Value exception = runtime_.make_exception(
           module_not_found ? "ModuleNotFoundError" : "ImportError", message);
       std::string ignored;

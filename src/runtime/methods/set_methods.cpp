@@ -519,6 +519,27 @@ bool set_issuperset_method(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+static constexpr BuiltinMethodSpec kSetMethods[] = {
+    {"__contains__", "set.__contains__", set_contains_method},
+    {"add", "set.add", set_add_method},
+    {"clear", "set.clear", set_clear_method},
+    {"copy", "set.copy", set_copy_method},
+    {"difference", "set.difference", set_difference_method},
+    {"difference_update", "set.difference_update", set_difference_update_method},
+    {"discard", "set.discard", set_discard_method},
+    {"intersection", "set.intersection", set_intersection_method},
+    {"intersection_update", "set.intersection_update", set_intersection_update_method},
+    {"isdisjoint", "set.isdisjoint", set_isdisjoint_method},
+    {"issubset", "set.issubset", set_issubset_method},
+    {"issuperset", "set.issuperset", set_issuperset_method},
+    {"pop", "set.pop", set_pop_method},
+    {"remove", "set.remove", set_remove_method},
+    {"symmetric_difference", "set.symmetric_difference", set_symmetric_difference_method},
+    {"symmetric_difference_update", "set.symmetric_difference_update", set_symmetric_difference_update_method},
+    {"union", "set.union", set_union_method},
+    {"update", "set.update", set_update_method},
+};
+
 } // namespace
 
 bool set_get_method(const Value& object, const std::string& name, Value& out) {
@@ -532,27 +553,17 @@ bool set_get_method(const Value& object, const std::string& name, Value& out) {
        name == "symmetric_difference_update" || name == "update")) {
     return false;
   }
-  static constexpr BuiltinMethodSpec methods[] = {
-      {"__contains__", "set.__contains__", set_contains_method},
-      {"add", "set.add", set_add_method},
-      {"clear", "set.clear", set_clear_method},
-      {"copy", "set.copy", set_copy_method},
-      {"difference", "set.difference", set_difference_method},
-      {"difference_update", "set.difference_update", set_difference_update_method},
-      {"discard", "set.discard", set_discard_method},
-      {"intersection", "set.intersection", set_intersection_method},
-      {"intersection_update", "set.intersection_update", set_intersection_update_method},
-      {"isdisjoint", "set.isdisjoint", set_isdisjoint_method},
-      {"issubset", "set.issubset", set_issubset_method},
-      {"issuperset", "set.issuperset", set_issuperset_method},
-      {"pop", "set.pop", set_pop_method},
-      {"remove", "set.remove", set_remove_method},
-      {"symmetric_difference", "set.symmetric_difference", set_symmetric_difference_method},
-      {"symmetric_difference_update", "set.symmetric_difference_update", set_symmetric_difference_update_method},
-      {"union", "set.union", set_union_method},
-      {"update", "set.update", set_update_method},
-  };
-  return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
+  return bind_builtin_method_from_table(object, name, kSetMethods, std::size(kSetMethods), out);
+}
+
+bool set_install_class_methods(Runtime& runtime, ClassObject& set_class) {
+  for (const auto& method : kSetMethods) {
+    set_class.attrs[method.name] = runtime.make_native_function(
+        method.full_name, method.callback, nullptr, nullptr,
+        method.fast_callback, method.fast_releases_vm_lock, method.keyword_callback);
+  }
+  ++set_class.version;
+  return true;
 }
 
 } // namespace xlang3

@@ -31,6 +31,7 @@ limitations under the License.
 #include <string_view>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -149,6 +150,8 @@ public:
       bool bind_as_descriptor = true);
   void register_module(std::string name, Value module);
   void unregister_module(const std::string& name);
+  void synchronize_modules_from_registry();
+  void hide_cached_module(const std::string& name);
   const Value& module_registry_dict() const { return modules_dict_; }
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));
   void retain_serialized_objects(std::vector<Value> objects);
@@ -162,6 +165,9 @@ public:
       std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found = nullptr);
   bool has_registered_module(const std::string& name) const;
+  bool has_python_import_miss(const std::string& key) const;
+  void remember_python_import_miss(std::string key);
+  void clear_python_import_misses();
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found = nullptr);
   bool import_star(const std::string& module_name, Value& target_module, std::string& error, bool* module_not_found = nullptr);
   Vfs& vfs() { return *vfs_; }
@@ -169,6 +175,7 @@ public:
 #if !defined(XLANG3_EMBEDDED)
   void add_import_root(std::filesystem::path root);
   void prepend_import_root(std::filesystem::path root);
+  void replace_import_roots(std::vector<std::filesystem::path> roots);
   const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
   bool publish_sys_path(std::string& error);
 #endif
@@ -284,6 +291,9 @@ private:
   uint32_t next_native_id_ = 1;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
+  mutable std::recursive_mutex import_mutex_;
+  mutable std::mutex python_import_misses_mutex_;
+  std::unordered_set<std::string> python_import_misses_;
   Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
   std::vector<Value> serialized_objects_;

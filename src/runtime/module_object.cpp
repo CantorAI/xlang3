@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/sequence.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -157,6 +158,12 @@ std::string module_to_string(const Value& value) {
   if (module_get_attr(value, "__file__", file, ignored)) {
     if (auto* text = value_as_string(file)) {
       return "<module '" + module->name + "' from '" + string_object_to_string(*text) + "'>";
+    }
+    if (file.tag == ValueTag::None) {
+      Value path;
+      if (module_get_attr(value, "__path__", path, ignored) && value_as_list(path) != nullptr) {
+        return "<module '" + module->name + "' (namespace) from " + value_to_string(path) + ">";
+      }
     }
   }
   return "<module '" + module->name + "'>";

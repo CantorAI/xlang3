@@ -53,6 +53,10 @@ namespace xlang3 {
 
 namespace {
 
+#if defined(_WIN32)
+const char k_sys_runtime_module_anchor = 0;
+#endif
+
 constexpr int64_t kDefaultIntMaxStrDigits = 4300;
 constexpr int64_t kIntStrDigitsCheckThreshold = 640;
 int64_t g_int_max_str_digits = kDefaultIntMaxStrDigits;
@@ -1587,20 +1591,53 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   const int64_t written = static_cast<int64_t>(utf8_codepoint_count(data));
-#if defined(_WIN32)
-  std::string translated;
-  translated.reserve(data.size());
-  for (char ch : data) {
-    if (ch == '\n') translated.push_back('\r');
-    translated.push_back(ch);
+  Value encoding_value;
+  Value errors_value;
+  std::string encoding = "utf-8";
+  std::string errors = "strict";
+  std::string attr_error;
+  if (object_get_attr(args[0], "encoding", encoding_value, attr_error)) {
+    if (auto* text = value_as_string(encoding_value)) encoding = string_object_to_string(*text);
   }
-  data = std::move(translated);
-#endif
+  if (object_get_attr(args[0], "errors", errors_value, attr_error)) {
+    if (auto* text = value_as_string(errors_value)) errors = string_object_to_string(*text);
+  }
+  if (runtime.finalizing() &&
+      (encoding == "utf-8" || encoding == "utf8" || encoding == "utf_8")) {
+    const char* kind = sys_stdio_kind(args[0]);
+    if (kind != nullptr && std::string(kind) == "stderr") {
+      std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
+    } else {
+      runtime.write_output(data);
+    }
+    out = Value::int64(written);
+    return true;
+  }
+  Value codecs;
+  Value encode;
+  Value encoded;
+  const Value encode_args[] = {
+      Value::string(data),
+      Value::string(encoding),
+      Value::string(errors),
+  };
+  if (!runtime.import_module("codecs", codecs, error) ||
+      !module_get_attr(codecs, "encode", encode, error) ||
+      !runtime_call_callable(runtime, encode, encode_args, 3, encoded, error)) {
+    return false;
+  }
+  auto* encoded_bytes = value_as_bytes(encoded);
+  if (encoded_bytes == nullptr) {
+    error = "encoder returned non-bytes result";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  data = bytes_object_to_string(*encoded_bytes);
   const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
   if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
   } else {
-    std::cout.write(data.data(), static_cast<std::streamsize>(data.size()));
+    runtime.write_output(data);
   }
   out = Value::int64(written);
   return true;
@@ -1828,6 +1865,57 @@ bool sys_stdio_close(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
+bool sys_stdio_readlines(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "readlines expected at most 1 argument, got " + std::to_string(given);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t hint = -1;
+  if (argc == 2 && args[1].tag != ValueTag::None && !sys_bool_or_int_arg(args[1], hint)) {
+    error = "'" + sys_type_name(runtime, args[1]) + "' object cannot be interpreted as an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> lines;
+  int64_t total = 0;
+  while (hint <= 0 || total < hint) {
+    std::string line;
+    char ch = '\0';
+    while (std::cin.get(ch)) {
+      line.push_back(ch);
+      if (ch == '\n') break;
+    }
+    if (line.empty()) break;
+    line = normalize_stdio_input_newlines(std::move(line));
+    total += static_cast<int64_t>(utf8_codepoint_count(line));
+    lines.push_back(Value::string(std::move(line)));
+    if (!std::cin.good()) break;
+  }
+  out = Value::list(std::move(lines));
+  return true;
+}
+
+bool sys_stdio_enter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    return raise_stdio_no_args_type_error(runtime, error, args, argc, "__enter__");
+  }
+  out = args[0];
+  return true;
+}
+
+bool sys_stdio_exit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 4) {
+    const uint32_t given = argc == 0 ? 0 : argc - 1;
+    error = "TextIOWrapper.__exit__() takes exactly 3 arguments (" + std::to_string(given) + " given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool raise_stdio_no_args_type_error(
     Runtime& runtime,
     std::string& error,
@@ -1913,7 +2001,8 @@ Value make_sys_stdio_class(Runtime& runtime) {
         sys_stdio_no_keyword_args);
     if (auto* native = value_as_native_function(function)) {
       const std::string text_signature =
-          (std::string(method) == "read" || std::string(method) == "readline")
+          (std::string(method) == "read" || std::string(method) == "readline" ||
+           std::string(method) == "readlines")
               ? "($self, size=-1, /)"
               : (std::string(method) == "write" ? "($self, text, /)" : "($self, /)");
       native->attrs_dict = new Value(Value::dict({
@@ -1927,8 +2016,11 @@ Value make_sys_stdio_class(Runtime& runtime) {
   attrs.push_back({"write", stdio_method("write", sys_stdio_write)});
   attrs.push_back({"read", stdio_method("read", sys_stdio_read)});
   attrs.push_back({"readline", stdio_method("readline", sys_stdio_readline)});
+  attrs.push_back({"readlines", stdio_method("readlines", sys_stdio_readlines)});
   attrs.push_back({"flush", stdio_method("flush", sys_stdio_flush)});
   attrs.push_back({"close", stdio_method("close", sys_stdio_close)});
+  attrs.push_back({"__enter__", stdio_method("__enter__", sys_stdio_enter)});
+  attrs.push_back({"__exit__", stdio_method("__exit__", sys_stdio_exit)});
   attrs.push_back({"isatty", stdio_method("isatty", sys_stdio_isatty)});
   attrs.push_back({"readable", stdio_method("readable", sys_stdio_readable)});
   attrs.push_back({"writable", stdio_method("writable", sys_stdio_writable)});
@@ -1991,8 +2083,24 @@ Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
   Value stream = Value::instance(klass);
   std::string ignored;
   instance_set_native_data(stream, kSysStdioNativeType, const_cast<char*>(kind), nullptr, ignored);
-  object_set_attr(stream, "encoding", Value::string("utf-8"), ignored);
-  object_set_attr(stream, "errors", Value::string("strict"), ignored);
+  std::string encoding = "utf-8";
+  std::string errors = std::string(kind) == "stderr" ? "backslashreplace" : "surrogateescape";
+  if (const char* configured = std::getenv("PYTHONIOENCODING")) {
+    const std::string setting(configured);
+    const auto colon = setting.find(':');
+    const std::string configured_encoding = setting.substr(0, colon);
+    const std::string configured_errors =
+        colon == std::string::npos ? std::string{} : setting.substr(colon + 1);
+    if (!configured_encoding.empty()) {
+      encoding = configured_encoding;
+      if (std::string(kind) != "stderr") errors = "strict";
+    }
+    if (!configured_errors.empty() && std::string(kind) != "stderr") {
+      errors = configured_errors;
+    }
+  }
+  object_set_attr(stream, "encoding", Value::string(encoding), ignored);
+  object_set_attr(stream, "errors", Value::string(errors), ignored);
   object_set_attr(stream, "name", Value::string(std::string("<") + kind + ">"), ignored);
   object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "r" : "w"), ignored);
   object_set_attr(stream, "newlines", Value::none(), ignored);
@@ -2219,6 +2327,7 @@ bool sys_current_exceptions(Runtime& runtime, const Value*, uint32_t argc, Value
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys._current_exceptions", argc);
   }
+  runtime.refresh_live_frame_snapshots(true);
   out = runtime.current_exception_snapshots(xlang_thread_active_idents());
   return true;
 }
@@ -2585,6 +2694,12 @@ bool sys_is_interned(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   if (value_as_string(args[0]) == nullptr) {
+    if (auto* instance = value_as_instance(args[0]);
+        instance != nullptr &&
+        class_has_builtin_base_name(value_as_class(instance->klass), "str")) {
+      value_set_bool(out, false);
+      return true;
+    }
     error = "_is_interned() argument must be str, not " + sys_type_name(runtime, args[0]);
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -3079,6 +3194,16 @@ bool sys_displayhook(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   if (args[0].tag != ValueTag::None) {
+    Value sys;
+    Value stdout_stream;
+    std::string attr_error;
+    if (!runtime.import_module("sys", sys, error) ||
+        !module_get_attr(sys, "stdout", stdout_stream, attr_error) ||
+        stdout_stream.tag == ValueTag::None) {
+      error = "lost sys.stdout";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
     if (!sys_set_builtin_underscore(runtime, Value::none(), error)) {
       return false;
     }
@@ -3101,15 +3226,41 @@ bool sys_excepthook(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  auto* exception_instance = value_as_instance(args[1]);
+  auto* exception_class = exception_instance == nullptr
+      ? nullptr : value_as_class(exception_instance->klass);
+  if (exception_class == nullptr ||
+      (exception_class->name != "BaseException" &&
+       !class_has_builtin_base_name(exception_class, "BaseException"))) {
+    if (!sys_write_stream(
+            runtime,
+            "stderr",
+            "TypeError: print_exception(): Exception expected for value, " +
+                sys_type_name(runtime, args[1]) + " found\n",
+            error)) {
+      return false;
+    }
+    value_set_none(out);
+    return true;
+  }
   Value traceback;
   if (!runtime.import_module("traceback", traceback, error)) {
     return false;
   }
   Value print_exception;
-  if (!module_get_attr(traceback, "print_exception", print_exception, error)) {
+  Value builtin_limit;
+  if (!module_get_attr(traceback, "print_exception", print_exception, error) ||
+      !module_get_attr(traceback, "BUILTIN_EXCEPTION_LIMIT", builtin_limit, error)) {
     return false;
   }
-  return runtime_call_callable(runtime, print_exception, args, argc, out, error);
+  return runtime_call_callable_kw(
+      runtime,
+      print_exception,
+      args,
+      argc,
+      {{"limit", builtin_limit}},
+      out,
+      error);
 }
 
 bool sys_unraisablehook(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3386,7 +3537,7 @@ bool sys_is_finalizing(Runtime& runtime, const Value*, uint32_t argc, Value& out
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.is_finalizing", argc);
   }
-  out = Value::boolean(false);
+  out = Value::boolean(runtime.finalizing());
   return true;
 }
 
@@ -4202,6 +4353,26 @@ bool sys_xlang3_debug_poll_needed(Runtime& runtime, const Value*, uint32_t argc,
 
 } // namespace
 
+bool sys_int_string_exceeds_limit(std::string_view text, int base) {
+  if (g_int_max_str_digits == 0 || (base != 0 && base != 10)) {
+    return false;
+  }
+  size_t digits = 0;
+  size_t first = 0;
+  while (first < text.size() && std::isspace(static_cast<unsigned char>(text[first]))) ++first;
+  if (first < text.size() && (text[first] == '+' || text[first] == '-')) ++first;
+  if (base == 0 && first + 1 < text.size() && text[first] == '0' &&
+      (text[first + 1] == 'x' || text[first + 1] == 'X' ||
+       text[first + 1] == 'o' || text[first + 1] == 'O' ||
+       text[first + 1] == 'b' || text[first + 1] == 'B')) {
+    return false;
+  }
+  for (const unsigned char ch : text) {
+    if (ch >= '0' && ch <= '9') ++digits;
+  }
+  return digits > static_cast<size_t>(g_int_max_str_digits);
+}
+
 void register_sys_module(Runtime& runtime) {
   NativeModuleBuilder sys_builder(runtime, "sys");
   auto sys = sys_builder.finish();
@@ -4286,19 +4457,6 @@ void register_sys_module(Runtime& runtime) {
           "setprofile() -- set the global profiling function\n"
           "setrecursionlimit() -- set the max recursion depth for the interpreter\n"
           "settrace() -- set the global debug tracing function\n"),
-      error);
-  module_set_attr(
-      sys,
-      "__interactivehook__",
-      sys_metadata_native_function(
-          runtime,
-          "site",
-          "site.register_readline",
-          "register_readline",
-          sys_noop_hook,
-          const_cast<char*>("site.register_readline"),
-          "Configure readline completion on interactive prompts.",
-          sys_noop_unexpected_keyword),
       error);
   module_set_attr(
       sys,
@@ -5131,7 +5289,16 @@ void register_sys_module(Runtime& runtime) {
   runtime.register_module("sys.monitoring", monitoring_module);
 #if defined(_WIN32)
   module_set_attr(sys, "winver", Value::string("3.14"), error);
-  module_set_attr(sys, "dllhandle", Value::int64(reinterpret_cast<int64_t>(GetModuleHandleW(nullptr))), error);
+  HMODULE runtime_module = nullptr;
+  GetModuleHandleExW(
+      GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+      reinterpret_cast<LPCWSTR>(&k_sys_runtime_module_anchor),
+      &runtime_module);
+  module_set_attr(
+      sys,
+      "dllhandle",
+      Value::int64(reinterpret_cast<int64_t>(runtime_module)),
+      error);
   module_set_attr(
       sys,
       "getwindowsversion",

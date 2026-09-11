@@ -427,8 +427,18 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
       }
       Value marker;
       std::string ignored;
-      if (object_get_attr(*accessor, "__isabstractmethod__", marker, ignored) && value_truthy(marker)) {
-        value_set_bool(out, true);
+      if (object_get_attr(*accessor, "__isabstractmethod__", marker, ignored)) {
+        if (marker.tag == ValueTag::Bool) {
+          if (marker.as.b) {
+            value_set_bool(out, true);
+            return true;
+          }
+          continue;
+        }
+        // Let the Python truth-test machinery invoke a user-defined
+        // __bool__ or __len__.  This also preserves exceptions raised by
+        // hostile descriptor markers, as CPython's property does.
+        value_assign_fast(out, marker);
         return true;
       }
     }

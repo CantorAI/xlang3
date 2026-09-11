@@ -165,6 +165,7 @@ bool file_get_method(const Value& object, const std::string& name, Value& out);
 bool int_get_method(const Value& object, const std::string& name, Value& out);
 bool int_install_class_methods(Runtime& runtime, ClassObject& int_class);
 bool set_get_method(const Value& object, const std::string& name, Value& out);
+bool set_install_class_methods(Runtime& runtime, ClassObject& set_class);
 bool string_get_method(const Value& object, const std::string& name, Value& out);
 const BuiltinMethodSpec* string_find_method_spec(const Value& object, const std::string& name);
 bool string_install_class_methods(Runtime& runtime, ClassObject& string_class);

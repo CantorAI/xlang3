@@ -300,6 +300,10 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
             return false;
           case ObjectKind::Set:
             if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
+              if (set->hash_cached) {
+                out = set->cached_hash;
+                return true;
+              }
               size_t hash = 0x2f4f0f1f0e0d0c0bull;
               for (const auto& item : set->items) {
                 size_t item_hash = 0;
@@ -312,6 +316,8 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
               }
               hash ^= set->items.size() * static_cast<size_t>(1927868237u);
               out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+              set->cached_hash = out;
+              set->hash_cached = true;
               return true;
             }
             error = "unhashable type: 'set'";

@@ -259,6 +259,9 @@ bool builtin_iter(
     return false;
   }
   if (!runtime_get_iter(runtime, args[0], out, error)) {
+    if (error == "object is not iterable") {
+      error = "'" + std::string(value_binary_type_name(args[0])) + "' object is not iterable";
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -340,6 +343,16 @@ bool builtin_ord(
     error = "ord() expected 1 argument";
     runtime.raise_class_error("TypeError", error);
     return false;
+  }
+  if (const auto* bytes = value_as_bytes(args[0])) {
+    const auto view = bytes_object_view(*bytes);
+    if (view.size() != 1) {
+      error = "ord() expected a character";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    out = Value::int64(static_cast<unsigned char>(view[0]));
+    return true;
   }
   if (args[0].tag != ValueTag::Object || args[0].as.obj == nullptr || args[0].as.obj->kind != ObjectKind::String) {
     error = "ord() expected a character";

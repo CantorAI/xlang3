@@ -15,6 +15,8 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
@@ -29,6 +31,26 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+bool raise_unicode_decode_error(
+    Runtime& runtime,
+    const char* encoding,
+    const Value& object,
+    size_t start,
+    size_t end,
+    const std::string& reason,
+    std::string& error) {
+  error = reason;
+  Value exception = runtime.make_exception("UnicodeDecodeError", reason);
+  std::string ignored;
+  object_set_attr(exception, "encoding", Value::string(encoding), ignored);
+  object_set_attr(exception, "object", object, ignored);
+  object_set_attr(exception, "start", Value::int64(static_cast<int64_t>(start)), ignored);
+  object_set_attr(exception, "end", Value::int64(static_cast<int64_t>(end)), ignored);
+  object_set_attr(exception, "reason", Value::string(reason), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
 
 bool bytes_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
@@ -74,6 +96,9 @@ std::string canonical_encoding(std::string name) {
   }
   if (name == "latin1" || name == "latin_1" || name == "iso8859_1" || name == "iso_8859_1" || name == "8859") {
     return "latin_1";
+  }
+  if (name == "latin9" || name == "latin_9" || name == "iso8859_15" || name == "iso_8859_15") {
+    return "latin_9";
   }
   if (name == "us_ascii" || name == "646") {
     return "ascii";
@@ -216,6 +241,27 @@ std::string latin1_decode_text(std::string_view text) {
   return decoded;
 }
 
+std::string latin9_decode_text(std::string_view text) {
+  std::string decoded;
+  decoded.reserve(text.size() * 2);
+  for (unsigned char ch : text) {
+    uint32_t codepoint = ch;
+    switch (ch) {
+      case 0xa4: codepoint = 0x20ac; break;
+      case 0xa6: codepoint = 0x0160; break;
+      case 0xa8: codepoint = 0x0161; break;
+      case 0xb4: codepoint = 0x017d; break;
+      case 0xb8: codepoint = 0x017e; break;
+      case 0xbc: codepoint = 0x0152; break;
+      case 0xbd: codepoint = 0x0153; break;
+      case 0xbe: codepoint = 0x0178; break;
+      default: break;
+    }
+    append_utf8(codepoint, decoded);
+  }
+  return decoded;
+}
+
 bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 3) {
     error = "bytes.decode expected 0 to 2 arguments, got " + std::to_string(argc - 1);
@@ -234,12 +280,52 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
     encoding = canonical_encoding(std::move(encoding));
-    if (encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "ascii" &&
-        encoding != "latin_1" && encoding != "cp437" && encoding != "mbcs" && encoding != "gbk" &&
-        encoding != "utf_16" && encoding != "utf_16_le" && encoding != "utf_16_be" &&
-        encoding != "utf_32" && encoding != "utf_32_le" && encoding != "utf_32_be") {
-      error = "unsupported bytes decoding: " + encoding;
-      return false;
+    if (encoding != "ascii" && encoding != "latin_1" && encoding != "latin_9" && encoding != "cp437" &&
+        encoding != "mbcs" && encoding != "gbk" && encoding != "utf_8" &&
+        encoding != "utf_8_sig" && encoding.rfind("utf_16", 0) != 0 &&
+        encoding.rfind("utf_32", 0) != 0) {
+      Value codecs_module;
+      const Value* import_function = runtime.find_builtin("__import__");
+      if (import_function == nullptr) {
+        error = "__import__ is unavailable";
+        return false;
+      }
+      Value import_arg = Value::string("_codecs");
+      if (!runtime_call_callable(runtime, *import_function, &import_arg, 1, codecs_module, error)) return false;
+      Value lookup_function;
+      Value codec_info;
+      Value lookup_arg = Value::string(encoding);
+      if (!module_get_attr(codecs_module, "lookup", lookup_function, error) ||
+          !runtime_call_callable(runtime, lookup_function, &lookup_arg, 1, codec_info, error)) {
+        return false;
+      }
+      Value is_text_encoding;
+      bool is_text = true;
+      std::string ignored;
+      if (object_get_attr(codec_info, "_is_text_encoding", is_text_encoding, ignored) &&
+          !runtime_truthy(runtime, is_text_encoding, is_text, error)) {
+        return false;
+      }
+      if (!is_text) {
+        error = "'" + encoding + "' is not a text encoding; use codecs.decode() to handle arbitrary codecs";
+        runtime.raise_class_error("LookupError", error);
+        return false;
+      }
+      Value decode_function;
+      if (!module_get_attr(codecs_module, "decode", decode_function, error)) return false;
+      Value call_args[3] = {args[0], Value::string(encoding), argc == 3 ? args[2] : Value::string("strict")};
+      Value decoded;
+      if (!runtime_call_callable(runtime, decode_function, call_args, 3, decoded, error)) return false;
+      if (value_as_string(decoded) == nullptr) {
+        const char* result_type = value_as_bytes(decoded) != nullptr ? "bytes" :
+            (decoded.tag == ValueTag::None ? "NoneType" : "object");
+        error = "'" + encoding + "' decoder returned '" + result_type +
+            "' instead of 'str'; use codecs.decode() to decode to arbitrary types";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      out = std::move(decoded);
+      return true;
     }
   }
   std::string errors = "strict";
@@ -254,7 +340,8 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (encoding == "ascii") {
     std::string decoded;
     decoded.reserve(text.size());
-    for (unsigned char ch : text) {
+    for (size_t index = 0; index < text.size(); ++index) {
+      const unsigned char ch = static_cast<unsigned char>(text[index]);
       if (ch < 128) {
         decoded.push_back(static_cast<char>(ch));
       } else if (errors == "ignore") {
@@ -263,10 +350,15 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
         decoded += "\xef\xbf\xbd";
       } else if (errors == "surrogateescape") {
         append_utf8(0xdc00u + ch, decoded);
+      } else if (errors == "backslashreplace") {
+        static constexpr char digits[] = "0123456789abcdef";
+        decoded += "\\x";
+        decoded.push_back(digits[ch >> 4]);
+        decoded.push_back(digits[ch & 0x0f]);
       } else {
-        error = "ascii codec can't decode byte";
-        runtime.raise_class_error("UnicodeDecodeError", error);
-        return false;
+        return raise_unicode_decode_error(
+            runtime, "ascii", args[0], index, index + 1,
+            "ordinal not in range(128)", error);
       }
     }
     out = Value::string(std::move(decoded));
@@ -274,6 +366,10 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   if (encoding == "latin_1") {
     out = Value::string(latin1_decode_text(text));
+    return true;
+  }
+  if (encoding == "latin_9") {
+    out = Value::string(latin9_decode_text(text));
     return true;
   }
   if (encoding == "cp437") {
@@ -1779,8 +1875,7 @@ bool bytes_splitlines_method(Runtime& runtime, const Value* args, uint32_t argc,
   size_t cursor = 0;
   while (cursor < bytes.size()) {
     const unsigned char ch = static_cast<unsigned char>(bytes[cursor]);
-    const bool boundary = ch == '\n' || ch == '\r' || ch == '\v' || ch == '\f' ||
-                          (ch >= 0x1c && ch <= 0x1e) || ch == 0x85;
+    const bool boundary = ch == '\n' || ch == '\r';
     if (!boundary) {
       ++cursor;
       continue;
@@ -1799,6 +1894,28 @@ bool bytes_splitlines_method(Runtime& runtime, const Value* args, uint32_t argc,
   }
   out = Value::list(std::move(lines));
   return true;
+}
+
+bool bytes_splitlines_kw_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc == 0) {
+    return bytes_splitlines_method(runtime, args, argc, out, error, user_data);
+  }
+  if (argc != 1 || kwargc != 1 || kwargs[0].name == nullptr || kwargs[0].value == nullptr ||
+      std::string_view(kwargs[0].name) != "keepends") {
+    error = "bytes.splitlines got an unexpected or duplicate keyword argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value positional[] = {args[0], *kwargs[0].value};
+  return bytes_splitlines_method(runtime, positional, 2, out, error, user_data);
 }
 
 } // namespace
@@ -1845,7 +1962,7 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
       {"rpartition", "bytes.rpartition", bytes_rpartition_method},
       {"rstrip", "bytes.rstrip", bytes_rstrip_method},
       {"split", "bytes.split", bytes_split_method},
-      {"splitlines", "bytes.splitlines", bytes_splitlines_method},
+      {"splitlines", "bytes.splitlines", bytes_splitlines_method, nullptr, false, bytes_splitlines_kw_method},
       {"startswith", "bytes.startswith", bytes_startswith_method},
       {"strip", "bytes.strip", bytes_strip_method},
       {"translate", "bytes.translate", bytes_translate_method},
@@ -1884,7 +2001,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"rpartition", "bytearray.rpartition", bytes_rpartition_method},
       {"rstrip", "bytearray.rstrip", bytes_rstrip_method},
       {"split", "bytearray.split", bytes_split_method},
-      {"splitlines", "bytearray.splitlines", bytes_splitlines_method},
+      {"splitlines", "bytearray.splitlines", bytes_splitlines_method, nullptr, false, bytes_splitlines_kw_method},
       {"startswith", "bytearray.startswith", bytes_startswith_method},
       {"strip", "bytearray.strip", bytes_strip_method},
       {"translate", "bytearray.translate", bytes_translate_method},

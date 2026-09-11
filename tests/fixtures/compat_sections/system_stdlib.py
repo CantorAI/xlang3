@@ -1107,6 +1107,11 @@ finally:
         os.remove(reload_file)
     if os.path.exists(warning_file):
         os.remove(warning_file)
+    reload_cache = os.path.join(reload_root, "__pycache__")
+    if os.path.isdir(reload_cache):
+        for cache_entry in os.listdir(reload_cache):
+            os.remove(os.path.join(reload_cache, cache_entry))
+        os.rmdir(reload_cache)
     if os.path.isdir(reload_root):
         os.rmdir(reload_root)
 

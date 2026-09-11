@@ -42,9 +42,17 @@ ArrayState* array_state(const Value& self, std::string& error) {
 }
 
 bool publish_array_bytes(Value self, const ArrayState& state, std::string& error) {
-  return object_set_attr(self, "__xlang3_bytes_value__", Value::bytes(state.bytes), error) &&
+  return object_set_attr(self, "__xlang3_bytes_value__", Value::bytearray(state.bytes), error) &&
       object_set_attr(self, "typecode", Value::string(std::string(1, state.typecode)), error) &&
       object_set_attr(self, "itemsize", Value::int64(static_cast<int64_t>(state.itemsize)), error);
+}
+
+void sync_array_bytes(const Value& self, ArrayState& state) {
+  Value payload;
+  std::string ignored;
+  if (object_get_attr(self, "__xlang3_bytes_value__", payload, ignored)) {
+    if (auto* bytes = value_as_bytearray(payload)) state.bytes = bytes->value;
+  }
 }
 
 bool append_array_value(Runtime& runtime, ArrayState& state, const Value& item,
@@ -136,6 +144,7 @@ bool array_len(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   if (argc != 1) { error = "array.__len__ expected no arguments"; return false; }
   auto* state = array_state(args[0], error);
   if (state == nullptr) return false;
+  sync_array_bytes(args[0], *state);
   value_set_int64(out, static_cast<int64_t>(state->bytes.size() / state->itemsize));
   return true;
 }
@@ -144,6 +153,7 @@ bool array_tobytes(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   if (argc != 1) { error = "array.tobytes expected no arguments"; return false; }
   auto* state = array_state(args[0], error);
   if (state == nullptr) return false;
+  sync_array_bytes(args[0], *state);
   out = Value::bytes(state->bytes);
   return true;
 }
@@ -156,6 +166,7 @@ bool array_frombytes(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     if (state != nullptr) { error = "a bytes-like object is required"; runtime.raise_class_error("TypeError", error); }
     return false;
   }
+  sync_array_bytes(args[0], *state);
   const auto data = bytes_object_view(*bytes);
   if (data.size() % state->itemsize != 0) {
     error = "bytes length not a multiple of item size";
@@ -172,6 +183,7 @@ bool array_append(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (argc != 2) { error = "array.append expected one argument"; return false; }
   auto* state = array_state(args[0], error);
   if (state == nullptr) return false;
+  sync_array_bytes(args[0], *state);
   if (!append_array_value(runtime, *state, args[1], error)) return false;
   if (!publish_array_bytes(args[0], *state, error)) return false;
   value_set_none(out);
@@ -184,6 +196,7 @@ bool array_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   auto* state = array_state(args[0], error);
   if (state == nullptr) return false;
+  sync_array_bytes(args[0], *state);
   int64_t index = args[1].as.i64;
   const int64_t length = static_cast<int64_t>(state->bytes.size() / state->itemsize);
   if (index < 0) index += length;

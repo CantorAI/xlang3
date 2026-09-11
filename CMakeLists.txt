@@ -138,6 +138,8 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/atexit_module.cpp
   src/runtime/modules/system/binascii_module.cpp
   src/runtime/modules/system/codecs_module.cpp
+  src/runtime/modules/system/locale_module.cpp
+  src/runtime/modules/system/multibytecodec_module.cpp
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
   src/runtime/modules/system/errno_module.cpp
@@ -147,6 +149,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/importlib_module.cpp
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
+  src/runtime/modules/system/json_module.cpp
   src/runtime/modules/system/marshal_module.cpp
   src/runtime/modules/system/msvcrt_module.cpp
   src/runtime/modules/system/multiprocessing_module.cpp

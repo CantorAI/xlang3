@@ -104,13 +104,14 @@ Value functional_map_iterator(Runtime* runtime, Value callable, std::vector<Valu
   return value;
 }
 
-Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterator) {
+Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterator, bool invert) {
   Value value;
   value.tag = ValueTag::Object;
   auto* obj = allocate_functional_iterator<FilterIteratorObject>(ObjectKind::FilterIterator);
   obj->runtime = runtime;
   obj->predicate = std::move(predicate);
   obj->iterator = std::move(iterator);
+  obj->invert = invert;
   value.as.obj = &obj->header;
   return value;
 }
@@ -283,8 +284,17 @@ bool runtime_call_callable(
     CallArgsView call_args;
     call_args.leading = args;
     call_args.leading_count = argc;
+    Value caller_active_exception = runtime.active_exception();
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
+    // A nested Python call has its own handled-exception stack.  Restore the
+    // caller's active exception so sys.exception()/sys.exc_info() inside an
+    // outer except block survive helpers that catch exceptions internally.
+    if (caller_active_exception.tag == ValueTag::Invalid) {
+      runtime.clear_active_exception();
+    } else {
+      runtime.set_active_exception(caller_active_exception);
+    }
     if (!result.errors.empty()) {
       if (result.exception.tag != ValueTag::Invalid) {
         error = result.errors.front();
@@ -750,7 +760,7 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
         }
         keep = value_truthy(predicate_result);
       }
-      if (keep) {
+      if (obj->invert ? !keep : keep) {
         out = std::move(item);
         return true;
       }
@@ -764,6 +774,17 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
       return false;
     }
     if (!runtime_call_callable(*obj->runtime, obj->callable, nullptr, 0, out, error)) {
+      Value pending;
+      if (obj->runtime->take_pending_exception(pending)) {
+        if (auto* klass = value_as_class(obj->runtime->exception_type(pending));
+            klass != nullptr && klass->name == "StopIteration") {
+          done = true;
+          value_set_none(out);
+          error.clear();
+          return true;
+        }
+        obj->runtime->set_pending_exception(std::move(pending));
+      }
       return false;
     }
     if (value_key_equal(out, obj->sentinel)) {

@@ -529,6 +529,25 @@ bool mapping_is_mapping(const Value& value) {
   return dict_storage_from_value(value) != nullptr || value_as_module(value) != nullptr || value_as_mapping_proxy(value) != nullptr;
 }
 
+bool dict_integer_key(const Value& key, int64_t& out) {
+  return value_int_like_to_i64(key, out);
+}
+
+void ensure_integer_index(const DictObject& dict) {
+  if (dict.indexed_entry_count == dict.entries.size()) return;
+  dict.integer_index.clear();
+  dict.index_has_other_keys = false;
+  for (size_t i = 0; i < dict.entries.size(); ++i) {
+    int64_t numeric_key = 0;
+    if (dict_integer_key(dict.entries[i].first, numeric_key)) {
+      dict.integer_index.emplace(numeric_key, i);
+    } else {
+      dict.index_has_other_keys = true;
+    }
+  }
+  dict.indexed_entry_count = dict.entries.size();
+}
+
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
   if (const Value* source = mapping_proxy_source(object)) {
     return mapping_get_item(*source, key, out, error);
@@ -538,6 +557,18 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
     return false;
   }
   if (dict != nullptr) {
+    int64_t numeric_key = 0;
+    if (dict_integer_key(key, numeric_key)) {
+      ensure_integer_index(*dict);
+      if (const auto found = dict->integer_index.find(numeric_key); found != dict->integer_index.end()) {
+        value_assign_fast(out, dict->entries[found->second].second);
+        return true;
+      }
+      if (!dict->index_has_other_keys) {
+        error = "key not found";
+        return false;
+      }
+    }
     for (const auto& entry : dict->entries) {
       if (value_key_equal(entry.first, key)) {
         value_assign_fast(out, entry.second);
@@ -598,6 +629,25 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     return false;
   }
   if (dict != nullptr) {
+    int64_t numeric_key = 0;
+    const bool indexed_numeric_key = dict_integer_key(key, numeric_key);
+    if (indexed_numeric_key) {
+      ensure_integer_index(*dict);
+      if (const auto found = dict->integer_index.find(numeric_key); found != dict->integer_index.end()) {
+        value_assign_fast(dict->entries[found->second].second, item);
+        return true;
+      }
+      if (!dict->index_has_other_keys) {
+        Value owned_key;
+        Value owned_item;
+        value_assign_fast(owned_key, key);
+        value_assign_fast(owned_item, item);
+        dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
+        dict->integer_index.emplace(numeric_key, dict->entries.size() - 1);
+        dict->indexed_entry_count = dict->entries.size();
+        return true;
+      }
+    }
     for (auto& entry : dict->entries) {
       if (value_key_equal(entry.first, key)) {
         value_assign_fast(entry.second, item);
@@ -609,6 +659,14 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     value_assign_fast(owned_key, key);
     value_assign_fast(owned_item, item);
     dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
+    if (dict->indexed_entry_count + 1 == dict->entries.size()) {
+      if (indexed_numeric_key) {
+        dict->integer_index.emplace(numeric_key, dict->entries.size() - 1);
+      } else {
+        dict->index_has_other_keys = true;
+      }
+      dict->indexed_entry_count = dict->entries.size();
+    }
     return true;
   }
   if (value_as_module(object) != nullptr) {

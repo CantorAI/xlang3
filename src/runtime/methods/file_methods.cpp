@@ -145,6 +145,9 @@ std::string normalize_name(std::string text) {
   if (text == "latin1" || text == "latin_1" || text == "iso8859_1" || text == "iso_8859_1") {
     return "latin_1";
   }
+  if (text == "latin9" || text == "latin_9" || text == "iso8859_15" || text == "iso_8859_15") {
+    return "latin_9";
+  }
   if (text == "us_ascii" || text == "646") {
     return "ascii";
   }
@@ -184,6 +187,23 @@ uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
     codepoint = (codepoint << 6) | (static_cast<unsigned char>(text[i]) & 0x3fu);
   }
   return codepoint;
+}
+
+void append_utf8(uint32_t codepoint, std::string& out) {
+  if (codepoint <= 0x7f) out.push_back(static_cast<char>(codepoint));
+  else if (codepoint <= 0x7ff) {
+    out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else if (codepoint <= 0xffff) {
+    out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  } else {
+    out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
+    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
+  }
 }
 
 void append_backslash_escape(uint32_t codepoint, std::string& out) {
@@ -261,6 +281,36 @@ bool encode_text_value(
     }
     return true;
   }
+  if (encoding == "latin_9") {
+    for (size_t i = 0; i < text.size();) {
+      const unsigned char ch = static_cast<unsigned char>(text[i]);
+      const size_t width = utf8_codepoint_width(ch);
+      const uint32_t codepoint = width == 0 || i + width > text.size() ? ch :
+          decode_utf8_codepoint(std::string_view(text).substr(i), width);
+      const size_t advance = width == 0 ? 1 : width;
+      int encoded = codepoint <= 0xff ? static_cast<int>(codepoint) : -1;
+      switch (codepoint) {
+        case 0x20ac: encoded = 0xa4; break;
+        case 0x0160: encoded = 0xa6; break;
+        case 0x0161: encoded = 0xa8; break;
+        case 0x017d: encoded = 0xb4; break;
+        case 0x017e: encoded = 0xb8; break;
+        case 0x0152: encoded = 0xbc; break;
+        case 0x0153: encoded = 0xbd; break;
+        case 0x0178: encoded = 0xbe; break;
+        default: break;
+      }
+      if (encoded >= 0) out.push_back(static_cast<char>(encoded));
+      else if (errors == "ignore") {}
+      else if (errors == "replace") out.push_back('?');
+      else {
+        error = "'iso8859-15' codec can't encode character";
+        return false;
+      }
+      i += advance;
+    }
+    return true;
+  }
   if (encoding == "gbk" || encoding == "cp936") {
     return encode_gbk_text(text, out, error);
   }
@@ -330,6 +380,22 @@ bool decode_text_value(
         decoded.push_back(static_cast<char>(0xc0u | (ch >> 6u)));
         decoded.push_back(static_cast<char>(0x80u | (ch & 0x3fu)));
       }
+    }
+  } else if (encoding == "latin_9") {
+    for (unsigned char ch : bytes) {
+      uint32_t codepoint = ch;
+      switch (ch) {
+        case 0xa4: codepoint = 0x20ac; break;
+        case 0xa6: codepoint = 0x0160; break;
+        case 0xa8: codepoint = 0x0161; break;
+        case 0xb4: codepoint = 0x017d; break;
+        case 0xb8: codepoint = 0x017e; break;
+        case 0xbc: codepoint = 0x0152; break;
+        case 0xbd: codepoint = 0x0153; break;
+        case 0xbe: codepoint = 0x0178; break;
+        default: break;
+      }
+      append_utf8(codepoint, decoded);
     }
   } else if (encoding == "ascii") {
     for (unsigned char ch : bytes) {
@@ -576,12 +642,61 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool file_readinto_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "file.readinto", error)) {
+    return false;
+  }
+  auto* file = require_file(args[0], "file.readinto", error);
+  if (file == nullptr) {
+    return false;
+  }
+  if (!file->binary) {
+    error = "readinto() argument must be read-write bytes-like object";
+    return false;
+  }
+
+  char* destination = nullptr;
+  size_t capacity = 0;
+  if (auto* bytearray = value_as_bytearray(args[1])) {
+    destination = bytearray->value.data();
+    capacity = bytearray->value.size();
+  } else if (auto* view = value_as_memoryview(args[1])) {
+    destination = memoryview_object_writable_data(*view);
+    capacity = view->size;
+    if (destination == nullptr && capacity != 0) {
+      error = "readinto() argument must be read-write bytes-like object";
+      return false;
+    }
+  } else {
+    error = "readinto() argument must be read-write bytes-like object";
+    return false;
+  }
+
+  Value data_value;
+  Value read_args[] = {args[0], Value::int64(static_cast<int64_t>(capacity))};
+  if (!file_read_method(runtime, read_args, 2, data_value, error, nullptr)) {
+    return false;
+  }
+  const auto* bytes = value_as_bytes(data_value);
+  if (bytes == nullptr) {
+    error = "file.readinto() internal read did not return bytes";
+    return false;
+  }
+  const auto data = bytes_object_view(*bytes);
+  if (!data.empty()) {
+    std::memcpy(destination, data.data(), data.size());
+  }
+  out = Value::int64(static_cast<int64_t>(data.size()));
+  return true;
+}
+
 bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "file.write", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.write", error);
   if (file == nullptr) {
+    runtime.raise_class_error(error.find("closed file") != std::string::npos ? "ValueError" : "TypeError", error);
     return false;
   }
   if (!file->writable) {
@@ -599,6 +714,7 @@ bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   std::string text;
   if (!get_write_bytes_arg(args[1], file->binary, "file.write data", text, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (file->fd_backed) {
@@ -1257,6 +1373,7 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
       {"flush", "file.flush", file_flush_method},
       {"isatty", "file.isatty", file_isatty_method},
       {"read", "file.read", file_read_method},
+      {"readinto", "file.readinto", file_readinto_method},
       {"readline", "file.readline", file_readline_method},
       {"readlines", "file.readlines", file_readlines_method},
       {"readable", "file.readable", file_readable_method},

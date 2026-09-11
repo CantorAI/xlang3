@@ -15,8 +15,11 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 
 #include <cmath>
+#include <limits>
+#include <numeric>
 
 namespace xlang3 {
 
@@ -30,6 +33,26 @@ bool require_number_arg(const Value& value, const char* name, double& out, std::
   if (value.tag == ValueTag::Double) {
     out = value.as.f64;
     return true;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr && (class_has_builtin_base_name(klass, "int") ||
+                             class_has_builtin_base_name(klass, "float"))) {
+      Value stored;
+      std::string ignored;
+      if ((object_get_attr(value, "__xlang3_int_value__", stored, ignored) ||
+           object_get_attr(value, "__xlang3_float_value__", stored, ignored) ||
+           object_get_attr(value, "_value_", stored, ignored))) {
+        if (stored.tag == ValueTag::Int64) {
+          out = static_cast<double>(stored.as.i64);
+          return true;
+        }
+        if (stored.tag == ValueTag::Double) {
+          out = stored.as.f64;
+          return true;
+        }
+      }
+    }
   }
   error = std::string(name) + "() argument must be a number";
   return false;
@@ -442,6 +465,70 @@ bool math_cos_fast(
   return true;
 }
 
+bool math_isnan(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math_bool("isnan", [](double value) { return std::isnan(value); }, args, argc, out, error);
+}
+
+bool math_isnan_fast(Runtime&, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
+  return fast_unary_math_bool("isnan", [](double value) { return std::isnan(value); }, leading, leading_count, registers, register_args, register_arg_count, out, error);
+}
+
+bool math_isinf(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math_bool("isinf", [](double value) { return std::isinf(value); }, args, argc, out, error);
+}
+
+bool math_isinf_fast(Runtime&, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
+  return fast_unary_math_bool("isinf", [](double value) { return std::isinf(value); }, leading, leading_count, registers, register_args, register_arg_count, out, error);
+}
+
+bool math_copysign(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "copysign() expected 2 arguments";
+    return false;
+  }
+  double magnitude = 0.0;
+  double sign = 0.0;
+  if (!require_number_arg(args[0], "copysign", magnitude, error) ||
+      !require_number_arg(args[1], "copysign", sign, error)) {
+    return false;
+  }
+  value_set_number(out, std::copysign(magnitude, sign));
+  return true;
+}
+
+bool math_ldexp(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "ldexp() expected a number and an integer";
+    return false;
+  }
+  double value = 0.0;
+  if (!require_number_arg(args[0], "ldexp", value, error)) return false;
+  value_set_number(out, std::ldexp(value, static_cast<int>(args[1].as.i64)));
+  return true;
+}
+
+bool math_gcd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  uint64_t result = 0;
+  for (uint32_t index = 0; index < argc; ++index) {
+    int64_t value = 0;
+    if (!value_int_like_to_i64(args[index], value)) {
+      error = "math.gcd() arguments must be integers";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const uint64_t magnitude = value < 0
+        ? static_cast<uint64_t>(-(value + 1)) + 1u
+        : static_cast<uint64_t>(value);
+    result = std::gcd(result, magnitude);
+  }
+  if (result > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+    error = "math.gcd() result exceeds the compact integer range";
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(result));
+  return true;
+}
+
 } // namespace
 
 void register_math_module(Runtime& runtime) {
@@ -455,6 +542,10 @@ void register_math_module(Runtime& runtime) {
       .function("floor", math_floor, math_floor_fast)
       .function("ceil", math_ceil, math_ceil_fast)
       .function("isfinite", math_isfinite, math_isfinite_fast)
+      .function("isnan", math_isnan, math_isnan_fast)
+      .function("isinf", math_isinf, math_isinf_fast)
+      .function("copysign", math_copysign)
+      .function("ldexp", math_ldexp)
       .function("lgamma", math_lgamma, math_lgamma_fast)
       .function("fabs", math_fabs, math_fabs_fast)
       .function("log2", math_log2, math_log2_fast)
@@ -462,6 +553,7 @@ void register_math_module(Runtime& runtime) {
       .function("modf", math_modf)
       .function("sin", math_sin, math_sin_fast)
       .function("cos", math_cos, math_cos_fast);
+  builder.function("gcd", math_gcd);
   runtime.register_module("math", builder.finish());
 }
 

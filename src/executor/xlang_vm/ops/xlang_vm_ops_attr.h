@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang_vm_ops_call.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -47,6 +48,9 @@ XLANG3_HOT_INLINE Value xlang_vm_attribute_error(
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_descriptor_method(const Value& descriptor, const char* name, Value& out) {
+  if (property_get_method(descriptor, name, out)) {
+    return true;
+  }
   std::string error;
   return object_get_attr(descriptor, name, out, error);
 }
@@ -609,6 +613,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                                  execution_lock, regs[in.dst], in.dst, ip, result, make_generator_if_needed,
                                  push_frame, raise_runtime_error, raise_exception_value);
     }
+    if (auto* super_object = value_as_super(regs[in.a])) {
+      Value owner;
+      Value receiver;
+      if (auto* instance = value_as_instance(super_object->self)) {
+        value_assign_fast(owner, instance->klass);
+        value_assign_fast(receiver, super_object->self);
+      } else if (value_as_class(super_object->self) != nullptr) {
+        value_assign_fast(owner, super_object->self);
+        if (value_is(super_object->self, super_object->klass)) {
+          value_set_none(receiver);
+        } else {
+          value_assign_fast(receiver, super_object->self);
+        }
+      } else {
+        value_assign_fast(owner, super_object->klass);
+        value_assign_fast(receiver, super_object->self);
+      }
+      return call_descriptor_get(attr, receiver, owner, module, module_owner, runtime,
+                                 native_call_args, execution_lock, regs[in.dst], in.dst, ip, result,
+                                 make_generator_if_needed, push_frame, raise_runtime_error,
+                                 raise_exception_value);
+    }
   }
   regs[in.dst] = std::move(attr);
   return XlangVMOpFlow::Next;
@@ -962,7 +988,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
     }
   }
   if (!object_delete_attr(regs[in.dst], fn.names[in.a], error)) {
-    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    return raise_exception_value(runtime.make_exception("AttributeError", error))
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
 }

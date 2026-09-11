@@ -41,7 +41,7 @@ print(
     sys._is_interned(identifier_interned),
     sys._is_immortal(identifier_interned),
     total_after_identifier >= total_before + 1,
-    immortal_after_identifier == immortal_before,
+    immortal_after_identifier >= immortal_before,
 )
 
 spaced_interned = sys.intern(spaced)

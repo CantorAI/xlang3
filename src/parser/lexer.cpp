@@ -61,10 +61,13 @@ std::string_view trim_inline_comment_for_join(std::string_view line) {
   return line;
 }
 
-bool update_line_join_state(std::string_view line, int& bracket_depth, bool& explicit_continue) {
+bool update_line_join_state(std::string_view line,
+                            int& bracket_depth,
+                            bool& explicit_continue,
+                            bool& in_string,
+                            char& quote,
+                            bool& triple_string) {
   explicit_continue = false;
-  bool in_string = false;
-  char quote = 0;
   bool escaped = false;
   size_t last_non_space = std::string_view::npos;
 
@@ -75,6 +78,21 @@ bool update_line_join_state(std::string_view line, int& bracket_depth, bool& exp
     }
 
     if (in_string) {
+      if (triple_string) {
+        if (ch == quote && i + 2 < line.size() &&
+            line[i + 1] == quote && line[i + 2] == quote) {
+          size_t backslashes = 0;
+          for (size_t pos = i; pos > 0 && line[pos - 1] == '\\'; --pos) {
+            ++backslashes;
+          }
+          if ((backslashes & 1u) == 0) {
+            in_string = false;
+            triple_string = false;
+            i += 2;
+          }
+        }
+        continue;
+      }
       if (escaped) {
         escaped = false;
       } else if (ch == '\\') {
@@ -90,14 +108,14 @@ bool update_line_join_state(std::string_view line, int& bracket_depth, bool& exp
     }
     if (ch == '"' || ch == '\'') {
       if (i + 2 < line.size() && line[i + 1] == ch && line[i + 2] == ch) {
-        const size_t close = line.find(std::string_view(line.data() + i, 3), i + 3);
-        if (close == std::string_view::npos) {
-          break;
-        }
-        i = close + 2;
+        in_string = true;
+        triple_string = true;
+        quote = ch;
+        i += 2;
         continue;
       }
       in_string = true;
+      triple_string = false;
       quote = ch;
       continue;
     }
@@ -109,7 +127,7 @@ bool update_line_join_state(std::string_view line, int& bracket_depth, bool& exp
   }
 
   explicit_continue = last_non_space != std::string_view::npos && line[last_non_space] == '\\';
-  return bracket_depth > 0 || explicit_continue;
+  return bracket_depth > 0 || in_string || explicit_continue;
 }
 
 bool is_name_char(char ch) {
@@ -381,6 +399,13 @@ StringPrefix detect_string_prefix_for_quote(std::string_view line, size_t quote_
   if ((bytes && fstring) || (template_string && (bytes || fstring))) {
     valid = false;
   }
+  const size_t prefix_length = quote_pos - start;
+  if (prefix_length == 2) {
+    const char first = static_cast<char>(std::tolower(static_cast<unsigned char>(line[start])));
+    const char second = static_cast<char>(std::tolower(static_cast<unsigned char>(line[start + 1])));
+    valid = (first == 'r' && (second == 'b' || second == 'f' || second == 't')) ||
+            (second == 'r' && (first == 'b' || first == 'f' || first == 't'));
+  }
   prefix.start = valid ? start : quote_pos;
   prefix.raw = raw;
   prefix.bytes = bytes;
@@ -419,6 +444,23 @@ struct TripleStringStart {
   std::string_view opener;
   bool found = false;
 };
+
+size_t find_triple_string_close(std::string_view text,
+                                std::string_view opener,
+                                size_t start) {
+  size_t close = text.find(opener, start);
+  while (close != std::string_view::npos) {
+    size_t backslashes = 0;
+    for (size_t pos = close; pos > 0 && text[pos - 1] == '\\'; --pos) {
+      ++backslashes;
+    }
+    if ((backslashes & 1u) == 0) {
+      return close;
+    }
+    close = text.find(opener, close + 3);
+  }
+  return std::string_view::npos;
+}
 
 TripleStringStart find_first_triple_string_start(std::string_view line, size_t indent) {
   for (size_t i = indent; i < line.size();) {
@@ -509,14 +551,14 @@ std::string_view append_triple_string_tail(std::string& logical_line,
   const auto opener = triple_start.opener;
   std::string_view current = lines[line_index].text;
   size_t content = triple_start.prefix.quote + 3;
-  size_t close = current.find(opener, content);
+  size_t close = find_triple_string_close(current, opener, content);
   while (close == std::string_view::npos && line_index + 1 < lines.size()) {
     const auto next_line = lines[++line_index];
     logical_end_line = next_line.line;
     current = next_line.text;
     logical_line.push_back('\n');
     logical_line.append(current);
-    close = current.find(opener);
+    close = find_triple_string_close(current, opener, 0);
   }
   if (close == std::string_view::npos) {
     return {};
@@ -560,6 +602,10 @@ LexResult Lexer::tokenize() {
       continue;
     }
     if (indent > indent_stack_.back()) {
+      if (indent_stack_.size() >= 100) {
+        errors_.push_back("line " + std::to_string(line_no) + ": too many levels of indentation");
+        break;
+      }
       indent_stack_.push_back(indent);
       emit(TokenKind::Indent, "", line_no, 1);
     } else {
@@ -585,7 +631,7 @@ LexResult Lexer::tokenize() {
       std::string value;
       std::string suffix;
       size_t content_start = triple_pos + 3;
-      size_t close = line.find(opener, content_start);
+      size_t close = find_triple_string_close(line, opener, content_start);
       if (close != std::string_view::npos) {
         value = std::string(line.substr(content_start, close - content_start));
         suffix = std::string(line.substr(close + 3));
@@ -595,7 +641,7 @@ LexResult Lexer::tokenize() {
         while (++line_index < lines.size()) {
           line_no = lines[line_index].line;
           const auto block_line = lines[line_index].text;
-          close = block_line.find(opener);
+          close = find_triple_string_close(block_line, opener, 0);
           value.push_back('\n');
           if (close != std::string_view::npos) {
             value.append(block_line.substr(0, close));
@@ -629,7 +675,7 @@ LexResult Lexer::tokenize() {
         const char suffix_quote = suffix[suffix_triple.prefix.quote];
         const std::string suffix_opener(3, suffix_quote);
         const size_t suffix_content_start = suffix_triple.prefix.quote + 3;
-        size_t suffix_close = suffix.find(suffix_opener, suffix_content_start);
+        size_t suffix_close = find_triple_string_close(suffix, suffix_opener, suffix_content_start);
         std::string suffix_value;
         if (suffix_close != std::string::npos) {
           suffix_value = suffix.substr(suffix_content_start, suffix_close - suffix_content_start);
@@ -640,7 +686,7 @@ LexResult Lexer::tokenize() {
           while (++line_index < lines.size()) {
             line_no = lines[line_index].line;
             const auto block_line = lines[line_index].text;
-            suffix_close = block_line.find(suffix_opener);
+            suffix_close = find_triple_string_close(block_line, suffix_opener, 0);
             suffix_value.push_back('\n');
             if (suffix_close != std::string_view::npos) {
               suffix_value.append(block_line.substr(0, suffix_close));
@@ -675,11 +721,16 @@ LexResult Lexer::tokenize() {
         uint32_t logical_end_line = line_no;
         int bracket_depth = 0;
         bool explicit_continue = false;
+        bool continued_string = false;
+        char continued_quote = 0;
+        bool continued_triple = false;
         if (prefix_start > indent) {
-          (void)update_line_join_state(line.substr(0, prefix_start), bracket_depth, explicit_continue);
+          (void)update_line_join_state(line.substr(0, prefix_start), bracket_depth, explicit_continue,
+                                       continued_string, continued_quote, continued_triple);
           explicit_continue = false;
         }
-        bool should_join = update_line_join_state(logical_line, bracket_depth, explicit_continue);
+        bool should_join = update_line_join_state(logical_line, bracket_depth, explicit_continue,
+                                                  continued_string, continued_quote, continued_triple);
         while (should_join && line_index + 1 < lines.size()) {
           if (explicit_continue) {
             remove_trailing_backslash(logical_line);
@@ -687,15 +738,8 @@ LexResult Lexer::tokenize() {
           const auto next_line = lines[++line_index];
           logical_end_line = next_line.line;
           append_joined_line(logical_line, next_line.text);
-          std::string_view join_state_line = next_line.text;
-          const auto continued_triple = find_first_triple_string_start(next_line.text, 0);
-          if (continued_triple.found) {
-            bool prefix_continue = false;
-            (void)update_line_join_state(
-                next_line.text.substr(0, continued_triple.prefix.start), bracket_depth, prefix_continue);
-            join_state_line = append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
-          }
-          should_join = update_line_join_state(join_state_line, bracket_depth, explicit_continue);
+          should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
+                                               continued_string, continued_quote, continued_triple);
         }
         auto owned = std::make_unique<std::string>(std::move(logical_line));
         const std::string_view logical_view(*owned);
@@ -712,7 +756,11 @@ LexResult Lexer::tokenize() {
     uint32_t logical_end_line = line_no;
     int bracket_depth = 0;
     bool explicit_continue = false;
-    bool should_join = update_line_join_state(line, bracket_depth, explicit_continue);
+    bool continued_string = false;
+    char continued_quote = 0;
+    bool continued_triple = false;
+    bool should_join = update_line_join_state(line, bracket_depth, explicit_continue,
+                                              continued_string, continued_quote, continued_triple);
     while (should_join && line_index + 1 < lines.size()) {
       if (explicit_continue) {
         remove_trailing_backslash(logical_line);
@@ -720,15 +768,8 @@ LexResult Lexer::tokenize() {
       const auto next_line = lines[++line_index];
       logical_end_line = next_line.line;
       append_joined_line(logical_line, next_line.text);
-      std::string_view join_state_line = next_line.text;
-      const auto continued_triple = find_first_triple_string_start(next_line.text, 0);
-      if (continued_triple.found) {
-        bool prefix_continue = false;
-        (void)update_line_join_state(
-            next_line.text.substr(0, continued_triple.prefix.start), bracket_depth, prefix_continue);
-        join_state_line = append_triple_string_tail(logical_line, lines, line_index, logical_end_line, continued_triple);
-      }
-      should_join = update_line_join_state(join_state_line, bracket_depth, explicit_continue);
+      should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
+                                           continued_string, continued_quote, continued_triple);
     }
 
     if (logical_end_line == line_no) {
@@ -784,7 +825,7 @@ void Lexer::tokenize_line(std::string_view line_text, uint32_t line_no, uint32_t
       bool closed = false;
       if (is_triple) {
         const std::string_view opener(line_text.data() + prefix.quote, 3);
-        const size_t close = line_text.find(opener, i);
+        const size_t close = find_triple_string_close(line_text, opener, i);
         if (close != std::string_view::npos) {
           value = std::string(line_text.substr(i, close - i));
           i = close + 3;

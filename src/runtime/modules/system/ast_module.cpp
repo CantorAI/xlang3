@@ -308,6 +308,92 @@ Value ast_parse_simple_expr(
         column_offset + static_cast<uint32_t>(source.size()), error);
     return binop;
   }
+  if (source.size() >= 2 && source.front() == '[' && source.back() == ']') {
+    std::vector<Value> elements;
+    const std::string_view contents = source.substr(1, source.size() - 2);
+    size_t start = 0;
+    int depth = 0;
+    char quote = '\0';
+    bool escaped = false;
+    for (size_t i = 0; i <= contents.size(); ++i) {
+      const char ch = i < contents.size() ? contents[i] : ',';
+      if (quote != '\0') {
+        if (escaped) escaped = false;
+        else if (ch == '\\') escaped = true;
+        else if (ch == quote) quote = '\0';
+      } else if (ch == '\'' || ch == '"') {
+        quote = ch;
+      } else if (ch == '(' || ch == '[' || ch == '{') {
+        ++depth;
+      } else if (ch == ')' || ch == ']' || ch == '}') {
+        --depth;
+      } else if (ch == ',' && depth == 0) {
+        const auto item = ast_trim(contents.substr(start, i - start));
+        if (!item.empty()) {
+          Value element = ast_parse_simple_expr(
+              state, item, error, source_line,
+              column_offset + 1 + static_cast<uint32_t>(item.data() - contents.data()));
+          if (element.tag == ValueTag::Invalid) return Value::invalid();
+          elements.push_back(std::move(element));
+        }
+        start = i + 1;
+      }
+    }
+    Value list = ast_instance(state, "List");
+    if (list.tag == ValueTag::Invalid) {
+      error = "missing _ast List class";
+      return Value::invalid();
+    }
+    object_set_attr(list, "elts", Value::list(std::move(elements)), error);
+    object_set_attr(list, "ctx", ast_make_load(state), error);
+    ast_set_location(
+        list, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
+    return list;
+  }
+  if (source.size() >= 2 && source.front() == '{' && source.back() == '}' &&
+      source.find(':') == std::string_view::npos) {
+    std::vector<Value> elements;
+    const std::string_view contents = source.substr(1, source.size() - 2);
+    size_t start = 0;
+    int depth = 0;
+    char quote = '\0';
+    bool escaped = false;
+    for (size_t i = 0; i <= contents.size(); ++i) {
+      const char ch = i < contents.size() ? contents[i] : ',';
+      if (quote != '\0') {
+        if (escaped) escaped = false;
+        else if (ch == '\\') escaped = true;
+        else if (ch == quote) quote = '\0';
+      } else if (ch == '\'' || ch == '"') {
+        quote = ch;
+      } else if (ch == '(' || ch == '[' || ch == '{') {
+        ++depth;
+      } else if (ch == ')' || ch == ']' || ch == '}') {
+        --depth;
+      } else if (ch == ',' && depth == 0) {
+        const auto item = ast_trim(contents.substr(start, i - start));
+        if (!item.empty()) {
+          Value element = ast_parse_simple_expr(
+              state, item, error, source_line,
+              column_offset + 1 + static_cast<uint32_t>(item.data() - contents.data()));
+          if (element.tag == ValueTag::Invalid) return Value::invalid();
+          elements.push_back(std::move(element));
+        }
+        start = i + 1;
+      }
+    }
+    Value set = ast_instance(state, "Set");
+    if (set.tag == ValueTag::Invalid) {
+      error = "missing _ast Set class";
+      return Value::invalid();
+    }
+    object_set_attr(set, "elts", Value::list(std::move(elements)), error);
+    ast_set_location(
+        set, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
+    return set;
+  }
   if (!source.empty() && source.back() == ']') {
     int paren_depth = 0;
     int bracket_depth = 0;
@@ -417,7 +503,29 @@ Value ast_parse_simple_expr(
   }
   if (!source.empty() &&
       ((source.front() == '"' && source.back() == '"') || (source.front() == '\'' && source.back() == '\''))) {
-    Value constant = ast_make_constant(state, Value::string(std::string(source.substr(1, source.size() - 2))), error);
+    std::string decoded;
+    const auto quoted = source.substr(1, source.size() - 2);
+    decoded.reserve(quoted.size());
+    for (size_t i = 0; i < quoted.size(); ++i) {
+      if (quoted[i] != '\\' || i + 1 >= quoted.size()) {
+        decoded.push_back(quoted[i]);
+        continue;
+      }
+      const char escaped_char = quoted[++i];
+      switch (escaped_char) {
+        case '\\': decoded.push_back('\\'); break;
+        case '\'': decoded.push_back('\''); break;
+        case '"': decoded.push_back('"'); break;
+        case 'n': decoded.push_back('\n'); break;
+        case 'r': decoded.push_back('\r'); break;
+        case 't': decoded.push_back('\t'); break;
+        default:
+          decoded.push_back('\\');
+          decoded.push_back(escaped_char);
+          break;
+      }
+    }
+    Value constant = ast_make_constant(state, Value::string(std::move(decoded)), error);
     ast_set_location(
         constant, source_line, source_line, column_offset,
         column_offset + static_cast<uint32_t>(source.size()), error);

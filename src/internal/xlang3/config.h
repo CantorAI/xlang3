@@ -43,6 +43,15 @@ struct RunConfig {
   bool perf_counters = false;
   bool no_debug_ranges = false;
   bool warn_default_encoding = false;
+  bool dont_write_bytecode = false;
+  bool no_user_site = false;
+  bool no_site = false;
+  bool ignore_environment = false;
+  bool isolated = false;
+  bool verbose = false;
+  int bytes_warning = 0;
+  bool pth_mode = false;
+  std::vector<std::filesystem::path> pth_paths;
 };
 
 } // namespace xlang3

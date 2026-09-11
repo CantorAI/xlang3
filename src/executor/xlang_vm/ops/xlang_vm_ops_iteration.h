@@ -41,7 +41,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_iter(
   }
   if (!runtime_get_iter(runtime, regs[in.a], regs[in.dst], error)) {
     Value pending;
-    if (runtime.take_pending_exception(pending)) {
+    const bool has_pending = runtime.take_pending_exception(pending);
+    if (error == "object is not iterable" || error.empty()) {
+      error = "'" + std::string(value_binary_type_name(regs[in.a])) + "' object is not iterable";
+    } else if (has_pending) {
       return raise_exception_value(std::move(pending))
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
@@ -78,7 +81,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
         ip = in.b;
         return XlangVMOpFlow::ContinueLoop;
       }
-      value_assign_fast(regs[in.dst], list->items[static_cast<size_t>(iterator->index)]);
+      // The destination register can own the iterator source.  Retain the
+      // yielded element before replacing that register so container teardown
+      // cannot invalidate the element reference.
+      Value item = list->items[static_cast<size_t>(iterator->index)];
+      value_move_assign_fast(regs[in.dst], item);
       ++iterator->index;
       return XlangVMOpFlow::Next;
     }

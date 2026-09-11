@@ -119,9 +119,22 @@ bool builtin_import(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     return raise_type_error(runtime, "__import__() name must be str", error);
   }
   name = string_object_to_string(*name_string);
+  if (name.empty()) {
+    error = "Empty module name";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   Value module;
   bool module_not_found = false;
   if (!runtime.import_module(name, module, error, &module_not_found)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+      return false;
+    }
+    if (module_not_found) {
+      error = "No module named '" + name + "'";
+    }
     runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
     return false;
   }
@@ -354,28 +367,30 @@ bool compile_source_to_code(
     return false;
   };
 
-  if (mode == "eval") {
-    if (eval_source_starts_with_statement_keyword(source)) {
+  if (mode == "eval" || mode == "single") {
+    if (mode == "eval" && eval_source_starts_with_statement_keyword(source)) {
       error = "invalid syntax";
       runtime.raise_class_error("SyntaxError", error);
       return false;
     }
     auto parsed_expr = parse_expression_source(source);
-    if (!parsed_expr.errors.empty()) {
+    if (!parsed_expr.errors.empty() && mode == "eval") {
       return raise_syntax_parse_error(parsed_expr.errors.front());
     }
-    ast::Module eval_ast;
-    eval_ast.body.push_back(std::make_unique<ast::ReturnStmt>(std::move(parsed_expr.expression)));
-    auto lowered = lower_to_ir(eval_ast);
-    if (!lowered.errors.empty()) {
-      error = lowered.errors.front();
-      runtime.raise_class_error("SyntaxError", error);
-      return false;
+    if (parsed_expr.errors.empty()) {
+      ast::Module eval_ast;
+      eval_ast.body.push_back(std::make_unique<ast::ReturnStmt>(std::move(parsed_expr.expression)));
+      auto lowered = lower_to_ir(eval_ast);
+      if (!lowered.errors.empty()) {
+        error = lowered.errors.front();
+        runtime.raise_class_error("SyntaxError", error);
+        return false;
+      }
+      auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+      module->source_file = filename;
+      out = Value::code(module, module->entry, mode);
+      return true;
     }
-    auto module = std::make_shared<ir::Module>(std::move(lowered.module));
-    module->source_file = filename;
-    out = Value::code(module, module->entry, mode);
-    return true;
   } else if (mode != "exec" && mode != "single") {
     return raise_type_error(runtime, "compile() mode must be 'exec', 'eval', or 'single'", error);
   }
@@ -472,6 +487,20 @@ bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, V
     value_assign_fast(out, result.value);
     return true;
   }
+  if (code.mode == "single") {
+    Value sys;
+    Value displayhook;
+    if (!runtime.import_module("sys", sys, error) ||
+        !module_get_attr(sys, "displayhook", displayhook, error)) {
+      error = "lost sys.displayhook";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    Value ignored;
+    if (!runtime_call_callable(runtime, displayhook, &result.value, 1, ignored, error)) {
+      return false;
+    }
+  }
   value_set_none(out);
   return true;
 }
@@ -499,7 +528,8 @@ bool copy_module_to_dict(const Value& module_value, Value& dict_value, std::stri
     return false;
   }
   for (const auto& entry : module->name_to_slot) {
-    if (entry.second >= module->slots.size()) {
+    if (entry.second >= module->slots.size() ||
+        module->slots[entry.second].tag == ValueTag::Invalid) {
       continue;
     }
     if (!mapping_set_item(dict_value, Value::string(entry.first), module->slots[entry.second], error)) {
@@ -515,7 +545,8 @@ bool copy_module_to_module(const Value& source_value, Value& target_value, std::
     return false;
   }
   for (const auto& entry : source->name_to_slot) {
-    if (entry.second >= source->slots.size()) {
+    if (entry.second >= source->slots.size() ||
+        source->slots[entry.second].tag == ValueTag::Invalid) {
       continue;
     }
     if (!module_set_attr(target_value, entry.first, source->slots[entry.second], error)) {
@@ -545,7 +576,13 @@ bool eval_globals_from_args(
   }
 
   const bool has_distinct_locals = argc >= 3 && args[2].tag != ValueTag::None;
-  if (!globals_is_dict && !has_distinct_locals) {
+  Value implicit_locals;
+  const bool use_implicit_locals = argc < 2 || args[1].tag == ValueTag::None;
+  if (use_implicit_locals) {
+    implicit_locals = runtime.current_locals_snapshot();
+  }
+  const bool has_implicit_locals = use_implicit_locals && value_as_dict(implicit_locals) != nullptr;
+  if (!globals_is_dict && !has_distinct_locals && !has_implicit_locals) {
     value_assign_fast(out, globals);
     return true;
   }
@@ -571,6 +608,8 @@ bool eval_globals_from_args(
     } else {
       return false;
     }
+  } else if (has_implicit_locals && !copy_dict_to_module(implicit_locals, out, error)) {
+    return false;
   }
   return true;
 }
@@ -678,6 +717,8 @@ bool infer_super_defining_class(Runtime& runtime, const Value& self, Value& out,
         value_assign_fast(function_value, method->function);
       } else if (auto* method = value_as_class_method(attr.second)) {
         value_assign_fast(function_value, method->function);
+      } else if (auto* property = value_as_property(attr.second)) {
+        value_assign_fast(function_value, property->fget);
       } else {
         value_assign_fast(function_value, attr.second);
       }
@@ -715,6 +756,8 @@ bool infer_super_defining_class(Runtime& runtime, const Value& self, Value& out,
               value_assign_fast(function_value, method->function);
             } else if (auto* method = value_as_class_method(attr.second)) {
               value_assign_fast(function_value, method->function);
+            } else if (auto* property = value_as_property(attr.second)) {
+              value_assign_fast(function_value, property->fget);
             } else {
               value_assign_fast(function_value, attr.second);
             }
@@ -821,6 +864,11 @@ bool builtin_enumerate(
   }
   Value iterator;
   if (!runtime_get_iter(runtime, args[0], iterator, error)) {
+    if (error == "object is not iterable") {
+      Value pending;
+      runtime.take_pending_exception(pending);
+      error = "'" + std::string(value_binary_type_name(args[0])) + "' object is not iterable";
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1923,7 +1971,16 @@ bool builtin_dir(
     std::string& error,
     void*) {
   if (argc == 0) {
-    out = Value::list({});
+    Value locals = runtime.current_locals_snapshot();
+    std::set<std::string> names;
+    if (auto* module = value_as_module(locals)) {
+      for (const auto& entry : module->name_to_slot) names.insert(entry.first);
+    } else if (auto* dict = value_as_dict(locals)) {
+      for (const auto& entry : dict->entries) {
+        if (auto* name = value_as_string(entry.first)) names.insert(string_object_to_string(*name));
+      }
+    }
+    out = names_to_list(names);
     return true;
   }
   if (argc != 1) {
@@ -2333,6 +2390,9 @@ bool builtin_exec(
   if (code->mode == "eval") {
     return raise_type_error(runtime, "exec() code object must not be compiled with mode 'eval'", error);
   }
+  if (!globals_is_dict && (argc < 3 || args[2].tag == ValueTag::None)) {
+    return run_code_object(runtime, *code, globals_module, out, error);
+  }
   if (argc == 3 && args[2].tag != ValueTag::None) {
     Value exec_module = Value::module("<exec>");
     module_set_attr(exec_module, "__name__", Value::string("<exec>"), error);
@@ -2467,6 +2527,42 @@ bool builtin_repr(
   return true;
 }
 
+bool builtin_ascii(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!builtin_repr(runtime, args, argc, out, error, nullptr)) return false;
+  auto* repr = value_as_string(out);
+  if (repr == nullptr) return false;
+  const std::string input = string_object_to_string(*repr);
+  std::string escaped;
+  static constexpr char hex[] = "0123456789abcdef";
+  for (size_t i = 0; i < input.size();) {
+    const unsigned char lead = static_cast<unsigned char>(input[i]);
+    if (lead < 0x80) {
+      escaped.push_back(static_cast<char>(lead));
+      ++i;
+      continue;
+    }
+    uint32_t codepoint = 0xfffd;
+    size_t count = 1;
+    if ((lead & 0xe0) == 0xc0 && i + 1 < input.size()) {
+      count = 2; codepoint = lead & 0x1f;
+    } else if ((lead & 0xf0) == 0xe0 && i + 2 < input.size()) {
+      count = 3; codepoint = lead & 0x0f;
+    } else if ((lead & 0xf8) == 0xf0 && i + 3 < input.size()) {
+      count = 4; codepoint = lead & 0x07;
+    }
+    for (size_t n = 1; n < count; ++n)
+      codepoint = (codepoint << 6) | (static_cast<unsigned char>(input[i + n]) & 0x3f);
+    i += count;
+    const int digits = codepoint <= 0xff ? 2 : (codepoint <= 0xffff ? 4 : 8);
+    escaped += digits == 2 ? "\\x" : (digits == 4 ? "\\u" : "\\U");
+    for (int shift = (digits - 1) * 4; shift >= 0; shift -= 4)
+      escaped.push_back(hex[(codepoint >> shift) & 0xf]);
+  }
+  out = Value::string(std::move(escaped));
+  return true;
+}
+
 struct ParsedFormatSpec {
   char fill = ' ';
   char align = '\0';
@@ -2531,10 +2627,11 @@ bool parse_format_spec(std::string_view spec, ParsedFormatSpec& parsed, std::str
 }
 
 std::string apply_format_width(std::string text, const ParsedFormatSpec& spec) {
-  if (spec.width <= static_cast<int>(text.size())) {
+  const size_t display_width = utf8_codepoint_count(text);
+  if (spec.width <= static_cast<int>(display_width)) {
     return text;
   }
-  const size_t pad = static_cast<size_t>(spec.width) - text.size();
+  const size_t pad = static_cast<size_t>(spec.width) - display_width;
   const char align = spec.align == '\0' ? '>' : spec.align;
   if (align == '<') {
     text.append(pad, spec.fill);
@@ -2641,7 +2738,9 @@ bool format_string_value(const Value& value, const ParsedFormatSpec& spec, Value
   if (spec.precision >= 0 && spec.precision < static_cast<int>(text.size())) {
     text.resize(static_cast<size_t>(spec.precision));
   }
-  out = Value::string(apply_format_width(std::move(text), spec));
+  ParsedFormatSpec string_spec = spec;
+  if (string_spec.align == '\0') string_spec.align = '<';
+  out = Value::string(apply_format_width(std::move(text), string_spec));
   return true;
 }
 
@@ -2691,6 +2790,10 @@ bool builtin_format(
     return false;
   }
   if (args[0].tag == ValueTag::Int64) {
+    if (parsed.type == 'f' || parsed.type == 'F' || parsed.type == 'g' || parsed.type == 'e' ||
+        parsed.type == 'E' || parsed.type == '%') {
+      return format_double_value(static_cast<double>(args[0].as.i64), parsed, out, error);
+    }
     return format_int_value(args[0].as.i64, parsed, out, error);
   }
   if (args[0].tag == ValueTag::Double) {
@@ -2848,17 +2951,47 @@ bool builtin_pow(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       runtime.raise_class_error("ValueError", error);
       return false;
     }
-    int64_t base = args[0].as.i64 % args[2].as.i64;
+    const int64_t modulus = args[2].as.i64;
+    int64_t base = args[0].as.i64 % modulus;
     int64_t exp = args[1].as.i64;
-    int64_t result_value = 1 % args[2].as.i64;
+    int64_t result_value = 1 % modulus;
     if (exp < 0) {
       return raise_type_error(runtime, "pow() 2nd argument cannot be negative when 3rd argument specified", error);
     }
+    if (modulus > 0) {
+      const uint64_t unsigned_modulus = static_cast<uint64_t>(modulus);
+      auto multiply_modulo = [unsigned_modulus](uint64_t lhs, uint64_t rhs) {
+        uint64_t result = 0;
+        while (rhs != 0) {
+          if ((rhs & 1u) != 0) {
+            result = result >= unsigned_modulus - lhs
+                ? result - (unsigned_modulus - lhs)
+                : result + lhs;
+          }
+          rhs >>= 1;
+          if (rhs != 0) {
+            lhs = lhs >= unsigned_modulus - lhs
+                ? lhs - (unsigned_modulus - lhs)
+                : lhs + lhs;
+          }
+        }
+        return result;
+      };
+      uint64_t unsigned_base = static_cast<uint64_t>(base < 0 ? base + modulus : base);
+      uint64_t unsigned_result = static_cast<uint64_t>(result_value);
+      while (exp > 0) {
+        if ((exp & 1) != 0) unsigned_result = multiply_modulo(unsigned_result, unsigned_base);
+        unsigned_base = multiply_modulo(unsigned_base, unsigned_base);
+        exp >>= 1;
+      }
+      out = Value::int64(static_cast<int64_t>(unsigned_result));
+      return true;
+    }
     while (exp > 0) {
       if ((exp & 1) != 0) {
-        result_value = (result_value * base) % args[2].as.i64;
+        result_value = (result_value * base) % modulus;
       }
-      base = (base * base) % args[2].as.i64;
+      base = (base * base) % modulus;
       exp >>= 1;
     }
     out = Value::int64(result_value);
@@ -2990,6 +3123,63 @@ bool builtin_template_interpolation(
          object_set_attr(out, "format_spec", args[3], error);
 }
 
+bool builtin_template_interpolation_init(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 5) {
+    return raise_type_error(runtime, "Interpolation expected 1 to 4 arguments", error);
+  }
+  Value self = args[0];
+  if (!object_set_attr(self, "value", args[1], error) ||
+      !object_set_attr(self, "expression", argc >= 3 ? args[2] : Value::string(""), error) ||
+      !object_set_attr(self, "conversion", argc >= 4 ? args[3] : Value::none(), error) ||
+      !object_set_attr(self, "format_spec", argc >= 5 ? args[4] : Value::string(""), error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool builtin_template_init(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) return raise_type_error(runtime, "Template expected self", error);
+  std::vector<Value> strings;
+  std::vector<Value> interpolations;
+  std::vector<Value> values;
+  std::vector<Value> sequence;
+  std::string current;
+  const Value* interpolation_type = runtime.find_builtin("__xlang3_template_interpolation_type__");
+  for (uint32_t index = 1; index < argc; ++index) {
+    if (auto* text = value_as_string(args[index])) {
+      current += string_object_to_string(*text);
+      continue;
+    }
+    auto* part_instance = value_as_instance(args[index]);
+    auto* part_class = part_instance == nullptr ? nullptr : value_as_class(part_instance->klass);
+    auto* expected_class = interpolation_type == nullptr ? nullptr : value_as_class(*interpolation_type);
+    if (part_class == nullptr || expected_class == nullptr || !class_is_subclass(part_class, expected_class))
+      return raise_type_error(runtime, "Template arguments must be str or Interpolation", error);
+    strings.push_back(Value::string(current));
+    if (!current.empty()) sequence.push_back(Value::string(current));
+    current.clear();
+    interpolations.push_back(args[index]);
+    sequence.push_back(args[index]);
+    Value value;
+    if (!object_get_attr(args[index], "value", value, error)) return false;
+    values.push_back(std::move(value));
+  }
+  strings.push_back(Value::string(current));
+  if (!current.empty()) sequence.push_back(Value::string(current));
+  Value self = args[0];
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) return raise_type_error(runtime, "Template expected a Template instance", error);
+  instance->sequence_storage = Value::tuple(std::move(sequence));
+  if (!object_set_attr(self, "strings", Value::tuple(std::move(strings)), error) ||
+      !object_set_attr(self, "interpolations", Value::tuple(std::move(interpolations)), error) ||
+      !object_set_attr(self, "values", Value::tuple(std::move(values)), error)) return false;
+  value_set_none(out);
+  return true;
+}
+
 bool builtin_template_iter(
     Runtime& runtime,
     const Value* args,
@@ -3005,6 +3195,21 @@ bool builtin_template_iter(
     return raise_type_error(runtime, "Template.__iter__ expected a Template", error);
   }
   return runtime_get_iter(runtime, instance->sequence_storage, out, error);
+}
+
+bool builtin_template_reduce(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) return raise_type_error(runtime, "Template.__reduce__ expected no arguments", error);
+  Value module;
+  Value unpickle;
+  Value strings;
+  Value interpolations;
+  if (!runtime.import_module("string.templatelib", module, error) ||
+      !module_get_attr(module, "_template_unpickle", unpickle, error) ||
+      !object_get_attr(args[0], "strings", strings, error) ||
+      !object_get_attr(args[0], "interpolations", interpolations, error)) return false;
+  out = Value::tuple({unpickle, Value::tuple({strings, interpolations})});
+  return true;
 }
 
 bool builtin_template_literal(
@@ -3029,7 +3234,8 @@ bool builtin_template_literal(
   values.reserve(interpolations->items.size());
   parts.reserve(strings->items.size() + interpolations->items.size());
   for (size_t index = 0; index < strings->items.size(); ++index) {
-    parts.push_back(strings->items[index]);
+    auto* string = value_as_string(strings->items[index]);
+    if (string == nullptr || !string_object_view(*string).empty()) parts.push_back(strings->items[index]);
     if (index < interpolations->items.size()) {
       const Value& interpolation = interpolations->items[index];
       parts.push_back(interpolation);
@@ -3059,13 +3265,19 @@ void register_functional_builtins(Runtime& runtime) {
   if (object_type != nullptr && type_type != nullptr) {
     Value interpolation_type = Value::class_object(
         "Interpolation",
-        {{"__module__", Value::string("string.templatelib")}},
+        {{"__module__", Value::string("string.templatelib")},
+         {"__match_args__", Value::tuple({Value::string("value"), Value::string("expression"), Value::string("conversion"), Value::string("format_spec")})},
+         {"__xlang3_final_type__", Value::boolean(true)},
+         {"__init__", runtime.make_native_function("Interpolation.__init__", builtin_template_interpolation_init)}},
         *object_type,
         {},
         *type_type);
     Value template_type = Value::class_object(
         "Template",
         {{"__module__", Value::string("string.templatelib")},
+         {"__xlang3_final_type__", Value::boolean(true)},
+         {"__init__", runtime.make_native_function("Template.__init__", builtin_template_init)},
+         {"__reduce__", runtime.make_native_function("Template.__reduce__", builtin_template_reduce)},
          {"__iter__", runtime.make_native_function("Template.__iter__", builtin_template_iter)}},
         *object_type,
         {},
@@ -3093,6 +3305,7 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("abs", builtin_abs);
   runtime.register_native_builtin("round", builtin_round);
   runtime.register_native_builtin("repr", builtin_repr);
+  runtime.register_native_builtin("ascii", builtin_ascii);
   runtime.register_native_builtin("__xlang3_fstring_repr__", builtin_repr);
   runtime.register_native_builtin("format", builtin_format);
   runtime.register_native_builtin("__xlang3_fstring_format__", builtin_format);

@@ -25,12 +25,17 @@ namespace xlang3 {
 
 namespace {
 
+const TupleObject* tuple_protocol_storage(const Value& value, Value& scratch);
+
 bool tuple_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "tuple.__getitem__", error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!sequence_get_item(args[0], args[1], out, error)) {
+  Value storage;
+  const auto* tuple = tuple_protocol_storage(args[0], storage);
+  const Value& target = tuple == value_as_tuple(args[0]) ? args[0] : storage;
+  if (tuple == nullptr || !sequence_get_item(target, args[1], out, error)) {
     runtime.raise_class_error(error.find("range") != std::string::npos ? "IndexError" : "TypeError", error);
     return false;
   }
@@ -42,7 +47,10 @@ bool tuple_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!sequence_get_iter(args[0], out, error)) {
+  Value storage;
+  const auto* tuple = tuple_protocol_storage(args[0], storage);
+  const Value& target = tuple == value_as_tuple(args[0]) ? args[0] : storage;
+  if (tuple == nullptr || !sequence_get_iter(target, out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -72,7 +80,8 @@ bool tuple_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (!method_check_argc(argc, 2, "tuple.count", error)) {
     return false;
   }
-  auto* tuple = value_as_tuple(args[0]);
+  Value storage;
+  const auto* tuple = tuple_protocol_storage(args[0], storage);
   if (tuple == nullptr) {
     error = "tuple.count target is not a tuple";
     return false;
@@ -93,7 +102,8 @@ bool tuple_index_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* tuple = value_as_tuple(args[0]);
+  Value storage;
+  const auto* tuple = tuple_protocol_storage(args[0], storage);
   if (tuple == nullptr) {
     error = "tuple.index target is not a tuple";
     runtime.raise_class_error("TypeError", error);

@@ -447,3 +447,45 @@ batches.
   truth. PEP 669 `CALL`, `C_RETURN`, and `C_RAISE` callbacks receive four
   arguments, with `sys.monitoring.MISSING` as the final argument when no call
   argument is available.
+- Windows `spawnv` cannot join arguments with spaces: quote each argument with
+  the Microsoft command-line backslash rules before `CreateProcessW`. Native
+  `nt` failures should preserve both POSIX-facing `errno` and the original
+  `winerror`, plus `strerror` and `filename` where applicable.
+- Formatting an instance with `!r` must fall back to `object.__repr__` when its
+  class hierarchy provides no custom representation. Source-backed virtual
+  path implementations rely on that fallback when constructing validation
+  errors for empty paths.
+- Three-argument modular exponentiation must avoid signed multiplication
+  overflow even when every operand fits in 64 bits. Compilation in `single`
+  mode must also retain that mode for expression input so evaluation resolves
+  and invokes the current `sys.displayhook` dynamically.
+- Frame and traceback objects expose live activations: `f_code` identity must be
+  stable, traceback `tb_lineno` stays at the raise site, while
+  `tb_frame.f_lineno`, locals, and `f_back` follow the running call stack.
+- Integer literals must enter the arbitrary-precision path during lowering.
+  Deferring bigint creation until arithmetic lets a large decimal literal
+  overflow before the runtime can preserve it.
+- Platform `strftime` cannot be called once with an arbitrary Python string:
+  embedded NULs, wide years, negative years, and Unicode literals require
+  directive-by-directive formatting while preserving untouched string data.
+- Zero-argument `super()` must identify the function's defining class through
+  property getters as well as direct methods. A property cloned onto a subclass
+  can retain a getter defined on its parent; falling back to the receiver class
+  makes that getter resolve back to itself and recurse.
+- Built-in descriptor subclasses need direct payload dispatch for inherited
+  `classmethod.__get__` and `staticmethod.__get__`. Redispatching the proxy by
+  looking up `__get__` on the same subclass instance recursively calls the proxy.
+# Import compatibility lessons
+
+- Treat `type` as a soft keyword when parsing PEP 695 aliases. Evaluating a
+  non-generic alias RHS as a normal assignment is sufficient for source-backed
+  stdlib imports until full `TypeAliasType` metadata is implemented.
+- Loader path arguments must honor `os.PathLike`, including construction,
+  source reads, path statistics, compilation, and atomic bytecode writes.
+  `py_compile` and compiled-only resource packages exercise the whole chain.
+- Namespace package paths must be recalculated after `sys.path` changes, while
+  negative directory lookups remain cached until import cache invalidation.
+  ZIP namespace detection must infer directories from member prefixes because
+  archives are not required to contain explicit directory entries.
+- `itertools.filterfalse` must be lazy. Eagerly returning a list breaks stdlib
+  consumers such as implicit caller inference in `importlib.resources`.

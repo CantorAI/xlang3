@@ -137,12 +137,12 @@ XLANG3_HOT_INLINE bool xlang_vm_raise_not_callable(Runtime& runtime, RaiseExcept
   return raise_exception_value(runtime.make_exception("TypeError", "object is not callable"));
 }
 
-XLANG3_HOT_INLINE bool xlang_vm_abstract_methods_empty(const Value& methods, std::string& first_name) {
-  auto visit = [&first_name](const Value& item) {
-    if (first_name.empty()) {
-      if (auto* string = value_as_string(item)) {
-        first_name = string_object_to_string(*string);
-      }
+XLANG3_HOT_INLINE bool xlang_vm_abstract_methods_empty(
+    const Value& methods,
+    std::vector<std::string>& names) {
+  auto visit = [&names](const Value& item) {
+    if (auto* string = value_as_string(item)) {
+      names.push_back(string_object_to_string(*string));
     }
   };
   if (auto* set = value_as_set(methods)) {
@@ -183,7 +183,9 @@ XLANG3_HOT_INLINE bool xlang_vm_resolve_class_new_callable(
     const Value& class_value,
     ClassObject* klass,
     Value& out) {
-  if (klass == nullptr || xlang_vm_call_class_is_builtin_module_class(*klass) ||
+  if (klass == nullptr ||
+      (xlang_vm_call_class_is_builtin_module_class(*klass) &&
+       klass->name != "complex" && klass->name != "iterator") ||
       class_has_builtin_base_name(klass, XlangVMNames::builtin_type)) {
     return false;
   }
@@ -236,11 +238,12 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
     std::string collect_error;
     if (!runtime_collect_iterable(runtime, call_args.registers[star_reg], positional_args, collect_error)) {
       Value pending;
-      if (runtime.take_pending_exception(pending)) {
-        if (raise_exception_value(std::move(pending))) return false;
-        return false;
+      runtime.take_pending_exception(pending);
+      if (collect_error == "object is not iterable" || collect_error.empty()) {
+        collect_error = "Value after * must be an iterable, not " +
+            std::string(value_binary_type_name(call_args.registers[star_reg]));
       }
-      if (raise_runtime_error(collect_error.empty() ? "* argument must be iterable" : collect_error)) return false;
+      if (raise_exception_value(runtime.make_exception("TypeError", collect_error))) return false;
       return false;
     }
     return true;
@@ -282,7 +285,19 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
     }
     auto* dict = value_as_dict(call_args.registers[kw_star_reg]);
     if (dict == nullptr) {
-      if (raise_runtime_error("** argument must be dict")) return false;
+      std::string callable_name = klass == nullptr ? "function" : klass->name;
+      if (klass != nullptr) {
+        const auto module_it = klass->attrs.find("__module__");
+        if (module_it != klass->attrs.end()) {
+          if (auto* module_name = value_as_string(module_it->second)) {
+            callable_name = string_object_to_string(*module_name) + "." + callable_name;
+          }
+        }
+      }
+      const std::string message = callable_name +
+          "() argument after ** must be a mapping, not " +
+          value_binary_type_name(call_args.registers[kw_star_reg]);
+      if (raise_exception_value(runtime.make_exception("TypeError", message))) return false;
       return false;
     }
     for (const auto& entry : dict->entries) {
@@ -338,7 +353,8 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
   const auto* new_native = value_as_native_function(new_callable);
   const bool run_python_init =
       value_as_function(new_callable) != nullptr ||
-      (new_native != nullptr && new_native->name == "_thread._local.__new__");
+      (new_native != nullptr &&
+       (new_native->name == "_thread._local.__new__" || new_native->name == "struct.Struct.__new__"));
   auto* instance = value_as_instance(new_result);
   auto* instance_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
   if (run_python_init && instance_class != nullptr && klass != nullptr && class_is_subclass(instance_class, klass)) {
@@ -389,14 +405,24 @@ XLANG3_HOT_INLINE bool xlang_vm_reject_abstract_class_instantiation(
   if (!object_get_attr(class_value, "__abstractmethods__", abstract_methods, ignored)) {
     return true;
   }
-  std::string first_name;
-  if (xlang_vm_abstract_methods_empty(abstract_methods, first_name)) {
+  std::vector<std::string> abstract_names;
+  if (xlang_vm_abstract_methods_empty(abstract_methods, abstract_names)) {
     return true;
   }
+  std::sort(abstract_names.begin(), abstract_names.end());
   rejected = true;
   std::string message = "Can't instantiate abstract class " + klass.name + " without an implementation for abstract method";
-  if (!first_name.empty()) {
-    message += " '" + first_name + "'";
+  if (abstract_names.size() != 1) {
+    message += "s";
+  }
+  if (!abstract_names.empty()) {
+    message += " ";
+    for (size_t i = 0; i < abstract_names.size(); ++i) {
+      if (i != 0) {
+        message += i + 1 == abstract_names.size() ? ", " : ", ";
+      }
+      message += "'" + abstract_names[i] + "'";
+    }
   }
   return raise_exception_value(runtime.make_exception("TypeError", message));
 }
@@ -489,9 +515,13 @@ XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
       return false;
     }
     if (!runtime_collect_iterable(runtime, values.registers[star_reg], native_call_args, error)) {
-      if (error.empty()) {
-        error = "* argument must be iterable";
+      if (error == "object is not iterable" || error.empty()) {
+        error = "Value after * must be an iterable, not " +
+            std::string(value_binary_type_name(values.registers[star_reg]));
       }
+      Value pending;
+      runtime.take_pending_exception(pending);
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
     return true;
@@ -528,6 +558,7 @@ XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
     auto* dict = value_as_dict(values.registers[kw_star_reg]);
     if (dict == nullptr) {
       error = "** argument must be dict";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
     for (const auto& entry : dict->entries) {
@@ -1142,7 +1173,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     bound_args.leading = &bound->self;
     bound_args.leading_count = 1;
     if (auto* native = value_as_native_function(bound->function)) {
-      if (!resolved_property && !receiver_is_super && !instr_cache.empty() && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
+      if (!resolved_property && !receiver_is_super && value_is(bound->self, regs[in.a]) &&
+          !instr_cache.empty() && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
         auto& cache = instr_cache[ip].call;
         if (auto* receiver_class = value_as_class(regs[in.a])) {
           cache.callee_object = &receiver_class->header;
@@ -2415,6 +2447,11 @@ XLANG3_HOT_INLINE bool call_native_function(
     bool has_keywords = false;
     native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_keywords, error);
     if (native_args == nullptr && !error.empty()) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        if (raise_exception_value(std::move(pending))) return false;
+        return false;
+      }
       if (raise_runtime_error(error)) return false;
       return false;
     }
@@ -2540,6 +2577,11 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   if (needs_materialized_ex) {
     native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_materialized_keywords, error);
     if (native_args == nullptr && !error.empty()) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        if (raise_exception_value(std::move(pending))) return false;
+        return false;
+      }
       if (raise_runtime_error(error)) return false;
       return false;
     }
@@ -2846,13 +2888,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains_dynamic(
   Value contains_method;
   std::string attr_error;
   if (!object_get_attr(regs[in.b], "__contains__", contains_method, attr_error)) {
-    if (error.rfind("'in <", 0) == 0) {
-      return raise_exception_value(runtime.make_exception("TypeError", error))
-          ? XlangVMOpFlow::ContinueLoop
-          : XlangVMOpFlow::ReturnResult;
-    }
-    return raise_runtime_error(error.empty() ? attr_error : error) ? XlangVMOpFlow::ContinueLoop
-                                                                   : XlangVMOpFlow::ReturnResult;
+    const std::string message = error.empty() ? attr_error : error;
+    return raise_exception_value(runtime.make_exception("TypeError", message))
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
   }
 
   uint32_t arg_reg = in.a;

@@ -122,7 +122,7 @@ bool int_pow_method(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return runtime_call_callable(runtime, *pow_function, pow_args, 3, out, error);
 }
 
-bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool int_to_bytes_impl(const Value* args, uint32_t argc, bool signed_value, Value& out, std::string& error) {
   if (argc < 1 || argc > 3) {
     error = "int.to_bytes expected at most length and byteorder";
     return false;
@@ -150,11 +150,47 @@ bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   }
   const uint32_t length = static_cast<uint32_t>(length_value.as.i64);
   std::string bytes;
-  if (!value_int_like_to_bytes(args[0], length, byteorder == "big", false, bytes, error)) {
+  if (!value_int_like_to_bytes(args[0], length, byteorder == "big", signed_value, bytes, error)) {
     return false;
   }
   out = Value::bytes(bytes);
   return true;
+}
+
+bool int_to_bytes_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return int_to_bytes_impl(args, argc, false, out, error);
+}
+
+bool int_to_bytes_kw_method(Runtime& runtime, const Value* args, uint32_t argc,
+                            const NativeKeywordArg* kwargs, uint32_t kwargc,
+                            Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) { error = "int.to_bytes expected at most length and byteorder"; return false; }
+  std::vector<Value> values(args, args + argc);
+  bool have_length = argc >= 2;
+  bool have_byteorder = argc >= 3;
+  bool signed_value = false;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (kwargs[i].value == nullptr) { error = "invalid keyword argument"; return false; }
+    if (name == "signed") {
+      bool truth = false;
+      if (!runtime_truthy(runtime, *kwargs[i].value, truth, error)) return false;
+      signed_value = truth;
+    } else if (name == "length") {
+      if (have_length) { error = "int.to_bytes got multiple values for argument 'length'"; return false; }
+      if (values.size() == 1) values.push_back(*kwargs[i].value); else values[1] = *kwargs[i].value;
+      have_length = true;
+    } else if (name == "byteorder") {
+      if (have_byteorder) { error = "int.to_bytes got multiple values for argument 'byteorder'"; return false; }
+      if (!have_length) values.push_back(Value::int64(1));
+      values.push_back(*kwargs[i].value);
+      have_byteorder = true;
+    } else {
+      error = "int.to_bytes got an unexpected keyword argument '" + name + "'";
+      return false;
+    }
+  }
+  return int_to_bytes_impl(values.data(), static_cast<uint32_t>(values.size()), signed_value, out, error);
 }
 
 bool byteorder_is_big(const Value& value, bool& is_big, std::string& error) {
@@ -328,7 +364,7 @@ static constexpr BuiltinMethodSpec kIntMethods[] = {
     {"__gt__", "int.__gt__", int_gt_method},
     {"__ge__", "int.__ge__", int_ge_method},
     {"bit_length", "int.bit_length", int_bit_length_method},
-    {"to_bytes", "int.to_bytes", int_to_bytes_method},
+    {"to_bytes", "int.to_bytes", int_to_bytes_method, nullptr, false, int_to_bytes_kw_method},
 };
 
 } // namespace

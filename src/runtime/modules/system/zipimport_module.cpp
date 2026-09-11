@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
@@ -25,6 +26,8 @@ limitations under the License.
 
 #include "zip_archive.h"
 
+#include <algorithm>
+#include <filesystem>
 #include <memory>
 
 namespace xlang3 {
@@ -105,7 +108,13 @@ Value make_zip_module_spec(
   object_set_attr(spec, "name", Value::string(fullname), ignored);
   object_set_attr(spec, "loader", loader, ignored);
   object_set_attr(spec, "origin", Value::string(origin), ignored);
-  object_set_attr(spec, "cached", Value::none(), ignored);
+  std::string cached = origin;
+  const std::filesystem::path origin_path(origin);
+  if (origin_path.extension() == ".py") {
+    cached = (origin_path.parent_path() / "__pycache__" /
+              (origin_path.stem().string() + ".xlang3-314.pyc")).string();
+  }
+  object_set_attr(spec, "cached", Value::string(cached), ignored);
   const auto dot = fullname.rfind('.');
   object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : fullname.substr(0, dot)), ignored);
   object_set_attr(spec, "has_location", Value::boolean(true), ignored);
@@ -148,10 +157,25 @@ bool zipimporter_find_member(
       return true;
     }
   }
+  member = base + ".pyc";
+  for (const auto& entry : entries) {
+    if (entry.name == member) {
+      is_package = false;
+      return true;
+    }
+  }
   const std::string package_member = base + "/__init__.py";
   for (const auto& entry : entries) {
     if (entry.name == package_member) {
       member = package_member;
+      is_package = true;
+      return true;
+    }
+  }
+  const std::string package_bytecode = base + "/__init__.pyc";
+  for (const auto& entry : entries) {
+    if (entry.name == package_bytecode) {
+      member = package_bytecode;
       is_package = true;
       return true;
     }
@@ -168,9 +192,32 @@ bool zipimporter_init(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (!zip_get_string_arg(args[1], "archive path", archive, error)) {
     return false;
   }
+  std::string prefix;
+  std::string archive_path = archive;
   std::vector<uint8_t> archive_bytes;
   std::vector<ZipArchiveEntry> entries;
-  if (!runtime.vfs().read_file(archive, archive_bytes, error) ||
+  if (!runtime.vfs().read_file(archive_path, archive_bytes, error)) {
+    error.clear();
+    const auto zip_end = archive.find(".zip");
+    if (zip_end != std::string::npos && zip_end + 4 < archive.size() &&
+        (archive[zip_end + 4] == '/' || archive[zip_end + 4] == '\\')) {
+      archive_path = archive.substr(0, zip_end + 4);
+      prefix = archive.substr(zip_end + 5);
+#if defined(_WIN32)
+      for (char& ch : prefix) if (ch == '/') ch = '\\';
+      if (!prefix.empty() && prefix.back() != '\\') prefix.push_back('\\');
+#else
+      for (char& ch : prefix) if (ch == '\\') ch = '/';
+      if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
+#endif
+    }
+  }
+  if (archive_bytes.empty() && !runtime.vfs().read_file(archive_path, archive_bytes, error)) {
+    error = "not a Zip file: " + archive;
+    runtime.raise_class_error("ImportError", error);
+    return false;
+  }
+  if (
       !zip_archive_list_entries(archive_bytes, entries, error)) {
     error = "not a Zip file: " + archive;
     runtime.raise_class_error("ImportError", error);
@@ -178,8 +225,27 @@ bool zipimporter_init(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   Value self = args[0];
   std::string ignored;
-  object_set_attr(self, "archive", Value::string(archive), ignored);
-  object_set_attr(self, "prefix", Value::string(""), ignored);
+  object_set_attr(self, "archive", Value::string(archive_path), ignored);
+  object_set_attr(self, "prefix", Value::string(prefix), ignored);
+  Value zipimport;
+  Value directory_cache;
+  if (runtime.import_module("zipimport", zipimport, ignored) &&
+      module_get_attr(zipimport, "_zip_directory_cache", directory_cache, ignored)) {
+    std::vector<std::pair<Value, Value>> directory_entries;
+    directory_entries.reserve(entries.size());
+    for (const auto& entry : entries) {
+      std::string member = entry.name;
+#if defined(_WIN32)
+      for (char& ch : member) if (ch == '/') ch = '\\';
+#endif
+      directory_entries.push_back({Value::string(std::move(member)), Value::none()});
+    }
+    mapping_set_item(
+        directory_cache,
+        Value::string(archive_path),
+        Value::dict(std::move(directory_entries)),
+        ignored);
+  }
   value_set_none(out);
   return true;
 }
@@ -268,7 +334,8 @@ bool zipimporter_get_data(Runtime& runtime, const Value* args, uint32_t argc, Va
   Value archive_value;
   std::string ignored;
   if (object_get_attr(args[0], "archive", archive_value, ignored)) {
-    std::string archive_path = value_to_string(archive_value);
+    std::string archive_path;
+    if (!zip_get_string_arg(archive_value, "archive", archive_path, error)) return false;
     std::string member;
     if (zip_archive_split_member_path(archive_path, path, member)) {
       std::vector<uint8_t> archive_bytes;
@@ -334,6 +401,23 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
   if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
     return false;
   }
+  if (std::filesystem::path(member).extension() == ".pyc") {
+    if (source.size() < 16 || source.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0) {
+      return raise_zipimport_error(runtime, "bad magic number in '" + member + "'", error);
+    }
+    Value marshal_module;
+    Value loads;
+    Value payload = Value::bytes(source.substr(16));
+    if (!runtime.import_module("marshal", marshal_module, error) ||
+        !module_get_attr(marshal_module, "loads", loads, error) ||
+        !runtime_call_callable(runtime, loads, &payload, 1, out, error)) {
+      return false;
+    }
+    if (value_as_code(out) == nullptr) {
+      return raise_zipimport_error(runtime, "bytecode does not contain code", error);
+    }
+    return true;
+  }
   std::string decoded_source;
   if (!runtime.decode_python_source(source, decoded_source, error)) {
     return false;
@@ -373,32 +457,14 @@ bool zipimporter_execute_module(
     return raise_zipimport_error(runtime, "can't find module '" + fullname + "'", error);
   }
   found = true;
-  std::vector<uint8_t> archive_bytes;
-  if (!runtime.vfs().read_file(archive, archive_bytes, error)) {
+  Value code_args[] = {loader, Value::string(fullname)};
+  Value code_value;
+  if (!zipimporter_get_code(runtime, code_args, 2, code_value, error, nullptr)) {
     return false;
   }
-  ZipArchiveEntry entry;
-  if (!zip_archive_find_entry(archive_bytes, member, entry, error)) {
-    return false;
-  }
-  std::string source;
-  if (!zip_archive_extract_member(archive_bytes, entry, source, error)) {
-    return false;
-  }
-  std::string decoded_source;
-  if (!runtime.decode_python_source(source, decoded_source, error)) {
-    return false;
-  }
-  source = std::move(decoded_source);
-
-  auto parsed = parse_source(source);
-  if (!parsed.errors.empty()) {
-    error = "parse error importing module '" + fullname + "': " + parsed.errors.front();
-    return false;
-  }
-  auto lowered = lower_to_ir(parsed.module);
-  if (!lowered.errors.empty()) {
-    error = "lower error importing module '" + fullname + "': " + lowered.errors.front();
+  auto* code = value_as_code(code_value);
+  if (code == nullptr || code->module == nullptr) {
+    error = "zipimporter.get_code() did not return a code object";
     return false;
   }
 
@@ -414,8 +480,6 @@ bool zipimporter_execute_module(
     module_set_attr(module_value, "__path__", Value::list({Value::string(zip_origin_path(archive, zip_module_base(fullname)))}), ignored);
   }
 
-  auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
-  module_ir->source_file = origin;
   Value previous_module;
   bool had_previous_module = false;
   if (!register_module && runtime.has_registered_module(fullname)) {
@@ -426,8 +490,11 @@ bool zipimporter_execute_module(
     runtime.register_module(fullname, module_value);
   }
   Interpreter interpreter(runtime);
-  RuntimeResult result = interpreter.run_module(*module_ir, module_value, module_ir);
+  RuntimeResult result = interpreter.run_module(*code->module, module_value, code->module);
   if (!result.errors.empty()) {
+    if (result.exception.tag != ValueTag::Invalid) {
+      runtime.set_pending_exception(result.exception);
+    }
     if (register_module) {
       runtime.unregister_module(fullname);
     } else if (had_previous_module) {
@@ -574,8 +641,33 @@ bool zipimporter_get_resource_reader(Runtime& runtime, const Value* args, uint32
   if (!module_get_attr(readers_module, "ZipReader", zip_reader_class, error)) {
     return false;
   }
+  std::string fullname = string_object_to_string(*value_as_string(args[1]));
+  std::string archive;
+  std::string member;
+  bool is_package = false;
+  bool archive_valid = false;
+  std::string lookup_error;
+  (void)zipimporter_find_member(
+      runtime, args[0], fullname, archive, member, is_package, archive_valid, lookup_error);
+  Value original_prefix;
+  std::string ignored;
+  const bool had_prefix = object_get_attr(args[0], "prefix", original_prefix, ignored);
+  if (!is_package) {
+    const auto dot = fullname.rfind('.');
+    if (dot != std::string::npos) {
+      std::string prefix;
+      if (had_prefix && value_as_string(original_prefix) != nullptr)
+        prefix = string_object_to_string(*value_as_string(original_prefix));
+      std::string parent = fullname.substr(0, dot);
+      std::replace(parent.begin(), parent.end(), '.', '/');
+      prefix += parent + "/";
+      object_set_attr(const_cast<Value&>(args[0]), "prefix", Value::string(prefix), ignored);
+    }
+  }
   Value reader_args[] = {args[0], args[1]};
-  return runtime_call_callable(runtime, zip_reader_class, reader_args, 2, out, error);
+  const bool ok = runtime_call_callable(runtime, zip_reader_class, reader_args, 2, out, error);
+  if (had_prefix) object_set_attr(const_cast<Value&>(args[0]), "prefix", original_prefix, ignored);
+  return ok;
 }
 
 Value make_zipimporter_class(Runtime& runtime) {

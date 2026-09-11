@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -199,11 +200,47 @@ bool slice_indices_method(
   return true;
 }
 
+bool range_reduce_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  auto* range = argc >= 1 ? value_as_range(args[0]) : nullptr;
+  if ((argc != 1 && argc != 2) || range == nullptr) {
+    error = "range.__reduce__() requires a range object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value* range_type = runtime.find_builtin("range");
+  if (range_type == nullptr) {
+    error = "range type is not registered";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  out = Value::tuple({
+      *range_type,
+      Value::tuple({range->start_value, range->stop_value, range->step_value})});
+  return true;
+}
+
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag == ValueTag::None && name == "__new__") {
     static Value none_new = Value::native_function(0, "NoneType.__new__", none_new_method);
     value_assign_fast(out, none_new);
     return true;
+  }
+  if (value_as_range(object) != nullptr &&
+      (name == "__reduce__" || name == "__reduce_ex__")) {
+    return bind_builtin_method(
+        object,
+        name == "__reduce__" ? "range.__reduce__" : "range.__reduce_ex__",
+        range_reduce_method,
+        nullptr,
+        false,
+        name == "__reduce__" ? "($self, /)" : "($self, protocol, /)",
+        out);
   }
   return list_get_method(object, name, out) ||
          tuple_get_method(object, name, out) ||
@@ -262,6 +299,7 @@ bool attribute_get(const Value& object, const std::string& name, Value& out, std
   if (value_as_native_function(object) != nullptr || value_as_bound_method(object) != nullptr ||
       value_as_code(object) != nullptr || value_as_frame(object) != nullptr ||
       value_as_cell(object) != nullptr ||
+      value_as_complex(object) != nullptr ||
       value_as_traceback(object) != nullptr || value_as_class(object) != nullptr ||
       value_as_instance(object) != nullptr || value_as_super(object) != nullptr ||
       value_as_static_method(object) != nullptr || value_as_class_method(object) != nullptr ||

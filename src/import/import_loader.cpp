@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/import_loader.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/native_package_loader.h"
@@ -27,6 +28,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <chrono>
+#include <cctype>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -45,6 +47,7 @@ struct ModuleFile {
   bool is_package = false;
   bool is_namespace_package = false;
   bool is_zip_source = false;
+  bool is_bytecode = false;
   std::string path_importer_cache_key;
 };
 
@@ -80,7 +83,13 @@ std::string module_leaf_name(const std::string& name) {
 }
 
 std::string python_path_string(const std::filesystem::path& path) {
-  return path.lexically_normal().generic_string();
+  return path.lexically_normal().string();
+}
+
+std::string bytecode_cache_path(const std::string& source) {
+  const std::filesystem::path source_path(source);
+  return (source_path.parent_path() / "__pycache__" /
+          (source_path.stem().string() + ".xlang3-314.pyc")).string();
 }
 
 std::string module_member_base(const std::vector<std::string>& parts) {
@@ -95,26 +104,36 @@ std::string module_member_base(const std::vector<std::string>& parts) {
 }
 
 bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive_path, const std::vector<std::string>& parts, ModuleFile& out) {
+  std::string path_entry = archive_path.string();
+  std::string lower_entry = path_entry;
+  std::transform(lower_entry.begin(), lower_entry.end(), lower_entry.begin(),
+                 [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+  const auto zip_pos = lower_entry.find(".zip");
+  if (zip_pos == std::string::npos) return false;
+  const std::string archive_name = path_entry.substr(0, zip_pos + 4);
+  std::string prefix = path_entry.substr(zip_pos + 4);
+  while (!prefix.empty() && (prefix.front() == '/' || prefix.front() == '\\')) prefix.erase(prefix.begin());
+  std::replace(prefix.begin(), prefix.end(), '\\', '/');
   VfsStat stat;
   std::string error;
-  if (!runtime.vfs().stat(archive_path.string(), stat, error) || stat.kind != VfsNodeKind::File) {
+  if (!runtime.vfs().stat(archive_name, stat, error) || stat.kind != VfsNodeKind::File) {
     return false;
   }
-  const auto archive_string = python_path_string(archive_path);
-  const auto extension = archive_path.extension().string();
-  if (extension != ".zip") {
-    return false;
-  }
+  const auto archive_string = python_path_string(archive_name);
+  auto virtual_path = [&](const std::string& member) {
+    return (std::filesystem::path(archive_string) / std::filesystem::path(member)).string();
+  };
   std::vector<uint8_t> archive;
   if (!runtime.vfs().read_file(archive_string, archive, error)) {
     return false;
   }
-  const auto base = module_member_base(parts);
+  auto base = module_member_base(parts);
+  if (!prefix.empty()) base = prefix + "/" + base;
   ZipArchiveEntry entry;
   std::string source;
   if (zip_archive_find_entry(archive, base + ".py", entry, error) &&
       zip_archive_extract_member(archive, entry, source, error)) {
-    out.path = archive_string + "/" + base + ".py";
+    out.path = virtual_path(base + ".py");
     out.source = std::move(source);
     out.is_package = false;
     out.is_namespace_package = false;
@@ -123,14 +142,57 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
     return true;
   }
   error.clear();
+  if (zip_archive_find_entry(archive, base + ".pyc", entry, error) &&
+      zip_archive_extract_member(archive, entry, source, error)) {
+    out.path = virtual_path(base + ".pyc");
+    out.source = std::move(source);
+    out.is_package = false;
+    out.is_namespace_package = false;
+    out.is_zip_source = true;
+    out.is_bytecode = true;
+    out.path_importer_cache_key = archive_string;
+    return true;
+  }
+  error.clear();
   const auto init_member = base + "/__init__.py";
   if (zip_archive_find_entry(archive, init_member, entry, error) &&
       zip_archive_extract_member(archive, entry, source, error)) {
-    out.path = archive_string + "/" + init_member;
-    out.package_dir = archive_string + "/" + base;
+    out.path = virtual_path(init_member);
+    out.package_dir = virtual_path(base);
     out.source = std::move(source);
     out.is_package = true;
     out.is_namespace_package = false;
+    out.is_zip_source = true;
+    out.path_importer_cache_key = archive_string;
+    return true;
+  }
+  error.clear();
+  const auto init_bytecode_member = base + "/__init__.pyc";
+  if (zip_archive_find_entry(archive, init_bytecode_member, entry, error) &&
+      zip_archive_extract_member(archive, entry, source, error)) {
+    out.path = virtual_path(init_bytecode_member);
+    out.package_dir = virtual_path(base);
+    out.source = std::move(source);
+    out.is_package = true;
+    out.is_namespace_package = false;
+    out.is_zip_source = true;
+    out.is_bytecode = true;
+    out.path_importer_cache_key = archive_string;
+    return true;
+  }
+  std::vector<ZipArchiveEntry> entries;
+  error.clear();
+  const std::string namespace_prefix = base + "/";
+  if (zip_archive_list_entries(archive, entries, error) &&
+      std::any_of(entries.begin(), entries.end(), [&](const ZipArchiveEntry& candidate) {
+        return candidate.name.size() >= namespace_prefix.size() &&
+            candidate.name.compare(0, namespace_prefix.size(), namespace_prefix) == 0;
+      })) {
+    out.path.clear();
+    out.package_dir = virtual_path(base);
+    out.namespace_dirs = {out.package_dir};
+    out.is_package = true;
+    out.is_namespace_package = true;
     out.is_zip_source = true;
     out.path_importer_cache_key = archive_string;
     return true;
@@ -180,6 +242,21 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
     std::string ignored;
     if (runtime.import_module(parent_name, parent, ignored)) {
       Value package_path;
+      Value parent_file;
+      bool parent_is_namespace = false;
+      if (module_get_attr(parent, "__file__", parent_file, ignored) && parent_file.tag == ValueTag::None) {
+        parent_is_namespace = true;
+        ModuleFile refreshed_parent;
+        if (find_module_file(runtime, parent_name, refreshed_parent) &&
+            refreshed_parent.is_namespace_package && !refreshed_parent.namespace_dirs.empty()) {
+          std::vector<Value> refreshed_paths;
+          refreshed_paths.reserve(refreshed_parent.namespace_dirs.size());
+          for (const auto& directory : refreshed_parent.namespace_dirs) {
+            refreshed_paths.push_back(Value::string(directory));
+          }
+          module_set_attr(parent, "__path__", Value::list(std::move(refreshed_paths)), ignored);
+        }
+      }
       if (module_get_attr(parent, "__path__", package_path, ignored)) {
         std::vector<std::filesystem::path> package_roots;
         if (auto* string = value_as_string(package_path)) {
@@ -192,6 +269,17 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
           }
         }
         for (const auto& package_root : package_roots) {
+          ModuleFile zip_candidate;
+          if (find_zip_module_file(runtime, package_root, {module_leaf_name(name)}, zip_candidate)) {
+            if (!zip_candidate.is_namespace_package) {
+              out = std::move(zip_candidate);
+              return true;
+            }
+            for (const auto& directory : zip_candidate.namespace_dirs) {
+              namespace_dirs.emplace_back(directory);
+            }
+            continue;
+          }
           auto candidate_base = package_root / module_leaf_name(name);
           auto candidate = candidate_base;
           candidate += ".py";
@@ -203,6 +291,15 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             out.package_dir.clear();
             return true;
           }
+          auto bytecode_candidate = candidate_base;
+          bytecode_candidate += ".pyc";
+          if (runtime.vfs().stat(bytecode_candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+            out.path = python_path_string(bytecode_candidate);
+            out.is_package = false;
+            out.is_bytecode = true;
+            out.package_dir.clear();
+            return true;
+          }
           auto package_init = candidate_base / "__init__.py";
           if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
             out.path = python_path_string(package_init);
@@ -211,9 +308,21 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             out.is_namespace_package = false;
             return true;
           }
+          auto package_bytecode = candidate_base / "__init__.pyc";
+          if (runtime.vfs().stat(package_bytecode.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+            out.path = python_path_string(package_bytecode);
+            out.package_dir = python_path_string(candidate_base);
+            out.is_package = true;
+            out.is_bytecode = true;
+            out.is_namespace_package = false;
+            return true;
+          }
           if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
             namespace_dirs.push_back(candidate_base);
           }
+        }
+        if (!parent_is_namespace) {
+          return false;
         }
       } else {
         return false;
@@ -243,8 +352,16 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
     if (root.empty()) {
       root = std::filesystem::current_path();
     }
-    if (find_zip_module_file(runtime, root, parts, out)) {
-      return true;
+    ModuleFile zip_candidate;
+    if (find_zip_module_file(runtime, root, parts, zip_candidate)) {
+      if (!zip_candidate.is_namespace_package) {
+        out = std::move(zip_candidate);
+        return true;
+      }
+      for (const auto& directory : zip_candidate.namespace_dirs) {
+        namespace_dirs.emplace_back(directory);
+      }
+      continue;
     }
     auto candidate_base = root;
     for (const auto& part : parts) {
@@ -262,11 +379,31 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
       return true;
     }
 
+    auto bytecode_candidate = candidate_base;
+    bytecode_candidate += ".pyc";
+    if (runtime.vfs().stat(bytecode_candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+      out.path = python_path_string(bytecode_candidate);
+      out.is_package = false;
+      out.is_bytecode = true;
+      out.package_dir.clear();
+      return true;
+    }
+
     auto package_init = candidate_base / "__init__.py";
     if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
       out.path = python_path_string(package_init);
       out.package_dir = python_path_string(candidate_base);
       out.is_package = true;
+      out.is_namespace_package = false;
+      return true;
+    }
+
+    auto package_bytecode = candidate_base / "__init__.pyc";
+    if (runtime.vfs().stat(package_bytecode.string(), stat, error) && stat.kind == VfsNodeKind::File) {
+      out.path = python_path_string(package_bytecode);
+      out.package_dir = python_path_string(candidate_base);
+      out.is_package = true;
+      out.is_bytecode = true;
       out.is_namespace_package = false;
       return true;
     }
@@ -318,6 +455,76 @@ void trace_import_timing(const std::string& name, const char* phase, std::chrono
   std::cerr << "xlang3 import timing: " << name << " " << phase << " " << seconds_since(start) << "s\n";
 }
 
+std::string python_import_miss_key(Runtime& runtime, const std::string& name) {
+  std::string key = name;
+  Value sys;
+  Value path;
+  std::string ignored;
+  if (runtime.import_module("sys", sys, ignored) && module_get_attr(sys, "path", path, ignored)) {
+    key.push_back('\n');
+    key += value_to_string(path);
+  }
+  return key;
+}
+
+void append_pyc_u32(std::string& data, uint32_t value) {
+  for (int i = 0; i < 4; ++i) {
+    data.push_back(static_cast<char>((value >> (i * 8)) & 0xffu));
+  }
+}
+
+void write_source_bytecode_cache(
+    Runtime& runtime,
+    const ModuleFile& module_file,
+    const std::shared_ptr<const ir::Module>& module_ir) {
+  if (module_file.is_zip_source || module_file.path.empty() || module_ir == nullptr) {
+    return;
+  }
+  Value sys;
+  Value dont_write;
+  std::string ignored;
+  if (runtime.import_module("sys", sys, ignored) &&
+      module_get_attr(sys, "dont_write_bytecode", dont_write, ignored) &&
+      value_truthy(dont_write)) {
+    return;
+  }
+  Value marshal_module;
+  Value dumps;
+  Value marshaled;
+  Value code = Value::code(module_ir, module_ir->entry, "exec");
+  if (!runtime.import_module("marshal", marshal_module, ignored) ||
+      !module_get_attr(marshal_module, "dumps", dumps, ignored) ||
+      !runtime_call_callable(runtime, dumps, &code, 1, marshaled, ignored)) {
+    Value pending;
+    runtime.take_pending_exception(pending);
+    return;
+  }
+  auto* marshaled_bytes = value_as_bytes(marshaled);
+  if (marshaled_bytes == nullptr) {
+    return;
+  }
+  VfsStat stat;
+  if (!runtime.vfs().stat(module_file.path, stat, ignored)) {
+    return;
+  }
+  std::string pyc("\x33\x58\x0d\x0a", 4);
+  append_pyc_u32(pyc, 0);
+  append_pyc_u32(pyc, static_cast<uint32_t>(stat.mtime_ns / 1000000000ll));
+  append_pyc_u32(pyc, static_cast<uint32_t>(stat.size));
+  pyc.append(bytes_object_view(*marshaled_bytes));
+
+  const std::filesystem::path cache_path(bytecode_cache_path(module_file.path));
+  const std::filesystem::path cache_dir = cache_path.parent_path();
+  if (!runtime.vfs().make_dirs(cache_dir.string(), true, ignored)) {
+    return;
+  }
+  (void)runtime.vfs().write_file(
+      cache_path.string(),
+      reinterpret_cast<const uint8_t*>(pyc.data()),
+      pyc.size(),
+      ignored);
+}
+
 } // namespace
 
 bool find_python_module_location(Runtime& runtime, const std::string& name, PythonModuleLocation& out) {
@@ -354,8 +561,14 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     }
   }
 
+  const std::string miss_key = python_import_miss_key(runtime, name);
+  if (runtime.has_python_import_miss(miss_key)) {
+    error = "module '" + name + "' not found";
+    return false;
+  }
   ModuleFile module_file;
   if (!find_module_file(runtime, name, module_file)) {
+    runtime.remember_python_import_miss(miss_key);
     error = "module '" + name + "' not found";
     return false;
   }
@@ -405,44 +618,78 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   if (!module_file.is_zip_source && !read_file(runtime, module_file.path, source, error)) {
     return false;
   }
-  std::string decoded_source;
-  if (!runtime.decode_python_source(source, decoded_source, error)) {
-    error = "cannot decode module '" + name + "': " + error;
-    return false;
+  if (!module_file.is_bytecode) {
+    std::string decoded_source;
+    if (!runtime.decode_python_source(source, decoded_source, error)) {
+      error = "cannot decode module '" + name + "': " + error;
+      return false;
+    }
+    source = std::move(decoded_source);
   }
-  source = std::move(decoded_source);
   trace_import_timing(name, "read", import_start);
 
   auto module_value = Value::module(name);
   std::string attr_error;
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
   module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);
-  module_set_attr(module_value, "__cached__", Value::string(module_file.path), attr_error);
+  module_set_attr(
+      module_value,
+      "__cached__",
+      Value::string(module_file.is_bytecode ? module_file.path : bytecode_cache_path(module_file.path)),
+      attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
   module_set_attr(module_value, "__annotations__", Value::dict({}), attr_error);
   if (module_file.is_zip_source && zip_loader.tag != ValueTag::Invalid) {
     module_set_attr(module_value, "__loader__", zip_loader, attr_error);
   }
   if (module_file.is_package) {
-    module_set_attr(module_value, "__path__", Value::string(module_file.package_dir), attr_error);
+    module_set_attr(
+        module_value,
+        "__path__",
+        Value::list({Value::string(module_file.package_dir)}),
+        attr_error);
   }
 
-  trace_import_timing(name, "parse-begin", import_start);
-  auto parsed = parse_source(source);
-  trace_import_timing(name, "parse-end", import_start);
-  if (!parsed.errors.empty()) {
-    error = "parse error importing module '" + name + "': " + parsed.errors.front();
-    return false;
+  std::shared_ptr<const ir::Module> module_ir;
+  if (module_file.is_bytecode) {
+    if (source.size() < 16 || source.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0) {
+      error = "bad magic number in bytecode file '" + module_file.path + "'";
+      return false;
+    }
+    Value marshal_module;
+    Value loads;
+    Value code_value;
+    Value payload = Value::bytes(source.substr(16));
+    if (!runtime.import_module("marshal", marshal_module, error) ||
+        !module_get_attr(marshal_module, "loads", loads, error) ||
+        !runtime_call_callable(runtime, loads, &payload, 1, code_value, error)) {
+      return false;
+    }
+    auto* code = value_as_code(code_value);
+    if (code == nullptr || code->module == nullptr) {
+      error = "bytecode file does not contain a code object";
+      return false;
+    }
+    module_ir = code->module;
+  } else {
+    trace_import_timing(name, "parse-begin", import_start);
+    auto parsed = parse_source(source);
+    trace_import_timing(name, "parse-end", import_start);
+    if (!parsed.errors.empty()) {
+      error = "parse error importing module '" + name + "': " + parsed.errors.front();
+      return false;
+    }
+    trace_import_timing(name, "lower-begin", import_start);
+    auto lowered = lower_to_ir(parsed.module);
+    trace_import_timing(name, "lower-end", import_start);
+    if (!lowered.errors.empty()) {
+      error = "lower error importing module '" + name + "': " + lowered.errors.front();
+      return false;
+    }
+    auto mutable_module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
+    mutable_module_ir->source_file = module_file.path;
+    module_ir = std::move(mutable_module_ir);
   }
-  trace_import_timing(name, "lower-begin", import_start);
-  auto lowered = lower_to_ir(parsed.module);
-  trace_import_timing(name, "lower-end", import_start);
-  if (!lowered.errors.empty()) {
-    error = "lower error importing module '" + name + "': " + lowered.errors.front();
-    return false;
-  }
-  auto module_ir = std::make_shared<ir::Module>(std::move(lowered.module));
-  module_ir->source_file = module_file.path;
 
   runtime.register_module(name, module_value);
   Interpreter interpreter(runtime);
@@ -451,8 +698,15 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   trace_import_timing(name, "exec-end", import_start);
   if (!result.errors.empty()) {
     runtime.unregister_module(name);
+    if (result.exception.tag != ValueTag::Invalid) {
+      runtime.set_pending_exception(result.exception);
+    }
     error = "runtime error importing module '" + name + "': " + result.errors.front();
     return false;
+  }
+
+  if (!module_file.is_bytecode) {
+    write_source_bytecode_cache(runtime, module_file, module_ir);
   }
 
   Value final_module;

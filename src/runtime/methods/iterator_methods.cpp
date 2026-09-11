@@ -20,6 +20,8 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
+#include <algorithm>
+
 namespace xlang3 {
 
 namespace {
@@ -79,9 +81,67 @@ bool iterator_next_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
+bool iterator_reduce_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "iterator.__reduce__", error) ||
+      !value_is_builtin_iterator(args[0])) {
+    runtime.raise_class_error("TypeError", error.empty() ? "invalid iterator" : error);
+    return false;
+  }
+  if (args[0].as.obj->kind == ObjectKind::MapIterator) {
+    auto* map = reinterpret_cast<MapIteratorObject*>(args[0].as.obj);
+    const Value* constructor = runtime.find_builtin("map");
+    if (constructor == nullptr) {
+      error = "map constructor is not registered";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    std::vector<Value> constructor_args;
+    constructor_args.reserve(map->iterators.size() + 1);
+    constructor_args.push_back(map->callable);
+    constructor_args.insert(constructor_args.end(), map->iterators.begin(), map->iterators.end());
+    out = Value::tuple({*constructor, Value::tuple(std::move(constructor_args))});
+    return true;
+  }
+  if (args[0].as.obj->kind == ObjectKind::SequenceIterator) {
+    auto* iterator = reinterpret_cast<SequenceIteratorObject*>(args[0].as.obj);
+    const Value* constructor = runtime.find_builtin("iter");
+    if (constructor == nullptr) {
+      error = "iter constructor is not registered";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    out = Value::tuple({
+        *constructor,
+        Value::tuple({iterator->source}),
+        Value::int64(static_cast<int64_t>(iterator->index))});
+    return true;
+  }
+  error = "cannot pickle this iterator";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool iterator_setstate_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  auto* iterator = argc >= 1 && args[0].tag == ValueTag::Object && args[0].as.obj != nullptr &&
+          args[0].as.obj->kind == ObjectKind::SequenceIterator
+      ? reinterpret_cast<SequenceIteratorObject*>(args[0].as.obj)
+      : nullptr;
+  int64_t index = 0;
+  if (argc != 2 || iterator == nullptr || !value_int_like_to_i64(args[1], index)) {
+    error = "iterator.__setstate__() requires an integer state";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  iterator->index = static_cast<uint64_t>(std::max<int64_t>(0, index));
+  value_set_none(out);
+  return true;
+}
+
 static constexpr BuiltinMethodSpec kIteratorMethods[] = {
     {"__iter__", "iterator.__iter__", iterator_iter_method},
     {"__next__", "iterator.__next__", iterator_next_method},
+    {"__reduce__", "iterator.__reduce__", iterator_reduce_method},
+    {"__setstate__", "iterator.__setstate__", iterator_setstate_method},
 };
 
 } // namespace

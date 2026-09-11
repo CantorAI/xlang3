@@ -32,18 +32,33 @@ void copy_builtin(Runtime& runtime, Value& module, const char* name) {
 } // namespace
 
 void register_builtin_modules(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "_builtins");
+  NativeModuleBuilder builder(runtime, "builtins");
   auto builtins = builder.finish();
   copy_builtin(runtime, builtins, "print");
+  copy_builtin(runtime, builtins, "__import__");
   copy_builtin(runtime, builtins, "_identity");
   copy_builtin(runtime, builtins, "classmethod");
   copy_builtin(runtime, builtins, "staticmethod");
   copy_builtin(runtime, builtins, "super");
   copy_builtin(runtime, builtins, "len");
+  copy_builtin(runtime, builtins, "callable");
+  copy_builtin(runtime, builtins, "enumerate");
+  copy_builtin(runtime, builtins, "zip");
+  copy_builtin(runtime, builtins, "reversed");
+  copy_builtin(runtime, builtins, "map");
+  copy_builtin(runtime, builtins, "filter");
+  copy_builtin(runtime, builtins, "sum");
+  copy_builtin(runtime, builtins, "sorted");
+  copy_builtin(runtime, builtins, "min");
+  copy_builtin(runtime, builtins, "max");
+  copy_builtin(runtime, builtins, "abs");
+  copy_builtin(runtime, builtins, "round");
   copy_builtin(runtime, builtins, "next");
+  copy_builtin(runtime, builtins, "iter");
   copy_builtin(runtime, builtins, "ord");
   copy_builtin(runtime, builtins, "str");
   copy_builtin(runtime, builtins, "repr");
+  copy_builtin(runtime, builtins, "format");
   copy_builtin(runtime, builtins, "hash");
   copy_builtin(runtime, builtins, "chr");
   copy_builtin(runtime, builtins, "bin");
@@ -65,9 +80,13 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "setattr");
   copy_builtin(runtime, builtins, "delattr");
   copy_builtin(runtime, builtins, "hasattr");
+  copy_builtin(runtime, builtins, "dir");
+  copy_builtin(runtime, builtins, "vars");
+  copy_builtin(runtime, builtins, "globals");
   copy_builtin(runtime, builtins, "bool");
   copy_builtin(runtime, builtins, "int");
   copy_builtin(runtime, builtins, "float");
+  copy_builtin(runtime, builtins, "complex");
   copy_builtin(runtime, builtins, "bytes");
   copy_builtin(runtime, builtins, "bytearray");
   copy_builtin(runtime, builtins, "memoryview");

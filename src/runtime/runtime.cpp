@@ -354,6 +354,98 @@ bool runtime_loader_get_source(Runtime& runtime, const Value* args, uint32_t arg
   return true;
 }
 
+bool runtime_loader_compile_source(
+    Runtime& runtime,
+    const Value& source_value,
+    const Value& path_value,
+    Value& out,
+    std::string& error) {
+  auto* path = value_as_string(path_value);
+  if (path == nullptr) {
+    error = "loader source path must be str";
+    return false;
+  }
+  std::string source;
+  if (auto* text = value_as_string(source_value)) {
+    source = string_object_to_string(*text);
+  } else if (auto* bytes = value_as_bytes(source_value)) {
+    const std::string encoded = bytes_object_to_string(*bytes);
+    if (!runtime.decode_python_source(encoded, source, error)) return false;
+  } else if (auto* bytes = value_as_bytearray(source_value)) {
+    const std::string encoded(
+        reinterpret_cast<const char*>(bytes->value.data()), bytes->value.size());
+    if (!runtime.decode_python_source(encoded, source, error)) return false;
+  } else {
+    error = "source_to_code() argument 1 must be str or bytes";
+    return false;
+  }
+  const Value* compile_builtin = runtime.find_builtin("compile");
+  if (compile_builtin == nullptr) {
+    error = "compile builtin is not registered";
+    return false;
+  }
+  Value compile_args[] = {
+      Value::string(std::move(source)), path_value, Value::string("exec")};
+  return runtime_call_callable(runtime, *compile_builtin, compile_args, 3, out, error);
+}
+
+bool runtime_loader_source_to_code(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 3 || argc > 4) {
+    error = "loader.source_to_code expected data, path, and optional optimize";
+    return false;
+  }
+  return runtime_loader_compile_source(runtime, args[1], args[2], out, error);
+}
+
+bool runtime_loader_source_to_code_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc > 1 ||
+      (kwargc == 1 &&
+       (kwargs[0].name == nullptr || std::string_view(kwargs[0].name) != "_optimize"))) {
+    error = "source_to_code() got an unexpected keyword argument";
+    return false;
+  }
+  return runtime_loader_source_to_code(runtime, args, argc, out, error, user_data);
+}
+
+bool runtime_loader_get_code(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "loader.get_code expected self and fullname";
+    return false;
+  }
+  Value path_value;
+  if (!object_get_attr(args[0], "path", path_value, error)) return false;
+  auto* path = value_as_string(path_value);
+  if (path == nullptr) {
+    error = "loader path must be str";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(string_object_to_string(*path), bytes, error)) return false;
+  Value source = Value::bytes(std::string(
+      reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return runtime_loader_compile_source(runtime, source, path_value, out, error);
+}
+
 bool runtime_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "loader.get_resource_reader expected self and fullname";
@@ -426,6 +518,20 @@ Value make_runtime_loader(Runtime& runtime, const std::string& class_name, const
   if (class_name == "BuiltinImporter" || class_name == "FrozenImporter") {
     return make_import_metadata_class(class_name, "_frozen_importlib");
   }
+  if ((class_name == "SourceFileLoader" || class_name == "NamespaceLoader") &&
+      runtime.has_registered_module("_frozen_importlib_external")) {
+    Value external;
+    Value loader_class;
+    std::string ignored;
+    if (runtime.import_module("_frozen_importlib_external", external, ignored) &&
+        module_get_attr(external, class_name, loader_class, ignored) &&
+        value_as_class(loader_class) != nullptr) {
+      auto loader = Value::instance(loader_class);
+      object_set_attr(loader, "name", Value::string(module_name), ignored);
+      if (path.tag != ValueTag::Invalid) object_set_attr(loader, "path", path, ignored);
+      return loader;
+    }
+  }
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_frozen_importlib")});
   attrs.push_back({"__name__", Value::string(class_name)});
@@ -433,6 +539,10 @@ Value make_runtime_loader(Runtime& runtime, const std::string& class_name, const
     attrs.push_back({"get_filename", runtime.make_native_function("xlang3.SourceFileLoader.get_filename", runtime_loader_get_filename)});
     attrs.push_back({"get_data", runtime.make_native_function("xlang3.SourceFileLoader.get_data", runtime_loader_get_data)});
     attrs.push_back({"get_source", runtime.make_native_function("xlang3.SourceFileLoader.get_source", runtime_loader_get_source)});
+    attrs.push_back({"get_code", runtime.make_native_function("xlang3.SourceFileLoader.get_code", runtime_loader_get_code)});
+    attrs.push_back({"source_to_code", runtime.make_native_function(
+        "xlang3.SourceFileLoader.source_to_code", runtime_loader_source_to_code,
+        nullptr, nullptr, nullptr, false, runtime_loader_source_to_code_kw)});
     attrs.push_back({"get_resource_reader", runtime.make_native_function("xlang3.SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader)});
   }
   if (class_name == "NamespaceLoader") {
@@ -561,6 +671,17 @@ void Runtime::initialize() {
 #if !defined(XLANG3_EMBEDDED)
   add_default_import_layout(*this, runtime_library_dir());
   add_default_python_lib_roots(*this);
+  auto sys_it = modules_.find("sys");
+  if (sys_it != modules_.end()) {
+    for (const auto& root : import_roots_) {
+      std::error_code ec;
+      if (std::filesystem::is_regular_file(root / "os.py", ec)) {
+        std::string ignored;
+        module_set_attr(sys_it->second, "_stdlib_dir", Value::string(root.string()), ignored);
+        break;
+      }
+    }
+  }
   for (auto& entry : modules_) {
     Value existing;
     std::string ignored;
@@ -639,34 +760,35 @@ Runtime::~Runtime() {
     std::cerr << ignored << '\n';
   }
   finalizing_ = true;
-  auto main_it = modules_.find("__main__");
-  if (main_it != modules_.end()) {
-    if (auto* module = value_as_module(main_it->second)) {
-      std::vector<Value> retained_values;
-      retained_values.reserve(module->slots.size());
+  std::vector<Value> retained_values;
+  for (const auto& module_entry : modules_) {
+    if (auto* module = value_as_module(module_entry.second)) {
       for (const auto& value : module->slots) {
-        if (value_as_instance(value) != nullptr) {
-          retained_values.push_back(value);
-        }
+        if (value_as_instance(value) != nullptr) retained_values.push_back(value);
       }
-      std::vector<Object*> finalized;
-      finalized.reserve(retained_values.size());
-      for (auto it = retained_values.rbegin(); it != retained_values.rend(); ++it) {
-        auto* instance = value_as_instance(*it);
-        if (instance == nullptr ||
-            std::find(finalized.begin(), finalized.end(), &instance->header) != finalized.end()) {
-          continue;
-        }
-        finalized.push_back(&instance->header);
-        Value finalizer;
-        std::string attr_error;
-        if (!attribute_get(*it, "__del__", finalizer, attr_error)) {
-          continue;
-        }
-        Value finalizer_result;
-        std::string finalizer_error;
-        (void)runtime_call_callable(*this, finalizer, nullptr, 0, finalizer_result, finalizer_error);
-      }
+    }
+  }
+  std::vector<Object*> finalized;
+  finalized.reserve(retained_values.size());
+  for (auto it = retained_values.rbegin(); it != retained_values.rend(); ++it) {
+    auto* instance = value_as_instance(*it);
+    if (instance == nullptr ||
+        std::find(finalized.begin(), finalized.end(), &instance->header) != finalized.end()) {
+      continue;
+    }
+    finalized.push_back(&instance->header);
+    Value finalizer;
+    std::string attr_error;
+    if (!attribute_get(*it, "__del__", finalizer, attr_error)) continue;
+    Value finalizer_result;
+    std::string finalizer_error;
+    if (!runtime_call_callable(*this, finalizer, nullptr, 0, finalizer_result, finalizer_error)) {
+      std::string finalizer_name = "__del__";
+      if (auto* klass = value_as_class(instance->klass)) finalizer_name = klass->name + ".__del__";
+      std::cerr << "Exception ignored while calling deallocator <function " << finalizer_name << ">:\n";
+      if (!finalizer_error.empty()) std::cerr << finalizer_error << '\n';
+      Value pending;
+      (void)take_pending_exception(pending);
     }
   }
   xlang_thread_join_runtime_threads(this);
@@ -1291,10 +1413,10 @@ void Runtime::track_live_frame_snapshot(const Value& frame_value) {
   if (frame == nullptr || frame->activation_id == 0) {
     return;
   }
-  // A traceback owns the instruction position at which it was captured.  Its
-  // frame locals remain live while the activation is running, but refreshing
-  // them must not move the traceback to the caller's later instruction.
-  frame->refresh_instruction = false;
+  // tb_lineno owns the instruction position at which the traceback was
+  // captured.  The referenced frame itself remains live, so f_lineno and
+  // f_locals continue to follow the running activation.
+  frame->refresh_instruction = true;
   std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
   for (const auto& tracked_value : live_frame_snapshots_) {
     if (tracked_value.tag == ValueTag::Object &&
@@ -1309,6 +1431,22 @@ void Runtime::track_live_frame_snapshot(const Value& frame_value) {
 
 void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
   const auto& state = current_frame_state(*this);
+  std::vector<RuntimeCurrentFrameState> registered_states;
+  const int64_t current_thread_ident = runtime_current_thread_ident();
+  {
+    std::lock_guard<std::mutex> registry_lock(g_runtime_frame_registry_mutex);
+    auto runtime_it = g_runtime_frame_registry.find(this);
+    if (runtime_it != g_runtime_frame_registry.end()) {
+      registered_states.reserve(runtime_it->second.size());
+      for (const auto& entry : runtime_it->second) {
+        // The current thread's registry entry can still point at the previous
+        // capacity of its frame-view vector while set_current_frame_stack()
+        // is publishing a freshly rebuilt view. The live state above and the
+        // saved nested-call states below already cover this thread.
+        if (entry.first != current_thread_ident) registered_states.push_back(entry.second);
+      }
+    }
+  }
   std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
   for (auto& tracked_value : live_frame_snapshots_) {
     if (auto* tracked = value_as_frame(tracked_value)) {
@@ -1336,6 +1474,9 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
       }
     };
     match_frame_view(state);
+    for (const auto& registered_state : registered_states) {
+      match_frame_view(registered_state);
+    }
     auto saved_states = current_frame_stacks().find(this);
     if (saved_states != current_frame_stacks().end()) {
       for (const auto& saved_state : saved_states->second) {
@@ -1510,7 +1651,9 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
   entries.reserve(live_thread_ids.size());
   for (const auto ident : live_thread_ids) {
     Value frame = Value::none();
-    if (runtime_it != g_runtime_frame_registry.end()) {
+    if (ident == runtime_current_thread_ident()) {
+      frame = current_frame_snapshot();
+    } else if (runtime_it != g_runtime_frame_registry.end()) {
       auto frame_it = runtime_it->second.find(ident);
       if (frame_it != runtime_it->second.end()) {
         frame = frame_snapshot_from_state(frame_it->second, builtins);
@@ -1690,6 +1833,7 @@ bool Runtime::execute_raw_block(
 }
 
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found) {
+  std::lock_guard<std::recursive_mutex> import_lock(import_mutex_);
   if (module_not_found != nullptr) { *module_not_found = false; }
   static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
   static const bool diag_missing_imports = std::getenv("XLANG3_DIAG_MISSING_IMPORTS") != nullptr;
@@ -1707,11 +1851,6 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     Value registry_module;
     std::string registry_error;
     if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error)) {
-      if (value_as_module(registry_module) != nullptr) {
-        modules_[name] = registry_module;
-        value_assign_fast(out, registry_module);
-        return true;
-      }
       if (registry_module.tag == ValueTag::None) {
         error = "import of " + name + " halted; None in sys.modules";
         if (module_not_found != nullptr) {
@@ -1719,14 +1858,37 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
         }
         return false;
       }
+      if (value_as_module(registry_module) != nullptr) {
+        modules_[name] = registry_module;
+      }
+      value_assign_fast(out, registry_module);
+      return true;
     } else {
       auto cached = modules_.find(name);
       Value cached_file;
+      Value cached_path;
       std::string ignored;
-      if (cached != modules_.end() &&
-          module_get_attr(cached->second, "__file__", cached_file, ignored) &&
-          cached_file.tag != ValueTag::Invalid && cached_file.tag != ValueTag::None) {
-        modules_.erase(cached);
+      if (cached != modules_.end()) {
+        const bool source_backed =
+            (module_get_attr(cached->second, "__file__", cached_file, ignored) &&
+             cached_file.tag != ValueTag::Invalid && cached_file.tag != ValueTag::None) ||
+            (module_get_attr(cached->second, "__path__", cached_path, ignored) &&
+             cached_path.tag != ValueTag::Invalid && cached_path.tag != ValueTag::None);
+        if (source_backed) {
+          modules_.erase(cached);
+        } else if (auto* original = value_as_module(cached->second)) {
+          Value fresh = Value::module(original->name);
+          auto* cloned = value_as_module(fresh);
+          cloned->version = original->version;
+          cloned->name_to_slot = original->name_to_slot;
+          cloned->slots = original->slots;
+          cloned->extra_globals = original->extra_globals;
+          modules_[name] = fresh;
+          std::string registry_error;
+          (void)mapping_set_item(modules_dict_, Value::string(name), fresh, registry_error);
+          value_assign_fast(out, fresh);
+          return true;
+        }
       }
     }
   }
@@ -1783,11 +1945,62 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       }
     }
 #if !defined(XLANG3_EMBEDDED)
+    // Consult user-installed meta-path finder instances before the filesystem
+    // fallback. Built-in finder classes remain native fast paths below.
+    auto sys_module_it = modules_.find("sys");
+    if (sys_module_it != modules_.end()) {
+      Value meta_path;
+      std::string meta_error;
+      if (module_get_attr(sys_module_it->second, "meta_path", meta_path, meta_error)) {
+        if (auto* finders = value_as_list(meta_path)) {
+          for (const auto& finder : finders->items) {
+            if (value_as_instance(finder) == nullptr) continue;
+            Value find_spec;
+            if (!object_get_attr(finder, "find_spec", find_spec, meta_error)) {
+              meta_error.clear();
+              continue;
+            }
+            Value search_path = Value::none();
+            if (dot != std::string::npos && dot > 0) {
+              auto parent_it = modules_.find(name.substr(0, dot));
+              if (parent_it != modules_.end()) {
+                Value parent_path;
+                if (module_get_attr(parent_it->second, "__path__", parent_path, meta_error)) {
+                  search_path = parent_path;
+                }
+                meta_error.clear();
+              }
+            }
+            Value finder_args[] = {Value::string(name), search_path, Value::none()};
+            Value spec;
+            if (!runtime_call_callable(*this, find_spec, finder_args, 3, spec, error)) {
+              return false;
+            }
+            if (spec.tag == ValueTag::None || spec.tag == ValueTag::Invalid) continue;
+            auto bootstrap_it = modules_.find("_frozen_importlib");
+            Value load;
+            if (bootstrap_it == modules_.end() ||
+                !module_get_attr(bootstrap_it->second, "_load", load, error) ||
+                !runtime_call_callable(*this, load, &spec, 1, out, error)) {
+              return false;
+            }
+            return true;
+          }
+        }
+      }
+    }
     std::string python_error;
     if (import_python_module(*this, name, out, python_error)) {
       return true;
     }
     const bool python_source_not_found = python_error == "module '" + name + "' not found";
+    const bool non_ascii_module_name = std::any_of(
+        name.begin(), name.end(), [](unsigned char ch) { return ch >= 0x80; });
+    if (python_source_not_found && non_ascii_module_name) {
+      error = std::move(python_error);
+      if (module_not_found != nullptr) *module_not_found = true;
+      return false;
+    }
     std::string native_error;
     bool exact_library_found = false;
     if (python_source_not_found &&
@@ -1827,11 +2040,50 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     return false;
   }
   value_assign_fast(out, it->second);
+  if (modules_dict_.tag != ValueTag::Invalid) {
+    std::string registry_error;
+    (void)mapping_set_item(modules_dict_, Value::string(name), out, registry_error);
+  }
   return true;
+}
+
+void Runtime::synchronize_modules_from_registry() {
+  if (modules_dict_.tag == ValueTag::Invalid) return;
+  for (auto it = modules_.begin(); it != modules_.end();) {
+    Value registered;
+    std::string ignored;
+    if (!mapping_get_item(modules_dict_, Value::string(it->first), registered, ignored)) {
+      it = modules_.erase(it);
+      continue;
+    }
+    if (!value_is(it->second, registered)) value_assign_fast(it->second, registered);
+    ++it;
+  }
+}
+
+void Runtime::hide_cached_module(const std::string& name) {
+  if (modules_dict_.tag == ValueTag::Invalid) return;
+  std::string ignored;
+  mapping_delete_item(modules_dict_, Value::string(name), ignored);
 }
 
 bool Runtime::has_registered_module(const std::string& name) const {
   return modules_.find(name) != modules_.end();
+}
+
+bool Runtime::has_python_import_miss(const std::string& key) const {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  return python_import_misses_.find(key) != python_import_misses_.end();
+}
+
+void Runtime::remember_python_import_miss(std::string key) {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  python_import_misses_.insert(std::move(key));
+}
+
+void Runtime::clear_python_import_misses() {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  python_import_misses_.clear();
 }
 
 bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found) {
@@ -1990,6 +2242,13 @@ void Runtime::prepend_import_root(std::filesystem::path root) {
     return;
   }
   import_roots_.insert(import_roots_.begin(), std::move(root));
+}
+
+void Runtime::replace_import_roots(std::vector<std::filesystem::path> roots) {
+  import_roots_.clear();
+  for (auto& root : roots) {
+    add_import_root(std::move(root));
+  }
 }
 #endif
 

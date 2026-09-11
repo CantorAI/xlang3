@@ -33,6 +33,7 @@ bool sysconfig_config_vars(Runtime&, const Value*, uint32_t argc, Value& out, st
       {Value::string("SOABI"), Value::string("cp314-win_amd64")},
       {Value::string("Py_GIL_DISABLED"), Value::int64(XLANG3_VM_GLOBAL_LOCK == 0 ? 1 : 0)},
       {Value::string("Py_DEBUG"), Value::int64(0)},
+      {Value::string("Py_HASH_ALGORITHM"), Value::int64(0)},
   });
   return true;
 }

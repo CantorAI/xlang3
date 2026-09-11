@@ -86,6 +86,12 @@ int64_t parse_integer_literal(std::string_view text) {
   return value;
 }
 
+Value parse_integer_literal_value(std::string_view text) {
+  std::string error;
+  Value value = value_bigint_from_decimal(text, 0, error);
+  return value.tag == ValueTag::Invalid ? Value::int64(0) : value;
+}
+
 void add_slot_name(const std::string& name, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
   if (seen.insert(name).second) {
     slots.push_back(name);
@@ -4320,7 +4326,7 @@ private:
           emit(ir::Op::LoadConst, reg, add_const(Value::boolean(lit->bool_value)));
           break;
         case ast::LiteralExpr::Kind::Int:
-          emit(ir::Op::LoadConst, reg, add_const(Value::int64(parse_integer_literal(lit->text))));
+          emit(ir::Op::LoadConst, reg, add_const(parse_integer_literal_value(lit->text)));
           break;
         case ast::LiteralExpr::Kind::Double:
           emit(ir::Op::LoadConst, reg, add_const(Value::number(std::strtod(lit->text.c_str(), nullptr))));
@@ -4713,7 +4719,7 @@ private:
       case ast::LiteralExpr::Kind::Bool:
         return Value::boolean(lit.bool_value);
       case ast::LiteralExpr::Kind::Int:
-        return Value::int64(parse_integer_literal(lit.text));
+        return parse_integer_literal_value(lit.text);
       case ast::LiteralExpr::Kind::Double:
         return Value::number(std::strtod(lit.text.c_str(), nullptr));
       case ast::LiteralExpr::Kind::Complex: {

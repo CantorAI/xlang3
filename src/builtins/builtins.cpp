@@ -40,6 +40,7 @@ void register_core_builtins(Runtime& runtime) {
   register_ast_module(runtime);
   register_binascii_module(runtime);
   register_io_module(runtime);
+  register_json_module(runtime);
   register_os_module(runtime);
 #if !defined(_WIN32)
   register_posix_process_module(runtime);
@@ -54,6 +55,8 @@ void register_core_builtins(Runtime& runtime) {
   register_array_module(runtime);
   register_itertools_module(runtime);
   register_codecs_module(runtime);
+  register_locale_module(runtime);
+  register_multibytecodec_module(runtime);
   register_contextvars_module(runtime);
   register_unicodedata_module(runtime);
   register_struct_module(runtime);

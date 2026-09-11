@@ -815,6 +815,9 @@ XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_inherited_builtin_cons
   if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_bytes)) {
     return XlangVMBuiltinConstructor::Bytes;
   }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_bytearray)) {
+    return XlangVMBuiltinConstructor::ByteArray;
+  }
   return XlangVMBuiltinConstructor::Unknown;
 }
 
@@ -868,6 +871,8 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
         value_assign_fast(function_value, method->function);
       } else if (auto* method = value_as_class_method(attr.second)) {
         value_assign_fast(function_value, method->function);
+      } else if (auto* property = value_as_property(attr.second)) {
+        value_assign_fast(function_value, property->fget);
       } else {
         value_assign_fast(function_value, attr.second);
       }
@@ -905,6 +910,8 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
               value_assign_fast(function_value, method->function);
             } else if (auto* method = value_as_class_method(attr.second)) {
               value_assign_fast(function_value, method->function);
+            } else if (auto* property = value_as_property(attr.second)) {
+              value_assign_fast(function_value, property->fget);
             } else {
               value_assign_fast(function_value, attr.second);
             }
@@ -1059,7 +1066,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     auto expand_star_arg = [&](uint32_t star_reg) -> bool {
       Value iterator;
       if (!runtime_get_iter(runtime, args.registers[star_reg], iterator, error)) {
-        error = "* argument must be iterable";
+        error = "Value after * must be an iterable, not " +
+            std::string(value_binary_type_name(args.registers[star_reg]));
         return false;
       }
       for (;;) {
@@ -1379,6 +1387,17 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     metaclass.as.obj = const_cast<Object*>(&klass.header);
     retain(metaclass);
     std::string class_name = string_object_to_string(*name);
+    Value final_marker;
+    std::string final_error;
+    if (base.tag != ValueTag::Invalid &&
+        object_get_attr(base, "__xlang3_final_type__", final_marker, final_error) &&
+        value_truthy(final_marker)) {
+      auto* final_class = value_as_class(base);
+      error = "type '" + std::string(final_class == nullptr ? "object" : final_class->name) +
+          "' is not an acceptable base type";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     if (!xlang_vm_inline_class_attrs_have(attrs, "__module__")) {
       attrs.push_back({"__module__", Value::string(xlang_vm_inline_current_module_name(runtime))});
     }
@@ -1445,6 +1464,23 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "str() expected at most 3 arguments";
       return false;
     }
+    auto finish_string = [&](const Value& text) -> bool {
+      if (exact_builtin_constructor) {
+        value_assign_fast(out, text);
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      if (!object_set_attr(out, "__xlang3_string_value__", text, attr_error)) {
+        error = "str subclass construction failed";
+        return false;
+      }
+      return true;
+    };
     if (constructor_args.size() >= 2) {
       encoding = &constructor_args.get(1);
       if (!require_constructor_string_keyword(encoding, "encoding")) return false;
@@ -1454,8 +1490,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       if (!require_constructor_string_keyword(errors_value, "errors")) return false;
     }
     if (constructor_args.size() == 0) {
-      out = Value::string("");
-      return true;
+      return finish_string(Value::string(""));
     }
     const Value& source = constructor_args.get(0);
     if (encoding != nullptr && encoding->tag != ValueTag::None) {
@@ -1485,39 +1520,25 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         runtime.raise_class_error("TypeError", error);
         return false;
       }
-      if (encoding_name == "latin_1") {
-        std::string decoded;
-        decoded.reserve(source_bytes.size() * 2);
-        for (unsigned char ch : source_bytes) {
-          if (ch <= 0x7fu) decoded.push_back(static_cast<char>(ch));
-          else {
-            decoded.push_back(static_cast<char>(0xc0u | (ch >> 6u)));
-            decoded.push_back(static_cast<char>(0x80u | (ch & 0x3fu)));
-          }
-        }
-        out = Value::string(std::move(decoded));
-        return true;
+      Value decode;
+      if (!attribute_get(source, "decode", decode, error)) return false;
+      Value decode_args[2] = {
+          *encoding,
+          errors_value == nullptr || errors_value->tag == ValueTag::None
+              ? Value::string("strict")
+              : *errors_value};
+      Value decoded;
+      if (!runtime_call_callable(runtime, decode, decode_args, 2, decoded, error)) return false;
+      if (value_as_string(decoded) == nullptr) {
+        error = "decoder returned a non-string result";
+        runtime.raise_class_error("TypeError", error);
+        return false;
       }
-      if (encoding_name == "ascii") {
-        for (unsigned char ch : source_bytes) {
-          if (ch > 0x7fu) {
-            error = "ascii codec can't decode byte";
-            runtime.raise_class_error("UnicodeDecodeError", error);
-            return false;
-          }
-        }
-        out = Value::string(std::move(source_bytes));
-        return true;
-      }
-      if (encoding_name == "utf_8") {
-        out = Value::string(std::move(source_bytes));
-        return true;
-      }
-      error = "unknown encoding: " + encoding_name;
-      runtime.raise_class_error("LookupError", error);
-      return false;
+      return finish_string(decoded);
     }
-    return builtin_str_from_value(runtime, source, out, error);
+    Value text;
+    if (!builtin_str_from_value(runtime, source, text, error)) return false;
+    return finish_string(text);
   }
 
   if (constructor == XlangVMBuiltinConstructor::Bool) {
@@ -1663,7 +1684,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (auto* text = value_as_string(value)) {
       std::string parse_error;
-      Value parsed = value_bigint_from_decimal(string_object_view(*text), base, parse_error);
+      const auto view = string_object_view(*text);
+      if (sys_int_string_exceeds_limit(view, base)) {
+        constructor_error.set("ValueError", "Exceeds the limit for integer string conversion");
+        return false;
+      }
+      Value parsed = value_bigint_from_decimal(view, base, parse_error);
       if (parsed.tag != ValueTag::Invalid) {
         if (!finish_int_value(parsed)) {
           error = "int subclass construction failed";
@@ -1677,6 +1703,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     if (auto* bytes = value_as_bytes(value)) {
       std::string parse_error;
       const auto view = bytes_object_view(*bytes);
+      if (sys_int_string_exceeds_limit(view, base)) {
+        constructor_error.set("ValueError", "Exceeds the limit for integer string conversion");
+        return false;
+      }
       Value parsed = value_bigint_from_decimal(view, base, parse_error);
       if (parsed.tag != ValueTag::Invalid) {
         if (!finish_int_value(parsed)) {
@@ -1690,6 +1720,10 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (auto* bytes = value_as_bytearray(value)) {
       std::string parse_error;
+      if (sys_int_string_exceeds_limit(bytes->value, base)) {
+        constructor_error.set("ValueError", "Exceeds the limit for integer string conversion");
+        return false;
+      }
       Value parsed = value_bigint_from_decimal(bytes->value, base, parse_error);
       if (parsed.tag != ValueTag::Invalid) {
         if (!finish_int_value(parsed)) {
@@ -1775,6 +1809,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return true;
       }
+      constructor_error.set("ValueError", "could not convert string to float");
+      return false;
     }
     if (auto* bytes = value_as_bytes(value)) {
       const std::string owned_text = bytes_object_to_string(*bytes);
@@ -1788,6 +1824,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return true;
       }
+      constructor_error.set("ValueError", "could not convert string to float");
+      return false;
     }
     if (auto* bytes = value_as_bytearray(value)) {
       char* end = nullptr;
@@ -1800,6 +1838,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         }
         return true;
       }
+      constructor_error.set("ValueError", "could not convert string to float");
+      return false;
     }
     error = "float() argument must be a string, bytes-like object, number, or bool";
     return false;
@@ -1977,6 +2017,24 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     if (auto* string = value_as_string(arg)) {
       local_error = "string argument without an encoding";
       return false;
+    }
+    if (value_as_instance(arg) != nullptr) {
+      Value payload;
+      std::string payload_error;
+      if (object_get_attr(arg, "__xlang3_bytes_value__", payload, payload_error)) {
+        if (auto* source = value_as_bytes(payload)) {
+          bytes = bytes_object_to_string(*source);
+          return true;
+        }
+        if (auto* source = value_as_bytearray(payload)) {
+          bytes = source->value;
+          return true;
+        }
+        if (auto* source = value_as_memoryview(payload)) {
+          bytes.assign(memoryview_object_view(*source));
+          return true;
+        }
+      }
     }
     Value bytes_method;
     std::string attr_error;
@@ -2213,6 +2271,19 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
       const std::string source = string_object_to_string(*string);
       if (encoding_name == "utf_8") {
+        if (errors_name != "surrogatepass") {
+          for (size_t cursor = 0; cursor + 2 < source.size(); ++cursor) {
+            const unsigned char first = static_cast<unsigned char>(source[cursor]);
+            const unsigned char second = static_cast<unsigned char>(source[cursor + 1]);
+            const unsigned char third = static_cast<unsigned char>(source[cursor + 2]);
+            if (first == 0xedu && second >= 0xa0u && second <= 0xbfu &&
+                (third & 0xc0u) == 0x80u) {
+              error = "utf-8 codec can't encode surrogate";
+              runtime.raise_class_error("UnicodeEncodeError", error);
+              return false;
+            }
+          }
+        }
         bytes = source;
       } else if (encoding_name == "ascii" || encoding_name == "latin_1") {
         for (size_t cursor = 0; cursor < source.size();) {
@@ -2288,8 +2359,25 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       error = "bytearray() expected at most 3 arguments";
       return false;
     }
+    auto finish_bytearray = [&](std::string bytes) -> bool {
+      if (exact_builtin_constructor) {
+        out = Value::bytearray(std::move(bytes));
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      if (!object_set_attr(out, "__xlang3_bytes_value__", Value::bytearray(std::move(bytes)), attr_error)) {
+        error = "bytearray subclass construction failed";
+        return false;
+      }
+      return true;
+    };
     if (constructor_args.size() == 0) {
-      out = Value::bytearray("");
+      if (!finish_bytearray("")) return false;
       return true;
     }
     if (constructor_args.size() >= 2) {
@@ -2310,8 +2398,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     } else if (!make_bytes_from_arg(constructor_args.get(0), bytes, error)) {
       return false;
     }
-    out = Value::bytearray(std::move(bytes));
-    return true;
+    return finish_bytearray(std::move(bytes));
   }
 
   if (constructor == XlangVMBuiltinConstructor::MemoryView) {
@@ -2337,8 +2424,20 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       Value payload;
       std::string ignored;
       if (object_get_attr(source, "__xlang3_bytes_value__", payload, ignored)) {
-        if (auto* bytes = value_as_bytes(payload)) {
-          out = Value::memoryview(payload, 0, bytes->size, true);
+        const auto* bytes = value_as_bytes(payload);
+        const auto* bytearray = value_as_bytearray(payload);
+        const auto* payload_view = value_as_memoryview(payload);
+        if (bytes != nullptr || bytearray != nullptr || payload_view != nullptr) {
+          Value owner = source;
+          Value exported_owner;
+          if (object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
+              exported_owner.tag != ValueTag::None) {
+            owner = std::move(exported_owner);
+          }
+          out = Value::memoryview(std::move(owner), 0,
+              bytes != nullptr ? bytes->size :
+                  bytearray != nullptr ? bytearray->value.size() : payload_view->size,
+              bytes != nullptr || (payload_view != nullptr && payload_view->readonly));
           Value format;
           if (object_get_attr(source, "typecode", format, ignored)) {
             if (auto* text = value_as_string(format)) {

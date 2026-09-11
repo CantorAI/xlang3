@@ -40,10 +40,16 @@ constexpr unsigned char kPickleHighestProtocol = 5;
 struct PicklerState {
   Value file;
   int protocol = kPickleHighestProtocol;
+  bool fix_imports = true;
+  Value buffer_callback = Value::none();
 };
 
 struct UnpicklerState {
   Value file;
+  bool fix_imports = true;
+  Value encoding = Value::string("ASCII");
+  Value errors = Value::string("strict");
+  Value buffers = Value::none();
 };
 
 void raise_pickle_module_error(Runtime& runtime, const char* class_name, const std::string& message) {
@@ -68,7 +74,58 @@ void unpickler_cleanup(void* data) {
   delete static_cast<UnpicklerState*>(data);
 }
 
-bool picklebuffer_init(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
+bool picklebuffer_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "PickleBuffer() expects exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value self = args[0];
+  Value bytes_payload = args[1];
+  if (value_as_instance(bytes_payload) != nullptr) {
+    Value stored;
+    std::string payload_error;
+    if (object_get_attr(bytes_payload, "__xlang3_bytes_value__", stored, payload_error)) {
+      bytes_payload = std::move(stored);
+    }
+  }
+  std::string ignored;
+  if (!object_set_attr(self, "__xlang3_pickle_buffer__", args[1], error) ||
+      !object_set_attr(self, "__xlang3_bytes_value__", bytes_payload, ignored) ||
+      !object_set_attr(self, "__xlang3_memoryview_owner__", args[1], ignored)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool picklebuffer_raw(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "PickleBuffer.raw() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value source;
+  if (!object_get_attr(args[0], "__xlang3_pickle_buffer__", source, error) || source.tag == ValueTag::None) {
+    error = "operation forbidden on released PickleBuffer object";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  const Value* memoryview_class = runtime.find_builtin("memoryview");
+  if (memoryview_class == nullptr || !runtime_call_callable(runtime, *memoryview_class, &source, 1, out, error)) {
+    if (error.empty()) error = "PickleBuffer cannot expose a raw memoryview";
+    return false;
+  }
+  return true;
+}
+
+bool picklebuffer_release(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) { error = "PickleBuffer.release() takes no arguments"; return false; }
+  Value self = args[0];
+  std::string ignored;
+  object_set_attr(self, "__xlang3_pickle_buffer__", Value::none(), ignored);
+  object_set_attr(self, "__xlang3_bytes_value__", Value::none(), ignored);
+  object_set_attr(self, "__xlang3_memoryview_owner__", Value::none(), ignored);
   value_set_none(out);
   return true;
 }
@@ -80,6 +137,33 @@ bool marshal_function(Runtime& runtime, const char* name, Value& out, std::strin
     return false;
   }
   return module_get_attr(marshal_module, name, out, error);
+}
+
+bool call_source_pickle(
+    Runtime& runtime,
+    const char* name,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error) {
+  Value module;
+  Value callable;
+  if (!runtime.import_module("pickle", module, error) || !module_get_attr(module, name, callable, error)) {
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> keyword_values;
+  keyword_values.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "invalid pickle keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    keyword_values.emplace_back(kwargs[i].name, *kwargs[i].value);
+  }
+  return runtime_call_callable_kw(runtime, callable, args, argc, keyword_values, out, error);
 }
 
 bool get_bytes_view(const Value& value, std::string_view& out, std::string& error) {
@@ -399,13 +483,18 @@ bool pickle_write_value(
       return false;
     }
     if (!list_items.empty()) {
-      out.push_back('('); // MARK
-      for (const auto& item : list_items) {
-        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
-          return false;
+      if (protocol == 0) {
+        for (const auto& item : list_items) {
+          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) return false;
+          out.push_back('a'); // APPEND
         }
+      } else {
+        out.push_back('('); // MARK
+        for (const auto& item : list_items) {
+          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) return false;
+        }
+        out.push_back('e'); // APPENDS
       }
-      out.push_back('e'); // APPENDS
     }
   }
 
@@ -415,7 +504,7 @@ bool pickle_write_value(
       return false;
     }
     if (!dict_items.empty()) {
-      out.push_back('('); // MARK
+      if (protocol != 0) out.push_back('('); // MARK
       for (const auto& item : dict_items) {
         const auto* pair = value_as_tuple(item);
         if (pair == nullptr || pair->items.size() != 2) {
@@ -423,11 +512,10 @@ bool pickle_write_value(
           return false;
         }
         if (!pickle_write_value(runtime, pair->items[0], protocol, out, error, dispatch_table) ||
-            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table)) {
-          return false;
-        }
+            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table)) return false;
+        if (protocol == 0) out.push_back('s'); // SETITEM
       }
-      out.push_back('u'); // SETITEMS
+      if (protocol != 0) out.push_back('u'); // SETITEMS
     }
   }
 
@@ -620,6 +708,14 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
         }
         break;
       }
+      case 'I': // INT
+      case 'p': // PUT
+      case 'g': { // GET
+        const size_t newline = data.find('\n', pos);
+        if (newline == std::string_view::npos) return PickleScanResult::Incomplete;
+        pos = newline + 1;
+        break;
+      }
       case 'N': // NONE
       case 0x88: // NEWTRUE
       case 0x89: // NEWFALSE
@@ -629,6 +725,7 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
       case 'b': // BUILD
       case ']': // EMPTY_LIST
       case '}': // EMPTY_DICT
+      case 'd': // DICT
       case ')': // EMPTY_TUPLE
       case 0x8f: // EMPTY_SET
       case '(': // MARK
@@ -707,6 +804,33 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
           return false;
         }
         reader.stack.push_back(Value::int64(static_cast<int32_t>(raw)));
+        break;
+      }
+      case 'I': { // INT
+        std::string_view integer_text;
+        if (!reader.read_line(integer_text)) {
+          error = "truncated pickle int";
+          return false;
+        }
+        if (integer_text == "00") reader.stack.push_back(Value::boolean(false));
+        else if (integer_text == "01") reader.stack.push_back(Value::boolean(true));
+        else {
+          std::string integer_error;
+          Value integer = value_bigint_from_decimal(integer_text, 10, integer_error);
+          if (integer.tag == ValueTag::Invalid) {
+            error = "invalid pickle int";
+            return false;
+          }
+          reader.stack.push_back(std::move(integer));
+        }
+        break;
+      }
+      case 'p': { // PUT
+        std::string_view memo_index;
+        if (!reader.read_line(memo_index)) {
+          error = "truncated pickle memo index";
+          return false;
+        }
         break;
       }
       case 0x8a: { // LONG1
@@ -876,6 +1000,25 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
       case '}':
         reader.stack.push_back(Value::dict({}));
         break;
+      case 'd': {
+        if (reader.marks.empty() || reader.marks.back() > reader.stack.size()) {
+          error = "bad pickle mark";
+          return false;
+        }
+        const size_t mark = reader.marks.back();
+        reader.marks.pop_back();
+        if (((reader.stack.size() - mark) % 2) != 0) {
+          error = "pickle DICT needs key/value pairs";
+          return false;
+        }
+        Value dict = Value::dict({});
+        for (size_t i = mark; i < reader.stack.size(); i += 2) {
+          if (!mapping_set_item(dict, reader.stack[i], reader.stack[i + 1], error)) return false;
+        }
+        reader.stack.resize(mark);
+        reader.stack.push_back(std::move(dict));
+        break;
+      }
       case ')':
         reader.stack.push_back(Value::tuple({}));
         break;
@@ -978,36 +1121,7 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
 }
 
 bool pickle_dumps(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "pickle.dumps() expected object and optional protocol";
-    return false;
-  }
-  int protocol = kPickleHighestProtocol;
-  if (argc == 2 && args[1].tag == ValueTag::Int64) {
-    protocol = static_cast<int>(args[1].as.i64);
-  }
-  if (protocol < 0) {
-    protocol = kPickleHighestProtocol;
-  }
-  if (protocol > kPickleHighestProtocol) {
-    error = "pickle protocol not supported";
-    return false;
-  }
-  std::string payload;
-  payload.push_back(static_cast<char>(0x80)); // PROTO
-  payload.push_back(static_cast<char>(protocol));
-  if (!pickle_write_value(runtime, args[0], protocol, payload, error)) {
-    Value pending;
-    if (runtime.take_pending_exception(pending)) {
-      runtime.set_pending_exception(std::move(pending));
-    } else {
-      raise_pickle_module_error(runtime, "PicklingError", error);
-    }
-    return false;
-  }
-  payload.push_back('.');
-  out = Value::bytes(std::move(payload));
-  return true;
+  return call_source_pickle(runtime, "_dumps", args, argc, nullptr, 0, out, error);
 }
 
 bool pickle_dumps_kw(
@@ -1019,74 +1133,22 @@ bool pickle_dumps_kw(
     Value& out,
     std::string& error,
     void*) {
-  if (argc < 1 || argc > 2) {
-    error = "pickle.dumps() expected object and optional protocol";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  std::vector<Value> positional(args, args + argc);
-  for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
-    if (kwargs[i].value == nullptr) {
-      error = "pickle.dumps() received an invalid keyword argument";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (name == "protocol") {
-      if (positional.size() == 2) {
-        error = "pickle.dumps() got multiple values for argument 'protocol'";
-        runtime.raise_class_error("TypeError", error);
-        return false;
-      }
-      positional.push_back(*kwargs[i].value);
-    } else if (name != "fix_imports" && name != "buffer_callback") {
-      error = "pickle.dumps() got an unexpected keyword argument '" + name + "'";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-  }
-  return pickle_dumps(runtime, positional.data(), static_cast<uint32_t>(positional.size()), out, error, nullptr);
+  return call_source_pickle(runtime, "_dumps", args, argc, kwargs, kwargc, out, error);
 }
 
 bool pickle_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "pickle.loads() expected data";
-    return false;
-  }
-  std::string_view payload;
-  if (!get_bytes_view(args[0], payload, error)) {
-    return false;
-  }
-  if (payload.size() >= 4 && payload.substr(0, 4) == "X3P1") {
-    Value loads;
-    if (!marshal_function(runtime, "loads", loads, error)) {
-      return false;
-    }
-    Value marshaled = Value::bytes(std::string(payload.substr(4)));
-    return runtime_call_callable(runtime, loads, &marshaled, 1, out, error);
-  }
-  return pickle_read_value(runtime, payload, out, error);
+  return call_source_pickle(runtime, "_loads", args, argc, nullptr, 0, out, error);
+}
+
+bool pickle_loads_kw(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    const NativeKeywordArg* kwargs, uint32_t kwargc,
+    Value& out, std::string& error, void*) {
+  return call_source_pickle(runtime, "_loads", args, argc, kwargs, kwargc, out, error);
 }
 
 bool pickle_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 3) {
-    error = "pickle.dump() expected object, file, and optional protocol";
-    return false;
-  }
-  Value data;
-  if (!pickle_dumps(runtime, args, argc == 3 ? 2 : 1, data, error, nullptr)) {
-    return false;
-  }
-  Value write;
-  if (!attribute_get(args[1], "write", write, error)) {
-    return false;
-  }
-  Value ignored;
-  if (!runtime_call_callable(runtime, write, &data, 1, ignored, error)) {
-    return false;
-  }
-  value_set_none(out);
-  return true;
+  return call_source_pickle(runtime, "_dump", args, argc, nullptr, 0, out, error);
 }
 
 bool pickle_dump_kw(
@@ -1098,78 +1160,35 @@ bool pickle_dump_kw(
     Value& out,
     std::string& error,
     void*) {
-  if (argc < 2 || argc > 3) {
-    error = "pickle.dump() expected object, file, and optional protocol";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  std::vector<Value> positional(args, args + argc);
-  for (uint32_t i = 0; i < kwargc; ++i) {
-    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
-    if (kwargs[i].value == nullptr) {
-      error = "pickle.dump() received an invalid keyword argument";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    if (name == "protocol") {
-      if (positional.size() == 3) {
-        error = "pickle.dump() got multiple values for argument 'protocol'";
-        runtime.raise_class_error("TypeError", error);
-        return false;
-      }
-      positional.push_back(*kwargs[i].value);
-    } else if (name != "fix_imports" && name != "buffer_callback") {
-      error = "pickle.dump() got an unexpected keyword argument '" + name + "'";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-  }
-  return pickle_dump(runtime, positional.data(), static_cast<uint32_t>(positional.size()), out, error, nullptr);
+  return call_source_pickle(runtime, "_dump", args, argc, kwargs, kwargc, out, error);
 }
 
 bool pickle_load(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "pickle.load() expected file";
-    return false;
-  }
-  Value read;
-  if (!attribute_get(args[0], "read", read, error)) {
-    return false;
-  }
-  std::string payload;
-  for (;;) {
-    Value read_size = Value::int64(1);
-    Value chunk;
-    if (!runtime_call_callable(runtime, read, &read_size, 1, chunk, error)) {
-      return false;
-    }
-    std::string_view chunk_view;
-    if (!get_bytes_view(chunk, chunk_view, error)) {
-      return false;
-    }
-    if (chunk_view.empty()) {
-      break;
-    }
-    payload.append(chunk_view.data(), chunk_view.size());
-    const PickleScanResult scan = scan_pickle_record(payload, error);
-    if (scan == PickleScanResult::Invalid) {
-      raise_pickle_module_error(runtime, "UnpicklingError", error);
-      return false;
-    }
-    if (scan == PickleScanResult::Complete) {
-      Value data = Value::bytes(std::move(payload));
-      return pickle_loads(runtime, &data, 1, out, error, nullptr);
-    }
-  }
-  Value data = Value::bytes(std::move(payload));
-  return pickle_loads(runtime, &data, 1, out, error, nullptr);
+  return call_source_pickle(runtime, "_load", args, argc, nullptr, 0, out, error);
 }
 
-bool pickler_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool pickle_load_kw(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    const NativeKeywordArg* kwargs, uint32_t kwargc,
+    Value& out, std::string& error, void*) {
+  return call_source_pickle(runtime, "_load", args, argc, kwargs, kwargc, out, error);
+}
+
+bool pickler_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "Pickler() expected file and optional protocol";
     return false;
   }
+  Value pickle_module;
+  Value source_class;
+  if (!runtime.import_module("pickle", pickle_module, error) ||
+      !module_get_attr(pickle_module, "_Pickler", source_class, error)) return false;
+  std::vector<Value> source_args{args[1]};
+  if (argc == 3) source_args.push_back(args[2]);
+  Value validation_delegate;
+  if (!runtime_call_callable(
+          runtime, source_class, source_args.data(), static_cast<uint32_t>(source_args.size()),
+          validation_delegate, error)) return false;
   auto* state = new PicklerState();
   state->file = args[1];
   if (argc == 3 && args[2].tag == ValueTag::Int64) {
@@ -1183,6 +1202,57 @@ bool pickler_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
+bool pickler_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* data) {
+  if (argc < 2 || argc > 3) {
+    error = "Pickler() expected file and optional protocol";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value write;
+  if (!attribute_get(args[1], "write", write, error)) {
+    Value pending;
+    if (!runtime.take_pending_exception(pending)) runtime.raise_class_error("TypeError", error);
+    else runtime.set_pending_exception(std::move(pending));
+    return false;
+  }
+  std::vector<Value> positional(args, args + argc);
+  Value fix_imports = Value::boolean(true);
+  Value buffer_callback = Value::none();
+  bool have_protocol = argc == 3;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (kwargs[i].value == nullptr) { error = "invalid Pickler keyword"; return false; }
+    if (name == "protocol") {
+      if (have_protocol) { error = "multiple values for protocol"; runtime.raise_class_error("TypeError", error); return false; }
+      positional.push_back(*kwargs[i].value);
+      have_protocol = true;
+    } else if (name == "fix_imports") {
+      fix_imports = *kwargs[i].value;
+    } else if (name == "buffer_callback") {
+      buffer_callback = *kwargs[i].value;
+    } else {
+      error = "Pickler() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  if (!pickler_init(runtime, positional.data(), static_cast<uint32_t>(positional.size()), out, error, data)) return false;
+  auto* state = static_cast<PicklerState*>(instance_get_native_data(args[0], kPicklerNativeType));
+  if (state != nullptr) {
+    state->fix_imports = value_truthy(fix_imports);
+    state->buffer_callback = std::move(buffer_callback);
+  }
+  return true;
+}
+
 bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "Pickler.dump() expected object";
@@ -1191,46 +1261,52 @@ bool pickler_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   auto* state = static_cast<PicklerState*>(instance_get_native_data(args[0], kPicklerNativeType));
   if (state == nullptr) {
     error = "invalid Pickler object";
+    raise_pickle_module_error(runtime, "PicklingError", error);
     return false;
   }
-  Value dispatch_table;
-  const Value* dispatch_table_ptr = nullptr;
-  std::string dispatch_error;
-  if (object_get_attr(args[0], "dispatch_table", dispatch_table, dispatch_error) &&
-      mapping_is_mapping(dispatch_table)) {
-    dispatch_table_ptr = &dispatch_table;
+  Value pickle_module;
+  Value source_pickler_class;
+  if (!runtime.import_module("pickle", pickle_module, error) ||
+      !module_get_attr(pickle_module, "_Pickler", source_pickler_class, error)) {
+    return false;
   }
-  std::string payload;
-  payload.push_back(static_cast<char>(0x80)); // PROTO
-  payload.push_back(static_cast<char>(state->protocol));
-  if (!pickle_write_value(runtime, args[1], state->protocol, payload, error, dispatch_table_ptr)) {
-    Value pending;
-    if (runtime.take_pending_exception(pending)) {
-      runtime.set_pending_exception(std::move(pending));
-    } else {
-      raise_pickle_module_error(runtime, "PicklingError", error);
+  Value constructor_args[] = {state->file, Value::int64(state->protocol)};
+  std::vector<std::pair<std::string, Value>> constructor_kwargs{
+      {"fix_imports", Value::boolean(state->fix_imports)},
+      {"buffer_callback", state->buffer_callback},
+  };
+  Value delegate;
+  if (!runtime_call_callable_kw(
+          runtime, source_pickler_class, constructor_args, 2, constructor_kwargs, delegate, error)) {
+    return false;
+  }
+  for (const char* name : {"dispatch_table", "persistent_id", "reducer_override"}) {
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(args[0], name, attr, ignored)) {
+      (void)object_set_attr(delegate, name, attr, ignored);
     }
+  }
+  Value dump_method;
+  if (!attribute_get(delegate, "dump", dump_method, error) ||
+      !runtime_call_callable(runtime, dump_method, &args[1], 1, out, error)) {
     return false;
   }
-  payload.push_back('.');
-  Value data = Value::bytes(std::move(payload));
-  Value write;
-  if (!attribute_get(state->file, "write", write, error)) {
-    return false;
-  }
-  Value ignored;
-  if (!runtime_call_callable(runtime, write, &data, 1, ignored, error)) {
-    return false;
-  }
-  value_set_none(out);
   return true;
+
 }
 
-bool unpickler_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool unpickler_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "Unpickler() expected file";
     return false;
   }
+  Value pickle_module;
+  Value source_class;
+  Value validation_delegate;
+  if (!runtime.import_module("pickle", pickle_module, error) ||
+      !module_get_attr(pickle_module, "_Unpickler", source_class, error) ||
+      !runtime_call_callable(runtime, source_class, &args[1], 1, validation_delegate, error)) return false;
   auto* state = new UnpicklerState();
   state->file = args[1];
   if (!instance_set_native_data(args[0], kUnpicklerNativeType, state, unpickler_cleanup, error)) {
@@ -1238,6 +1314,33 @@ bool unpickler_init(Runtime&, const Value* args, uint32_t argc, Value& out, std:
     return false;
   }
   value_set_none(out);
+  return true;
+}
+
+bool unpickler_init_kw(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    const NativeKeywordArg* kwargs, uint32_t kwargc,
+    Value& out, std::string& error, void* data) {
+  if (argc != 2) {
+    error = "Unpickler() expected file";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!unpickler_init(runtime, args, argc, out, error, data)) return false;
+  auto* state = static_cast<UnpicklerState*>(instance_get_native_data(args[0], kUnpicklerNativeType));
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
+    if (state == nullptr || kwargs[i].value == nullptr) { error = "invalid Unpickler keyword"; return false; }
+    if (name == "fix_imports") state->fix_imports = value_truthy(*kwargs[i].value);
+    else if (name == "encoding") state->encoding = *kwargs[i].value;
+    else if (name == "errors") state->errors = *kwargs[i].value;
+    else if (name == "buffers") state->buffers = *kwargs[i].value;
+    else {
+      error = "Unpickler() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
   return true;
 }
 
@@ -1249,9 +1352,20 @@ bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   auto* state = static_cast<UnpicklerState*>(instance_get_native_data(args[0], kUnpicklerNativeType));
   if (state == nullptr) {
     error = "invalid Unpickler object";
+    raise_pickle_module_error(runtime, "UnpicklingError", error);
     return false;
   }
-  return pickle_load(runtime, &state->file, 1, out, error, nullptr);
+  Value pickle_module;
+  Value source_load;
+  if (!runtime.import_module("pickle", pickle_module, error) ||
+      !module_get_attr(pickle_module, "_load", source_load, error)) return false;
+  std::vector<std::pair<std::string, Value>> kwargs{
+      {"fix_imports", Value::boolean(state->fix_imports)},
+      {"encoding", state->encoding},
+      {"errors", state->errors},
+      {"buffers", state->buffers},
+  };
+  return runtime_call_callable_kw(runtime, source_load, &state->file, 1, kwargs, out, error);
 }
 
 Value make_pickler_class(Runtime& runtime, const char* name) {
@@ -1261,7 +1375,9 @@ Value make_pickler_class(Runtime& runtime, const char* name) {
   attrs.push_back({
       "__text_signature__",
       Value::string("(file, protocol=None, fix_imports=True, buffer_callback=None)")});
-  attrs.push_back({"__init__", runtime.make_native_function(std::string(name) + ".Pickler.__init__", pickler_init)});
+  attrs.push_back({"__init__", runtime.make_native_function(
+      std::string(name) + ".Pickler.__init__", pickler_init,
+      nullptr, nullptr, nullptr, false, pickler_init_kw)});
   Value dump = runtime.make_native_function(std::string(name) + ".Pickler.dump", pickler_dump);
   builtin_method_set_text_signature(dump, "($self, obj, /)");
   attrs.push_back({"dump", std::move(dump)});
@@ -1276,7 +1392,9 @@ Value make_unpickler_class(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string(name)});
   attrs.push_back({"__qualname__", Value::string("Unpickler")});
-  attrs.push_back({"__init__", runtime.make_native_function(std::string(name) + ".Unpickler.__init__", unpickler_init)});
+  attrs.push_back({"__init__", runtime.make_native_function(
+      std::string(name) + ".Unpickler.__init__", unpickler_init,
+      nullptr, nullptr, nullptr, false, unpickler_init_kw)});
   attrs.push_back({"load", runtime.make_native_function(std::string(name) + ".Unpickler.load", unpickler_load)});
   const Value* object_class = runtime.find_builtin("object");
   return Value::class_object(
@@ -1292,7 +1410,10 @@ Value make_pickle_module(Runtime& runtime, const char* name) {
   Value unpickling_error = Value::class_object("UnpicklingError", {}, pickle_error);
 
   std::vector<std::pair<std::string, Value>> buffer_attrs;
+  buffer_attrs.push_back({"__module__", Value::string(name)});
   buffer_attrs.push_back({"__init__", runtime.make_native_function(std::string(name) + ".PickleBuffer.__init__", picklebuffer_init)});
+  buffer_attrs.push_back({"raw", runtime.make_native_function(std::string(name) + ".PickleBuffer.raw", picklebuffer_raw)});
+  buffer_attrs.push_back({"release", runtime.make_native_function(std::string(name) + ".PickleBuffer.release", picklebuffer_release)});
 
   NativeModuleBuilder builder(runtime, name);
   builder.value("HIGHEST_PROTOCOL", Value::int64(kPickleHighestProtocol))
@@ -1305,8 +1426,8 @@ Value make_pickle_module(Runtime& runtime, const char* name) {
       .value("PickleBuffer", Value::class_object("PickleBuffer", std::move(buffer_attrs)))
       .function("dump", pickle_dump, nullptr, false, pickle_dump_kw)
       .function("dumps", pickle_dumps, nullptr, false, pickle_dumps_kw)
-      .function("load", pickle_load)
-      .function("loads", pickle_loads);
+      .function("load", pickle_load, nullptr, false, pickle_load_kw)
+      .function("loads", pickle_loads, nullptr, false, pickle_loads_kw);
   return builder.finish();
 }
 

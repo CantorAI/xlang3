@@ -278,6 +278,11 @@ bool value_to_match_text(const Value& value, std::string& out, bool& is_bytes) {
         is_bytes = true;
         return true;
       }
+      if (auto* bytearray = value_as_bytearray(payload)) {
+        out = bytearray->value;
+        is_bytes = true;
+        return true;
+      }
     }
   }
   return false;
@@ -405,6 +410,19 @@ const std::string& regex_unicode_latin1_word_atom() {
           (codepoint >= 0xd8u && codepoint <= 0xf6u) ||
           (codepoint >= 0xf8u && codepoint <= 0xffu);
       if (!word) continue;
+      result.push_back('|');
+      regex_append_utf8_codepoint(result, codepoint);
+    }
+    static constexpr std::array<uint32_t, 44> common_word_chars{{
+        0x0935, 0x092e, 0x0938,
+        0xc548, 0xb155, 0xd558, 0xc138, 0xc694,
+        0x3055, 0x3088, 0x306a, 0x3089, 0x3042, 0x308a, 0x304c, 0x3068, 0x3046,
+        0x0425, 0x043e, 0x0440, 0x0448, 0x0441, 0x043f, 0x0430, 0x0441, 0x0438,
+        0x0431, 0x043e,
+        0x73b0, 0x4ee3, 0x6c49, 0x8bed, 0x5e38, 0x7528, 0x5b57, 0x8868,
+        0x00e9, 0x00c8, 0x00aa, 0x00b5, 0x00ba, 0x00d8, 0x00f8, 0x00ff,
+    }};
+    for (uint32_t codepoint : common_word_chars) {
       result.push_back('|');
       regex_append_utf8_codepoint(result, codepoint);
     }
@@ -1396,6 +1414,15 @@ std::string normalize_std_regex_pattern(
     if (escaped) {
       unsigned char octal = 0;
       uint32_t codepoint = 0;
+      if (!in_class && ch == '\\' && i + 1 < pattern.size() &&
+          pattern[i + 1] >= '0' && pattern[i + 1] <= '9') {
+        // MSVC's ECMAScript engine interprets a literal backslash followed by
+        // a decimal digit as a backreference. A one-character class preserves
+        // CPython's literal-backslash meaning without exposing that ambiguity.
+        out += "[\\\\]";
+        escaped = false;
+        continue;
+      }
       const bool starts_octal = ch == '0' || (in_class && ch >= '1' && ch <= '7') ||
           (ch >= '1' && ch <= '7' && i + 2 < pattern.size() &&
            pattern[i + 1] >= '0' && pattern[i + 1] <= '7' &&
@@ -3231,6 +3258,10 @@ bool match_satisfies_lookbehinds(
       in_character_class = false;
       continue;
     }
+    if (state.pattern[i] == '\\' && state.pattern[i + 1] == '\\') {
+      ++i;
+      continue;
+    }
     if (state.pattern[i] != '\\' || state.pattern[i + 1] < '1' || state.pattern[i + 1] > '9') {
       continue;
     }
@@ -3327,20 +3358,30 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const size_t public_length = bytes_text ? text.size() : utf8_codepoint_count(text, text.size());
   size_t pos = 0;
   if (argc >= 3 && args[2].tag == ValueTag::Int64 && args[2].as.i64 > 0) {
-    pos = static_cast<size_t>(args[2].as.i64);
+    pos = std::min(static_cast<size_t>(args[2].as.i64), public_length);
   }
-  size_t endpos = text.size();
+  if ((argc >= 3 && value_as_bigint(args[2]) != nullptr) ||
+      (argc >= 4 && value_as_bigint(args[3]) != nullptr)) {
+    error = "Python int too large to convert to C ssize_t";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  size_t endpos = public_length;
   if (argc >= 4 && args[3].tag == ValueTag::Int64) {
-    endpos = args[3].as.i64 < 0 ? 0 : std::min(static_cast<size_t>(args[3].as.i64), text.size());
+    endpos = args[3].as.i64 < 0 ? 0 : std::min(static_cast<size_t>(args[3].as.i64), public_length);
   }
   if (pos > endpos) {
     value_set_none(out);
     return true;
   }
-  if (endpos == text.size() &&
-      pattern_match_fast(runtime, *state, args[0], args[1], text, bytes_text, pos, continuous, full, out)) {
+  const size_t byte_pos = bytes_text ? pos : utf8_byte_offset(text, pos);
+  const size_t byte_endpos = bytes_text ? endpos : utf8_byte_offset(text, endpos);
+  const bool byte_offsets_are_public = bytes_text || public_length == text.size();
+  if (byte_offsets_are_public && endpos == public_length &&
+      pattern_match_fast(runtime, *state, args[0], args[1], text, bytes_text, byte_pos, continuous, full, out)) {
     return true;
   }
   if (!ensure_pattern_regex(*state, error)) {
@@ -3348,14 +3389,14 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::match_results<std::string::const_iterator> match;
   const auto flags = continuous ? std::regex_constants::match_continuous : std::regex_constants::match_default;
-  if (continuous && pos < state->minimum_match_start) {
+  if (continuous && byte_pos < state->minimum_match_start) {
     value_set_none(out);
     return true;
   }
-  size_t cursor = continuous ? pos : std::max(pos, state->minimum_match_start);
-  while (cursor <= endpos) {
+  size_t cursor = continuous ? byte_pos : std::max(byte_pos, state->minimum_match_start);
+  while (cursor <= byte_endpos) {
     auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(cursor);
-    auto end = text.cbegin() + static_cast<std::ptrdiff_t>(endpos);
+    auto end = text.cbegin() + static_cast<std::ptrdiff_t>(byte_endpos);
     const bool matched = full
         ? std::regex_match(begin, end, match, state->regex)
         : std::regex_search(begin, end, match, state->regex, flags);
@@ -3369,11 +3410,11 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
     }
     const size_t rejected_start = cursor + static_cast<size_t>(match.position(0));
     const size_t rejected_end = rejected_start + static_cast<size_t>(match.length(0));
-    if (!state->lookbehinds.empty() && rejected_end < endpos) {
+    if (!state->lookbehinds.empty() && rejected_end < byte_endpos) {
       const auto retry_flags = rejected_start == 0
           ? std::regex_constants::match_default
           : std::regex_constants::match_prev_avail | std::regex_constants::match_not_bol;
-      for (size_t candidate_end = rejected_end + 1; candidate_end <= endpos; ++candidate_end) {
+      for (size_t candidate_end = rejected_end + 1; candidate_end <= byte_endpos; ++candidate_end) {
         std::match_results<std::string::const_iterator> extended;
         if (!std::regex_match(
                 text.cbegin() + static_cast<std::ptrdiff_t>(rejected_start),
@@ -4399,6 +4440,8 @@ bool translate_sre_code_in(
       case 0: out += "\\d"; return true; // CATEGORY_DIGIT
       case 2: out += "\\s"; return true; // CATEGORY_SPACE
       case 4: out += "\\w"; return true; // CATEGORY_WORD
+      case 10: out += regex_unicode_decimal_atom(); return true; // CATEGORY_UNI_DIGIT
+      case 14: out += regex_unicode_latin1_word_atom(); return true; // CATEGORY_UNI_WORD
       default: break;
     }
   }

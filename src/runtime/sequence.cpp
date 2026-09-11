@@ -28,6 +28,7 @@ limitations under the License.
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -139,12 +140,26 @@ bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::str
     out = 0;
     return true;
   }
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value_as_bigint(value) != nullptr) {
+    if (!value_bigint_to_i64(value, out)) {
+      bool negative = false;
+      const uint32_t* limbs = nullptr;
+      uint32_t count = 0;
+      value_bigint_limb_view(value, negative, limbs, count);
+      out = negative ? std::numeric_limits<int64_t>::min()
+                     : std::numeric_limits<int64_t>::max();
+    }
+    return true;
+  }
   if (value.tag != ValueTag::Int64) {
     error = "slice indices must be integers or None";
     return false;
   }
-  out = value.as.i64;
-  return true;
+  return false;
 }
 
 bool normalize_slice(const SliceObject& slice, int64_t length, int64_t& start, int64_t& stop, int64_t& step, std::string& error) {
@@ -779,7 +794,8 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       error = "index out of range";
       return false;
     }
-    value_assign_fast(out, list->items[static_cast<size_t>(resolved)]);
+    Value item = list->items[static_cast<size_t>(resolved)];
+    value_move_assign_fast(out, item);
     return true;
   }
   if (value_as_dict(object) != nullptr || value_as_mapping_proxy(object) != nullptr || value_as_module(object) != nullptr) {
@@ -829,7 +845,8 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
       error = "index out of range";
       return false;
     }
-    value_assign_fast(out, tuple->items[static_cast<size_t>(resolved)]);
+    Value item = tuple->items[static_cast<size_t>(resolved)];
+    value_move_assign_fast(out, item);
     return true;
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {
@@ -908,6 +925,11 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
             static_cast<size_t>(start),
             normalized_size,
             storage.readonly);
+      } else if (object.as.obj->kind == ObjectKind::MemoryView) {
+        auto text = binary_slice_text(storage_view, start, stop, step);
+        const size_t selected_size = text.size();
+        out = Value::memoryview(Value::bytes(std::move(text)), 0, selected_size, true);
+        value_as_memoryview(out)->contiguous = false;
       } else {
         auto text = binary_slice_text(storage_view, start, stop, step);
         out = object.as.obj->kind == ObjectKind::ByteArray ? Value::bytearray(std::move(text)) : Value::bytes(std::move(text));
@@ -1315,6 +1337,13 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
 }
 
 bool sequence_len(const Value& value, Value& out, std::string& error) {
+  if (auto* iterator = value_as_sequence_iterator(value)) {
+    Value source_length;
+    if (!sequence_len(iterator->source, source_length, error) || source_length.tag != ValueTag::Int64) return false;
+    const uint64_t length = static_cast<uint64_t>(std::max<int64_t>(0, source_length.as.i64));
+    value_set_int64(out, static_cast<int64_t>(iterator->index >= length ? 0 : length - iterator->index));
+    return true;
+  }
   if (auto* list = value_as_list(value)) {
     value_set_int64(out, static_cast<int64_t>(list->items.size()));
     return true;

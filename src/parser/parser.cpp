@@ -96,6 +96,7 @@ std::string decode_fstring_literal(std::string_view text, bool raw) {
     ++i;
     const char esc = text[i++];
     switch (esc) {
+      case '\n': break;
       case 'n': out.push_back('\n'); break;
       case 'r': out.push_back('\r'); break;
       case 't': out.push_back('\t'); break;
@@ -118,7 +119,18 @@ std::string decode_fstring_literal(std::string_view text, bool raw) {
         if (!append_fstring_hex_escape(text, i, 8, out)) out += "\\U";
         break;
       default:
-        out.push_back(esc);
+        if (esc >= '0' && esc <= '7') {
+          uint32_t value = static_cast<uint32_t>(esc - '0');
+          size_t digits = 1;
+          while (digits < 3 && i < text.size() && text[i] >= '0' && text[i] <= '7') {
+            value = (value << 3u) | static_cast<uint32_t>(text[i] - '0');
+            ++i;
+            ++digits;
+          }
+          append_fstring_utf8(value, out);
+        } else {
+          out.push_back(esc);
+        }
         break;
     }
   }
@@ -566,6 +578,20 @@ ast::StmtPtr Parser::parse_statement() {
 ast::StmtPtr Parser::parse_statement_impl() {
   if (is_statement_recovery_boundary(peek().kind)) {
     return nullptr;
+  }
+  // PEP 695 makes `type` a soft keyword.  XLang evaluates the alias value as
+  // an ordinary assignment for now; this preserves runtime use by stdlib
+  // modules while leaving the richer TypeAliasType metadata to its native
+  // dependency.
+  if (check(TokenKind::Identifier) && peek().text == "type" &&
+      current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Identifier) {
+    advance();
+    const std::string name(advance().text);
+    (void)consume_optional_type_params();
+    consume(TokenKind::Assign, "expected '=' after type alias name");
+    auto value = parse_expression();
+    consume_simple_statement_end();
+    return std::make_unique<ast::AssignStmt>(name, std::move(value));
   }
   if (check(TokenKind::At)) {
     return parse_decorated_statement();
@@ -1874,25 +1900,37 @@ ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
     parenthesized = true;
   }
 
-  const Token first = peek();
-  if (is_identifier_like_token(first.kind)) {
+  auto parse_target_item = [this](std::string& name) -> ast::ExprPtr {
+    const bool starred = match(TokenKind::Star);
+    const Token item = peek();
+    if (!is_identifier_like_token(item.kind)) {
+      return nullptr;
+    }
     advance();
-  } else {
+    name = std::string(item.text);
+    auto result = std::make_unique<ast::NameExpr>(name);
+    if (starred) {
+      return std::make_unique<ast::StarredExpr>(std::move(result));
+    }
+    return result;
+  };
+
+  auto first_item = parse_target_item(first_name);
+  if (!first_item) {
     error_here("expected comprehension target after for");
     first_name.clear();
     return std::make_unique<ast::NameExpr>("");
   }
-  first_name = std::string(first.text);
-  items.push_back(std::make_unique<ast::NameExpr>(first_name));
+  items.push_back(std::move(first_item));
 
   while (match(TokenKind::Comma) && !(parenthesized && check(TokenKind::RParen)) && !check(TokenKind::KwIn)) {
-    const Token item = peek();
-    if (is_identifier_like_token(item.kind)) {
-      advance();
-    } else {
+    std::string item_name;
+    auto item = parse_target_item(item_name);
+    if (!item) {
       error_here("expected comprehension target after ','");
+      item = std::make_unique<ast::NameExpr>("");
     }
-    items.push_back(std::make_unique<ast::NameExpr>(std::string(item.text)));
+    items.push_back(std::move(item));
   }
 
   if (parenthesized) {
@@ -2239,7 +2277,10 @@ void Parser::consume_simple_statement_end() {
   if (match(TokenKind::Semicolon)) {
     return;
   }
-  match(TokenKind::Newline);
+  if (match(TokenKind::Newline) || check(TokenKind::Dedent) || check(TokenKind::End)) {
+    return;
+  }
+  error_here("expected end of statement");
 }
 
 bool Parser::is_simple_statement_end() const {

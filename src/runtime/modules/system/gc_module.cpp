@@ -63,6 +63,7 @@ bool gc_collect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     error = "gc.collect() generation must be an integer between 0 and 2";
     return false;
   }
+  runtime.synchronize_modules_from_registry();
   runtime.release_dead_frame_registers();
   emit_pending_socket_resource_warnings(runtime);
   value_set_int64(out, static_cast<int64_t>(weakref_collect_cycles()));

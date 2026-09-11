@@ -31,6 +31,13 @@ namespace xlang3 {
 
 namespace {
 
+thread_local uint32_t g_generator_resume_depth = 0;
+
+struct GeneratorResumeGuard {
+  GeneratorResumeGuard() { ++g_generator_resume_depth; }
+  ~GeneratorResumeGuard() { --g_generator_resume_depth; }
+};
+
 template <typename T>
 T* allocate_generator_object(ObjectKind kind) {
   auto* obj = new T();
@@ -180,6 +187,18 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     error = "generator has invalid runtime";
     return false;
   }
+  // ``yield from`` resumes delegated generators through this native call path,
+  // so each level consumes host stack even though it is a Python generator
+  // frame.  Guard it before Windows exhausts its C stack.
+  constexpr uint32_t kSafeGeneratorResumeLimit = 200;
+  const uint32_t effective_recursion_limit = std::min(
+      static_cast<uint32_t>(obj->runtime->recursion_limit()), kSafeGeneratorResumeLimit);
+  if (g_generator_resume_depth >= effective_recursion_limit) {
+    error = "maximum recursion depth exceeded";
+    obj->runtime->raise_class_error("RecursionError", error);
+    return false;
+  }
+  GeneratorResumeGuard resume_guard;
   obj->started = true;
   value_assign_fast(obj->pending_send, value);
   obj->has_pending_send = true;
@@ -439,7 +458,12 @@ bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, V
   Value generator = args[0];
   bool done = false;
   if (!generator_send(generator, args[1], done, out, error)) {
-    runtime.raise_class_error("TypeError", error);
+    if (value_as_instance(out) != nullptr) {
+      runtime.set_pending_exception(out);
+      error.clear();
+    } else {
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
   if (done) {
@@ -458,7 +482,12 @@ bool generator_next_method(Runtime& runtime, const Value* args, uint32_t argc, V
   Value generator = args[0];
   bool done = false;
   if (!generator_send(generator, Value::none(), done, out, error)) {
-    runtime.raise_class_error("TypeError", error);
+    if (value_as_instance(out) != nullptr) {
+      runtime.set_pending_exception(out);
+      error.clear();
+    } else {
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
   if (done) {

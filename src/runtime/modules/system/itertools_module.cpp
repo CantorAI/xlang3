@@ -110,6 +110,12 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   Value iterator;
   if (!runtime_get_iter(runtime, args[0], iterator, error)) {
+    if (error == "object is not iterable") {
+      Value pending;
+      runtime.take_pending_exception(pending);
+      error = "'" + std::string(value_binary_type_name(args[0])) + "' object is not iterable";
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
   std::vector<Value> values;
@@ -208,29 +214,7 @@ bool itertools_filterfalse(Runtime& runtime, const Value* args, uint32_t argc, V
   if (!runtime_get_iter(runtime, args[1], iterator, error)) {
     return false;
   }
-  std::vector<Value> values;
-  for (;;) {
-    bool done = false;
-    Value item;
-    if (!sequence_iter_next(iterator, done, item, error)) {
-      return false;
-    }
-    if (done) {
-      break;
-    }
-    bool keep = !value_truthy(item);
-    if (args[0].tag != ValueTag::None) {
-      Value predicate_result;
-      if (!runtime_call_callable(runtime, args[0], &item, 1, predicate_result, error)) {
-        return false;
-      }
-      keep = !value_truthy(predicate_result);
-    }
-    if (keep) {
-      values.push_back(std::move(item));
-    }
-  }
-  out = Value::list(std::move(values));
+  out = functional_filter_iterator(&runtime, args[0], std::move(iterator), true);
   return true;
 }
 
@@ -434,6 +418,12 @@ bool itertools_batched(Runtime& runtime, const Value* args, uint32_t argc, Value
 
   Value iterator;
   if (!runtime_get_iter(runtime, args[0], iterator, error)) {
+    if (error == "object is not iterable") {
+      Value pending;
+      runtime.take_pending_exception(pending);
+      error = "'" + std::string(value_binary_type_name(args[0])) + "' object is not iterable";
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
 

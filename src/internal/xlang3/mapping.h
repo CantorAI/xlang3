@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -33,6 +34,9 @@ enum class DictIterationKind : uint8_t {
 struct DictObject {
   Object header;
   std::vector<std::pair<Value, Value>> entries;
+  mutable std::unordered_map<int64_t, size_t> integer_index;
+  mutable size_t indexed_entry_count = static_cast<size_t>(-1);
+  mutable bool index_has_other_keys = false;
 };
 
 struct MappingProxyObject {

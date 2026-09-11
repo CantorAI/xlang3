@@ -926,6 +926,69 @@ bool value_int_like_mul(const Value& lhs, const Value& rhs, Value& out) {
   return true;
 }
 
+bool value_int_like_divmod(const Value& lhs, const Value& rhs, Value& quotient, Value& remainder,
+                           std::string& error) {
+  BigIntPayload dividend;
+  BigIntPayload divisor;
+  if (!value_to_payload(lhs, dividend) || !value_to_payload(rhs, divisor)) {
+    release_limbs(dividend);
+    release_limbs(divisor);
+    return false;
+  }
+  if (divisor.sign == 0) {
+    release_limbs(dividend);
+    release_limbs(divisor);
+    error = "integer division or modulo by zero";
+    return false;
+  }
+  const int8_t dividend_sign = dividend.sign;
+  const int8_t divisor_sign = divisor.sign;
+  dividend.sign = dividend.sign == 0 ? 0 : 1;
+  divisor.sign = 1;
+  BigIntPayload q;
+  BigIntPayload r = clone_payload(dividend);
+  if (compare_abs(r, divisor) >= 0) {
+    const uint32_t shift = bit_length_abs(r) - bit_length_abs(divisor);
+    BigIntPayload shifted_divisor = shift_left_payload(divisor, shift);
+    ensure_capacity(q, shift / 32u + 1u);
+    std::memset(q.limbs, 0, sizeof(uint32_t) * (shift / 32u + 1u));
+    q.limb_count = shift / 32u + 1u;
+    q.sign = 1;
+    for (int64_t bit = static_cast<int64_t>(shift); bit >= 0; --bit) {
+      if (compare_abs(r, shifted_divisor) >= 0) {
+        BigIntPayload next = sub_abs(r, shifted_divisor, 1);
+        move_assign_payload(r, next);
+        q.limbs[static_cast<uint32_t>(bit) / 32u] |=
+            uint32_t{1} << (static_cast<uint32_t>(bit) % 32u);
+      }
+      BigIntPayload next_divisor = shift_right_positive(shifted_divisor, 1);
+      move_assign_payload(shifted_divisor, next_divisor);
+    }
+    release_limbs(shifted_divisor);
+    normalize(q);
+  }
+
+  if (dividend_sign != 0 && dividend_sign != divisor_sign && r.sign != 0) {
+    BigIntPayload one = make_payload_from_u64(1, 1);
+    BigIntPayload q_plus_one = add_payload(q, one);
+    release_limbs(q);
+    q = negate_payload(q_plus_one);
+    BigIntPayload adjusted_remainder = sub_abs(divisor, r, divisor_sign);
+    release_limbs(r);
+    r = std::move(adjusted_remainder);
+    release_limbs(one);
+    release_limbs(q_plus_one);
+  } else {
+    q.sign = q.sign == 0 ? 0 : (dividend_sign == divisor_sign ? 1 : -1);
+    r.sign = r.sign == 0 ? 0 : divisor_sign;
+  }
+  release_limbs(dividend);
+  release_limbs(divisor);
+  quotient = compact_payload(q);
+  remainder = compact_payload(r);
+  return true;
+}
+
 bool value_int_like_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   BigIntPayload base;
   BigIntPayload exponent_payload;

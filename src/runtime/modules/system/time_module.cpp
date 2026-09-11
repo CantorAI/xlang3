@@ -1253,9 +1253,40 @@ bool normalize_strftime_format(const std::string& format, std::string& out, std:
 }
 
 std::string format_tm(const std::string& format, const std::tm& tm) {
-  std::ostringstream stream;
-  stream << std::put_time(&tm, format.c_str());
-  return stream.str();
+  std::string result;
+  for (size_t index = 0; index < format.size();) {
+    if (format[index] != '%') {
+      result.push_back(format[index++]);
+      continue;
+    }
+    const size_t directive_start = index++;
+    if (index >= format.size()) {
+      result.push_back('%');
+      break;
+    }
+    bool width_four = false;
+    if (format[index] == '4' && index + 1 < format.size()) {
+      width_four = true;
+      ++index;
+    }
+    const char directive = format[index++];
+    if (directive == 'Y') {
+      const int64_t year = static_cast<int64_t>(tm.tm_year) + 1900;
+      std::ostringstream year_stream;
+      if (width_four || (year >= -999 && year <= 9999)) {
+        year_stream << std::setfill('0') << std::setw(4) << year;
+      } else {
+        year_stream << year;
+      }
+      result += year_stream.str();
+      continue;
+    }
+    std::string one = format.substr(directive_start, index - directive_start);
+    std::ostringstream stream;
+    stream << std::put_time(&tm, one.c_str());
+    result += stream.str();
+  }
+  return result;
 }
 
 std::string format_asctime_tm(const std::tm& tm) {
@@ -1406,6 +1437,11 @@ bool int_from_value(const Value& value, const char* name, int& out, std::string&
   if (value.tag != ValueTag::Int64) {
     (void)name;
     error = "'" + time_type_name(value) + "' object cannot be interpreted as an integer";
+    return false;
+  }
+  if (value.as.i64 < std::numeric_limits<int>::min() ||
+      value.as.i64 > std::numeric_limits<int>::max()) {
+    error = "Python int too large to convert to C int";
     return false;
   }
   out = static_cast<int>(value.as.i64);
@@ -1769,7 +1805,12 @@ bool is_exact_struct_time_instance(const Value& value, const TimeModuleState* st
          instance->klass.as.obj == state->struct_time_class.as.obj;
 }
 
-bool tm_from_sequence_like(const Value& value, const TimeModuleState* state, std::tm& out, std::string& error) {
+bool tm_from_sequence_like(
+    const Value& value,
+    const TimeModuleState* state,
+    std::tm& out,
+    std::string& error,
+    bool validate_fields = true) {
   std::vector<Value> items;
   if (auto* tuple = value_as_tuple(value)) {
     items = tuple->items;
@@ -1811,6 +1852,24 @@ bool tm_from_sequence_like(const Value& value, const TimeModuleState* state, std
       !int_from_value(items[8], "tm_isdst", isdst, error)) {
     return false;
   }
+  constexpr int kMinimumYear = std::numeric_limits<int>::min() + 1900;
+  if (year < kMinimumYear) {
+    error = "Python int too large to convert to C int";
+    return false;
+  }
+  if (validate_fields) {
+    if (month < 0 || month > 12) error = "month out of range";
+    else if (day < 0 || day > 31) error = "day of month out of range";
+    else if (hour < 0 || hour > 23) error = "hour out of range";
+    else if (minute < 0 || minute > 59) error = "minute out of range";
+    else if (second < 0 || second > 61) error = "seconds out of range";
+    else if (weekday < -1) error = "day of week out of range";
+    else if (yearday < 0 || yearday > 366) error = "day of year out of range";
+  }
+  if (!error.empty()) return false;
+  if (month == 0) month = 1;
+  if (day == 0) day = 1;
+  if (yearday == 0) yearday = 1;
   out = std::tm{};
   out.tm_year = year - 1900;
   out.tm_mon = month - 1;
@@ -2436,6 +2495,12 @@ bool time_localtime(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
+  const std::tm tm = tm_from_time_t(timestamp, false);
+  if (tm.tm_mon < 0) {
+    error = "timestamp out of range for platform time_t";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
   out = make_struct_time_from_timestamp(state->struct_time_class, timestamp, false);
   return true;
 }
@@ -2446,6 +2511,12 @@ bool time_gmtime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
+  const std::tm tm = tm_from_time_t(timestamp, true);
+  if (tm.tm_mon < 0) {
+    error = "timestamp out of range for platform time_t";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
   out = make_struct_time_from_timestamp(state->struct_time_class, timestamp, true);
   return true;
 }
@@ -2458,7 +2529,15 @@ bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
   std::tm tm{};
   auto* state = static_cast<TimeModuleState*>(user_data);
-  if (!tm_from_sequence_like(args[0], state, tm, error)) {
+  if (!tm_from_sequence_like(args[0], state, tm, error, false)) {
+    if (error == "Python int too large to convert to C int") {
+      runtime.raise_class_error("OverflowError", error);
+      return false;
+    }
+    if (error.find("out of range") != std::string::npos) {
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
     if (value_as_tuple(args[0]) == nullptr && !is_exact_struct_time_instance(args[0], state)) {
       error = "Tuple or struct_time argument required";
     } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
@@ -2470,6 +2549,7 @@ bool time_mktime(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   const std::time_t timestamp = std::mktime(&tm);
   if (timestamp == static_cast<std::time_t>(-1)) {
     error = "mktime argument out of range";
+    runtime.raise_class_error("OverflowError", error);
     return false;
   }
   out = Value::number(static_cast<double>(timestamp));
@@ -2499,6 +2579,14 @@ bool time_strftime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (argc == 2) {
     auto* state = static_cast<TimeModuleState*>(user_data);
     if (!tm_from_sequence_like(args[1], state, tm, error)) {
+      if (error == "Python int too large to convert to C int") {
+        runtime.raise_class_error("OverflowError", error);
+        return false;
+      }
+      if (error.find("out of range") != std::string::npos) {
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
       if (value_as_tuple(args[1]) == nullptr && !is_exact_struct_time_instance(args[1], state)) {
         error = "Tuple or struct_time argument required";
       } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
@@ -2569,6 +2657,12 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       error = std::string("'") + unsupported_directive_char + "' is a bad directive in format '" + format + "'";
     }
     runtime.raise_class_error("ValueError", error);
+    Value exception;
+    if (runtime.take_pending_exception(exception)) {
+      std::string ignored;
+      object_set_attr(exception, "__suppress_context__", Value::boolean(true), ignored);
+      runtime.set_pending_exception(std::move(exception));
+    }
     return false;
   }
   auto* state = static_cast<TimeModuleState*>(user_data);
@@ -2600,7 +2694,31 @@ bool time_strptime(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (!valid_strptime_month_day(tm, explicit_year)) {
     error = "day is out of range for month";
     runtime.raise_class_error("ValueError", error);
+    Value exception;
+    if (runtime.take_pending_exception(exception)) {
+      std::string ignored;
+      object_set_attr(exception, "__suppress_context__", Value::boolean(true), ignored);
+      runtime.set_pending_exception(std::move(exception));
+    }
     return false;
+  }
+  const bool has_day = format.find("%d") != std::string::npos || format.find("%e") != std::string::npos;
+  const bool has_year = format.find("%Y") != std::string::npos ||
+      format.find("%y") != std::string::npos || format.find("%G") != std::string::npos;
+  if (has_day && !has_year) {
+    Value warnings;
+    Value warn;
+    const Value* category = runtime.find_builtin("DeprecationWarning");
+    if (category == nullptr || !runtime.import_module("warnings", warnings, error) ||
+        !module_get_attr(warnings, "warn", warn, error)) {
+      return false;
+    }
+    const Value warning_args[] = {
+        Value::string("Parsing a day of month without a year is deprecated"),
+        *category,
+    };
+    Value ignored;
+    if (!runtime_call_callable(runtime, warn, warning_args, 2, ignored, error)) return false;
   }
   out = make_struct_time(state->struct_time_class, tm, zone, gmtoff);
   return true;
@@ -2734,6 +2852,14 @@ bool time_asctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   } else {
     auto* state = static_cast<TimeModuleState*>(user_data);
     if (!tm_from_sequence_like(args[0], state, tm, error)) {
+      if (error == "Python int too large to convert to C int") {
+        runtime.raise_class_error("OverflowError", error);
+        return false;
+      }
+      if (error.find("out of range") != std::string::npos) {
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
       if (value_as_tuple(args[0]) == nullptr && !is_exact_struct_time_instance(args[0], state)) {
         error = "Tuple or struct_time argument required";
       } else if (error.find("object cannot be interpreted as an integer") == std::string::npos) {
@@ -2768,6 +2894,11 @@ bool time_ctime(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     return false;
   }
   const std::tm tm = tm_from_time_t(timestamp, false);
+  if (tm.tm_mon < 0) {
+    error = "timestamp out of range for platform time_t";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
   out = Value::string(format_asctime_tm(tm));
   return true;
 }

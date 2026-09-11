@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/cp437_codec.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
@@ -387,6 +388,12 @@ std::string latin1_encode_text(Runtime& runtime, std::string_view text, const st
       i += advance;
     } else if (errors == "backslashreplace") {
       append_ascii_backslash_escape(codepoint, encoded);
+      i += advance;
+    } else if (errors == "xmlcharrefreplace") {
+      encoded += "&#" + std::to_string(codepoint) + ";";
+      i += advance;
+    } else if (errors == "surrogateescape" && codepoint >= 0xdc80u && codepoint <= 0xdcffu) {
+      encoded.push_back(static_cast<char>(codepoint - 0xdc00u));
       i += advance;
     } else {
       error = "latin-1 codec can't encode character";
@@ -1076,34 +1083,48 @@ bool string_upper_fast_method(
     Runtime&,
     const Value* leading,
     uint32_t leading_count,
-    const Value*,
-    const uint32_t*,
+    const Value* registers,
+    const uint32_t* register_args,
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count != 0 || leading == nullptr) {
+  const Value* target = nullptr;
+  if (leading_count == 1 && register_arg_count == 0 && leading != nullptr) {
+    target = &leading[0];
+  } else if (leading_count == 0 && register_arg_count == 1 &&
+             registers != nullptr && register_args != nullptr) {
+    target = &registers[register_args[0]];
+  }
+  if (target == nullptr) {
     error = "str.upper expected no arguments";
     return false;
   }
-  return string_upper_body(leading[0], out, error);
+  return string_upper_body(*target, out, error);
 }
 
 bool string_lower_fast_method(
     Runtime&,
     const Value* leading,
     uint32_t leading_count,
-    const Value*,
-    const uint32_t*,
+    const Value* registers,
+    const uint32_t* register_args,
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count != 0 || leading == nullptr) {
+  const Value* target = nullptr;
+  if (leading_count == 1 && register_arg_count == 0 && leading != nullptr) {
+    target = &leading[0];
+  } else if (leading_count == 0 && register_arg_count == 1 &&
+             registers != nullptr && register_args != nullptr) {
+    target = &registers[register_args[0]];
+  }
+  if (target == nullptr) {
     error = "str.lower expected no arguments";
     return false;
   }
-  return string_lower_body(leading[0], out, error);
+  return string_lower_body(*target, out, error);
 }
 
 bool string_strip_fast_method(
@@ -1434,25 +1455,34 @@ bool string_replace_fast_method(
 
 bool string_join_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "str.join", error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   memory::X3StringView sep;
   if (!get_string_view_checked(args[0], "str.join separator", sep, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (auto* list = value_as_list(args[1])) {
-    return join_string_values(sep, list->items, out, error);
+    if (join_string_values(sep, list->items, out, error)) return true;
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   if (args[1].tag == ValueTag::Object && args[1].as.obj != nullptr && args[1].as.obj->kind == ObjectKind::Tuple) {
     auto* tuple = reinterpret_cast<TupleObject*>(args[1].as.obj);
-    return join_string_values(sep, tuple->items, out, error);
+    if (join_string_values(sep, tuple->items, out, error)) return true;
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   std::vector<Value> items;
   if (!collect_join_iterable(runtime, args[1], items, error)) {
     error = "str.join argument must be iterable";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return join_string_values(sep, items, out, error);
+  if (join_string_values(sep, items, out, error)) return true;
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool string_join_fast_method(
@@ -1467,25 +1497,34 @@ bool string_join_fast_method(
     void*) {
   if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
     error = "str.join expected 1 argument";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   memory::X3StringView sep;
   if (!get_string_view_checked(leading[0], "str.join separator", sep, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const Value& sequence = registers[register_args[0]];
   if (auto* list = value_as_list(sequence)) {
-    return join_string_values(sep, list->items, out, error);
+    if (join_string_values(sep, list->items, out, error)) return true;
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   if (auto* tuple = value_as_tuple(sequence)) {
-    return join_string_values(sep, tuple->items, out, error);
+    if (join_string_values(sep, tuple->items, out, error)) return true;
+    runtime.raise_class_error("TypeError", error);
+    return false;
   }
   std::vector<Value> items;
   if (!collect_join_iterable(runtime, sequence, items, error)) {
     error = "str.join argument must be iterable";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return join_string_values(sep, items, out, error);
+  if (join_string_values(sep, items, out, error)) return true;
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool string_maketrans_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1598,7 +1637,39 @@ std::string format_replacement_value(
     std::string_view field,
     std::string& error);
 
+size_t format_field_close(std::string_view format, size_t open) {
+  size_t nested = 0;
+  for (size_t i = open + 1; i < format.size(); ++i) {
+    if (format[i] == '{') {
+      ++nested;
+    } else if (format[i] == '}') {
+      if (nested == 0) return i;
+      --nested;
+    }
+  }
+  return std::string_view::npos;
+}
+
+std::string resolve_positional_nested_fields(
+    std::string_view field, const Value* args, uint32_t argc, uint32_t& next_arg, std::string& error) {
+  std::string resolved;
+  for (size_t i = 0; i < field.size();) {
+    if (i + 1 < field.size() && field[i] == '{' && field[i + 1] == '}') {
+      if (next_arg >= argc) {
+        error = "str.format replacement index out of range";
+        return {};
+      }
+      resolved += value_to_string(args[next_arg++]);
+      i += 2;
+    } else {
+      resolved.push_back(field[i++]);
+    }
+  }
+  return resolved;
+}
+
 bool string_format_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  error.clear();
   if (argc < 1) {
     error = "str.format expected at least 1 argument";
     return false;
@@ -1622,13 +1693,16 @@ bool string_format_method(Runtime& runtime, const Value* args, uint32_t argc, Va
       continue;
     }
     if (format[i] == '{') {
-      const auto close = format.find('}', i + 1);
+      const auto close = format_field_close(format, i);
       if (close == std::string::npos) {
         error = "str.format unmatched '{'";
         return false;
       }
       uint32_t arg_index = next_arg++;
-      const auto field = format.substr(i + 1, close - i - 1);
+      const auto raw_field = format.substr(i + 1, close - i - 1);
+      std::string resolved_field = resolve_positional_nested_fields(raw_field, args, argc, next_arg, error);
+      if (!error.empty()) return false;
+      const std::string_view field(resolved_field);
       if (!field.empty()) {
         char* end = nullptr;
         std::string field_text(field);
@@ -1753,6 +1827,7 @@ std::string format_replacement_value(
       runtime.raise_class_error("TypeError", error);
       return {};
     }
+    error.clear();
     std::string converted = string_object_to_string(*converted_string);
     if (spec.empty()) {
       return converted;
@@ -1785,10 +1860,21 @@ std::string format_replacement_value(
       runtime.raise_class_error("TypeError", error);
       return {};
     }
+    error.clear();
     return string_object_to_string(*formatted_string);
   }
   if (spec.empty()) {
     return value_to_string(value);
+  }
+
+  if (const Value* format_builtin = runtime.find_builtin("format")) {
+    Value format_args[] = {value, Value::string(std::string(spec))};
+    Value formatted;
+    if (!runtime_call_callable(runtime, *format_builtin, format_args, 2, formatted, error)) return {};
+    if (auto* text = value_as_string(formatted)) {
+      error.clear();
+      return string_object_to_string(*text);
+    }
   }
   char type = '\0';
   if (!spec.empty() && std::isalpha(static_cast<unsigned char>(spec.back()))) {
@@ -1878,6 +1964,7 @@ bool string_format_method_kw(
     Value& out,
     std::string& error,
     void*) {
+  error.clear();
   if (argc < 1) {
     error = "str.format expected at least 1 argument";
     return false;
@@ -1901,20 +1988,38 @@ bool string_format_method_kw(
       continue;
     }
     if (format[i] == '{') {
-      const auto close = format.find('}', i + 1);
+      const auto close = format_field_close(format, i);
       if (close == std::string::npos) {
         error = "str.format unmatched '{'";
         return false;
       }
-      const auto field = format.substr(i + 1, close - i - 1);
+      const auto raw_field = format.substr(i + 1, close - i - 1);
+      const bool main_is_auto = format_field_name(raw_field).empty();
+      uint32_t main_auto_index = 0;
+      if (main_is_auto) {
+        if (next_arg >= argc) { error = "str.format replacement index out of range"; return false; }
+        main_auto_index = next_arg++;
+      }
+      std::string resolved_field;
+      for (size_t cursor = 0; cursor < raw_field.size();) {
+        if (raw_field[cursor] == '{') {
+          const size_t end = raw_field.find('}', cursor + 1);
+          if (end == std::string_view::npos) { error = "str.format unmatched '{'"; return false; }
+          const auto nested_name = raw_field.substr(cursor + 1, end - cursor - 1);
+          const Value* nested = nested_name.empty() && next_arg < argc
+              ? &args[next_arg++] : find_format_keyword(nested_name, kwargs, kwargc);
+          if (nested == nullptr) { error = "str.format missing nested field"; return false; }
+          resolved_field += value_to_string(*nested);
+          cursor = end + 1;
+        } else {
+          resolved_field.push_back(raw_field[cursor++]);
+        }
+      }
+      const std::string_view field(resolved_field);
       const auto field_name = format_field_name(field);
       const Value* replacement = nullptr;
       if (field_name.empty()) {
-        if (next_arg >= argc) {
-          error = "str.format replacement index out of range";
-          return false;
-        }
-        replacement = &args[next_arg++];
+        replacement = &args[main_auto_index];
       } else {
         char* end = nullptr;
         std::string field_text(field_name);
@@ -1955,6 +2060,7 @@ bool string_format_map_method(
     Value& out,
     std::string& error,
     void*) {
+  error.clear();
   if (argc != 2) {
     error = "str.format_map expected 1 argument";
     return false;
@@ -2050,11 +2156,49 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   for (auto& ch : errors) {
     ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
   }
-  if (encoding != "ascii" && encoding != "utf_8" && encoding != "utf_8_sig" && encoding != "latin_1" && encoding != "cp437" && encoding != "mbcs" &&
-      encoding != "utf_16" && encoding != "utf_16_le" && encoding != "utf_16_be" &&
-      encoding != "utf_32" && encoding != "utf_32_le" && encoding != "utf_32_be") {
-    error = "unsupported string encoding: " + encoding;
-    return false;
+  if (encoding != "ascii" && encoding != "latin_1" && encoding != "cp437" && encoding != "mbcs") {
+    Value codecs_module;
+    const Value* import_function = runtime.find_builtin("__import__");
+    if (import_function == nullptr) {
+      error = "__import__ is unavailable";
+      return false;
+    }
+    Value import_arg = Value::string("_codecs");
+    if (!runtime_call_callable(runtime, *import_function, &import_arg, 1, codecs_module, error)) return false;
+    Value lookup_function;
+    Value codec_info;
+    Value lookup_arg = Value::string(encoding);
+    if (!module_get_attr(codecs_module, "lookup", lookup_function, error) ||
+        !runtime_call_callable(runtime, lookup_function, &lookup_arg, 1, codec_info, error)) {
+      return false;
+    }
+    Value is_text_encoding;
+    bool is_text = true;
+    std::string ignored;
+    if (object_get_attr(codec_info, "_is_text_encoding", is_text_encoding, ignored) &&
+        !runtime_truthy(runtime, is_text_encoding, is_text, error)) {
+      return false;
+    }
+    if (!is_text) {
+      error = "'" + encoding + "' is not a text encoding; use codecs.encode() to handle arbitrary codecs";
+      runtime.raise_class_error("LookupError", error);
+      return false;
+    }
+    Value encode_function;
+    if (!module_get_attr(codecs_module, "encode", encode_function, error)) return false;
+    Value call_args[3] = {args[0], Value::string(encoding), Value::string(errors)};
+    Value encoded;
+    if (!runtime_call_callable(runtime, encode_function, call_args, 3, encoded, error)) return false;
+    if (value_as_bytes(encoded) == nullptr) {
+      const char* result_type = value_as_string(encoded) != nullptr ? "str" :
+          (encoded.tag == ValueTag::None ? "NoneType" : "object");
+      error = "'" + encoding + "' encoder returned '" + result_type +
+          "' instead of 'bytes'; use codecs.encode() to encode to arbitrary types";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    out = std::move(encoded);
+    return true;
   }
   if (encoding == "ascii") {
     std::string encoded;
@@ -2077,6 +2221,9 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
         i += advance;
       } else if (errors == "backslashreplace") {
         append_ascii_backslash_escape(codepoint, encoded);
+        i += advance;
+      } else if (errors == "xmlcharrefreplace") {
+        encoded += "&#" + std::to_string(codepoint) + ";";
         i += advance;
       } else if (errors == "surrogateescape" && codepoint >= 0xdc80u && codepoint <= 0xdcffu) {
         encoded.push_back(static_cast<char>(codepoint - 0xdc00u));
@@ -2103,6 +2250,30 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     if (!cp437_encode_text(as_view(text), errors, encoded, error)) {
       runtime.raise_class_error("UnicodeEncodeError", error);
       return false;
+    }
+    out = Value::bytes(std::move(encoded));
+    return true;
+  }
+  if (encoding == "cp424") {
+    std::string encoded;
+    const auto view = as_view(text);
+    for (size_t i = 0; i < view.size();) {
+      const unsigned char ch = static_cast<unsigned char>(view[i]);
+      const size_t width = utf8_codepoint_width(ch);
+      const uint32_t codepoint = width == 0 || i + width > view.size()
+          ? ch : decode_utf8_codepoint(view.substr(i), width);
+      const size_t advance = width == 0 ? 1 : width;
+      if (codepoint == 0x00a2) encoded.push_back('J');
+      else if (codepoint == '\r') encoded.push_back('\r');
+      else if (codepoint == '\n') encoded.push_back('%');
+      else if (errors == "ignore") {}
+      else if (errors == "replace") encoded.push_back('?');
+      else {
+        error = "'charmap' codec can't encode character";
+        runtime.raise_class_error("UnicodeEncodeError", error);
+        return false;
+      }
+      i += advance;
     }
     out = Value::bytes(std::move(encoded));
     return true;
@@ -2161,6 +2332,50 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   out = Value::bytes(std::string(as_view(text)));
   return true;
+}
+
+bool string_encode_method_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 3) {
+    error = "str.encode expected 0 to 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value merged[3] = {args[0], Value::string("utf-8"), Value::string("strict")};
+  bool supplied[3] = {true, false, false};
+  for (uint32_t index = 1; index < argc; ++index) {
+    merged[index] = args[index];
+    supplied[index] = true;
+  }
+  static const char* names[] = {"", "encoding", "errors"};
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const std::string name = kwargs[index].name == nullptr ? std::string() : kwargs[index].name;
+    size_t destination = 3;
+    for (size_t candidate = 1; candidate < 3; ++candidate) {
+      if (name == names[candidate]) destination = candidate;
+    }
+    if (destination == 3) {
+      error = "str.encode got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (supplied[destination]) {
+      error = "str.encode got multiple values for argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    merged[destination] = *kwargs[index].value;
+    supplied[destination] = true;
+  }
+  const uint32_t merged_argc = supplied[2] ? 3 : supplied[1] ? 2 : 1;
+  return string_encode_method(runtime, merged, merged_argc, out, error, user_data);
 }
 
 Value split_whitespace(memory::X3StringView text, int64_t maxsplit = -1) {
@@ -3007,11 +3222,23 @@ bool string_splitlines_method(Runtime&, const Value* args, uint32_t argc, Value&
   auto view = as_view(text);
   size_t start = 0;
   for (size_t i = 0; i < view.size(); ++i) {
-    if (view[i] != '\n' && view[i] != '\r') {
-      continue;
+    const unsigned char ch = static_cast<unsigned char>(view[i]);
+    size_t linebreak_width = 0;
+    if (ch == '\n' || ch == '\r' || ch == '\v' || ch == '\f' ||
+        ch == 0x1c || ch == 0x1d || ch == 0x1e) {
+      linebreak_width = 1;
+    } else if (ch == 0xc2 && i + 1 < view.size() &&
+               static_cast<unsigned char>(view[i + 1]) == 0x85) {
+      linebreak_width = 2;
+    } else if (ch == 0xe2 && i + 2 < view.size() &&
+               static_cast<unsigned char>(view[i + 1]) == 0x80 &&
+               (static_cast<unsigned char>(view[i + 2]) == 0xa8 ||
+                static_cast<unsigned char>(view[i + 2]) == 0xa9)) {
+      linebreak_width = 3;
     }
+    if (linebreak_width == 0) continue;
     size_t end = i;
-    size_t next = i + 1;
+    size_t next = i + linebreak_width;
     if (view[i] == '\r' && next < view.size() && view[next] == '\n') {
       ++next;
     }
@@ -3048,6 +3275,26 @@ bool string_splitlines_kw_method(
   }
   Value positional[] = {args[0], *kwargs[0].value};
   return string_splitlines_method(runtime, positional, 2, out, error, user_data);
+}
+
+bool string_eq_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "str.__eq__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto* left = value_as_string(args[0]);
+  const auto* right = value_as_string(args[1]);
+  if (left == nullptr || right == nullptr) {
+    if (const Value* not_implemented = runtime.find_builtin("NotImplemented")) {
+      value_assign_fast(out, *not_implemented);
+    } else {
+      value_set_bool(out, false);
+    }
+    return true;
+  }
+  value_set_bool(out, string_object_view(*left) == string_object_view(*right));
+  return true;
 }
 
 bool string_rsplit_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -3104,6 +3351,7 @@ bool string_expandtabs_method(Runtime&, const Value* args, uint32_t argc, Value&
 } // namespace
 
 static constexpr BuiltinMethodSpec kStringMethods[] = {
+    {"__eq__", "str.__eq__", string_eq_method},
     {"__getitem__", "str.__getitem__", string_getitem_method},
     {"__repr__", "str.__repr__", string_repr_method},
     {"__str__", "str.__str__", string_str_method},
@@ -3111,7 +3359,7 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"casefold", "str.casefold", string_casefold_method},
     {"center", "str.center", string_center_method},
     {"count", "str.count", string_count_method, string_count_fast_method},
-    {"encode", "str.encode", string_encode_method},
+    {"encode", "str.encode", string_encode_method, nullptr, false, string_encode_method_kw},
     {"endswith", "str.endswith", string_endswith_method, string_endswith_fast_method},
     {"expandtabs", "str.expandtabs", string_expandtabs_method},
     {"find", "str.find", string_find_method, string_find_fast_method},
