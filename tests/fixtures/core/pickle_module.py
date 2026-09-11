@@ -48,7 +48,7 @@ memo_unpickler = _pickle.Unpickler(stream)
 first = memo_unpickler.load()
 second = memo_unpickler.load()
 third = memo_unpickler.load()
-print(second is first, third is first)
+print(second is first, third is first, len(memo_unpickler.memo) > 0)
 
 cycle = []
 cycle.append(cycle)

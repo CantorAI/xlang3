@@ -1389,6 +1389,41 @@ bool unpickler_init_kw(
   return true;
 }
 
+bool ensure_unpickler_delegate(Runtime& runtime, UnpicklerState& state, std::string& error) {
+  if (state.delegate.tag != ValueTag::Invalid) return true;
+  Value pickle_module;
+  Value source_unpickler_class;
+  if (!runtime.import_module("pickle", pickle_module, error) ||
+      !module_get_attr(pickle_module, "_Unpickler", source_unpickler_class, error)) {
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> kwargs{
+      {"fix_imports", Value::boolean(state.fix_imports)},
+      {"encoding", state.encoding},
+      {"errors", state.errors},
+      {"buffers", state.buffers},
+  };
+  return runtime_call_callable_kw(
+      runtime, source_unpickler_class, &state.file, 1, kwargs, state.delegate, error);
+}
+
+bool unpickler_memo_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                        std::string& error, void*) {
+  if (argc != 1) {
+    error = "Unpickler.memo getter expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<UnpicklerState*>(instance_get_native_data(args[0], kUnpicklerNativeType));
+  if (state == nullptr) {
+    error = "invalid Unpickler object";
+    raise_pickle_module_error(runtime, "UnpicklingError", error);
+    return false;
+  }
+  if (!ensure_unpickler_delegate(runtime, *state, error)) return false;
+  return attribute_get(state->delegate, "memo", out, error);
+}
+
 bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "Unpickler.load() expected no arguments";
@@ -1400,21 +1435,7 @@ bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     raise_pickle_module_error(runtime, "UnpicklingError", error);
     return false;
   }
-  Value pickle_module;
-  Value source_unpickler_class;
-  if (!runtime.import_module("pickle", pickle_module, error) ||
-      !module_get_attr(pickle_module, "_Unpickler", source_unpickler_class, error)) return false;
-  std::vector<std::pair<std::string, Value>> kwargs{
-      {"fix_imports", Value::boolean(state->fix_imports)},
-      {"encoding", state->encoding},
-      {"errors", state->errors},
-      {"buffers", state->buffers},
-  };
-  if (state->delegate.tag == ValueTag::Invalid &&
-      !runtime_call_callable_kw(
-          runtime, source_unpickler_class, &state->file, 1, kwargs, state->delegate, error)) {
-    return false;
-  }
+  if (!ensure_unpickler_delegate(runtime, *state, error)) return false;
   for (const char* name : {"persistent_load", "find_class"}) {
     Value attr;
     std::string ignored;
@@ -1460,6 +1481,9 @@ Value make_unpickler_class(Runtime& runtime, const char* name) {
       std::string(name) + ".Unpickler.__init__", unpickler_init,
       nullptr, nullptr, nullptr, false, unpickler_init_kw)});
   attrs.push_back({"load", runtime.make_native_function(std::string(name) + ".Unpickler.load", unpickler_load)});
+  attrs.push_back({"memo", Value::property(
+      runtime.make_native_function(std::string(name) + ".Unpickler.memo", unpickler_memo_get),
+      Value::none(), Value::none(), Value::none())});
   const Value* object_class = runtime.find_builtin("object");
   return Value::class_object(
       "Unpickler",
