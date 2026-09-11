@@ -34,6 +34,7 @@ struct MemoryStreamState {
   std::string errors = "strict";
   std::string newline;
   bool newline_is_none = true;
+  uint8_t seen_newlines = 0;
   size_t cursor = 0;
   bool binary = false;
   bool closed = false;
@@ -90,6 +91,40 @@ bool string_value(const Value& value, std::string& out) {
     return true;
   }
   return false;
+}
+
+void note_stringio_newlines(MemoryStreamState& state, std::string_view text) {
+  if (state.binary || (!state.newline_is_none && !state.newline.empty())) return;
+  for (size_t i = 0; i < text.size(); ++i) {
+    if (text[i] == '\r') {
+      if (i + 1 < text.size() && text[i + 1] == '\n') {
+        state.seen_newlines |= 4;
+        ++i;
+      } else {
+        state.seen_newlines |= 1;
+      }
+    } else if (text[i] == '\n') {
+      state.seen_newlines |= 2;
+    }
+  }
+}
+
+std::string translate_stringio_newlines(MemoryStreamState& state, std::string text) {
+  note_stringio_newlines(state, text);
+  if (state.binary || (!state.newline_is_none && state.newline.empty())) return text;
+  std::string translated;
+  translated.reserve(text.size());
+  for (size_t i = 0; i < text.size(); ++i) {
+    if (state.newline_is_none && text[i] == '\r') {
+      translated.push_back('\n');
+      if (i + 1 < text.size() && text[i + 1] == '\n') ++i;
+    } else if (!state.newline_is_none && text[i] == '\n') {
+      translated += state.newline;
+    } else {
+      translated.push_back(text[i]);
+    }
+  }
+  return translated;
 }
 
 bool bytes_value(const Value& value, std::string& out) {
@@ -164,12 +199,18 @@ bool memory_stream_init(
         error = "StringIO newline must be str or None";
         return false;
       }
+      state->newline_is_none = value->tag == ValueTag::None;
+      state->newline.clear();
+      if (!state->newline_is_none) {
+        state->newline = string_object_to_string(*value_as_string(*value));
+      }
     } else {
       delete state;
       error = std::string(binary ? "BytesIO" : "StringIO") + " got an unexpected keyword argument '" + std::string(keyword) + "'";
       return false;
     }
   }
+  if (!binary) state->buffer = translate_stringio_newlines(*state, std::move(state->buffer));
   if (!instance_set_native_data(args[0], type, state, memory_stream_cleanup, error)) {
     delete state;
     return false;
@@ -914,8 +955,12 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const size_t input_size = data.size();
   if (state->binary && !memory_stream_export_allowed(runtime, *state, error)) {
     return false;
+  }
+  if (!state->binary) {
+    data = translate_stringio_newlines(*state, std::move(data));
   }
   if (state->cursor > state->buffer.size()) {
     state->cursor = state->buffer.size();
@@ -926,7 +971,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   std::copy(data.begin(), data.end(), state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
   state->cursor += data.size();
   memory_stream_update_exported_buffer(*state);
-  value_set_int64(out, static_cast<int64_t>(data.size()));
+  value_set_int64(out, static_cast<int64_t>(state->binary ? data.size() : input_size));
   return true;
 }
 
@@ -1167,6 +1212,27 @@ bool stream_closed(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     return false;
   }
   value_set_bool(out, state->closed);
+  return true;
+}
+
+bool string_io_newlines(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "StringIO.newlines expected no arguments";
+    return false;
+  }
+  auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
+  if (state == nullptr) return false;
+  if (!state->newline_is_none && !state->newline.empty()) {
+    value_set_none(out);
+    return true;
+  }
+  std::vector<Value> values;
+  if ((state->seen_newlines & 1) != 0) values.push_back(Value::string("\r"));
+  if ((state->seen_newlines & 2) != 0) values.push_back(Value::string("\n"));
+  if ((state->seen_newlines & 4) != 0) values.push_back(Value::string("\r\n"));
+  if (values.empty()) value_set_none(out);
+  else if (values.size() == 1) value_assign_fast(out, values.front());
+  else out = Value::tuple(std::move(values));
   return true;
 }
 
@@ -1618,6 +1684,11 @@ Value make_memory_stream_class(
     attrs.push_back({"getbuffer", runtime.make_native_function("_io.BytesIO.getbuffer", stream_getbuffer, const_cast<char*>(type))});
     attrs.push_back({"readinto", runtime.make_native_function("_io.BytesIO.readinto", stream_readinto, const_cast<char*>(type))});
     attrs.push_back({"readinto1", runtime.make_native_function("_io.BytesIO.readinto1", stream_readinto, const_cast<char*>(type))});
+  }
+  if (std::string_view(name) == "StringIO") {
+    attrs.push_back({"newlines", Value::property(
+        runtime.make_native_function("_io.StringIO.newlines", string_io_newlines, const_cast<char*>(type)),
+        Value::none(), Value::none(), Value::none())});
   }
   attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
   attrs.push_back({"detach", runtime.make_native_function(

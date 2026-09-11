@@ -40,3 +40,6 @@ b'ab'
 b'a'
 2 b'bc'
 0
+'a\nb\nc\nd' ('\r', '\n', '\r\n')
+3 'x\r\ny' None
+('\r', '\n', '\r\n')
