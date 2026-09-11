@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/sequence.h"
 
 #include <cmath>
@@ -499,51 +500,53 @@ bool math_atan(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   return unary_math("atan", std::atan, args, argc, out, error);
 }
 
-bool math_fsum(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool math_fsum(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "fsum() expected 1 argument";
     return false;
   }
   double total = 0.0;
-  auto add = [&](const Value& item) {
+  Value iterator;
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) return false;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) return false;
+    if (done) break;
     double value = 0.0;
     if (!require_number_arg(item, "fsum", value, error)) return false;
     total += value;
-    return true;
-  };
-  if (auto* list = value_as_list(args[0])) {
-    for (const auto& item : list->items) if (!add(item)) return false;
-  } else if (auto* tuple = value_as_tuple(args[0])) {
-    for (const auto& item : tuple->items) if (!add(item)) return false;
-  } else {
-    error = "fsum() argument must be iterable";
-    return false;
   }
   value_set_number(out, total);
   return true;
 }
 
-bool math_sumprod(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool math_sumprod(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "sumprod() expected 2 arguments";
     return false;
   }
-  const auto* left_list = value_as_list(args[0]);
-  const auto* left_tuple = value_as_tuple(args[0]);
-  const auto* right_list = value_as_list(args[1]);
-  const auto* right_tuple = value_as_tuple(args[1]);
-  const std::size_t left_size = left_list ? left_list->items.size() : left_tuple ? left_tuple->items.size() : 0;
-  const std::size_t right_size = right_list ? right_list->items.size() : right_tuple ? right_tuple->items.size() : 0;
-  if ((left_list == nullptr && left_tuple == nullptr) || (right_list == nullptr && right_tuple == nullptr) || left_size != right_size) {
-    error = "sumprod() arguments must be iterables of equal length";
-    return false;
-  }
+  Value left_iterator;
+  Value right_iterator;
+  if (!runtime_get_iter(runtime, args[0], left_iterator, error) || !runtime_get_iter(runtime, args[1], right_iterator, error)) return false;
   double total = 0.0;
-  for (std::size_t i = 0; i < left_size; ++i) {
+  for (;;) {
+    bool left_done = false;
+    bool right_done = false;
+    Value left;
+    Value right;
+    if (!sequence_iter_next(left_iterator, left_done, left, error) ||
+        !sequence_iter_next(right_iterator, right_done, right, error)) return false;
+    if (left_done || right_done) {
+      if (left_done != right_done) {
+        error = "sumprod() arguments must have equal length";
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
+      break;
+    }
     double lhs = 0.0;
     double rhs = 0.0;
-    const Value& left = left_list ? left_list->items[i] : left_tuple->items[i];
-    const Value& right = right_list ? right_list->items[i] : right_tuple->items[i];
     if (!require_number_arg(left, "sumprod", lhs, error) || !require_number_arg(right, "sumprod", rhs, error)) return false;
     total += lhs * rhs;
   }
