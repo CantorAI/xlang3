@@ -52,7 +52,8 @@
   `tests/fixtures/compat_sections/standard_modules.py` also covers loopback
   TCP bind/listen/getsockname/connect/accept/send/recv, timeout connect wait,
   `select.select` socket readability with original object return lists, and
-  OS-backed IPv4 `getaddrinfo`. CPython `Lib/selectors.py` now runs a
+  OS-backed IPv4 `getaddrinfo`. The core socket fixture covers loopback UDP
+  `sendto`, `recvfrom`, and `recvfrom_into`. CPython `Lib/selectors.py` now runs a
   `SelectSelector` socketpair readiness path over these primitives.
   `_socket.socket.recv_into` writes into writable bytearray and memoryview
   buffers, `TCP_NODELAY` is exported, and native file-like socket helpers were
