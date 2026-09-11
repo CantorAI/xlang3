@@ -136,6 +136,10 @@ class NumericBox:
         return value - 1
     def __mul__(self, value):
         return value * 2
+    def __neg__(self):
+        return -4
+    def __invert__(self):
+        return 8
     def __int__(self):
         return 4
     def __bytes__(self):
@@ -145,3 +149,4 @@ numeric_box = NumericBox()
 numeric_proxy = weakref.proxy(numeric_box)
 print(repr(numeric_proxy), numeric_proxy + 3, int(numeric_proxy), bytes(numeric_proxy))
 print(numeric_proxy - 3, numeric_proxy * 3)
+print(-numeric_proxy, ~numeric_proxy)
