@@ -40,7 +40,8 @@
   `TextIOWrapper.name` forwards a wrapped stream name. `FileIO` now constructs
   descriptor-backed unbuffered binary streams through the runtime open path,
   with mode normalization, keyword arguments, `closefd`/opener forwarding, and
-  raw read/write/seek/close behavior.
+  raw read/write/seek/close behavior. Buffered raw-stream wrappers now expose
+  `read1`, `readinto`, and `readinto1` over the same native data path.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

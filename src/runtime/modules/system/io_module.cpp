@@ -581,6 +581,27 @@ bool stream_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (state->wraps_buffer) {
+    Value read_args[] = {args[0], Value::int64(static_cast<int64_t>(capacity))};
+    Value data;
+    if (!stream_read(runtime, read_args, 2, data, error, user_data)) {
+      return false;
+    }
+    std::string bytes;
+    if (!bytes_value(data, bytes)) {
+      error = "readinto() source did not return bytes";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (bytes.size() > capacity) {
+      error = "readinto() source returned too many bytes";
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
+    if (!bytes.empty()) std::memcpy(destination, bytes.data(), bytes.size());
+    out = Value::int64(static_cast<int64_t>(bytes.size()));
+    return true;
+  }
   const size_t available = state->cursor >= state->buffer.size() ? 0 : state->buffer.size() - state->cursor;
   const size_t count = std::min(capacity, available);
   if (count != 0) std::memcpy(destination, state->buffer.data() + state->cursor, count);
@@ -1486,6 +1507,9 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   attrs.push_back({"__iter__", runtime.make_native_function(std::string("_io.") + name + ".__iter__", stream_iter, const_cast<char*>(type))});
   attrs.push_back({"__next__", runtime.make_native_function(std::string("_io.") + name + ".__next__", stream_next, const_cast<char*>(type))});
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
+  attrs.push_back({"read1", runtime.make_native_function(std::string("_io.") + name + ".read1", stream_read, const_cast<char*>(type))});
+  attrs.push_back({"readinto", runtime.make_native_function(std::string("_io.") + name + ".readinto", stream_readinto, const_cast<char*>(type))});
+  attrs.push_back({"readinto1", runtime.make_native_function(std::string("_io.") + name + ".readinto1", stream_readinto, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
