@@ -83,6 +83,7 @@ fixture suite, after the native dependency updates documented below.
 - [~] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py` covers reference and proxy
   lookup, live-reference equality, weak-reference enumeration, collection-time reference expiration,
+  CPython weak-reference hash caching and dead-reference hash errors,
   delegated proxy attribute mutation, and callback delivery through `gc.collect()`
   for both references and proxies, including callable-proxy invocation;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection

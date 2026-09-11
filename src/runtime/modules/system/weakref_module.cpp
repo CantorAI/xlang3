@@ -30,6 +30,7 @@ namespace xlang3 {
 namespace {
 
 static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
+static constexpr const char* kWeakrefHashAttr = "__xlang3_weakref_hash__";
 
 struct WeakrefEntry {
   Object* ref = nullptr;
@@ -131,18 +132,27 @@ bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool weakref_reference_hash(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool weakref_reference_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "weakref.__hash__() expected self";
     return false;
   }
   Value target;
-  const Value& hash_target = weakref_get_target(args[0], target) ? target : args[0];
+  if (!weakref_get_target(args[0], target)) {
+    std::string ignored;
+    if (object_get_attr(args[0], kWeakrefHashAttr, out, ignored)) return true;
+    error = "weak object has gone away";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   size_t hash = 0;
-  if (!value_hash_key(hash_target, hash, error)) {
+  if (!value_hash_key(target, hash, error)) {
     return false;
   }
   out = Value::int64(static_cast<int64_t>(hash));
+  std::string ignored;
+  Value self = args[0];
+  (void)object_set_attr(self, kWeakrefHashAttr, out, ignored);
   return true;
 }
 

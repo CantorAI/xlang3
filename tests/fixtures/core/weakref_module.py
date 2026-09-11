@@ -37,6 +37,18 @@ expired = weakref.ref(Box())
 import gc
 gc.collect()
 print(expired() is None)
+hashed = Box()
+hashed_ref = weakref.ref(hashed)
+live_hash = hash(hashed_ref)
+del hashed
+gc.collect()
+print(hash(hashed_ref) == live_hash)
+unhashed_ref = weakref.ref(Box())
+gc.collect()
+try:
+    hash(unhashed_ref)
+except Exception as exc:
+    print(type(exc).__name__)
 events = []
 callback_ref = weakref.ref(Box(), lambda ref: events.append(ref() is None))
 gc.collect()

@@ -9,5 +9,7 @@ box
 True True
 5 CallableProxyType
 True
+True
+TypeError
 [True]
 ['ProxyType']
