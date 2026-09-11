@@ -2885,6 +2885,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow contains_dynamic(
     return XlangVMOpFlow::Next;
   }
 
+  // runtime_value_contains() may have called a native __contains__ method.
+  // Do not discard its pending exception and invoke that method a second time:
+  // doing so both repeats user comparisons and bypasses the surrounding
+  // exception handler (notably deque's mutation-during-search guard).
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    return raise_exception_value(std::move(pending))
+        ? XlangVMOpFlow::ContinueLoop
+        : XlangVMOpFlow::ReturnResult;
+  }
+
   Value contains_method;
   std::string attr_error;
   if (!object_get_attr(regs[in.b], "__contains__", contains_method, attr_error)) {

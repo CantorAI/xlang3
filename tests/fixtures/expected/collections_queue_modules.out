@@ -16,6 +16,7 @@ TypeError
 TypeError
 1 True 0
 mutation detected
+contains mutation detected
 [3, 99, 2, 1, 0, 5, 4]
 deque([1, 2], maxlen=2)
 deque([1, [...]], maxlen=2)

@@ -86,6 +86,12 @@ try:
     mutating_deque.count("x")
 except RuntimeError:
     print("mutation detected")
+mutating_deque = _collections.deque()
+mutating_deque.append(Mutator(mutating_deque))
+try:
+    "x" in mutating_deque
+except RuntimeError:
+    print("contains mutation detected")
 d.reverse()
 d.insert(1, 99)
 print(d.to_list())
