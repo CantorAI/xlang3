@@ -375,8 +375,23 @@ bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("ReferenceError", error);
     return false;
   }
+  const char* method_name = static_cast<const char*>(data);
   Value method;
-  if (!object_get_attr(target, static_cast<const char*>(data), method, error)) return false;
+  if (!object_get_attr(target, method_name, method, error)) {
+    if (std::strcmp(method_name, "__bool__") != 0) return false;
+    Value length_method;
+    std::string ignored;
+    if (!object_get_attr(target, "__len__", length_method, ignored)) {
+      value_set_bool(out, true);
+      return true;
+    }
+    Value length;
+    if (!runtime_call_callable(runtime, length_method, nullptr, 0, length, error)) return false;
+    bool truth = false;
+    if (!runtime_truthy(runtime, length, truth, error)) return false;
+    value_set_bool(out, truth);
+    return true;
+  }
   return runtime_call_callable(runtime, method, args + 1, argc - 1, out, error);
 }
 

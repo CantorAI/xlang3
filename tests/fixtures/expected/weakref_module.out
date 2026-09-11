@@ -13,6 +13,7 @@ True True
 7
 2 [3, 4] 4 True
 False
+False True
 True True
 TypeError
 referent-string

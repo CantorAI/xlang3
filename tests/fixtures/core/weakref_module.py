@@ -71,6 +71,15 @@ class FalseBox:
 false_box = FalseBox()
 print(bool(weakref.proxy(false_box)))
 
+class LenOnlyBox:
+    def __len__(self):
+        return 0
+
+class PlainTruthBox:
+    pass
+
+print(bool(weakref.proxy(LenOnlyBox())), bool(weakref.proxy(PlainTruthBox())))
+
 class ComparableBox:
     def __eq__(self, value):
         return value == "match"
