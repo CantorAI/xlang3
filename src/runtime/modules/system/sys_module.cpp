@@ -1986,6 +1986,53 @@ bool sys_stdio_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool sys_stdio_reconfigure(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "TextIOWrapper.reconfigure() takes no positional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
+      error = "invalid TextIOWrapper.reconfigure() keyword";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const std::string name(kwargs[index].name);
+    if (name != "encoding" && name != "errors" && name != "newline" &&
+        name != "line_buffering" && name != "write_through") {
+      error = "TextIOWrapper.reconfigure() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if ((name == "encoding" || name == "errors" || name == "newline") &&
+        kwargs[index].value->tag != ValueTag::None && value_as_string(*kwargs[index].value) == nullptr) {
+      error = name + " must be str or None";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    Value self = args[0];
+    if (!object_set_attr(self, name, *kwargs[index].value, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool sys_stdio_reconfigure_positional(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return sys_stdio_reconfigure(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
 Value make_sys_stdio_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_io")});
@@ -2026,6 +2073,9 @@ Value make_sys_stdio_class(Runtime& runtime) {
   attrs.push_back({"writable", stdio_method("writable", sys_stdio_writable)});
   attrs.push_back({"seekable", stdio_method("seekable", sys_stdio_seekable)});
   attrs.push_back({"fileno", stdio_method("fileno", sys_stdio_fileno)});
+  attrs.push_back({"reconfigure", runtime.make_native_function(
+      "_io.TextIOWrapper.reconfigure", sys_stdio_reconfigure_positional, nullptr, nullptr,
+      nullptr, false, sys_stdio_reconfigure)});
   return Value::class_object("TextIOWrapper", std::move(attrs));
 }
 
@@ -2069,10 +2119,29 @@ Value make_sys_stdio_buffer_class(Runtime& runtime, const char* class_name) {
   return Value::class_object(class_name, std::move(attrs));
 }
 
+// The console adapters inherit the real _io classes so source-backed modules
+// can use isinstance().  Their own attributes must still take precedence over
+// native _io descriptors, whose storage is intentionally different from the
+// console stream payload.
+bool sys_stdio_get_own_attr(const Value& self, const std::string& name, Value& out, std::string&) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return false;
+  }
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == name) {
+      value_assign_fast(out, attr.second);
+      return true;
+    }
+  }
+  return false;
+}
+
 Value make_sys_stdio_buffer(Runtime&, const Value& klass, const char* kind) {
   Value stream = Value::instance(klass);
   std::string ignored;
   instance_set_native_data(stream, kSysStdioNativeType, const_cast<char*>(kind), nullptr, ignored);
+  instance_set_native_attr_hooks(stream, sys_stdio_get_own_attr, nullptr, nullptr, ignored);
   object_set_attr(stream, "closed", Value::boolean(false), ignored);
   object_set_attr(stream, "name", Value::string(std::string("<") + kind + ">"), ignored);
   object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "rb" : "wb"), ignored);
@@ -2083,6 +2152,7 @@ Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
   Value stream = Value::instance(klass);
   std::string ignored;
   instance_set_native_data(stream, kSysStdioNativeType, const_cast<char*>(kind), nullptr, ignored);
+  instance_set_native_attr_hooks(stream, sys_stdio_get_own_attr, nullptr, nullptr, ignored);
   std::string encoding = "utf-8";
   std::string errors = std::string(kind) == "stderr" ? "backslashreplace" : "surrogateescape";
   if (const char* configured = std::getenv("PYTHONIOENCODING")) {
@@ -4533,6 +4603,19 @@ void register_sys_module(Runtime& runtime) {
   Value stdio_class = make_sys_stdio_class(runtime);
   Value stdin_buffer_class = make_sys_stdio_buffer_class(runtime, "BufferedReader");
   Value stdout_buffer_class = make_sys_stdio_buffer_class(runtime, "BufferedWriter");
+  Value io_module;
+  Value text_io_wrapper;
+  Value buffered_reader;
+  Value buffered_writer;
+  if (!runtime.import_module("_io", io_module, error) ||
+      !module_get_attr(io_module, "TextIOWrapper", text_io_wrapper, error) ||
+      !module_get_attr(io_module, "BufferedReader", buffered_reader, error) ||
+      !module_get_attr(io_module, "BufferedWriter", buffered_writer, error) ||
+      !class_set_base(stdio_class, text_io_wrapper, error) ||
+      !class_set_base(stdin_buffer_class, buffered_reader, error) ||
+      !class_set_base(stdout_buffer_class, buffered_writer, error)) {
+    return;
+  }
   Value stdin_stream = make_sys_stdio(runtime, stdio_class, "stdin");
   Value stdout_stream = make_sys_stdio(runtime, stdio_class, "stdout");
   Value stderr_stream = make_sys_stdio(runtime, stdio_class, "stderr");

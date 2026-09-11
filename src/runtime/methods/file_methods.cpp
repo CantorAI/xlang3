@@ -652,11 +652,13 @@ bool file_readinto_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   if (!file->binary) {
     error = "readinto() argument must be read-write bytes-like object";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
 
   char* destination = nullptr;
   size_t capacity = 0;
+  Value exported_buffer;
   if (auto* bytearray = value_as_bytearray(args[1])) {
     destination = bytearray->value.data();
     capacity = bytearray->value.size();
@@ -665,10 +667,22 @@ bool file_readinto_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     capacity = view->size;
     if (destination == nullptr && capacity != 0) {
       error = "readinto() argument must be read-write bytes-like object";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  } else if (std::string ignored;
+             object_get_attr(args[1], "__xlang3_bytes_value__", exported_buffer, ignored)) {
+    if (auto* bytearray = value_as_bytearray(exported_buffer)) {
+      destination = bytearray->value.data();
+      capacity = bytearray->value.size();
+    } else {
+      error = "readinto() argument must be read-write bytes-like object";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
   } else {
     error = "readinto() argument must be read-write bytes-like object";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
 
@@ -1013,6 +1027,7 @@ bool file_writelines_method(Runtime& runtime, const Value* args, uint32_t argc, 
 bool file_seek_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64) {
     error = "file.seek() expected offset and optional whence";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   auto* file = require_file(args[0], "file.seek", error);

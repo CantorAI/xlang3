@@ -33,13 +33,17 @@ void register_core_builtins(Runtime& runtime) {
   register_math_module(runtime);
 #ifndef XLANG3_EMBEDDED
   tensor::register_module(runtime);
+  // sys creates its console stream adapters from the native _io hierarchy.
+  // Register _io first so those adapters retain their dedicated console
+  // operations while satisfying the real TextIOWrapper/BufferedIOBase
+  // relationships required by source-backed CPython modules.
+  register_io_module(runtime);
   register_sys_module(runtime);
   register_time_module(runtime);
   register_abc_module(runtime);
   register_atexit_module(runtime);
   register_ast_module(runtime);
   register_binascii_module(runtime);
-  register_io_module(runtime);
   register_json_module(runtime);
   register_os_module(runtime);
 #if !defined(_WIN32)

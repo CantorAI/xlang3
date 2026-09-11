@@ -11,6 +11,9 @@ passed 47/47 tests, including the aggregate fixture suite.
 - [x] _thread subset
   Coverage: current `_thread` smoke coverage; full CPython `Lib/threading.py`
   coverage remains in `async_threads.md`.
+  `_thread.start_new_thread()` accepts CPython's optional third positional
+  `kwargs` mapping when it is empty, which is the native scheduling form used
+  by the CPython Windows regrtest load tracker.
   Remaining: none for the current subset.
 
 - [x] _winapi
@@ -73,6 +76,15 @@ passed 47/47 tests, including the aggregate fixture suite.
   returning their raw stream while invalidating the wrapper.
   In-memory `BytesIO` and `StringIO` expose `fileno()` and raise the standard
   `UnsupportedOperation` result.
+  The interpreter's native console adapters now inherit the actual `_io`
+  `TextIOWrapper`, `BufferedReader`, and `BufferedWriter` classes while
+  retaining their console handles; this lets source-backed CPython setup code
+  use `isinstance(sys.stdout, io.TextIOWrapper)` and `reconfigure()` normally.
+  Descriptor-backed `FileIO.readinto()` accepts writable `array.array` buffer
+  exporters as well as bytearray and memoryview values, and its invalid seek
+  and readinto calls raise `TypeError` rather than an internal runtime error.
+  Focused CPython 3.14 `test_io.CIOTest.test_raw_file_io` passes after normal
+  module setup.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.

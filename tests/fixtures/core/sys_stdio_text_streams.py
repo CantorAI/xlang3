@@ -14,6 +14,13 @@
 import io
 import sys
 
+assert isinstance(sys.stdin, io.TextIOWrapper)
+assert isinstance(sys.stdout, io.TextIOWrapper)
+assert isinstance(sys.stderr, io.TextIOWrapper)
+assert isinstance(sys.stdin.buffer, io.BufferedReader)
+assert isinstance(sys.stdout.buffer, io.BufferedWriter)
+sys.stdout.reconfigure(errors=sys.stdout.errors)
+
 read_empty = sys.stdin.read(0)
 readline_empty = sys.stdin.readline(0)
 print(type(read_empty).__name__, repr(read_empty))

@@ -1179,7 +1179,8 @@ bool stream_getbuffer(Runtime&, const Value* args, uint32_t argc, Value& out, st
 }
 
 bool stream_seek(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64) {
+  if (argc < 2 || argc > 3 || args[1].tag != ValueTag::Int64 ||
+      (argc == 3 && args[2].tag != ValueTag::Int64)) {
     error = "memory stream seek() expected offset and optional whence";
     runtime.raise_class_error("TypeError", error);
     return false;

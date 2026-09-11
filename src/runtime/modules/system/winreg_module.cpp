@@ -16,6 +16,13 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace xlang3 {
 
 namespace {
@@ -33,6 +40,38 @@ bool winreg_close_key(Runtime&, const Value*, uint32_t argc, Value& out, std::st
   }
   value_set_none(out);
   return true;
+}
+
+bool winreg_query_info_key(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "winreg.QueryInfoKey() expected one key handle";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  DWORD subkeys = 0;
+  DWORD values = 0;
+  FILETIME modified{};
+  const auto handle = reinterpret_cast<HKEY>(static_cast<uintptr_t>(args[0].as.i64));
+  const LSTATUS status = RegQueryInfoKeyW(
+      handle, nullptr, nullptr, nullptr, &subkeys, nullptr, nullptr, &values,
+      nullptr, nullptr, nullptr, &modified);
+  if (status != ERROR_SUCCESS) {
+    error = "registry key not found";
+    runtime.raise_class_error(status == ERROR_ACCESS_DENIED ? "PermissionError" : "OSError", error);
+    return false;
+  }
+  const uint64_t ticks = (static_cast<uint64_t>(modified.dwHighDateTime) << 32) | modified.dwLowDateTime;
+  constexpr uint64_t kWindowsEpochTicks = 116444736000000000ull;
+  const int64_t seconds = ticks >= kWindowsEpochTicks
+      ? static_cast<int64_t>((ticks - kWindowsEpochTicks) / 10000000ull) : 0;
+  out = Value::tuple({Value::int64(subkeys), Value::int64(values), Value::int64(seconds)});
+  return true;
+#else
+  error = "registry APIs are only available on Windows";
+  runtime.raise_class_error("OSError", error);
+  return false;
+#endif
 }
 
 } // namespace
@@ -69,6 +108,7 @@ void register_winreg_module(Runtime& runtime) {
       .value("QueryValueEx", runtime.make_native_function("winreg.QueryValueEx", winreg_missing_key))
       .value("EnumKey", runtime.make_native_function("winreg.EnumKey", winreg_missing_key))
       .value("EnumValue", runtime.make_native_function("winreg.EnumValue", winreg_missing_key))
+      .value("QueryInfoKey", runtime.make_native_function("winreg.QueryInfoKey", winreg_query_info_key))
       .value("CloseKey", runtime.make_native_function("winreg.CloseKey", winreg_close_key));
   runtime.register_module("winreg", builder.finish());
 }

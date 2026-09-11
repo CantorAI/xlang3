@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -33,8 +34,8 @@ bool thread_start_new_thread(
     std::string& error,
     void* user_data) {
   (void)user_data;
-  if (argc < 1 || argc > 2) {
-    error = "_thread.start_new_thread() expected function and optional args";
+  if (argc < 1 || argc > 3) {
+    error = "_thread.start_new_thread() expected function, args, and optional kwargs";
     return false;
   }
   if (value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr &&
@@ -43,8 +44,21 @@ bool thread_start_new_thread(
     return false;
   }
   std::vector<Value> thread_args;
-  if (argc == 2 && !xlang_thread_tuple_to_args(args[1], thread_args, error)) {
+  if (argc >= 2 && !xlang_thread_tuple_to_args(args[1], thread_args, error)) {
     return false;
+  }
+  if (argc == 3) {
+    auto* kwargs = value_as_dict(args[2]);
+    if (kwargs == nullptr) {
+      error = "_thread.start_new_thread() kwargs must be a dictionary";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!kwargs->entries.empty()) {
+      error = "_thread.start_new_thread() keyword arguments are not supported";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
   }
   int64_t ident = 0;
   if (!xlang_thread_start_detached(runtime, args[0], std::move(thread_args), ident, error)) {
