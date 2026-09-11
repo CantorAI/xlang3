@@ -2215,7 +2215,7 @@ bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
 
   addrinfo hints{};
-  hints.ai_family = family == kAfUnspec ? AF_UNSPEC : to_native_family(family);
+  hints.ai_family = family == kAfUnspec ? AF_UNSPEC : (family == kAfInet6 ? AF_INET6 : to_native_family(family));
   hints.ai_socktype = type == 0
       ? (proto == IPPROTO_TCP ? SOCK_STREAM : (proto == IPPROTO_UDP ? SOCK_DGRAM : 0))
       : to_native_type(type);
@@ -2230,21 +2230,31 @@ bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
 
   std::vector<Value> rows;
   for (addrinfo* item = results; item != nullptr; item = item->ai_next) {
-    if (item->ai_family != AF_INET || item->ai_addr == nullptr) {
+    if ((item->ai_family != AF_INET && item->ai_family != AF_INET6) || item->ai_addr == nullptr) {
       continue;
     }
-    auto* address = reinterpret_cast<sockaddr_in*>(item->ai_addr);
-    char numeric_host[INET_ADDRSTRLEN] = {};
-    if (inet_ntop(AF_INET, &address->sin_addr, numeric_host, sizeof(numeric_host)) == nullptr) {
-      continue;
+    const bool ipv6 = item->ai_family == AF_INET6;
+    char numeric_host[INET6_ADDRSTRLEN] = {};
+    int64_t port = 0;
+    Value sockaddr;
+    if (ipv6) {
+      auto* address = reinterpret_cast<sockaddr_in6*>(item->ai_addr);
+      if (inet_ntop(AF_INET6, &address->sin6_addr, numeric_host, sizeof(numeric_host)) == nullptr) continue;
+      port = ntohs(address->sin6_port);
+      sockaddr = Value::tuple({Value::string(numeric_host), Value::int64(port),
+                               Value::int64(address->sin6_flowinfo), Value::int64(address->sin6_scope_id)});
+    } else {
+      auto* address = reinterpret_cast<sockaddr_in*>(item->ai_addr);
+      if (inet_ntop(AF_INET, &address->sin_addr, numeric_host, sizeof(numeric_host)) == nullptr) continue;
+      port = ntohs(address->sin_port);
+      sockaddr = Value::tuple({Value::string(numeric_host), Value::int64(port)});
     }
 
     const int64_t result_type = item->ai_socktype == SOCK_DGRAM ? kSockDgram : kSockStream;
     const int64_t result_proto = static_cast<int64_t>(item->ai_protocol);
     const char* canonname = item->ai_canonname == nullptr ? "" : item->ai_canonname;
-    Value sockaddr = Value::tuple({Value::string(numeric_host), Value::int64(ntohs(address->sin_port))});
     rows.push_back(Value::tuple({
-        Value::int64(kAfInet),
+        Value::int64(ipv6 ? kAfInet6 : kAfInet),
         Value::int64(result_type),
         Value::int64(result_proto),
         Value::string(canonname),

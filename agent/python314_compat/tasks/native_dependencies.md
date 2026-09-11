@@ -53,7 +53,7 @@
   `tests/fixtures/compat_sections/standard_modules.py` also covers loopback
   TCP bind/listen/getsockname/connect/accept/send/recv, timeout connect wait,
   `select.select` socket readability with original object return lists, and
-  OS-backed IPv4 `getaddrinfo`, hostname lookup, and IPv6 numeric address conversion. The core socket fixture covers loopback UDP
+  OS-backed IPv4/IPv6 `getaddrinfo`, hostname lookup, and IPv6 numeric address conversion. The core socket fixture covers loopback UDP
   `sendto`, `recvfrom`, and `recvfrom_into`, plus `socketpair` write shutdown.
   CPython `Lib/selectors.py` now runs a
   `SelectSelector` socketpair readiness path over these primitives.

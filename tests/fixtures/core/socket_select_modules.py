@@ -17,6 +17,8 @@ s.close()
 print(_socket.AF_INET)
 print(isinstance(_socket.gethostname(), str), bool(_socket.gethostname()))
 print(_socket.inet_ntop(_socket.AF_INET6, _socket.inet_pton(_socket.AF_INET6, "::1")))
+ipv6_rows = _socket.getaddrinfo("::1", 0, _socket.AF_INET6)
+print(bool(ipv6_rows), ipv6_rows[0][0] == _socket.AF_INET6, len(ipv6_rows[0][4]))
 
 receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 receiver.bind(("127.0.0.1", 0))
