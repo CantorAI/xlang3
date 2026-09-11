@@ -62,7 +62,8 @@ passed 47/47 tests, including the aggregate fixture suite.
   reporting property. `TextIOWrapper.newlines` likewise reports newline forms
   observed through reads.
   Buffered binary wrappers now forward writes and flushes to their wrapped raw
-  streams, instead of taking the text-wrapper encoding path.
+  streams, instead of taking the text-wrapper encoding path, and share their
+  wrapped stream's seek, tell, and truncate state.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

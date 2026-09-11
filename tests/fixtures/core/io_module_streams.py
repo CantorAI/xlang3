@@ -134,3 +134,11 @@ try:
     writer.write("text")
 except Exception as exc:
     print(type(exc).__name__)
+position_raw = _io.BytesIO(b"abcdef")
+position_writer = _io.BufferedWriter(position_raw)
+print(position_writer.tell(), position_writer.seek(3), position_writer.write(b"XY"), position_writer.tell())
+position_writer.flush()
+position_raw.seek(0)
+print(position_raw.read(), position_writer.truncate(4))
+position_raw.seek(0)
+print(position_raw.read())

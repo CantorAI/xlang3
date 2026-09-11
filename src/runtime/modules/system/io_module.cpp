@@ -1073,6 +1073,11 @@ bool stream_seek(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (state == nullptr) {
     return false;
   }
+  if (state->wraps_buffer) {
+    Value seek_method;
+    if (!attribute_get(state->wrapped_buffer, "seek", seek_method, error)) return false;
+    return runtime_call_callable(runtime, seek_method, args + 1, argc - 1, out, error);
+  }
   memory_stream_sync_exported_buffer(*state);
   const int64_t whence = argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0;
   int64_t base = 0;
@@ -1133,7 +1138,7 @@ bool text_io_wrapper_detach(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
-bool stream_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool stream_tell(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "memory stream tell() expected no arguments";
     return false;
@@ -1142,6 +1147,11 @@ bool stream_tell(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   auto* state = memory_stream_state(args[0], type, error);
   if (state == nullptr) {
     return false;
+  }
+  if (state->wraps_buffer) {
+    Value tell_method;
+    if (!attribute_get(state->wrapped_buffer, "tell", tell_method, error)) return false;
+    return runtime_call_callable(runtime, tell_method, nullptr, 0, out, error);
   }
   value_set_int64(out, static_cast<int64_t>(state->cursor));
   return true;
@@ -1156,6 +1166,11 @@ bool stream_truncate(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   auto* state = memory_stream_state(args[0], type, error);
   if (state == nullptr) {
     return false;
+  }
+  if (state->wraps_buffer) {
+    Value truncate_method;
+    if (!attribute_get(state->wrapped_buffer, "truncate", truncate_method, error)) return false;
+    return runtime_call_callable(runtime, truncate_method, args + 1, argc - 1, out, error);
   }
   memory_stream_sync_exported_buffer(*state);
   size_t size = state->cursor;
@@ -1759,6 +1774,8 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
   attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
+  attrs.push_back({"seek", runtime.make_native_function(std::string("_io.") + name + ".seek", stream_seek, const_cast<char*>(type))});
+  attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
   attrs.push_back({"flush", runtime.make_native_function(std::string("_io.") + name + ".flush", stream_flush, const_cast<char*>(type))});
   attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});
