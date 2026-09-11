@@ -41,6 +41,12 @@ print(count, bytes(target[:count]), address[0] == "127.0.0.1")
 sender.close()
 receiver.close()
 
+peek_left, peek_right = socket.socketpair()
+peek_left.sendall(b"p")
+print(peek_right.recv(1, _socket.MSG_PEEK), peek_right.recv(1))
+peek_left.close()
+peek_right.close()
+
 left, right = socket.socketpair()
 left.sendall(b"close-write")
 left.shutdown(socket.SHUT_WR)

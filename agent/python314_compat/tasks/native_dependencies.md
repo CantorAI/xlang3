@@ -82,6 +82,8 @@ suite, after the native dependency updates documented below.
   `socket` callers.
   Network byte-order helpers reject negative and oversized values with CPython
   overflow errors.
+  Socket receive operations accept CPython flags, including non-consuming
+  `MSG_PEEK` reads.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.

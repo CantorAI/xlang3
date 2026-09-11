@@ -1436,8 +1436,9 @@ bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& 
 }
 
 bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[1].tag != ValueTag::Int64) {
-    error = "socket.recv() expected size";
+  if ((argc != 2 && argc != 3) || args[1].tag != ValueTag::Int64 ||
+      (argc == 3 && args[2].tag != ValueTag::Int64)) {
+    error = "socket.recv() expected size and optional flags";
     return false;
   }
   auto* state = socket_state(args[0], error);
@@ -1452,8 +1453,9 @@ bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   const int size = static_cast<int>(std::max<int64_t>(0, args[1].as.i64));
+  const int flags = argc == 3 ? static_cast<int>(args[2].as.i64) : 0;
   std::string data(static_cast<size_t>(size), '\0');
-  const int received = ::recv(fd, data.data(), size, 0);
+  const int received = ::recv(fd, data.data(), size, flags);
   if (received < 0) {
     if (socket_last_error_would_block()) {
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv"));
@@ -2414,6 +2416,9 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("SOCK_RAW", Value::int64(SOCK_RAW))
       .value("SOCK_RDM", Value::int64(SOCK_RDM))
       .value("SOCK_SEQPACKET", Value::int64(SOCK_SEQPACKET))
+#ifdef MSG_PEEK
+      .value("MSG_PEEK", Value::int64(MSG_PEEK))
+#endif
       .value("IPPROTO_TCP", Value::int64(IPPROTO_TCP))
       .value("IPPROTO_UDP", Value::int64(IPPROTO_UDP))
       .value("IPPROTO_IPV6", Value::int64(IPPROTO_IPV6))
