@@ -134,8 +134,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   and accumulated `unused_data` after a stream ends; compressor and decompressor
   objects can be copied while their streams are active, including configured
   preset dictionaries; gzip-wrapped streaming is covered through `wbits`.
-  Terminal compressor state now reports `zlib.error` for repeat flushes and
-  writes after `Z_FINISH`, matching CPython stream-finalization behavior.
+  Terminal compressor state now reports `zlib.error` for repeat flushes,
+  invalid flush modes, and writes after `Z_FINISH`, matching CPython
+  stream-finalization behavior.
   Bounded decompression now retains pending compressed input safely so `flush()`
   drains the remaining decoded stream, including on a copied decompressor.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases

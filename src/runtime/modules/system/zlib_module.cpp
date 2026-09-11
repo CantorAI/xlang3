@@ -368,7 +368,7 @@ bool zlib_compress_object_flush(Runtime& runtime, const Value* args, uint32_t ar
   }
   std::string compressed;
   if (!zlib_stream_run(state->stream, "", mode, compressed, deflate, error)) {
-    return false;
+    return zlib_fail(runtime, error, error);
   }
   if (mode == Z_FINISH) {
     state->finished = true;

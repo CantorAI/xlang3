@@ -67,7 +67,7 @@ print(zlib.decompress(gzip_data, 32 + zlib.MAX_WBITS))
 
 finished = zlib.compressobj()
 finished.flush()
-for operation in (lambda: finished.flush(), lambda: finished.compress(b"x")):
+for operation in (lambda: finished.flush(), lambda: finished.compress(b"x"), lambda: zlib.compressobj().flush(999)):
     try:
         operation()
     except Exception as exc:
