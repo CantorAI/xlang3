@@ -1356,16 +1356,30 @@ bool unpickler_load(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     return false;
   }
   Value pickle_module;
-  Value source_load;
+  Value source_unpickler_class;
   if (!runtime.import_module("pickle", pickle_module, error) ||
-      !module_get_attr(pickle_module, "_load", source_load, error)) return false;
+      !module_get_attr(pickle_module, "_Unpickler", source_unpickler_class, error)) return false;
   std::vector<std::pair<std::string, Value>> kwargs{
       {"fix_imports", Value::boolean(state->fix_imports)},
       {"encoding", state->encoding},
       {"errors", state->errors},
       {"buffers", state->buffers},
   };
-  return runtime_call_callable_kw(runtime, source_load, &state->file, 1, kwargs, out, error);
+  Value delegate;
+  if (!runtime_call_callable_kw(
+          runtime, source_unpickler_class, &state->file, 1, kwargs, delegate, error)) {
+    return false;
+  }
+  for (const char* name : {"persistent_load", "find_class"}) {
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(args[0], name, attr, ignored)) {
+      (void)object_set_attr(delegate, name, attr, ignored);
+    }
+  }
+  Value load_method;
+  if (!attribute_get(delegate, "load", load_method, error)) return false;
+  return runtime_call_callable(runtime, load_method, nullptr, 0, out, error);
 }
 
 Value make_pickler_class(Runtime& runtime, const char* name) {
