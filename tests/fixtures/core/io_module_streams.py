@@ -225,3 +225,14 @@ assert _FixtureBufferedBase().readinto(fixture_buffer) == 4
 assert bytes(fixture_buffer) == b"abcd"
 assert _FixtureBufferedBase().readinto1(fixture_buffer) == 2
 assert bytes(fixture_buffer[:2]) == b"ab"
+
+class _FixtureRawBase(_io.RawIOBase):
+    def __init__(self):
+        self.data = b"raw"
+    def readinto(self, target):
+        count = min(len(target), len(self.data))
+        target[:count] = self.data[:count]
+        self.data = self.data[count:]
+        return count
+
+assert _FixtureRawBase().readall() == b"raw"

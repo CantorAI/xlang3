@@ -2289,6 +2289,61 @@ bool io_base_readlines(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
+bool raw_io_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "_io._RawIOBase.read() expected optional size";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t size = -1;
+  if (argc == 2 && args[1].tag != ValueTag::None) {
+    if (args[1].tag != ValueTag::Int64) {
+      error = "read() argument must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    size = args[1].as.i64;
+  }
+  Value readinto;
+  if (!attribute_get(args[0], "readinto", readinto, error)) return false;
+  std::string collected;
+  const bool unbounded = size < 0;
+  while (unbounded || static_cast<int64_t>(collected.size()) < size) {
+    const size_t request = unbounded ? 8192u : static_cast<size_t>(size - static_cast<int64_t>(collected.size()));
+    if (request == 0) break;
+    Value buffer = Value::bytearray(std::string(request, '\0'));
+    Value count;
+    if (!runtime_call_callable(runtime, readinto, &buffer, 1, count, error)) return false;
+    if (count.tag == ValueTag::None) {
+      if (collected.empty()) {
+        value_set_none(out);
+        return true;
+      }
+      break;
+    }
+    if (count.tag != ValueTag::Int64 || count.as.i64 < 0 || static_cast<size_t>(count.as.i64) > request) {
+      error = "readinto() returned invalid length";
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
+    if (count.as.i64 == 0) break;
+    auto* bytes = value_as_bytearray(buffer);
+    collected.append(bytes->value.data(), static_cast<size_t>(count.as.i64));
+    if (!unbounded) break;
+  }
+  out = Value::bytes(std::move(collected));
+  return true;
+}
+
+bool raw_io_readall(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "_io._RawIOBase.readall() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return raw_io_read(runtime, args, argc, out, error, user_data);
+}
+
 void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value& string_io, const Value& bytes_io) {
   if (const Value* open = runtime.find_builtin("open")) {
     builder.value("open", *open);
@@ -2313,7 +2368,10 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {"readlines", runtime.make_native_function("_io._IOBase.readlines", io_base_readlines)},
   };
   Value io_base = Value::class_object("_IOBase", base_attrs);
-  Value raw_io_base = Value::class_object("_RawIOBase", base_attrs, io_base);
+  auto raw_base_attrs = base_attrs;
+  raw_base_attrs.push_back({"read", runtime.make_native_function("_io._RawIOBase.read", raw_io_read)});
+  raw_base_attrs.push_back({"readall", runtime.make_native_function("_io._RawIOBase.readall", raw_io_readall)});
+  Value raw_io_base = Value::class_object("_RawIOBase", std::move(raw_base_attrs), io_base);
   Value text_io_base = Value::class_object("_TextIOBase", base_attrs);
   auto buffered_base_attrs = base_attrs;
   buffered_base_attrs.push_back({"readinto", runtime.make_native_function(
