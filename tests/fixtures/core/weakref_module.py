@@ -30,7 +30,10 @@ try:
     weakref.ref(b, callback=None)
 except TypeError as exc:
     print(type(exc).__name__)
-
+try:
+    weakref.ref(b).__init__(0, 0, 0, 0, 0)
+except TypeError as exc:
+    print(type(exc).__name__)
 callback_probe = Box()
 def callback_property(reference):
     return reference

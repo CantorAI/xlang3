@@ -235,6 +235,7 @@ bool weakref_reference_ne(Runtime& runtime, const Value* args, uint32_t argc, Va
 bool weakref_reference_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "weakref.ReferenceType() expected object and optional callback";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (!weakrefable_target(args[1])) {
