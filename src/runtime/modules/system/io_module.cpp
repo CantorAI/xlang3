@@ -1542,7 +1542,10 @@ Value make_buffered_stream_class(Runtime& runtime, const char* name, const char*
   attrs.push_back({"read1", runtime.make_native_function(std::string("_io.") + name + ".read1", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readinto", runtime.make_native_function(std::string("_io.") + name + ".readinto", stream_readinto, const_cast<char*>(type))});
   attrs.push_back({"readinto1", runtime.make_native_function(std::string("_io.") + name + ".readinto1", stream_readinto, const_cast<char*>(type))});
-  attrs.push_back({"peek", runtime.make_native_function(std::string("_io.") + name + ".peek", buffered_stream_peek, const_cast<char*>(type))});
+  if (std::string_view(name) == "BufferedReader" || std::string_view(name) == "BufferedRandom") {
+    attrs.push_back({"peek", runtime.make_native_function(
+        std::string("_io.") + name + ".peek", buffered_stream_peek, const_cast<char*>(type))});
+  }
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
