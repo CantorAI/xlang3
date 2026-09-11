@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
@@ -187,6 +188,21 @@ uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
     codepoint = (codepoint << 6) | (static_cast<unsigned char>(text[i]) & 0x3fu);
   }
   return codepoint;
+}
+
+bool raise_file_unsupported(Runtime& runtime, const char* operation, std::string& error) {
+  error = operation;
+  Value io_module;
+  Value unsupported;
+  std::string ignored;
+  if (runtime.import_module("_io", io_module, ignored) &&
+      module_get_attr(io_module, "UnsupportedOperation", unsupported, ignored) &&
+      value_as_class(unsupported) != nullptr) {
+    runtime.set_pending_exception(runtime.make_exception_from_class(std::move(unsupported), error));
+    return false;
+  }
+  runtime.raise_class_error("OSError", error);
+  return false;
 }
 
 void append_utf8(uint32_t codepoint, std::string& out) {
@@ -599,12 +615,11 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return false;
   }
   if (!file->readable) {
-    error = "file is not readable";
-    return false;
+    return raise_file_unsupported(runtime, "read", error);
   }
   if (file->fd_backed) {
     int64_t requested = -1;
-    if (argc == 2) {
+    if (argc == 2 && args[1].tag != ValueTag::None) {
       if (args[1].tag != ValueTag::Int64) {
         error = "file.read size must be int";
         return false;
@@ -627,7 +642,7 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return true;
   }
   size_t size = file->buffer.size() - std::min(file->cursor, file->buffer.size());
-  if (argc == 2) {
+  if (argc == 2 && args[1].tag != ValueTag::None) {
     if (args[1].tag != ValueTag::Int64) {
       error = "file.read size must be int";
       return false;
@@ -721,8 +736,7 @@ bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     return false;
   }
   if (!file->writable) {
-    error = "file is not writable";
-    return false;
+    return raise_file_unsupported(runtime, "write", error);
   }
   if (file->devnull) {
     std::string text;
@@ -809,16 +823,16 @@ bool file_readline_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
   if (!file->readable) {
-    error = "file is not readable";
-    return false;
+    return raise_file_unsupported(runtime, "read", error);
   }
   if (file->fd_backed) {
     std::string data;
     std::string one;
     int64_t remaining = -1;
-    if (argc == 2) {
+    if (argc == 2 && args[1].tag != ValueTag::None) {
       if (args[1].tag != ValueTag::Int64) {
         error = "file.readline size must be int";
+        runtime.raise_class_error("TypeError", error);
         return false;
       }
       if (args[1].as.i64 >= 0) {
@@ -852,9 +866,10 @@ bool file_readline_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     return true;
   }
   size_t limit = file->buffer.size();
-  if (argc == 2) {
+  if (argc == 2 && args[1].tag != ValueTag::None) {
     if (args[1].tag != ValueTag::Int64) {
       error = "file.readline size must be int";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
     if (args[1].as.i64 >= 0) {
@@ -898,8 +913,7 @@ bool file_readlines_method(Runtime& runtime, const Value* args, uint32_t argc, V
     return false;
   }
   if (!file->readable) {
-    error = "file is not readable";
-    return false;
+    return raise_file_unsupported(runtime, "read", error);
   }
   std::vector<Value> lines;
   if (file->fd_backed) {
@@ -972,8 +986,7 @@ bool file_writelines_method(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   if (!file->writable) {
-    error = "file is not writable";
-    return false;
+    return raise_file_unsupported(runtime, "write", error);
   }
   if (file->fd_backed) {
     Value iterator;
@@ -1033,6 +1046,10 @@ bool file_seek_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   auto* file = require_file(args[0], "file.seek", error);
   if (file == nullptr) {
     return false;
+  }
+  if (!file->binary && argc == 3 && args[2].tag == ValueTag::Int64 &&
+      (args[2].as.i64 == 1 || args[2].as.i64 == 2) && args[1].as.i64 != 0) {
+    return raise_file_unsupported(runtime, "can't do nonzero cur-relative seeks", error);
   }
   if (file->fd_backed) {
     int write_error = 0;
@@ -1223,7 +1240,7 @@ bool file_fileno_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
-bool file_truncate_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_truncate_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "file.truncate() expected optional size";
     return false;
@@ -1233,8 +1250,7 @@ bool file_truncate_method(Runtime&, const Value* args, uint32_t argc, Value& out
     return false;
   }
   if (!file->writable) {
-    error = "file is not writable";
-    return false;
+    return raise_file_unsupported(runtime, "write", error);
   }
   if (file->fd_backed) {
 #if defined(_WIN32)

@@ -84,7 +84,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   exporters as well as bytearray and memoryview values, and its invalid seek
   and readinto calls raise `TypeError` rather than an internal runtime error.
   Focused CPython 3.14 `test_io.CIOTest.test_raw_file_io` passes after normal
-  module setup.
+  module setup. Focused `CIOTest.test_buffered_file_io`, `test_readline`,
+  `test_invalid_operations`, and `test_with_open` also pass, including
+  `readinto1()`, `readline(None)`, writable array exporters, and the
+  `UnsupportedOperation` contracts for unavailable read/write/seek actions.
   `BytesIO.read1()` now exposes the one-buffer binary-read contract.
   Native in-memory streams now inherit their CPython `_BufferedIOBase` and
   `_TextIOBase` relationships, including IOBase helper methods.
