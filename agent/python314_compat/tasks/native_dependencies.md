@@ -103,9 +103,10 @@ passed 47/47 tests, including the aggregate fixture suite.
   lookup, live-reference equality, weak-reference enumeration, collection-time reference expiration,
   CPython weak-reference hash caching and dead-reference hash errors,
   callback-free reference reuse for the same live referent,
-  delegated proxy attribute mutation, and callback delivery through `gc.collect()`
-  for both references and proxies, including last-created-first callback order
-  and callable-proxy invocation;
+  delegated proxy attribute mutation plus `len`, iteration, indexing, and
+  membership forwarding, and callback delivery through `gc.collect()` for both
+  references and proxies, including last-created-first callback order and
+  callable-proxy invocation;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
   rotation, reversal, positional lookup with bounded index searches, insertion, bounded representation, and

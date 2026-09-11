@@ -348,6 +348,23 @@ bool weakref_proxy_delattr(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* data) {
+  if (argc < 1 || data == nullptr) {
+    error = "weak proxy special method expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  Value method;
+  if (!object_get_attr(target, static_cast<const char*>(data), method, error)) return false;
+  return runtime_call_callable(runtime, method, args + 1, argc - 1, out, error);
+}
+
 bool weakref_callable_proxy_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1) {
     error = "weak callable proxy expected self";
@@ -374,7 +391,11 @@ Value weakref_proxy_type(Runtime& runtime) {
          {"__setattr__", runtime.make_native_function(
              "weakref.ProxyType.__setattr__", weakref_proxy_setattr)},
          {"__delattr__", runtime.make_native_function(
-             "weakref.ProxyType.__delattr__", weakref_proxy_delattr)}});
+             "weakref.ProxyType.__delattr__", weakref_proxy_delattr)},
+         {"__len__", runtime.make_native_function("weakref.ProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
+         {"__iter__", runtime.make_native_function("weakref.ProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
+         {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
+         {"__contains__", runtime.make_native_function("weakref.ProxyType.__contains__", weakref_proxy_forward, const_cast<char*>("__contains__"))}});
   }
   return proxy_type;
 }
@@ -392,7 +413,11 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
          {"__delattr__", runtime.make_native_function(
              "weakref.CallableProxyType.__delattr__", weakref_proxy_delattr)},
          {"__call__", runtime.make_native_function(
-             "weakref.CallableProxyType.__call__", weakref_callable_proxy_call)}});
+             "weakref.CallableProxyType.__call__", weakref_callable_proxy_call)},
+         {"__len__", runtime.make_native_function("weakref.CallableProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
+         {"__iter__", runtime.make_native_function("weakref.CallableProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
+         {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
+         {"__contains__", runtime.make_native_function("weakref.CallableProxyType.__contains__", weakref_proxy_forward, const_cast<char*>("__contains__"))}});
   }
   return proxy_type;
 }

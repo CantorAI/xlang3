@@ -34,6 +34,21 @@ callable_box = CallableBox()
 callable_proxy = weakref.proxy(callable_box)
 print(callable_proxy(4), type(callable_proxy).__name__)
 
+class SequenceBox:
+    def __init__(self):
+        self.values = [3, 4]
+    def __len__(self):
+        return len(self.values)
+    def __iter__(self):
+        return iter(self.values)
+    def __getitem__(self, index):
+        return self.values[index]
+    def __contains__(self, value):
+        return value in self.values
+
+sequence_proxy = weakref.proxy(SequenceBox())
+print(len(sequence_proxy), list(sequence_proxy), sequence_proxy[1], 3 in sequence_proxy)
+
 expired = weakref.ref(Box())
 import gc
 gc.collect()
