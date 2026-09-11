@@ -84,7 +84,10 @@
   bytecode validation modes, and remaining import edge cases.
 
 - [~] _pickle and marshal
-  Coverage: `tests/fixtures/core/sys_structseq_pickle.py`.
+  Coverage: `tests/fixtures/core/sys_structseq_pickle.py` and
+  `tests/fixtures/core/pickle_module.py`, including native `PickleBuffer.raw()`
+  and release lifetime semantics plus protocol-5 round-tripping through
+  source-backed `pickle`.
   Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
   containers, errors, byte buffers, code objects, compatibility, interning, and
   slices (with two platform skips).

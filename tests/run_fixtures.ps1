@@ -78,6 +78,7 @@ $cases = @(
     "io_os_modules",
     "io_module_streams",
     "imp_stat_modules",
+    "pickle_module",
     "collections_queue_modules",
     "types_module",
     "traceback_module",
