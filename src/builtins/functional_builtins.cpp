@@ -1213,6 +1213,11 @@ bool builtin_reversed(
   if (argc != 1) {
     return raise_type_error(runtime, "reversed() expected 1 argument", error);
   }
+  Value reversed_method;
+  std::string method_error;
+  if (object_get_attr(args[0], "__reversed__", reversed_method, method_error)) {
+    return runtime_call_callable(runtime, reversed_method, nullptr, 0, out, error);
+  }
   Value length_value;
   if (!sequence_len(args[0], length_value, error) || length_value.tag != ValueTag::Int64) {
     return raise_type_error(runtime, "object is not reversible", error);
