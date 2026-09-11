@@ -37,6 +37,7 @@
   returns its wrapped binary buffer and invalidates the wrapper as CPython does;
   `TextIOWrapper.reconfigure()` updates encoding, error handling, newline mode,
   and buffering flags, and `TextIOWrapper.buffer` exposes the wrapped binary stream.
+  `TextIOWrapper.name` forwards a wrapped stream name.
   Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
 
 - [~] _socket, select, and _signal

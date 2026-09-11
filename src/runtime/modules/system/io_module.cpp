@@ -1237,6 +1237,18 @@ bool text_io_buffer_get(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool text_io_name_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                      std::string& error, void*) {
+  auto* state = argc == 1 ? static_cast<MemoryStreamState*>(
+      instance_get_native_data(args[0], "_io.TextIOWrapper")) : nullptr;
+  if (state == nullptr || state->closed || !state->wraps_buffer) {
+    error = "underlying buffer has been detached";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  return attribute_get(state->wrapped_buffer, "name", out, error);
+}
+
 bool text_io_wrapper_reconfigure_kw(
     Runtime& runtime,
     const Value* args,
@@ -1334,6 +1346,9 @@ Value make_memory_stream_class(
     }
     attrs.push_back({"buffer", Value::property(
         runtime.make_native_function("_io.TextIOWrapper.buffer", text_io_buffer_get),
+        Value::none(), Value::none(), Value::none())});
+    attrs.push_back({"name", Value::property(
+        runtime.make_native_function("_io.TextIOWrapper.name", text_io_name_get),
         Value::none(), Value::none(), Value::none())});
     attrs.push_back({"__new__", runtime.make_native_function("_io.TextIOWrapper.__new__", text_io_wrapper_new, nullptr, nullptr, nullptr, false, text_io_wrapper_new_kw)});
     attrs.push_back({"reconfigure", runtime.make_native_function(

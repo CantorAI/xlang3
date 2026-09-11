@@ -13,6 +13,7 @@ True
 utf-8 replace True
 TypeError
 True
+native-buffer
 131072
 <class 'io.TextIOBase'>
 TextIOWrapper TextIOWrapper True

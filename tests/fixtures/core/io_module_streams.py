@@ -35,6 +35,9 @@ except Exception as exc:
 buffered = _io.BytesIO()
 wrapper = _io.TextIOWrapper(buffered)
 print(wrapper.buffer is buffered)
+class NamedBuffer:
+    name = "native-buffer"
+print(_io.TextIOWrapper(NamedBuffer()).name)
 print(io.DEFAULT_BUFFER_SIZE)
 print(io.TextIOBase)
 print(io.TextIOWrapper.__name__, _io.TextIOWrapper.__name__, issubclass(io.TextIOWrapper, io.TextIOBase))
