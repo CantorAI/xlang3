@@ -52,6 +52,9 @@ struct ZlibDecompressState {
   bool finished = false;
   std::string unused_data;
   std::string unconsumed_tail;
+  // zlib retains next_in when max_length stops output. Keep that memory alive
+  // between calls so flush() can drain the remaining stream safely.
+  std::string pending_input;
   std::string dictionary;
 };
 
@@ -475,6 +478,7 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   constexpr size_t kChunkSize = 16384;
   char chunk[kChunkSize];
   std::string decompressed;
+  state->pending_input.clear();
   state->stream.next_in = reinterpret_cast<Bytef*>(input.data());
   state->stream.avail_in = static_cast<uInt>(input.size());
   do {
@@ -517,8 +521,10 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   state->unconsumed_tail.clear();
   if (!state->finished && state->stream.avail_in > 0) {
     state->unconsumed_tail.assign(
-        reinterpret_cast<const char*>(state->stream.next_in),
-        state->stream.avail_in);
+        reinterpret_cast<const char*>(state->stream.next_in), state->stream.avail_in);
+    state->pending_input = state->unconsumed_tail;
+    state->stream.next_in = reinterpret_cast<Bytef*>(state->pending_input.data());
+    state->stream.avail_in = static_cast<uInt>(state->pending_input.size());
   }
   std::string ignored;
   Value self = args[0];
@@ -530,18 +536,41 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
 }
 
 bool zlib_decompress_object_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc > 2) {
-    error = "Decompress.flush() expected optional length";
-    return false;
-  }
+  if (argc > 2) { error = "Decompress.flush() expected optional length"; return false; }
   ZlibDecompressState* state = nullptr;
-  if (!decompress_object_state(args[0], state, error)) {
-    return false;
+  if (!decompress_object_state(args[0], state, error)) return false;
+  int length = 16384;
+  if (argc == 2) {
+    if (args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0) return zlib_class_fail(runtime, "ValueError", "length must be greater than zero", error);
+    length = static_cast<int>(std::min<int64_t>(args[1].as.i64, 1 << 20));
   }
-  if (argc == 2 && (args[1].tag != ValueTag::Int64 || args[1].as.i64 <= 0)) {
-    return zlib_class_fail(runtime, "ValueError", "length must be greater than zero", error);
+  if (state->finished) { out = Value::bytes(""); return true; }
+
+  std::string decoded;
+  std::vector<char> chunk(static_cast<size_t>(std::max(length, 16384)));
+  do {
+    state->stream.next_out = reinterpret_cast<Bytef*>(chunk.data());
+    state->stream.avail_out = static_cast<uInt>(chunk.size());
+    const int rc = inflate(&state->stream, Z_FINISH);
+    if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR) {
+      return zlib_fail(runtime, "zlib decompressor flush failed: " + std::to_string(rc), error);
+    }
+    decoded.append(chunk.data(), chunk.size() - state->stream.avail_out);
+    if (rc == Z_STREAM_END) { state->finished = true; break; }
+    if (rc == Z_BUF_ERROR || state->stream.avail_out != 0) break;
+  } while (true);
+
+  if (state->finished && state->stream.avail_in > 0) {
+    state->unused_data.append(reinterpret_cast<const char*>(state->stream.next_in), state->stream.avail_in);
   }
-  out = Value::bytes("");
+  state->pending_input.clear();
+  state->unconsumed_tail.clear();
+  std::string ignored;
+  Value self = args[0];
+  object_set_attr(self, "unused_data", Value::bytes(state->unused_data), ignored);
+  object_set_attr(self, "unconsumed_tail", Value::bytes(""), ignored);
+  object_set_attr(self, "eof", Value::boolean(state->finished), ignored);
+  out = Value::bytes(std::move(decoded));
   return true;
 }
 
@@ -560,6 +589,11 @@ bool zlib_decompress_object_copy(Runtime& runtime, const Value* args, uint32_t a
   copied->finished = state->finished;
   copied->unused_data = state->unused_data;
   copied->unconsumed_tail = state->unconsumed_tail;
+  copied->pending_input = state->pending_input;
+  if (!copied->pending_input.empty()) {
+    copied->stream.next_in = reinterpret_cast<Bytef*>(copied->pending_input.data());
+    copied->stream.avail_in = static_cast<uInt>(copied->pending_input.size());
+  }
   copied->dictionary = state->dictionary;
   out = Value::instance(instance->klass);
   if (!instance_set_native_data(out, kDecompressObjectNativeType, copied, zlib_decompress_cleanup, error)) {

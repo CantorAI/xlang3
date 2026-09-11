@@ -16,6 +16,13 @@ roundtrip = d.decompress(streamed[:4]) + d.decompress(streamed[4:]) + d.flush()
 print(roundtrip == b"abc abc ")
 print(d.eof, d.unused_data == b"", d.unconsumed_tail == b"")
 
+bounded = zlib.decompressobj()
+bounded_first = bounded.decompress(zlib.compress(b"flush-me" * 100), 1)
+bounded_copy = bounded.copy()
+bounded_tail = (b"flush-me" * 100)[1:]
+print(bounded_first, bounded.flush() == bounded_tail, bounded_copy.flush() == bounded_tail,
+      bounded.eof, bounded.unconsumed_tail == b"")
+
 trailing = zlib.compress(b"xyz") + b"tail"
 d2 = zlib.decompressobj()
 print(d2.decompress(trailing) == b"xyz")
