@@ -210,7 +210,28 @@ bool weakref_reference_hash(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   size_t hash = 0;
-  if (!value_hash_key(target, hash, error)) {
+  if (value_as_instance(target) != nullptr) {
+    Value hash_method;
+    std::string attr_error;
+    if (object_get_attr(target, "__hash__", hash_method, attr_error)) {
+      if (hash_method.tag == ValueTag::None) {
+        error = "unhashable type";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, out, error)) {
+        return false;
+      }
+      if (out.tag != ValueTag::Int64) {
+        error = "__hash__ method should return an integer";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      hash = static_cast<size_t>(out.as.i64);
+    } else if (!value_hash_key(target, hash, error)) {
+      return false;
+    }
+  } else if (!value_hash_key(target, hash, error)) {
     return false;
   }
   out = Value::int64(static_cast<int64_t>(hash));

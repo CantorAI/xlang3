@@ -42,6 +42,13 @@ def callback_property(reference):
 no_callback = weakref.ref(callback_probe)
 with_callback = weakref.ref(callback_probe, callback_property)
 print(no_callback.__callback__ is None, with_callback.__callback__ is callback_property)
+
+class HashBox:
+    def __hash__(self):
+        return 42
+
+hash_box = HashBox()
+print(hash(weakref.ref(hash_box)))
 class ReprBox:
     pass
 
