@@ -49,6 +49,13 @@ class SequenceBox:
 sequence_proxy = weakref.proxy(SequenceBox())
 print(len(sequence_proxy), list(sequence_proxy), sequence_proxy[1], 3 in sequence_proxy)
 
+class FalseBox:
+    def __bool__(self):
+        return False
+
+false_box = FalseBox()
+print(bool(weakref.proxy(false_box)))
+
 expired = weakref.ref(Box())
 import gc
 gc.collect()

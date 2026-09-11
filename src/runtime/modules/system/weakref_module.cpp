@@ -392,6 +392,7 @@ Value weakref_proxy_type(Runtime& runtime) {
              "weakref.ProxyType.__setattr__", weakref_proxy_setattr)},
          {"__delattr__", runtime.make_native_function(
              "weakref.ProxyType.__delattr__", weakref_proxy_delattr)},
+         {"__bool__", runtime.make_native_function("weakref.ProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
          {"__len__", runtime.make_native_function("weakref.ProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.ProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
          {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
@@ -414,6 +415,7 @@ Value weakref_callable_proxy_type(Runtime& runtime) {
              "weakref.CallableProxyType.__delattr__", weakref_proxy_delattr)},
          {"__call__", runtime.make_native_function(
              "weakref.CallableProxyType.__call__", weakref_callable_proxy_call)},
+         {"__bool__", runtime.make_native_function("weakref.CallableProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
          {"__len__", runtime.make_native_function("weakref.CallableProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
          {"__iter__", runtime.make_native_function("weakref.CallableProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
          {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},

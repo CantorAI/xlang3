@@ -10,6 +10,7 @@ box
 True True
 5 CallableProxyType
 2 [3, 4] 4 True
+False
 True
 True
 TypeError
