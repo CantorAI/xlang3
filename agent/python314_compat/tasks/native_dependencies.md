@@ -77,7 +77,7 @@
   for both references and proxies;
   `tests/fixtures/core/collections_queue_modules.py` covers the native collection
   dependency surface used by source-backed `collections`, including deque
-  rotation, reversal, positional lookup, insertion, bounded representation, and
+  rotation, reversal, positional lookup with bounded index searches, insertion, bounded representation, and
   independent `copy()` results. CPython 3.14 focused `TestBasic` coverage also
   passes deque comparisons, concatenation, in-place concatenation, and in-place
   repetition. Native deque reducers support source-backed `copy.copy()` and
