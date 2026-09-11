@@ -105,3 +105,7 @@ raw_compressed = zlib.compress(b"raw", wbits=-zlib.MAX_WBITS)
 print(zlib.decompress(raw_compressed, wbits=-zlib.MAX_WBITS))
 gzip_compressed = zlib.compress(b"gzip-keyword", wbits=16 + zlib.MAX_WBITS)
 print(zlib.decompress(gzip_compressed, wbits=32 + zlib.MAX_WBITS))
+try:
+    zlib.decompressobj().decompress(b"", -1)
+except ValueError:
+    print("negative max length")

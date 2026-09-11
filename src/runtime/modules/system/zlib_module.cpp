@@ -523,8 +523,7 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
     return false;
   }
   if (max_length < 0) {
-    error = "max_length must be non-negative";
-    return false;
+    return zlib_class_fail(runtime, "ValueError", "max_length must be non-negative", error);
   }
 
   if (state->finished) {
