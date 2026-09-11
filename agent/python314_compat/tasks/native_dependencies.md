@@ -124,6 +124,9 @@ passed 47/47 tests, including the aggregate fixture suite.
   Native socket instances now expose `dup()`, producing an independent
   descriptor that preserves socket metadata and remains usable after the
   source socket closes.
+  The Windows handle inheritance primitives required by source-backed
+  `socket.socket.get_inheritable()` and `set_inheritable()` are available for
+  real socket handles.
   Validation update: all three CPython 3.14 Windows signal tests pass, including
   `SIGBREAK`, invalid-signal errors, handler reset, and subprocess
   `KeyboardInterrupt` exit behavior.

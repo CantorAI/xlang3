@@ -1555,6 +1555,48 @@ bool os_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool os_get_handle_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+    error = "get_handle_inheritable() expected handle";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  DWORD flags = 0;
+  const HANDLE handle = reinterpret_cast<HANDLE>(static_cast<intptr_t>(args[0].as.i64));
+  if (handle == nullptr || handle == INVALID_HANDLE_VALUE || GetHandleInformation(handle, &flags) == 0) {
+    error = "get handle inheritance failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_bool(out, (flags & HANDLE_FLAG_INHERIT) != 0);
+#else
+  return os_get_inheritable(runtime, args, argc, out, error, nullptr);
+#endif
+  return true;
+}
+
+bool os_set_handle_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "set_handle_inheritable() expected handle and inheritable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  const HANDLE handle = reinterpret_cast<HANDLE>(static_cast<intptr_t>(args[0].as.i64));
+  if (handle == nullptr || handle == INVALID_HANDLE_VALUE ||
+      SetHandleInformation(handle, HANDLE_FLAG_INHERIT, value_truthy(args[1]) ? HANDLE_FLAG_INHERIT : 0) == 0) {
+    error = "set handle inheritance failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+#else
+  return os_set_inheritable(runtime, args, argc, out, error, nullptr);
+#endif
+  value_set_none(out);
+  return true;
+}
+
 bool os_cpu_count(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "os.cpu_count", error)) {
     return false;
@@ -4165,6 +4207,8 @@ void register_os_module(Runtime& runtime) {
       .function("isatty", os_isatty)
       .function("get_inheritable", os_get_inheritable)
       .function("set_inheritable", os_set_inheritable)
+      .function("get_handle_inheritable", os_get_handle_inheritable)
+      .function("set_handle_inheritable", os_set_handle_inheritable)
       .function("getpid", os_getpid)
       .function("strerror", os_strerror)
       .function("getppid", os_getppid)
