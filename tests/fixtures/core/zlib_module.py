@@ -44,3 +44,7 @@ dictionary = b"dictionary payload"
 with_dict = zlib.compressobj(zdict=dictionary)
 dict_encoded = with_dict.compress(dictionary) + with_dict.flush()
 print(zlib.decompressobj(zdict=dictionary).decompress(dict_encoded) == dictionary)
+try:
+    zlib.decompressobj().decompress(dict_encoded)
+except Exception as exc:
+    print(type(exc).__name__)

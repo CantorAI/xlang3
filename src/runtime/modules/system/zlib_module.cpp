@@ -440,7 +440,7 @@ bool zlib_compress_object_deepcopy(Runtime& runtime, const Value* args, uint32_t
   return zlib_compress_object_copy(runtime, args, 1, out, error, nullptr);
 }
 
-bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "Decompress.decompress() expected data and optional max_length";
     return false;
@@ -499,8 +499,7 @@ bool zlib_decompress_object_decompress(Runtime&, const Value* args, uint32_t arg
       rc = inflate(&state->stream, Z_NO_FLUSH);
     }
     if (rc != Z_OK && rc != Z_STREAM_END && rc != Z_BUF_ERROR) {
-      error = "zlib decompressor failed: " + std::to_string(rc);
-      return false;
+      return zlib_fail(runtime, "zlib decompressor failed: " + std::to_string(rc), error);
     }
     decompressed.append(chunk, requested - state->stream.avail_out);
     if (rc == Z_STREAM_END) {
