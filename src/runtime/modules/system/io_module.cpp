@@ -503,6 +503,7 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     }
     return false;
   }
+  memory_stream_sync_exported_buffer(*state);
   if (state->wraps_buffer) {
     Value read_method;
     std::string read_error;
@@ -580,6 +581,7 @@ bool stream_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
   if (state == nullptr) return false;
+  memory_stream_sync_exported_buffer(*state);
   char* destination = nullptr;
   size_t capacity = 0;
   if (auto* bytearray = value_as_bytearray(args[1])) {
@@ -986,6 +988,7 @@ bool stream_seek(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (state == nullptr) {
     return false;
   }
+  memory_stream_sync_exported_buffer(*state);
   const int64_t whence = argc == 3 && args[2].tag == ValueTag::Int64 ? args[2].as.i64 : 0;
   int64_t base = 0;
   if (whence == 1) {
@@ -1069,6 +1072,7 @@ bool stream_truncate(Runtime&, const Value* args, uint32_t argc, Value& out, std
   if (state == nullptr) {
     return false;
   }
+  memory_stream_sync_exported_buffer(*state);
   size_t size = state->cursor;
   if (argc == 2 && args[1].tag != ValueTag::None) {
     if (args[1].tag != ValueTag::Int64 || args[1].as.i64 < 0) {

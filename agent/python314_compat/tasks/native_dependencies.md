@@ -49,7 +49,8 @@ suite, after the native dependency updates documented below.
   raw streams over the same native data path. In-memory streams expose the
   standard non-terminal `isatty()` result and retain closed-stream validation.
   `BytesIO.getbuffer()` now retains a writable live view whose changes are
-  observed by subsequent stream reads and `getvalue()` calls.
+  observed by direct stream reads, `readinto()`, seek operations, and
+  `getvalue()` calls.
   Native `FileIO.readinto()` fills writable byte buffers through the same
   descriptor-backed file path as `read()`.
   `BytesIO.readinto1()` now exposes the raw single-buffer read contract.
