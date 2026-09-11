@@ -133,6 +133,7 @@ passed 47/47 tests, including the aggregate fixture suite.
   lookup, live-reference equality, weak-reference enumeration, collection-time reference expiration,
   CPython weak-reference hash caching and dead-reference hash errors,
   callback-free reference reuse for the same live referent,
+  the read-only `ref.__callback__` property for callback inspection,
   delegated proxy attribute mutation plus `len`, iteration, indexing,
   membership, truth-value, equality, string-conversion, and item-mutation forwarding, and CPython's unhashable
   proxy contract. Proxies also forward representation, byte conversion, integer

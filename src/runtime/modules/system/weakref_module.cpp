@@ -149,6 +149,18 @@ bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
+bool weakref_reference_callback(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.ReferenceType.__callback__ getter expected a reference";
+    return false;
+  }
+  std::string ignored;
+  if (!object_get_attr(args[0], kWeakrefCallbackAttr, out, ignored)) {
+    value_set_none(out);
+  }
+  return true;
+}
+
 bool weakref_reference_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "weakref.__hash__() expected self";
@@ -239,6 +251,9 @@ Value weakref_reference_type(Runtime& runtime) {
       runtime.make_native_function("weakref.ReferenceType.__new__", weakref_reference_new))});
   attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
   attrs.push_back({"__call__", runtime.make_native_function("weakref.ReferenceType.__call__", weakref_reference_call)});
+  attrs.push_back({"__callback__", Value::property(
+      runtime.make_native_function("weakref.ReferenceType.__callback__", weakref_reference_callback),
+      Value::none(), Value::none(), Value::none())});
   attrs.push_back({"__hash__", runtime.make_native_function("weakref.ReferenceType.__hash__", weakref_reference_hash)});
   attrs.push_back({"__eq__", runtime.make_native_function("weakref.ReferenceType.__eq__", weakref_reference_eq)});
   attrs.push_back({"__ne__", runtime.make_native_function("weakref.ReferenceType.__ne__", weakref_reference_ne)});

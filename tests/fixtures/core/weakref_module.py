@@ -26,6 +26,13 @@ print(r2().name)
 print(weakref.ReferenceType(b)().name)
 print(weakref.ref(b) == weakref.ref(b), weakref.ref(b) != weakref.ref(Box()))
 
+callback_probe = Box()
+def callback_property(reference):
+    return reference
+no_callback = weakref.ref(callback_probe)
+with_callback = weakref.ref(callback_probe, callback_property)
+print(no_callback.__callback__ is None, with_callback.__callback__ is callback_property)
+
 class CallableBox:
     def __call__(self, value):
         return value + 1
