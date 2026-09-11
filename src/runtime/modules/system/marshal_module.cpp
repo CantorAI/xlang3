@@ -928,8 +928,9 @@ bool marshal_dump(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     error = "marshal.dump() expected value, file, and optional version";
     return false;
   }
+  const Value marshal_args[] = {args[0], argc == 3 ? args[2] : Value::int64(5)};
   Value data;
-  if (!marshal_dumps(runtime, args, argc == 3 ? 2 : 1, data, error, nullptr)) {
+  if (!marshal_dumps(runtime, marshal_args, 2, data, error, nullptr)) {
     return false;
   }
   Value write;

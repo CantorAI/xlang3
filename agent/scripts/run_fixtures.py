@@ -103,6 +103,7 @@ CORE_CASES = [
     "linecache_module",
     "runpy_module",
     "importlib_module",
+    "marshal_module",
     "zlib_module",
     "zipfile_module",
     "weakref_module",
