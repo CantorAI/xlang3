@@ -1114,6 +1114,52 @@ uint64_t weakref_collect_cycles() {
         count_candidate_ref(instance_slot_at(instance, index));
       }
     }
+    bool has_internal_callback_edge = false;
+    for (const auto& entry : weakref_registry()) {
+      if (entry.ref == nullptr) {
+        continue;
+      }
+      bool reference_is_internal = false;
+      for (auto* candidate : instance_candidates) {
+        const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
+        for (const auto& attr : instance->attrs) {
+          if (attr.second.tag == ValueTag::Object && attr.second.as.obj == entry.ref) {
+            reference_is_internal = true;
+            break;
+          }
+        }
+        if (reference_is_internal) {
+          break;
+        }
+      }
+      if (!reference_is_internal) {
+        continue;
+      }
+      Value ref;
+      ref.tag = ValueTag::Object;
+      ref.flags = kXlangValueBorrowedRefFlag;
+      ref.as.obj = entry.ref;
+      Value callback;
+      std::string ignored;
+      if (!object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored)) {
+        continue;
+      }
+      if (const auto* method = value_as_bound_method(callback)) {
+        if (auto* self = value_as_instance(method->self)) {
+          auto* self_object = reinterpret_cast<Object*>(self);
+          if (instance_candidate_set.find(self_object) != instance_candidate_set.end()) {
+            ++internal_refs[self_object];
+            has_internal_callback_edge = true;
+          }
+        } else if (auto* self = unwrap_protocol_iterator_instance(method->self)) {
+          auto* self_object = reinterpret_cast<Object*>(self);
+          if (instance_candidate_set.find(self_object) != instance_candidate_set.end()) {
+            ++internal_refs[self_object];
+            has_internal_callback_edge = true;
+          }
+        }
+      }
+    }
     std::vector<Object*> collectible;
     for (auto* candidate : instance_candidates) {
       if (internal_refs[candidate] != 0 &&
@@ -1121,7 +1167,7 @@ uint64_t weakref_collect_cycles() {
         collectible.push_back(candidate);
       }
     }
-    if (!collectible.empty()) {
+    if (has_internal_callback_edge && !collectible.empty()) {
       std::vector<Value> keep_alive;
       keep_alive.reserve(collectible.size());
       for (auto* candidate : collectible) {
