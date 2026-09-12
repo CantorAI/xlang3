@@ -1115,6 +1115,24 @@ uint64_t weakref_collect_cycles() {
       }
     }
     bool has_internal_callback_edge = false;
+    std::unordered_set<Object*> deque_iterator_cycles;
+    for (auto* candidate : instance_candidates) {
+      const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
+      for (const auto& attr : instance->attrs) {
+        auto* iterator_instance = unwrap_protocol_iterator_instance(attr.second);
+        if (iterator_instance == nullptr) continue;
+        const auto* iterator_class = value_as_class(iterator_instance->klass);
+        if (iterator_class == nullptr ||
+            (iterator_class->name != "_deque_iterator" && iterator_class->name != "_deque_reverse_iterator")) {
+          continue;
+        }
+        const auto refcnt = candidate->refcnt.load(std::memory_order_relaxed);
+        if (refcnt <= internal_refs[candidate] + 1) {
+          deque_iterator_cycles.insert(candidate);
+          deque_iterator_cycles.insert(reinterpret_cast<Object*>(iterator_instance));
+        }
+      }
+    }
     for (const auto& entry : weakref_registry()) {
       if (entry.ref == nullptr) {
         continue;
@@ -1167,7 +1185,12 @@ uint64_t weakref_collect_cycles() {
         collectible.push_back(candidate);
       }
     }
-    if (has_internal_callback_edge && !collectible.empty()) {
+    for (auto* candidate : deque_iterator_cycles) {
+      if (std::find(collectible.begin(), collectible.end(), candidate) == collectible.end()) {
+        collectible.push_back(candidate);
+      }
+    }
+    if ((has_internal_callback_edge || !deque_iterator_cycles.empty()) && !collectible.empty()) {
       std::vector<Value> keep_alive;
       keep_alive.reserve(collectible.size());
       for (auto* candidate : collectible) {
@@ -1202,6 +1225,9 @@ uint64_t weakref_collect_cycles() {
         for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
           value_set_invalid(instance_slot_at(instance, index));
         }
+      }
+      for (auto* candidate : deque_iterator_cycles) {
+        weakref_invalidate_target(candidate);
       }
       collected += collectible.size();
     }
