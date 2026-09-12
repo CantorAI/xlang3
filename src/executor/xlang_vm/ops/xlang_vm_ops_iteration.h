@@ -78,6 +78,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
     if (auto* list = value_as_list(iterator->source)) {
       if (iterator->index >= list->items.size()) {
         value_set_none(regs[in.dst]);
+        value_set_invalid(iterator->source);
         ip = in.b;
         return XlangVMOpFlow::ContinueLoop;
       }

@@ -208,6 +208,17 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
   obj->running = false;
   if (done) {
     obj->done = true;
+    if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {
+      obj->vm_state_cleanup(obj->vm_state);
+      obj->vm_state = nullptr;
+      obj->vm_state_cleanup = nullptr;
+    }
+    value_set_invalid(obj->pending_send);
+    value_set_invalid(obj->pending_throw);
+    value_set_invalid(obj->function);
+    obj->args.clear();
+    obj->has_pending_send = false;
+    obj->has_pending_throw = false;
   }
   if (!result.errors.empty()) {
     if (result.exception.tag != ValueTag::Invalid) {
@@ -258,6 +269,8 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
   obj->done = true;
   value_set_invalid(obj->pending_send);
   value_set_invalid(obj->pending_throw);
+  value_set_invalid(obj->function);
+  obj->args.clear();
   obj->has_pending_send = false;
   obj->has_pending_throw = false;
   value_set_none(out);
@@ -308,6 +321,17 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   obj->running = false;
   if (done) {
     obj->done = true;
+    if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {
+      obj->vm_state_cleanup(obj->vm_state);
+      obj->vm_state = nullptr;
+      obj->vm_state_cleanup = nullptr;
+    }
+    value_set_invalid(obj->pending_send);
+    value_set_invalid(obj->pending_throw);
+    value_set_invalid(obj->function);
+    obj->args.clear();
+    obj->has_pending_send = false;
+    obj->has_pending_throw = false;
   }
   if (!result.errors.empty()) {
     if (result.exception.tag != ValueTag::Invalid) {

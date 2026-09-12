@@ -1,5 +1,9 @@
+TypeError
+ValueError
 b'abc'
 ValueError
+ValueError
+True
 True
 1 b'buffer'
 b'buffer'

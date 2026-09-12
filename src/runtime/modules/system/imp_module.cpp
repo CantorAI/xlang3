@@ -187,12 +187,62 @@ bool imp_extension_suffixes(Runtime&, const Value*, uint32_t argc, Value& out, s
   return true;
 }
 
-bool imp_source_hash(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
+uint64_t imp_siphash13(uint64_t key, std::string_view source) {
+  uint64_t v0 = UINT64_C(0x736f6d6570736575) ^ key;
+  uint64_t v1 = UINT64_C(0x646f72616e646f6d);
+  uint64_t v2 = UINT64_C(0x6c7967656e657261) ^ key;
+  uint64_t v3 = UINT64_C(0x7465646279746573);
+  const auto rotate_left = [](uint64_t value, unsigned bits) {
+    return (value << bits) | (value >> (64u - bits));
+  };
+  const auto round = [&]() {
+    v0 += v1; v1 = rotate_left(v1, 13) ^ v0; v0 = rotate_left(v0, 32);
+    v2 += v3; v3 = rotate_left(v3, 16) ^ v2;
+    v0 += v3; v3 = rotate_left(v3, 21) ^ v0;
+    v2 += v1; v1 = rotate_left(v1, 17) ^ v2; v2 = rotate_left(v2, 32);
+  };
+  size_t offset = 0;
+  while (source.size() - offset >= 8) {
+    uint64_t word = 0;
+    for (size_t index = 0; index < 8; ++index) {
+      word |= static_cast<uint64_t>(static_cast<unsigned char>(source[offset + index])) << (index * 8u);
+    }
+    v3 ^= word;
+    round();
+    v0 ^= word;
+    offset += 8;
+  }
+  uint64_t tail = static_cast<uint64_t>(source.size()) << 56u;
+  for (size_t index = 0; offset + index < source.size(); ++index) {
+    tail |= static_cast<uint64_t>(static_cast<unsigned char>(source[offset + index])) << (index * 8u);
+  }
+  v3 ^= tail;
+  round();
+  v0 ^= tail;
+  v2 ^= 0xffu;
+  round(); round(); round();
+  return v0 ^ v1 ^ v2 ^ v3;
+}
+
+bool imp_source_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
     error = "_imp.source_hash() expected magic and source bytes";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::bytes(std::string(8, '\0'));
+  const auto* bytes = value_as_bytes(args[1]);
+  if (bytes == nullptr) {
+    error = "_imp.source_hash() source must be bytes";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const uint64_t hash = imp_siphash13(
+      static_cast<uint64_t>(args[0].as.i64), bytes_object_view(*bytes));
+  std::string encoded(8, '\0');
+  for (size_t index = 0; index < 8; ++index) {
+    encoded[index] = static_cast<char>((hash >> (index * 8u)) & 0xffu);
+  }
+  out = Value::bytes(std::move(encoded));
   return true;
 }
 

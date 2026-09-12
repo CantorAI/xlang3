@@ -27,6 +27,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
+#include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
@@ -64,6 +65,32 @@ namespace {
 
 std::mutex g_file_resource_warning_mutex;
 std::vector<std::string> g_file_resource_warnings;
+
+void report_unraisable_finalizer(
+    Runtime& runtime, const Value& exception, const Value& finalizer) {
+  if (exception.tag == ValueTag::Invalid) return;
+  Value exception_type = Value::none();
+  (void)runtime_type_of_value(runtime, exception, exception_type);
+  Value record_class = Value::class_object("UnraisableHookArgs", {});
+  Value record = Value::instance(record_class);
+  std::string ignored;
+  object_set_attr(record, "exc_type", exception_type, ignored);
+  object_set_attr(record, "exc_value", exception, ignored);
+  Value traceback = Value::none();
+  (void)object_get_attr(exception, "__traceback__", traceback, ignored);
+  object_set_attr(record, "exc_traceback", traceback, ignored);
+  object_set_attr(record, "err_msg", Value::none(), ignored);
+  object_set_attr(record, "object", finalizer, ignored);
+  Value sys;
+  Value hook;
+  Value hook_result;
+  if (runtime.import_module("sys", sys, ignored) &&
+      module_get_attr(sys, "unraisablehook", hook, ignored) &&
+      !runtime_call_callable(runtime, hook, &record, 1, hook_result, ignored)) {
+    Value discarded;
+    (void)runtime.take_pending_exception(discarded);
+  }
+}
 
 #if defined(_WIN32)
 void ignore_value_close_invalid_parameter(
@@ -1331,6 +1358,46 @@ void retain(const Value& value) {
   }
 }
 
+bool value_finalize_temporary_instance(Runtime& runtime, const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
+      value.as.obj->kind != ObjectKind::Instance ||
+      value.as.obj->refcnt.load(std::memory_order_acquire) != 1 ||
+      runtime.finalizing()) {
+    return false;
+  }
+  auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
+  if (instance->finalizer_started) return false;
+  Value marker;
+  std::string marker_error;
+  if (!object_lookup_class_attr(
+          instance->klass, "__xlang3_finalize_on_release__", marker,
+          marker_error) || !value_truthy(marker)) {
+    return false;
+  }
+  Value self;
+  self.tag = ValueTag::Object;
+  self.flags = kXlangValueBorrowedRefFlag;
+  self.as.obj = value.as.obj;
+  Value finalizer;
+  std::string lookup_error;
+  if (!attribute_get(self, "__del__", finalizer, lookup_error)) return false;
+  instance->finalizer_started = true;
+  Value saved_exception;
+  (void)runtime.take_pending_exception(saved_exception);
+  Value ignored;
+  std::string finalizer_error;
+  if (!runtime_call_callable(
+          runtime, finalizer, nullptr, 0, ignored, finalizer_error)) {
+    Value discarded;
+    (void)runtime.take_pending_exception(discarded);
+    report_unraisable_finalizer(runtime, discarded, finalizer);
+  }
+  if (saved_exception.tag != ValueTag::Invalid) {
+    runtime.set_pending_exception(std::move(saved_exception));
+  }
+  return true;
+}
+
 void release(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return;
@@ -1341,6 +1408,80 @@ void release(const Value& value) {
   xlang_perf_count_value_decref(value.as.obj->kind);
   if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
     return;
+  }
+  if (value.as.obj->kind == ObjectKind::Instance) {
+    auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
+    Runtime* runtime = runtime_for_object_finalization();
+    Value finalize_marker;
+    std::string marker_error;
+    const bool release_finalizer_enabled =
+        object_lookup_class_attr(
+            instance->klass, "__xlang3_finalize_on_release__",
+            finalize_marker, marker_error) &&
+        value_truthy(finalize_marker);
+    if (runtime != nullptr && !runtime->finalizing() && !instance->finalizer_started &&
+        release_finalizer_enabled) {
+      Value self;
+      self.tag = ValueTag::Object;
+      self.flags = kXlangValueBorrowedRefFlag;
+      self.as.obj = value.as.obj;
+      Value finalizer;
+      std::string lookup_error;
+      if (attribute_get(self, "__del__", finalizer, lookup_error)) {
+        instance->finalizer_started = true;
+        value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
+        Value saved_exception;
+        (void)runtime->take_pending_exception(saved_exception);
+        Value ignored;
+        std::string finalizer_error;
+        if (!runtime_call_callable(
+                *runtime, finalizer, nullptr, 0, ignored, finalizer_error)) {
+          Value discarded;
+          (void)runtime->take_pending_exception(discarded);
+          report_unraisable_finalizer(*runtime, discarded, finalizer);
+        }
+        value_set_invalid(finalizer);
+        if (saved_exception.tag != ValueTag::Invalid) {
+          runtime->set_pending_exception(std::move(saved_exception));
+        }
+        if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
+          return;
+        }
+      }
+    }
+  } else if (value.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(value.as.obj);
+    Runtime* runtime = file->runtime != nullptr ? file->runtime : runtime_for_object_finalization();
+    if (runtime != nullptr && !runtime->finalizing() && !file->finalizer_started &&
+        file->klass.tag != ValueTag::Invalid) {
+      Value self;
+      self.tag = ValueTag::Object;
+      self.flags = kXlangValueBorrowedRefFlag;
+      self.as.obj = value.as.obj;
+      Value finalizer;
+      std::string lookup_error;
+      if (attribute_get(self, "__del__", finalizer, lookup_error)) {
+        file->finalizer_started = true;
+        value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
+        Value saved_exception;
+        (void)runtime->take_pending_exception(saved_exception);
+        Value ignored;
+        std::string finalizer_error;
+        if (!runtime_call_callable(
+                *runtime, finalizer, nullptr, 0, ignored, finalizer_error)) {
+          Value discarded;
+          (void)runtime->take_pending_exception(discarded);
+          report_unraisable_finalizer(*runtime, discarded, finalizer);
+        }
+        value_set_invalid(finalizer);
+        if (saved_exception.tag != ValueTag::Invalid) {
+          runtime->set_pending_exception(std::move(saved_exception));
+        }
+        if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
+          return;
+        }
+      }
+    }
   }
   xlang_perf_count_object_final_release(value.as.obj->kind);
   weakref_invalidate_target(value.as.obj);
@@ -1447,7 +1588,8 @@ void release(const Value& value) {
       if (auto* file = as_file(value.as.obj); file != nullptr && file->fd_backed && file->closefd && file->fd >= 0 && !file->closed) {
         {
           std::lock_guard<std::mutex> lock(g_file_resource_warning_mutex);
-          g_file_resource_warnings.push_back("unclosed file " + file->path);
+          g_file_resource_warnings.push_back(
+              "unclosed file <file '" + file->path + "'>");
         }
 #if defined(_WIN32)
         close_file_descriptor_without_abort(file->fd, file->fd_native_handle);
@@ -2784,11 +2926,13 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   }
   if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr && lhs.as.obj->kind == ObjectKind::Tuple) {
     if (repeat_count(rhs, count)) {
+      if (count == 1) { value_assign_fast(out, lhs); return true; }
       return repeat_tuple(reinterpret_cast<TupleObject*>(lhs.as.obj), count);
     }
   }
   if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr && rhs.as.obj->kind == ObjectKind::Tuple) {
     if (repeat_count(lhs, count)) {
+      if (count == 1) { value_assign_fast(out, rhs); return true; }
       return repeat_tuple(reinterpret_cast<TupleObject*>(rhs.as.obj), count);
     }
   }

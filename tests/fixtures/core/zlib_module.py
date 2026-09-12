@@ -140,3 +140,14 @@ class _ZlibLength:
 length_stream = zlib.decompressobj()
 length_stream.decompress(zlib.compress(b"length"), _ZlibLength())
 print(length_stream.flush(_ZlibLength()) == b"ength")
+
+strict_stream = zlib._ZlibDecompressor()
+strict_data = zlib.compress(b"strict-stream")
+strict_head = strict_stream.decompress(strict_data, max_length=3)
+print(strict_head, strict_stream.needs_input)
+strict_tail = strict_stream.decompress(b"")
+print(strict_head + strict_tail, strict_stream.eof, strict_stream.unused_data)
+try:
+    strict_stream.decompress(b"")
+except EOFError:
+    print("strict eof")

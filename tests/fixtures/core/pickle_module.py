@@ -1,6 +1,21 @@
 import _pickle
 import pickle
 import io
+import gc
+import weakref
+
+for invalid_buffer in ("text",):
+    try:
+        _pickle.PickleBuffer(invalid_buffer)
+    except Exception as exc:
+        print(type(exc).__name__)
+
+released_view = memoryview(b"released")
+released_view.release()
+try:
+    _pickle.PickleBuffer(released_view)
+except Exception as exc:
+    print(type(exc).__name__)
 
 p = _pickle.PickleBuffer(b"abc")
 print(bytes(p.raw()))
@@ -9,6 +24,21 @@ try:
     p.raw()
 except Exception as exc:
     print(type(exc).__name__)
+try:
+    memoryview(p)
+except Exception as exc:
+    print(type(exc).__name__)
+
+class BufferOwner(bytes):
+    pass
+
+owner = BufferOwner(b"cycle")
+cycle_buffer = _pickle.PickleBuffer(owner)
+owner.cycle = cycle_buffer
+cycle_ref = weakref.ref(cycle_buffer)
+del owner, cycle_buffer
+gc.collect()
+print(cycle_ref() is None)
 
 payload = {"items": [1, "two"], "flag": False}
 print(pickle.loads(pickle.dumps(payload, protocol=5)) == payload)

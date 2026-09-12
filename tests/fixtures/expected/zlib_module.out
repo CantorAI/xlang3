@@ -36,3 +36,6 @@ b'index-buffer'
 True
 True
 True
+b'str' False
+b'strict-stream' True b''
+strict eof

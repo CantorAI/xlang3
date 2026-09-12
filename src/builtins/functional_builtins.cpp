@@ -688,6 +688,10 @@ bool infer_super_defining_class(Runtime& runtime, const Value& self, Value& out,
   Value subject_class;
   if (instance != nullptr) {
     value_assign_fast(subject_class, instance->klass);
+  } else if (self.tag == ValueTag::Object && self.as.obj != nullptr &&
+             self.as.obj->kind == ObjectKind::File &&
+             reinterpret_cast<FileObject*>(self.as.obj)->klass.tag != ValueTag::Invalid) {
+    value_assign_fast(subject_class, reinterpret_cast<FileObject*>(self.as.obj)->klass);
   } else if (value_as_class(self) != nullptr) {
     value_assign_fast(subject_class, self);
   } else {

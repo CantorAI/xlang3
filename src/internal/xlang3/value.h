@@ -776,7 +776,10 @@ XLANG3_HOT_INLINE GenericAliasObject* value_as_generic_alias(const Value& value)
 
 struct FileObject {
   Object header;
+  std::recursive_mutex mutex;
   Runtime* runtime = nullptr;
+  Value klass;
+  bool finalizer_started = false;
   FileSystem* fs = nullptr;
   std::string path;
   std::string mode;
@@ -790,6 +793,11 @@ struct FileObject {
   bool writable = false;
   bool append = false;
   bool binary = false;
+  mutable bool binary_view_pending = false;
+  bool text_encoder_started = false;
+  bool iteration_telling_disabled = false;
+  bool text_decoded_cache = false;
+  std::string text_decoded_buffer;
   int64_t buffering = -1;
   bool closed = false;
   bool devnull = false;
@@ -937,6 +945,7 @@ XLANG3_HOT_INLINE void value_set_number(Value& out, double value) {
 std::string value_to_string(const Value& value);
 std::string value_to_repr(const Value& value);
 bool value_truthy(const Value& value);
+bool value_finalize_temporary_instance(Runtime& runtime, const Value& value);
 const char* value_binary_type_name(const Value& value);
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);

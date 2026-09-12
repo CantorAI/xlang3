@@ -36,6 +36,9 @@ limitations under the License.
 
 namespace xlang3 {
 
+Runtime* runtime_for_object_finalization();
+void runtime_set_object_finalization_context(Runtime* runtime);
+
 struct OutputSink {
   void* context = nullptr;
   void (*write)(void* context, const char* data, std::size_t size) = nullptr;

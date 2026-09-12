@@ -191,6 +191,11 @@ bool set_iter_next(Value& iterator, bool& done, Value& out, std::string& error) 
     error = "invalid set iterator";
     return false;
   }
+  if (it->source.tag == ValueTag::Invalid) {
+    done = true;
+    value_set_none(out);
+    return true;
+  }
   auto* set = value_as_set(it->source);
   if (set == nullptr) {
     error = "set iterator source is invalid";
@@ -199,6 +204,7 @@ bool set_iter_next(Value& iterator, bool& done, Value& out, std::string& error) 
   if (it->index >= set->items.size()) {
     done = true;
     value_set_none(out);
+    value_set_invalid(it->source);
     return true;
   }
   value_assign_fast(out, set->items[static_cast<size_t>(it->index)]);

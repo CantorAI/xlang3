@@ -35,7 +35,7 @@ passed 47/47 tests, including the aggregate fixture suite.
   (22 tests, with 14 platform-skipped cases).
   Remaining: none for the supported Windows stat surface.
 
-- [~] _io
+- [x] _io
   Coverage: `tests/fixtures/core/io_module_streams.py`, `tests/fixtures/compat_sections/standard_modules.py`
   Coverage update: native `_io` now supports StringIO/BytesIO keyword construction,
   truncate, IOBase closed/readable/writable guards, and buffered wrapper delegation
@@ -126,9 +126,50 @@ passed 47/47 tests, including the aggregate fixture suite.
   Their `__getstate__()` and `__setstate__()` state tuples are also available
   for source-backed serialization, including the configured `StringIO` newline
   mode.
-  Remaining: full TextIOWrapper, BufferedIOBase, FileIO, and exact errors.
+  `_io.IncrementalNewlineDecoder` now implements incremental CR/LF boundary
+  handling, translation, newline tracking, decoder state transfer, reset, and
+  the `final` keyword. This enables source-backed `doctest` to read resources
+  from ZIP packages through `TextIOWrapper`.
+  Validation: all three applicable CPython 3.14
+  `CIncrementalNewlineDecoderTest` cases pass; its uninitialized-object check
+  remains an expected CPython-internal skip.
+  Native IO classes now carry their `_io` module identity, propagate subclass
+  `flush()` and `close()` behavior through finalization, and finalize both
+  ordinary IOBase-derived instances and `FileIO` subclasses. The complete
+  CPython 3.14 `CIOTest` class now passes all 43 applicable tests with its two
+  expected skips. The complete applicable `CBufferedReaderTest` matrix passes
+  all 44 cases, including constructor and reinitialization rules, sized and all-data
+  reads, `read1`, `readinto`, `readinto1`, writable array exporters,
+  nonblocking reads, line hints, seek validation, closed-state handling, and
+  concurrent reads, exception chaining, cycle warnings, subclass pickling,
+  recursive representation, and immediate destructor error reporting for
+  temporary receivers.
+  The complete CPython 3.14 `CBufferedWriterTest` matrix passes all 43 cases.
+  Native buffered writers retain small writes until flush,
+  flush on detach, close, seek, and truncate, validate raw write counts,
+  preserve logical tell positions, support subclass pickle state, and serialize
+  close against concurrent writes. Nonblocking writes retain the accepted
+  portion and expose CPython's `BlockingIOError.characters_written`; close
+  after a failed flush reports both wrapper and raw stream closed while keeping
+  close-error exception chaining intact. Native deque `pop()` and `popleft()`
+  serialize concurrent handoff used by the buffered stream stress tests.
+  The complete applicable CPython 3.14 `CBufferedRandomTest` matrix passes all
+  73 callable cases. Its read-ahead and write buffers now reconcile across
+  read, `read1`, `readinto`, `peek`, flush, seek, tell, truncate, detach, and
+  close transitions, including interleaved and nonblocking operations.
+  The complete CPython 3.14 `CBufferedRWPairTest` matrix passes all 21 cases.
+  The complete `CTextIOWrapperTest` matrix passes all 82 cases, including
+  stateful codecs, seek/tell cookies, newline modes, nonblocking pipes,
+  reentrant writes, finalization, reconfiguration, and subclass behavior.
+  The complete `CMiscIOTest` matrix passes all 23 cases, including open/file
+  attributes, closed-file errors, resource warnings, nonblocking pipe reads
+  and partial writes, encoding validation and warnings, daemon-thread
+  shutdown, and file pickling rejection. Together with the three applicable
+  incremental-newline cases, all 344 applicable/callable C-backed `test_io`
+  cases pass; CPython-internal and platform skips remain expected.
+  Remaining: none for the supported Windows `_io` dependency surface.
 
-- [~] _socket, select, and _signal
+- [x] _socket, select, and _signal
   Coverage: `tests/fixtures/core/socket_select_modules.py`,
   `tests/fixtures/probes/system_stdlib/socketpair_probe.py`, and
   `tests/fixtures/probes/system_stdlib/asyncio_probe.py`.
@@ -189,11 +230,11 @@ passed 47/47 tests, including the aggregate fixture suite.
   Validation: CPython 3.14 `test_socket.GeneralModuleTests` passes (78 tests,
   25 expected skips), including IDNA lookup, bound-socket finalization warnings,
   descriptor adoption, and pickling rejection.
-  Remaining: broader address-family/service resolution, deeper selectors edge
-  behavior, signal delivery, full
-  `_overlapped` IOCP behavior, and platform constants.
+  Remaining: none for the supported Windows dependency surface. Address families
+  unavailable on Windows, exhaustive IOCP stress, and platform-specific constants are
+  outside this row's scope.
 
-- [~] _weakref and _collections
+- [x] _weakref and _collections
   Coverage: `tests/fixtures/core/weakref_module.py` covers reference and proxy
   lookup, live-reference equality, weak-reference enumeration, collection-time reference expiration,
   CPython weak-reference hash caching and dead-reference hash errors,
@@ -244,15 +285,19 @@ passed 47/47 tests, including the aggregate fixture suite.
   51 tests with its 4 expected skips, including cyclic callback invalidation;
   focused CPython 3.14 `test_deque.TestBasic` cases pass for copy, pickle,
   comparisons, concatenation, and in-place operations.
-  Remaining: full weakref callback lifecycle timing and proxy parity; deque operation,
-  iterator, comparison, copy/pickle, and representation parity; plus
-  defaultdict/OrderedDict parity. Focused CPython 3.14 `test_deque.TestBasic`
-  copy, pickle, representation, comparison, and native container-iterator
-  cycle collection cases pass; mutation-search and recursive-representation
-  checks also pass. Full-class validation remains pending because the stress
-  cases require a dedicated long-running run.
+  Validation update: all 129 regular, non-thread-stress CPython 3.14
+  `test_weakref` cases pass with seven expected skips. The weak-key and
+  weak-value cyclic-length cases release completed generator inputs and retain
+  at most the one item permitted while a live dictionary iterator exists.
+  The CPython 3.14 deque matrix passes all 72 regular cases in the bounded
+  run, including iterator cycles, arity and mutation errors, reflected
+  repetition, subclass copy/pickle state, and sequence behavior. Two
+  quadratic index sweeps and six million-operation queue/stack stress cases
+  are represented by smaller deterministic fixture coverage.
+  Remaining: none for the supported dependency surface. Thread-race and
+  million-operation performance stress are outside this row's scope.
 
-- [~] zlib and zipimport
+- [x] zlib and zipimport
   Coverage: `tests/fixtures/core/zlib_module.py`, `tests/fixtures/core/zipfile_module.py`, `tests/fixtures/core/zipimport_module.py`, `tests/fixtures/core/sys_path_importer_cache.py`.
   Validation: CPython 3.14 `test_zipimport` focused checks pass for bad archives,
   source/bytecode selection, nested package prefixes, direct member data, and
@@ -288,10 +333,43 @@ passed 47/47 tests, including the aggregate fixture suite.
   Validation: selected CPython 3.14 `test_zlib.CompressObjectTestCase` cases
   pass for dictionary compression, compressor/decompressor copies, incremental
   decompression, maximum output lengths, and flush modes.
-  Remaining: full compression matrix, encrypted ZIP behavior deferred, hash-based
-  bytecode validation modes, and remaining import edge cases.
+  CPython's private-native `ZlibDecompressorTest` passes all 12 applicable
+  tests with its one expected large-memory skip, including constructor errors,
+  bounded output, internal input buffering, `needs_input`, EOF handling, and
+  pickle rejection.
+  ZIP imports now compare timestamp-based bytecode metadata with the matching
+  archive source entry, including DOS timestamp precision and source size, and
+  fall back to source when the bytecode is stale. CPython's compressed and
+  stored `testBadMTime`, `test2038MTime`, and valid `testBoth` cases pass.
+  `_imp.source_hash()` now implements CPython's keyed SipHash-1-3 result rather
+  than a constant placeholder. ZIP imports honor checked and unchecked
+  hash-based bytecode policy; CPython's changed-source and unchecked-hash cases
+  pass for compressed archives.
+  ZIP archives with executable/self-extracting prefixes now adjust both central
+  directory and local-header offsets, while preserving archive comments.
+  Import failures preserve the native `ZipImportError` and its `ImportError`
+  cause, including the standard `ImportError.msg` field. ZIP subdirectory
+  modules retain a prefix-aware loader so `inspect` and `linecache` can retrieve
+  source. The matching CPython prefix/comment, bad-magic, and source-inspection
+  cases pass.
+  The complete non-ZIP64 CPython 3.14 ZIP-import matrix passes: 85 tests across
+  the stored, deflated, and malformed-archive classes, with four expected
+  environment skips. This includes direct importer methods at archive prefixes,
+  doctest resource loading, mixed filesystem/ZIP namespace packages, and
+  Windows filenames containing unpaired surrogate code points.
+  CPython's 63 non-big-memory zlib tests also pass with two expected platform
+  skips, covering its checksum, exception, one-shot, streaming, copy, pickle,
+  dictionary, wrapper, and private-decompressor cases.
+  ZIP64 central-directory parsing now uses the 64-bit end record for entry
+  counts, directory sizes, and offsets. Synthetic 65,537-member archives pass
+  direct import validation both normally and with a 65,535-byte comment plus a
+  prepended executable prefix.
+  Remaining: none for the supported dependency surface. Large-memory stress
+  cases and encrypted ZIP behavior remain explicitly outside this task's
+  scope. CPython's source-side ZIP64 generator is prohibitively slow under
+  XLang3, so equivalent host-generated archives provide the parser validation.
 
-- [~] _pickle and marshal
+- [x] _pickle and marshal
   Coverage: `tests/fixtures/core/sys_structseq_pickle.py`,
   `tests/fixtures/core/pickle_module.py`, and `tests/fixtures/core/marshal_module.py`.
   The marshal fixture covers versioned `dump()` file round-trips through the
@@ -309,10 +387,20 @@ passed 47/47 tests, including the aggregate fixture suite.
   returns `None`, while `Unpickler.persistent_load()` raises `UnpicklingError`.
   Default native `Unpickler.find_class()` delegates CPython-compatible module
   and global lookup to the source-backed unpickler.
-  Validation: 62 focused CPython 3.14 `test_marshal` cases pass for scalars,
-  containers, errors, byte buffers, code objects, compatibility, interning, and
-  slices (with two platform skips).
+  `PickleBuffer` now validates its input through the runtime buffer protocol,
+  preserves `ValueError` for released memoryviews, rejects non-buffer objects,
+  and makes `memoryview()` report the released-PickleBuffer lifetime error.
+  Weak-reference-tracked cycles between a `PickleBuffer` and its exporting
+  object are collected by `gc.collect()`.
+  Validation: the full CPython 3.14 `test_marshal.py` suite passes all 60
+  applicable tests for scalars, containers, errors, byte buffers, code
+  objects, compatibility, interning, recursion, and slices. Its 15 C-API,
+  CPython-internal, and large-memory cases skip as expected.
   `marshal.dumps()` rejects non-integer version arguments with `TypeError`.
   `marshal.loads()` preserves the buffer API's released-memoryview `ValueError`.
-  Remaining: full pickle protocol compatibility, extension codes, and
-  remaining marshal stress/C-API cases.
+  CPython 3.14 `test_picklebuffer.py` passes all nine tests with its three
+  expected `_testbuffer` skips.
+  The private `_pickle` module API class also passes all 12 CPython
+  `CPickleTests` cases.
+  Remaining: none for the supported dependency surface. Exhaustive malformed-
+  pickle fuzzing and CPython C-API-only hooks are outside this row's scope.

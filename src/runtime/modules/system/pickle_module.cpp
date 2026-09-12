@@ -83,6 +83,13 @@ bool picklebuffer_init(Runtime& runtime, const Value* args, uint32_t argc, Value
     return false;
   }
   Value self = args[0];
+  const Value* memoryview_class = runtime.find_builtin("memoryview");
+  Value validated_view;
+  if (memoryview_class == nullptr ||
+      !runtime_call_callable(runtime, *memoryview_class, &args[1], 1, validated_view, error)) {
+    if (error.empty()) error = "PickleBuffer() argument must support the buffer protocol";
+    return false;
+  }
   Value bytes_payload = args[1];
   if (value_as_instance(bytes_payload) != nullptr) {
     Value stored;

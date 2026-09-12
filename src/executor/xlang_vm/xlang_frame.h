@@ -179,6 +179,7 @@ struct XlangVMFrame {
   std::vector<ExceptionHandler> exception_handlers;
   std::vector<XlangVMInstrCache> instr_cache;
   std::vector<size_t> register_last_use;
+  std::vector<bool> register_loop_carried;
   std::vector<Value> native_call_args;
 
   XlangVMFrame(
@@ -473,6 +474,7 @@ private:
 
   void compute_register_last_use() {
     register_last_use.assign(fn->register_count, std::numeric_limits<size_t>::max());
+    register_loop_carried.assign(fn->register_count, false);
     for (size_t i = 0; i < fn->code.size(); ++i) {
       for_each_register_read(fn->code[i], [&](uint32_t reg) {
         note_register_use(reg, i);
@@ -490,6 +492,7 @@ private:
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
           if (reg < register_last_use.size()) {
+            register_loop_carried[reg] = true;
             register_last_use[reg] = std::numeric_limits<size_t>::max();
           }
         });

@@ -754,7 +754,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     Value class_getitem;
     std::string class_attr_error;
     if (object_get_class_attr_for_instance(regs[in.a], "__getitem__", class_getitem, class_attr_error) &&
-        value_as_function(class_getitem) != nullptr) {
+        (value_as_function(class_getitem) != nullptr ||
+         value_as_native_function(class_getitem) != nullptr)) {
       Value getitem;
       if (object_get_attr(regs[in.a], "__getitem__", getitem, class_attr_error)) {
         const Value call_arg = regs[in.b];
@@ -772,7 +773,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
       }
     }
   }
-  if (!sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
+  const bool runtime_mapping = value_as_dict(regs[in.a]) != nullptr ||
+      (value_as_instance(regs[in.a]) != nullptr &&
+       value_as_dict(value_as_instance(regs[in.a])->mapping_storage) != nullptr);
+  if (runtime_mapping && mapping_get_item_runtime(runtime, regs[in.a], regs[in.b], regs[in.dst], error)) {
+    xlang_vm_cache_note_hit(cache);
+    return XlangVMOpFlow::Next;
+  }
+  if (!runtime_mapping && !sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
     xlang_vm_cache_note_miss(cache);
     if (value_as_instance(regs[in.a]) != nullptr) {
       Value getitem;
@@ -812,6 +820,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     if (error == "sequence index must be int") {
       return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
                                                                                : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (runtime_mapping) {
+    if (error == "key not found") {
+      return raise_exception_value(runtime.make_exception("KeyError", value_to_string(regs[in.b])))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
     }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
@@ -951,7 +972,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   std::string error;
-  if (!sequence_delete_item(regs[in.dst], regs[in.a], error)) {
+  Value target = regs[in.dst];
+  const bool runtime_mapping = value_as_dict(target) != nullptr ||
+      (value_as_instance(target) != nullptr &&
+       value_as_dict(value_as_instance(target)->mapping_storage) != nullptr);
+  const bool deleted = runtime_mapping
+      ? mapping_delete_item_runtime(runtime, target, regs[in.a], error)
+      : sequence_delete_item(target, regs[in.a], error);
+  if (!deleted) {
     if (error == "Existing exports of data: object cannot be re-sized") {
       return raise_exception_value(runtime.make_exception("BufferError", error))
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;

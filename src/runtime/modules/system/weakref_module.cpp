@@ -24,6 +24,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <deque>
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -43,6 +44,7 @@ static constexpr const char* kDequeNativeType = "_collections.deque";
 static constexpr const char* kDequeIteratorNativeType = "_collections.deque_iterator";
 
 struct DequeState {
+  std::recursive_mutex mutex;
   std::deque<Value> items;
   int64_t maxlen;
   uint64_t version;
@@ -155,14 +157,19 @@ bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, V
 
 bool weakref_reference_new_kw(
     Runtime& runtime,
-    const Value*,
-    uint32_t,
+    const Value* args,
+    uint32_t argc,
     const NativeKeywordArg*,
     uint32_t,
-    Value&,
+    Value& out,
     std::string& error,
     void*) {
   // ReferenceType's object and callback parameters are positional-only.
+  // Subclasses may consume additional keywords in their __init__ method; the
+  // base allocator ignores those keywords, as CPython's weakref type does.
+  if (argc >= 1 && !value_is(args[0], weakref_reference_type(runtime))) {
+    return weakref_reference_new(runtime, args, argc, out, error, nullptr);
+  }
   error = "weakref.ReferenceType.__new__() takes no keyword arguments";
   runtime.raise_class_error("TypeError", error);
   return false;
@@ -279,21 +286,26 @@ bool weakref_reference_compare(
     value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
     return true;
   }
-  Value right_value = args[1];
-  if (auto* instance = value_as_instance(args[1])) {
-    auto* klass = value_as_class(instance->klass);
-    if (klass != nullptr && klass->name == "ReferenceType") {
-      if (!weakref_get_target(args[1], right_value)) {
-        const bool equal = value_is(args[0], args[1]);
-        value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
-        return true;
-      }
+  auto* right_instance = value_as_instance(args[1]);
+  auto* right_class = right_instance == nullptr ? nullptr : value_as_class(right_instance->klass);
+  auto* reference_class = value_as_class(weakref_reference_type(runtime));
+  if (right_class == nullptr || reference_class == nullptr ||
+      !class_is_subclass(right_class, reference_class)) {
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    if (not_implemented == nullptr) {
+      error = "NotImplemented is unavailable";
+      return false;
     }
-  }
-  if (value_is(left_target, right_value)) {
-    value_set_bool(out, std::string_view(op) != "==");
+    value_assign_fast(out, *not_implemented);
     return true;
-  }  if (std::string_view(op) == "!=") {
+  }
+  Value right_value;
+  if (!weakref_get_target(args[1], right_value)) {
+    const bool equal = value_is(args[0], args[1]);
+    value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
+    return true;
+  }
+  if (std::string_view(op) == "!=") {
     Value equal;
     if (!runtime_value_compare(runtime, "==", left_target, right_value, equal, error)) {
       return false;
@@ -370,7 +382,22 @@ Value weakref_reference_type(Runtime& runtime) {
   attrs.push_back({"__le__", runtime.make_native_function("weakref.ReferenceType.__le__", weakref_reference_order)});
   attrs.push_back({"__gt__", runtime.make_native_function("weakref.ReferenceType.__gt__", weakref_reference_order)});
   attrs.push_back({"__ge__", runtime.make_native_function("weakref.ReferenceType.__ge__", weakref_reference_order)});
-  reference_type = Value::class_object("ReferenceType", std::move(attrs));
+  Value object_base = Value::invalid();
+  if (const auto* builtin_object = runtime.find_builtin("object")) {
+    value_assign_fast(object_base, *builtin_object);
+  }
+  reference_type = Value::class_object("ReferenceType", std::move(attrs), std::move(object_base));
+  if (auto* reference_class = value_as_class(reference_type)) {
+    reference_class->restrict_instance_attrs = true;
+    reference_class->allow_instance_dict = false;
+    reference_class->allow_weakref = false;
+    reference_class->instance_slot_names = {kWeakrefCallbackAttr, kWeakrefHashAttr};
+    reference_class->instance_slot_indices.clear();
+    for (size_t i = 0; i < reference_class->instance_slot_names.size(); ++i) {
+      reference_class->instance_slot_indices[reference_class->instance_slot_names[i]] =
+          static_cast<uint32_t>(i);
+    }
+  }
   return reference_type;
 }
 
@@ -779,6 +806,7 @@ bool weakref_getweakrefs(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   runtime.release_dead_frame_registers();
   std::vector<Value> refs;
+  std::vector<Value> subclass_refs;
   if (args[0].tag == ValueTag::Object) {
     for (const auto& entry : weakref_registry()) {
       if (entry.target != nullptr && entry.target == args[0].as.obj) {
@@ -786,10 +814,16 @@ bool weakref_getweakrefs(Runtime& runtime, const Value* args, uint32_t argc, Val
         borrowed.tag = ValueTag::Object;
         borrowed.flags = kXlangValueBorrowedRefFlag;
         borrowed.as.obj = entry.ref;
-        refs.push_back(borrowed);
+        auto* instance = value_as_instance(borrowed);
+        if (instance != nullptr && value_is(instance->klass, weakref_reference_type(runtime))) {
+          refs.push_back(borrowed);
+        } else {
+          subclass_refs.push_back(borrowed);
+        }
       }
     }
   }
+  refs.insert(refs.end(), subclass_refs.begin(), subclass_refs.end());
   out = Value::list(std::move(refs));
   return true;
 }
@@ -1116,8 +1150,23 @@ uint64_t weakref_collect_cycles() {
     }
     bool has_internal_callback_edge = false;
     std::unordered_set<Object*> deque_iterator_cycles;
+    bool has_picklebuffer_cycle = false;
     for (auto* candidate : instance_candidates) {
       const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
+      const auto* candidate_class = value_as_class(instance->klass);
+      if (candidate_class != nullptr && candidate_class->name == "PickleBuffer") {
+        Value candidate_value;
+        candidate_value.tag = ValueTag::Object;
+        candidate_value.flags = kXlangValueBorrowedRefFlag;
+        candidate_value.as.obj = candidate;
+        Value source;
+        std::string ignored;
+        if (object_get_attr(candidate_value, "__xlang3_pickle_buffer__", source, ignored) &&
+            source.tag != ValueTag::None && internal_refs[candidate] != 0 &&
+            candidate->refcnt.load(std::memory_order_relaxed) == internal_refs[candidate]) {
+          has_picklebuffer_cycle = true;
+        }
+      }
       for (const auto& attr : instance->attrs) {
         auto* iterator_instance = unwrap_protocol_iterator_instance(attr.second);
         if (iterator_instance == nullptr) continue;
@@ -1190,7 +1239,7 @@ uint64_t weakref_collect_cycles() {
         collectible.push_back(candidate);
       }
     }
-    if ((has_internal_callback_edge || !deque_iterator_cycles.empty()) && !collectible.empty()) {
+    if (!collectible.empty()) {
       std::vector<Value> keep_alive;
       keep_alive.reserve(collectible.size());
       for (auto* candidate : collectible) {
@@ -1198,7 +1247,9 @@ uint64_t weakref_collect_cycles() {
         borrowed.tag = ValueTag::Object;
         borrowed.flags = kXlangValueBorrowedRefFlag;
         borrowed.as.obj = candidate;
-        keep_alive.push_back(borrowed);
+        Value owned;
+        value_assign_fast(owned, borrowed);
+        keep_alive.push_back(std::move(owned));
       }
       for (auto* candidate : collectible) {
         auto* instance = reinterpret_cast<InstanceObject*>(candidate);

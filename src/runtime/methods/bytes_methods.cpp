@@ -1228,6 +1228,14 @@ bool append_bytes_from_value(std::string& target, const Value& value, std::strin
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->contiguous) {
+      const std::string_view raw = memoryview_object_view(*view);
+      if (raw.empty()) return true;
+      if (raw.data() != nullptr) {
+        target.append(raw.data(), raw.size());
+        return true;
+      }
+    }
     for (size_t i = 0; i < view->size; ++i) {
       Value item;
       if (!sequence_get_item(value, Value::int64(static_cast<int64_t>(i)), item, error)) {

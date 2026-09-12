@@ -34,6 +34,18 @@ namespace xlang3 {
 
 namespace {
 
+void preserve_or_raise_import_error(
+    Runtime& runtime,
+    bool module_not_found,
+    const std::string& error) {
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    runtime.set_pending_exception(std::move(pending));
+  } else {
+    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
+  }
+}
+
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   if (auto* str = value_as_string(value)) {
     out = string_object_to_string(*str);
@@ -506,7 +518,7 @@ bool importlib_loader_load_module(Runtime& runtime, const Value* args, uint32_t 
   }
   bool module_not_found = false;
   if (!runtime.import_module(name, out, error, &module_not_found)) {
-    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
+    preserve_or_raise_import_error(runtime, module_not_found, error);
     return false;
   }
   return true;
@@ -888,7 +900,7 @@ bool importlib_import_module(Runtime& runtime, const Value* args, uint32_t argc,
   }
   bool module_not_found = false;
   if (!runtime.import_module(name, out, error, &module_not_found)) {
-    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
+    preserve_or_raise_import_error(runtime, module_not_found, error);
     return false;
   }
   return true;
@@ -939,7 +951,7 @@ bool bootstrap_gcd_import(Runtime& runtime, const Value* args, uint32_t argc, Va
 
   bool module_not_found = false;
   if (!runtime.import_module(name, out, error, &module_not_found)) {
-    runtime.raise_class_error(module_not_found ? "ModuleNotFoundError" : "ImportError", error);
+    preserve_or_raise_import_error(runtime, module_not_found, error);
     return false;
   }
   return true;

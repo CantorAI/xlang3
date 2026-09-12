@@ -7,4 +7,8 @@ mod True True
 True True
 314 True
 True True
+fresh True
+new-hash True 8 True
+cruft-ok True
+ImportError True
 VALUE = 'descriptor'

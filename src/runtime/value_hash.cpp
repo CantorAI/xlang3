@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/value_hash.h"
 
+#include "xlang3/builtins.h"
 #include "xlang3/object_model.h"
 #include "xlang3/set_object.h"
 
@@ -198,6 +199,20 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
         if (auto* right = value_as_bound_method(rhs)) {
           return value_key_equal(left->self, right->self) &&
               value_is(left->function, right->function);
+        }
+      }
+      if (auto* left_instance = value_as_instance(lhs)) {
+        auto* left_class = value_as_class(left_instance->klass);
+        auto* right_instance = value_as_instance(rhs);
+        auto* right_class = right_instance == nullptr ? nullptr : value_as_class(right_instance->klass);
+        if (left_class != nullptr && right_class != nullptr &&
+            class_has_builtin_base_name(left_class, "ReferenceType") &&
+            class_has_builtin_base_name(right_class, "ReferenceType")) {
+          Value left_target;
+          Value right_target;
+          if (weakref_get_target(lhs, left_target) && weakref_get_target(rhs, right_target)) {
+            return value_is(left_target, right_target) || value_key_equal(left_target, right_target);
+          }
         }
       }
       return false;

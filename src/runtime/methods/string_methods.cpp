@@ -2070,13 +2070,6 @@ bool string_format_map_method(
     return false;
   }
 
-  Value getitem;
-  if (!object_get_attr(args[1], "__getitem__", getitem, error)) {
-    error = "str.format_map argument must be a mapping";
-    return false;
-  }
-  error.clear();
-
   const auto format = as_view(format_ref);
   std::string result;
   for (size_t i = 0; i < format.size();) {
@@ -2104,7 +2097,8 @@ bool string_format_map_method(
       }
       Value key = Value::string(std::string(field_name));
       Value replacement;
-      if (!runtime_call_callable(runtime, getitem, &key, 1, replacement, error)) {
+      if (!mapping_get_item_runtime(
+              runtime, args[1], key, replacement, error)) {
         return false;
       }
       result += format_replacement_value(runtime, replacement, field, error);

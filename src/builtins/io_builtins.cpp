@@ -46,6 +46,58 @@ namespace {
 void ignore_open_invalid_parameter(
     const wchar_t*, const wchar_t*, const wchar_t*, unsigned int, uintptr_t) {}
 
+std::wstring open_wide_path(std::string_view text) {
+  std::wstring result;
+  for (size_t i = 0; i < text.size();) {
+    const unsigned char lead = static_cast<unsigned char>(text[i]);
+    size_t width = 1;
+    uint32_t codepoint = lead;
+    if ((lead & 0xe0u) == 0xc0u) { width = 2; codepoint = lead & 0x1fu; }
+    else if ((lead & 0xf0u) == 0xe0u) { width = 3; codepoint = lead & 0x0fu; }
+    else if ((lead & 0xf8u) == 0xf0u) { width = 4; codepoint = lead & 0x07u; }
+    if (i + width > text.size()) { width = 1; codepoint = 0xfffdu; }
+    for (size_t j = 1; j < width; ++j) {
+      const unsigned char continuation = static_cast<unsigned char>(text[i + j]);
+      if ((continuation & 0xc0u) != 0x80u) { width = 1; codepoint = 0xfffdu; break; }
+      codepoint = (codepoint << 6u) | (continuation & 0x3fu);
+    }
+    if (codepoint <= 0xffffu) {
+      result.push_back(static_cast<wchar_t>(codepoint));
+    } else {
+      codepoint -= 0x10000u;
+      result.push_back(static_cast<wchar_t>(0xd800u + (codepoint >> 10u)));
+      result.push_back(static_cast<wchar_t>(0xdc00u + (codepoint & 0x3ffu)));
+    }
+    i += width;
+  }
+  return result;
+}
+
+int open_windows_file(const std::string& path, int flags, int mode) {
+  const std::wstring wide = open_wide_path(path);
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_open_invalid_parameter);
+  int fd = _wopen(wide.c_str(), flags, mode);
+  _set_thread_local_invalid_parameter_handler(previous);
+  if (fd >= 0) return fd;
+
+  const int access_mode = flags & O_RDWR;
+  DWORD access = access_mode == O_RDWR ? GENERIC_READ | GENERIC_WRITE
+      : (flags & O_WRONLY) != 0 ? GENERIC_WRITE : GENERIC_READ;
+  DWORD disposition = OPEN_EXISTING;
+  if ((flags & O_CREAT) != 0 && (flags & O_EXCL) != 0) disposition = CREATE_NEW;
+  else if ((flags & O_CREAT) != 0 && (flags & O_TRUNC) != 0) disposition = CREATE_ALWAYS;
+  else if ((flags & O_CREAT) != 0) disposition = OPEN_ALWAYS;
+  else if ((flags & O_TRUNC) != 0) disposition = TRUNCATE_EXISTING;
+  HANDLE handle = CreateFileW(
+      wide.c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+      nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (handle == INVALID_HANDLE_VALUE) return -1;
+  fd = _open_osfhandle(reinterpret_cast<intptr_t>(handle), flags);
+  if (fd < 0) CloseHandle(handle);
+  return fd;
+}
+
 bool descriptor_is_valid(int fd) {
   struct _stat64 stat_buffer {};
   const auto previous =
@@ -103,6 +155,32 @@ bool warn_binary_line_buffering(Runtime& runtime, std::string& error) {
   };
   Value ignored;
   return runtime_call_callable(runtime, warn, warning_args, 2, ignored, error);
+}
+
+bool warn_default_text_encoding(Runtime& runtime, std::string& error) {
+  Value sys;
+  Value flags;
+  Value enabled;
+  std::string ignored;
+  if (!runtime.import_module("sys", sys, ignored) ||
+      !module_get_attr(sys, "flags", flags, ignored) ||
+      !attribute_get(flags, "warn_default_encoding", enabled, ignored) ||
+      !value_truthy(enabled)) {
+    return true;
+  }
+  Value warnings;
+  Value warn;
+  const Value* category = runtime.find_builtin("EncodingWarning");
+  if (category == nullptr ||
+      !runtime.import_module("warnings", warnings, error) ||
+      !module_get_attr(warnings, "warn", warn, error)) {
+    return false;
+  }
+  Value warning_args[] = {
+      Value::string("'encoding' argument not specified."), *category,
+      Value::int64(1)};
+  Value result;
+  return runtime_call_callable(runtime, warn, warning_args, 3, result, error);
 }
 
 bool raise_file_not_found(Runtime& runtime, const std::string& path, std::string& error) {
@@ -167,6 +245,27 @@ struct OpenOptions {
   bool closefd = true;
   Value opener = Value::none();
 };
+
+bool validate_text_codec_options(
+    Runtime& runtime, const OpenOptions& options, std::string& error) {
+  Value codecs;
+  if (!runtime.import_module("codecs", codecs, error)) return false;
+  const std::string lookup_encoding = options.encoding == "locale"
+      ? std::string("utf-8") : options.encoding;
+  const std::pair<const char*, std::string> checks[] = {
+      {"lookup", lookup_encoding},
+      {"lookup_error", options.errors}};
+  for (const auto& [method_name, value] : checks) {
+    Value method;
+    if (!module_get_attr(codecs, method_name, method, error)) return false;
+    Value argument = Value::string(value);
+    Value ignored;
+    if (!runtime_call_callable(runtime, method, &argument, 1, ignored, error)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 std::string normalize_name(std::string text) {
   for (char& ch : text) {
@@ -470,6 +569,7 @@ void initialize_fd_append_position(FileObject& file, bool append) {
 #endif
   if (position >= 0) {
     file.cursor = static_cast<size_t>(position);
+    if (!file.binary) file.text_encoder_started = position != 0;
   }
 }
 
@@ -754,6 +854,15 @@ bool builtin_open(
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  if (!parsed.binary &&
+      (options.encoding_non_none || options.errors_non_none) &&
+      !validate_text_codec_options(runtime, options, error)) {
+    return false;
+  }
+  if (!parsed.binary && !options.encoding_non_none &&
+      !warn_default_text_encoding(runtime, error)) {
+    return false;
+  }
 
   if (!options.closefd && args[0].tag != ValueTag::Int64 && args[0].tag != ValueTag::Bool) {
     error = "Cannot use closefd=False with file name";
@@ -900,10 +1009,7 @@ bool builtin_open(
 #if defined(_WIN32)
     // FileObject performs text decoding and newline translation itself.
     flags |= _O_BINARY | _O_NOINHERIT;
-    const int fd = _wopen(
-        std::filesystem::u8path(native_path).c_str(),
-        flags,
-        _S_IREAD | _S_IWRITE);
+    const int fd = open_windows_file(native_path, flags, _S_IREAD | _S_IWRITE);
 #else
     const int fd = ::open(native_path.c_str(), flags, 0666);
 #endif
@@ -976,6 +1082,7 @@ bool builtin_open(
 
   out = Value::file(resolved.fs, resolved.path, mode, std::move(buffer), parsed.writable);
   auto* file = reinterpret_cast<FileObject*>(out.as.obj);
+  file->runtime = &runtime;
   file->readable = parsed.readable;
   file->writable = parsed.writable;
   file->append = parsed.append;
@@ -986,6 +1093,7 @@ bool builtin_open(
   file->newline_is_none = options.newline_is_none;
   file->buffering = options.buffering;
   file->cursor = parsed.append ? file->buffer.size() : 0;
+  file->text_encoder_started = !parsed.binary && file->cursor != 0;
   return true;
 }
 

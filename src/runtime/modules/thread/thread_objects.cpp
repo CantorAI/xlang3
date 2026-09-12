@@ -977,7 +977,7 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
       }
       state->done = true;
     }
-    if (!result.errors.empty()) {
+    if (!result.errors.empty() && !state->runtime->finalizing()) {
       report_thread_error(result.errors.front());
     }
     state->done_cv.notify_all();

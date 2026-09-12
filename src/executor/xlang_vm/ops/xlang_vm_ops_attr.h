@@ -479,6 +479,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                               raise_runtime_error, raise_exception_value);
       }
     }
+    (void)value_finalize_temporary_instance(runtime, regs[in.a]);
     return raise_exception_value(xlang_vm_attribute_error(runtime, regs[in.a], fn.names[in.b], error))
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;

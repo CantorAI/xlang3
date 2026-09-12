@@ -195,7 +195,33 @@ bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (const Value* source = mappingproxy_protocol_source(args[0])) {
     return call_mapping_method(runtime, *source, "__getitem__", args + 1, 1, out, error);
   }
-  if (mapping_get_item(args[0], args[1], out, error)) {
+  DictObject* storage = value_as_dict(args[0]);
+  if (storage == nullptr) {
+    if (auto* instance = value_as_instance(args[0])) {
+      storage = value_as_dict(instance->mapping_storage);
+    }
+  }
+  if (storage != nullptr) {
+    for (size_t index = 0; index < storage->entries.size(); ++index) {
+      Value candidate_key = storage->entries[index].first;
+      Value candidate_value = storage->entries[index].second;
+      if (value_is(candidate_key, args[1])) {
+        value_assign_fast(out, candidate_value);
+        return true;
+      }
+      Value equal;
+      if (!runtime_value_compare(runtime, "==", candidate_key, args[1], equal, error)) {
+        return false;
+      }
+      bool is_equal = false;
+      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+      if (is_equal) {
+        value_assign_fast(out, candidate_value);
+        return true;
+      }
+    }
+    error = "key not found";
+  } else if (mapping_get_item(args[0], args[1], out, error)) {
     return true;
   }
   if (!is_key_miss_error(error)) {
@@ -451,13 +477,13 @@ bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& s
   Value keys_method;
   std::string attr_error;
   if (object_get_attr(source, "keys", keys_method, attr_error)) {
+    Value keys_result;
+    if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
+      return false;
+    }
     Value getitem_method;
     if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
       error = "mapping object has no __getitem__";
-      return false;
-    }
-    Value keys_result;
-    if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
       return false;
     }
     std::vector<Value> keys;
@@ -493,6 +519,7 @@ bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& s
     if (auto* tuple = value_as_tuple(pair)) {
       if (tuple->items.size() != 2) {
         error = "dictionary update sequence element has length " + std::to_string(tuple->items.size()) + "; 2 is required";
+        runtime.raise_class_error("ValueError", error);
         return false;
       }
       key = tuple->items[0];
@@ -500,12 +527,14 @@ bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& s
     } else if (auto* list = value_as_list(pair)) {
       if (list->items.size() != 2) {
         error = "dictionary update sequence element has length " + std::to_string(list->items.size()) + "; 2 is required";
+        runtime.raise_class_error("ValueError", error);
         return false;
       }
       key = list->items[0];
       value = list->items[1];
     } else {
       error = "dictionary update sequence element is not a pair";
+      runtime.raise_class_error("ValueError", error);
       return false;
     }
     if (!call_instance_hash_for_mapping(runtime, key, error) ||

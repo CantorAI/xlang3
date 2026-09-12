@@ -129,6 +129,23 @@ try:
     missing_defaults["missing"]
 except KeyError as exc:
     print(exc.args == ("missing",))
+recursive_count = 0
+def recursive_factory():
+    global recursive_count
+    recursive_count += 1
+    current = recursive_count
+    if current == 1:
+        recursive_defaults["key"]
+    return current
+recursive_defaults = _collections.defaultdict(recursive_factory)
+print(recursive_defaults["key"], recursive_count)
+ordered_reflected = {"left": 1, "same": "left"} | _collections.defaultdict(
+    list, {"same": "right", "right": 2})
+print(list(ordered_reflected), ordered_reflected["same"])
+try:
+    defaults | [("bad", 1)]
+except TypeError:
+    print("defaultdict union requires mapping")
 d.clear()
 print(d.__len__())
 size_small = _collections.deque()
@@ -175,3 +192,17 @@ restored_iterator = pickle.loads(pickle.dumps(iterator_pickle, 4))
 print(type(iterator_pickle) is type(restored_iterator), list(restored_iterator))
 reverse_iterator_class = type(reversed(_collections.deque()))
 print(list(reverse_iterator_class(_collections.deque("abcd"))))
+
+print((2 * _collections.deque([1, 2])).to_list())
+class FixtureDeque(_collections.deque):
+    pass
+fixture_subdeque = FixtureDeque([1, 2])
+fixture_subdeque.marker = "kept"
+print(fixture_subdeque.__copy__().marker,
+      pickle.loads(pickle.dumps(fixture_subdeque, 4)).marker)
+for method, args in ((_collections.deque().reverse, (1,)),
+                     (_collections.deque().rotate, (1, 2))):
+    try:
+        method(*args)
+    except TypeError:
+        print("deque arity TypeError")

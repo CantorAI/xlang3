@@ -76,3 +76,7 @@ state 2
 True True
 native-file
 True True
+'a' (b'', 1) None
+'\nb\nc\n' ('\r', '\n', '\r\n')
+'\n' '\r\n'
+True True True

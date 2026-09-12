@@ -43,6 +43,8 @@ struct RunConfig {
   bool perf_counters = false;
   bool no_debug_ranges = false;
   bool warn_default_encoding = false;
+  bool dev_mode = false;
+  bool utf8_mode = false;
   bool dont_write_bytecode = false;
   bool no_user_site = false;
   bool no_site = false;

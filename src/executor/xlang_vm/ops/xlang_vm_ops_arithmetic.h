@@ -356,6 +356,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
     FastOp&& fast_op,
     SlowOp&& slow_op,
     const char* special_method_name,
+    const char* reflected_method_name,
     MakeGeneratorIfNeeded&& make_generator_if_needed,
     PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
@@ -387,6 +388,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
       return flow;
     }
   }
+  if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr) {
+    const auto flow = call_binary_special_method(
+        runtime, rhs, lhs, reflected_method_name, module, module_owner,
+        in.dst, ip, native_call_args, execution_lock, result, regs[in.dst],
+        std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+        std::forward<PushFrame>(push_frame),
+        std::forward<RaiseRuntimeError>(raise_runtime_error),
+        std::forward<RaiseExceptionValue>(raise_exception_value));
+    if (flow != XlangVMOpFlow::Next) return flow;
+  }
   std::string error;
   if (slow_op(lhs, rhs, regs[in.dst], error)) {
     return XlangVMOpFlow::Next;
@@ -406,7 +417,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow add(
     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
   return binary_arithmetic_with_special_method(
       in, module, module_owner, runtime, regs, native_call_args, ip, result,
-      execution_lock, fast_add, value_add, "__add__",
+      execution_lock, fast_add, value_add, "__add__", "__radd__",
       std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
       std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),
@@ -423,7 +434,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow sub(
     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
   return binary_arithmetic_with_special_method(
       in, module, module_owner, runtime, regs, native_call_args, ip, result,
-      execution_lock, fast_sub, value_sub, "__sub__",
+      execution_lock, fast_sub, value_sub, "__sub__", "__rsub__",
       std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
       std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),
@@ -440,7 +451,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow mul(
     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
   return binary_arithmetic_with_special_method(
       in, module, module_owner, runtime, regs, native_call_args, ip, result,
-      execution_lock, fast_mul, value_mul, "__mul__",
+      execution_lock, fast_mul, value_mul, "__mul__", "__rmul__",
       std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
       std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),
@@ -523,6 +534,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow bit_and(
       fast_bit_and,
       value_bit_and,
       "__and__",
+      "__rand__",
       std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
       std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),
@@ -557,6 +569,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow bit_or(
       fast_bit_or,
       value_bit_or,
       "__or__",
+      "__ror__",
       std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
       std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),
@@ -591,6 +604,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow bit_xor(
       fast_bit_xor,
       value_bit_xor,
       "__xor__",
+      "__rxor__",
       std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
       std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),

@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
 
 #include <string>
 #include <unordered_map>
@@ -110,14 +111,31 @@ XLANG3_HOT_INLINE void delete_local(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMSmallValueBuffer& locals,
-    std::vector<Value>& native_call_args) {
+    std::vector<Value>& native_call_args,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip) {
   const Value& local = locals[in.dst];
   Value deleted_value;
   if (local.tag == ValueTag::Object && local.as.obj != nullptr) {
     deleted_value = local;
+    const auto* deleted_list = value_as_list_storage(local);
+    auto is_deleted_list_item = [&](const Value& candidate) {
+      if (deleted_list == nullptr || candidate.tag != ValueTag::Object ||
+          candidate.as.obj == nullptr) {
+        return false;
+      }
+      for (const auto& item : deleted_list->items) {
+        if (item.tag == ValueTag::Object && item.as.obj == candidate.as.obj) {
+          return true;
+        }
+      }
+      return false;
+    };
     for (size_t i = 0; i < regs.size(); ++i) {
       auto& reg = regs[i];
-      if (reg.tag == ValueTag::Object && reg.as.obj == local.as.obj) {
+      if ((reg.tag == ValueTag::Object && reg.as.obj == local.as.obj) ||
+          is_deleted_list_item(reg)) {
         value_set_invalid(reg);
       }
     }
@@ -125,6 +143,14 @@ XLANG3_HOT_INLINE void delete_local(
       if (arg.tag == ValueTag::Object && arg.as.obj == local.as.obj) {
         value_set_invalid(arg);
       }
+    }
+    native_call_args.clear();
+  }
+  for (size_t i = 0; i < regs.size() && i < register_last_use.size(); ++i) {
+    const bool loop_carried = i < register_loop_carried.size() &&
+        register_loop_carried[i];
+    if (!loop_carried) {
+      value_set_invalid(regs[i]);
     }
   }
   value_set_invalid(locals[in.dst]);
@@ -508,6 +534,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_cell(
     XlangVMSmallValueBuffer& locals,
     XlangVMSmallValueBuffer& cells,
     std::vector<Value>& native_call_args,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip,
     RuntimeResult& result,
     RaiseRuntimeError&&) {
   if (in.dst >= cells.size() || in.a >= regs.size()) {
@@ -532,6 +561,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_cell(
     for (auto& arg : native_call_args) {
       if (arg.tag == ValueTag::Object && arg.as.obj == deleted_object) {
         value_set_invalid(arg);
+      }
+    }
+    native_call_args.clear();
+    for (size_t i = 0; i < regs.size() && i < register_last_use.size(); ++i) {
+      const bool loop_carried = i < register_loop_carried.size() &&
+          register_loop_carried[i];
+      if (!loop_carried) {
+        value_set_invalid(regs[i]);
       }
     }
   }

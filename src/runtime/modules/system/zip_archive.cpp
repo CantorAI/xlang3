@@ -32,6 +32,11 @@ uint32_t zip_u32(const std::vector<uint8_t>& data, size_t offset) {
          (static_cast<uint32_t>(data[offset + 3]) << 24u);
 }
 
+uint64_t zip_u64(const std::vector<uint8_t>& data, size_t offset) {
+  return static_cast<uint64_t>(zip_u32(data, offset)) |
+         (static_cast<uint64_t>(zip_u32(data, offset + 4)) << 32u);
+}
+
 void append_u16(std::string& out, uint16_t value) {
   out.push_back(static_cast<char>(value & 0xffu));
   out.push_back(static_cast<char>((value >> 8u) & 0xffu));
@@ -147,12 +152,32 @@ bool zip_archive_list_entries(
     return false;
   }
 
-  const uint16_t entry_count = zip_u16(archive, eocd + 10);
-  const uint32_t central_offset = zip_u32(archive, eocd + 16);
-  size_t pos = central_offset;
+  uint64_t entry_count = zip_u16(archive, eocd + 10);
+  uint64_t central_size = zip_u32(archive, eocd + 12);
+  uint64_t central_offset = zip_u32(archive, eocd + 16);
+  size_t directory_end = eocd;
+  if ((entry_count == 0xffffu || central_size == 0xffffffffu || central_offset == 0xffffffffu) &&
+      eocd >= 76 && zip_u32(archive, eocd - 20) == 0x07064b50u &&
+      zip_u32(archive, eocd - 76) == 0x06064b50u) {
+    const size_t zip64_eocd = eocd - 76;
+    entry_count = zip_u64(archive, zip64_eocd + 32);
+    central_size = zip_u64(archive, zip64_eocd + 40);
+    central_offset = zip_u64(archive, zip64_eocd + 48);
+    directory_end = zip64_eocd;
+  }
+  if (entry_count > archive.size() / 46u ||
+      central_offset > archive.size() || central_size > archive.size() ||
+      central_offset + central_size > directory_end) {
+    error = "zip central-directory bounds are invalid";
+    return false;
+  }
+  // Self-extracting archives may prepend bytes without rewriting the ZIP
+  // offsets. The central directory's physical end still meets the EOCD.
+  const size_t archive_prefix = directory_end - static_cast<size_t>(central_offset + central_size);
+  size_t pos = archive_prefix + static_cast<size_t>(central_offset);
   entries.clear();
-  entries.reserve(entry_count);
-  for (uint16_t i = 0; i < entry_count; ++i) {
+  entries.reserve(static_cast<size_t>(entry_count));
+  for (uint64_t i = 0; i < entry_count; ++i) {
     if (pos + 46 > archive.size() || zip_u32(archive, pos) != 0x02014b50u) {
       error = "zip central-directory entry is invalid";
       return false;
@@ -168,7 +193,8 @@ bool zip_archive_list_entries(
     const uint16_t extra_len = zip_u16(archive, pos + 30);
     const uint16_t comment_len = zip_u16(archive, pos + 32);
     const uint32_t external_attr = zip_u32(archive, pos + 38);
-    const uint32_t local_header_offset = zip_u32(archive, pos + 42);
+    const uint32_t local_header_offset = zip_u32(archive, pos + 42) +
+        static_cast<uint32_t>(archive_prefix);
     if (pos + 46u + name_len + extra_len + comment_len > archive.size()) {
       error = "zip central-directory entry exceeds archive size";
       return false;

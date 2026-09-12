@@ -354,7 +354,9 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
   const bool run_python_init =
       value_as_function(new_callable) != nullptr ||
       (new_native != nullptr &&
-       (new_native->name == "_thread._local.__new__" || new_native->name == "struct.Struct.__new__"));
+       (new_native->name == "_thread._local.__new__" ||
+        new_native->name == "struct.Struct.__new__" ||
+        new_native->name == "weakref.ReferenceType.__new__"));
   auto* instance = value_as_instance(new_result);
   auto* instance_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
   if (run_python_init && instance_class != nullptr && klass != nullptr && class_is_subclass(instance_class, klass)) {

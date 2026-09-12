@@ -123,7 +123,9 @@ Value make_zip_module_spec(
   object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : fullname.substr(0, dot)), ignored);
   object_set_attr(spec, "has_location", Value::boolean(true), ignored);
   if (is_package) {
-    object_set_attr(spec, "submodule_search_locations", Value::list({Value::string(zip_origin_path(archive, zip_module_base(fullname)))}), ignored);
+    const auto slash = member.find_last_of('/');
+    const std::string package_path = slash == std::string::npos ? zip_module_base(fullname) : member.substr(0, slash);
+    object_set_attr(spec, "submodule_search_locations", Value::list({Value::string(zip_origin_path(archive, package_path))}), ignored);
   } else {
     object_set_attr(spec, "submodule_search_locations", Value::none(), ignored);
   }
@@ -161,7 +163,12 @@ bool zipimporter_find_member(
   }
   for (char& ch : prefix) if (ch == '\\') ch = '/';
   if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
-  const std::string base = prefix + zip_module_base(fullname);
+  std::string lookup_name = fullname;
+  if (!prefix.empty()) {
+    const auto dot = lookup_name.rfind('.');
+    if (dot != std::string::npos) lookup_name = lookup_name.substr(dot + 1);
+  }
+  const std::string base = prefix + zip_module_base(lookup_name);
   member = base + ".py";
   for (const auto& entry : entries) {
     if (entry.name == member) {
@@ -570,7 +577,9 @@ bool zipimporter_execute_module(
   module_set_attr(module_value, "__loader__", loader, ignored);
   module_set_attr(module_value, "__spec__", make_zip_module_spec(fullname, loader, archive, member, is_package), ignored);
   if (is_package) {
-    module_set_attr(module_value, "__path__", Value::list({Value::string(zip_origin_path(archive, zip_module_base(fullname)))}), ignored);
+    const auto slash = member.find_last_of('/');
+    const std::string package_path = slash == std::string::npos ? zip_module_base(fullname) : member.substr(0, slash);
+    module_set_attr(module_value, "__path__", Value::list({Value::string(zip_origin_path(archive, package_path))}), ignored);
   }
 
   Value previous_module;

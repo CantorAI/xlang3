@@ -1555,6 +1555,42 @@ bool os_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool os_set_blocking(Runtime& runtime, const Value* args, uint32_t argc,
+                     Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "set_blocking() expected file descriptor and bool";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const int fd = static_cast<int>(args[0].as.i64);
+  const bool blocking = value_truthy(args[1]);
+#if defined(_WIN32)
+  const intptr_t native = safe_get_osfhandle(fd);
+  if (native == -1) {
+    error = "bad file descriptor";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  DWORD mode = blocking ? PIPE_WAIT : PIPE_NOWAIT;
+  if (!SetNamedPipeHandleState(
+          reinterpret_cast<HANDLE>(native), &mode, nullptr, nullptr)) {
+    error = "SetNamedPipeHandleState failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+#else
+  const int current = fcntl(fd, F_GETFL);
+  if (current < 0 ||
+      fcntl(fd, F_SETFL, blocking ? current & ~O_NONBLOCK : current | O_NONBLOCK) < 0) {
+    error = std::string("set_blocking failed: ") + std::strerror(errno);
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+#endif
+  value_set_none(out);
+  return true;
+}
+
 bool os_get_handle_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1 || args[0].tag != ValueTag::Int64) {
     error = "get_handle_inheritable() expected handle";
@@ -2536,7 +2572,11 @@ bool os_mkdir_impl(
       mode = kwargs[i].value->as.i64;
     }
   }
-  const std::string parent = std::filesystem::path(path.text).parent_path().string();
+  std::filesystem::path target_path(path.text);
+  // A trailing separator names the directory itself.  Strip that empty path
+  // component before checking the parent, as the platform mkdir primitive does.
+  if (target_path.filename().empty()) target_path = target_path.parent_path();
+  const std::string parent = target_path.parent_path().string();
   if (!parent.empty()) {
     VfsStat stat;
     if (!runtime.vfs().stat(parent, stat, error)) {
@@ -4204,6 +4244,7 @@ void register_os_module(Runtime& runtime) {
       .function("dup", os_dup)
       .function("dup2", os_dup2, nullptr, false, os_dup2_kw)
       .function("pipe", os_pipe)
+      .function("set_blocking", os_set_blocking)
       .function("isatty", os_isatty)
       .function("get_inheritable", os_get_inheritable)
       .function("set_inheritable", os_set_inheritable)

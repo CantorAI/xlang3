@@ -154,13 +154,13 @@ bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, 
   Value keys_method;
   std::string attr_error;
   if (object_get_attr(source, "keys", keys_method, attr_error)) {
+    Value keys_result;
+    if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
+      return false;
+    }
     Value getitem_method;
     if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
       error = "'" + builtin_value_type_name(runtime, source) + "' object is not a mapping";
-      return false;
-    }
-    Value keys_result;
-    if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
       return false;
     }
     std::vector<Value> keys;
@@ -205,6 +205,7 @@ bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, 
       value = &list->items[1];
     } else {
       error = "dict update sequence element has length other than 2";
+      runtime.raise_class_error("ValueError", error);
       return false;
     }
     if (!mapping_set_item(target, *key, *value, error)) {
@@ -1106,6 +1107,24 @@ bool builtin_object_reduce_ex(
     return runtime_call_callable(runtime, reduce_ex, reduce_args, 2, out, error);
   }
   return builtin_object_reduce(runtime, args, 1, out, error, nullptr);
+}
+
+bool builtin_object_getstate(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc != 1) {
+    error = "object.__getstate__() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value dict_state;
+  std::string ignored;
+  if (object_get_attr(args[0], "__dict__", dict_state, ignored)) {
+    value_assign_fast(out, dict_state);
+  } else {
+    value_set_none(out);
+  }
+  return true;
 }
 
 bool builtin_singleton_reduce(
@@ -3113,6 +3132,7 @@ void register_object_type_builtins(Runtime& runtime) {
   object_attrs.push_back({"__dir__", Value::native_function(0, "object.__dir__", builtin_object_dir)});
   object_attrs.push_back({"__reduce__", Value::native_function(0, "object.__reduce__", builtin_object_reduce)});
   object_attrs.push_back({"__reduce_ex__", Value::native_function(0, "object.__reduce_ex__", builtin_object_reduce_ex)});
+  object_attrs.push_back({"__getstate__", Value::native_function(0, "object.__getstate__", builtin_object_getstate)});
   object_attrs.push_back({
       "__subclasses__",
       Value::class_method(Value::native_function(0, "object.__subclasses__", builtin_object_subclasses))});
@@ -3183,6 +3203,7 @@ void register_object_type_builtins(Runtime& runtime) {
     slot_descriptor_set_owner_class(type_class->attrs["__annotations__"], type_type);
   }
   runtime.register_builtin("type", type_type);
+  runtime.register_builtin("__debug__", Value::boolean(true));
   runtime.register_builtin(
       "__xlang3_build_class_from_namespace__",
       runtime.make_native_function(

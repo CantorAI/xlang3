@@ -67,6 +67,7 @@ void initialize_exception_attrs(Value& instance, const std::string& class_name, 
   std::string ignored;
   if (class_name == "ImportError" || class_name == "ModuleNotFoundError") {
     const std::string module_name = parse_missing_module_name(message);
+    object_set_attr(instance, "msg", Value::string(message), ignored);
     object_set_attr(instance, "name", module_name.empty() ? Value::none() : Value::string(module_name), ignored);
     object_set_attr(instance, "path", Value::none(), ignored);
   }

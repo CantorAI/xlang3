@@ -68,6 +68,7 @@ struct InstanceObject {
   NativeInstanceGetAttr native_get_attr = nullptr;
   NativeInstanceSetAttr native_set_attr = nullptr;
   NativeInstanceDeleteAttr native_delete_attr = nullptr;
+  bool finalizer_started = false;
   Value inline_slots[8];
   std::vector<Value> overflow_slots;
   std::vector<std::pair<std::string, Value>> attrs;
@@ -201,6 +202,9 @@ bool object_get_special_method(
 bool object_get_function_annotations(Runtime& runtime, const Value& object, Value& out, std::string& error);
 bool object_get_class_annotations(Runtime& runtime, const Value& object, Value& out, std::string& error);
 bool object_lookup_class_attr(const Value& klass, const std::string& name, Value& out, std::string& error);
+bool object_lookup_class_attr_before_base(
+    const Value& klass, const std::string& name, std::string_view stop_base,
+    Value& out, std::string& error);
 bool object_lookup_inherited_class_attr(const Value& klass, const std::string& name, Value& out, std::string& error);
 bool object_value_has_descriptor_get(const Value& value);
 bool object_value_has_descriptor_set(const Value& value);

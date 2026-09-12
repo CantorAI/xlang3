@@ -54,6 +54,18 @@ void xlang_thread_join_runtime_threads(Runtime* runtime);
 void xlang_thread_detach_runtime_daemon_threads(Runtime* runtime);
 
 namespace {
+thread_local Runtime* g_object_finalization_runtime = nullptr;
+}
+
+Runtime* runtime_for_object_finalization() {
+  return g_object_finalization_runtime;
+}
+
+void runtime_set_object_finalization_context(Runtime* runtime) {
+  g_object_finalization_runtime = runtime;
+}
+
+namespace {
 
 struct RuntimeCurrentFrameState {
   const std::shared_ptr<const ir::Module>* module_owner = nullptr;
@@ -661,6 +673,7 @@ void canonicalize_module_loader_from_bootstrap(std::unordered_map<std::string, V
 } // namespace
 
 void Runtime::initialize() {
+  runtime_set_object_finalization_context(this);
   make_native_function("xlang3.SourceFileLoader.get_filename", runtime_loader_get_filename);
   make_native_function("xlang3.SourceFileLoader.get_data", runtime_loader_get_data);
   make_native_function("xlang3.SourceFileLoader.get_source", runtime_loader_get_source);
@@ -830,6 +843,9 @@ Runtime::~Runtime() {
     if (it->second != nullptr) {
       it->second(it->first);
     }
+  }
+  if (runtime_for_object_finalization() == this) {
+    runtime_set_object_finalization_context(nullptr);
   }
 }
 

@@ -7,6 +7,7 @@ import array
 import gc
 import warnings
 import weakref
+import codecs
 
 
 s = io.StringIO("ab")
@@ -270,3 +271,20 @@ with warnings.catch_warnings(record=True) as fileio_warnings:
     gc.collect()
 print(fileio_warning_ref() is None, any(issubclass(item.category, ResourceWarning) for item in fileio_warnings))
 os.remove(fileio_warning_path)
+
+newline_decoder = _io.IncrementalNewlineDecoder(
+    codecs.getincrementaldecoder("utf-8")(), True)
+print(repr(newline_decoder.decode(b"a\r", False)), newline_decoder.getstate(), newline_decoder.newlines)
+print(repr(newline_decoder.decode(b"\nb\rc\n", final=True)), newline_decoder.newlines)
+newline_decoder.reset()
+newline_decoder.setstate((b"", 1))
+print(repr(newline_decoder.decode(b"\n", True)), repr(newline_decoder.newlines))
+
+shared_raw = _io.BytesIO()
+shared_reader = _io.BufferedReader(shared_raw)
+shared_writer = _io.BufferedWriter(shared_raw)
+shared_random = _io.BufferedRandom(shared_raw)
+shared_reader.close()
+shared_writer.close()
+shared_random.close()
+print(shared_reader.closed, shared_writer.closed, shared_random.closed)

@@ -34,6 +34,9 @@ True
 defaultdict True 2 3
 defaultdict True 1 2
 True
+2 2
+['left', 'same', 'right'] right
+defaultdict union requires mapping
 0
 True True
 1
@@ -45,3 +48,7 @@ extendleft requires iterable
 extend preserves iterator error
 True [2, 3]
 ['d', 'c', 'b', 'a']
+[1, 2, 1, 2]
+kept kept
+deque arity TypeError
+deque arity TypeError

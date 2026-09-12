@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
 
+#include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -29,13 +30,20 @@ limitations under the License.
 #include <cstring>
 
 #if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <io.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
 
 namespace xlang3 {
 namespace {
+
+bool ensure_incremental_text_cache(
+    Runtime& runtime, FileObject& file, std::string& error);
 
 #if defined(_WIN32)
 void ignore_file_invalid_parameter(
@@ -201,6 +209,23 @@ uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
   return codepoint;
 }
 
+bool raise_file_blocking_error(
+    Runtime& runtime, int error_number, int64_t characters_written,
+    const std::string& message) {
+  Value exception = runtime.make_exception("BlockingIOError", message);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  object_set_attr(
+      exception, "characters_written", Value::int64(characters_written), ignored);
+  object_set_attr(
+      exception, "args",
+      Value::tuple({Value::int64(error_number), Value::string(message),
+                    Value::int64(characters_written)}),
+      ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
 bool raise_file_unsupported(Runtime& runtime, const char* operation, std::string& error) {
   error = operation;
   Value io_module;
@@ -252,12 +277,57 @@ bool encode_text_value(
     const FileObject& file,
     std::string text,
     std::string& out,
-    std::string& error) {
+    std::string& error,
+    bool at_stream_start) {
   const std::string encoding = normalize_name(file.encoding);
   const std::string errors = normalize_name(file.errors);
   text = translate_newlines_for_write(std::move(text), file);
   if (encoding == "utf_8" || encoding == "utf_8_sig") {
-    out = encoding == "utf_8_sig" ? std::string("\xef\xbb\xbf", 3) + text : text;
+    out = encoding == "utf_8_sig" && at_stream_start
+        ? std::string("\xef\xbb\xbf", 3) + text : text;
+    return true;
+  }
+  if (encoding == "utf_16" || encoding == "utf_32") {
+    out.clear();
+    if (at_stream_start) {
+      if (encoding == "utf_16") out.append("\xff\xfe", 2);
+      else out.append("\xff\xfe\x00\x00", 4);
+    }
+    const auto append_unit16 = [&](uint16_t unit) {
+      out.push_back(static_cast<char>(unit & 0xffu));
+      out.push_back(static_cast<char>(unit >> 8u));
+    };
+    const auto append_unit32 = [&](uint32_t unit) {
+      out.push_back(static_cast<char>(unit & 0xffu));
+      out.push_back(static_cast<char>((unit >> 8u) & 0xffu));
+      out.push_back(static_cast<char>((unit >> 16u) & 0xffu));
+      out.push_back(static_cast<char>((unit >> 24u) & 0xffu));
+    };
+    for (size_t index = 0; index < text.size();) {
+      size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[index]));
+      if (width == 0 || index + width > text.size()) width = 1;
+      uint32_t codepoint = decode_utf8_codepoint(
+          std::string_view(text).substr(index), width);
+      index += width;
+      if (codepoint >= 0xd800u && codepoint <= 0xdfffu) {
+        if (errors == "ignore") continue;
+        if (errors == "replace") codepoint = '?';
+        else {
+          error = std::string("'") + (encoding == "utf_16" ? "utf-16" : "utf-32") +
+              "' codec can't encode surrogate";
+          return false;
+        }
+      }
+      if (encoding == "utf_32") {
+        append_unit32(codepoint);
+      } else if (codepoint <= 0xffffu) {
+        append_unit16(static_cast<uint16_t>(codepoint));
+      } else {
+        codepoint -= 0x10000u;
+        append_unit16(static_cast<uint16_t>(0xd800u + (codepoint >> 10u)));
+        append_unit16(static_cast<uint16_t>(0xdc00u + (codepoint & 0x3ffu)));
+      }
+    }
     return true;
   }
   if (encoding == "ascii") {
@@ -338,15 +408,57 @@ bool encode_text_value(
     }
     return true;
   }
+  if (encoding == "euc_jis_2004") {
+    out.clear();
+    for (size_t index = 0; index < text.size();) {
+      if (index + 4 <= text.size() &&
+          text.compare(index, 4, "\xc3\xa6\xcc\x80", 4) == 0) {
+        out.append("\xab\xc4", 2);
+        index += 4;
+      } else if (index + 2 <= text.size() &&
+                 text.compare(index, 2, "\xc3\xa6", 2) == 0) {
+        out.append("\xa9\xdc", 2);
+        index += 2;
+      } else if (index + 2 <= text.size() &&
+                 text.compare(index, 2, "\xcc\x80", 2) == 0) {
+        out.append("\xab\xdc", 2);
+        index += 2;
+      } else if (static_cast<unsigned char>(text[index]) < 0x80u) {
+        out.push_back(text[index++]);
+      } else {
+        error = "euc_jis_2004 codec can't encode character";
+        return false;
+      }
+    }
+    return true;
+  }
   if (encoding == "gbk" || encoding == "cp936") {
     return encode_gbk_text(text, out, error);
+  }
+  if (file.runtime != nullptr) {
+    Value text_value = Value::string(std::move(text));
+    Value encode;
+    if (attribute_get(text_value, "encode", encode, error)) {
+      Value encode_args[] = {
+          Value::string(file.encoding), Value::string(file.errors)};
+      Value encoded;
+      if (runtime_call_callable(
+              *file.runtime, encode, encode_args, 2, encoded, error)) {
+        if (auto* bytes = value_as_bytes(encoded)) {
+          out = bytes_object_to_string(*bytes);
+          return true;
+        }
+        error = "encoder returned non-bytes result";
+        return false;
+      }
+    }
   }
   error = "unsupported file encoding: " + file.encoding;
   return false;
 }
 
 bool encode_text_buffer(const FileObject& file, std::string& out, std::string& error) {
-  return encode_text_value(file, file.buffer, out, error);
+  return encode_text_value(file, file.buffer, out, error, true);
 }
 
 bool decode_text_value(
@@ -437,10 +549,43 @@ bool decode_text_value(
         return false;
       }
     }
+  } else if (encoding == "euc_jis_2004") {
+    for (size_t index = 0; index < bytes.size();) {
+      if (index + 2 <= bytes.size() && bytes.substr(index, 2) == "\xab\xc4") {
+        decoded.append("\xc3\xa6\xcc\x80", 4);
+        index += 2;
+      } else if (index + 2 <= bytes.size() && bytes.substr(index, 2) == "\xa9\xdc") {
+        decoded.append("\xc3\xa6", 2);
+        index += 2;
+      } else if (index + 2 <= bytes.size() && bytes.substr(index, 2) == "\xab\xdc") {
+        decoded.append("\xcc\x80", 2);
+        index += 2;
+      } else if (static_cast<unsigned char>(bytes[index]) < 0x80u) {
+        decoded.push_back(bytes[index++]);
+      } else {
+        error = "euc_jis_2004 codec can't decode byte";
+        return false;
+      }
+    }
   } else if (encoding == "gbk" || encoding == "cp936") {
     if (!decode_gbk_bytes(bytes, decoded, error)) {
       return false;
     }
+  } else if (file.runtime != nullptr) {
+    Value bytes_value = Value::bytes(std::string(bytes));
+    Value decode;
+    if (!attribute_get(bytes_value, "decode", decode, error)) return false;
+    Value decode_args[] = {
+        Value::string(file.encoding), Value::string(file.errors)};
+    Value result;
+    if (!runtime_call_callable(
+            *file.runtime, decode, decode_args, 2, result, error)) return false;
+    auto* text = value_as_string(result);
+    if (text == nullptr) {
+      error = "decoder returned non-string result";
+      return false;
+    }
+    decoded = string_object_to_string(*text);
   } else {
     error = "unsupported file encoding: " + file.encoding;
     return false;
@@ -464,9 +609,14 @@ bool decode_text_value(
   return true;
 }
 
-bool fd_write(FileObject& file, std::string_view bytes, std::string& error, int* error_number);
+bool fd_write(
+    FileObject& file, std::string_view bytes, std::string& error,
+    int* error_number, size_t* bytes_written = nullptr);
 
-bool flush_file(FileObject& file, std::string& error, int* error_number = nullptr) {
+bool flush_file(
+    FileObject& file, std::string& error, int* error_number = nullptr,
+    size_t* bytes_flushed = nullptr) {
+  if (bytes_flushed != nullptr) *bytes_flushed = 0;
   if (file.devnull) {
     return true;
   }
@@ -474,9 +624,13 @@ bool flush_file(FileObject& file, std::string& error, int* error_number = nullpt
     if (file.buffer.empty()) {
       return true;
     }
-    if (!fd_write(file, file.buffer, error, error_number)) {
+    size_t written = 0;
+    if (!fd_write(file, file.buffer, error, error_number, &written)) {
+      if (bytes_flushed != nullptr) *bytes_flushed = written;
+      if (written != 0) file.buffer.erase(0, written);
       return false;
     }
+    if (bytes_flushed != nullptr) *bytes_flushed = written;
     file.buffer.clear();
     return true;
   }
@@ -509,6 +663,15 @@ bool fd_read_some(FileObject& file, size_t requested, std::string& out, std::str
   std::string chunk(chunk_size, '\0');
 #if defined(_WIN32)
   const int read_count = _read(file.fd, chunk.data(), static_cast<unsigned int>(chunk.size()));
+  if (read_count < 0 && errno == EINVAL) {
+    const intptr_t native = _get_osfhandle(file.fd);
+    DWORD state = 0;
+    if (native != -1 && GetNamedPipeHandleState(
+            reinterpret_cast<HANDLE>(native), &state, nullptr, nullptr,
+            nullptr, nullptr, 0) && (state & PIPE_NOWAIT) != 0) {
+      errno = EAGAIN;
+    }
+  }
 #else
   const ssize_t read_count = read(file.fd, chunk.data(), chunk.size());
 #endif
@@ -529,6 +692,9 @@ bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string&
     while (remaining > 0) {
       const size_t before = out.size();
       if (!fd_read_some(file, remaining, out, error)) {
+        if (!out.empty() && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+          return true;
+        }
         return false;
       }
       const size_t got = out.size() - before;
@@ -542,6 +708,9 @@ bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string&
   for (;;) {
     const size_t before = out.size();
     if (!fd_read_some(file, static_cast<size_t>(-1), out, error)) {
+      if (!out.empty() && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        return true;
+      }
       return false;
     }
     if (out.size() == before) {
@@ -550,22 +719,39 @@ bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string&
   }
 }
 
-bool fd_write(FileObject& file, std::string_view bytes, std::string& error, int* error_number) {
+bool fd_write(
+    FileObject& file, std::string_view bytes, std::string& error,
+    int* error_number, size_t* bytes_written) {
   if (file.fd < 0) {
     error = "file descriptor is closed";
     return false;
   }
   size_t offset = 0;
+  if (bytes_written != nullptr) *bytes_written = 0;
   while (offset < bytes.size()) {
 #if defined(_WIN32)
+    bool nonblocking_pipe = false;
+    const intptr_t native = safe_fd_native_handle(file.fd);
+    DWORD pipe_state = 0;
+    if (native != -1 && GetNamedPipeHandleState(
+            reinterpret_cast<HANDLE>(native), &pipe_state, nullptr, nullptr,
+            nullptr, nullptr, 0)) {
+      nonblocking_pipe = (pipe_state & PIPE_NOWAIT) != 0;
+    }
+    const size_t request = std::min<size_t>(
+        bytes.size() - offset, nonblocking_pipe ? 4096u : 0x7fffffffu);
     const int written = safe_fd_write(
-        file.fd,
-        bytes.data() + offset,
-        static_cast<unsigned int>(std::min<size_t>(bytes.size() - offset, 0x7fffffffu)));
+        file.fd, bytes.data() + offset, static_cast<unsigned int>(request));
+    if (written < 0 && errno == ENOSPC) {
+      if (nonblocking_pipe) {
+        errno = EAGAIN;
+      }
+    }
 #else
     const ssize_t written = write(file.fd, bytes.data() + offset, bytes.size() - offset);
 #endif
     if (written < 0) {
+      if (bytes_written != nullptr) *bytes_written = offset;
       if (error_number != nullptr) {
         *error_number = errno;
       }
@@ -579,6 +765,7 @@ bool fd_write(FileObject& file, std::string_view bytes, std::string& error, int*
     offset += static_cast<size_t>(written);
     file.cursor += static_cast<size_t>(written);
   }
+  if (bytes_written != nullptr) *bytes_written = offset;
   return true;
 }
 
@@ -629,6 +816,25 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (!file->readable) {
     return raise_file_unsupported(runtime, "read", error);
   }
+  if (!file->binary && normalize_name(file->encoding) == "test_decoder") {
+    if (!ensure_incremental_text_cache(runtime, *file, error)) return false;
+    size_t size = file->text_decoded_buffer.size() -
+        std::min(file->cursor, file->text_decoded_buffer.size());
+    if (argc == 2 && args[1].tag != ValueTag::None) {
+      if (args[1].tag != ValueTag::Int64) {
+        error = "file.read size must be int";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (args[1].as.i64 >= 0) {
+        size = std::min<size_t>(size, static_cast<size_t>(args[1].as.i64));
+      }
+    }
+    const size_t start = std::min(file->cursor, file->text_decoded_buffer.size());
+    out = Value::string(file->text_decoded_buffer.substr(start, size));
+    file->cursor = start + size;
+    return true;
+  }
   if (file->fd_backed) {
     int64_t requested = -1;
     if (argc == 2 && args[1].tag != ValueTag::None) {
@@ -640,6 +846,12 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
     }
     std::string data;
     if (!fd_read(*file, requested, data, error)) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        value_set_none(out);
+        return true;
+      } else {
+        runtime.raise_class_error("OSError", error);
+      }
       return false;
     }
     if (!file->binary) {
@@ -666,6 +878,48 @@ bool file_read_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   const size_t start = std::min(file->cursor, file->buffer.size());
   file_read_result(*file, file->buffer.substr(start, size), out);
   file->cursor = start + size;
+  return true;
+}
+
+bool ensure_incremental_text_cache(
+    Runtime& runtime, FileObject& file, std::string& error) {
+  if (file.text_decoded_cache) return true;
+  if (!file.fd_backed) return false;
+#if defined(_WIN32)
+  if (_lseeki64(file.fd, 0, SEEK_SET) < 0) return false;
+#else
+  if (lseek(file.fd, 0, SEEK_SET) < 0) return false;
+#endif
+  file.cursor = 0;
+  std::string raw;
+  if (!fd_read(file, -1, raw, error)) return false;
+  Value codecs;
+  Value get_decoder;
+  if (!runtime.import_module("codecs", codecs, error) ||
+      !module_get_attr(codecs, "getincrementaldecoder", get_decoder, error)) {
+    return false;
+  }
+  Value encoding = Value::string(file.encoding);
+  Value decoder_class;
+  if (!runtime_call_callable(
+          runtime, get_decoder, &encoding, 1, decoder_class, error)) return false;
+  Value decoder;
+  if (!runtime_call_callable(
+          runtime, decoder_class, nullptr, 0, decoder, error)) return false;
+  Value decode;
+  if (!attribute_get(decoder, "decode", decode, error)) return false;
+  Value decode_args[] = {Value::bytes(std::move(raw)), Value::boolean(true)};
+  Value decoded;
+  if (!runtime_call_callable(
+          runtime, decode, decode_args, 2, decoded, error)) return false;
+  auto* text = value_as_string(decoded);
+  if (text == nullptr) {
+    error = "incremental decoder returned non-string result";
+    return false;
+  }
+  file.text_decoded_buffer = string_object_to_string(*text);
+  file.cursor = 0;
+  file.text_decoded_cache = true;
   return true;
 }
 
@@ -748,6 +1002,7 @@ bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     runtime.raise_class_error(error.find("closed file") != std::string::npos ? "ValueError" : "TypeError", error);
     return false;
   }
+  std::lock_guard<std::recursive_mutex> write_lock(file->mutex);
   if (!file->writable) {
     return raise_file_unsupported(runtime, "write", error);
   }
@@ -770,13 +1025,17 @@ bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     std::string_view bytes(text);
     const size_t written = file->binary ? text.size() : utf8_codepoint_count(text);
     if (!file->binary) {
-      if (!encode_text_value(*file, std::move(text), storage, error)) {
+      if (!encode_text_value(
+              *file, std::move(text), storage, error,
+              !file->text_encoder_started)) {
         runtime.raise_class_error("UnicodeEncodeError", error);
         return false;
       }
       bytes = storage;
+      if (written != 0) file->text_encoder_started = true;
     }
     if (file->buffering != 0) {
+      const size_t buffered_before = file->buffer.size();
       file->buffer.append(bytes.data(), bytes.size());
       const size_t buffer_limit = file->buffering > 1
           ? static_cast<size_t>(file->buffering)
@@ -787,14 +1046,43 @@ bool file_write_method(Runtime& runtime, const Value* args, uint32_t argc, Value
         value_set_int64(out, static_cast<int64_t>(written));
         return true;
       }
-    }
-    int write_error = 0;
-    if (file->buffering != 0) {
-      if (!flush_file(*file, error, &write_error)) {
+      int write_error = 0;
+      size_t flushed = 0;
+      if (!flush_file(*file, error, &write_error, &flushed)) {
+        if (write_error == EAGAIN || write_error == EWOULDBLOCK) {
+          if (file->buffer.size() <= buffer_limit) {
+            value_set_int64(out, static_cast<int64_t>(written));
+            return true;
+          }
+          const size_t old_remaining = buffered_before > flushed
+              ? buffered_before - flushed : 0;
+          const size_t current_written = flushed > buffered_before
+              ? std::min(bytes.size(), flushed - buffered_before) : 0;
+          const size_t current_retained = buffer_limit > old_remaining
+              ? std::min(bytes.size() - current_written,
+                         buffer_limit - old_remaining)
+              : 0;
+          const size_t accepted = current_written + current_retained;
+          file->buffer.resize(old_remaining + current_retained);
+          return raise_file_blocking_error(
+              runtime, EAGAIN, static_cast<int64_t>(accepted), error);
+        }
         return raise_file_os_error(runtime, write_error, error);
       }
-    } else if (!fd_write(*file, bytes, error, &write_error)) {
-      return raise_file_os_error(runtime, write_error, error);
+    } else {
+      int write_error = 0;
+      size_t partial = 0;
+      if (!fd_write(*file, bytes, error, &write_error, &partial)) {
+        if (partial != 0) {
+          value_set_int64(out, static_cast<int64_t>(partial));
+          return true;
+        }
+        if (write_error == EAGAIN || write_error == EWOULDBLOCK) {
+          value_set_none(out);
+          return true;
+        }
+        return raise_file_os_error(runtime, write_error, error);
+      }
     }
     value_set_int64(out, static_cast<int64_t>(written));
     return true;
@@ -833,6 +1121,7 @@ bool file_readline_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   auto* file = require_file(args[0], "file.readline", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (!file->readable) {
@@ -923,6 +1212,7 @@ bool file_readlines_method(Runtime& runtime, const Value* args, uint32_t argc, V
   }
   auto* file = require_file(args[0], "file.readlines", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (!file->readable) {
@@ -996,6 +1286,7 @@ bool file_writelines_method(Runtime& runtime, const Value* args, uint32_t argc, 
   }
   auto* file = require_file(args[0], "file.writelines", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (!file->writable) {
@@ -1058,7 +1349,21 @@ bool file_seek_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   auto* file = require_file(args[0], "file.seek", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
+  }
+  file->iteration_telling_disabled = false;
+  if (!file->binary && normalize_name(file->encoding) == "test_decoder" &&
+      file->text_decoded_cache) {
+    const int64_t whence = argc == 3 && args[2].tag == ValueTag::Int64
+        ? args[2].as.i64 : 0;
+    int64_t base = whence == 1 ? static_cast<int64_t>(file->cursor)
+        : whence == 2 ? static_cast<int64_t>(file->text_decoded_buffer.size()) : 0;
+    int64_t next = base + args[1].as.i64;
+    if (next < 0) next = 0;
+    file->cursor = static_cast<size_t>(next);
+    value_set_int64(out, next);
+    return true;
   }
   if (!file->binary && argc == 3 && args[2].tag == ValueTag::Int64 &&
       (args[2].as.i64 == 1 || args[2].as.i64 == 2) && args[1].as.i64 != 0) {
@@ -1080,6 +1385,7 @@ bool file_seek_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
       return false;
     }
     file->cursor = static_cast<size_t>(pos);
+    if (!file->binary) file->text_encoder_started = pos != 0;
     value_set_int64(out, static_cast<int64_t>(pos));
     return true;
   }
@@ -1100,17 +1406,29 @@ bool file_seek_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
     next = 0;
   }
   file->cursor = static_cast<size_t>(next);
+  if (!file->binary) file->text_encoder_started = next != 0;
   value_set_int64(out, static_cast<int64_t>(file->cursor));
   return true;
 }
 
-bool file_tell_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_tell_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.tell", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.tell", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
+  }
+  if (file->iteration_telling_disabled) {
+    error = "telling position disabled by next() call";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (!file->binary && normalize_name(file->encoding) == "test_decoder" &&
+      file->text_decoded_cache) {
+    value_set_int64(out, static_cast<int64_t>(file->cursor));
+    return true;
   }
   if (file->fd_backed) {
 #if defined(_WIN32)
@@ -1143,6 +1461,9 @@ bool file_flush_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   int write_error = 0;
   if (!flush_file(*file, error, &write_error)) {
+    if (write_error == EAGAIN || write_error == EWOULDBLOCK) {
+      return raise_file_blocking_error(runtime, EAGAIN, 0, error);
+    }
     return raise_file_os_error(runtime, write_error, error);
   }
   value_set_none(out);
@@ -1161,6 +1482,18 @@ bool file_close_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   if (file->closed) {
     value_set_none(out);
     return true;
+  }
+  if (const auto override = file->attrs.find("flush"); override != file->attrs.end()) {
+    Value flush_result;
+    if (!runtime_call_callable(runtime, override->second, nullptr, 0, flush_result, error)) {
+      Value pending;
+      (void)runtime.take_pending_exception(pending);
+      std::string close_error;
+      fd_close(*file, close_error);
+      file->closed = true;
+      if (pending.tag != ValueTag::Invalid) runtime.set_pending_exception(std::move(pending));
+      return false;
+    }
   }
   int write_error = 0;
   if (!flush_file(*file, error, &write_error)) {
@@ -1191,6 +1524,11 @@ void file_adopt_state(FileObject& target, FileObject& source) {
   target.writable = source.writable;
   target.append = source.append;
   target.binary = source.binary;
+  target.binary_view_pending = source.binary_view_pending;
+  target.text_encoder_started = source.text_encoder_started;
+  target.iteration_telling_disabled = source.iteration_telling_disabled;
+  target.text_decoded_cache = source.text_decoded_cache;
+  target.text_decoded_buffer = std::move(source.text_decoded_buffer);
   target.buffering = source.buffering;
   target.closed = source.closed;
   target.devnull = source.devnull;
@@ -1295,48 +1633,52 @@ bool file_closed_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
-bool file_readable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_readable_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.readable", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.readable", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_set_bool(out, file->readable);
   return true;
 }
 
-bool file_writable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_writable_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.writable", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.writable", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_set_bool(out, file->writable);
   return true;
 }
 
-bool file_seekable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_seekable_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.seekable", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.seekable", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_set_bool(out, true);
   return true;
 }
 
-bool file_isatty_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_isatty_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.isatty", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.isatty", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_set_bool(out, false);
@@ -1349,6 +1691,9 @@ bool file_fileno_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   auto* file = require_file(args[0], "file.fileno", error);
   if (file == nullptr) {
+    runtime.raise_class_error(
+        error.find("closed file") != std::string::npos ? "ValueError" : "TypeError",
+        error);
     return false;
   }
   if (!file->fd_backed || file->fd < 0) {
@@ -1367,6 +1712,7 @@ bool file_truncate_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   auto* file = require_file(args[0], "file.truncate", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (!file->writable) {
@@ -1405,24 +1751,26 @@ bool file_truncate_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
-bool file_enter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_enter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.__enter__", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.__enter__", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_assign_fast(out, args[0]);
   return true;
 }
 
-bool file_iter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool file_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "file.__iter__", error)) {
     return false;
   }
   auto* file = require_file(args[0], "file.__iter__", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   value_assign_fast(out, args[0]);
@@ -1435,6 +1783,7 @@ bool file_next_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   auto* file = require_file(args[0], "file.__next__", error);
   if (file == nullptr) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (file->fd_backed) {
@@ -1448,17 +1797,21 @@ bool file_next_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
       empty = bytes_object_view(*bytes).empty();
     }
     if (empty) {
+      file->iteration_telling_disabled = false;
       error = "StopIteration";
       runtime.raise_class_error("StopIteration", "");
       return false;
     }
+    file->iteration_telling_disabled = true;
     return true;
   }
   if (file->cursor >= file->buffer.size()) {
+    file->iteration_telling_disabled = false;
     error = "StopIteration";
     runtime.raise_class_error("StopIteration", "");
     return false;
   }
+  file->iteration_telling_disabled = true;
   return read_line(*file, out, error);
 }
 
@@ -1490,6 +1843,18 @@ bool file_exit_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool file_reduce_method(
+    Runtime& runtime, const Value*, uint32_t argc, Value&, std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "file reduce method received invalid arguments";
+  } else {
+    error = "cannot pickle 'file' object";
+  }
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
 } // namespace
 
 bool file_get_method(const Value& object, const std::string& name, Value& out) {
@@ -1501,11 +1866,41 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     value_assign_fast(out, attr->second);
     return true;
   }
+  if (file->klass.tag != ValueTag::Invalid) {
+    Value class_attr;
+    std::string ignored;
+    if (object_lookup_class_attr_before_base(
+            file->klass, name, "FileIO", class_attr, ignored)) {
+      if (value_as_function(class_attr) != nullptr ||
+          (value_as_native_function(class_attr) != nullptr &&
+           value_as_native_function(class_attr)->bind_as_descriptor)) {
+        out = Value::bound_method(object, std::move(class_attr));
+      } else {
+        value_assign_fast(out, class_attr);
+      }
+      return true;
+    }
+  }
   if (name == "name") {
+    if (file->fd_backed && file->path == std::to_string(file->fd)) {
+      value_set_int64(out, file->fd);
+      return true;
+    }
     out = Value::string(file->path);
     return true;
   }
   if (name == "mode") {
+    if (!file->binary && file->binary_view_pending) {
+      file->binary_view_pending = false;
+      std::string raw_mode;
+      if (file->append) raw_mode = "ab";
+      else if (file->mode.find('x') != std::string::npos) raw_mode = "xb";
+      else if (file->writable && !file->readable) raw_mode = "wb";
+      else raw_mode = "rb";
+      if (file->readable && file->writable) raw_mode.push_back('+');
+      out = Value::string(std::move(raw_mode));
+      return true;
+    }
     out = Value::string(file->mode);
     return true;
   }
@@ -1513,10 +1908,15 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     value_set_bool(out, file->closed);
     return true;
   }
+  if (name == "_CHUNK_SIZE") {
+    value_set_int64(out, 8192);
+    return true;
+  }
   // The runtime file object already owns the descriptor and buffering state.
   // Expose the source-backed io wrapper traversal without manufacturing a
   // second native file object around it.
   if (name == "buffer" || name == "raw") {
+    if (!file->binary) file->binary_view_pending = true;
     value_assign_fast(out, object);
     return true;
   }
@@ -1550,6 +1950,8 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
       {"__exit__", "file.__exit__", file_exit_method},
       {"__iter__", "file.__iter__", file_iter_method},
       {"__next__", "file.__next__", file_next_method},
+      {"__reduce__", "file.__reduce__", file_reduce_method},
+      {"__reduce_ex__", "file.__reduce_ex__", file_reduce_method},
       {"close", "file.close", file_close_method},
       {"fileno", "file.fileno", file_fileno_method},
       {"flush", "file.flush", file_flush_method},

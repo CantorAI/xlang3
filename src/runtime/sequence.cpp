@@ -618,12 +618,18 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
     return true;
   }
   if (auto* seq = value_as_sequence_iterator(iterator)) {
+    if (seq->source.tag == ValueTag::Invalid) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
     Value index = Value::int64(static_cast<int64_t>(seq->index));
     if (!sequence_get_item(seq->source, index, out, error)) {
       if (error == "index out of range") {
         error.clear();
         done = true;
         value_set_none(out);
+        value_set_invalid(seq->source);
         return true;
       }
       return false;
@@ -1338,6 +1344,10 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
 
 bool sequence_len(const Value& value, Value& out, std::string& error) {
   if (auto* iterator = value_as_sequence_iterator(value)) {
+    if (iterator->source.tag == ValueTag::Invalid) {
+      value_set_int64(out, 0);
+      return true;
+    }
     Value source_length;
     if (!sequence_len(iterator->source, source_length, error) || source_length.tag != ValueTag::Int64) return false;
     const uint64_t length = static_cast<uint64_t>(std::max<int64_t>(0, source_length.as.i64));

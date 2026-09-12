@@ -842,6 +842,10 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
   Value subject_class;
   if (instance != nullptr) {
     value_assign_fast(subject_class, instance->klass);
+  } else if (self.tag == ValueTag::Object && self.as.obj != nullptr &&
+             self.as.obj->kind == ObjectKind::File &&
+             reinterpret_cast<FileObject*>(self.as.obj)->klass.tag != ValueTag::Invalid) {
+    value_assign_fast(subject_class, reinterpret_cast<FileObject*>(self.as.obj)->klass);
   } else if (value_as_class(self) != nullptr) {
     value_assign_fast(subject_class, self);
   } else {
@@ -2144,13 +2148,13 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Value keys_method;
     std::string attr_error;
     if (object_get_attr(source, "keys", keys_method, attr_error)) {
+      Value keys_result;
+      if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
+        return false;
+      }
       Value getitem_method;
       if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
         error = "mapping object has no __getitem__";
-        return false;
-      }
-      Value keys_result;
-      if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
         return false;
       }
       std::vector<Value> keys;
@@ -2191,6 +2195,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         value = &list->items[1];
       } else {
         error = "dictionary update sequence element has length other than 2";
+        runtime.raise_class_error("ValueError", error);
         return false;
       }
       if (!mapping_set_item(dict_target, *key, *value, error)) {
@@ -2417,16 +2422,30 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     if (auto* view = value_as_memoryview(source)) {
+      if (view->released) {
+        constructor_error.set("ValueError", "operation forbidden on released memoryview object");
+        return false;
+      }
       out = Value::memoryview(source, 0, view->size, view->readonly);
       return true;
     }
     if (value_as_instance(source) != nullptr) {
       Value payload;
       std::string ignored;
+      Value pickle_buffer;
+      if (object_get_attr(source, "__xlang3_pickle_buffer__", pickle_buffer, ignored) &&
+          pickle_buffer.tag == ValueTag::None) {
+        constructor_error.set("ValueError", "operation forbidden on released PickleBuffer object");
+        return false;
+      }
       if (object_get_attr(source, "__xlang3_bytes_value__", payload, ignored)) {
         const auto* bytes = value_as_bytes(payload);
         const auto* bytearray = value_as_bytearray(payload);
         const auto* payload_view = value_as_memoryview(payload);
+        if (payload_view != nullptr && payload_view->released) {
+          constructor_error.set("ValueError", "operation forbidden on released memoryview object");
+          return false;
+        }
         if (bytes != nullptr || bytearray != nullptr || payload_view != nullptr) {
           Value owner = source;
           Value exported_owner;

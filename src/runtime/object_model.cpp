@@ -182,6 +182,7 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->native_get_attr = nullptr;
   instance->native_set_attr = nullptr;
   instance->native_delete_attr = nullptr;
+  instance->finalizer_started = false;
   for (uint32_t i = 0; i < instance->slot_count && i < 8; ++i) {
     value_set_invalid(instance->inline_slots[i]);
   }
@@ -1784,6 +1785,53 @@ bool runtime_value_compare(
     }
   }
 
+  if (op == "<" || op == "<=" || op == ">" || op == ">=") {
+    const auto sequence_size = [](const Value& value, size_t& size) -> bool {
+      if (auto* tuple = value_as_tuple(value)) {
+        size = tuple->items.size();
+        return true;
+      }
+      if (auto* list = value_as_list_storage(value)) {
+        size = list->items.size();
+        return true;
+      }
+      return false;
+    };
+    const auto sequence_item = [](const Value& value, size_t index) -> const Value& {
+      if (auto* tuple = value_as_tuple(value)) return tuple->items[index];
+      return value_as_list_storage(value)->items[index];
+    };
+    size_t left_size = 0;
+    size_t right_size = 0;
+    if (sequence_size(lhs, left_size) && sequence_size(rhs, right_size)) {
+      const size_t common = std::min(left_size, right_size);
+      for (size_t i = 0; i < common; ++i) {
+        const auto& left_item = sequence_item(lhs, i);
+        const auto& right_item = sequence_item(rhs, i);
+        Value equal;
+        if (!runtime_value_compare(runtime, "==", left_item, right_item, equal, error)) {
+          return false;
+        }
+        bool same = false;
+        if (!runtime_truthy(runtime, equal, same, error)) return false;
+        if (same) continue;
+        return runtime_value_compare(
+            runtime,
+            (op == "<" || op == "<=") ? "<" : ">",
+            left_item,
+            right_item,
+            out,
+            error);
+      }
+      const bool result = op == "<" ? left_size < right_size
+          : op == "<=" ? left_size <= right_size
+          : op == ">" ? left_size > right_size
+          : left_size >= right_size;
+      value_set_bool(out, result);
+      return true;
+    }
+  }
+
   if (op == "==" || op == "!=") {
     const bool equality = op == "==";
     auto binary_payload = [](const Value& value, std::string& payload) -> bool {
@@ -2087,7 +2135,37 @@ bool runtime_value_contains(
     if (!runtime_call_callable(runtime, contains_method, &item, 1, result, error)) return false;
     return runtime_truthy(runtime, result, out, error);
   }
-  return value_contains(container, item, out, error);
+  if (value_contains(container, item, out, ignored)) {
+    return true;
+  }
+  Value iterator;
+  if (!runtime_get_iter(runtime, container, iterator, error)) {
+    if (error.empty()) error = "object is not a container";
+    return false;
+  }
+  while (true) {
+    Value candidate;
+    bool done = false;
+    if (!sequence_iter_next(iterator, done, candidate, error)) {
+      return false;
+    }
+    if (done) {
+      out = false;
+      return true;
+    }
+    if (value_is(candidate, item)) {
+      out = true;
+      return true;
+    }
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", candidate, item, equal, error)) return false;
+    bool is_equal = false;
+    if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+    if (is_equal) {
+      out = true;
+      return true;
+    }
+  }
 }
 
 Value Value::instance(Value klass) {
@@ -3440,6 +3518,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       if (auto* self_klass = value_as_class(self_instance->klass)) {
         lookup_klass = self_klass;
       }
+    } else if (super->self.tag == ValueTag::Object && super->self.as.obj != nullptr &&
+               super->self.as.obj->kind == ObjectKind::File) {
+      auto* file = reinterpret_cast<FileObject*>(super->self.as.obj);
+      if (auto* self_klass = value_as_class(file->klass)) {
+        lookup_klass = self_klass;
+      }
     } else if (auto* self_klass = value_as_class(super->self)) {
       lookup_klass = self_klass;
       const std::vector<Value>* self_mro = nullptr;
@@ -4734,6 +4818,32 @@ bool object_lookup_class_attr(const Value& klass, const std::string& name, Value
     return false;
   }
   return class_lookup_attr(klass_obj, name, out, error);
+}
+
+bool object_lookup_class_attr_before_base(
+    const Value& klass,
+    const std::string& name,
+    std::string_view stop_base,
+    Value& out,
+    std::string& error) {
+  auto* klass_obj = value_as_class(klass);
+  if (klass_obj == nullptr) {
+    error = "object is not a class";
+    return false;
+  }
+  const std::vector<Value>* mro = nullptr;
+  if (!class_mro_values(klass_obj, mro, error)) return false;
+  for (const auto& class_value : *mro) {
+    auto* candidate = value_as_class(class_value);
+    if (candidate == nullptr) continue;
+    if (candidate->name == stop_base) return false;
+    auto it = candidate->attrs.find(name);
+    if (it != candidate->attrs.end() && it->second.tag != ValueTag::Invalid) {
+      value_assign_fast(out, it->second);
+      return true;
+    }
+  }
+  return false;
 }
 
 bool object_lookup_inherited_class_attr(

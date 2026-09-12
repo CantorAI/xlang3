@@ -54,6 +54,7 @@ struct ZlibDecompressState {
   z_stream stream{};
   bool finished = false;
   bool flushed = false;
+  bool strict_decompressor = false;
   std::string unused_data;
   std::string unconsumed_tail;
   // zlib retains next_in when max_length stops output. Keep that memory alive
@@ -61,6 +62,8 @@ struct ZlibDecompressState {
   std::string pending_input;
   std::string dictionary;
 };
+
+bool decompress_object_state(const Value& self, ZlibDecompressState*& state, std::string& error);
 
 void zlib_compress_cleanup(void* data) {
   auto* state = static_cast<ZlibCompressState*>(data);
@@ -315,6 +318,23 @@ bool zlib_decompressobj(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool zlib_strict_decompressor(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* decompress_class_ptr) {
+  if (argc > 2) {
+    return zlib_class_fail(runtime, "TypeError", "_ZlibDecompressor() takes at most 2 arguments", error);
+  }
+  if (!zlib_decompressobj(runtime, args, argc, out, error, decompress_class_ptr)) {
+    return false;
+  }
+  ZlibDecompressState* state = nullptr;
+  if (!decompress_object_state(out, state, error)) {
+    return false;
+  }
+  state->strict_decompressor = true;
+  object_set_attr(out, "needs_input", Value::boolean(true), error);
+  return true;
+}
+
 bool zlib_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 3) {
     return zlib_class_fail(runtime, "TypeError", "zlib.decompress() expected data, optional wbits, and optional bufsize", error);
@@ -543,8 +563,7 @@ bool zlib_compress_object_deepcopy(Runtime& runtime, const Value* args, uint32_t
 
 bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
-    error = "Decompress.decompress() expected data and optional max_length";
-    return false;
+    return zlib_class_fail(runtime, "TypeError", "Decompress.decompress() expected data and optional max_length", error);
   }
   ZlibDecompressState* state = nullptr;
   if (!decompress_object_state(args[0], state, error)) {
@@ -554,15 +573,18 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   if (!zlib_bytes_arg(args[1], "Decompress.decompress data", input, error)) {
     return false;
   }
-  int64_t max_length = 0;
+  int64_t max_length = state->strict_decompressor ? -1 : 0;
   if (argc == 3 && !zlib_as_index(runtime, args[2], max_length, error)) {
     return zlib_class_fail(runtime, "TypeError", "Decompress.decompress() max_length must be int", error);
   }
-  if (max_length < 0) {
+  if (max_length < 0 && !state->strict_decompressor) {
     return zlib_class_fail(runtime, "ValueError", "max_length must be non-negative", error);
   }
 
   if (state->finished) {
+    if (state->strict_decompressor) {
+      return zlib_class_fail(runtime, "EOFError", "End of stream already reached", error);
+    }
     state->unused_data.append(input);
     std::string ignored;
     Value self = args[0];
@@ -576,11 +598,25 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   constexpr size_t kChunkSize = 16384;
   char chunk[kChunkSize];
   std::string decompressed;
+  if (state->strict_decompressor && !state->pending_input.empty()) {
+    input.insert(0, state->pending_input);
+  }
   state->pending_input.clear();
+  if (state->strict_decompressor && max_length == 0) {
+    state->pending_input = input;
+    state->unconsumed_tail = input;
+    Value self = args[0];
+    std::string ignored;
+    object_set_attr(self, "unconsumed_tail", Value::bytes(state->unconsumed_tail), ignored);
+    object_set_attr(self, "needs_input", Value::boolean(false), ignored);
+    out = Value::bytes("");
+    return true;
+  }
   state->stream.next_in = reinterpret_cast<Bytef*>(input.data());
   state->stream.avail_in = static_cast<uInt>(input.size());
+  const bool bounded = state->strict_decompressor ? max_length >= 0 : max_length > 0;
   do {
-    const size_t requested = max_length > 0
+    const size_t requested = bounded
         ? std::min<size_t>(kChunkSize, static_cast<size_t>(max_length - static_cast<int64_t>(decompressed.size())))
         : kChunkSize;
     if (requested == 0) {
@@ -611,7 +647,8 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
       }
       break;
     }
-    if (rc == Z_BUF_ERROR || state->stream.avail_in == 0 || (max_length > 0 && static_cast<int64_t>(decompressed.size()) >= max_length)) {
+    if (rc == Z_BUF_ERROR || state->stream.avail_in == 0 ||
+        (bounded && static_cast<int64_t>(decompressed.size()) >= max_length)) {
       break;
     }
   } while (true);
@@ -629,6 +666,9 @@ bool zlib_decompress_object_decompress(Runtime& runtime, const Value* args, uint
   object_set_attr(self, "unused_data", Value::bytes(state->unused_data), ignored);
   object_set_attr(self, "unconsumed_tail", Value::bytes(state->unconsumed_tail), ignored);
   object_set_attr(self, "eof", Value::boolean(state->finished), ignored);
+  if (state->strict_decompressor) {
+    object_set_attr(self, "needs_input", Value::boolean(!state->finished && state->unconsumed_tail.empty()), ignored);
+  }
   out = Value::bytes(std::move(decompressed));
   return true;
 }
@@ -722,6 +762,10 @@ bool zlib_decompress_object_deepcopy(Runtime& runtime, const Value* args, uint32
   return zlib_decompress_object_copy(runtime, args, 1, out, error, nullptr);
 }
 
+bool zlib_decompress_object_reduce(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  return zlib_class_fail(runtime, "TypeError", "cannot pickle zlib decompressor objects", error);
+}
+
 bool zlib_crc32(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     return zlib_class_fail(runtime, "TypeError", "zlib.crc32() expected data and optional value", error);
@@ -773,6 +817,8 @@ Value make_decompress_class(Runtime& runtime) {
   attrs.push_back({"copy", runtime.make_native_function("zlib.Decompress.copy", zlib_decompress_object_copy)});
   attrs.push_back({"__copy__", runtime.make_native_function("zlib.Decompress.__copy__", zlib_decompress_object_copy)});
   attrs.push_back({"__deepcopy__", runtime.make_native_function("zlib.Decompress.__deepcopy__", zlib_decompress_object_deepcopy)});
+  attrs.push_back({"__reduce__", runtime.make_native_function("zlib.Decompress.__reduce__", zlib_decompress_object_reduce)});
+  attrs.push_back({"__reduce_ex__", runtime.make_native_function("zlib.Decompress.__reduce_ex__", zlib_decompress_object_reduce)});
   return Value::class_object("Decompress", std::move(attrs));
 }
 
@@ -807,6 +853,13 @@ void register_zlib_module(Runtime& runtime) {
               zlib_decompressobj,
               decompress_class_slot,
               [](void* data) { delete static_cast<Value*>(data); }, nullptr, false, zlib_decompressobj_kw))
+      .value(
+          "_ZlibDecompressor",
+          runtime.make_native_function(
+              "zlib._ZlibDecompressor",
+              zlib_strict_decompressor,
+              new Value(decompress_class),
+              [](void* data) { delete static_cast<Value*>(data); }))
       .function("crc32", zlib_crc32)
       .function("adler32", zlib_adler32)
       .value("Compress", compress_class)

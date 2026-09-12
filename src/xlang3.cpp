@@ -188,6 +188,12 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
         config.no_debug_ranges = true;
       } else if (option == "warn_default_encoding") {
         config.warn_default_encoding = true;
+      } else if (option == "dev") {
+        config.dev_mode = true;
+      } else if (option == "utf8" || option == "utf8=1") {
+        config.utf8_mode = true;
+      } else if (option == "utf8=0") {
+        config.utf8_mode = false;
       }
       continue;
     }
@@ -196,6 +202,12 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
         config.no_debug_ranges = true;
       } else if (arg.substr(2) == "warn_default_encoding") {
         config.warn_default_encoding = true;
+      } else if (arg.substr(2) == "dev") {
+        config.dev_mode = true;
+      } else if (arg.substr(2) == "utf8" || arg.substr(2) == "utf8=1") {
+        config.utf8_mode = true;
+      } else if (arg.substr(2) == "utf8=0") {
+        config.utf8_mode = false;
       }
       continue;
     }
@@ -508,6 +520,8 @@ bool publish_process_sys_attrs(
       {"safe_path", config.isolated ? 1 : 0},
       {"verbose", config.verbose ? 1 : 0},
       {"bytes_warning", config.bytes_warning},
+      {"dev_mode", config.dev_mode ? 1 : 0},
+      {"utf8_mode", config.utf8_mode ? 1 : 0},
   };
   for (const auto& [name, value] : flag_values) {
     if (!xlang3::object_set_attr(flags, name, xlang3::Value::int64(value), error)) {

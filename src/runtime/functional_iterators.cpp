@@ -242,6 +242,7 @@ bool runtime_call_callable(
     uint32_t argc,
     Value& out,
     std::string& error) {
+  runtime_set_object_finalization_context(&runtime);
   if (auto* method = value_as_static_method(callable)) {
     return runtime_call_callable(runtime, method->function, args, argc, out, error);
   }
