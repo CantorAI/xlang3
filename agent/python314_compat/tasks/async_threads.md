@@ -1,34 +1,35 @@
 # Async, Task, And Thread Tasks
 
-- [~] CPython `threading.py` over `_thread`
-  Coverage: pending in the default fixture runner; add a future fixture that
-  imports CPython `Lib/threading.py` through the normal import path.
-  Remaining: run the real CPython 3.14 `Lib/threading.py` on top of `_thread`;
-  do not restore a public native `threading` module.
+- [x] CPython `threading.py` over `_thread`
+  Coverage: `tests/fixtures/core/threading_runtime_edges.py` imports CPython
+  3.14 `Lib/threading.py` through the normal source loader and exercises it on
+  the native `_thread` dependency. No public native `threading` facade exists.
 
-- [~] native thread execution model
-  Coverage: pending in the default fixture runner; add fixtures around `_thread`
-  plus CPython `threading.py` once the dependency surface is ready.
-  Remaining: CPython-compatible thread lifecycle, lock/condition semantics, trace/profile inheritance edge cases, and shutdown behavior.
+- [x] native thread execution model
+  Coverage: `tests/fixtures/core/threading_runtime_edges.py` covers public
+  thread startup, identifiers, repeated-start and invalid-join errors,
+  non-daemon shutdown waiting, daemon mutation, per-thread local dictionaries,
+  Lock/RLock/Event/Semaphore/Condition/Barrier behavior, and trace/profile
+  inheritance with CPython 3.14 differential output.
 
-- [~] coroutine and await model
-  Coverage: `tests/fixtures/core/async_syntax.py`, `tests/fixtures/core/task_async.py`
-  plus `tests/fixtures/compat_sections/function_and_class_syntax.py` for
-  `asyncio.run`, `async for`, `async with`, and async generator methods.
-  Runtime now preserves current-frame state as a thread-local stack across
-  nested VM execution, so coroutine `send()` inside `asyncio.Task.__step()` no
-  longer destroys the caller frame needed by zero-argument `super()` and debug
-  frame APIs.
-  Remaining: cancellation edge cases, scheduler-yielding coroutine states, and
-  exact CPython coroutine inspection APIs.
+- [x] coroutine and await model
+  Coverage: `tests/fixtures/core/asyncio_runtime_edges.py`,
+  `tests/fixtures/core/async_syntax.py`, `tests/fixtures/core/task_async.py`,
+  `tests/fixtures/core/sys_coroutine_origin_metadata.py`, and
+  `tests/fixtures/compat_sections/function_and_class_syntax.py` cover lazy
+  coroutine creation, generic `__await__` iterators, scheduler yields,
+  `asyncio.gather`, cancellation messages and nested-finally propagation,
+  waiter cleanup, async iteration/context managers/generators, coroutine
+  origin metadata, and the CPython inspection states and attributes
+  `cr_running`, `cr_suspended`, `cr_frame`, `cr_code`, `cr_await`, `cr_origin`,
+  `__name__`, and `__qualname__`.
 
-- [~] CPython `asyncio` package over runtime async primitives
-  Coverage: `tests/fixtures/probes/system_stdlib/asyncio_probe.py` verifies
-  real CPython 3.14 `Lib/asyncio` import over XLang3 plus `_overlapped`
-  foundation, and now runs `asyncio.run()` through event-loop shutdown. Runtime
-  fixes preserve caller globals/current frames across nested interpreter/import
-  execution, prefer Python `__iter__` protocol for user objects before internal
-  storage fallbacks, and give `_overlapped` a native IOCP completion registry
-  for immediately completed/cancelled operations.
-  Remaining: full Windows proactor socket/process I/O behavior; do not restore
-  a public native `asyncio` module.
+- [x] CPython `asyncio` package over runtime async primitives
+  Coverage: `tests/fixtures/core/asyncio_runtime_edges.py` imports CPython
+  3.14 `Lib/asyncio` through the normal source loader and runs its Windows
+  `ProactorEventLoop` over native `_overlapped` primitives. The fixture covers
+  loopback TCP accept/connect/read/write/drain/close, process creation and
+  completion waits, stdout/stderr overlapped reads, stdin overlapped writes,
+  process exit status, task scheduling, cancellation, and event-loop shutdown.
+  `tests/fixtures/probes/system_stdlib/asyncio_probe.py` retains the lower-level
+  import and startup probe. No public native `asyncio` facade exists.

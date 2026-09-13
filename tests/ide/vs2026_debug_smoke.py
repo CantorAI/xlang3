@@ -14,4 +14,6 @@
 #
 
 value = 41
+import time
+time.sleep(1.0)
 print(value + 1)

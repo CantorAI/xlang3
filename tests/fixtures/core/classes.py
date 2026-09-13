@@ -33,3 +33,25 @@ print(p.move(5))
 print(p.total())
 p.label = "A"
 print(p.label)
+
+method_scope_value = "module"
+
+class MethodScope:
+    method_scope_value = "class"
+
+    def read(self):
+        return method_scope_value
+
+def make_method_scope():
+    enclosed = "enclosing"
+
+    class NestedMethodScope:
+        enclosed = "class"
+
+        def read(self):
+            return enclosed
+
+    return NestedMethodScope
+
+print(MethodScope().read())
+print(make_method_scope()().read())

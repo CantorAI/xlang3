@@ -39,6 +39,33 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+XLANG3_HOT_INLINE bool inline_calls_allowed(Runtime& runtime) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  return !runtime.debug_step_active() &&
+      !sys_monitoring_event_may_dispatch(kSysMonitoringEventAll) &&
+      !active_hook(runtime.trace_function()) &&
+      !active_hook(runtime.profile_function());
+}
+
+XLANG3_HOT_INLINE bool inline_python_function_allowed(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& function) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.trace_function()) ||
+      active_hook(runtime.profile_function())) {
+    return false;
+  }
+  const ir::Module* target_module = function.module != nullptr
+      ? function.module.get() : &current_module;
+  return !sys_monitoring_function_may_dispatch(
+      target_module, function.function_id);
+}
+
 // Call dispatch templates below share these helpers in both directions.
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE bool call_cached_native_fast(
@@ -96,23 +123,6 @@ XLANG3_HOT_INLINE bool xlang_vm_is_default_object_hook(const Value& hook, const 
   }
   native = value_as_native_function(bound->function);
   return native != nullptr && native->name == name;
-}
-
-XLANG3_HOT_INLINE Value monitoring_code_object_for_function(
-    const ir::Module& module,
-    const std::shared_ptr<const ir::Module>& module_owner,
-    const ir::Function& fn) {
-  if (module_owner == nullptr) {
-    return Value::none();
-  }
-  uint32_t function_id = module.entry;
-  for (uint32_t index = 0; index < module.functions.size(); ++index) {
-    if (&module.functions[index] == &fn) {
-      function_id = index;
-      break;
-    }
-  }
-  return Value::code(module_owner, function_id);
 }
 
 XLANG3_HOT_INLINE const Value* materialize_native_args(
@@ -642,8 +652,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   CallArgsView call_args;
   call_args.registers = regs.value_data();
   call_args.register_args = &call_arg_regs;
+
   bool pushed_frame = false;
-  const bool allow_inline_calls = !runtime.debug_step_active();
+  const bool allow_inline_calls = inline_calls_allowed(runtime);
 
   if (auto* instance = value_as_instance(regs[in.a])) {
     auto* klass = value_as_class(instance->klass);
@@ -787,7 +798,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             return XlangVMOpFlow::Next;
           }
-          if (allow_inline_calls && cache.kind == CallSiteKind::InlineSelfBinaryMethod && call_arg_regs.empty()) {
+          const bool allow_cached_python_inline = cache.function != nullptr &&
+              inline_python_function_allowed(runtime, module, *cache.function);
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineSelfBinaryMethod && call_arg_regs.empty()) {
             SelfBinaryMethodSpec spec;
             spec.lhs_slot = cache.lhs_slot;
             spec.rhs_slot = cache.rhs_slot;
@@ -799,11 +812,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             return XlangVMOpFlow::Next;
           }
-          if (allow_inline_calls && cache.kind == CallSiteKind::InlineConstMethod && call_arg_regs.empty()) {
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineConstMethod && call_arg_regs.empty()) {
             value_assign_fast(regs[in.dst], cache.inline_const);
             return XlangVMOpFlow::Next;
           }
-          if (allow_inline_calls && cache.kind == CallSiteKind::InlineSelfSlotConstSumMethod && call_arg_regs.empty()) {
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineSelfSlotConstSumMethod && call_arg_regs.empty()) {
             std::string error;
             if (!execute_self_slot_const_sum_method_fn(*instance, cache.lhs_slot, cache.inline_const, regs[in.dst], error)) {
               if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
@@ -811,7 +824,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             return XlangVMOpFlow::Next;
           }
-          if (allow_inline_calls && cache.kind == CallSiteKind::InlineSelfSlotMethod && call_arg_regs.empty()) {
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineSelfSlotMethod && call_arg_regs.empty()) {
             std::string error;
             if (!execute_self_slot_method_fn(*instance, cache.lhs_slot, regs[in.dst], error)) {
               if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
@@ -819,7 +832,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             return XlangVMOpFlow::Next;
           }
-          if (allow_inline_calls && cache.kind == CallSiteKind::InlineSmallSelfMethod && call_arg_regs.empty()) {
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineSmallSelfMethod && call_arg_regs.empty()) {
             bool supported = false;
             std::string error;
             if (!execute_inline_small_self_method(module, *cache.function, regs[in.a], regs[in.dst], supported, error)) {
@@ -852,7 +865,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         if (auto* fn_obj = value_as_function(method_it->second)) {
           Value const_value;
-          if (allow_inline_calls && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -866,7 +879,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             return XlangVMOpFlow::Next;
           }
           SelfBinaryMethodSpec inline_spec;
-          if (allow_inline_calls && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -893,7 +906,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             cache.native = nullptr;
             cache.class_version = klass->version;
           }
-          if (allow_inline_calls && call_arg_regs.empty()) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty()) {
             uint32_t direct_slot = 0;
             if (analyze_self_slot_method_fn(module, *fn_obj, direct_slot)) {
               if (!instr_cache.empty()) {
@@ -963,7 +976,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         if (auto* fn_obj = value_as_function(inherited_method)) {
           Value const_value;
-          if (allow_inline_calls && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -977,7 +990,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             return XlangVMOpFlow::Next;
           }
           SelfBinaryMethodSpec inline_spec;
-          if (allow_inline_calls && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -1004,7 +1017,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             cache.native = nullptr;
             cache.class_version = klass->version;
           }
-          if (allow_inline_calls && call_arg_regs.empty()) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty()) {
             uint32_t direct_slot = 0;
             if (analyze_self_slot_method_fn(module, *fn_obj, direct_slot)) {
               if (!instr_cache.empty()) {
@@ -1552,6 +1565,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     const ir::Function& fn,
     const ir::Module& module,
     const std::shared_ptr<const ir::Module>& module_owner,
+    const Value& monitoring_code,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     std::vector<VMFrame>& frames,
@@ -1588,8 +1602,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
   }
   const auto& callee = *callee_value;
   bool pushed_frame = false;
-  Value monitoring_code = monitoring_code_object_for_function(module, module_owner, fn);
-
   std::vector<NativeKeywordArg> native_keyword_args;
 
   if (auto* bound = value_as_bound_method(callee)) {
@@ -1909,9 +1921,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
   }
   const auto& callee = *callee_value;
   bool pushed_frame = false;
-  const bool allow_inline_calls = !runtime.debug_step_active();
-  if (!instr_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
-    auto& cache = instr_cache[ip].call;
+  const bool allow_inline_calls = inline_calls_allowed(runtime);
+    if (!instr_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
+      auto& cache = instr_cache[ip].call;
       if (cache.callee_object == callee.as.obj) {
       if (cache.kind == CallSiteKind::UserFunction) {
         if (!xlang3::xlang_vm::ops::call_user_function(cache.function, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
@@ -1928,18 +1940,52 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         }
         return XlangVMOpFlow::Next;
       }
-      if (allow_inline_calls && cache.kind == CallSiteKind::InlineArgBinaryFunction) {
+      const bool allow_cached_python_inline = cache.function != nullptr &&
+          inline_python_function_allowed(runtime, module, *cache.function);
+      if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineArgBinaryFunction) {
         ArgBinaryFunctionSpec spec;
         spec.lhs_arg = cache.lhs_slot;
         spec.rhs_arg = cache.rhs_slot;
         spec.op = cache.inline_op;
         spec.next_arg = cache.next_arg;
         spec.next_op = cache.next_op;
+        value_assign_fast(spec.next_constant, cache.inline_const);
         spec.has_next = cache.has_next;
+        spec.next_is_constant = cache.next_is_constant;
         std::string error;
         if (!execute_arg_binary_function_fn(call_args, spec, regs[in.dst], error)) {
           if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
           return XlangVMOpFlow::ReturnResult;
+        }
+        return XlangVMOpFlow::Next;
+      }
+      if (allow_cached_python_inline &&
+          cache.kind == CallSiteKind::InlineConditionalArgFunction &&
+          cache.cached_values.size() == 3) {
+        XlangVMConditionalArgFunctionSpec spec;
+        spec.condition_arg = cache.lhs_slot;
+        spec.true_arg = cache.rhs_slot;
+        spec.false_arg = cache.next_arg;
+        spec.compare = static_cast<ir::CompareOp>(cache.fast_method_id);
+        spec.true_op = cache.inline_op;
+        spec.false_op = cache.next_op;
+        value_assign_fast(spec.condition_constant, cache.cached_values[0]);
+        value_assign_fast(spec.true_constant, cache.cached_values[1]);
+        value_assign_fast(spec.false_constant, cache.cached_values[2]);
+        std::string inline_error;
+        if (xlang_vm_execute_conditional_arg_function(
+                call_args, spec, regs[in.dst], inline_error)) {
+          return XlangVMOpFlow::Next;
+        }
+      }
+      if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineTrivialFunction) {
+        XlangVMTrivialFunctionSpec spec;
+        spec.returns_argument = cache.has_next;
+        spec.argument = cache.lhs_slot;
+        value_assign_fast(spec.constant, cache.inline_const);
+        if (!xlang_vm_execute_trivial_function(call_args, spec, regs[in.dst])) {
+          return raise_runtime_error("invalid inline function argument")
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
         }
         return XlangVMOpFlow::Next;
       }
@@ -1991,8 +2037,58 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
   }
   if (auto* fn_obj = value_as_function(callee)) {
+    XlangVMConditionalArgFunctionSpec conditional_spec;
+    if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+        xlang_vm_analyze_conditional_arg_function(
+            module, *fn_obj, static_cast<uint32_t>(call_args.size()), conditional_spec)) {
+      std::string inline_error;
+      if (xlang_vm_execute_conditional_arg_function(
+              call_args, conditional_spec, regs[in.dst], inline_error)) {
+        if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
+          auto& cache = instr_cache[ip].call;
+          cache.callee_object = callee.as.obj;
+          cache.kind = CallSiteKind::InlineConditionalArgFunction;
+          cache.function = fn_obj;
+          cache.native = nullptr;
+          cache.class_version = 0;
+          cache.lhs_slot = conditional_spec.condition_arg;
+          cache.rhs_slot = conditional_spec.true_arg;
+          cache.next_arg = conditional_spec.false_arg;
+          cache.fast_method_id = static_cast<uint32_t>(conditional_spec.compare);
+          cache.inline_op = conditional_spec.true_op;
+          cache.next_op = conditional_spec.false_op;
+          cache.cached_values = {
+              conditional_spec.condition_constant,
+              conditional_spec.true_constant,
+              conditional_spec.false_constant,
+          };
+        }
+        return XlangVMOpFlow::Next;
+      }
+    }
+    XlangVMTrivialFunctionSpec trivial_spec;
+    if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+        xlang_vm_analyze_trivial_function(
+            module, *fn_obj, static_cast<uint32_t>(call_args.size()), trivial_spec)) {
+      if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
+        auto& cache = instr_cache[ip].call;
+        cache.callee_object = callee.as.obj;
+        cache.kind = CallSiteKind::InlineTrivialFunction;
+        cache.function = fn_obj;
+        cache.native = nullptr;
+        cache.class_version = 0;
+        cache.lhs_slot = trivial_spec.argument;
+        cache.has_next = trivial_spec.returns_argument;
+        value_assign_fast(cache.inline_const, trivial_spec.constant);
+      }
+      if (!xlang_vm_execute_trivial_function(call_args, trivial_spec, regs[in.dst])) {
+        return raise_runtime_error("invalid inline function argument")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return XlangVMOpFlow::Next;
+    }
     ArgBinaryFunctionSpec inline_spec;
-    if (allow_inline_calls &&
+    if (inline_python_function_allowed(runtime, module, *fn_obj) &&
         analyze_arg_binary_function_fn(module, *fn_obj, static_cast<uint32_t>(call_args.size()), inline_spec)) {
       if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
         auto& cache = instr_cache[ip].call;
@@ -2006,7 +2102,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         cache.inline_op = inline_spec.op;
         cache.next_arg = inline_spec.next_arg;
         cache.next_op = inline_spec.next_op;
+        value_assign_fast(cache.inline_const, inline_spec.next_constant);
         cache.has_next = inline_spec.has_next;
+        cache.next_is_constant = inline_spec.next_is_constant;
       }
       std::string error;
       if (!execute_arg_binary_function_fn(call_args, inline_spec, regs[in.dst], error)) {
@@ -2266,21 +2364,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         SlotConstructorSpec slot_constructor_spec;
         if (allow_inline_calls && !call_args.has_keywords() && !call_args.has_expansion() &&
             analyze_slot_constructor_fn(module, *fn_obj, slot_constructor_spec)) {
-          if (!instr_cache.empty()) {
-            auto& cache = instr_cache[ip].call;
-            cache.callee_object = callee.as.obj;
-            cache.kind = CallSiteKind::InlineSlotConstructor;
-            cache.function = fn_obj;
-            cache.native = nullptr;
-            cache.class_version = klass->version;
-            cache.slot_constructor_args = slot_constructor_spec;
-          }
           std::string error;
-          if (!execute_slot_constructor_fn(callee, call_args, slot_constructor_spec, regs[in.dst], error)) {
-            if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
-            return XlangVMOpFlow::ReturnResult;
+          if (execute_slot_constructor_fn(callee, call_args, slot_constructor_spec, regs[in.dst], error)) {
+            if (!instr_cache.empty()) {
+              auto& cache = instr_cache[ip].call;
+              cache.callee_object = callee.as.obj;
+              cache.kind = CallSiteKind::InlineSlotConstructor;
+              cache.function = fn_obj;
+              cache.native = nullptr;
+              cache.class_version = klass->version;
+              cache.slot_constructor_args = slot_constructor_spec;
+            }
+            return XlangVMOpFlow::Next;
           }
-          return XlangVMOpFlow::Next;
         }
         if (!instr_cache.empty()) {
           auto& cache = instr_cache[ip].call;
@@ -2442,6 +2538,7 @@ XLANG3_HOT_INLINE bool call_native_function(
   const bool needs_materialized_expansion = values.has_expansion();
   const bool use_fast = native->fast_callback != nullptr && !needs_materialized_expansion;
   xlang_perf_count_native_call(use_fast);
+  xlang_perf_count_native_name(native->name, use_fast);
   const Value* native_args = nullptr;
   uint32_t native_argc = static_cast<uint32_t>(values.size());
   if (needs_materialized_expansion) {
@@ -2466,13 +2563,24 @@ XLANG3_HOT_INLINE bool call_native_function(
     native_args = materialize_native_args(values, native_call_args);
   }
   Value code = Value::none();
-  const bool monitoring_enabled = sys_monitoring_event_may_dispatch(kSysMonitoringEventCall) ||
-                                  sys_monitoring_event_may_dispatch(kSysMonitoringEventCRaise) ||
-                                  sys_monitoring_event_may_dispatch(kSysMonitoringEventCReturn);
-  const Value& profile_hook = runtime.profile_function();
-  const bool profile_enabled = profile_hook.tag != ValueTag::Invalid &&
-                               profile_hook.tag != ValueTag::None &&
-                               !runtime.profile_dispatch_active();
+  const int64_t native_monitoring_mask =
+      kSysMonitoringEventCall | kSysMonitoringEventCRaise | kSysMonitoringEventCReturn;
+  const bool native_monitoring_possible =
+      sys_monitoring_event_may_dispatch(native_monitoring_mask);
+  const bool monitor_call = native_monitoring_possible &&
+      sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCall);
+  const bool monitor_raise = native_monitoring_possible &&
+      sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCRaise);
+  const bool monitor_return = native_monitoring_possible &&
+      sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCReturn);
+  const bool monitoring_enabled = monitor_call || monitor_raise || monitor_return;
+  bool profile_enabled = false;
+  if (runtime.profile_event_may_dispatch()) {
+    const Value& profile_hook = runtime.profile_function();
+    profile_enabled = profile_hook.tag != ValueTag::Invalid &&
+                      profile_hook.tag != ValueTag::None &&
+                      !runtime.profile_dispatch_active();
+  }
   Value callable;
   Value profile_frame;
   if (monitoring_enabled || profile_enabled) {
@@ -2480,7 +2588,7 @@ XLANG3_HOT_INLINE bool call_native_function(
     if (profile_enabled) {
       profile_frame = runtime.current_frame_snapshot();
     }
-    if (monitoring_enabled &&
+    if (monitor_call &&
         !sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable, error)) {
       if (raise_runtime_error(error.empty() ? "monitoring callback failed" : error)) return false;
       return false;
@@ -2530,7 +2638,7 @@ XLANG3_HOT_INLINE bool call_native_function(
     }
   }
   if (!ok) {
-    if (monitoring_enabled) {
+    if (monitor_raise) {
       std::string monitoring_error;
       (void)sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCRaise, code, -1, &callable, monitoring_error);
     }
@@ -2546,7 +2654,7 @@ XLANG3_HOT_INLINE bool call_native_function(
     if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
     return false;
   }
-  if (monitoring_enabled && !sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable, error)) {
+  if (monitor_return && !sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable, error)) {
     if (raise_runtime_error(error.empty() ? "monitoring callback failed" : error)) return false;
     return false;
   }
@@ -2575,6 +2683,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
   const bool use_fast = native->fast_callback != nullptr && !needs_materialized_ex;
   xlang_perf_count_native_call(use_fast);
+  xlang_perf_count_native_name(native->name, use_fast);
   const Value* native_args = nullptr;
   if (needs_materialized_ex) {
     native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_materialized_keywords, error);
@@ -2594,14 +2703,33 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   } else if (!use_fast) {
     native_args = materialize_native_args(values, native_call_args);
   }
-  const bool monitoring_enabled = monitoring_code != nullptr &&
-                                  (sys_monitoring_event_may_dispatch(kSysMonitoringEventCall) ||
-                                   sys_monitoring_event_may_dispatch(kSysMonitoringEventCRaise) ||
-                                   sys_monitoring_event_may_dispatch(kSysMonitoringEventCReturn));
-  const Value& profile_hook = runtime.profile_function();
-  const bool profile_enabled = profile_hook.tag != ValueTag::Invalid &&
-                               profile_hook.tag != ValueTag::None &&
-                               !runtime.profile_dispatch_active();
+  auto monitoring_event_enabled = [&](int64_t event) {
+    if (monitoring_code == nullptr) return false;
+    auto* code_object = value_as_code(*monitoring_code);
+    return code_object != nullptr
+        ? sys_monitoring_location_may_dispatch(
+              code_object->module.get(), code_object->function_id, event,
+              monitoring_instruction_offset)
+        : sys_monitoring_global_event_may_dispatch(event);
+  };
+  const int64_t native_monitoring_mask =
+      kSysMonitoringEventCall | kSysMonitoringEventCRaise | kSysMonitoringEventCReturn;
+  const bool native_monitoring_possible =
+      sys_monitoring_event_may_dispatch(native_monitoring_mask);
+  const bool monitor_call = native_monitoring_possible &&
+      monitoring_event_enabled(kSysMonitoringEventCall);
+  const bool monitor_raise = native_monitoring_possible &&
+      monitoring_event_enabled(kSysMonitoringEventCRaise);
+  const bool monitor_return = native_monitoring_possible &&
+      monitoring_event_enabled(kSysMonitoringEventCReturn);
+  const bool monitoring_enabled = monitor_call || monitor_raise || monitor_return;
+  bool profile_enabled = false;
+  if (runtime.profile_event_may_dispatch()) {
+    const Value& profile_hook = runtime.profile_function();
+    profile_enabled = profile_hook.tag != ValueTag::Invalid &&
+                      profile_hook.tag != ValueTag::None &&
+                      !runtime.profile_dispatch_active();
+  }
   Value callable;
   Value profile_frame;
   if (monitoring_enabled || profile_enabled) {
@@ -2610,7 +2738,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   if (profile_enabled) {
     profile_frame = runtime.current_frame_snapshot();
   }
-  if (monitoring_enabled) {
+  if (monitor_call) {
     std::string monitoring_error;
     if (!sys_monitoring_dispatch_event(
             runtime,
@@ -2680,7 +2808,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     }
   }
   if (!ok) {
-    if (monitoring_enabled) {
+    if (monitor_raise) {
       std::string monitoring_error;
       if (!sys_monitoring_dispatch_event(
               runtime,
@@ -2705,7 +2833,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     if (raise_runtime_error(error.empty() ? "native function failed" : error)) return false;
     return false;
   }
-  if (monitoring_enabled) {
+  if (monitor_return) {
     std::string monitoring_error;
     if (!sys_monitoring_dispatch_event(
             runtime,
@@ -3056,6 +3184,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
     const ir::Function& fn,
     const ir::Module& module,
     const std::shared_ptr<const ir::Module>& module_owner,
+    const Value& monitoring_code,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     const Value& globals_module,
@@ -3094,6 +3223,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   call_args.registers = regs.value_data();
   call_args.register_args = &call_arg_regs;
 
+  auto monitoring_event_enabled = [&](int64_t event) {
+    auto* code_object = value_as_code(monitoring_code);
+    return code_object != nullptr
+        ? sys_monitoring_location_may_dispatch(
+              code_object->module.get(), code_object->function_id, event,
+              static_cast<int64_t>(ip))
+        : sys_monitoring_global_event_may_dispatch(event);
+  };
+  const int64_t native_monitoring_mask =
+      kSysMonitoringEventCall | kSysMonitoringEventCReturn | kSysMonitoringEventCRaise;
+  const bool native_monitoring_enabled =
+      sys_monitoring_event_may_dispatch(native_monitoring_mask) &&
+      (monitoring_event_enabled(kSysMonitoringEventCall) ||
+       monitoring_event_enabled(kSysMonitoringEventCReturn) ||
+       monitoring_event_enabled(kSysMonitoringEventCRaise));
+
   auto materialize_native_args = [&](CallArgsView values) -> const Value* {
     native_call_args.clear();
     native_call_args.reserve(values.size());
@@ -3104,9 +3249,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   };
 
   auto dispatch_native_monitoring_event = [&](int64_t event, const Value& callable) -> bool {
+    if (!native_monitoring_enabled) return true;
+    const bool enabled = monitoring_event_enabled(event);
+    if (!enabled) return true;
     std::string monitoring_error;
-    Value code = monitoring_code_object_for_function(module, module_owner, fn);
-    if (!sys_monitoring_dispatch_event(runtime, event, code, static_cast<int64_t>(ip), &callable, monitoring_error)) {
+    if (!sys_monitoring_dispatch_event(runtime, event, monitoring_code, static_cast<int64_t>(ip), &callable, monitoring_error)) {
       return raise_runtime_error(monitoring_error) ? false : false;
     }
     return true;
@@ -3115,12 +3262,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   auto call_native_function = [&](NativeFunctionObject* native, CallArgsView values, Value& out) -> bool {
     std::string error;
     Value native_result;
-    Value callable = Value::string(native->name);
+    Value callable = native_monitoring_enabled ? Value::string(native->name) : Value::none();
     if (!dispatch_native_monitoring_event(kSysMonitoringEventCall, callable)) {
       return false;
     }
     const bool use_fast = native->fast_callback != nullptr;
     xlang_perf_count_native_call(use_fast);
+    xlang_perf_count_native_name(native->name, use_fast);
     const Value* native_args = nullptr;
     if (!use_fast) {
       native_args = materialize_native_args(values);
@@ -3128,36 +3276,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
     bool ok = false;
     if (use_fast && !native->fast_releases_vm_lock) {
       ok = native->fast_callback(
-          runtime,
-          values.leading,
-          values.leading_count,
-          values.registers,
+          runtime, values.leading, values.leading_count, values.registers,
           values.register_args == nullptr ? nullptr : values.register_args->data(),
           values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
-          native_result,
-          error,
-          native->user_data);
+          native_result, error, native->user_data);
     } else {
       execution_lock.unlock();
       ok = use_fast
           ? native->fast_callback(
-                runtime,
-                values.leading,
-                values.leading_count,
-                values.registers,
+                runtime, values.leading, values.leading_count, values.registers,
                 values.register_args == nullptr ? nullptr : values.register_args->data(),
                 values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
-                native_result,
-                error,
-                native->user_data)
-          : native->callback != nullptr &&
-                native->callback(
-                    runtime,
-                    native_args,
-                    static_cast<uint32_t>(values.size()),
-                    native_result,
-                    error,
-                    native->user_data);
+                native_result, error, native->user_data)
+          : native->callback != nullptr && native->callback(
+                runtime, native_args, static_cast<uint32_t>(values.size()),
+                native_result, error, native->user_data);
       execution_lock.lock();
     }
     if (!ok) {
@@ -3182,7 +3315,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   auto call_cached_fast_function = [&](const CallSiteCache& cache, CallArgsView values, Value& out) -> bool {
     std::string error;
     Value native_result;
-    Value callable = cache.native != nullptr ? Value::string(cache.native->name) : Value::none();
+    Value callable = native_monitoring_enabled && cache.native != nullptr
+        ? Value::string(cache.native->name) : Value::none();
     if (!dispatch_native_monitoring_event(kSysMonitoringEventCall, callable)) {
       return false;
     }
@@ -3440,6 +3574,106 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
     return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::Next;
+}
+
+template <
+    typename MakeGeneratorIfNeeded, typename PushFrame,
+    typename CallBuiltinTypeConstructor, typename AnalyzeArgBinaryFunction,
+    typename ExecuteArgBinaryFunction, typename AnalyzeSlotConstructor,
+    typename ExecuteSlotConstructor, typename RaiseRuntimeError,
+    typename RaiseExceptionValue, typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow call_local(
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
+    std::vector<XlangVMInstrCache>& instr_cache, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    CallBuiltinTypeConstructor&& call_builtin_type_constructor,
+    AnalyzeArgBinaryFunction&& analyze_arg_binary_function,
+    ExecuteArgBinaryFunction&& execute_arg_binary_function,
+    AnalyzeSlotConstructor&& analyze_slot_constructor,
+    ExecuteSlotConstructor&& execute_slot_constructor,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  if (in.a >= locals.size() || in.dst >= regs.size()) {
+    result.errors.push_back("invalid local slot in call");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.dst], locals[in.a]);
+  const ir::Instr call_in{ir::Op::Call, in.dst, in.dst, in.b, 0};
+  return call(
+      call_in, fn, module, module_owner, runtime, regs, instr_cache,
+      native_call_args, ip, result, execution_lock,
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<CallBuiltinTypeConstructor>(call_builtin_type_constructor),
+      std::forward<AnalyzeArgBinaryFunction>(analyze_arg_binary_function),
+      std::forward<ExecuteArgBinaryFunction>(execute_arg_binary_function),
+      std::forward<AnalyzeSlotConstructor>(analyze_slot_constructor),
+      std::forward<ExecuteSlotConstructor>(execute_slot_constructor),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <
+    typename MakeGeneratorIfNeeded, typename PushFrame,
+    typename CallBuiltinTypeConstructor, typename AnalyzeConstMethod,
+    typename AnalyzeSelfBinaryMethod, typename ExecuteSelfBinaryMethod,
+    typename AnalyzeSelfSlotMethod, typename ExecuteSelfSlotMethod,
+    typename AnalyzeSelfSlotConstSumMethod, typename ExecuteSelfSlotConstSumMethod,
+    typename RaiseRuntimeError, typename RaiseExceptionValue,
+    typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow call_local_method(
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
+    std::vector<XlangVMInstrCache>& instr_cache, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    CallBuiltinTypeConstructor&& call_builtin_type_constructor,
+    AnalyzeConstMethod&& analyze_const_method,
+    AnalyzeSelfBinaryMethod&& analyze_self_binary_method,
+    ExecuteSelfBinaryMethod&& execute_self_binary_method,
+    AnalyzeSelfSlotMethod&& analyze_self_slot_method,
+    ExecuteSelfSlotMethod&& execute_self_slot_method,
+    AnalyzeSelfSlotConstSumMethod&& analyze_self_slot_const_sum_method,
+    ExecuteSelfSlotConstSumMethod&& execute_self_slot_const_sum_method,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  if (in.a >= locals.size() || in.dst >= regs.size()) {
+    result.errors.push_back("invalid local slot in method call");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.dst], locals[in.a]);
+  const ir::Instr call_in{ir::Op::CallMethod, in.dst, in.dst, in.b, in.c};
+  return call_method(
+      call_in, fn, module, module_owner, runtime, regs, instr_cache,
+      native_call_args, ip, result, execution_lock,
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<CallBuiltinTypeConstructor>(call_builtin_type_constructor),
+      std::forward<AnalyzeConstMethod>(analyze_const_method),
+      std::forward<AnalyzeSelfBinaryMethod>(analyze_self_binary_method),
+      std::forward<ExecuteSelfBinaryMethod>(execute_self_binary_method),
+      std::forward<AnalyzeSelfSlotMethod>(analyze_self_slot_method),
+      std::forward<ExecuteSelfSlotMethod>(execute_self_slot_method),
+      std::forward<AnalyzeSelfSlotConstSumMethod>(analyze_self_slot_const_sum_method),
+      std::forward<ExecuteSelfSlotConstSumMethod>(execute_self_slot_const_sum_method),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
 }
 
 } // namespace xlang3::xlang_vm::ops

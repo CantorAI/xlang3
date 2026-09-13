@@ -882,7 +882,10 @@ bool builtin_open(
     if (parsed.truncate) flags |= O_TRUNC;
     if (parsed.exclusive) flags |= O_EXCL;
 #if defined(_WIN32)
-    flags |= parsed.binary ? _O_BINARY : _O_TEXT;
+    // The raw descriptor is always binary. Text encoding and newline
+    // translation belong to FileObject, including when an opener callback
+    // creates the descriptor.
+    flags |= _O_BINARY | _O_NOINHERIT;
 #endif
     Value opener_args[] = {args[0], Value::int64(flags)};
     Value descriptor;

@@ -119,6 +119,32 @@ Value Value::generator(
   obj->is_coroutine = is_coroutine;
   obj->args_bound = args_bound;
   value_set_none(obj->return_value);
+  value_set_none(obj->origin);
+  if (runtime != nullptr && is_coroutine) {
+    const int64_t depth = sys_coroutine_origin_tracking_depth();
+    if (depth > 0) {
+      std::vector<Value> origin;
+      Value frame = runtime->current_frame_snapshot();
+      for (int64_t index = 0; index < depth && value_as_frame(frame) != nullptr; ++index) {
+        Value code;
+        Value filename;
+        Value name;
+        Value line;
+        std::string ignored;
+        if (!object_get_attr(frame, "f_code", code, ignored) ||
+            !object_get_attr(code, "co_filename", filename, ignored) ||
+            !object_get_attr(code, "co_name", name, ignored) ||
+            !object_get_attr(frame, "f_lineno", line, ignored)) {
+          break;
+        }
+        origin.push_back(Value::tuple({filename, line, name}));
+        auto* current = value_as_frame(frame);
+        if (current->back.tag == ValueTag::None || current->back.tag == ValueTag::Invalid) break;
+        frame = current->back;
+      }
+      obj->origin = Value::tuple(std::move(origin));
+    }
+  }
   v.as.obj = &obj->header;
   return v;
 }
@@ -215,7 +241,7 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     }
     value_set_invalid(obj->pending_send);
     value_set_invalid(obj->pending_throw);
-    value_set_invalid(obj->function);
+    value_set_invalid(obj->awaiting);
     obj->args.clear();
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
@@ -235,6 +261,16 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
   if (obj == nullptr) {
     error = "invalid generator";
     return false;
+  }
+  if (!obj->done && obj->awaiting.tag != ValueTag::Invalid) {
+    Value awaiting = obj->awaiting;
+    Value ignored;
+    std::string close_error;
+    if (!generator_close(awaiting, ignored, close_error) && !close_error.empty()) {
+      error = std::move(close_error);
+      return false;
+    }
+    value_set_invalid(obj->awaiting);
   }
   if (!obj->done && obj->vm_state != nullptr && obj->runtime != nullptr) {
     Value exception = obj->runtime->make_exception("GeneratorExit", "");
@@ -269,7 +305,7 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
   obj->done = true;
   value_set_invalid(obj->pending_send);
   value_set_invalid(obj->pending_throw);
-  value_set_invalid(obj->function);
+  value_set_invalid(obj->awaiting);
   obj->args.clear();
   obj->has_pending_send = false;
   obj->has_pending_throw = false;
@@ -297,6 +333,24 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     exception = obj->runtime->make_exception_from_class(args[0], message);
   } else {
     value_assign_fast(exception, args[0]);
+  }
+  if (!obj->done && obj->awaiting.tag != ValueTag::Invalid) {
+    Value awaiting = obj->awaiting;
+    Value delegated_out;
+    std::string delegated_error;
+    if (generator_throw(awaiting, args, argc, delegated_out, delegated_error)) {
+      value_assign_fast(out, delegated_out);
+      return true;
+    }
+    Value delegated_exception;
+    if (obj->runtime->take_pending_exception(delegated_exception)) {
+      value_assign_fast(exception, delegated_exception);
+    } else if (value_as_instance(delegated_out) != nullptr) {
+      value_assign_fast(exception, delegated_out);
+    } else if (obj->runtime->active_exception().tag != ValueTag::Invalid) {
+      value_assign_fast(exception, obj->runtime->active_exception());
+    }
+    value_set_invalid(obj->awaiting);
   }
   if (obj->done || obj->vm_state == nullptr) {
     if (!obj->done && !obj->started) {
@@ -328,7 +382,7 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     }
     value_set_invalid(obj->pending_send);
     value_set_invalid(obj->pending_throw);
-    value_set_invalid(obj->function);
+    value_set_invalid(obj->awaiting);
     obj->args.clear();
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
@@ -659,7 +713,7 @@ bool coroutine_await_method(Runtime& runtime, const Value* args, uint32_t argc, 
   return true;
 }
 
-static constexpr BuiltinMethodSpec kGeneratorMethods[] = {
+static BuiltinMethodSpec kGeneratorMethods[] = {
       {"__await__", "coroutine.__await__", coroutine_await_method},
       {"__iter__", "generator.__iter__", generator_iter_method},
       {"__next__", "generator.__next__", generator_next_method},
@@ -673,7 +727,7 @@ static constexpr BuiltinMethodSpec kGeneratorMethods[] = {
       {"throw", "generator.throw", generator_throw_method},
 };
 
-static constexpr BuiltinMethodSpec kAsyncGeneratorAwaitableMethods[] = {
+static BuiltinMethodSpec kAsyncGeneratorAwaitableMethods[] = {
       {"__await__", "async_generator_awaitable.__await__", async_generator_awaitable_await_method},
       {"__iter__", "async_generator_awaitable.__iter__", async_generator_awaitable_await_method},
       {"__next__", "async_generator_awaitable.__next__", async_generator_awaitable_next_method},
@@ -756,6 +810,25 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
       }
     }
     value_set_none(out);
+    return true;
+  }
+  if ((name == "__name__" || name == "__qualname__") && generator->function.tag != ValueTag::Invalid) {
+    if (auto* function = value_as_function(generator->function)) {
+      const std::string& value = name == "__name__"
+          ? (function->module != nullptr && function->function_id < function->module->functions.size()
+                ? function->module->functions[function->function_id].name : function->qualname)
+          : function->qualname;
+      out = Value::string(value);
+      return true;
+    }
+  }
+  if (name == "cr_origin" && generator->is_coroutine) {
+    value_assign_fast(out, generator->origin);
+    return true;
+  }
+  if (name == "cr_await" && generator->is_coroutine) {
+    if (generator->awaiting.tag == ValueTag::Invalid) value_set_none(out);
+    else value_assign_fast(out, generator->awaiting);
     return true;
   }
   if ((name == "__aiter__" || name == "__anext__" || name == "asend" || name == "athrow" || name == "aclose") &&

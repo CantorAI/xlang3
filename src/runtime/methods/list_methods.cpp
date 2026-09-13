@@ -484,7 +484,7 @@ bool list_sort_method_kw(
   return list_sort_impl(runtime, list_value, key_callable, reverse, out, error);
 }
 
-static constexpr BuiltinMethodSpec kListMethods[] = {
+static BuiltinMethodSpec kListMethods[] = {
       {"__delitem__", "list.__delitem__", list_delitem_method},
       {"__getitem__", "list.__getitem__", list_getitem_method},
       {"__iter__", "list.__iter__", list_iter_method},

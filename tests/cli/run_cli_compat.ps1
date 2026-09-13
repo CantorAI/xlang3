@@ -81,11 +81,7 @@ Assert-Output "directory sys.path mutation" "$pathPackageDir/../`nTrue" {
 
 if ($env:OS -eq 'Windows_NT') {
 $pythonExe = Join-Path (Split-Path -Parent $XLang3) "python.exe"
-if (-not (Test-Path $pythonExe)) {
-    throw "python.exe copy missing next to xlang3.exe"
-}
-
-Assert-Output "python exe alias" "['-c', 'alias']" {
-    & $pythonExe -c "import sys`nprint(sys.argv)" alias
+if (Test-Path -LiteralPath $pythonExe) {
+    throw "python.exe alias must not exist next to xlang3.exe"
 }
 }

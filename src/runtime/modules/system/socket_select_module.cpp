@@ -19,6 +19,8 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#include "../thread/runtime_lock.h"
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -51,6 +53,12 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+
+template <typename Callable>
+auto without_runtime_execution_lock(Callable&& callable) -> decltype(callable()) {
+  XlangRuntimeExecutionSuspension suspension;
+  return callable();
+}
 
 constexpr int64_t kAfUnspec = 0;
 constexpr int64_t kAfInet = 2;
@@ -235,9 +243,9 @@ bool wait_socket_connect(Runtime& runtime, NativeSocket fd, double timeout, std:
   }
 
 #ifdef _WIN32
-  const int ready = ::select(0, nullptr, &write_set, &error_set, tv_ptr);
+  const int ready = without_runtime_execution_lock([&] { return ::select(0, nullptr, &write_set, &error_set, tv_ptr); });
 #else
-  const int ready = ::select(fd + 1, nullptr, &write_set, &error_set, tv_ptr);
+  const int ready = without_runtime_execution_lock([&] { return ::select(fd + 1, nullptr, &write_set, &error_set, tv_ptr); });
 #endif
   if (ready == 0) {
     error = "timed out";
@@ -1066,9 +1074,9 @@ bool wait_socket_readable(Runtime& runtime, NativeSocket fd, double timeout, con
   tv.tv_usec = static_cast<long>((timeout - static_cast<double>(tv.tv_sec)) * 1000000.0);
 
 #ifdef _WIN32
-  const int ready = ::select(0, &read_set, nullptr, &error_set, &tv);
+  const int ready = without_runtime_execution_lock([&] { return ::select(0, &read_set, nullptr, &error_set, &tv); });
 #else
-  const int ready = ::select(fd + 1, &read_set, nullptr, &error_set, &tv);
+  const int ready = without_runtime_execution_lock([&] { return ::select(fd + 1, &read_set, nullptr, &error_set, &tv); });
 #endif
   if (ready == 0) {
     runtime.raise_class_error("TimeoutError", std::string(operation) + " timed out");
@@ -1283,14 +1291,16 @@ bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   SocketAddress peer;
   peer.length = sizeof(peer.storage);
-  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
+  NativeSocket accepted = without_runtime_execution_lock(
+      [&] { return ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length); });
   if (accepted == kInvalidSocket && socket_last_error_would_block()) {
     double timeout = -1.0;
     if (!socket_timeout_seconds(*state, timeout, error) ||
         !wait_socket_readable(runtime, fd, timeout, "accept", error)) {
       return false;
     }
-    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
+    accepted = without_runtime_execution_lock(
+        [&] { return ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length); });
   }
   if (accepted == kInvalidSocket) {
     return raise_socket_os_error(runtime, "accept", error);
@@ -1342,14 +1352,16 @@ bool socket_accept_fd(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   SocketAddress peer;
   peer.length = sizeof(peer.storage);
-  NativeSocket accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
+  NativeSocket accepted = without_runtime_execution_lock(
+      [&] { return ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length); });
   if (accepted == kInvalidSocket && socket_last_error_would_block()) {
     double timeout = -1.0;
     if (!socket_timeout_seconds(*state, timeout, error) ||
         !wait_socket_readable(runtime, fd, timeout, "accept", error)) {
       return false;
     }
-    accepted = ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length);
+    accepted = without_runtime_execution_lock(
+        [&] { return ::accept(fd, reinterpret_cast<sockaddr*>(&peer.storage), &peer.length); });
   }
   if (accepted == kInvalidSocket) {
     return raise_socket_os_error(runtime, "accept", error);
@@ -1376,7 +1388,8 @@ bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   if (fd == kInvalidSocket) return false;
   SocketAddress address;
   if (!fill_socket_address(state->family, host, port, address, error)) return false;
-  if (::connect(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length) != 0) {
+  if (without_runtime_execution_lock(
+          [&] { return ::connect(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length); }) != 0) {
     if (!state->blocking && socket_last_error_would_block()) {
       double timeout = 0.0;
       if (!socket_timeout_seconds(*state, timeout, error) || !wait_socket_connect(runtime, fd, timeout, error)) return false;
@@ -1403,7 +1416,8 @@ bool socket_connect_ex(Runtime& runtime, const Value* args, uint32_t argc, Value
   NativeSocket fd = make_native_socket(*state, error);
   SocketAddress address;
   if (fd == kInvalidSocket || !fill_socket_address(state->family, host, port, address, error)) return false;
-  if (::connect(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length) == 0) {
+  if (without_runtime_execution_lock(
+          [&] { return ::connect(fd, reinterpret_cast<sockaddr*>(&address.storage), address.length); }) == 0) {
     state->host = host.empty() ? "127.0.0.1" : host;
     state->port = port;
     value_set_int64(out, 0);
@@ -1449,7 +1463,8 @@ bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value&
   size_t total = 0;
   while (total < data.size()) {
     const int chunk = static_cast<int>(std::min<size_t>(data.size() - total, 65536));
-    const int sent = ::send(fd, data.data() + total, chunk, flags);
+    const int sent = without_runtime_execution_lock(
+        [&] { return ::send(fd, data.data() + total, chunk, flags); });
     if (sent <= 0) {
       error = socket_last_error_text(send_all ? "sendall" : "send");
       runtime.raise_class_error("OSError", error);
@@ -1499,8 +1514,10 @@ bool socket_sendto(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (!fill_socket_address(state->family, host, port, address, error)) return false;
   NativeSocket fd = make_native_socket(*state, error);
   if (fd == kInvalidSocket) return false;
-  const int sent = ::sendto(fd, data.data(), static_cast<int>(data.size()), flags,
-                            reinterpret_cast<sockaddr*>(&address.storage), address.length);
+  const int sent = without_runtime_execution_lock([&] {
+    return ::sendto(fd, data.data(), static_cast<int>(data.size()), flags,
+                    reinterpret_cast<sockaddr*>(&address.storage), address.length);
+  });
   if (sent < 0) { error = socket_last_error_text("sendto"); runtime.raise_class_error("OSError", error); return false; }
   value_set_int64(out, sent);
   return true;
@@ -1572,13 +1589,15 @@ bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   std::string data(static_cast<size_t>(size), '\0');
   SocketAddress peer;
   peer.length = sizeof(peer.storage);
-  const int received = ::recvfrom(
-      fd,
-      data.data(),
-      size,
-      flags,
-      reinterpret_cast<sockaddr*>(&peer.storage),
-      &peer.length);
+  const int received = without_runtime_execution_lock([&] {
+    return ::recvfrom(
+        fd,
+        data.data(),
+        size,
+        flags,
+        reinterpret_cast<sockaddr*>(&peer.storage),
+        &peer.length);
+  });
   if (received < 0) {
     if (socket_last_error_would_block()) {
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recvfrom"));
@@ -1615,7 +1634,8 @@ bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   const int size = static_cast<int>(std::max<int64_t>(0, args[1].as.i64));
   const int flags = argc == 3 ? static_cast<int>(args[2].as.i64) : 0;
   std::string data(static_cast<size_t>(size), '\0');
-  const int received = ::recv(fd, data.data(), size, flags);
+  const int received = without_runtime_execution_lock(
+      [&] { return ::recv(fd, data.data(), size, flags); });
   if (received < 0) {
     if (socket_last_error_would_block()) {
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv"));
@@ -1692,7 +1712,8 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
     return true;
   }
 
-  const int received = ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), flags);
+  const int received = without_runtime_execution_lock(
+      [&] { return ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), flags); });
   if (received < 0) {
     if (socket_last_error_would_block()) {
       runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv_into"));
@@ -1749,13 +1770,15 @@ bool socket_recvfrom_into(Runtime& runtime, const Value* args, uint32_t argc, Va
   if (fd == kInvalidSocket || !prepare_socket_read(runtime, *state, fd, "recvfrom_into", error)) return false;
   SocketAddress peer;
   peer.length = sizeof(peer.storage);
-  const int received = ::recvfrom(
-      fd,
-      data,
-      static_cast<int>(std::min<size_t>(capacity, 65536)),
-      flags,
-      reinterpret_cast<sockaddr*>(&peer.storage),
-      &peer.length);
+  const int received = without_runtime_execution_lock([&] {
+    return ::recvfrom(
+        fd,
+        data,
+        static_cast<int>(std::min<size_t>(capacity, 65536)),
+        flags,
+        reinterpret_cast<sockaddr*>(&peer.storage),
+        &peer.length);
+  });
   if (received < 0) {
     error = socket_last_error_text("recvfrom_into");
     runtime.raise_class_error(socket_last_error_would_block() ? "BlockingIOError" : "OSError", error);
@@ -2754,7 +2777,10 @@ bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 
   if (read_entries.empty() && write_entries.empty() && except_entries.empty()) {
     if (timeout > 0.0) {
-      std::this_thread::sleep_for(std::chrono::duration<double>(timeout));
+      without_runtime_execution_lock([&] {
+        std::this_thread::sleep_for(std::chrono::duration<double>(timeout));
+        return 0;
+      });
     }
     out = Value::tuple({Value::list({}), Value::list({}), Value::list({})});
     return true;
@@ -2769,9 +2795,12 @@ bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
 
 #ifdef _WIN32
-  const int ready = ::select(0, &read_set, &write_set, &except_set, tv_ptr);
+  const int ready = without_runtime_execution_lock(
+      [&] { return ::select(0, &read_set, &write_set, &except_set, tv_ptr); });
 #else
-  const int ready = ::select(static_cast<int>(max_fd) + 1, &read_set, &write_set, &except_set, tv_ptr);
+  const int ready = without_runtime_execution_lock([&] {
+    return ::select(static_cast<int>(max_fd) + 1, &read_set, &write_set, &except_set, tv_ptr);
+  });
 #endif
   if (ready < 0) {
     error = socket_last_error_text("select");

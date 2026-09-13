@@ -230,6 +230,23 @@ bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std
 bool instance_native_truthy(const Value& instance, bool& out);
 bool runtime_instance_truthy(Runtime& runtime, const Value& value, bool& out, std::string& error);
 inline bool runtime_truthy(Runtime& runtime, const Value& value, bool& out, std::string& error) {
+  switch (value.tag) {
+    case ValueTag::Invalid:
+    case ValueTag::None:
+      out = false;
+      return true;
+    case ValueTag::Bool:
+      out = value.as.b;
+      return true;
+    case ValueTag::Int64:
+      out = value.as.i64 != 0;
+      return true;
+    case ValueTag::Double:
+      out = value.as.f64 != 0.0;
+      return true;
+    case ValueTag::Object:
+      break;
+  }
   if (value_as_instance(value)) return runtime_instance_truthy(runtime, value, out, error);
   out = value_truthy(value);
   return true;

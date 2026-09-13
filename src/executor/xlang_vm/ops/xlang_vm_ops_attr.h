@@ -374,6 +374,35 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   if (auto* instance = value_as_instance(regs[in.a])) {
     if (auto* klass = value_as_class(instance->klass)) {
       auto& cache = instr_cache[ip].attr;
+      if (cache.owner == &klass->header && cache.version == klass->version) {
+        if (cache.kind == AttrSiteKind::InstanceSlot &&
+            cache.index < instance_slot_count(instance)) {
+          const auto& slot_value = instance_slot_at(instance, cache.index);
+          if (slot_value.tag != ValueTag::Invalid) {
+            value_assign_fast(regs[in.dst], slot_value);
+            return XlangVMOpFlow::Next;
+          }
+        }
+        if (cache.kind == AttrSiteKind::InstanceAttr &&
+            cache.index < instance->attrs.size() &&
+            instance->attrs[cache.index].first == fn.names[in.b]) {
+          value_assign_fast(regs[in.dst], instance->attrs[cache.index].second);
+          return XlangVMOpFlow::Next;
+        }
+      }
+      if (cache.kind == AttrSiteKind::InstanceDict) {
+        if (auto* attributes = value_as_dict(instance_attribute_storage(*instance));
+            attributes != nullptr && cache.owner == &attributes->header &&
+            cache.version == klass->version &&
+            cache.index < attributes->entries.size()) {
+          const auto& entry = attributes->entries[cache.index];
+          auto* key = value_as_string(entry.first);
+          if (key != nullptr && string_object_view(*key) == fn.names[in.b]) {
+            value_assign_fast(regs[in.dst], entry.second);
+            return XlangVMOpFlow::Next;
+          }
+        }
+      }
       if (cache.getter_inline && cache.owner == &klass->header && cache.version == klass->version) {
         std::string error;
         if (!execute_inline_property_getter(*instance, cache, regs[in.dst], error)) {
@@ -439,6 +468,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   std::string error;
   Value attr;
   if (!load_attr_cached(regs[in.a], fn.names[in.b], instr_cache[ip].attr, attr, error)) {
+    if (value_as_memoryview(regs[in.a]) != nullptr &&
+        error == "operation forbidden on released memoryview object") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (value_as_cell(regs[in.a]) != nullptr && fn.names[in.b] == "cell_contents" && error == "Cell is empty") {
       return raise_exception_value(runtime.make_exception("ValueError", error))
           ? XlangVMOpFlow::ContinueLoop
@@ -641,6 +675,47 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   return XlangVMOpFlow::Next;
 }
 
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError,
+          typename RaiseExceptionValue, typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow load_local_attr(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    std::vector<XlangVMInstrCache>& instr_cache,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
+    RuntimeResult& result,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  if (in.a >= locals.size() || in.c >= regs.size()) {
+    result.errors.push_back("invalid local slot in attribute load");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.c], locals[in.a]);
+  const ir::Instr attr{ir::Op::LoadAttr, in.dst, in.c, in.b, 0};
+  return load_attr(
+      attr, fn, module, module_owner, runtime, regs, instr_cache,
+      native_call_args, ip, result, execution_lock,
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     const ir::Instr& in,
@@ -828,6 +903,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
     if (error.find("immutable type") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (error.rfind("tb_next must be", 0) == 0) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (error == "traceback loop detected") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
+          ? XlangVMOpFlow::ContinueLoop
+          : XlangVMOpFlow::ReturnResult;
+    }
+    if (error == "f_lineno can only be set in a trace function" ||
+        error == "line is not in current frame") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;
     }
@@ -1058,6 +1149,84 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_instance_slot(
     if (in.a < klass->instance_slot_names.size() && value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
       std::string ignored;
       mapping_set_item(instance_attribute_storage(*instance), Value::string(klass->instance_slot_names[in.a]), regs[in.b], ignored);
+    }
+  }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow load_local_instance_slot(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (in.a >= locals.size()) {
+    return raise_runtime_error("invalid local instance slot load")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : std::string();
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  auto* instance = value_as_instance(locals[in.a]);
+  if (instance == nullptr || in.b >= instance_slot_count(instance)) {
+    return raise_runtime_error("invalid local instance slot load")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const auto& slot_value = instance_slot_at(instance, in.b);
+  if (slot_value.tag != ValueTag::Invalid) {
+    value_assign_fast(regs[in.dst], slot_value);
+    return XlangVMOpFlow::Next;
+  }
+
+  // Preserve the complete fallback behavior of LoadInstanceSlot for unset
+  // slots, where descriptors and tuple-backed compatibility objects apply.
+  ir::Instr slot_in = in;
+  slot_in.a = in.dst;
+  value_assign_fast(regs[in.dst], locals[in.a]);
+  return load_instance_slot(
+      slot_in, runtime, regs,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError>
+XLANG3_HOT_INLINE XlangVMOpFlow store_local_instance_slot(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error) {
+  if (in.dst >= locals.size()) {
+    return raise_runtime_error("invalid local instance slot store")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.dst].tag == ValueTag::Invalid) {
+    const std::string name = in.dst < fn.locals.size() ? fn.locals[in.dst] : std::string();
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  auto* instance = value_as_instance(locals[in.dst]);
+  if (instance == nullptr || in.a >= instance_slot_count(instance)) {
+    return raise_runtime_error("invalid local instance slot store")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_assign_fast(instance_slot_at(instance, in.a), regs[in.b]);
+  if (auto* klass = value_as_class(instance->klass)) {
+    if (in.a < klass->instance_slot_names.size() &&
+        value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+      std::string ignored;
+      mapping_set_item(
+          instance_attribute_storage(*instance),
+          Value::string(klass->instance_slot_names[in.a]), regs[in.b], ignored);
     }
   }
   return XlangVMOpFlow::Next;

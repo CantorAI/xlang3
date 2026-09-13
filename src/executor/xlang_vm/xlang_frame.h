@@ -24,6 +24,7 @@ limitations under the License.
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 /*
@@ -34,8 +35,9 @@ Purpose:
 Frame and per-instruction cache state for XlangVM execution.
 
 Ownership rule:
-Instruction caches live on the frame because they are tied to a function's IR
-instruction stream. Runtime objects do not own interpreter specialization state.
+Instruction caches live on interpreter frame storage because they are tied to a
+function's IR instruction stream. Inactive stack slots retain bounded prepared
+state for functions previously activated at that depth.
 
 The frame owns fast execution storage: locals, registers, cells, exception
 handlers, and per-site caches. It references ir::Module and ir::Function but
@@ -54,6 +56,8 @@ enum class CallSiteKind : uint8_t {
   InlineSlotConstructor,
   InlineSelfBinaryMethod,
   InlineArgBinaryFunction,
+  InlineConditionalArgFunction,
+  InlineTrivialFunction,
   InlineConstMethod,
   InlineSmallSelfMethod,
   InlineSelfSlotMethod,
@@ -92,6 +96,7 @@ struct CallSiteCache {
   ir::Op next_op = ir::Op::Add;
   Value inline_const;
   bool has_next = false;
+  bool next_is_constant = false;
   bool fast_releases_vm_lock = false;
   std::vector<std::pair<uint32_t, uint32_t>> slot_constructor_args;
   std::vector<Value> cached_values;
@@ -129,6 +134,8 @@ struct XlangVMInstrCache : XlangVMInstrCacheCore {
   GlobalSiteCache global;
   CallSiteCache call;
   AttrSiteCache attr;
+  uint64_t monitoring_generation = 0;
+  int64_t monitoring_disabled_events = 0;
 };
 
 enum class FrameReturnMode : uint8_t {
@@ -152,6 +159,15 @@ struct ExceptionHandler {
 struct XlangVMUnwind {};
 using VMUnwind = XlangVMUnwind;
 
+struct XlangVMPreparedFunctionState {
+  std::shared_ptr<const ir::Module> module_owner;
+  std::vector<XlangVMInstrCache> instr_cache;
+  std::vector<size_t> register_last_use;
+  std::vector<bool> register_loop_carried;
+  uint64_t monitoring_configuration_generation = 0;
+  int64_t monitoring_events = 0;
+};
+
 struct XlangVMFrame {
   const ir::Module* module = nullptr;
   const ir::Function* fn = nullptr;
@@ -164,12 +180,18 @@ struct XlangVMFrame {
   bool has_caller = false;
   FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
   Value continuation_value;
+  Value monitoring_code;
   Value trace_function;
+  Value trace_frame_object;
   size_t ip = 0;
   uint32_t last_trace_line = 0;
   uint32_t last_monitoring_line = 0;
   uint32_t last_debug_line = 0;
+  uint64_t monitoring_configuration_generation = 0;
+  int64_t monitoring_events = 0;
   bool trace_call_emitted = false;
+  bool trace_lines = true;
+  bool trace_opcodes = false;
 
   XlangVMSmallValueBuffer locals;
   XlangVMSmallValueBuffer cells;
@@ -180,7 +202,10 @@ struct XlangVMFrame {
   std::vector<XlangVMInstrCache> instr_cache;
   std::vector<size_t> register_last_use;
   std::vector<bool> register_loop_carried;
+  std::vector<uint32_t> memoryview_registers;
+  std::vector<bool> memoryview_register_flags;
   std::vector<Value> native_call_args;
+  std::unordered_map<const ir::Function*, XlangVMPreparedFunctionState> prepared_functions;
 
   XlangVMFrame(
       const ir::Module& frame_module,
@@ -225,9 +250,27 @@ struct XlangVMFrame {
       bool frame_has_caller,
       FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
       Value frame_continuation_value = Value::invalid()) {
+    const ir::Module* old_module = module;
+    const uint32_t old_function_id = this->function_id;
     const ir::Function* old_fn = fn;
+    const ir::Function* next_fn = &frame_module.functions[function_id];
+    if (old_fn != nullptr && old_fn != next_fn) {
+      auto prepared = prepared_functions.find(old_fn);
+      if (prepared == prepared_functions.end()) {
+        if (prepared_functions.size() >= 32) {
+          prepared_functions.erase(prepared_functions.begin());
+        }
+        prepared = prepared_functions.emplace(old_fn, XlangVMPreparedFunctionState{}).first;
+      }
+      prepared->second.module_owner = module_owner;
+      prepared->second.instr_cache = std::move(instr_cache);
+      prepared->second.register_last_use = std::move(register_last_use);
+      prepared->second.register_loop_carried = std::move(register_loop_carried);
+      prepared->second.monitoring_configuration_generation = monitoring_configuration_generation;
+      prepared->second.monitoring_events = monitoring_events;
+    }
     module = &frame_module;
-    fn = &frame_module.functions[function_id];
+    fn = next_fn;
     closure = &frame_closure;
     globals_module = std::move(frame_globals_module);
     module_owner = std::move(frame_module_owner);
@@ -236,23 +279,44 @@ struct XlangVMFrame {
     has_caller = frame_has_caller;
     return_mode = frame_return_mode;
     continuation_value = std::move(frame_continuation_value);
+    if (old_module != &frame_module || old_function_id != function_id) {
+      value_set_invalid(monitoring_code);
+    }
     value_set_invalid(trace_function);
+    value_set_invalid(trace_frame_object);
     ip = 0;
     last_trace_line = 0;
     last_monitoring_line = 0;
     last_debug_line = 0;
+    if (old_fn != fn) {
+      monitoring_configuration_generation = 0;
+      monitoring_events = 0;
+    }
     trace_call_emitted = false;
+    trace_lines = true;
+    trace_opcodes = false;
 
-    locals.reset(fn->locals.size(), Value::invalid());
-    cells.reset(fn->cell_slots.size(), Value::invalid());
-    regs.reset(fn->register_count, Value::invalid());
+    locals.reset_after_clear(fn->locals.size(), Value::invalid());
+    cells.reset_after_clear(fn->cell_slots.size(), Value::invalid());
+    regs.reset_after_clear(fn->register_count, Value::invalid());
     temps.clear();
     exception_handlers.clear();
     native_call_args.clear();
+    memoryview_registers.clear();
+    memoryview_register_flags.clear();
 
     if (old_fn != fn) {
-      instr_cache.assign(fn->code.size(), {});
-      compute_register_last_use();
+      auto prepared = prepared_functions.find(fn);
+      if (prepared != prepared_functions.end()) {
+        instr_cache = std::move(prepared->second.instr_cache);
+        register_last_use = std::move(prepared->second.register_last_use);
+        register_loop_carried = std::move(prepared->second.register_loop_carried);
+        monitoring_configuration_generation = prepared->second.monitoring_configuration_generation;
+        monitoring_events = prepared->second.monitoring_events;
+      } else {
+        instr_cache.assign(fn->code.size(), {});
+        compute_register_last_use();
+      }
       reserve_call_args();
     }
 
@@ -264,26 +328,23 @@ struct XlangVMFrame {
   void clear_for_pop() {
     value_set_invalid(globals_module);
     value_set_invalid(continuation_value);
+    // Retain immutable function preparation and inline caches in this stack
+    // slot. reset() reuses them when the next activation at this depth runs
+    // the same function, and replaces them when the function changes.
     value_set_invalid(trace_function);
-    module_owner.reset();
-    module = nullptr;
-    fn = nullptr;
+    value_set_invalid(trace_frame_object);
     closure = nullptr;
-    locals.reset(0, Value::invalid());
-    cells.reset(0, Value::invalid());
-    regs.reset(0, Value::invalid());
+    locals.clear_values();
+    cells.clear_values();
+    regs.clear_values();
     temps.clear();
     exception_handlers.clear();
     native_call_args.clear();
+    memoryview_registers.clear();
+    memoryview_register_flags.clear();
   }
 
 private:
-  void note_register_use(uint32_t reg, size_t instr_index) {
-    if (reg < register_last_use.size()) {
-      register_last_use[reg] = instr_index;
-    }
-  }
-
   template <typename Fn>
   void for_each_register_read(const ir::Instr& instr, Fn&& fn) const {
     auto one = [&](uint32_t reg) {
@@ -305,6 +366,7 @@ private:
     switch (instr.op) {
       case ir::Op::Move:
       case ir::Op::StoreLocal:
+      case ir::Op::StoreLocalLoadLocal:
       case ir::Op::StoreCell:
       case ir::Op::StoreFree:
       case ir::Op::StoreModuleSlot:
@@ -317,6 +379,9 @@ private:
       case ir::Op::Neg:
       case ir::Op::Invert:
       case ir::Op::JumpIfFalse:
+      case ir::Op::MoveJumpIfFalse:
+      case ir::Op::MoveJumpIfTrue:
+      case ir::Op::JumpIfFalseLoadLocal:
       case ir::Op::Raise:
       case ir::Op::SetExceptionCause:
       case ir::Op::SetException:
@@ -331,6 +396,16 @@ private:
       case ir::Op::LoadInstanceSlot:
       case ir::Op::TupleFromList:
         one(instr.a);
+        break;
+      case ir::Op::StoreLocalPair:
+        one(instr.a);
+        one(instr.c);
+        break;
+      case ir::Op::LoadLocalAttr:
+        one(instr.c);
+        break;
+      case ir::Op::StoreLocalInstanceSlot:
+        one(instr.b);
         break;
       case ir::Op::StoreAttr:
       case ir::Op::StoreInstanceSlot:
@@ -347,6 +422,7 @@ private:
       case ir::Op::SetUpdate:
       case ir::Op::GetItem:
       case ir::Op::Add:
+      case ir::Op::InplaceAdd:
       case ir::Op::Sub:
       case ir::Op::Mul:
       case ir::Op::MatMul:
@@ -363,7 +439,9 @@ private:
       case ir::Op::BoolAnd:
       case ir::Op::BoolOr:
       case ir::Op::Compare:
+      case ir::Op::CompareJumpIfFalse:
       case ir::Op::Is:
+      case ir::Op::IsJumpIfFalse:
       case ir::Op::Contains:
         one(instr.a);
         one(instr.b);
@@ -388,8 +466,14 @@ private:
         one(instr.a);
         call_args(instr.b);
         break;
+      case ir::Op::CallLocal:
+        call_args(instr.b);
+        break;
       case ir::Op::CallMethod:
         one(instr.a);
+        call_args(instr.c);
+        break;
+      case ir::Op::CallLocalMethod:
         call_args(instr.c);
         break;
       case ir::Op::CallModuleMethod:
@@ -473,11 +557,23 @@ private:
   }
 
   void compute_register_last_use() {
-    register_last_use.assign(fn->register_count, std::numeric_limits<size_t>::max());
-    register_loop_carried.assign(fn->register_count, false);
+    auto prepared = std::atomic_load_explicit(
+        &fn->execution_metadata, std::memory_order_acquire);
+    if (prepared != nullptr && prepared->owner == fn) {
+      register_last_use = prepared->register_last_use;
+      register_loop_carried = prepared->register_loop_carried;
+      return;
+    }
+    auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
+    computed->owner = fn;
+    computed->register_last_use.assign(
+        fn->register_count, std::numeric_limits<size_t>::max());
+    computed->register_loop_carried.assign(fn->register_count, false);
     for (size_t i = 0; i < fn->code.size(); ++i) {
       for_each_register_read(fn->code[i], [&](uint32_t reg) {
-        note_register_use(reg, i);
+        if (reg < computed->register_last_use.size()) {
+          computed->register_last_use[reg] = i;
+        }
       });
     }
     // Values read in a loop may be needed again after a backward edge. Keep
@@ -491,15 +587,69 @@ private:
       }
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
-          if (reg < register_last_use.size()) {
-            register_loop_carried[reg] = true;
-            register_last_use[reg] = std::numeric_limits<size_t>::max();
+          if (reg < computed->register_last_use.size()) {
+            computed->register_loop_carried[reg] = true;
+            computed->register_last_use[reg] = std::numeric_limits<size_t>::max();
           }
         });
       }
     }
+    // Function copies inherit the source's cache pointer. Replace metadata
+    // whose owner is a different Function object instead of using stale
+    // register indices from that source object.
+    std::shared_ptr<const ir::FunctionExecutionMetadata> expected = prepared;
+    std::shared_ptr<const ir::FunctionExecutionMetadata> immutable = std::move(computed);
+    if (!std::atomic_compare_exchange_strong_explicit(
+            &fn->execution_metadata,
+            &expected,
+            immutable,
+            std::memory_order_release,
+            std::memory_order_acquire)) {
+      if (expected != nullptr && expected->owner == fn) {
+        register_last_use = expected->register_last_use;
+        register_loop_carried = expected->register_loop_carried;
+      } else {
+        compute_register_last_use();
+      }
+    } else {
+      register_last_use = immutable->register_last_use;
+      register_loop_carried = immutable->register_loop_carried;
+    }
   }
 
+public:
+  void release_memoryviews_last_used_at(size_t instruction_index) {
+    if (memoryview_registers.empty()) return;
+    for (size_t index = 0; index < memoryview_registers.size();) {
+      const uint32_t reg = memoryview_registers[index];
+      const bool release = reg >= regs.size() || value_as_memoryview(regs[reg]) == nullptr ||
+          (reg < register_last_use.size() && register_last_use[reg] == instruction_index &&
+           (reg >= register_loop_carried.size() || !register_loop_carried[reg]));
+      if (!release) {
+        ++index;
+        continue;
+      }
+      if (reg < regs.size() && value_as_memoryview(regs[reg]) != nullptr) {
+        value_set_invalid(regs[reg]);
+      }
+      if (reg < memoryview_register_flags.size()) memoryview_register_flags[reg] = false;
+      memoryview_registers[index] = memoryview_registers.back();
+      memoryview_registers.pop_back();
+    }
+  }
+
+  void track_memoryview_result(uint32_t reg) {
+    if (reg >= regs.size() || value_as_memoryview(regs[reg]) == nullptr) return;
+    if (memoryview_register_flags.empty()) {
+      memoryview_register_flags.assign(regs.size(), false);
+    }
+    if (!memoryview_register_flags[reg]) {
+      memoryview_register_flags[reg] = true;
+      memoryview_registers.push_back(reg);
+    }
+  }
+
+private:
   void reserve_call_args() {
     uint32_t max_call_arg_count = 0;
     for (const auto& arg_regs : fn->call_args) {

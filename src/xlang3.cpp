@@ -25,8 +25,10 @@ limitations under the License.
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/sema.h"
+#include "xlang3/vfs.h"
 
 #include <chrono>
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -34,6 +36,7 @@ limitations under the License.
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #if defined(_WIN32)
@@ -221,6 +224,7 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
     }
     if (arg == "-I") {
       config.isolated = true;
+      config.safe_path = true;
       config.ignore_environment = true;
       config.no_user_site = true;
       continue;
@@ -231,6 +235,30 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
     }
     if (arg == "-S") {
       config.no_site = true;
+      continue;
+    }
+    if (arg == "-P") {
+      config.safe_path = true;
+      continue;
+    }
+    if (arg == "-q") {
+      config.quiet = true;
+      continue;
+    }
+    if (arg == "-O" || arg == "-OO") {
+      config.optimize = arg == "-OO" ? 2 : (config.optimize < 1 ? 1 : config.optimize);
+      continue;
+    }
+    if (arg == "-W" || arg.rfind("-W", 0) == 0) {
+      if (arg == "-W") {
+        if (i + 1 >= argc) {
+          std::cerr << "-W requires an option value\n";
+          return false;
+        }
+        config.warn_options.push_back(argv[++i]);
+      } else {
+        config.warn_options.push_back(arg.substr(2));
+      }
       continue;
     }
     if (arg == "-u") {
@@ -517,10 +545,10 @@ bool publish_process_sys_attrs(
       {"no_site", config.no_site ? 1 : 0},
       {"ignore_environment", config.ignore_environment ? 1 : 0},
       {"isolated", config.isolated ? 1 : 0},
-      {"safe_path", config.isolated ? 1 : 0},
       {"verbose", config.verbose ? 1 : 0},
+      {"quiet", config.quiet ? 1 : 0},
       {"bytes_warning", config.bytes_warning},
-      {"dev_mode", config.dev_mode ? 1 : 0},
+      {"optimize", config.optimize},
       {"utf8_mode", config.utf8_mode ? 1 : 0},
   };
   for (const auto& [name, value] : flag_values) {
@@ -528,8 +556,32 @@ bool publish_process_sys_attrs(
       return false;
     }
   }
+  if (!xlang3::object_set_attr(flags, "safe_path", xlang3::Value::boolean(config.safe_path), error) ||
+      !xlang3::object_set_attr(flags, "dev_mode", xlang3::Value::boolean(config.dev_mode), error)) {
+    return false;
+  }
   if (!xlang3::module_set_attr(
           sys, "dont_write_bytecode", xlang3::Value::boolean(config.dont_write_bytecode), error)) {
+    return false;
+  }
+  if (!xlang3::module_set_attr(
+          sys,
+          "pycache_prefix",
+          config.pycache_prefix.empty()
+              ? xlang3::Value::none()
+              : xlang3::Value::string(path_to_utf8(config.pycache_prefix)),
+          error)) {
+    return false;
+  }
+  std::vector<xlang3::Value> warn_options;
+  warn_options.reserve(config.warn_options.size() + 2);
+  if (config.dev_mode) warn_options.push_back(xlang3::Value::string("default"));
+  for (const auto& option : config.warn_options) warn_options.push_back(xlang3::Value::string(option));
+  if (config.bytes_warning > 0) {
+    warn_options.push_back(xlang3::Value::string(
+        config.bytes_warning > 1 ? "error::BytesWarning" : "default::BytesWarning"));
+  }
+  if (!xlang3::module_set_attr(sys, "warnoptions", xlang3::Value::list(std::move(warn_options)), error)) {
     return false;
   }
   if (config.no_debug_ranges || config.warn_default_encoding) {
@@ -605,10 +657,10 @@ bool publish_command_sys_path(xlang3::Runtime& runtime, const xlang3::RunConfig&
     return xlang3::module_set_attr(sys, "path", xlang3::Value::list(std::move(values)), error);
   }
   values.reserve(roots.empty() ? 1 : roots.size());
-  if (!config.isolated) {
+  if (!config.safe_path) {
     values.push_back(xlang3::Value::string(""));
   }
-  const size_t first_root = config.isolated && !roots.empty() ? 1 : 0;
+  const size_t first_root = config.safe_path && !roots.empty() && roots.front().empty() ? 1 : 0;
   for (size_t i = first_root; i < roots.size(); ++i) {
     values.push_back(xlang3::Value::string(path_to_utf8(roots[i])));
   }
@@ -1019,6 +1071,18 @@ int xlang3_main(int argc, char** argv) {
   if (argc >= 2 && std::string(argv[1]) == "--dap-stdio") {
     return run_dap_stdio();
   }
+  if (argc == 2 && (std::string(argv[1]) == "-V" || std::string(argv[1]) == "--version")) {
+    std::cout << "Python 3.14.7\n";
+    return 0;
+  }
+  if (argc == 2 && std::string(argv[1]) == "-VV") {
+    std::cout << "Python 3.14.7 (XLang3)\n";
+    return 0;
+  }
+  if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help")) {
+    std::cout << "usage: xlang3 [options] [-c code | -m module | file.py] [args...]\n";
+    return 0;
+  }
 
   xlang3::RunConfig config;
   if (!parse_args(argc, argv, config)) {
@@ -1031,6 +1095,10 @@ int xlang3_main(int argc, char** argv) {
     return 1;
   }
   if (!config.ignore_environment) {
+    if (const char* pycache_prefix = std::getenv("PYTHONPYCACHEPREFIX");
+        pycache_prefix != nullptr && *pycache_prefix != '\0') {
+      config.pycache_prefix = std::filesystem::u8path(pycache_prefix);
+    }
     if (const char* no_user_site = std::getenv("PYTHONNOUSERSITE");
         no_user_site != nullptr && *no_user_site != '\0') {
       config.no_user_site = true;
@@ -1045,13 +1113,13 @@ int xlang3_main(int argc, char** argv) {
   runtime.set_no_debug_ranges(config.no_debug_ranges);
   if (config.pth_mode) {
     runtime.replace_import_roots(config.pth_paths);
-  } else if (!config.source_path.empty()) {
+  } else if (!config.source_path.empty() && !config.safe_path) {
     if (std::filesystem::is_directory(config.source_path)) {
       runtime.prepend_import_root(config.source_path);
     } else {
       runtime.prepend_import_root(config.source_path.parent_path());
     }
-  } else {
+  } else if (!config.safe_path) {
     runtime.prepend_import_root(std::filesystem::current_path());
   }
   if (!config.pth_mode && !config.ignore_environment) {
@@ -1119,16 +1187,18 @@ int xlang3_main(int argc, char** argv) {
     ok = run_module_name(config, runtime, config.debug.dump_ir);
   } else {
     const auto source_file_path = source_file_for_run(config);
-    std::ifstream file(source_file_path, std::ios::binary);
-    if (!file) {
-      std::cerr << "cannot open " << source_file_path.string() << "\n";
+    std::vector<uint8_t> source_bytes;
+    std::string read_error;
+    if (!runtime.vfs().read_file(
+            path_to_utf8(source_file_path), source_bytes, read_error)) {
+      std::cerr << read_error << "\n";
       return 2;
     }
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
+    const std::string encoded_source(
+        reinterpret_cast<const char*>(source_bytes.data()), source_bytes.size());
     std::string decoded_source;
     std::string decode_error;
-    if (!runtime.decode_python_source(buffer.str(), decoded_source, decode_error)) {
+    if (!runtime.decode_python_source(encoded_source, decoded_source, decode_error)) {
       std::cerr << "SyntaxError: " << decode_error << "\n";
       return 1;
     }
@@ -1165,6 +1235,12 @@ std::string wide_argument_to_utf8(const wchar_t* argument) {
 }
 
 int wmain(int argc, wchar_t** argv) {
+  // CPython keeps the CRT descriptors beneath sys.std*.buffer in binary mode;
+  // TextIOWrapper performs newline conversion above that layer.  This is also
+  // required for byte protocols such as DAP to preserve CRLF framing exactly.
+  _setmode(_fileno(stdin), _O_BINARY);
+  _setmode(_fileno(stdout), _O_BINARY);
+  _setmode(_fileno(stderr), _O_BINARY);
   std::vector<std::string> utf8_arguments;
   utf8_arguments.reserve(static_cast<size_t>(argc));
   for (int i = 0; i < argc; ++i) {

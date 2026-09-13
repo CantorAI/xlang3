@@ -18,6 +18,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(MSVC)
+  # CMake's Release defaults already contain /Ob2. Replace it so MSVC sees a
+  # single inline policy instead of an overriding pair on every compilation.
+  string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+endif()
+
 option(XLANG3_EMBEDDED "Build the static embedded runtime subset" OFF)
 
 if(NOT XLANG3_EMBEDDED)
@@ -31,6 +37,16 @@ set(ZLIB_BUILD_STATIC ON CACHE BOOL "" FORCE)
 set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/zlib EXCLUDE_FROM_ALL)
+add_library(bzip2static STATIC
+  third_party/bzip2/blocksort.c
+  third_party/bzip2/huffman.c
+  third_party/bzip2/crctable.c
+  third_party/bzip2/randtable.c
+  third_party/bzip2/compress.c
+  third_party/bzip2/decompress.c
+  third_party/bzip2/bzlib.c
+)
+target_include_directories(bzip2static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bzip2)
 add_subdirectory(modules/json)
 add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
@@ -95,6 +111,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/module_object.cpp
   src/runtime/module_slots.cpp
   src/runtime/runtime.cpp
+  src/runtime/unicode_data.cpp
   src/runtime/unicode_names.cpp
   src/runtime/vfs.cpp
   src/parser/source_cursor.cpp
@@ -137,11 +154,13 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/ast_module.cpp
   src/runtime/modules/system/atexit_module.cpp
   src/runtime/modules/system/binascii_module.cpp
+  src/runtime/modules/system/bz2_module.cpp
   src/runtime/modules/system/codecs_module.cpp
   src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/multibytecodec_module.cpp
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
+  src/runtime/modules/system/ctypes_module.cpp
   src/runtime/modules/system/errno_module.cpp
   src/runtime/modules/system/faulthandler_module.cpp
   src/runtime/modules/system/gc_module.cpp
@@ -240,7 +259,7 @@ target_compile_definitions(xlang3_system_runtime PRIVATE
 find_package(Threads REQUIRED)
 
 set_target_properties(xlang3_thread_runtime xlang3_task_runtime
-  xlang3_system_runtime zlibstatic PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  xlang3_system_runtime zlibstatic bzip2static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
@@ -274,7 +293,7 @@ target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/th
 target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 
-target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC)
+target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC bzip2static)
 target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
 target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
 
@@ -287,15 +306,6 @@ add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
-
-if(WIN32)
-  add_custom_command(TARGET xlang3 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:xlang3>
-            $<TARGET_FILE_DIR:xlang3>/python.exe
-    COMMENT "Copying xlang3.exe to python.exe for Python-compatible tooling"
-  )
-endif()
 
 enable_testing()
 if(WIN32)
@@ -362,6 +372,13 @@ foreach(failure IN ITEMS BAD_VERSION NO_CODEC DECODE_FAIL)
   set_tests_properties(xlang3_graph_reject_${failure} PROPERTIES FIXTURES_REQUIRED serialized_graph ENVIRONMENT "XLANG3_TEST_GRAPH_${failure}=1")
 endforeach()
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
+add_xlang3_cpp_test(xlang3_vfs_tests tests/cpp/vfs_tests.cpp)
+target_sources(xlang3_vfs_tests PRIVATE
+  ports/rp2040/embedded/device_file_system.cpp
+)
+target_include_directories(xlang3_vfs_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/ports/rp2040
+)
 add_executable(xlang3_tensor_cpu_tests tests/tensor/cpu_tests.cpp)
 target_link_libraries(xlang3_tensor_cpu_tests PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3_tensor_cpu_tests PRIVATE XLANG3_USE_SHARED)
@@ -522,6 +539,9 @@ if(WIN32)
   add_test(NAME xlang3_ipc_lrpc_backpressure COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -ClientScript pressure_client.py -Expected pressure_expected.out)
   add_test(NAME xlang3_ipc_lrpc_backpressure_server_exit COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.ps1 -XLang3 $<TARGET_FILE:xlang3>)
   add_test(NAME xlang3_cli_dap_stdio_smoke COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_debugpy_adapter_smoke COMMAND $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_debugpy_adapter_smoke.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_visual_studio_debugpy_launch COMMAND $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_debugpy_launch_smoke.py $<TARGET_FILE:xlang3>)
+  set_tests_properties(xlang3_cli_visual_studio_debugpy_launch PROPERTIES TIMEOUT 360)
 else()
   set(XLANG3_EXPECTED_RUNNER ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py)
   add_test(NAME xlang3_cli_real_native_imports COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/real_native_imports.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/real_native_imports.out)

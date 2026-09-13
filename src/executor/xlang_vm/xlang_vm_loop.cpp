@@ -50,7 +50,6 @@ limitations under the License.
 
 #include <array>
 #include <cstddef>
-#include <cstdlib>
 #include <functional>
 #include <mutex>
 #include <new>
@@ -140,17 +139,6 @@ RuntimeResult Interpreter::run_function(
   }
   const auto& fn = module.functions[function_id];
   const bool resuming_pause = pause_state != nullptr;
-  struct CurrentFrameGuard {
-    Runtime& runtime;
-
-    explicit CurrentFrameGuard(Runtime& target_runtime) : runtime(target_runtime) {
-      runtime.push_current_frame_state();
-    }
-
-    ~CurrentFrameGuard() {
-      runtime.pop_current_frame_state();
-    }
-  } current_frame_guard(runtime_);
   struct CurrentGlobalsGuard {
     Runtime& runtime;
     Value previous;
@@ -537,6 +525,19 @@ RuntimeResult Interpreter::run_function(
 
   std::vector<VMFrame> frames;
   std::vector<RuntimeFrameView> runtime_frame_views;
+  uint64_t frame_stack_generation = 1;
+  uint64_t published_frame_stack_generation = 0;
+  struct CurrentFrameGuard {
+    Runtime& runtime;
+
+    explicit CurrentFrameGuard(Runtime& target_runtime) : runtime(target_runtime) {
+      runtime.push_current_frame_state();
+    }
+
+    ~CurrentFrameGuard() {
+      runtime.pop_current_frame_state();
+    }
+  } current_frame_guard(runtime_);
   size_t frame_count = 0;
   bool resumed_generator = false;
   Value generator_resume_exception;
@@ -568,7 +569,10 @@ RuntimeResult Interpreter::run_function(
       has_generator_resume_exception = true;
     }
   } else {
-    frames.reserve(64);
+    // Native callbacks frequently re-enter the interpreter for short Python
+    // helpers (including sys.monitoring callbacks). Keep their initial frame
+    // storage small and let genuinely deep Python call chains grow on demand.
+    frames.reserve(8);
     frames.emplace_back(
         module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
     frames.back().activation_id = runtime_.allocate_frame_activation_id();
@@ -693,6 +697,7 @@ RuntimeResult Interpreter::run_function(
     auto& pushed = frames[frame_count];
     pushed.activation_id = runtime_.allocate_frame_activation_id();
     ++frame_count;
+    ++frame_stack_generation;
     for (size_t i = 0; i < pushed.fn->cell_slots.size(); ++i) {
       if (pushed.fn->cell_slots[i] >= pushed.locals.size()) {
         result.errors.push_back("invalid cell local slot");
@@ -711,12 +716,34 @@ RuntimeResult Interpreter::run_function(
     return 0;
   };
 
+  const VMFrame* published_frames_data = nullptr;
+  size_t published_frame_count = 0;
   auto refresh_runtime_frame_views = [&]() {
-    runtime_frame_views.clear();
-    runtime_frame_views.reserve(frame_count);
-    for (size_t i = 0; i < frame_count; ++i) {
+    // Keep previously published elements alive until this invocation returns.
+    // A cross-thread frame reader can briefly hold an older logical count, so
+    // shrinking the vector would poison otherwise stable capacity storage.
+    const bool frame_storage_moved = published_frames_data != frames.data();
+    if (runtime_frame_views.size() < frames.size()) runtime_frame_views.resize(frames.size());
+    auto update_view = [&](size_t i) {
       auto& view_frame = frames[i];
-      runtime_frame_views.push_back(RuntimeFrameView{
+      if (i >= frame_count || view_frame.fn == nullptr) {
+        runtime_frame_views[i] = RuntimeFrameView{
+            &view_frame.module_owner,
+            &view_frame.globals_module,
+            nullptr,
+            nullptr,
+            &view_frame.ip,
+            0,
+            view_frame.function_id,
+            view_frame.activation_id,
+            nullptr,
+            nullptr,
+            0,
+            nullptr,
+        };
+        return;
+      }
+      runtime_frame_views[i] = RuntimeFrameView{
           &view_frame.module_owner,
           &view_frame.globals_module,
           &view_frame.fn->locals,
@@ -729,16 +756,40 @@ RuntimeResult Interpreter::run_function(
           &view_frame.register_last_use,
           view_frame.regs.size(),
           &view_frame.native_call_args,
-      });
+      };
+    };
+    if (frame_storage_moved) {
+      for (size_t i = 0; i < frames.size(); ++i) update_view(i);
+      published_frames_data = frames.data();
+    } else if (frame_count > published_frame_count && frame_count != 0) {
+      // A push either initializes a new slot or resets an inactive one. Lower
+      // frame views retain pointers into unchanged frame-owned storage.
+      update_view(frame_count - 1);
     }
-    runtime_.set_current_frame_stack(runtime_frame_views.data(), runtime_frame_views.size());
+    runtime_.set_current_frame_stack(runtime_frame_views.data(), frame_count);
+    published_frame_count = frame_count;
+    published_frame_stack_generation = frame_stack_generation;
   };
+  uint64_t inspection_publish_generation = static_cast<uint64_t>(-1);
+  uint64_t suspension_count = 0;
+  XlangRuntimeSuspensionCallbackGuard suspension_callback([&]() {
+    // A blocking operation exposes this stack to sys._current_frames().
+    // Publish immediately after a frame push/pop, and periodically refresh the
+    // instruction within a long-running frame. The runtime copies only stable
+    // frame metadata, so the snapshot remains safe after this VM resumes
+    // without retaining arbitrary local objects.
+    if (inspection_publish_generation != frame_stack_generation ||
+        ((++suspension_count & 0xfffu) == 0)) {
+      refresh_runtime_frame_views();
+      runtime_.publish_current_frame_for_thread_inspection();
+      inspection_publish_generation = frame_stack_generation;
+    }
+  });
 
   auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg) -> bool {
     const bool is_call_event = std::string_view(event_name) == std::string_view("call");
     const Value& hook = is_call_event ? runtime_.trace_function() : trace_frame.trace_function;
-    auto* hook_fn = value_as_function(hook);
-    if (hook_fn == nullptr || runtime_.trace_dispatch_active()) {
+    if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || runtime_.trace_dispatch_active()) {
       return true;
     }
     runtime_.set_current_frame(
@@ -749,28 +800,90 @@ RuntimeResult Interpreter::run_function(
     runtime_.set_current_globals_module(trace_frame.globals_module);
     runtime_.set_current_frame_locals(&trace_frame.fn->locals, trace_frame.locals.value_data(), trace_frame.locals.size());
 
+    auto trace_locals = [&]() {
+      std::vector<std::pair<Value, Value>> local_entries;
+      local_entries.reserve(trace_frame.fn->locals.size());
+      for (size_t local_index = 0;
+           local_index < trace_frame.fn->locals.size() && local_index < trace_frame.locals.size();
+           ++local_index) {
+        const auto& local_name = trace_frame.fn->locals[local_index];
+        if (local_name.empty() || local_name[0] == '#') continue;
+        const Value* local_value = &trace_frame.locals[local_index];
+        for (size_t cell_index = 0;
+             cell_index < trace_frame.fn->cell_slots.size() && cell_index < trace_frame.cells.size();
+             ++cell_index) {
+          if (trace_frame.fn->cell_slots[cell_index] == local_index) {
+            if (auto* cell = value_as_cell(trace_frame.cells[cell_index])) local_value = &cell->value;
+            break;
+          }
+        }
+        if (local_value->tag != ValueTag::Invalid) {
+          local_entries.push_back({Value::string(local_name), *local_value});
+        }
+      }
+      return Value::dict(std::move(local_entries));
+    };
+
+    Value visible_frame_value;
+    auto* cached_frame = value_as_frame(trace_frame.trace_frame_object);
+    if (cached_frame != nullptr && cached_frame->module.get() == trace_frame.module_owner.get() &&
+        cached_frame->function_id == trace_frame.function_id) {
+      cached_frame->instruction_index = static_cast<uint32_t>(trace_frame.ip);
+      Value refreshed_locals = trace_locals();
+      value_move_assign_fast(cached_frame->locals, refreshed_locals);
+      value_assign_fast(visible_frame_value, trace_frame.trace_frame_object);
+    } else {
+      Value back = Value::none();
+      for (size_t frame_index = 0; frame_index < frame_count; ++frame_index) {
+        if (&frames[frame_index] != &trace_frame) continue;
+        if (frame_index != 0 && value_as_frame(frames[frame_index - 1].trace_frame_object) != nullptr) {
+          value_assign_fast(back, frames[frame_index - 1].trace_frame_object);
+        }
+        break;
+      }
+      visible_frame_value = Value::frame(
+          trace_frame.module_owner,
+          trace_frame.function_id,
+          trace_frame.globals_module,
+          static_cast<uint32_t>(trace_frame.ip),
+          trace_locals(),
+          std::move(back),
+          Value::dict({}),
+          trace_frame.activation_id);
+      value_assign_fast(trace_frame.trace_frame_object, visible_frame_value);
+    }
     Value trace_args_storage[3] = {
-        runtime_.current_frame_snapshot(),
-        Value::string(event_name),
-        arg,
+        visible_frame_value, Value::string(event_name), arg,
     };
     CallArgsView trace_args;
     trace_args.leading = trace_args_storage;
     trace_args.leading_count = 3;
 
+    auto* visible_frame = value_as_frame(trace_args_storage[0]);
+    if (visible_frame != nullptr) visible_frame->allow_line_jump = true;
     runtime_.set_trace_dispatch_active(true);
-    Interpreter trace_interpreter(runtime_);
-    RuntimeResult trace_result = trace_interpreter.run_function_value(hook_fn, trace_args);
-    runtime_.set_trace_dispatch_active(false);
-    if (!trace_result.errors.empty()) {
-      result.errors.insert(result.errors.end(), trace_result.errors.begin(), trace_result.errors.end());
+    struct TraceDispatchGuard {
+      Runtime& runtime;
+      ~TraceDispatchGuard() { runtime.set_trace_dispatch_active(false); }
+    } trace_guard{runtime_};
+    Value trace_result;
+    std::string trace_error;
+    const bool trace_ok = runtime_call_callable(
+        runtime_, hook, trace_args.leading, trace_args.leading_count, trace_result, trace_error);
+    if (visible_frame != nullptr) visible_frame->allow_line_jump = false;
+    if (!trace_ok) {
+      result.errors.push_back(trace_error.empty() ? "trace callback failed" : trace_error);
       return false;
     }
-    if (auto* returned_trace = value_as_function(trace_result.value)) {
-      (void)returned_trace;
-      value_assign_fast(trace_frame.trace_function, trace_result.value);
-    } else if (trace_result.value.tag == ValueTag::None || trace_result.value.tag == ValueTag::Invalid) {
+    if (visible_frame != nullptr) {
+      trace_frame.trace_lines = visible_frame->trace_lines;
+      trace_frame.trace_opcodes = visible_frame->trace_opcodes;
+      trace_frame.ip = visible_frame->instruction_index;
+    }
+    if (trace_result.tag == ValueTag::None || trace_result.tag == ValueTag::Invalid) {
       value_set_invalid(trace_frame.trace_function);
+    } else {
+      value_assign_fast(trace_frame.trace_function, trace_result);
     }
     return true;
   };
@@ -843,8 +956,39 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
+  auto refresh_monitoring_configuration = [&](VMFrame& monitoring_frame) {
+    const uint64_t generation = sys_monitoring_configuration_generation();
+    if (monitoring_frame.monitoring_configuration_generation == generation) return;
+    monitoring_frame.monitoring_configuration_generation = generation;
+    monitoring_frame.monitoring_events =
+        sys_monitoring_code_events(monitoring_frame.module, monitoring_frame.function_id);
+  };
+
   auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
-    if (!sys_monitoring_event_may_dispatch(event)) {
+    if ((monitoring_frame.monitoring_events & event) == 0) {
+      return true;
+    }
+    const int64_t monitoring_location = event == kSysMonitoringEventLine
+        ? static_cast<int64_t>(source_line_for_frame(monitoring_frame))
+        : static_cast<int64_t>(monitoring_frame.ip);
+    XlangVMInstrCache* monitoring_cache = monitoring_frame.ip < monitoring_frame.instr_cache.size()
+        ? &monitoring_frame.instr_cache[monitoring_frame.ip]
+        : nullptr;
+    const uint64_t monitoring_generation = sys_monitoring_configuration_generation();
+    if (monitoring_cache != nullptr) {
+      if (monitoring_cache->monitoring_generation != monitoring_generation) {
+        monitoring_cache->monitoring_generation = monitoring_generation;
+        monitoring_cache->monitoring_disabled_events = 0;
+      } else if ((monitoring_cache->monitoring_disabled_events & event) != 0) {
+        return true;
+      }
+    }
+    if (!sys_monitoring_location_may_dispatch(
+            monitoring_frame.module,
+            monitoring_frame.function_id,
+            event,
+            monitoring_location)) {
+      if (monitoring_cache != nullptr) monitoring_cache->monitoring_disabled_events |= event;
       return true;
     }
 
@@ -859,14 +1003,14 @@ RuntimeResult Interpreter::run_function(
         monitoring_frame.locals.value_data(),
         monitoring_frame.locals.size());
 
-    Value code = monitoring_frame.module_owner != nullptr
-        ? Value::code(monitoring_frame.module_owner, monitoring_frame.function_id)
-        : Value::none();
+    if (monitoring_frame.monitoring_code.tag == ValueTag::Invalid) {
+      monitoring_frame.monitoring_code = monitoring_frame.module_owner != nullptr
+          ? runtime_.code_object(monitoring_frame.module_owner, monitoring_frame.function_id)
+          : Value::none();
+    }
+    const Value& code = monitoring_frame.monitoring_code;
 
     std::string monitoring_error;
-    const int64_t monitoring_location = event == kSysMonitoringEventLine
-        ? static_cast<int64_t>(source_line_for_frame(monitoring_frame))
-        : static_cast<int64_t>(monitoring_frame.ip);
     if (!sys_monitoring_dispatch_event(
             runtime_,
             event,
@@ -877,7 +1021,27 @@ RuntimeResult Interpreter::run_function(
       result.errors.push_back(monitoring_error);
       return false;
     }
+    const uint64_t current_monitoring_generation = sys_monitoring_configuration_generation();
+    if (monitoring_generation != current_monitoring_generation) {
+      monitoring_frame.monitoring_configuration_generation = current_monitoring_generation;
+      monitoring_frame.monitoring_events =
+          sys_monitoring_code_events(monitoring_frame.module, monitoring_frame.function_id);
+    } else if (monitoring_cache != nullptr &&
+               !sys_monitoring_location_may_dispatch(
+                   monitoring_frame.module,
+                   monitoring_frame.function_id,
+                   event,
+                   monitoring_location)) {
+        monitoring_cache->monitoring_disabled_events |= event;
+        if (event == kSysMonitoringEventPyStart) {
+          monitoring_frame.monitoring_events &= ~event;
+        }
+      }
     return true;
+  };
+
+  auto hook_is_active = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
   };
 
   auto pause_debug_execution = [&](RuntimePauseReason reason, uint32_t source_line) -> bool {
@@ -950,18 +1114,27 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto finish_frame = [&](const Value& return_value) -> bool {
-    runtime_.refresh_live_frame_snapshots();
     Value owned_return_value;
     value_assign_fast(owned_return_value, return_value);
     VMFrame& finished = frames[frame_count - 1];
-    if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &owned_return_value)) {
-      return false;
+    runtime_.retire_live_frame_snapshot(
+        finished.activation_id, static_cast<uint32_t>(finished.ip),
+        finished.locals.value_data(), finished.locals.size());
+    if ((finished.monitoring_events & kSysMonitoringEventPyReturn) != 0) {
+      if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &owned_return_value)) {
+        return false;
+      }
     }
-    if (!emit_trace_event(finished, "return", owned_return_value)) {
-      return false;
+    if (hook_is_active(finished.trace_function)) {
+      if (!emit_trace_event(finished, "return", owned_return_value)) {
+        return false;
+      }
     }
-    if (!emit_profile_event(finished, "return", owned_return_value)) {
-      return false;
+    if (runtime_.profile_event_may_dispatch() &&
+        hook_is_active(runtime_.profile_function()) && !runtime_.profile_dispatch_active()) {
+      if (!emit_profile_event(finished, "return", owned_return_value)) {
+        return false;
+      }
     }
     const uint32_t return_dst = finished.return_dst;
     const bool has_caller = finished.has_caller;
@@ -977,10 +1150,12 @@ RuntimeResult Interpreter::run_function(
       value_assign_fast(result.value, owned_return_value);
       finished.clear_for_pop();
       --frame_count;
+      ++frame_stack_generation;
       return false;
     }
     finished.clear_for_pop();
     --frame_count;
+    ++frame_stack_generation;
     Value& target = frames[frame_count - 1].regs[return_dst];
     if (return_mode == FrameReturnMode::StoreConstructedInstance) {
       value_assign_fast(target, continuation_value);
@@ -993,26 +1168,19 @@ RuntimeResult Interpreter::run_function(
     return true;
   };
 
-  auto make_traceback_from_frames = [&](bool track_live_frames = false) -> Value {
+  auto make_traceback_from_frames = [&](bool track_live_frames = false,
+                                        size_t lowest_frame = 0) -> Value {
     Value builtins = Value::dict({});
     Value builtins_module;
     std::string builtins_error;
     if (runtime_.import_module("builtins", builtins_module, builtins_error)) {
-      if (auto* module_object = value_as_module(builtins_module)) {
-        std::vector<std::pair<Value, Value>> entries;
-        entries.reserve(module_object->name_to_slot.size());
-        for (const auto& attr : module_object->name_to_slot) {
-          if (attr.second < module_object->slots.size() &&
-              module_object->slots[attr.second].tag != ValueTag::Invalid) {
-            entries.push_back({Value::string(attr.first), module_object->slots[attr.second]});
-          }
-        }
-        builtins = Value::dict(std::move(entries));
+      if (value_as_module(builtins_module) != nullptr) {
+        builtins = module_namespace_dict(builtins_module);
       }
     }
     Value next = Value::none();
     Value inner_frame = Value::none();
-    for (size_t index = frame_count; index > 0; --index) {
+    for (size_t index = frame_count; index > lowest_frame; --index) {
       const auto& captured = frames[index - 1];
       // A caller is suspended after its call instruction, while the active
       // frame still points at the instruction that raised.  Tracebacks report
@@ -1020,16 +1188,13 @@ RuntimeResult Interpreter::run_function(
       const uint32_t traceback_ip = index < frame_count && captured.ip > 0
           ? captured.ip - 1
           : captured.ip;
-      std::vector<std::pair<Value, Value>> local_entries;
+      std::vector<Value> local_snapshot;
       if (captured.fn != nullptr) {
-        local_entries.reserve(captured.fn->locals.size() + captured.fn->free_vars.size());
+        local_snapshot.resize(
+            captured.fn->locals.size() + captured.fn->free_vars.size(), Value::invalid());
         for (size_t local_index = 0;
              local_index < captured.fn->locals.size() && local_index < captured.locals.size();
              ++local_index) {
-          const auto& name = captured.fn->locals[local_index];
-          if (name.empty() || name[0] == '#') {
-            continue;
-          }
           const Value* local_value = &captured.locals[local_index];
           for (size_t cell_index = 0;
                cell_index < captured.fn->cell_slots.size() && cell_index < captured.cells.size();
@@ -1042,23 +1207,20 @@ RuntimeResult Interpreter::run_function(
             }
           }
           if (local_value->tag != ValueTag::Invalid) {
-            local_entries.push_back({Value::string(name), *local_value});
+            value_assign_fast(local_snapshot[local_index], *local_value);
           }
         }
         if (captured.closure != nullptr) {
           for (size_t free_index = 0;
                free_index < captured.fn->free_vars.size() && free_index < captured.closure->size();
                ++free_index) {
-            const auto& name = captured.fn->free_vars[free_index];
-            if (name.empty() || name[0] == '#') {
-              continue;
-            }
             const Value* free_value = &(*captured.closure)[free_index];
             if (auto* cell = value_as_cell(*free_value)) {
               free_value = &cell->value;
             }
             if (free_value->tag != ValueTag::Invalid) {
-              local_entries.push_back({Value::string(name), *free_value});
+              value_assign_fast(
+                  local_snapshot[captured.fn->locals.size() + free_index], *free_value);
             }
           }
         }
@@ -1068,10 +1230,14 @@ RuntimeResult Interpreter::run_function(
           captured.function_id,
           captured.globals_module,
           traceback_ip,
-          Value::dict(std::move(local_entries)),
+          Value::invalid(),
           Value::invalid(),
           builtins,
           captured.activation_id);
+      if (auto* traceback_frame = value_as_frame(frame_object)) {
+        traceback_frame->local_snapshot = std::move(local_snapshot);
+        traceback_frame->has_lazy_locals = true;
+      }
       if (auto* inner = value_as_frame(inner_frame)) {
         value_assign_fast(inner->back, frame_object);
       }
@@ -1119,7 +1285,17 @@ RuntimeResult Interpreter::run_function(
           object_set_attr(exception, "__context__", current_exception, ignored);
         }
       }
-      Value traceback = make_traceback_from_frames(true);
+      // Match CPython's propagation model: a caught exception records the
+      // raising frame and each frame it crosses through the nearest handler.
+      // Callers above that handler are not part of this traceback.
+      size_t lowest_traceback_frame = 0;
+      for (size_t index = frame_count; index > 0; --index) {
+        if (!frames[index - 1].exception_handlers.empty()) {
+          lowest_traceback_frame = index - 1;
+          break;
+        }
+      }
+      Value traceback = make_traceback_from_frames(true, lowest_traceback_frame);
       if (preserve_reraised_traceback) {
         Value existing_traceback;
         if (object_get_attr(exception, "__traceback__", existing_traceback, ignored) &&
@@ -1160,14 +1336,16 @@ RuntimeResult Interpreter::run_function(
         return false;
       }
     }
-    if (frame_count != 0) {
+    if (frame_count != 0 &&
+        frames[frame_count - 1].trace_function.tag != ValueTag::Invalid &&
+        frames[frame_count - 1].trace_function.tag != ValueTag::None &&
+        !runtime_.trace_dispatch_active()) {
       Value exception_type = runtime_.exception_type(exception);
-      Value traceback = make_traceback_from_frames();
+      Value traceback = Value::none();
+      std::string ignored;
+      (void)object_get_attr(exception, "__traceback__", traceback, ignored);
       Value event_arg = Value::tuple({exception_type, exception, traceback});
       if (!emit_trace_event(frames[frame_count - 1], "exception", event_arg)) {
-        return false;
-      }
-      if (!emit_profile_event(frames[frame_count - 1], "exception", event_arg)) {
         return false;
       }
     }
@@ -1205,20 +1383,6 @@ RuntimeResult Interpreter::run_function(
         previous_exceptions.push_back(previous_exception);
         active_exception_handler_depths.push_back(handlers.size());
         active_exception_handler_frames.push_back(frame_count);
-        if (value_as_instance(current_exception) != nullptr) {
-          Value traceback;
-          std::string ignored;
-          if (object_get_attr(current_exception, "__traceback__", traceback, ignored)) {
-            for (size_t outer_index = 1; outer_index < frame_count; ++outer_index) {
-              auto* traceback_object = value_as_traceback(traceback);
-              if (traceback_object == nullptr) {
-                break;
-              }
-              value_assign_fast(traceback, traceback_object->next);
-            }
-            object_set_attr(current_exception, "__traceback__", traceback, ignored);
-          }
-        }
         frames[frame_count - 1].ip = handler.ip;
         return true;
       }
@@ -1231,8 +1395,14 @@ RuntimeResult Interpreter::run_function(
         active_exception_handler_depths.pop_back();
         active_exception_handler_frames.pop_back();
       }
+      runtime_.retire_live_frame_snapshot(
+          frames[frame_count - 1].activation_id,
+          static_cast<uint32_t>(frames[frame_count - 1].ip),
+          frames[frame_count - 1].locals.value_data(),
+          frames[frame_count - 1].locals.size());
       frames[frame_count - 1].clear_for_pop();
       --frame_count;
+      ++frame_stack_generation;
     }
     const std::string exception_text = value_to_string(current_exception);
     const std::string exception_type_text = value_to_string(runtime_.exception_type(current_exception));
@@ -1301,6 +1471,12 @@ RuntimeResult Interpreter::run_function(
     }
   }
 
+  // Protect frame storage and its published inspection views across frame
+  // switches as well as opcode dispatch. Other threads may inspect these
+  // views whenever a blocking native operation releases this lock.
+  XlangRuntimeExecutionGuard execution_lock;
+  uint32_t execution_lock_ticks = 0;
+
   while (frame_count != 0) {
     refresh_runtime_frame_views();
     auto& frame = frames[frame_count - 1];
@@ -1317,8 +1493,23 @@ RuntimeResult Interpreter::run_function(
     auto& instr_cache = frame.instr_cache;
     auto& native_call_args = frame.native_call_args;
 
+    // CPython updates monitoring instrumentation at evaluator resume points.
+    // Do the equivalent when an XLang frame becomes current, rather than
+    // loading a global atomic generation for every instruction.
+    refresh_monitoring_configuration(frame);
+
+    if (frame.monitoring_code.tag == ValueTag::Invalid &&
+        sys_monitoring_event_may_dispatch(kSysMonitoringEventAll)) {
+      frame.monitoring_code = module_owner != nullptr
+          ? runtime_.code_object(module_owner, frame.function_id)
+          : Value::none();
+    }
+
     runtime_.set_current_globals_module(globals_module);
     runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
+    // The live frame-stack view owns the changing instruction pointer. Update
+    // the legacy single-frame identity once when execution switches frames.
+    runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
 
     auto raise_exception_value = [&](Value exception) -> bool {
       const size_t source_frame = frame_count;
@@ -1393,11 +1584,14 @@ RuntimeResult Interpreter::run_function(
       return raise_exception_value(std::move(exception));
     };
 
-    XlangRuntimeExecutionGuard execution_lock;
-    uint32_t execution_lock_ticks = 0;
-
     try {
     for (;;) {
+      // Inline calls can replace frames while staying inside this dispatch
+      // loop. Publish the exact live stack before an opcode can release the
+      // execution lock and let another thread call sys._current_frames().
+      if (published_frame_stack_generation != frame_stack_generation) {
+        refresh_runtime_frame_views();
+      }
       if (deferred_frame_exception.tag != ValueTag::Invalid) {
         Value exception = std::move(deferred_frame_exception);
         value_set_invalid(deferred_frame_exception);
@@ -1418,23 +1612,48 @@ RuntimeResult Interpreter::run_function(
         goto switch_frame;
       }
 
-      runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
       if (XLANG3_UNLIKELY(runtime_.debug_poll_needed())) {
         if (!poll_debug_event(frame)) {
           return result;
         }
       }
-      if (!runtime_.trace_dispatch_active()) {
+      // Once the frame's call event has run, an ordinary unmonitored frame has
+      // no per-opcode tracing work. Entry, return, branch, exception, and yield
+      // events are handled at their corresponding control-flow points; only
+      // line and instruction monitoring require this check on every opcode.
+      bool trace_dispatch_active = false;
+      constexpr int64_t kPerInstructionMonitoringEvents =
+          kSysMonitoringEventLine | kSysMonitoringEventInstruction;
+      const bool frame_observability_active =
+          !frame.trace_call_emitted || resumed_generator ||
+          (frame.monitoring_events & kPerInstructionMonitoringEvents) != 0 ||
+          hook_is_active(frame.trace_function);
+      if (XLANG3_UNLIKELY(frame_observability_active)) {
+        // A frame without an installed local trace function cannot be executing
+        // recursively inside that trace function. Avoid a TLS runtime-state
+        // lookup on every ordinary opcode.
+        trace_dispatch_active =
+            hook_is_active(frame.trace_function) && runtime_.trace_dispatch_active();
+      }
+      if (XLANG3_UNLIKELY(frame_observability_active && !trace_dispatch_active)) {
         if (!frame.trace_call_emitted) {
           frame.trace_call_emitted = true;
-          if (!emit_monitoring_event(frame, kSysMonitoringEventPyStart, nullptr)) {
-            return result;
+          if ((frame.monitoring_events & kSysMonitoringEventPyStart) != 0) {
+            if (!emit_monitoring_event(frame, kSysMonitoringEventPyStart, nullptr)) {
+              return result;
+            }
           }
-          if (!emit_trace_event(frame, "call", Value::none())) {
-            return result;
+          if (runtime_.trace_event_may_dispatch() &&
+              hook_is_active(runtime_.trace_function())) {
+            if (!emit_trace_event(frame, "call", Value::none())) {
+              return result;
+            }
           }
-          if (!emit_profile_event(frame, "call", Value::none())) {
-            return result;
+          if (runtime_.profile_event_may_dispatch() &&
+              hook_is_active(runtime_.profile_function()) && !runtime_.profile_dispatch_active()) {
+            if (!emit_profile_event(frame, "call", Value::none())) {
+              return result;
+            }
           }
         }
         if (resumed_generator) {
@@ -1442,15 +1661,27 @@ RuntimeResult Interpreter::run_function(
           if (!emit_monitoring_event(frame, kSysMonitoringEventPyResume, nullptr)) {
             return result;
           }
+          if ((runtime_.trace_event_may_dispatch() &&
+               !emit_trace_event(frame, "call", Value::none())) ||
+              (runtime_.profile_event_may_dispatch() &&
+               !emit_profile_event(frame, "call", Value::none()))) {
+            return result;
+          }
         }
-        const uint32_t source_line = source_line_for_frame(frame);
-        if (source_line != 0 && source_line != frame.last_monitoring_line) {
+        uint32_t source_line = 0;
+        const bool trace_lines_active = frame.trace_function.tag != ValueTag::Invalid &&
+            frame.trace_function.tag != ValueTag::None && frame.trace_lines;
+        if ((frame.monitoring_events & kSysMonitoringEventLine) != 0 || trace_lines_active) {
+          source_line = source_line_for_frame(frame);
+        }
+        if ((frame.monitoring_events & kSysMonitoringEventLine) != 0 &&
+            source_line != 0 && source_line != frame.last_monitoring_line) {
           frame.last_monitoring_line = source_line;
           if (!emit_monitoring_event(frame, kSysMonitoringEventLine, nullptr)) {
             return result;
           }
         }
-        if (value_as_function(frame.trace_function) != nullptr && source_line != 0 && source_line != frame.last_trace_line) {
+        if (trace_lines_active && source_line != 0 && source_line != frame.last_trace_line) {
           frame.last_trace_line = source_line;
           if (!emit_trace_event(frame, "line", Value::none())) {
             return result;
@@ -1458,19 +1689,33 @@ RuntimeResult Interpreter::run_function(
         }
       }
       const auto& in = fn.code[ip];
-      if (!runtime_.trace_dispatch_active()) {
+      if (!trace_dispatch_active &&
+          XLANG3_UNLIKELY((frame.monitoring_events & kSysMonitoringEventInstruction) != 0)) {
         if (!emit_monitoring_event(frame, kSysMonitoringEventInstruction, nullptr)) {
           return result;
         }
       }
-      if ((++execution_lock_ticks & 0x3ffu) == 0) {
+      ++execution_lock_ticks;
+      if ((execution_lock_ticks & 0xfffu) == 0 && xlang_runtime_execution_contended()) {
         execution_lock.unlock();
         std::this_thread::yield();
         execution_lock.lock();
+        refresh_monitoring_configuration(frame);
       }
       switch (in.op) {
 #include "xlang_vm_op_rows.h"
       }
+      // sys.monitoring configuration is changed through calls. Refresh after
+      // a native call returns in this frame; Python calls switch frames and
+      // refresh at the resume point above.
+      if (XLANG3_UNLIKELY(
+              in.op == ir::Op::Call || in.op == ir::Op::CallEx ||
+              in.op == ir::Op::CallMethod || in.op == ir::Op::CallModuleMethod ||
+              in.op == ir::Op::CallLocal || in.op == ir::Op::CallLocalMethod)) {
+        refresh_monitoring_configuration(frame);
+      }
+      frame.release_memoryviews_last_used_at(ip);
+      frame.track_memoryview_result(in.dst);
       ++ip;
     }
     } catch (const VMUnwind&) {

@@ -1,0 +1,45 @@
+'\xe9' '\xe9' '\xc9' '\xe9' True False False False True False True True False
+'\u4e2d' '\u4e2d' '\u4e2d' '\u4e2d' True False False False True False True False False
+'\U0001f642' '\U0001f642' '\U0001f642' '\U0001f642' False False False False False False False False False
+'\xb2' '\xb2' '\xb2' '\xb2' False True False True True False False False False
+'\xbe' '\xbe' '\xbe' '\xbe' False False False True True False False False False
+'\u0661' '\u0661' '\u0661' '\u0661' False True True True True False False False False
+'\u2003' '\u2003' '\u2003' '\u2003' False False False False False True False False False
+'Stra\xdfe' 'stra\xdfe' 'STRASSE' 'strasse' True False False False True False True False False
+'\u0130' 'i\u0307' '\u0130' 'i\u0307' True False False False True False True False True
+'\u03a3\u03c2' '\u03c3\u03c2' '\u03a3\u03a3' '\u03c3\u03c3' True False False False True False True False False
+'\u53d8\u91cf' '\u53d8\u91cf' '\u53d8\u91cf' '\u53d8\u91cf' True False False False True False True False False
+'a\u0301' 'a\u0301' 'A\u0301' 'a\u0301' False False False False False False True True False
+'\u0301a' '\u0301a' '\u0301A' '\u0301a' False False False False False False False True False
+'\u2163' '\u2173' '\u2163' '\u2173' False False False True True False True False True
+'\u2173' '\u2173' '\u2163' '\u2173' False False False True True False True True False
+cast-b int -1
+cast-B int 255
+cast-h int -2
+cast-H int 65534
+cast-i int -2
+cast-I int 4294967294
+cast-q int -2
+cast-Q int 18446744073709551614
+cast-f float 1.5
+cast-d float 1.5
+cast-c bytes b'A'
+meta 2 (2, 3) (3, 1) 6 2
+owners True True True
+tuple-index int 102
+tolist list [[97, 98, 99], [100, 101, 102]]
+stepped [97, 99, 101] b'ace' (2,) False
+resize-active BufferError Existing exports of data: object cannot be re-sized
+resize-released NoneType None
+released-len ValueError operation forbidden on released memoryview object
+released-readonly ValueError operation forbidden on released memoryview object
+released-obj ValueError operation forbidden on released memoryview object
+released-tobytes ValueError operation forbidden on released memoryview object
+released-hash ValueError operation forbidden on released memoryview object
+released-enter ValueError operation forbidden on released memoryview object
+bad-cast-'' ValueError memoryview: destination format must be a native single character format prefixed with an optional '@'
+bad-cast-'Z' ValueError memoryview: destination format must be a native single character format prefixed with an optional '@'
+bad-cast-'2B' ValueError memoryview: destination format must be a native single character format prefixed with an optional '@'
+bad-cast-'<H' ValueError memoryview: destination format must be a native single character format prefixed with an optional '@'
+assign-h NoneType None
+assigned-bytes b'\xfe\xff\x00\x00'

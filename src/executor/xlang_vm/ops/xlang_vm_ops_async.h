@@ -18,6 +18,7 @@ limitations under the License.
 #include "../xlang_vm_op_switch.h"
 
 #include "xlang3/generator.h"
+#include "xlang3/functional_iterators.h"
 
 #ifndef XLANG3_EMBEDDED
 #include "task_objects.h"
@@ -28,7 +29,8 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
-template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename EmitMonitoringEvent, typename EmitTraceEvent, typename EmitProfileEvent,
+          typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     const ir::Instr& in,
     Runtime& runtime,
@@ -40,10 +42,35 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     GeneratorObject* active_generator,
     RuntimeResult& result,
     EmitMonitoringEvent&& emit_monitoring_event,
+    EmitTraceEvent&& emit_trace_event,
+    EmitProfileEvent&& emit_profile_event,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
 #ifndef XLANG3_EMBEDDED
   auto* awaited_generator = value_as_generator(regs[in.a]);
+  if (awaited_generator == nullptr && value_as_async_generator_awaitable(regs[in.a]) == nullptr) {
+    Value await_method;
+    std::string method_error;
+    if (attribute_get(regs[in.a], "__await__", await_method, method_error)) {
+      Value await_iterator;
+      if (!runtime_call_callable(runtime, await_method, nullptr, 0, await_iterator, method_error)) {
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+        return raise_runtime_error(method_error.empty() ? "await failed" : method_error)
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      awaited_generator = value_as_generator(await_iterator);
+      if (awaited_generator == nullptr) {
+        return raise_runtime_error("__await__() returned non-iterator")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      awaited_generator->is_await_iterator = true;
+      value_assign_fast(regs[in.a], await_iterator);
+    }
+  }
   bool iterable_coroutine = false;
   if (awaited_generator != nullptr && !awaited_generator->is_coroutine) {
     Value code_value;
@@ -54,8 +81,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       }
     }
   }
-  if (awaited_generator != nullptr && (awaited_generator->is_coroutine || iterable_coroutine)) {
-    Value send_value = regs[in.dst].tag == ValueTag::Invalid ? Value::none() : regs[in.dst];
+  if (awaited_generator != nullptr &&
+      (awaited_generator->is_coroutine || awaited_generator->is_await_iterator || iterable_coroutine)) {
+    Value send_value = !awaited_generator->started || regs[in.dst].tag == ValueTag::Invalid
+        ? Value::none() : regs[in.dst];
     value_set_invalid(regs[in.dst]);
     bool done = false;
     Value yielded_or_returned;
@@ -71,6 +100,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
                  : XlangVMOpFlow::ReturnResult;
     }
     if (done) {
+      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+      Value stop = runtime.make_exception("StopIteration", "");
+      std::string ignored;
+      object_set_attr(stop, "value", yielded_or_returned, ignored);
+      object_set_attr(stop, "args", yielded_or_returned.tag == ValueTag::None
+          ? Value::tuple({}) : Value::tuple({yielded_or_returned}), ignored);
+      Value event_arg = Value::tuple({runtime.exception_type(stop), stop, Value::none()});
+      if (!emit_trace_event(frame, "exception", event_arg)) {
+        return XlangVMOpFlow::ReturnResult;
+      }
       value_assign_fast(regs[in.dst], yielded_or_returned);
       return XlangVMOpFlow::Next;
     }
@@ -80,6 +119,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
                  : XlangVMOpFlow::ReturnResult;
     }
     if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned)) {
+      return XlangVMOpFlow::ReturnResult;
+    }
+    if (!emit_trace_event(frame, "return", yielded_or_returned) ||
+        !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
     auto* state = new GeneratorVMState();
@@ -92,6 +135,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     active_generator->vm_state = state;
     active_generator->vm_state_cleanup = destroy_generator_vm_state;
     active_generator->done = false;
+    value_assign_fast(active_generator->awaiting, regs[in.a]);
     value_assign_fast(result.value, yielded_or_returned);
     return XlangVMOpFlow::ReturnResult;
   }

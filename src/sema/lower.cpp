@@ -23,6 +23,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cstdlib>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -1201,6 +1202,13 @@ public:
     fn_.params = std::move(params);
     fn_.signature = std::move(signature);
     fn_.free_vars = std::move(free_vars);
+    const size_t instruction_hint = body.size() * 6 + 2;
+    fn_.code.reserve(instruction_hint);
+    fn_.source_lines.reserve(instruction_hint);
+    fn_.source_positions.reserve(instruction_hint);
+    fn_.constants.reserve(body.size() * 2 + 1);
+    fn_.names.reserve(body.size() * 2 + 1);
+    fn_.call_args.reserve(body.size());
     for (size_t i = 0; i < fn_.free_vars.size(); ++i) {
       free_indices_[fn_.free_vars[i]] = static_cast<uint32_t>(i);
     }
@@ -1220,10 +1228,9 @@ public:
     return std::move(fn_);
   }
 
-  void lower_body(const std::vector<ast::StmtPtr>& body) {
-    const bool skip_docstring = !docstring_from_body(body).empty();
+  void lower_body(const std::vector<ast::StmtPtr>& body, bool skip_leading_docstring = false) {
     for (size_t i = 0; i < body.size(); ++i) {
-      if (i == 0 && skip_docstring) {
+      if (i == 0 && skip_leading_docstring) {
         continue;
       }
       lower_stmt(*body[i]);
@@ -1425,7 +1432,7 @@ private:
     std::vector<std::string> names;
     std::unordered_set<std::string> seen;
     std::unordered_set<std::string> local_targets;
-    collect_expression_captures(expr, local_targets, names, seen);
+    collect_expression_captures(expr, local_targets, names, seen, false);
     for (const auto& name : names) {
       if (sema::contains(local_name_set_, name)) {
         ensure_cell_for_local(name);
@@ -1551,22 +1558,25 @@ private:
       const ast::Expr& expr,
       const std::unordered_set<std::string>& local_targets,
       std::vector<std::string>& names,
-      std::unordered_set<std::string>& seen) const {
+      std::unordered_set<std::string>& seen,
+      bool capture_names) const {
     if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
-      add_expression_capture(name->name, local_targets, names, seen);
+      if (capture_names) {
+        add_expression_capture(name->name, local_targets, names, seen);
+      }
       return;
     }
     if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
-      collect_expression_captures(*unary->expr, local_targets, names, seen);
+      collect_expression_captures(*unary->expr, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
-      collect_expression_captures(*await->expr, local_targets, names, seen);
+      collect_expression_captures(*await->expr, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
       if (yield->expr != nullptr) {
-        collect_expression_captures(*yield->expr, local_targets, names, seen);
+        collect_expression_captures(*yield->expr, local_targets, names, seen, capture_names);
       }
       return;
     }
@@ -1577,90 +1587,90 @@ private:
           if (parsed.errors.empty() && !parsed.module.body.empty()) {
             if (auto* assign = dynamic_cast<const ast::AssignStmt*>(parsed.module.body[0].get());
                 assign != nullptr && assign->value != nullptr) {
-              collect_expression_captures(*assign->value, local_targets, names, seen);
+              collect_expression_captures(*assign->value, local_targets, names, seen, capture_names);
             }
           }
         }
         if (part.format_spec.find('{') != std::string::npos) {
           ast::FStringExpr format_spec(parse_fstring_parts(part.format_spec));
-          collect_expression_captures(format_spec, local_targets, names, seen);
+          collect_expression_captures(format_spec, local_targets, names, seen, capture_names);
         }
       }
       return;
     }
     if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
-      collect_expression_captures(*binary->lhs, local_targets, names, seen);
-      collect_expression_captures(*binary->rhs, local_targets, names, seen);
+      collect_expression_captures(*binary->lhs, local_targets, names, seen, capture_names);
+      collect_expression_captures(*binary->rhs, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
-      collect_expression_captures(*chain->first, local_targets, names, seen);
+      collect_expression_captures(*chain->first, local_targets, names, seen, capture_names);
       for (const auto& comparison : chain->comparisons) {
-        collect_expression_captures(*comparison.second, local_targets, names, seen);
+        collect_expression_captures(*comparison.second, local_targets, names, seen, capture_names);
       }
       return;
     }
     if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
-      collect_expression_captures(*conditional->then_expr, local_targets, names, seen);
-      collect_expression_captures(*conditional->condition, local_targets, names, seen);
-      collect_expression_captures(*conditional->else_expr, local_targets, names, seen);
+      collect_expression_captures(*conditional->then_expr, local_targets, names, seen, capture_names);
+      collect_expression_captures(*conditional->condition, local_targets, names, seen, capture_names);
+      collect_expression_captures(*conditional->else_expr, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
-      collect_expression_captures(*named->value, local_targets, names, seen);
+      collect_expression_captures(*named->value, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
-      collect_expression_captures(*starred->expr, local_targets, names, seen);
+      collect_expression_captures(*starred->expr, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
-      collect_expression_captures(*call->callee, local_targets, names, seen);
+      collect_expression_captures(*call->callee, local_targets, names, seen, capture_names);
       for (const auto& arg : call->args) {
-        collect_expression_captures(*arg, local_targets, names, seen);
+        collect_expression_captures(*arg, local_targets, names, seen, capture_names);
       }
       for (const auto& arg : call->call_args) {
-        collect_expression_captures(*arg.value, local_targets, names, seen);
+        collect_expression_captures(*arg.value, local_targets, names, seen, capture_names);
       }
       return;
     }
     if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
-      collect_expression_captures(*subscript->object, local_targets, names, seen);
-      collect_expression_captures(*subscript->index, local_targets, names, seen);
+      collect_expression_captures(*subscript->object, local_targets, names, seen, capture_names);
+      collect_expression_captures(*subscript->index, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
-      if (slice->start != nullptr) collect_expression_captures(*slice->start, local_targets, names, seen);
-      if (slice->stop != nullptr) collect_expression_captures(*slice->stop, local_targets, names, seen);
-      if (slice->step != nullptr) collect_expression_captures(*slice->step, local_targets, names, seen);
+      if (slice->start != nullptr) collect_expression_captures(*slice->start, local_targets, names, seen, capture_names);
+      if (slice->stop != nullptr) collect_expression_captures(*slice->stop, local_targets, names, seen, capture_names);
+      if (slice->step != nullptr) collect_expression_captures(*slice->step, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
-      collect_expression_captures(*attr->object, local_targets, names, seen);
+      collect_expression_captures(*attr->object, local_targets, names, seen, capture_names);
       return;
     }
     if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
       for (const auto& item : tuple->items) {
-        collect_expression_captures(*item, local_targets, names, seen);
+        collect_expression_captures(*item, local_targets, names, seen, capture_names);
       }
       return;
     }
     if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
       for (const auto& item : list->items) {
-        collect_expression_captures(*item, local_targets, names, seen);
+        collect_expression_captures(*item, local_targets, names, seen, capture_names);
       }
       return;
     }
     if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
       for (const auto& entry : dict->entries) {
-        if (entry.first != nullptr) collect_expression_captures(*entry.first, local_targets, names, seen);
-        collect_expression_captures(*entry.second, local_targets, names, seen);
+        if (entry.first != nullptr) collect_expression_captures(*entry.first, local_targets, names, seen, capture_names);
+        collect_expression_captures(*entry.second, local_targets, names, seen, capture_names);
       }
       return;
     }
     if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
       for (const auto& item : set->items) {
-        collect_expression_captures(*item, local_targets, names, seen);
+        collect_expression_captures(*item, local_targets, names, seen, capture_names);
       }
       return;
     }
@@ -1684,7 +1694,7 @@ private:
           lambda_targets.insert(resolve_name(param));
         }
       }
-      collect_expression_captures(*lambda->body, lambda_targets, names, seen);
+      collect_expression_captures(*lambda->body, lambda_targets, names, seen, true);
       return;
     }
   }
@@ -1697,18 +1707,18 @@ private:
       targets.insert(resolve_name(name));
     }
     if (comp.filter != nullptr) {
-      collect_expression_captures(*comp.filter, targets, names, seen);
+      collect_expression_captures(*comp.filter, targets, names, seen, true);
     }
     for (const auto& clause : comp.extra_clauses) {
-      collect_expression_captures(*clause.iterable, targets, names, seen);
+      collect_expression_captures(*clause.iterable, targets, names, seen, true);
       for (const auto& name : assignment_names(*clause.target_expr)) {
         targets.insert(resolve_name(name));
       }
       if (clause.filter != nullptr) {
-        collect_expression_captures(*clause.filter, targets, names, seen);
+        collect_expression_captures(*clause.filter, targets, names, seen, true);
       }
     }
-    collect_expression_captures(*comp.result, targets, names, seen);
+    collect_expression_captures(*comp.result, targets, names, seen, true);
     return names;
   }
 
@@ -1802,12 +1812,128 @@ private:
   }
 
   void emit(ir::Op op, uint32_t dst = 0, uint32_t a = 0, uint32_t b = 0, uint32_t c = 0) {
+    if (!fn_.code.empty() && !fn_.source_lines.empty() &&
+        fn_.source_lines.back() == current_source_line_) {
+      auto& previous = fn_.code.back();
+      if (op == ir::Op::Return && previous.op == ir::Op::LoadConst &&
+          previous.dst == a) {
+        previous.op = ir::Op::ReturnConst;
+        previous.dst = 0;
+        return;
+      }
+      if (op == ir::Op::Return && previous.op == ir::Op::LoadLocal &&
+          previous.dst == a) {
+        previous.op = ir::Op::ReturnLocal;
+        previous.dst = 0;
+        return;
+      }
+      if (op == ir::Op::LoadGlobal && previous.op == ir::Op::LoadLocal) {
+        previous.op = ir::Op::LoadLocalGlobal;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::LoadGlobal) {
+        const uint32_t global_name = previous.a;
+        previous.op = ir::Op::LoadGlobalLocal;
+        previous.a = global_name;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::StoreLocal && previous.op == ir::Op::StoreLocal) {
+        previous.op = ir::Op::StoreLocalPair;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::JumpIfFalse) {
+        const uint32_t jump_target = previous.dst;
+        previous.op = ir::Op::JumpIfFalseLoadLocal;
+        previous.dst = dst;
+        previous.b = jump_target;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::StoreLocal) {
+        previous.op = ir::Op::StoreLocalLoadLocal;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::LoadLocal) {
+        previous.op = ir::Op::LoadLocalPair;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadConst && previous.op == ir::Op::LoadLocal) {
+        previous.op = ir::Op::LoadLocalConst;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadConst && previous.op == ir::Op::LoadConst) {
+        previous.op = ir::Op::LoadConstPair;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadAttr && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t receiver_reg = previous.dst;
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::LoadLocalAttr;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = receiver_reg;
+        return;
+      }
+      if (op == ir::Op::Call && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::CallLocal;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = 0;
+        return;
+      }
+      if (op == ir::Op::CallMethod && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::CallLocalMethod;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = c;
+        return;
+      }
+    }
     fn_.code.push_back(ir::Instr{op, dst, a, b, c});
     fn_.source_lines.push_back(current_source_line_);
     fn_.source_positions.push_back(current_source_position_);
   }
 
   size_t emit_jump(ir::Op op, uint32_t cond = 0) {
+    if (op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
+        fn_.source_lines.back() == current_source_line_) {
+      auto& previous = fn_.code.back();
+      if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
+          previous.dst == cond) {
+        previous.op = previous.op == ir::Op::Compare
+            ? ir::Op::CompareJumpIfFalse
+            : ir::Op::IsJumpIfFalse;
+        previous.dst = 0;
+        return fn_.code.size() - 1;
+      }
+      if (previous.op == ir::Op::Move && previous.a == cond) {
+        previous.op = ir::Op::MoveJumpIfFalse;
+        previous.b = 0;
+        return fn_.code.size() - 1;
+      }
+    }
     fn_.code.push_back(ir::Instr{op, 0, cond, 0, 0});
     fn_.source_lines.push_back(current_source_line_);
     fn_.source_positions.push_back(current_source_position_);
@@ -1815,7 +1941,13 @@ private:
   }
 
   void patch_jump(size_t at, uint32_t target) {
-    fn_.code[at].dst = target;
+    if (fn_.code[at].op == ir::Op::JumpIfFalseLoadLocal ||
+        fn_.code[at].op == ir::Op::MoveJumpIfFalse ||
+        fn_.code[at].op == ir::Op::MoveJumpIfTrue) {
+      fn_.code[at].b = target;
+    } else {
+      fn_.code[at].dst = target;
+    }
   }
 
   void patch_iter_done(size_t at, uint32_t target) {
@@ -2261,7 +2393,16 @@ private:
     patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
   }
 
-  uint32_t emit_call_method(uint32_t object, const std::string& name, std::vector<uint32_t> args) {
+  uint32_t emit_call_method(
+      uint32_t object,
+      const std::string& name,
+      std::vector<uint32_t> args,
+      bool preserve_object = false) {
+    if (preserve_object) {
+      const auto call_object = new_reg();
+      emit(ir::Op::Move, call_object, object);
+      object = call_object;
+    }
     const auto dst = new_reg();
     emit(ir::Op::CallMethod, dst, object, add_name(name), add_call_args(std::move(args)));
     return dst;
@@ -2331,7 +2472,8 @@ private:
 
   void lower_with(const ast::WithStmt& stmt) {
     const auto manager = lower_expr(*stmt.manager);
-    uint32_t entered = emit_call_method(manager, stmt.is_async ? "__aenter__" : "__enter__", {});
+    uint32_t entered = emit_call_method(
+        manager, stmt.is_async ? "__aenter__" : "__enter__", {}, true);
     if (stmt.is_async) {
       entered = emit_await_value(entered);
     }
@@ -2816,7 +2958,7 @@ private:
         future_annotations_,
         active_private_class_name());
     child_lowerer.fn_.type_params = fn.type_params;
-    child_lowerer.lower_body(fn.body);
+    child_lowerer.lower_body(fn.body, !child_lowerer.fn_.doc.empty());
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
 
@@ -3141,21 +3283,62 @@ private:
     std::unordered_map<std::string, std::string> saved_aliases;
     std::unordered_set<std::string> erased_aliases;
     std::unordered_set<std::string> class_aliases;
+    std::unordered_set<std::string> class_body_read_names;
+    for (const auto& name : sema::read_names_for(klass.body)) {
+      class_body_read_names.insert(mangle_private_identifier(name));
+    }
+    std::unordered_set<std::string> annotation_capture_names;
+    if (!future_annotations_) {
+      auto collect_annotation_captures = [&](auto&& self, const ast::Stmt& stmt) -> void {
+        if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+          ast::FunctionDef annotation_scope;
+          annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+              clone_expr(*assign->annotation)));
+          for (const auto& name : sema::free_candidates_for(annotation_scope)) {
+            annotation_capture_names.insert(mangle_private_identifier(name));
+          }
+        } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+          for (const auto& child : ifs->then_body) self(self, *child);
+          for (const auto& child : ifs->else_body) self(self, *child);
+        } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+          for (const auto& child : loop->body) self(self, *child);
+          for (const auto& child : loop->else_body) self(self, *child);
+        } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+          for (const auto& child : loop->body) self(self, *child);
+          for (const auto& child : loop->else_body) self(self, *child);
+        } else if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+          for (const auto& child : block->body) self(self, *child);
+        } else if (auto* block = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+          for (const auto& child : block->try_body) self(self, *child);
+          for (const auto& handler : block->handlers) {
+            for (const auto& child : handler.body) self(self, *child);
+          }
+          for (const auto& child : block->else_body) self(self, *child);
+          for (const auto& child : block->finally_body) self(self, *child);
+        } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+          for (const auto& match_case : match->cases) {
+            for (const auto& child : match_case.body) self(self, *child);
+          }
+        }
+      };
+      for (const auto& stmt : klass.body) collect_annotation_captures(collect_annotation_captures, *stmt);
+    }
     auto add_to_prepared_namespace = [&](const std::string& name, uint32_t reg) {
       if (namespace_reg == UINT32_MAX) {
         return;
       }
       const auto key = new_reg();
       emit(ir::Op::LoadConst, key, add_const(Value::string(mangle_private_identifier(name))));
-      const auto setitem_reg = new_reg();
-      emit(ir::Op::LoadAttr, setitem_reg, namespace_reg, add_name("__setitem__"));
-      const auto ignored = new_reg();
-      emit(ir::Op::Call, ignored, setitem_reg, add_call_args({key, reg}));
-      emit(ir::Op::Pop, 0, ignored);
+      emit(ir::Op::DictSet, namespace_reg, key, reg);
     };
     auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
       const std::string hidden_name = "#class." + klass.name + "." + name;
       const std::string alias_name = mangle_private_identifier(name);
+      if (class_body_read_names.find(alias_name) == class_body_read_names.end() &&
+          annotation_capture_names.find(alias_name) == annotation_capture_names.end()) {
+        add_to_prepared_namespace(name, reg);
+        return;
+      }
       if (class_aliases.insert(alias_name).second) {
         if (name_aliases_.find(alias_name) == name_aliases_.end()) {
           erased_aliases.insert(alias_name);
@@ -3164,7 +3347,9 @@ private:
         }
       }
       hidden_locals_.insert(hidden_name);
-      ensure_cell_for_local(hidden_name);
+      if (annotation_capture_names.find(alias_name) != annotation_capture_names.end()) {
+        ensure_cell_for_local(hidden_name);
+      }
       name_aliases_[alias_name] = hidden_name;
       store_named_value(name, reg);
       add_to_prepared_namespace(name, reg);
@@ -3215,7 +3400,7 @@ private:
             (use_instance_slots && !fn->params.empty()) ? fn->params[0] : std::string{},
             use_instance_slots ? class_info.slots : std::unordered_map<std::string, uint32_t>{},
             class_qualname,
-            needs_class_cell ? &class_method_aliases : nullptr);
+            &class_method_aliases);
         bool explicit_method_wrapper = false;
         for (const auto& decorator : fn->decorators) {
           if (decorator != nullptr &&
@@ -3488,10 +3673,17 @@ private:
       return true;
     }
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&target)) {
-      const auto object = lower_expr(*attr->object);
       if (is_instance_slot_target(*attr->object, attr->name)) {
-        emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], value_reg);
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          emit(ir::Op::StoreLocalInstanceSlot, local_slot, instance_slots_[attr->name], value_reg);
+        } else {
+          const auto object = lower_expr(*attr->object);
+          emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], value_reg);
+        }
       } else {
+        const auto object = lower_expr(*attr->object);
         emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), value_reg);
       }
       return true;
@@ -3569,6 +3761,17 @@ private:
   }
 
   void lower_aug_assign(const ast::AugAssignStmt& assign) {
+    if (assign.op == "+") {
+      auto* name = dynamic_cast<const ast::NameExpr*>(assign.target.get());
+      auto* literal = dynamic_cast<const ast::LiteralExpr*>(assign.value.get());
+      uint32_t local_slot = 0;
+      if (name != nullptr && literal != nullptr && direct_local_slot(name->name, local_slot) &&
+          (literal->kind == ast::LiteralExpr::Kind::Int ||
+           literal->kind == ast::LiteralExpr::Kind::Double)) {
+        emit(ir::Op::InplaceAddLocalConst, local_slot, local_slot, add_const(literal_value(*literal)));
+        return;
+      }
+    }
     const auto rhs = lower_expr(*assign.value);
     const auto result = new_reg();
     const auto op = binary_op_for_aug_assign(assign.op);
@@ -3578,9 +3781,7 @@ private:
         emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_or__"));
         emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
       } else if (assign.op == "+") {
-        const auto callee = new_reg();
-        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_add__"));
-        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+        emit(ir::Op::InplaceAdd, result, current, rhs);
       } else if (assign.op == "//") {
         const auto callee = new_reg();
         emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_floor_div__"));
@@ -3600,13 +3801,22 @@ private:
       return;
     }
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(assign.target.get())) {
-      const auto object = lower_expr(*attr->object);
       const auto current = new_reg();
       if (is_instance_slot_target(*attr->object, attr->name)) {
-        emit(ir::Op::LoadInstanceSlot, current, object, instance_slots_[attr->name]);
-        lower_operation(current);
-        emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], result);
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          emit(ir::Op::LoadLocalInstanceSlot, current, local_slot, instance_slots_[attr->name]);
+          lower_operation(current);
+          emit(ir::Op::StoreLocalInstanceSlot, local_slot, instance_slots_[attr->name], result);
+        } else {
+          const auto object = lower_expr(*attr->object);
+          emit(ir::Op::LoadInstanceSlot, current, object, instance_slots_[attr->name]);
+          lower_operation(current);
+          emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], result);
+        }
       } else {
+        const auto object = lower_expr(*attr->object);
         emit(ir::Op::LoadAttr, current, object, add_name(mangle_private_identifier(attr->name)));
         lower_operation(current);
         emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), result);
@@ -3739,11 +3949,20 @@ private:
       return;
     }
     if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
-      const auto object = lower_expr(*assign->object);
-      const auto value = lower_expr(*assign->value);
       if (is_instance_slot_target(*assign->object, assign->name)) {
-        emit(ir::Op::StoreInstanceSlot, object, instance_slots_[assign->name], value);
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(assign->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          const auto value = lower_expr(*assign->value);
+          emit(ir::Op::StoreLocalInstanceSlot, local_slot, instance_slots_[assign->name], value);
+        } else {
+          const auto object = lower_expr(*assign->object);
+          const auto value = lower_expr(*assign->value);
+          emit(ir::Op::StoreInstanceSlot, object, instance_slots_[assign->name], value);
+        }
       } else {
+        const auto object = lower_expr(*assign->object);
+        const auto value = lower_expr(*assign->value);
         emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(assign->name)), value);
       }
       return;
@@ -4430,10 +4649,8 @@ private:
       }
       if (bin->op == "or") {
         const auto reg = new_reg();
-        emit(ir::Op::Move, reg, lhs);
-        const auto rhs_jump = emit_jump(ir::Op::JumpIfFalse, lhs);
-        const auto done = emit_jump(ir::Op::Jump);
-        patch_jump(rhs_jump, static_cast<uint32_t>(fn_.code.size()));
+        emit(ir::Op::MoveJumpIfTrue, reg, lhs, 0);
+        const auto done = fn_.code.size() - 1;
         const auto rhs = lower_expr(*bin->rhs);
         emit(ir::Op::Move, reg, rhs);
         patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
@@ -4583,11 +4800,18 @@ private:
       return dst;
     }
     if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
-      const auto object = lower_expr(*attr->object);
       const auto dst = new_reg();
       if (is_instance_slot_target(*attr->object, attr->name)) {
-        emit(ir::Op::LoadInstanceSlot, dst, object, instance_slots_[attr->name]);
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          emit(ir::Op::LoadLocalInstanceSlot, dst, local_slot, instance_slots_[attr->name]);
+        } else {
+          const auto object = lower_expr(*attr->object);
+          emit(ir::Op::LoadInstanceSlot, dst, object, instance_slots_[attr->name]);
+        }
       } else {
+        const auto object = lower_expr(*attr->object);
         emit(ir::Op::LoadAttr, dst, object, add_name(mangle_private_identifier(attr->name)));
       }
       return dst;
@@ -4597,6 +4821,7 @@ private:
         return lower_tuple_with_unpack(tuple->items);
       }
       std::vector<uint32_t> item_regs;
+      item_regs.reserve(tuple->items.size());
       for (const auto& item : tuple->items) {
         item_regs.push_back(lower_expr(*item));
       }
@@ -4609,6 +4834,7 @@ private:
         return lower_list_with_unpack(list->items);
       }
       std::vector<uint32_t> item_regs;
+      item_regs.reserve(list->items.size());
       for (const auto& item : list->items) {
         item_regs.push_back(lower_expr(*item));
       }
@@ -4618,6 +4844,7 @@ private:
     }
     if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
       std::vector<std::pair<uint32_t, uint32_t>> item_regs;
+      item_regs.reserve(dict->entries.size());
       for (const auto& entry : dict->entries) {
         const auto key = entry.first ? lower_expr(*entry.first) : UINT32_MAX;
         const auto value = lower_expr(*entry.second);
@@ -4632,6 +4859,7 @@ private:
         return lower_set_with_unpack(set->items);
       }
       std::vector<uint32_t> item_regs;
+      item_regs.reserve(set->items.size());
       for (const auto& item : set->items) {
         item_regs.push_back(lower_expr(*item));
       }
@@ -4799,7 +5027,7 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
       {},
       {},
       module_uses_future_annotations(module_ast.body));
-  lowerer.lower_body(module_ast.body);
+  lowerer.lower_body(module_ast.body, !docstring_from_body(module_ast.body).empty());
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);
   return result;

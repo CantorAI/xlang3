@@ -355,7 +355,7 @@ bool int_from_bytes_kw_method(
   return object_set_attr(out, "__xlang3_int_value__", parsed, error);
 }
 
-static constexpr BuiltinMethodSpec kIntMethods[] = {
+static BuiltinMethodSpec kIntMethods[] = {
     {"__index__", "int.__index__", int_index_method},
     {"__add__", "int.__add__", int_add_method},
     {"__pow__", "int.__pow__", int_pow_method, nullptr, false, nullptr, "($self, value, mod=None, /)"},

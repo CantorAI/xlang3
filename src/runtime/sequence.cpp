@@ -28,6 +28,8 @@ limitations under the License.
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <string_view>
@@ -227,6 +229,175 @@ BinaryStorageView binary_storage(const Value& value) {
     return BinaryStorageView{storage.data(), storage.size(), memoryview_object_writable_data(*view) == nullptr};
   }
   return {};
+}
+
+bool memoryview_byte_offset(
+    const MemoryViewObject& view,
+    const Value& index,
+    size_t& byte_offset,
+    std::string& error) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (itemsize == 0 || itemsize > view.size || view.size % itemsize != 0) {
+    error = "unsupported memoryview format";
+    return false;
+  }
+  const size_t ndim = view.shape.empty() ? 1 : view.shape.size();
+  const auto* tuple = value_as_tuple(index);
+  if (tuple == nullptr && ndim != 1) {
+    error = "multi-dimensional sub-views are not implemented";
+    return false;
+  }
+  if (tuple != nullptr && tuple->items.size() != ndim) {
+    error = "memoryview: invalid slice key";
+    return false;
+  }
+  byte_offset = 0;
+  for (size_t dimension = 0; dimension < ndim; ++dimension) {
+    const Value& component = tuple == nullptr ? index : tuple->items[dimension];
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(component, raw_index)) {
+      error = "memoryview: invalid slice key";
+      return false;
+    }
+    const int64_t extent = view.shape.empty()
+        ? static_cast<int64_t>(view.size / itemsize)
+        : view.shape[dimension];
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(extent), resolved)) {
+      error = "index out of bounds on dimension " + std::to_string(dimension + 1);
+      return false;
+    }
+    // Stepped slices are represented by a compact readonly snapshot while
+    // retaining the source stride as public metadata.
+    const bool compact_snapshot = !view.contiguous && value_as_bytes(view.owner) != nullptr;
+    const int64_t stride = compact_snapshot || view.strides.empty()
+        ? static_cast<int64_t>(itemsize)
+        : view.strides[dimension];
+    byte_offset += static_cast<size_t>(resolved) * static_cast<size_t>(stride);
+  }
+  return true;
+}
+
+bool memoryview_decode_scalar(
+    const MemoryViewObject& view,
+    const char* storage,
+    size_t byte_offset,
+    Value& out,
+    std::string& error) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (byte_offset > view.size || itemsize > view.size - byte_offset) {
+    error = "memoryview index out of range";
+    return false;
+  }
+  const char code = view.format.empty() ? 'B' : view.format.back();
+  if (code == 'c') {
+    out = Value::bytes(std::string(storage + byte_offset, 1));
+    return true;
+  }
+  if (code == '?') {
+    value_set_bool(out, storage[byte_offset] != 0);
+    return true;
+  }
+  if (code == 'f') {
+    float value = 0.0f;
+    std::memcpy(&value, storage + byte_offset, sizeof(value));
+    out = Value::number(static_cast<double>(value));
+    return true;
+  }
+  if (code == 'd') {
+    double value = 0.0;
+    std::memcpy(&value, storage + byte_offset, sizeof(value));
+    out = Value::number(value);
+    return true;
+  }
+  uint64_t raw = 0;
+  std::memcpy(&raw, storage + byte_offset, itemsize);
+  const bool signed_format = code == 'b' || code == 'h' || code == 'i' ||
+      code == 'l' || code == 'q' || code == 'n';
+  if (signed_format) {
+    if (itemsize < sizeof(raw)) {
+      const uint64_t sign_bit = uint64_t{1} << (itemsize * 8 - 1);
+      if ((raw & sign_bit) != 0) raw |= (~uint64_t{0}) << (itemsize * 8);
+    }
+    value_set_int64(out, static_cast<int64_t>(raw));
+  } else {
+    out = value_bigint_from_u64(raw);
+  }
+  return true;
+}
+
+bool memoryview_encode_scalar(
+    const MemoryViewObject& view,
+    const Value& item,
+    char* storage,
+    size_t byte_offset,
+    std::string& error) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (byte_offset > view.size || itemsize > view.size - byte_offset) {
+    error = "memoryview index out of range";
+    return false;
+  }
+  const char code = view.format.empty() ? 'B' : view.format.back();
+  if (code == 'c') {
+    const auto bytes = binary_storage(item);
+    if (bytes.data == nullptr || bytes.size != 1) {
+      error = "memoryview: invalid type for format 'c'";
+      return false;
+    }
+    storage[byte_offset] = bytes.data[0];
+    return true;
+  }
+  if (code == 'f' || code == 'd') {
+    double number = 0.0;
+    if (item.tag == ValueTag::Double) number = item.as.f64;
+    else if (item.tag == ValueTag::Int64) number = static_cast<double>(item.as.i64);
+    else {
+      error = std::string("memoryview: invalid type for format '") + code + "'";
+      return false;
+    }
+    if (code == 'f') {
+      const float value = static_cast<float>(number);
+      std::memcpy(storage + byte_offset, &value, sizeof(value));
+    } else {
+      std::memcpy(storage + byte_offset, &number, sizeof(number));
+    }
+    return true;
+  }
+  if (code == '?') {
+    storage[byte_offset] = value_truthy(item) ? 1 : 0;
+    return true;
+  }
+  const bool signed_format = code == 'b' || code == 'h' || code == 'i' ||
+      code == 'l' || code == 'q' || code == 'n';
+  uint64_t raw = 0;
+  if (signed_format) {
+    int64_t integer = 0;
+    if (!value_int_like_to_i64(item, integer)) {
+      error = std::string("memoryview: invalid type for format '") + code + "'";
+      return false;
+    }
+    if (itemsize < sizeof(integer)) {
+      const int64_t minimum = -(int64_t{1} << (itemsize * 8 - 1));
+      const int64_t maximum = (int64_t{1} << (itemsize * 8 - 1)) - 1;
+      if (integer < minimum || integer > maximum) {
+        error = "memoryview: invalid value for format";
+        return false;
+      }
+    }
+    raw = static_cast<uint64_t>(integer);
+  } else {
+    if (item.tag == ValueTag::Int64 && item.as.i64 >= 0) raw = static_cast<uint64_t>(item.as.i64);
+    else if (!value_bigint_to_u64(item, raw)) {
+      error = std::string("memoryview: invalid type for format '") + code + "'";
+      return false;
+    }
+    if (itemsize < sizeof(raw) && raw >= (uint64_t{1} << (itemsize * 8))) {
+      error = "memoryview: invalid value for format";
+      return false;
+    }
+  }
+  std::memcpy(storage + byte_offset, &raw, itemsize);
+  return true;
 }
 
 bool struct_sequence_storage(const Value& value, Value& out) {
@@ -911,6 +1082,10 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
   }
   if (object.tag == ValueTag::Object && object.as.obj != nullptr &&
       (object.as.obj->kind == ObjectKind::ByteArray || object.as.obj->kind == ObjectKind::MemoryView)) {
+    if (auto* released_view = value_as_memoryview(object); released_view != nullptr && released_view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
     const auto storage = binary_storage(object);
     if (storage.data == nullptr) {
       error = "invalid binary object";
@@ -918,68 +1093,70 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     }
     const std::string_view storage_view(storage.data, storage.size);
     if (auto* slice = value_as_slice(index)) {
+      const auto* memory_view = object.as.obj->kind == ObjectKind::MemoryView
+          ? reinterpret_cast<const MemoryViewObject*>(object.as.obj) : nullptr;
+      if (memory_view != nullptr && !memory_view->shape.empty() && memory_view->shape.size() != 1) {
+        error = "multi-dimensional slicing is not implemented";
+        return false;
+      }
+      const size_t itemsize = memory_view == nullptr ? 1 : memoryview_format_itemsize(memory_view->format);
+      const int64_t logical_size = memory_view == nullptr
+          ? static_cast<int64_t>(storage.size)
+          : static_cast<int64_t>(memoryview_item_count(*memory_view));
       int64_t start = 0;
       int64_t stop = 0;
       int64_t step = 1;
-      if (!normalize_slice(*slice, static_cast<int64_t>(storage.size), start, stop, step, error)) {
+      if (!normalize_slice(*slice, logical_size, start, stop, step, error)) {
         return false;
       }
       if (object.as.obj->kind == ObjectKind::MemoryView && step == 1) {
-        const auto normalized_size = stop >= start ? static_cast<size_t>(stop - start) : 0;
+        const auto selected_items = stop >= start ? static_cast<size_t>(stop - start) : 0;
         out = Value::memoryview(
             object,
-            static_cast<size_t>(start),
-            normalized_size,
+            static_cast<size_t>(start) * itemsize,
+            selected_items * itemsize,
             storage.readonly);
+        auto* sliced = value_as_memoryview(out);
+        sliced->format = memory_view->format;
+        sliced->shape = {static_cast<int64_t>(selected_items)};
+        sliced->strides = {static_cast<int64_t>(itemsize)};
       } else if (object.as.obj->kind == ObjectKind::MemoryView) {
-        auto text = binary_slice_text(storage_view, start, stop, step);
+        std::string text;
+        for (int64_t item_index = start;
+             step > 0 ? item_index < stop : item_index > stop;
+             item_index += step) {
+          text.append(storage_view.substr(static_cast<size_t>(item_index) * itemsize, itemsize));
+        }
         const size_t selected_size = text.size();
         out = Value::memoryview(Value::bytes(std::move(text)), 0, selected_size, true);
-        value_as_memoryview(out)->contiguous = false;
+        auto* sliced = value_as_memoryview(out);
+        sliced->format = memory_view->format;
+        sliced->shape = {static_cast<int64_t>(selected_size / itemsize)};
+        sliced->strides = {static_cast<int64_t>(itemsize * static_cast<size_t>(std::llabs(step)))};
+        sliced->contiguous = false;
       } else {
         auto text = binary_slice_text(storage_view, start, stop, step);
         out = object.as.obj->kind == ObjectKind::ByteArray ? Value::bytearray(std::move(text)) : Value::bytes(std::move(text));
       }
       return true;
     }
-    const Value* actual_index = &index;
     if (object.as.obj->kind == ObjectKind::MemoryView) {
-      if (auto* tuple = value_as_tuple(index)) {
-        if (tuple->items.size() != 1) {
-          error = "memoryview: invalid tuple index";
-          return false;
-        }
-        actual_index = &tuple->items[0];
-      }
+      const auto* memory_view = reinterpret_cast<const MemoryViewObject*>(object.as.obj);
+      size_t byte_offset = 0;
+      if (!memoryview_byte_offset(*memory_view, index, byte_offset, error)) return false;
+      return memoryview_decode_scalar(*memory_view, storage.data, byte_offset, out, error);
     }
     int64_t raw_index = 0;
-    if (!sequence_integer_index(*actual_index, raw_index)) {
+    if (!sequence_integer_index(index, raw_index)) {
       error = "sequence index must be int";
       return false;
     }
-    size_t logical_size = storage.size;
-    size_t itemsize = 1;
-    const MemoryViewObject* memory_view = nullptr;
-    if (object.as.obj->kind == ObjectKind::MemoryView) {
-      memory_view = reinterpret_cast<const MemoryViewObject*>(object.as.obj);
-      itemsize = memoryview_format_itemsize(memory_view->format);
-      if (itemsize == 0 || itemsize > storage.size || (storage.size % itemsize) != 0) {
-        error = "unsupported memoryview format";
-        return false;
-      }
-      logical_size = storage.size / itemsize;
-    }
     uint64_t resolved = 0;
-    if (!normalize_index(raw_index, static_cast<uint64_t>(logical_size), resolved)) {
+    if (!normalize_index(raw_index, static_cast<uint64_t>(storage.size), resolved)) {
       error = "index out of range";
       return false;
     }
-    const size_t byte_offset = static_cast<size_t>(resolved) * itemsize;
-    uint64_t value = 0;
-    for (size_t i = 0; i < itemsize; ++i) {
-      value |= static_cast<uint64_t>(static_cast<unsigned char>(storage.data[byte_offset + i])) << (i * 8u);
-    }
-    value_set_int64(out, static_cast<int64_t>(value));
+    value_set_int64(out, static_cast<unsigned char>(storage.data[static_cast<size_t>(resolved)]));
     return true;
   }
   if (instance_get_native_data(object, "typing._Alias") != nullptr) {
@@ -1151,12 +1328,12 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
     return true;
   }
   if (auto* view = value_as_memoryview(object)) {
-    if (view->readonly) {
-      error = "cannot modify read-only memory";
-      return false;
-    }
     if (view->released) {
       error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    if (view->readonly) {
+      error = "cannot modify read-only memory";
       return false;
     }
     char* storage = memoryview_object_writable_data(*view);
@@ -1194,30 +1371,9 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       }
       return true;
     }
-    const Value* actual_index = &index;
-    if (auto* tuple = value_as_tuple(index)) {
-      if (tuple->items.size() != 1) {
-        error = "memoryview: invalid tuple index";
-        return false;
-      }
-      actual_index = &tuple->items[0];
-    }
-    int64_t raw_index = 0;
-    if (!sequence_integer_index(*actual_index, raw_index)) {
-      error = "sequence index must be int";
-      return false;
-    }
-    uint64_t resolved = 0;
-    if (!normalize_index(raw_index, static_cast<uint64_t>(view->size), resolved)) {
-      error = "index out of range";
-      return false;
-    }
-    unsigned char byte = 0;
-    if (!int_to_byte(item, byte, error)) {
-      return false;
-    }
-    storage[static_cast<size_t>(resolved)] = static_cast<char>(byte);
-    return true;
+    size_t byte_offset = 0;
+    if (!memoryview_byte_offset(*view, index, byte_offset, error)) return false;
+    return memoryview_encode_scalar(*view, item, storage, byte_offset, error);
   }
   error = "object does not support item assignment";
   return false;
@@ -1390,7 +1546,9 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
       error = "operation forbidden on released memoryview object";
       return false;
     }
-    value_set_int64(out, static_cast<int64_t>(memoryview_item_count(*view)));
+    value_set_int64(out, view->shape.empty()
+        ? static_cast<int64_t>(memoryview_item_count(*view))
+        : view->shape.front());
     return true;
   }
   if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr) {

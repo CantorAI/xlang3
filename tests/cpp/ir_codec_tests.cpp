@@ -56,7 +56,11 @@ int main() {
   auto lowered = xlang3::lower_to_ir(parsed.module);
   require(lowered.errors.empty(), "lower failed");
   lowered.module.functions[0].constants.push_back(xlang3::Value::tuple({
-      xlang3::Value::int64(42), xlang3::Value::tuple({xlang3::Value::string("nested"), xlang3::Value::invalid()})}));
+      xlang3::Value::int64(42),
+      xlang3::Value::tuple({
+          xlang3::Value::string("nested"),
+          xlang3::Value::invalid(),
+          xlang3::Value::type_param("T")})}));
 
   const uint64_t hash = xlang3::ir::source_hash64(
       reinterpret_cast<const uint8_t*>(source.data()),
@@ -74,7 +78,9 @@ int main() {
   auto* tuple = xlang3::value_as_tuple(decoded.functions[0].constants.back());
   require(tuple && tuple->items.size() == 2 && tuple->items[0].as.i64 == 42, "tuple constant lost");
   auto* nested = xlang3::value_as_tuple(tuple->items[1]);
-  require(nested && nested->items.size() == 2 && nested->items[1].tag == xlang3::ValueTag::Invalid, "nested invalid constant lost");
+  require(nested && nested->items.size() == 3 && nested->items[1].tag == xlang3::ValueTag::Invalid, "nested invalid constant lost");
+  auto* type_param = xlang3::value_as_type_param(nested->items[2]);
+  require(type_param && type_param->name == "T", "type parameter constant lost");
   bool found_expression = false;
   for (const auto& function : decoded.functions) {
     for (const auto& value : function.constants) {

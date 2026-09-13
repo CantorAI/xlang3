@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -309,7 +310,11 @@ void register_json_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_json");
   builder.value("__doc__", Value::string("JSON accelerator runtime primitives."))
       .function("encode_basestring", json_encode_basestring)
-      .function("encode_basestring_ascii", json_encode_basestring_ascii)
+      .function(
+          "encode_basestring_ascii",
+          json_encode_basestring_ascii,
+          builtin_fast_adapter<json_encode_basestring_ascii, 1>,
+          true)
       .function("scanstring", json_scanstring, nullptr, false, json_scanstring_kw)
       .function("make_scanner", json_make_scanner)
       .function("make_encoder", json_make_encoder, nullptr, false, json_make_encoder_kw);

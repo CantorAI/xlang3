@@ -466,7 +466,7 @@ bool property_get_method(const Value& object, const std::string& name, Value& ou
     return true;
   }
 
-  static constexpr BuiltinMethodSpec methods[] = {
+  static BuiltinMethodSpec methods[] = {
       {"__get__", "property.__get__", property_descriptor_get_method},
       {"__set__", "property.__set__", property_descriptor_set_method},
       {"__delete__", "property.__delete__", property_descriptor_delete_method},

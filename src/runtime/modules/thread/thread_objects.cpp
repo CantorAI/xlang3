@@ -258,6 +258,7 @@ bool lock_acquire(
   if (state == nullptr) {
     return false;
   }
+  XlangRuntimeExecutionSuspension execution_suspension;
   {
     std::unique_lock<std::mutex> lock(state->mutex);
     if (!blocking && state->locked) {
@@ -301,6 +302,7 @@ bool lock_acquire_kw(
   if (state == nullptr) {
     return false;
   }
+  XlangRuntimeExecutionSuspension execution_suspension;
   {
     std::unique_lock<std::mutex> lock(state->mutex);
     if (!blocking && state->locked) {
@@ -469,6 +471,7 @@ bool rlock_acquire(
     return false;
   }
   const auto current = std::this_thread::get_id();
+  XlangRuntimeExecutionSuspension execution_suspension;
   {
     std::unique_lock<std::mutex> lock(state->mutex);
     if (state->depth != 0 && state->owner == current) {
@@ -520,6 +523,7 @@ bool rlock_acquire_kw(
     return false;
   }
   const auto current = std::this_thread::get_id();
+  XlangRuntimeExecutionSuspension execution_suspension;
   {
     std::unique_lock<std::mutex> lock(state->mutex);
     if (state->depth != 0 && state->owner == current) {
@@ -698,6 +702,7 @@ bool rlock_acquire_restore(
   if (saved->items.size() >= 2 && saved->items[1].tag == ValueTag::Int64) {
     owner_ident = saved->items[1].as.i64;
   }
+  XlangRuntimeExecutionSuspension execution_suspension;
   {
     std::unique_lock<std::mutex> lock(state->mutex);
     state->cv.wait(lock, [state]() { return state->depth == 0; });
@@ -775,6 +780,7 @@ bool rlock_exit(
 bool xlang_lock_acquire_value(const Value& lock_value, bool blocking, std::string& error) {
   if (auto* state = static_cast<XlangRLockState*>(instance_get_native_data(lock_value, "_thread.RLock"))) {
     const auto current = std::this_thread::get_id();
+    XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state->mutex);
     if (state->depth != 0 && state->owner == current) {
       ++state->depth;
@@ -789,6 +795,7 @@ bool xlang_lock_acquire_value(const Value& lock_value, bool blocking, std::strin
     return true;
   }
   if (auto* state = static_cast<XlangLockState*>(instance_get_native_data(lock_value, "_thread.LockType"))) {
+    XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state->mutex);
     if (!blocking && state->locked) {
       return false;
@@ -841,6 +848,13 @@ int64_t xlang_thread_current_ident() {
   return static_cast<int64_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()) & 0x7fffffffffffffffll);
 }
 
+int64_t xlang_thread_main_ident() {
+  // register_thread_modules() initializes this on the runtime's creating
+  // thread, before any Python worker can start.
+  static const int64_t ident = xlang_thread_current_ident();
+  return ident;
+}
+
 size_t xlang_thread_active_count() {
   std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
   size_t count = 1;
@@ -862,7 +876,7 @@ size_t xlang_thread_active_count() {
 std::vector<int64_t> xlang_thread_active_idents() {
   std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
   std::vector<int64_t> idents;
-  idents.push_back(xlang_thread_current_ident());
+  idents.push_back(xlang_thread_main_ident());
   auto it = g_thread_registry.begin();
   while (it != g_thread_registry.end()) {
     auto state = *it;
@@ -919,56 +933,23 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
         state->runtime->thread_profile_function().tag != ValueTag::None) {
       state->runtime->set_profile_function(state->runtime->thread_profile_function());
     }
-    Interpreter interpreter(*state->runtime);
     CallArgsView call_args;
     call_args.leading = state->args.empty() ? nullptr : state->args.data();
     call_args.leading_count = static_cast<uint32_t>(state->args.size());
     RuntimeResult result;
-    if (auto* fn = value_as_function(state->target)) {
-      result = interpreter.run_function_value(fn, call_args);
-    } else if (auto* bound = value_as_bound_method(state->target)) {
-      std::vector<Value> bound_args;
-      bound_args.reserve(state->args.size() + 1);
-      bound_args.push_back(bound->self);
-      for (const auto& arg : state->args) {
-        bound_args.push_back(arg);
-      }
-      CallArgsView bound_call_args;
-      bound_call_args.leading = bound_args.data();
-      bound_call_args.leading_count = static_cast<uint32_t>(bound_args.size());
-      if (auto* fn = value_as_function(bound->function)) {
-        result = interpreter.run_function_value(fn, bound_call_args);
-      } else if (auto* native = value_as_native_function(bound->function)) {
-        Value ignored;
-        std::string error;
-        XlangRuntimeExecutionGuard execution_lock;
-        if (!native->callback(
-                *state->runtime,
-                bound_call_args.leading,
-                bound_call_args.leading_count,
-                ignored,
-                error,
-                native->user_data)) {
-          result.errors.push_back(error.empty() ? "native thread target failed" : error);
-        }
-      } else {
-        result.errors.push_back("bound thread target is not callable");
-      }
-    } else if (auto* native = value_as_native_function(state->target)) {
+    {
       Value ignored;
-      std::string error;
+      std::string call_error;
       XlangRuntimeExecutionGuard execution_lock;
-      if (!native->callback(
+      if (!runtime_call_callable(
               *state->runtime,
+              state->target,
               call_args.leading,
               call_args.leading_count,
               ignored,
-              error,
-              native->user_data)) {
-        result.errors.push_back(error.empty() ? "native thread target failed" : error);
+              call_error)) {
+        result.errors.push_back(call_error.empty() ? "thread target is not callable" : call_error);
       }
-    } else {
-      result.errors.push_back("thread target is not callable");
     }
     {
       std::lock_guard<std::mutex> lock(state->mutex);
@@ -987,6 +968,7 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
     g_thread_registry.push_back(state);
   }
   {
+    XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state->mutex);
     state->done_cv.wait(lock, [&state]() { return state->ident != 0 || state->done; });
   }
@@ -1071,6 +1053,7 @@ bool xlang_thread_start_detached(
   });
 
   {
+    XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state->mutex);
     state->done_cv.wait(lock, [&state]() { return state->started; });
     ident = state->ident;
@@ -1089,6 +1072,7 @@ void xlang_thread_join_state(XlangThreadState& state) {
 void xlang_thread_join_state_for(XlangThreadState& state, double timeout_seconds, bool has_timeout) {
   std::thread worker;
   {
+    XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state.mutex);
     if (has_timeout) {
       if (timeout_seconds <= 0.0) {
@@ -1307,6 +1291,7 @@ bool thread_handle_join(
   if (state->thread) {
     xlang_thread_join_state_for(*state->thread, timeout_seconds, has_timeout);
   } else {
+    XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state->mutex);
     if (has_timeout) {
       if (timeout_seconds > 0.0) {

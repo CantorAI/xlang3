@@ -1,0 +1,14 @@
+asyncio-source True
+loop ProactorEventLoop
+custom-await 23
+yield ['a-start', 'b-start', 'a-end', 'b-end'] ['a', 'b']
+cancel-request True 1
+cancelled True True ('reason',)
+suspended CORO_SUSPENDED True
+cancel-cleanup ['inner', 'outer'] 0
+coro-created CORO_CREATED False True True coroutine_metadata
+coro-result 7
+coro-closed CORO_CLOSED True
+socket b'PING'
+process 7 b'async-out\r\n' b'async-err \r\n'
+process-input 0 b'pipe-in\r\n' b''

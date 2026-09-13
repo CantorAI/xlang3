@@ -26,6 +26,8 @@ public:
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) override;
   bool write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error) override;
   bool remove(const std::string& path, std::string& error) override;
+  bool rename(const std::string& old_path, const std::string& new_path, bool replace, std::string& error) override;
+  bool make_dirs(const std::string& path, bool exist_ok, std::string& error) override;
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) override;
   bool stat(const std::string& path, VfsStat& out, std::string& error) override;
 

@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/object_model.h"
@@ -463,10 +464,11 @@ bool builtin_str(
 void register_sequence_builtins(Runtime& runtime) {
   runtime.register_native_builtin("len", builtin_len, builtin_len_fast);
   runtime.register_native_builtin("iter", builtin_iter);
-  runtime.register_native_builtin("next", builtin_next);
+  runtime.register_native_builtin(
+      "next", builtin_next, builtin_fast_adapter<builtin_next, 2>, true);
   runtime.register_native_builtin("aiter", builtin_aiter);
   runtime.register_native_builtin("anext", builtin_anext);
-  runtime.register_native_builtin("ord", builtin_ord);
+  runtime.register_native_builtin("ord", builtin_ord, builtin_fast_adapter<builtin_ord, 1>);
 }
 
 } // namespace xlang3

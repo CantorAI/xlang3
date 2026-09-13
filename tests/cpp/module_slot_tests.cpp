@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 
 #include <algorithm>
@@ -107,6 +108,27 @@ int main() {
   xlang3::module_set_attr(module, "optional", xlang3::Value::none(), error);
   xlang3::test::expect_true(result, xlang3::module_get_attr(module, "optional", value, error) &&
       value.tag == xlang3::ValueTag::None, "an initialized None attribute must remain visible");
+
+  auto namespace_a = xlang3::module_namespace_dict(module);
+  auto namespace_b = xlang3::module_namespace_dict(module);
+  xlang3::test::expect_true(result,
+      xlang3::value_as_dict(namespace_a) != nullptr && namespace_a.as.obj == namespace_b.as.obj,
+      "module namespaces must expose one stable exact dict object");
+  xlang3::module_set_attr(module, "from_slot", xlang3::Value::int64(7), error);
+  xlang3::test::expect_true(result,
+      xlang3::mapping_get_item(namespace_a, xlang3::Value::string("from_slot"), value, error) &&
+          value.tag == xlang3::ValueTag::Int64 && value.as.i64 == 7,
+      "module slot writes must remain visible through the namespace dict");
+  xlang3::Value mutable_namespace = namespace_a;
+  xlang3::test::expect_true(result,
+      xlang3::mapping_set_item(mutable_namespace, xlang3::Value::string("from_dict"),
+          xlang3::Value::int64(8), error) &&
+          xlang3::module_get_attr(module, "from_dict", value, error) && value.as.i64 == 8,
+      "namespace dict writes must update module global slots");
+  xlang3::test::expect_true(result,
+      xlang3::mapping_delete_item(mutable_namespace, xlang3::Value::string("from_dict"), error) &&
+          !xlang3::module_get_attr(module, "from_dict", value, error),
+      "namespace dict deletions must update module global slots");
 
   return xlang3::test::finish(result);
 }

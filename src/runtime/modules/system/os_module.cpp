@@ -357,6 +357,80 @@ bool raise_os_error_with_errno(
   return false;
 }
 
+bool raise_os_path_error_with_errno(
+    Runtime& runtime,
+    int error_number,
+    const PathArg& path,
+    std::string& error);
+
+bool os_index_i64(
+    Runtime& runtime,
+    const Value& value,
+    const char* argument,
+    int64_t& out,
+    std::string& error) {
+  if (value_int_like_to_i64(value, out)) return true;
+  if (value_as_bigint(value) != nullptr) {
+    error = std::string(argument) + " is too large to convert to an integer";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  Value index_method;
+  std::string lookup_error;
+  if (!object_get_attr(value, "__index__", index_method, lookup_error)) {
+    error = std::string(argument) + " must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value converted;
+  if (!runtime_call_callable(
+          runtime, index_method, nullptr, 0, converted, error)) {
+    return false;
+  }
+  if (converted.tag == ValueTag::Bool) {
+    error = "__index__ returned non-int";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_int_like_to_i64(converted, out)) return true;
+  if (value_as_bigint(converted) != nullptr) {
+    error = std::string(argument) + " is too large to convert to an integer";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  error = "__index__ returned non-int";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool os_c_int_arg(
+    Runtime& runtime,
+    const Value& value,
+    const char* argument,
+    int& out,
+    std::string& error) {
+  int64_t number = 0;
+  if (!os_index_i64(runtime, value, argument, number, error)) {
+    return false;
+  }
+  if (number < (std::numeric_limits<int>::min)() ||
+      number > (std::numeric_limits<int>::max)()) {
+    error = "Python int too large to convert to C int";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  out = static_cast<int>(number);
+  return true;
+}
+
+bool os_fd_arg(
+    Runtime& runtime,
+    const Value& value,
+    int& out,
+    std::string& error) {
+  return os_c_int_arg(runtime, value, "file descriptor", out, error);
+}
+
 bool raise_path_not_found(
     Runtime& runtime,
     const std::string& error,
@@ -540,19 +614,11 @@ bool os_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (args[1].tag != ValueTag::Int64) {
-    error = "open flags must be int";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  int flags = 0;
+  if (!os_c_int_arg(runtime, args[1], "open flags", flags, error)) return false;
   int mode = 0666;
   if (argc >= 3 && args[2].tag != ValueTag::None) {
-    if (args[2].tag != ValueTag::Int64) {
-      error = "open mode must be int";
-      runtime.raise_class_error("TypeError", error);
-      return false;
-    }
-    mode = static_cast<int>(args[2].as.i64);
+    if (!os_c_int_arg(runtime, args[2], "open mode", mode, error)) return false;
   }
   if (argc >= 4 && args[3].tag != ValueTag::None) {
     error = "dir_fd is not supported yet";
@@ -563,14 +629,14 @@ bool os_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
 #if defined(_WIN32)
   const int fd = _wopen(
       std::filesystem::u8path(path.text).c_str(),
-      static_cast<int>(args[1].as.i64) | _O_NOINHERIT,
+      flags | _O_NOINHERIT,
       mode);
 #else
-  const int fd = ::open(path.text.c_str(), static_cast<int>(args[1].as.i64), static_cast<mode_t>(mode));
+  const int fd = ::open(path.text.c_str(), flags, static_cast<mode_t>(mode));
 #endif
   if (fd < 0) {
-    error = "open failed";
-    return raise_path_not_found(runtime, error, &args[0]);
+    const int error_number = errno;
+    return raise_os_path_error_with_errno(runtime, error_number, path, error);
   }
   value_set_int64(out, fd);
   return true;
@@ -641,6 +707,63 @@ bool raise_win32_os_error(
   object_set_attr(exception, "winerror", Value::int64(static_cast<int64_t>(code)), ignored);
   object_set_attr(exception, "strerror", Value::string(error), ignored);
   if (filename != nullptr) object_set_attr(exception, "filename", *filename, ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
+bool raise_fstat_error(
+    Runtime& runtime,
+    int error_number,
+    const std::string& message) {
+  Value exception = runtime.make_exception("OSError", message);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+#if defined(_WIN32)
+  if (error_number == EBADF) {
+    object_set_attr(
+        exception, "winerror", Value::int64(ERROR_INVALID_HANDLE), ignored);
+  }
+#endif
+  object_set_attr(exception, "strerror", Value::string(message), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
+const char* os_error_class_for_errno(int error_number) {
+  switch (error_number) {
+    case ENOENT:
+      return "FileNotFoundError";
+    case EACCES:
+      return "PermissionError";
+    case EEXIST:
+      return "FileExistsError";
+#if defined(EISDIR)
+    case EISDIR:
+      return "IsADirectoryError";
+#endif
+#if defined(ENOTDIR)
+    case ENOTDIR:
+      return "NotADirectoryError";
+#endif
+    default:
+      return "OSError";
+  }
+}
+
+bool raise_os_path_error_with_errno(
+    Runtime& runtime,
+    int error_number,
+    const PathArg& path,
+    std::string& error) {
+  const char* description = std::strerror(error_number);
+  error = description != nullptr ? description : "filesystem operation failed";
+  Value exception = runtime.make_exception(
+      os_error_class_for_errno(error_number), error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+  object_set_attr(
+      exception, "filename", path_name_value(path.text, path.bytes), ignored);
   runtime.set_pending_exception(std::move(exception));
   return false;
 }
@@ -1157,45 +1280,66 @@ bool os_open_kw(
 }
 
 bool os_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  if (argc != 1) {
     error = "close() expected fd";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
 #if defined(_WIN32)
-  const int rc = safe_close(static_cast<int>(args[0].as.i64));
+  const int rc = safe_close(fd);
 #else
-  const int rc = ::close(static_cast<int>(args[0].as.i64));
+  const int rc = ::close(fd);
 #endif
   if (rc != 0) {
+    const int error_number = errno;
     error = "close failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   value_set_none(out);
   return true;
 }
 
 bool os_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "read() expected fd and length";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (args[1].as.i64 < 0) {
+  int fd = 0;
+  int64_t requested = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error) ||
+      !os_index_i64(runtime, args[1], "read length", requested, error)) {
+    return false;
+  }
+  if (requested < 0) {
     error = "negative read length";
     runtime.raise_class_error("ValueError", error);
     return false;
   }
   std::string buffer;
-  buffer.resize(static_cast<size_t>(args[1].as.i64));
+  if (static_cast<uint64_t>(requested) >
+          static_cast<uint64_t>((std::numeric_limits<size_t>::max)()) ||
+      static_cast<uint64_t>(requested) >
+          static_cast<uint64_t>(buffer.max_size())) {
+    error = "read length is too large";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  buffer.resize(static_cast<size_t>(requested));
 #if defined(_WIN32)
-  const int count = safe_read(static_cast<int>(args[0].as.i64), buffer.data(), static_cast<unsigned int>(buffer.size()));
+  const int count = safe_read(
+      fd, buffer.data(),
+      static_cast<unsigned int>(
+          std::min<size_t>(buffer.size(), 0x7fffffffu)));
 #else
-  const ssize_t count = ::read(static_cast<int>(args[0].as.i64), buffer.data(), buffer.size());
+  const ssize_t count = ::read(fd, buffer.data(), buffer.size());
 #endif
   if (count < 0) {
+    const int error_number = errno;
     error = "read failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   buffer.resize(static_cast<size_t>(count));
   out = Value::bytes(std::move(buffer));
@@ -1203,11 +1347,13 @@ bool os_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
 }
 
 bool os_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "readinto() expected fd and writable buffer";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
   char* data = nullptr;
   size_t size = 0;
   if (auto* bytearray = value_as_bytearray(args[1])) {
@@ -1228,25 +1374,28 @@ bool os_readinto(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
 #if defined(_WIN32)
   const int count = safe_read(
-      static_cast<int>(args[0].as.i64), data,
+      fd, data,
       static_cast<unsigned int>(std::min<size_t>(size, 0x7fffffffu)));
 #else
-  const ssize_t count = ::read(static_cast<int>(args[0].as.i64), data, size);
+  const ssize_t count = ::read(fd, data, size);
 #endif
   if (count < 0) {
+    const int error_number = errno;
     error = "readinto failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   out = Value::int64(static_cast<int64_t>(count));
   return true;
 }
 
 bool os_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "write() expected fd and bytes-like data";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
   std::string_view data;
   if (auto* bytes = value_as_bytes(args[1])) {
     data = bytes_object_view(*bytes);
@@ -1265,42 +1414,54 @@ bool os_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
 #if defined(_WIN32)
-  const int count = safe_write(static_cast<int>(args[0].as.i64), data.data(), static_cast<unsigned int>(data.size()));
+  const int count = safe_write(
+      fd, data.data(),
+      static_cast<unsigned int>(std::min<size_t>(data.size(), 0x7fffffffu)));
 #else
-  const ssize_t count = ::write(static_cast<int>(args[0].as.i64), data.data(), data.size());
+  const ssize_t count = ::write(fd, data.data(), data.size());
 #endif
   if (count < 0) {
+    const int error_number = errno;
     error = "write failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   value_set_int64(out, static_cast<int64_t>(count));
   return true;
 }
 
 bool os_lseek(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 3 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64 || args[2].tag != ValueTag::Int64) {
+  if (argc != 3) {
     error = "lseek() expected fd, position, and how";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int fd = 0;
+  int64_t position_arg = 0;
+  int how = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error) ||
+      !os_index_i64(runtime, args[1], "lseek position", position_arg, error) ||
+      !os_c_int_arg(runtime, args[2], "lseek how", how, error)) {
+    return false;
+  }
 #if defined(_WIN32)
   const auto position =
-      safe_lseek64(static_cast<int>(args[0].as.i64), static_cast<__int64>(args[1].as.i64), static_cast<int>(args[2].as.i64));
+      safe_lseek64(fd, static_cast<__int64>(position_arg), how);
   if (position < 0) {
 #else
   const auto position =
-      ::lseek(static_cast<int>(args[0].as.i64), static_cast<off_t>(args[1].as.i64), static_cast<int>(args[2].as.i64));
+      ::lseek(fd, static_cast<off_t>(position_arg), how);
   if (position == static_cast<off_t>(-1)) {
 #endif
+    const int error_number = errno;
     error = "lseek failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   value_set_int64(out, static_cast<int64_t>(position));
   return true;
 }
 
 bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  if (argc != 1) {
     error = "fstat() expected fd";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -1311,22 +1472,20 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     runtime.raise_class_error("RuntimeError", error);
     return false;
   }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
   VfsStat stat;
 #if defined(_WIN32)
-  if (args[0].as.i64 < 0 || args[0].as.i64 > (std::numeric_limits<int>::max)()) {
-    error = "bad file descriptor";
-    runtime.raise_class_error("OSError", error);
-    return false;
-  }
   struct _stat64 native_stat;
-  if (safe_fstat64(static_cast<int>(args[0].as.i64), &native_stat) != 0) {
+  if (safe_fstat64(fd, &native_stat) != 0) {
+    const int error_number = errno;
     error = "fstat failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_fstat_error(runtime, error_number, error);
   }
   stat.kind = (native_stat.st_mode & _S_IFDIR) != 0 ? VfsNodeKind::Directory : VfsNodeKind::File;
   stat.size = static_cast<uint64_t>(native_stat.st_size);
   stat.inode = static_cast<uint64_t>(native_stat.st_ino);
-  const intptr_t os_handle = safe_get_osfhandle(static_cast<int>(args[0].as.i64));
+  const intptr_t os_handle = safe_get_osfhandle(fd);
   BY_HANDLE_FILE_INFORMATION handle_info{};
   if (os_handle != -1 && GetFileInformationByHandle(
           reinterpret_cast<HANDLE>(os_handle), &handle_info) != 0) {
@@ -1338,7 +1497,7 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
 #else
   struct stat native_stat;
-  if (::fstat(static_cast<int>(args[0].as.i64), &native_stat) != 0) {
+  if (::fstat(fd, &native_stat) != 0) {
     error = "fstat failed";
     runtime.raise_class_error("OSError", error);
     return false;
@@ -1359,46 +1518,47 @@ bool set_fd_inheritable(Runtime& runtime, int fd, bool inheritable, std::string&
   const intptr_t os_handle = safe_get_osfhandle(fd);
   if (os_handle == -1) {
     error = "invalid file descriptor";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", EBADF, error);
   }
   const DWORD flags = inheritable ? HANDLE_FLAG_INHERIT : 0;
   if (SetHandleInformation(reinterpret_cast<HANDLE>(os_handle), HANDLE_FLAG_INHERIT, flags) == 0) {
-    error = "set handle inheritance failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_win32_os_error(runtime, GetLastError(), nullptr, error);
   }
   return true;
 #else
   const int current = fcntl(fd, F_GETFD);
   if (current < 0) {
+    const int error_number = errno;
     error = "get fd flags failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   const int next = inheritable ? (current & ~FD_CLOEXEC) : (current | FD_CLOEXEC);
   if (fcntl(fd, F_SETFD, next) < 0) {
+    const int error_number = errno;
     error = "set fd flags failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   return true;
 #endif
 }
 
 bool os_dup(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  if (argc != 1) {
     error = "dup() expected fd";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int source_fd = 0;
+  if (!os_fd_arg(runtime, args[0], source_fd, error)) return false;
 #if defined(_WIN32)
-  const int fd = safe_dup(static_cast<int>(args[0].as.i64));
+  const int fd = safe_dup(source_fd);
 #else
-  const int fd = ::dup(static_cast<int>(args[0].as.i64));
+  const int fd = ::dup(source_fd);
 #endif
   if (fd < 0) {
+    const int error_number = errno;
     error = "dup failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   if (!set_fd_inheritable(runtime, fd, false, error)) {
 #if defined(_WIN32)
@@ -1413,13 +1573,17 @@ bool os_dup(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std:
 }
 
 bool os_dup2(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 3 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+  if (argc < 2 || argc > 3) {
     error = "dup2() expected fd, fd2, and optional inheritable";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const int fd = static_cast<int>(args[0].as.i64);
-  const int fd2 = static_cast<int>(args[1].as.i64);
+  int fd = 0;
+  int fd2 = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error) ||
+      !os_fd_arg(runtime, args[1], fd2, error)) {
+    return false;
+  }
   const bool inheritable = argc >= 3 ? value_truthy(args[2]) : true;
 #if defined(_WIN32)
   const int rc = safe_dup2(fd, fd2);
@@ -1427,8 +1591,9 @@ bool os_dup2(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   const int rc = ::dup2(fd, fd2);
 #endif
   if (rc != 0) {
+    const int error_number = errno;
     error = "dup2 failed";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   if (!set_fd_inheritable(runtime, fd2, inheritable, error)) {
     return false;
@@ -1482,9 +1647,9 @@ bool os_pipe(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
 #else
   if (::pipe(fds) != 0) {
 #endif
+    const int error_number = errno;
     error = "pipe failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
 #if !defined(_WIN32)
   if (!set_fd_inheritable(runtime, fds[0], false, error) || !set_fd_inheritable(runtime, fds[1], false, error)) {
@@ -1498,44 +1663,46 @@ bool os_pipe(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
 }
 
 bool os_isatty(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  if (argc != 1) {
     error = "isatty() expected fd";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
 #if defined(_WIN32)
-  value_set_bool(out, safe_isatty(static_cast<int>(args[0].as.i64)) != 0);
+  value_set_bool(out, safe_isatty(fd) != 0);
 #else
-  value_set_bool(out, ::isatty(static_cast<int>(args[0].as.i64)) != 0);
+  value_set_bool(out, ::isatty(fd) != 0);
 #endif
   return true;
 }
 
 bool os_get_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || args[0].tag != ValueTag::Int64) {
+  if (argc != 1) {
     error = "get_inheritable() expected fd";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
 #if defined(_WIN32)
-  const intptr_t os_handle = safe_get_osfhandle(static_cast<int>(args[0].as.i64));
+  const intptr_t os_handle = safe_get_osfhandle(fd);
   if (os_handle == -1) {
     error = "invalid file descriptor";
-    return raise_os_error_with_errno(runtime, "OSError", 9, error);
+    return raise_os_error_with_errno(runtime, "OSError", EBADF, error);
   }
   DWORD flags = 0;
   if (GetHandleInformation(reinterpret_cast<HANDLE>(os_handle), &flags) == 0) {
-    error = "get handle inheritance failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_win32_os_error(runtime, GetLastError(), nullptr, error);
   }
   value_set_bool(out, (flags & HANDLE_FLAG_INHERIT) != 0);
 #else
-  const int flags = fcntl(static_cast<int>(args[0].as.i64), F_GETFD);
+  const int flags = fcntl(fd, F_GETFD);
   if (flags < 0) {
+    const int error_number = errno;
     error = "get fd flags failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
   }
   value_set_bool(out, (flags & FD_CLOEXEC) == 0);
 #endif
@@ -1543,12 +1710,14 @@ bool os_get_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Valu
 }
 
 bool os_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "set_inheritable() expected fd and inheritable";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!set_fd_inheritable(runtime, static_cast<int>(args[0].as.i64), value_truthy(args[1]), error)) {
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
+  if (!set_fd_inheritable(runtime, fd, value_truthy(args[1]), error)) {
     return false;
   }
   value_set_none(out);
@@ -3570,6 +3739,95 @@ bool os_path_splitroot_ex(
   return true;
 }
 
+bool os_path_normpath(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "nt._path_normpath() expected one path";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  PathArg path;
+  if (!windows_fspath_allow_null(runtime, args[0], path, error)) {
+    return false;
+  }
+  std::string normalized = path.text;
+  std::replace(normalized.begin(), normalized.end(), '/', '\\');
+
+  std::string drive;
+  std::string root;
+  std::string remainder;
+  if (!normalized.empty() && normalized[0] == '\\') {
+    if (normalized.size() >= 2 && normalized[1] == '\\') {
+      size_t share_start = 2;
+      if (normalized.size() >= 8) {
+        std::string prefix = normalized.substr(0, 8);
+        std::transform(prefix.begin(), prefix.end(), prefix.begin(), [](char ch) {
+          return static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+        });
+        if (prefix == "\\\\?\\UNC\\") share_start = 8;
+      }
+      const size_t server_end = normalized.find('\\', share_start);
+      const size_t share_end = server_end == std::string::npos
+          ? std::string::npos
+          : normalized.find('\\', server_end + 1);
+      if (share_end == std::string::npos) {
+        drive = normalized;
+      } else {
+        drive = normalized.substr(0, share_end);
+        root = "\\";
+        remainder = normalized.substr(share_end + 1);
+      }
+    } else {
+      root = "\\";
+      remainder = normalized.substr(1);
+    }
+  } else if (normalized.size() >= 2 && normalized[1] == ':') {
+    drive = normalized.substr(0, 2);
+    if (normalized.size() >= 3 && normalized[2] == '\\') {
+      root = "\\";
+      remainder = normalized.substr(3);
+    } else {
+      remainder = normalized.substr(2);
+    }
+  } else {
+    remainder = normalized;
+  }
+
+  std::vector<std::string> components;
+  for (size_t start = 0; start <= remainder.size();) {
+    const size_t end = remainder.find('\\', start);
+    const std::string component = remainder.substr(
+        start, end == std::string::npos ? std::string::npos : end - start);
+    if (component.empty() || component == ".") {
+      // Repeated separators and current-directory components are omitted.
+    } else if (component == "..") {
+      if (!components.empty() && components.back() != "..") {
+        components.pop_back();
+      } else if (root.empty()) {
+        components.push_back(component);
+      }
+    } else {
+      components.push_back(component);
+    }
+    if (end == std::string::npos) break;
+    start = end + 1;
+  }
+
+  std::string result = drive + root;
+  for (size_t i = 0; i < components.size(); ++i) {
+    if ((i != 0 || !root.empty()) && (result.empty() || result.back() != '\\')) result.push_back('\\');
+    result += components[i];
+  }
+  if (drive.empty() && root.empty() && components.empty()) result = ".";
+  out = path_name_value(std::move(result), path.bytes);
+  return true;
+}
+
 bool os_getfullpathname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "nt._getfullpathname() expected one path";
@@ -4290,7 +4548,7 @@ void register_os_module(Runtime& runtime) {
       .function("putenv", os_putenv)
       .function("unsetenv", os_unsetenv)
       .function("_create_environ", os_create_environ)
-      .function("fspath", os_fspath)
+      .function("fspath", os_fspath, builtin_fast_adapter<os_fspath, 1>, true)
 #if defined(_WIN32)
       .value("P_WAIT", Value::int64(_P_WAIT))
       .value("P_NOWAIT", Value::int64(_P_NOWAIT))
@@ -4307,6 +4565,11 @@ void register_os_module(Runtime& runtime) {
       .function("listmounts", os_listmounts)
       .function("device_encoding", os_device_encoding)
       .function("_path_splitroot_ex", os_path_splitroot_ex)
+      .function(
+          "_path_normpath",
+          os_path_normpath,
+          builtin_fast_adapter<os_path_normpath, 1>,
+          true)
       .function("_path_isdevdrive", os_path_isdevdrive)
       .function("_path_isdir", os_path_isdir, nullptr, false, os_path_isdir_kw)
       .function("_path_isfile", os_path_isfile, nullptr, false, os_path_isfile_kw)
@@ -4341,6 +4604,8 @@ void register_os_module(Runtime& runtime) {
       .value("O_SHORT_LIVED", Value::int64(_O_SHORT_LIVED))
 #endif
       .value("O_NONBLOCK", Value::int64(0))
+      .value("_LOAD_LIBRARY_SEARCH_DEFAULT_DIRS", Value::int64(0x00001000))
+      .value("_LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR", Value::int64(0x00000100))
 #else
       .value("O_RDONLY", Value::int64(O_RDONLY))
       .value("O_WRONLY", Value::int64(O_WRONLY))

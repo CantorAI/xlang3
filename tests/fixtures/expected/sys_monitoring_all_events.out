@@ -5,3 +5,13 @@ monitoring-all-events-used True
 monitoring-all-events-global 8 16 24 False
 monitoring-all-events-local-ignored 8 16 24 False
 monitoring-all-events-cleared True
+True
+True
+monitoring-stop-iteration 1
+[('StopIteration', True)]
+True
+True
+monitoring-disable-first 3 3
+monitoring-code-identity True
+monitoring-disable-cached 3 True
+monitoring-disable-restarted 3 True

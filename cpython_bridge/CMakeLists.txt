@@ -1,3 +1,6 @@
+if(NOT Python3_ROOT_DIR AND XLANG3_HOST_PYTHON)
+  get_filename_component(Python3_ROOT_DIR "${XLANG3_HOST_PYTHON}" DIRECTORY)
+endif()
 find_package(Python3 3.14...<3.15 REQUIRED COMPONENTS Interpreter Development.Module Development.Embed)
 set(bridge_sources engine.cpp conversion.cpp xlang_object.cpp python_object.cpp buffer.cpp protocols.cpp snapshot.cpp
   serialize/writer.cpp serialize/reader.cpp serialize/reduction.cpp)
@@ -32,8 +35,11 @@ endif()
 # Keep the shared runtime next to the extension for CPython's DLL loader.
 if(WIN32)
   add_custom_target(xlang_cpython_runtime
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:xlang_cpython_native_package>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       $<TARGET_FILE:Python3::Python> $<TARGET_FILE_DIR:xlang3>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_FILE:Python3::Python> $<TARGET_FILE_DIR:xlang_cpython_native_package>
     COMMENT "Staging CPython for the XLang3 host")
   add_dependencies(xlang_cpython_native_package xlang_cpython_runtime)
   add_custom_target(xlang3_cpython_runtime

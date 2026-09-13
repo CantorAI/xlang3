@@ -164,3 +164,23 @@ except FileNotFoundError as missing_file:
         missing_file.errno,
         missing_file.filename.endswith("xlang3_exception_missing_file.tmp"),
     )
+
+
+# Traceback metadata is read-only except for a cycle-checked tb_next link.
+try:
+    line_probe()
+except LookupError as caught:
+    edge_tb = caught.__traceback__
+    try:
+        edge_tb.tb_lineno = 1
+    except AttributeError as readonly_error:
+        lineno_readonly = True
+    try:
+        edge_tb.tb_next = 1
+    except TypeError:
+        next_type_checked = True
+    try:
+        edge_tb.tb_next = edge_tb
+    except ValueError:
+        cycle_checked = True
+    print(lineno_readonly, next_type_checked, cycle_checked)

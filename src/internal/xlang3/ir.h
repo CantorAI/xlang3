@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -152,6 +153,27 @@ enum class Op : uint16_t {
   Return,
   CaptureExpressions,
   SetException,
+  InplaceAdd,
+  InplaceAddLocalConst,
+  LoadLocalInstanceSlot,
+  StoreLocalInstanceSlot,
+  LoadLocalPair,
+  LoadLocalConst,
+  LoadConstPair,
+  StoreLocalLoadLocal,
+  JumpIfFalseLoadLocal,
+  LoadLocalAttr,
+  CallLocal,
+  CallLocalMethod,
+  CompareJumpIfFalse,
+  IsJumpIfFalse,
+  MoveJumpIfFalse,
+  StoreLocalPair,
+  MoveJumpIfTrue,
+  ReturnConst,
+  ReturnLocal,
+  LoadLocalGlobal,
+  LoadGlobalLocal,
 };
 
 enum class CompareOp : uint16_t {
@@ -176,6 +198,14 @@ struct SourcePosition {
   uint32_t end_line = 0;
   uint32_t column = 0;
   uint32_t end_column = 0;
+};
+
+struct Function;
+
+struct FunctionExecutionMetadata {
+  const Function* owner = nullptr;
+  std::vector<size_t> register_last_use;
+  std::vector<bool> register_loop_carried;
 };
 
 struct Function {
@@ -225,6 +255,9 @@ struct Function {
   std::vector<Instr> code;
   std::vector<uint32_t> source_lines;
   std::vector<SourcePosition> source_positions;
+  // Derived immutable VM metadata is populated on first execution. It is not
+  // serialized because older and embedded IR remain self-contained.
+  mutable std::shared_ptr<const FunctionExecutionMetadata> execution_metadata;
 };
 
 struct Module {

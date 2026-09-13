@@ -22,6 +22,8 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
+#include "../thread/runtime_lock.h"
+
 #include <chrono>
 #include <cmath>
 #include <cctype>
@@ -2384,7 +2386,10 @@ bool time_sleep(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
+  {
+    XlangRuntimeExecutionSuspension execution_suspension;
+    std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
+  }
   value_set_none(out);
   return true;
 }

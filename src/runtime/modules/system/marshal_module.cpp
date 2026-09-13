@@ -1066,6 +1066,36 @@ bool marshal_load_kw(Runtime& runtime, const Value* args, uint32_t argc, const N
 
 } // namespace
 
+bool marshal_load_code_module(
+    Runtime& runtime,
+    std::string_view data,
+    std::shared_ptr<const ir::Module>& out,
+    std::string& error) {
+  if (data.size() < kMagic.size() || data.substr(0, kMagic.size()) != kMagic) {
+    error = "bad marshal data";
+    return false;
+  }
+  MarshalReader reader{data.substr(kMagic.size()), 0};
+  std::vector<Value> read_refs;
+  g_marshal_runtime = &runtime;
+  g_marshal_read_refs = &read_refs;
+  Value code_value;
+  const bool decoded = unmarshal_value(reader, code_value, error);
+  g_marshal_read_refs = nullptr;
+  g_marshal_runtime = nullptr;
+  if (!decoded || reader.pos != reader.data.size()) {
+    if (decoded) error = "trailing marshal data";
+    return false;
+  }
+  auto* code = value_as_code(code_value);
+  if (code == nullptr || code->module == nullptr) {
+    error = "bytecode file does not contain a code object";
+    return false;
+  }
+  out = code->module;
+  return true;
+}
+
 void register_marshal_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "marshal");
   builder.value("loads", runtime.make_native_function("marshal.loads", marshal_loads, nullptr, nullptr, nullptr, false, marshal_loads_kw))

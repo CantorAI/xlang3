@@ -1945,7 +1945,7 @@ bool file_get_method(const Value& object, const std::string& name, Value& out) {
     out = Value::bound_method(object, init);
     return true;
   }
-  static constexpr BuiltinMethodSpec methods[] = {
+  static BuiltinMethodSpec methods[] = {
       {"__enter__", "file.__enter__", file_enter_method},
       {"__exit__", "file.__exit__", file_exit_method},
       {"__iter__", "file.__iter__", file_iter_method},

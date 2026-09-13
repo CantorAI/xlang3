@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "xlang3/vfs.h"
 
+#include <algorithm>
+
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
 #include <functional>
@@ -30,6 +32,41 @@ limitations under the License.
 
 namespace xlang3 {
 namespace {
+
+std::string normalize_virtual_path(
+    const std::string& path,
+    const std::string& current_directory) {
+  std::string combined = path;
+  std::replace(combined.begin(), combined.end(), '\\', '/');
+  if (combined.empty() || combined.front() != '/') {
+    std::string base = current_directory.empty() ? "/" : current_directory;
+    std::replace(base.begin(), base.end(), '\\', '/');
+    if (base.back() != '/') base.push_back('/');
+    combined = base + combined;
+  }
+  std::vector<std::string> components;
+  size_t start = 0;
+  while (start <= combined.size()) {
+    const size_t slash = combined.find('/', start);
+    const std::string component = combined.substr(
+        start, slash == std::string::npos ? std::string::npos : slash - start);
+    if (!component.empty() && component != ".") {
+      if (component == "..") {
+        if (!components.empty()) components.pop_back();
+      } else {
+        components.push_back(component);
+      }
+    }
+    if (slash == std::string::npos) break;
+    start = slash + 1;
+  }
+  std::string normalized = "/";
+  for (size_t index = 0; index < components.size(); ++index) {
+    if (index != 0) normalized.push_back('/');
+    normalized += components[index];
+  }
+  return normalized;
+}
 
 #if !defined(XLANG3_EMBEDDED)
 #if defined(_WIN32)
@@ -148,14 +185,14 @@ public:
     return true;
   }
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) override {
-    std::error_code ec;
     const auto native = filesystem_path(path);
-    if (std::filesystem::is_directory(native, ec)) {
-      error = "cannot open directory as file " + path;
-      return false;
-    }
     std::ifstream file(native, std::ios::binary);
     if (!file) {
+      std::error_code ec;
+      if (std::filesystem::is_directory(native, ec)) {
+        error = "cannot open directory as file " + path;
+        return false;
+      }
       error = "cannot open file " + path;
       return false;
     }
@@ -286,6 +323,46 @@ public:
     return true;
   }
 
+  bool kind(const std::string& path, VfsNodeKind& out, std::string& error) override {
+    out = VfsNodeKind::Missing;
+    std::filesystem::path native_path;
+    try {
+      native_path = filesystem_path(path);
+    } catch (const std::exception&) {
+#if defined(_WIN32)
+      return true;
+#else
+      throw;
+#endif
+    }
+#if defined(_WIN32)
+    const DWORD attributes = GetFileAttributesW(native_path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+      const DWORD code = GetLastError();
+      if (code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND ||
+          code == ERROR_INVALID_NAME) {
+        return true;
+      }
+      error = "cannot inspect path " + path + ": " +
+          std::error_code(static_cast<int>(code), std::system_category()).message();
+      return false;
+    }
+    out = (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0
+        ? VfsNodeKind::Directory : VfsNodeKind::File;
+#else
+    std::error_code ec;
+    const auto status = std::filesystem::status(native_path, ec);
+    if (ec) {
+      if (ec == std::errc::no_such_file_or_directory) return true;
+      error = "cannot inspect path " + path + ": " + ec.message();
+      return false;
+    }
+    if (std::filesystem::is_regular_file(status)) out = VfsNodeKind::File;
+    else if (std::filesystem::is_directory(status)) out = VfsNodeKind::Directory;
+#endif
+    return true;
+  }
+
   bool stat(const std::string& path, VfsStat& out, std::string& error) override {
     std::error_code ec;
     out = VfsStat{};
@@ -302,8 +379,9 @@ public:
 #endif
     }
 #if defined(_WIN32)
-    const DWORD initial_attributes = GetFileAttributesW(native_path.c_str());
-    if (initial_attributes == INVALID_FILE_ATTRIBUTES) {
+    WIN32_FILE_ATTRIBUTE_DATA file_data{};
+    if (GetFileAttributesExW(
+            native_path.c_str(), GetFileExInfoStandard, &file_data) == 0) {
       const DWORD code = GetLastError();
       if (code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND ||
           code == ERROR_INVALID_NAME) {
@@ -313,7 +391,8 @@ public:
           std::error_code(static_cast<int>(code), std::system_category()).message();
       return false;
     }
-    out.file_attributes = initial_attributes;
+    out.file_attributes = file_data.dwFileAttributes;
+    out.is_symlink = false;
 #else
     if (!std::filesystem::exists(native_path, ec)) {
       if (ec) {
@@ -323,6 +402,7 @@ public:
       return true;
     }
 #endif
+#if !defined(_WIN32)
     const auto symlink_status = std::filesystem::symlink_status(native_path, ec);
     if (!ec) {
       out.is_symlink = std::filesystem::is_symlink(symlink_status);
@@ -330,11 +410,7 @@ public:
     ec.clear();
     const auto status = std::filesystem::status(native_path, ec);
     const bool have_status = !ec;
-#if defined(_WIN32)
-    if (ec && (out.file_attributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
-#else
     if (ec) {
-#endif
       error = "cannot stat path " + path + ": " + ec.message();
       return false;
     }
@@ -345,6 +421,7 @@ public:
     if (out.inode == 0) {
       out.inode = 1;
     }
+#endif
 #if defined(_WIN32)
     out.inode = 0;
     BY_HANDLE_FILE_INFORMATION handle_info{};
@@ -388,38 +465,14 @@ public:
                 sizeof(tag_info))) {
           out.file_attributes = tag_info.FileAttributes;
           out.reparse_tag = tag_info.ReparseTag;
+          out.is_symlink = tag_info.ReparseTag == IO_REPARSE_TAG_SYMLINK;
         }
         CloseHandle(reparse_handle);
       }
     }
-    struct _stat64 stat_buffer {};
-    if (_wstat64(native_path.c_str(), &stat_buffer) == 0) {
-      out.atime_ns = static_cast<int64_t>(stat_buffer.st_atime) * 1000000000LL;
-      out.mtime_ns = static_cast<int64_t>(stat_buffer.st_mtime) * 1000000000LL;
-      out.ctime_ns = static_cast<int64_t>(stat_buffer.st_ctime) * 1000000000LL;
-    }
-    WIN32_FILE_ATTRIBUTE_DATA file_data{};
-    bool have_file_data = GetFileAttributesExW(
-        native_path.c_str(), GetFileExInfoStandard, &file_data) != 0;
-    if (!have_file_data) {
-      WIN32_FIND_DATAW find_data{};
-      HANDLE find_handle = FindFirstFileW(native_path.c_str(), &find_data);
-      if (find_handle != INVALID_HANDLE_VALUE) {
-        file_data.dwFileAttributes = find_data.dwFileAttributes;
-        file_data.ftCreationTime = find_data.ftCreationTime;
-        file_data.ftLastAccessTime = find_data.ftLastAccessTime;
-        file_data.ftLastWriteTime = find_data.ftLastWriteTime;
-        file_data.nFileSizeHigh = find_data.nFileSizeHigh;
-        file_data.nFileSizeLow = find_data.nFileSizeLow;
-        have_file_data = true;
-        FindClose(find_handle);
-      }
-    }
-    if (have_file_data) {
-      out.atime_ns = filetime_to_unix_ns(file_data.ftLastAccessTime);
-      out.mtime_ns = filetime_to_unix_ns(file_data.ftLastWriteTime);
-      out.ctime_ns = filetime_to_unix_ns(file_data.ftCreationTime);
-    }
+    out.atime_ns = filetime_to_unix_ns(file_data.ftLastAccessTime);
+    out.mtime_ns = filetime_to_unix_ns(file_data.ftLastWriteTime);
+    out.ctime_ns = filetime_to_unix_ns(file_data.ftCreationTime);
     if (have_handle_info) {
       out.atime_ns = filetime_to_unix_ns(handle_info.ftLastAccessTime);
       out.mtime_ns = filetime_to_unix_ns(handle_info.ftLastWriteTime);
@@ -433,14 +486,20 @@ public:
       out.ctime_ns = static_cast<int64_t>(stat_buffer.st_ctime) * 1000000000LL;
     }
 #endif
-    if (!have_status) {
 #if defined(_WIN32)
-      out.kind = (out.file_attributes & FILE_ATTRIBUTE_DIRECTORY) != 0
-          ? VfsNodeKind::Directory
-          : VfsNodeKind::File;
+    if ((out.file_attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+      out.kind = VfsNodeKind::Directory;
       out.size = 0;
+    } else {
+      out.kind = VfsNodeKind::File;
+      out.size = (static_cast<uint64_t>(file_data.nFileSizeHigh) << 32u) |
+          static_cast<uint64_t>(file_data.nFileSizeLow);
+    }
+    return true;
+#else
+    if (!have_status) {
+      out.kind = VfsNodeKind::Missing;
       return true;
-#endif
     }
     if (std::filesystem::is_regular_file(status)) {
       out.kind = VfsNodeKind::File;
@@ -459,6 +518,7 @@ public:
     out.size = 0;
     out.inode = 0;
     return true;
+#endif
   }
 };
 #endif
@@ -466,7 +526,7 @@ public:
 } // namespace
 
 #if !defined(XLANG3_EMBEDDED)
-Vfs::Vfs() : root_(std::make_unique<OsFileSystem>()) {
+Vfs::Vfs() : root_(std::make_unique<OsFileSystem>()), host_paths_(true) {
   std::error_code ec;
   auto cwd = std::filesystem::current_path(ec);
   current_directory_ = ec ? "." : filesystem_path_text(cwd);
@@ -478,6 +538,43 @@ Vfs::~Vfs() = default;
 
 void Vfs::set_root(std::unique_ptr<FileSystem> root) {
   root_ = std::move(root);
+  mounts_.clear();
+  // Mounted filesystems define their own namespace. Do not retain the host
+  // process cwd when switching to an embedded or application-provided root.
+  current_directory_ = "/";
+  host_paths_ = false;
+}
+
+void Vfs::mount(
+    std::string prefix,
+    std::shared_ptr<FileSystem> filesystem) {
+  prefix = normalize_virtual_path(prefix, "/");
+  mounts_.erase(
+      std::remove_if(
+          mounts_.begin(), mounts_.end(),
+          [&](const Mount& mount) { return mount.prefix == prefix; }),
+      mounts_.end());
+  if (filesystem == nullptr) return;
+  mounts_.push_back({std::move(prefix), std::move(filesystem)});
+  std::sort(
+      mounts_.begin(), mounts_.end(),
+      [](const Mount& left, const Mount& right) {
+        return left.prefix.size() > right.prefix.size();
+      });
+}
+
+bool Vfs::is_mounted_path(const std::string& path) const {
+  if (path.empty()) return false;
+  const std::string normalized = normalize_virtual_path(path, current_directory_);
+  for (const auto& mount : mounts_) {
+    if (normalized == mount.prefix ||
+        (normalized.size() > mount.prefix.size() &&
+         normalized.compare(0, mount.prefix.size(), mount.prefix) == 0 &&
+         normalized[mount.prefix.size()] == '/')) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool Vfs::resolve(const std::string& path, ResolvedPath& out, std::string& error) {
@@ -489,8 +586,24 @@ bool Vfs::resolve(const std::string& path, ResolvedPath& out, std::string& error
     error = "no filesystem mounted";
     return false;
   }
+  const std::string mounted_path = normalize_virtual_path(path, current_directory_);
+  for (const auto& mount : mounts_) {
+    if (mounted_path == mount.prefix ||
+        (mounted_path.size() > mount.prefix.size() &&
+         mounted_path.compare(0, mount.prefix.size(), mount.prefix) == 0 &&
+         mounted_path[mount.prefix.size()] == '/')) {
+      out.fs = mount.filesystem.get();
+      out.path = mounted_path;
+      return true;
+    }
+  }
   out.fs = root_.get();
 #if !defined(XLANG3_EMBEDDED)
+  if (!host_paths_) {
+    out.path = normalize_virtual_path(path, current_directory_);
+    return true;
+  }
+
 #if defined(_WIN32)
   if (MultiByteToWideChar(
           CP_UTF8, MB_ERR_INVALID_CHARS, path.data(),
@@ -516,11 +629,7 @@ bool Vfs::resolve(const std::string& path, ResolvedPath& out, std::string& error
   }
   out.path = filesystem_path_text(fs_path.lexically_normal());
 #else
-  if (!current_directory_.empty() && path.front() != '/') {
-    out.path = current_directory_ + "/" + path;
-  } else {
-    out.path = path;
-  }
+  out.path = normalize_virtual_path(path, current_directory_);
 #endif
   return true;
 }
@@ -571,6 +680,11 @@ bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::
 bool Vfs::stat(const std::string& path, VfsStat& out, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->stat(resolved.path, out, error);
+}
+
+bool Vfs::kind(const std::string& path, VfsNodeKind& out, std::string& error) {
+  ResolvedPath resolved;
+  return resolve(path, resolved, error) && resolved.fs->kind(resolved.path, out, error);
 }
 
 bool Vfs::chdir(const std::string& path, std::string& error) {

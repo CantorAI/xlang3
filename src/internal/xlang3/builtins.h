@@ -32,6 +32,7 @@ void register_builtin_modules(Runtime& runtime);
 void register_math_module(Runtime& runtime);
 void register_sys_module(Runtime& runtime);
 bool sys_int_string_exceeds_limit(std::string_view text, int base);
+int64_t sys_coroutine_origin_tracking_depth();
 constexpr int64_t kSysMonitoringEventPyStart = 1;
 constexpr int64_t kSysMonitoringEventPyResume = 2;
 constexpr int64_t kSysMonitoringEventPyReturn = 4;
@@ -50,7 +51,19 @@ constexpr int64_t kSysMonitoringEventPyThrow = 16384;
 constexpr int64_t kSysMonitoringEventReraise = 32768;
 constexpr int64_t kSysMonitoringEventCReturn = 65536;
 constexpr int64_t kSysMonitoringEventCRaise = 131072;
+constexpr int64_t kSysMonitoringEventAll = 262143;
 bool sys_monitoring_event_may_dispatch(int64_t event);
+bool sys_monitoring_global_event_may_dispatch(int64_t event);
+int64_t sys_monitoring_code_events(const ir::Module* module, uint32_t function_id);
+uint64_t sys_monitoring_configuration_generation();
+bool sys_monitoring_location_may_dispatch(
+    const ir::Module* module,
+    uint32_t function_id,
+    int64_t event,
+    int64_t instruction_offset);
+bool sys_monitoring_function_may_dispatch(
+    const ir::Module* module,
+    uint32_t function_id);
 bool sys_monitoring_dispatch_event(
     Runtime& runtime,
     int64_t event,
@@ -63,6 +76,7 @@ void register_abc_module(Runtime& runtime);
 void register_atexit_module(Runtime& runtime);
 void register_ast_module(Runtime& runtime);
 void register_binascii_module(Runtime& runtime);
+void register_bz2_module(Runtime& runtime);
 void register_io_module(Runtime& runtime);
 void register_json_module(Runtime& runtime);
 void register_os_module(Runtime& runtime);
@@ -81,6 +95,7 @@ void register_codecs_module(Runtime& runtime);
 void register_locale_module(Runtime& runtime);
 void register_multibytecodec_module(Runtime& runtime);
 void register_contextvars_module(Runtime& runtime);
+void register_ctypes_module(Runtime& runtime);
 void register_unicodedata_module(Runtime& runtime);
 bool unicodedata_lookup_codepoint(std::string_view name, uint32_t& codepoint);
 void register_struct_module(Runtime& runtime);
@@ -100,6 +115,11 @@ void weakref_invalidate_target(Object* target);
 void weakref_dispatch_callbacks(Runtime& runtime);
 uint64_t weakref_collect_cycles();
 void register_marshal_module(Runtime& runtime);
+bool marshal_load_code_module(
+    Runtime& runtime,
+    std::string_view data,
+    std::shared_ptr<const ir::Module>& out,
+    std::string& error);
 void register_msvcrt_module(Runtime& runtime);
 void register_opcode_module(Runtime& runtime);
 void register_operator_module(Runtime& runtime);

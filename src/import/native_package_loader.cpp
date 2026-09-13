@@ -593,7 +593,12 @@ X3Status host_property_create(
         [](void* data) { delete static_cast<NativeThunk*>(data); });
   }
 
-  *result = to_c_value(Value::property(std::move(fget), std::move(fset), Value::none(), Value::none()));
+  Value property = Value::property(std::move(fget), std::move(fset), Value::none(), Value::none());
+  auto* property_object = value_as_property(property);
+  property_object->name = Value::string(name);
+  property_object->has_name = true;
+  property_object->name_from_getter = false;
+  *result = to_c_value(property);
   return X3_STATUS_OK;
 }
 

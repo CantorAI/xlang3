@@ -1,5 +1,13 @@
 virtual_file.py
 1
 outer
-20
+21
 True
+True
+True False True True
+True
+renamed qualified <lambda>
+True True
+[]
+live-frame-locals (True, 2)
+returned-frame-locals 2

@@ -636,13 +636,18 @@ std::vector<std::string> local_names_for(const std::vector<std::string>& params,
   return names;
 }
 
+std::vector<std::string> read_names_for(const std::vector<ast::StmtPtr>& body) {
+  std::vector<std::string> names;
+  NameSet seen;
+  collect_reads_body(body, names, seen);
+  return names;
+}
+
 std::vector<std::string> free_candidates_for(const ast::FunctionDef& fn) {
   const auto locals = local_names_for(fn.params, fn.body);
   NameSet local_set(locals.begin(), locals.end());
 
-  std::vector<std::string> reads;
-  NameSet seen_reads;
-  collect_reads_body(fn.body, reads, seen_reads);
+  const auto reads = read_names_for(fn.body);
 
   std::vector<std::string> free_names;
   NameSet nonlocals;

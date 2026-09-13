@@ -87,6 +87,49 @@ XLANG3_HOT_INLINE void store_local(
   value_assign_fast(locals[in.dst], regs[in.a]);
 }
 
+XLANG3_HOT_INLINE void store_local_pair(
+    const ir::Instr& in,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    const std::vector<size_t>& register_last_use,
+    size_t ip) {
+  if (in.a == in.c) {
+    // Both stores consume the same register. Keep it alive until the second
+    // assignment, matching the two original StoreLocal instructions.
+    xlang_perf_count_store_local(false);
+    value_assign_fast(locals[in.dst], regs[in.a]);
+  } else {
+    store_local(in, regs, locals, register_last_use, ip);
+  }
+  const ir::Instr second{ir::Op::StoreLocal, in.b, in.c, 0, 0};
+  store_local(second, regs, locals, register_last_use, ip);
+}
+
+template <typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow store_local_load_local(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    const std::vector<size_t>& register_last_use,
+    size_t ip,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  store_local(in, regs, locals, register_last_use, ip);
+  if (in.c >= locals.size()) {
+    result.errors.push_back("invalid local slot in store/load pair");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.c].tag == ValueTag::Invalid) {
+    const std::string name = in.c < fn.locals.size() ? fn.locals[in.c] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.b], locals[in.c]);
+  return XlangVMOpFlow::Next;
+}
+
 XLANG3_HOT_INLINE void move_local(
     const ir::Instr& in,
     XlangVMSmallValueBuffer& locals) {
@@ -173,6 +216,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     std::unordered_map<std::string, Value>& globals,
+    XlangVMInstrCache& instr_cache,
     RuntimeResult& result,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
@@ -183,10 +227,26 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
   const auto& name = module.global_slots[in.a];
   auto* globals_module_obj = value_as_module(globals_module);
   if (globals_module_obj != nullptr) {
+    xlang_vm_cache_touch(instr_cache, XlangVMCacheDomain::Global);
+    auto& global_cache = instr_cache.global;
+    if (global_cache.kind == 1 && global_cache.version == globals_module_obj->version) {
+      const uint32_t slot = global_cache.slot;
+      if (slot < globals_module_obj->slots.size() &&
+          globals_module_obj->slots[slot].tag != ValueTag::Invalid) {
+        value_assign_fast(regs[in.dst], globals_module_obj->slots[slot]);
+        return XlangVMOpFlow::Next;
+      }
+    } else if (global_cache.kind == 2 && global_cache.version == globals_module_obj->version) {
+      value_assign_fast(regs[in.dst], global_cache.value);
+      return XlangVMOpFlow::Next;
+    }
     const auto bound = globals_module_obj->name_to_slot.find(name);
     if (bound != globals_module_obj->name_to_slot.end() && bound->second == in.a &&
         in.a < globals_module_obj->slots.size() && globals_module_obj->slots[in.a].tag != ValueTag::Invalid) {
       value_assign_fast(regs[in.dst], globals_module_obj->slots[in.a]);
+      global_cache.kind = 1;
+      global_cache.slot = in.a;
+      global_cache.version = globals_module_obj->version;
       return XlangVMOpFlow::Next;
     }
     std::string slot_error;
@@ -195,10 +255,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
         dynamic_slot < globals_module_obj->slots.size() &&
         globals_module_obj->slots[dynamic_slot].tag != ValueTag::Invalid) {
       value_assign_fast(regs[in.dst], globals_module_obj->slots[dynamic_slot]);
+      global_cache.kind = 1;
+      global_cache.slot = dynamic_slot;
+      global_cache.version = globals_module_obj->version;
       return XlangVMOpFlow::Next;
     }
     if (const auto* builtin = runtime.find_builtin(name)) {
       value_assign_fast(regs[in.dst], *builtin);
+      value_assign_fast(global_cache.value, *builtin);
+      global_cache.kind = 2;
+      global_cache.version = globals_module_obj->version;
       return XlangVMOpFlow::Next;
     }
     return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
@@ -411,9 +477,48 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_module_slot(
     return raise_runtime_error("module slot is not bound") ? XlangVMOpFlow::ContinueLoop
                                                           : XlangVMOpFlow::ReturnResult;
   }
-  value_set_invalid(globals_module_obj->slots[slot]);
-  ++globals_module_obj->version;
+  if (!module_delete_attr(globals_module, module.global_slots[in.dst], error)) {
+    return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop
+                                      : XlangVMOpFlow::ReturnResult;
+  }
   return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow load_local(
+    const ir::Instr&, const ir::Function&, XlangVMSmallRegisterBuffer&,
+    XlangVMSmallValueBuffer&, RuntimeResult&, RaiseUnboundLocalError&&);
+
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow load_local_global(
+    const ir::Instr& in, const ir::Function& fn, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
+    Value& globals_module, std::unordered_map<std::string, Value>& globals,
+    uint64_t globals_version, XlangVMInstrCache& instr_cache, RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  const ir::Instr local{ir::Op::LoadLocal, in.dst, in.a, 0, 0};
+  auto flow = load_local(local, fn, regs, locals, result, raise_unbound_local_error);
+  if (flow != XlangVMOpFlow::Next) return flow;
+  const ir::Instr global{ir::Op::LoadGlobal, in.b, in.c, 0, 0};
+  return load_global(global, fn, runtime, regs, globals_module, globals, globals_version,
+                     instr_cache, result, raise_runtime_error, raise_exception_value);
+}
+
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow load_global_local(
+    const ir::Instr& in, const ir::Function& fn, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
+    Value& globals_module, std::unordered_map<std::string, Value>& globals,
+    uint64_t globals_version, XlangVMInstrCache& instr_cache, RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  const ir::Instr global{ir::Op::LoadGlobal, in.dst, in.a, 0, 0};
+  auto flow = load_global(global, fn, runtime, regs, globals_module, globals, globals_version,
+                          instr_cache, result, raise_runtime_error, raise_exception_value);
+  if (flow != XlangVMOpFlow::Next) return flow;
+  const ir::Instr local{ir::Op::LoadLocal, in.b, in.c, 0, 0};
+  return load_local(local, fn, regs, locals, result, raise_unbound_local_error);
 }
 
 template <typename RaiseRuntimeError>
@@ -474,6 +579,120 @@ XLANG3_HOT_INLINE XlangVMOpFlow add_local_const(
     }
   }
   return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow load_local_pair(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  if (in.a >= locals.size() || in.c >= locals.size()) {
+    result.errors.push_back("invalid paired local slot");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.dst], locals[in.a]);
+  if (locals[in.c].tag == ValueTag::Invalid) {
+    const std::string name = in.c < fn.locals.size() ? fn.locals[in.c] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.b], locals[in.c]);
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow load_local_const(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  if (in.a >= locals.size() || in.c >= fn.constants.size()) {
+    result.errors.push_back("invalid local/constant pair");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.dst], locals[in.a]);
+  value_borrow_assign_fast(regs[in.b], fn.constants[in.c]);
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseRuntimeError>
+XLANG3_HOT_INLINE XlangVMOpFlow load_const_pair(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    RuntimeResult& result,
+    RaiseRuntimeError&&) {
+  if (in.a >= fn.constants.size() || in.c >= fn.constants.size()) {
+    result.errors.push_back("invalid paired constant index");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.dst], fn.constants[in.a]);
+  value_borrow_assign_fast(regs[in.b], fn.constants[in.c]);
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow inplace_add_local_const(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    Runtime& runtime,
+    XlangVMSmallValueBuffer& locals,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= fn.constants.size()) {
+    result.errors.push_back("invalid local const in-place add");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const auto& lhs = locals[in.a];
+  const auto& rhs = fn.constants[in.b];
+  if (lhs.tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (fast_add(lhs, rhs, locals[in.dst])) {
+    return XlangVMOpFlow::Next;
+  }
+  const Value* callable = runtime.find_builtin("__xlang3_inplace_add__");
+  if (callable == nullptr) {
+    return raise_runtime_error("in-place addition is unavailable")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  Value args[2] = {lhs, rhs};
+  Value output;
+  std::string error;
+  if (runtime_call_callable(runtime, *callable, args, 2, output, error)) {
+    value_move_assign_fast(locals[in.dst], output);
+    return XlangVMOpFlow::Next;
+  }
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    return raise_exception_value(std::move(pending))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return raise_runtime_error(error)
+      ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
 template <typename RaiseRuntimeError>

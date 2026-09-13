@@ -31,6 +31,8 @@ struct GeneratorObject {
   Value pending_send;
   Value pending_throw;
   Value return_value;
+  Value awaiting;
+  Value origin;
   bool has_pending_send = false;
   bool has_pending_throw = false;
   bool args_bound = false;
@@ -38,6 +40,7 @@ struct GeneratorObject {
   bool running = false;
   bool is_async = false;
   bool is_coroutine = false;
+  bool is_await_iterator = false;
   bool done = false;
 };
 

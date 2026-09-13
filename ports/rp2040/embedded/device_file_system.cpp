@@ -97,6 +97,88 @@ bool DeviceFileSystem::remove(const std::string& path, std::string& error) {
          resolved.store->remove(resolved.store->context, resolved.path.c_str(), error);
 }
 
+bool DeviceFileSystem::rename(
+    const std::string& old_path,
+    const std::string& new_path,
+    bool replace,
+    std::string& error) {
+  Route old_resolved;
+  Route new_resolved;
+  if (!route(old_path, old_resolved, error) ||
+      !route(new_path, new_resolved, error)) {
+    return false;
+  }
+  if (old_resolved.store != new_resolved.store) {
+    error = "cross-filesystem rename is not supported";
+    return false;
+  }
+  if (old_resolved.path == new_resolved.path) {
+    std::vector<uint8_t> existing;
+    return old_resolved.store->get(
+        old_resolved.store->context, old_resolved.path.c_str(), existing, error);
+  }
+
+  std::vector<uint8_t> contents;
+  if (!old_resolved.store->get(
+          old_resolved.store->context, old_resolved.path.c_str(), contents,
+          error)) {
+    return false;
+  }
+  if (!replace) {
+    std::vector<uint8_t> destination;
+    std::string destination_error;
+    if (new_resolved.store->get(
+            new_resolved.store->context, new_resolved.path.c_str(),
+            destination, destination_error)) {
+      error = "destination exists: " + new_path;
+      return false;
+    }
+  }
+  if (!new_resolved.store->put(
+          new_resolved.store->context, new_resolved.path.c_str(),
+          contents.empty() ? nullptr : contents.data(),
+          static_cast<uint32_t>(contents.size()), error)) {
+    return false;
+  }
+  if (!old_resolved.store->remove(
+          old_resolved.store->context, old_resolved.path.c_str(), error)) {
+    std::string rollback_error;
+    (void)new_resolved.store->remove(
+        new_resolved.store->context, new_resolved.path.c_str(), rollback_error);
+    return false;
+  }
+  return true;
+}
+
+bool DeviceFileSystem::make_dirs(
+    const std::string& path,
+    bool exist_ok,
+    std::string& error) {
+  Route resolved;
+  if (!route(path, resolved, error)) {
+    return false;
+  }
+  std::vector<uint8_t> file;
+  std::string file_error;
+  if (resolved.store->get(
+          resolved.store->context, resolved.path.c_str(), file, file_error)) {
+    error = "path exists: " + path;
+    return false;
+  }
+  std::vector<std::string> entries;
+  if (!resolved.store->list(
+          resolved.store->context, resolved.path.c_str(), entries, error)) {
+    return false;
+  }
+  if (!entries.empty() && !exist_ok) {
+    error = "path exists: " + path;
+    return false;
+  }
+  // FileStore backends use implicit directories. A successful empty mkdir is
+  // therefore represented by the path becoming available for child files.
+  return true;
+}
+
 bool DeviceFileSystem::list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) {
   Route resolved;
   return route(path, resolved, error) &&

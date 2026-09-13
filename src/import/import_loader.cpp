@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/import_loader.h"
 
+#include "xlang3/builtins.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -87,8 +88,25 @@ std::string python_path_string(const std::filesystem::path& path) {
   return path.lexically_normal().string();
 }
 
-std::string bytecode_cache_path(const std::string& source) {
+std::string bytecode_cache_path(Runtime& runtime, const std::string& source) {
   const std::filesystem::path source_path(source);
+  Value sys;
+  Value prefix;
+  std::string ignored;
+  if (runtime.import_module("sys", sys, ignored) &&
+      module_get_attr(sys, "pycache_prefix", prefix, ignored)) {
+    if (auto* prefix_string = value_as_string(prefix);
+        prefix_string != nullptr && !string_object_view(*prefix_string).empty()) {
+      auto absolute_source = std::filesystem::absolute(source_path).lexically_normal();
+      std::string root_name = absolute_source.root_name().string();
+      root_name.erase(std::remove(root_name.begin(), root_name.end(), ':'), root_name.end());
+      std::filesystem::path mirrored(string_object_view(*prefix_string));
+      if (!root_name.empty()) mirrored /= root_name;
+      mirrored /= absolute_source.relative_path().parent_path();
+      mirrored /= source_path.stem().string() + ".xlang3-314.pyc";
+      return mirrored.string();
+    }
+  }
   return (source_path.parent_path() / "__pycache__" /
           (source_path.stem().string() + ".xlang3-314.pyc")).string();
 }
@@ -201,9 +219,9 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
   std::string prefix = path_entry.substr(zip_pos + 4);
   while (!prefix.empty() && (prefix.front() == '/' || prefix.front() == '\\')) prefix.erase(prefix.begin());
   std::replace(prefix.begin(), prefix.end(), '\\', '/');
-  VfsStat stat;
+  VfsNodeKind kind = VfsNodeKind::Missing;
   std::string error;
-  if (!runtime.vfs().stat(archive_name, stat, error) || stat.kind != VfsNodeKind::File) {
+  if (!runtime.vfs().kind(archive_name, kind, error) || kind != VfsNodeKind::File) {
     return false;
   }
   const auto archive_string = python_path_string(archive_name);
@@ -351,6 +369,50 @@ Value cache_zip_path_importer(Runtime& runtime, const std::string& archive_path)
   return importer;
 }
 
+bool find_filesystem_module_in_directory(
+    Runtime& runtime,
+    const std::filesystem::path& directory,
+    const std::string& leaf,
+    ModuleFile& out,
+    std::vector<std::filesystem::path>& namespace_dirs) {
+  std::string error;
+  auto entries = runtime.python_import_directory_entries(directory.string(), error);
+  if (entries == nullptr) return false;
+
+  VfsNodeKind kind = VfsNodeKind::Missing;
+  auto use_file = [&](const std::filesystem::path& base,
+                      const std::shared_ptr<const std::unordered_set<std::string>>& available,
+                      const std::string& filename, bool bytecode, bool package) {
+    if (available->find(filename) == available->end()) return false;
+    const auto path = base / filename;
+    error.clear();
+    if (!runtime.vfs().kind(path.string(), kind, error) || kind != VfsNodeKind::File) return false;
+    out.path = python_path_string(path);
+    out.is_package = package;
+    out.is_namespace_package = false;
+    out.is_bytecode = bytecode;
+    out.package_dir = package ? python_path_string(base) : std::string();
+    return true;
+  };
+
+  if (use_file(directory, entries, leaf + ".py", false, false) ||
+      use_file(directory, entries, leaf + ".pyc", true, false)) {
+    return true;
+  }
+
+  if (entries->find(leaf) == entries->end()) return false;
+  const auto package_dir = directory / leaf;
+  auto package_entries = runtime.python_import_directory_entries(package_dir.string(), error);
+  if (package_entries == nullptr) return false;
+  if (use_file(package_dir, package_entries, "__init__.py", false, true) ||
+      use_file(package_dir, package_entries, "__init__.pyc", true, true)) {
+    out.package_dir = python_path_string(package_dir);
+    return true;
+  }
+  namespace_dirs.push_back(package_dir);
+  return false;
+}
+
 bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out) {
   const auto parts = split_module_name(name);
   const auto parent_name = parent_module_name(name);
@@ -398,45 +460,9 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             }
             continue;
           }
-          auto candidate_base = package_root / module_leaf_name(name);
-          auto candidate = candidate_base;
-          candidate += ".py";
-          VfsStat stat;
-          std::string error;
-          if (runtime.vfs().stat(candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-            out.path = python_path_string(candidate);
-            out.is_package = false;
-            out.package_dir.clear();
+          if (find_filesystem_module_in_directory(
+                  runtime, package_root, module_leaf_name(name), out, namespace_dirs)) {
             return true;
-          }
-          auto bytecode_candidate = candidate_base;
-          bytecode_candidate += ".pyc";
-          if (runtime.vfs().stat(bytecode_candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-            out.path = python_path_string(bytecode_candidate);
-            out.is_package = false;
-            out.is_bytecode = true;
-            out.package_dir.clear();
-            return true;
-          }
-          auto package_init = candidate_base / "__init__.py";
-          if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-            out.path = python_path_string(package_init);
-            out.package_dir = python_path_string(candidate_base);
-            out.is_package = true;
-            out.is_namespace_package = false;
-            return true;
-          }
-          auto package_bytecode = candidate_base / "__init__.pyc";
-          if (runtime.vfs().stat(package_bytecode.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-            out.path = python_path_string(package_bytecode);
-            out.package_dir = python_path_string(candidate_base);
-            out.is_package = true;
-            out.is_bytecode = true;
-            out.is_namespace_package = false;
-            return true;
-          }
-          if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
-            namespace_dirs.push_back(candidate_base);
           }
         }
         if (!parent_is_namespace) {
@@ -449,6 +475,16 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
   }
 
   std::vector<std::filesystem::path> roots;
+  std::unordered_set<std::string> root_keys;
+  auto append_root = [&](std::filesystem::path root) {
+    std::string key = root.lexically_normal().generic_string();
+#if defined(_WIN32)
+    std::transform(key.begin(), key.end(), key.begin(), [](unsigned char ch) {
+      return static_cast<char>(std::tolower(ch));
+    });
+#endif
+    if (root_keys.insert(std::move(key)).second) roots.push_back(std::move(root));
+  };
   Value sys;
   std::string ignored;
   if (runtime.import_module("sys", sys, ignored)) {
@@ -458,13 +494,13 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
         roots.reserve(list->items.size() + runtime.import_roots().size());
         for (const auto& item : list->items) {
           if (auto* string = value_as_string(item)) {
-            roots.emplace_back(string_object_view(*string));
+            append_root(std::filesystem::path(string_object_view(*string)));
           }
         }
       }
     }
   }
-  roots.insert(roots.end(), runtime.import_roots().begin(), runtime.import_roots().end());
+  for (const auto& root : runtime.import_roots()) append_root(root);
 
   for (auto root : roots) {
     if (root.empty()) {
@@ -481,53 +517,11 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
       }
       continue;
     }
-    auto candidate_base = root;
-    for (const auto& part : parts) {
-      candidate_base /= part;
-    }
-
-    auto candidate = candidate_base;
-    candidate += ".py";
-    VfsStat stat;
-    std::string error;
-    if (runtime.vfs().stat(candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-      out.path = python_path_string(candidate);
-      out.is_package = false;
-      out.package_dir.clear();
+    auto search_directory = root;
+    for (size_t i = 0; i + 1 < parts.size(); ++i) search_directory /= parts[i];
+    if (find_filesystem_module_in_directory(
+            runtime, search_directory, parts.back(), out, namespace_dirs)) {
       return true;
-    }
-
-    auto bytecode_candidate = candidate_base;
-    bytecode_candidate += ".pyc";
-    if (runtime.vfs().stat(bytecode_candidate.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-      out.path = python_path_string(bytecode_candidate);
-      out.is_package = false;
-      out.is_bytecode = true;
-      out.package_dir.clear();
-      return true;
-    }
-
-    auto package_init = candidate_base / "__init__.py";
-    if (runtime.vfs().stat(package_init.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-      out.path = python_path_string(package_init);
-      out.package_dir = python_path_string(candidate_base);
-      out.is_package = true;
-      out.is_namespace_package = false;
-      return true;
-    }
-
-    auto package_bytecode = candidate_base / "__init__.pyc";
-    if (runtime.vfs().stat(package_bytecode.string(), stat, error) && stat.kind == VfsNodeKind::File) {
-      out.path = python_path_string(package_bytecode);
-      out.package_dir = python_path_string(candidate_base);
-      out.is_package = true;
-      out.is_bytecode = true;
-      out.is_namespace_package = false;
-      return true;
-    }
-
-    if (runtime.vfs().stat(candidate_base.string(), stat, error) && stat.kind == VfsNodeKind::Directory) {
-      namespace_dirs.push_back(candidate_base);
     }
   }
   if (!namespace_dirs.empty()) {
@@ -591,6 +585,24 @@ void append_pyc_u32(std::string& data, uint32_t value) {
   }
 }
 
+bool read_current_source_bytecode_cache(
+    Runtime& runtime,
+    const std::string& source_path,
+    std::string& bytecode) {
+  std::string ignored;
+  const std::string cache_path = bytecode_cache_path(runtime, source_path);
+  if (!read_file(runtime, cache_path, bytecode, ignored) || bytecode.size() < 16 ||
+      bytecode.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0 ||
+      zip_pyc_u32(bytecode, 4) != 0) {
+    return false;
+  }
+  VfsStat source_stat;
+  if (!runtime.vfs().stat(source_path, source_stat, ignored)) return false;
+  return zip_pyc_u32(bytecode, 8) ==
+             static_cast<uint32_t>(source_stat.mtime_ns / 1000000000ll) &&
+         zip_pyc_u32(bytecode, 12) == static_cast<uint32_t>(source_stat.size);
+}
+
 void write_source_bytecode_cache(
     Runtime& runtime,
     const ModuleFile& module_file,
@@ -631,7 +643,7 @@ void write_source_bytecode_cache(
   append_pyc_u32(pyc, static_cast<uint32_t>(stat.size));
   pyc.append(bytes_object_view(*marshaled_bytes));
 
-  const std::filesystem::path cache_path(bytecode_cache_path(module_file.path));
+  const std::filesystem::path cache_path(bytecode_cache_path(runtime, module_file.path));
   const std::filesystem::path cache_dir = cache_path.parent_path();
   if (!runtime.vfs().make_dirs(cache_dir.string(), true, ignored)) {
     return;
@@ -679,14 +691,18 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     }
   }
 
-  const std::string miss_key = python_import_miss_key(runtime, name);
-  if (runtime.has_python_import_miss(miss_key)) {
-    error = "module '" + name + "' not found";
-    return false;
+  std::string miss_key;
+  if (runtime.may_have_python_import_miss(name)) {
+    miss_key = python_import_miss_key(runtime, name);
+    if (runtime.has_python_import_miss(miss_key)) {
+      error = "module '" + name + "' not found";
+      return false;
+    }
   }
   ModuleFile module_file;
   if (!find_module_file(runtime, name, module_file)) {
-    runtime.remember_python_import_miss(miss_key);
+    if (miss_key.empty()) miss_key = python_import_miss_key(runtime, name);
+    runtime.remember_python_import_miss(name, std::move(miss_key));
     error = "module '" + name + "' not found";
     return false;
   }
@@ -733,10 +749,21 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   }
 
   std::string source = module_file.source;
-  if (!module_file.is_zip_source && !read_file(runtime, module_file.path, source, error)) {
-    return false;
+  bool using_bytecode = module_file.is_bytecode;
+  if (!module_file.is_zip_source) {
+    if (!using_bytecode) {
+      std::string cached_bytecode;
+      if (read_current_source_bytecode_cache(runtime, module_file.path, cached_bytecode)) {
+        source = std::move(cached_bytecode);
+        using_bytecode = true;
+      } else if (!read_file(runtime, module_file.path, source, error)) {
+        return false;
+      }
+    } else if (!read_file(runtime, module_file.path, source, error)) {
+      return false;
+    }
   }
-  if (!module_file.is_bytecode) {
+  if (!using_bytecode) {
     std::string decoded_source;
     if (!runtime.decode_python_source(source, decoded_source, error)) {
       error = "cannot decode module '" + name + "': " + error;
@@ -753,7 +780,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   module_set_attr(
       module_value,
       "__cached__",
-      Value::string(module_file.is_bytecode ? module_file.path : bytecode_cache_path(module_file.path)),
+      Value::string(module_file.is_bytecode ? module_file.path : bytecode_cache_path(runtime, module_file.path)),
       attr_error);
   module_set_attr(module_value, "__package__", Value::string(module_file.is_package ? name : parent_name), attr_error);
   module_set_attr(module_value, "__annotations__", Value::dict({}), attr_error);
@@ -769,7 +796,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   }
 
   std::shared_ptr<const ir::Module> module_ir;
-  if (module_file.is_bytecode) {
+  if (using_bytecode) {
     if (source.size() < 16 || source.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0) {
       error = "bad magic number in bytecode file '" + module_file.path + "'";
       if (module_file.is_zip_source) {
@@ -777,22 +804,26 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
       }
       return false;
     }
-    Value marshal_module;
-    Value loads;
-    Value code_value;
-    Value payload = Value::bytes(source.substr(16));
-    if (!runtime.import_module("marshal", marshal_module, error) ||
-        !module_get_attr(marshal_module, "loads", loads, error) ||
-        !runtime_call_callable(runtime, loads, &payload, 1, code_value, error)) {
-      return false;
+    if (!marshal_load_code_module(runtime, std::string_view(source).substr(16), module_ir, error)) {
+      // A cache beside a current source file can outlive the XLang IR format
+      // that produced it. Recompile that source once and replace the cache;
+      // explicit .pyc-only modules still report their decode error.
+      if (module_file.is_bytecode || module_file.is_zip_source) {
+        return false;
+      }
+      std::string source_text;
+      error.clear();
+      if (!read_file(runtime, module_file.path, source_text, error)) {
+        return false;
+      }
+      if (!runtime.decode_python_source(source_text, source, error)) {
+        error = "cannot decode module '" + name + "': " + error;
+        return false;
+      }
+      using_bytecode = false;
     }
-    auto* code = value_as_code(code_value);
-    if (code == nullptr || code->module == nullptr) {
-      error = "bytecode file does not contain a code object";
-      return false;
-    }
-    module_ir = code->module;
-  } else {
+  }
+  if (!using_bytecode) {
     trace_import_timing(name, "parse-begin", import_start);
     auto parsed = parse_source(source);
     trace_import_timing(name, "parse-end", import_start);
@@ -826,7 +857,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
     return false;
   }
 
-  if (!module_file.is_bytecode) {
+  if (!using_bytecode) {
     write_source_bytecode_cache(runtime, module_file, module_ir);
   }
 

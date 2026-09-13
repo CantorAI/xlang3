@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/unicode_data.h"
+#include "xlang3/value.h"
 
 #include <algorithm>
 #include <array>
@@ -22,58 +24,14 @@ limitations under the License.
 namespace xlang3 {
 
 bool unicodedata_lookup_codepoint(std::string_view name, uint32_t& codepoint) {
-  struct UnicodeName {
-    std::string_view name;
-    uint32_t codepoint;
-  };
-  static constexpr std::array<UnicodeName, 33> names{{
-      {"SPACE", 0x0020},
-      {"DIGIT ZERO", 0x0030},
-      {"DIGIT ONE", 0x0031},
-      {"DIGIT TWO", 0x0032},
-      {"DIGIT THREE", 0x0033},
-      {"DIGIT FOUR", 0x0034},
-      {"DIGIT FIVE", 0x0035},
-      {"DIGIT SIX", 0x0036},
-      {"DIGIT SEVEN", 0x0037},
-      {"DIGIT EIGHT", 0x0038},
-      {"DIGIT NINE", 0x0039},
-      {"LESS-THAN SIGN", 0x003c},
-      {"GREATER-THAN SIGN", 0x003e},
-      {"LATIN CAPITAL LETTER A", 0x0041},
-      {"LATIN SMALL LETTER A", 0x0061},
-      {"NO-BREAK SPACE", 0x00a0},
-      {"SUPERSCRIPT TWO", 0x00b2},
-      {"VULGAR FRACTION THREE QUARTERS", 0x00be},
-      {"LATIN CAPITAL LETTER A WITH DIAERESIS", 0x00c4},
-      {"LATIN CAPITAL LETTER A WITH RING ABOVE", 0x00c5},
-      {"LATIN SMALL LETTER E WITH ACUTE", 0x00e9},
-      {"COMBINING ACUTE ACCENT", 0x0301},
-      {"COMBINING RING ABOVE", 0x030a},
-      {"GREEK CAPITAL LETTER OMEGA", 0x03a9},
-      {"GREEK SMALL LETTER ALPHA", 0x03b1},
-      {"NARROW NO-BREAK SPACE", 0x202f},
-      {"FRACTION SLASH", 0x2044},
-      {"ANGSTROM SIGN", 0x212b},
-      {"ROMAN NUMERAL FOUR", 0x2163},
-      {"CJK UNIFIED IDEOGRAPH-4E2D", 0x4e2d},
-      {"ARABIC LIGATURE UIGHUR KIRGHIZ YEH WITH HAMZA ABOVE WITH ALEF MAKSURA ISOLATED FORM", 0xfbf9},
-      {"SNAKE", 0x1f40d},
-      {"SLIGHTLY SMILING FACE", 0x1f642},
-  }};
-  std::string canonical(name);
-  std::transform(canonical.begin(), canonical.end(), canonical.begin(), [](unsigned char ch) {
-    return static_cast<char>(std::toupper(ch));
-  });
-  if (canonical == "LINE FEED" || canonical == "LF") {
-    codepoint = 0x000a;
-    return true;
+  std::string value;
+  if (!unicode_data_lookup(name, value) || utf8_codepoint_count(value) != 1) return false;
+  const size_t width = utf8_codepoint_width(static_cast<unsigned char>(value[0]));
+  codepoint = width == 1 ? static_cast<unsigned char>(value[0]) :
+      static_cast<unsigned char>(value[0]) & ((1u << (7 - width)) - 1u);
+  for (size_t index = 1; index < width; ++index) {
+    codepoint = (codepoint << 6) | (static_cast<unsigned char>(value[index]) & 0x3fu);
   }
-  const auto found = std::find_if(names.begin(), names.end(), [&](const UnicodeName& entry) {
-    return entry.name == canonical;
-  });
-  if (found == names.end()) return false;
-  codepoint = found->codepoint;
   return true;
 }
 

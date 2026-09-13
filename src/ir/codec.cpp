@@ -25,7 +25,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 15;
+constexpr uint32_t kVersion = 33;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -40,6 +40,7 @@ enum class ConstTag : uint8_t {
   Tuple = 8,
   Invalid = 9,
   Complex = 10,
+  TypeParam = 11,
 };
 
 struct Writer {
@@ -592,15 +593,19 @@ bool write_value(Writer& w, const Value& value, std::string& error, uint32_t dep
         w.u8(static_cast<uint8_t>(ConstTag::String));
         return w.string(string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj)), error);
       }
-        if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Expression) {
-          std::string bytes;
-          if (!encode_expression(value, bytes, error)) return false;
-          w.u8(static_cast<uint8_t>(ConstTag::Expression));
-          return w.string(bytes, error);
-        }
-        if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Expression) {
+        std::string bytes;
+        if (!encode_expression(value, bytes, error)) return false;
+        w.u8(static_cast<uint8_t>(ConstTag::Expression));
+        return w.string(bytes, error);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         w.u8(static_cast<uint8_t>(ConstTag::Bytes));
         return w.string(bytes_object_to_string(*reinterpret_cast<BytesObject*>(value.as.obj)), error);
+      }
+      if (auto* type_param = value_as_type_param(value)) {
+        w.u8(static_cast<uint8_t>(ConstTag::TypeParam));
+        return w.string(type_param->name, error);
       }
       break;
     default:
@@ -662,6 +667,12 @@ bool read_value(Reader& r, Value& value, uint32_t depth = 0) {
       double imag = 0.0;
       if (!r.f64(real) || !r.f64(imag)) return false;
       value = Value::complex(real, imag);
+      return true;
+    }
+    case ConstTag::TypeParam: {
+      std::string name;
+      if (!r.string(name)) return false;
+      value = Value::type_param(std::move(name));
       return true;
     }
     case ConstTag::String: {

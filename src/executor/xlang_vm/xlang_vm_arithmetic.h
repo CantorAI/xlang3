@@ -353,6 +353,23 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_shift_right(const Value& lhs, const Value& 
 }
 
 XLANG3_HOT_INLINE bool xlang_vm_fast_compare(ir::CompareOp op, const Value& lhs, const Value& rhs, Value& out) {
+  auto* lhs_string = value_as_string(lhs);
+  auto* rhs_string = value_as_string(rhs);
+  if (lhs_string != nullptr && rhs_string != nullptr) {
+    const auto a = string_object_view(*lhs_string);
+    const auto b = string_object_view(*rhs_string);
+    bool compare_result = false;
+    switch (op) {
+      case ir::CompareOp::Eq: compare_result = a == b; break;
+      case ir::CompareOp::Ne: compare_result = a != b; break;
+      case ir::CompareOp::Lt: compare_result = a < b; break;
+      case ir::CompareOp::Le: compare_result = a <= b; break;
+      case ir::CompareOp::Gt: compare_result = a > b; break;
+      case ir::CompareOp::Ge: compare_result = a >= b; break;
+    }
+    value_set_bool(out, compare_result);
+    return true;
+  }
   if (!xlang_vm_value_is_number(lhs) || !xlang_vm_value_is_number(rhs)) {
     return false;
   }

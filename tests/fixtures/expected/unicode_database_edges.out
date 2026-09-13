@@ -1,0 +1,77 @@
+unicode-version 16.0.0
+0x0 None Cc BN 0 N 0 None None None  False False False False False False False False False False False False
+0xa None Cc B 0 N 0 None None None  False False False False False False False False True False False False
+0x20 SPACE Zs WS 0 Na 0 None None None  False False False False False False False False True True False False
+0x41 LATIN CAPITAL LETTER A Lu L 0 Na 0 None None None  False True True True False False False True False True True True
+0x5f LOW LINE Pc ON 0 Na 0 None None None  False False False False False False False False False True True True
+0xb2 SUPERSCRIPT TWO No EN 0 A 0 None 2 2.0 <super> 0032 False False False False True False True True False True False False
+0xdf LATIN SMALL LETTER SHARP S Ll L 0 A 0 None None None  True False False True False False False True False True True True
+0x130 LATIN CAPITAL LETTER I WITH DOT ABOVE Lu L 0 N 0 None None None 0049 0307 False True True True False False False True False True True True
+0x1c5 LATIN CAPITAL LETTER D WITH SMALL LETTER Z WITH CARON Lt L 0 N 0 None None None <compat> 0044 017E False False True True False False False True False True True True
+0x301 COMBINING ACUTE ACCENT Mn NSM 230 A 0 None None None  False False False False False False False False False True False True
+0x345 COMBINING GREEK YPOGEGRAMMENI Mn NSM 240 A 0 None None None  True False False False False False False False False True False True
+0x3a3 GREEK CAPITAL LETTER SIGMA Lu L 0 A 0 None None None  False True True True False False False True False True True True
+0x3c2 GREEK SMALL LETTER FINAL SIGMA Ll L 0 N 0 None None None  True False False True False False False True False True True True
+0x5d0 HEBREW LETTER ALEF Lo R 0 N 0 None None None  False False False True False False False True False True True True
+0x660 ARABIC-INDIC DIGIT ZERO Nd AN 0 N 0 0 0 0.0  False False False False True True True True False True False True
+0x1680 OGHAM SPACE MARK Zs WS 0 N 0 None None None  False False False False False False False False True False False False
+0x200b ZERO WIDTH SPACE Cf BN 0 N 0 None None None  False False False False False False False False False False False False
+0x2028 LINE SEPARATOR Zl WS 0 N 0 None None None  False False False False False False False False True False False False
+0x20ac EURO SIGN Sc ET 0 A 0 None None None  False False False False False False False False False True False False
+0x212a KELVIN SIGN Lu L 0 N 0 None None None 004B False True True True False False False True False True True True
+0x2163 ROMAN NUMERAL FOUR Nl L 0 A 0 None None 4.0 <compat> 0049 0056 False True True False False False True True False True True True
+0x24d0 CIRCLED LATIN SMALL LETTER A So L 0 A 0 None None None <circle> 0061 True False False False False False False False False True False False
+0x4e00 CJK UNIFIED IDEOGRAPH-4E00 Lo L 0 W 0 None None 1.0  False False False True False False True True False True True True
+0xac00 HANGUL SYLLABLE GA Lo L 0 W 0 None None None 1100 1161 False False False True False False False True False True True True
+0xfb03 LATIN SMALL LIGATURE FFI Ll L 0 N 0 None None None <compat> 0066 0066 0069 True False False True False False False True False True True True
+0x10400 DESERET CAPITAL LETTER LONG I Lu L 0 N 0 None None None  False True True True False False False True False True True True
+0x10428 DESERET SMALL LETTER LONG I Ll L 0 N 0 None None None  True False False True False False False True False True True True
+0x1d7d8 MATHEMATICAL DOUBLE-STRUCK DIGIT ZERO Nd EN 0 N 0 0 0 0.0 <font> 0030 False False False False True True True True False True False True
+0x1f600 GRINNING FACE So ON 0 W 0 None None None  False False False False False False False False False True False False
+0x31350 CJK UNIFIED IDEOGRAPH-31350 Lo L 0 W 0 None None None  False False False True False False False True False True True True
+0x10ffff None Cn  0 N 0 None None None  False False False False False False False False False False False False
+lookup latin small letter sharp s ['0xdf']
+lookup LF ['0xa']
+lookup BYTE ORDER MARK ['0xfeff']
+lookup HANGUL SYLLABLE GAG ['0xac01']
+lookup CJK UNIFIED IDEOGRAPH-31350 ['0x31350']
+lookup KEYCAP NUMBER SIGN ['0x23', '0xfe0f', '0x20e3']
+case [83, 116, 114, 97, 223, 101] [115, 116, 114, 97, 223, 101] [83, 84, 82, 65, 83, 83, 69] [83, 116, 114, 97, 223, 101] [83, 116, 114, 97, 223, 101] [115, 84, 82, 65, 83, 83, 69] [115, 116, 114, 97, 115, 115, 101] True
+case [304, 83, 84, 65, 78, 66, 85, 76] [105, 775, 115, 116, 97, 110, 98, 117, 108] [304, 83, 84, 65, 78, 66, 85, 76] [304, 115, 116, 97, 110, 98, 117, 108] [304, 115, 116, 97, 110, 98, 117, 108] [105, 775, 115, 116, 97, 110, 98, 117, 108] [105, 775, 115, 116, 97, 110, 98, 117, 108] False
+case [927, 931] [959, 962] [927, 931] [927, 962] [927, 962] [959, 962] [959, 963] False
+case [927, 931, 913] [959, 963, 945] [927, 931, 913] [927, 963, 945] [927, 963, 945] [959, 963, 945] [959, 963, 945] False
+case [65, 931] [97, 962] [65, 931] [65, 962] [65, 962] [97, 962] [97, 963] False
+case [65, 931, 769] [97, 962, 769] [65, 931, 769] [65, 962, 769] [65, 962, 769] [97, 962, 769] [97, 963, 769] False
+case [499, 117, 114, 111] [499, 117, 114, 111] [497, 85, 82, 79] [498, 117, 114, 111] [498, 117, 114, 111] [497, 85, 82, 79] [499, 117, 114, 111] False
+case [64259, 32, 116, 101, 115, 116] [64259, 32, 116, 101, 115, 116] [70, 70, 73, 32, 84, 69, 83, 84] [70, 102, 105, 32, 84, 101, 115, 116] [70, 102, 105, 32, 116, 101, 115, 116] [70, 70, 73, 32, 84, 69, 83, 84] [102, 102, 105, 32, 116, 101, 115, 116] False
+case [116, 104, 101, 121, 39, 114, 101] [116, 104, 101, 121, 39, 114, 101] [84, 72, 69, 89, 39, 82, 69] [84, 104, 101, 121, 39, 82, 101] [84, 104, 101, 121, 39, 114, 101] [84, 72, 69, 89, 39, 82, 69] [116, 104, 101, 121, 39, 114, 101] False
+case [8114] [8114] [8122, 921] [8122, 837] [8122, 837] [8122, 921] [8048, 953] False
+normalize NFC [197, 32, 233, 32, 197, 32, 44032, 32, 44032, 32, 64259, 32, 8547, 32, 119127, 119141] True
+normalize NFD [65, 778, 32, 101, 769, 32, 65, 778, 32, 4352, 4449, 32, 4352, 4449, 32, 64259, 32, 8547, 32, 119127, 119141] True
+normalize NFKC [197, 32, 233, 32, 197, 32, 44032, 32, 44032, 32, 102, 102, 105, 32, 73, 86, 32, 119127, 119141] True
+normalize NFKD [65, 778, 32, 101, 769, 32, 65, 778, 32, 4352, 4449, 32, 4352, 4449, 32, 102, 102, 105, 32, 73, 86, 32, 119127, 119141] True
+normalize-form-case True
+legacy-version 3.2.0
+legacy-property 0x41 LATIN CAPITAL LETTER A Lu L 0 Na 0 None None None 
+legacy-property 0x3f9 None Cn  0 N 0 None None None 
+legacy-property 0x221 None Cn  0 N 0 None None None 
+legacy-property 0x20ac EURO SIGN Sc ET 0 A 0 None None None 
+legacy-property 0x20000 CJK UNIFIED IDEOGRAPH-20000 Lo L 0 W 0 None None None 
+legacy-property 0x2fa1d CJK COMPATIBILITY IDEOGRAPH-2FA1D Lo L 0 W 0 None None None 2A600
+legacy-lookup TAMIL OM [3024]
+legacy-lookup GRINNING FACE [128512]
+legacy-lookup CJK UNIFIED IDEOGRAPH-20000 [131072]
+legacy-rejects-modern-alias True
+legacy-correction 0x2f868 36FC [136042]
+legacy-correction 0x2f874 5F53 [24371]
+legacy-correction 0x2f91f 243AB [17323]
+legacy-correction 0x2f95f 7AEE [31406]
+legacy-correction 0x2f9bf 45D7 [19799]
+unicode-boundary [120] [[120]] [[120]] [[160, 120, 8195]]
+unicode-boundary [97, 8232, 98, 8287, 99] [[97], [98], [99]] [[5760, 97, 8232, 98], [99]] [[5760, 97, 8232], [98, 8287, 99]]
+unicode-boundary [97, 98, 99] [[30028, 97, 98, 99, 30028]] [[30028, 97, 98, 99, 30028]] [[30028, 97, 98, 99, 30028]]
+unicode-padding 2 [30028, 97] [30028, 97] [30028, 97] [43, 30028, 97] 3
+unicode-padding 3 [32, 30028, 97] [30028, 97, 233] [128578, 30028, 97] [43, 30028, 97] 3
+unicode-padding 4 [32, 30028, 97, 32] [30028, 97, 233, 233] [128578, 128578, 30028, 97] [43, 48, 30028, 97] 3
+unicode-padding 5 [32, 32, 30028, 97, 32] [30028, 97, 233, 233, 233] [128578, 128578, 128578, 30028, 97] [43, 48, 48, 30028, 97] 3
+codec-alias-catalog 441 ['csHPRoman8']

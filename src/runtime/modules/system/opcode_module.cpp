@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/builtin_methods.h"
 #include "xlang3/module_object.h"
 
 #include <algorithm>
@@ -90,13 +91,13 @@ void register_opcode_module(Runtime& runtime) {
   private_builder.value("ENABLE_SPECIALIZATION", Value::boolean(false))
       .value("ENABLE_SPECIALIZATION_FT", Value::boolean(false))
       .function("stack_effect", opcode_zero)
-      .function("has_arg", opcode_has_arg)
-      .function("has_const", opcode_has_const)
-      .function("has_name", opcode_has_name)
-      .function("has_jump", opcode_has_jump)
-      .function("has_free", opcode_has_free)
-      .function("has_local", opcode_has_local)
-      .function("has_exc", opcode_has_exc)
+      .function("has_arg", opcode_has_arg, builtin_fast_adapter<opcode_has_arg, 1>)
+      .function("has_const", opcode_has_const, builtin_fast_adapter<opcode_has_const, 1>)
+      .function("has_name", opcode_has_name, builtin_fast_adapter<opcode_has_name, 1>)
+      .function("has_jump", opcode_has_jump, builtin_fast_adapter<opcode_has_jump, 1>)
+      .function("has_free", opcode_has_free, builtin_fast_adapter<opcode_has_free, 1>)
+      .function("has_local", opcode_has_local, builtin_fast_adapter<opcode_has_local, 1>)
+      .function("has_exc", opcode_has_exc, builtin_fast_adapter<opcode_has_exc, 1>)
       .function("get_intrinsic1_descs", opcode_empty_list)
       .function("get_intrinsic2_descs", opcode_empty_list)
       .function("get_special_method_names", opcode_empty_list)

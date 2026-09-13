@@ -122,6 +122,27 @@ const char* op_name(Op op) {
     case Op::Return: return "Return";
     case Op::CaptureExpressions: return "CaptureExpressions";
     case Op::SetException: return "SetException";
+    case Op::InplaceAdd: return "InplaceAdd";
+    case Op::InplaceAddLocalConst: return "InplaceAddLocalConst";
+    case Op::LoadLocalInstanceSlot: return "LoadLocalInstanceSlot";
+    case Op::StoreLocalInstanceSlot: return "StoreLocalInstanceSlot";
+    case Op::LoadLocalPair: return "LoadLocalPair";
+    case Op::LoadLocalConst: return "LoadLocalConst";
+    case Op::LoadConstPair: return "LoadConstPair";
+    case Op::StoreLocalLoadLocal: return "StoreLocalLoadLocal";
+    case Op::JumpIfFalseLoadLocal: return "JumpIfFalseLoadLocal";
+    case Op::LoadLocalAttr: return "LoadLocalAttr";
+    case Op::CallLocal: return "CallLocal";
+    case Op::CallLocalMethod: return "CallLocalMethod";
+    case Op::CompareJumpIfFalse: return "CompareJumpIfFalse";
+    case Op::IsJumpIfFalse: return "IsJumpIfFalse";
+    case Op::MoveJumpIfFalse: return "MoveJumpIfFalse";
+    case Op::StoreLocalPair: return "StoreLocalPair";
+    case Op::MoveJumpIfTrue: return "MoveJumpIfTrue";
+    case Op::ReturnConst: return "ReturnConst";
+    case Op::ReturnLocal: return "ReturnLocal";
+    case Op::LoadLocalGlobal: return "LoadLocalGlobal";
+    case Op::LoadGlobalLocal: return "LoadGlobalLocal";
   }
   return "Unknown";
 }
